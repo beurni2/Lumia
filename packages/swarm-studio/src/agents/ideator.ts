@@ -131,10 +131,21 @@ function projectBriefFingerprint(twin: StyleFingerprint, trend: RegionalTrend): 
     ]),
   );
 
-  // 3. Timbre axis — perturbation amplitude scales with vocab distance, so
-  //    trends whose vocabulary is far from the Twin's also nudge timbre away.
+  // 3. Timbre axis — perturbation per trend.
+  //    Three sources of drift:
+  //      a) (1 - vocab_overlap) — when the user's tokens cover the trend, the
+  //         Twin clones it cleanly; off-vocabulary trends drift harder.
+  //      b) hookSnappiness — short hooks demand pacing departures.
+  //      c) trend-id hash — different trends genuinely differ from each
+  //         other. Without this term, two trends with the same vocab overlap
+  //         and hook length would produce identical scores, making the
+  //         per-brief affinity pill uninformative.
+  //    Calibrated so worst-case drift pushes voice similarity below
+  //    AUDIO_MATCH_GATE (0.95) and best-case keeps it ≥ 0.99.
   const overlap = jaccard([...twin.vocabulary.tokens], trendTokens);
-  const timbreDrift = (1 - overlap) * 0.18; // 0.0 (perfect overlap) … 0.18 (none)
+  const trendBias = (hash(trend.id) >>> 0) / 0xffffffff; // [0,1)
+  const timbreDrift =
+    (1 - overlap) * 0.04 + hookSnappiness * 0.02 + trendBias * 0.06;
   const timbre = twin.voice.timbreVector.map((v, i) => {
     const noise = ((i * 2654435761) >>> 0) / 0xffffffff - 0.5;
     return v + noise * timbreDrift;
