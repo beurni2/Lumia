@@ -39,18 +39,20 @@ Vision document and contribution checklist reviewed by a contributor from each t
 
 ## Sprint 1 — Personal Style Twin MVP *(weeks 1–2)*
 
+> **Phase 1 (Replit-compatible) — COMPLETE.** Mock pipeline, encrypted storage, similarity gates, vector memory, and full upload→train→preview UX all shipped and verified in Expo Go. Phase 2 (real on-device inference) requires a custom EAS dev build — see [`packages/style-twin/IMPLEMENTATION_PLAN.md`](packages/style-twin/IMPLEMENTATION_PLAN.md); next required step is the EAS dev-build runbook (install `react-native-executorch`, quantize + bundle the three `.pte` model files, wire `inferenceFactory.ts`).
+
 **Objective:** ship the first irreversible moat — a 99.8% voice/aesthetic clone built from a one-time 10-video upload, encrypted and stored on-device.
 
 ### Acceptance Criteria
 
-- [x] **`@workspace/style-twin` package** — types, `InferenceAdapter` interface, `MockInferenceAdapter` (Expo Go), `ExecuTorchInferenceAdapter` stub, pluggable encrypted storage, scoped consent grants, `train()` / `retrain()` pipelines.
+- [x] **`@workspace/style-twin` package** — types, `InferenceAdapter` interface, `MockInferenceAdapter` (Expo Go), `ExecuTorchInferenceAdapter` skeleton with dynamic runtime shim, pluggable encrypted storage, scoped consent grants, `train()` / `retrain()` pipelines, `similarity()` + `verifyMatch()` with `AUDIO_MATCH_GATE = 0.95` and `HEADLINE_MATCH_TARGET = 0.998`, encrypted vector memory with kNN.
 - [x] **Style Twin Profile screen** — live fingerprint preview (palette, pacing, color temp, framing), train/retrain CTA, confirm-gated wipe.
 - [x] **Onboarding flow:** 10-video upload screen with consent gate (retrain mode requires only 1 sample).
 - [x] **Style Twin storage:** encrypted at rest via `expo-secure-store` (iOS Keychain / Android Keystore). Zero cloud egress.
 - [x] **Retrain pipeline:** incremental fingerprint merge.
-- [ ] **`ExecuTorchInferenceAdapter`** — wired against quantized Llama 3.2 11B Vision + Whisper-tiny + TitaNet-small in a custom EAS dev build.
-- [ ] **On-device feature extraction (real):** voice timbre, pacing, vocabulary fingerprint, color palette, framing patterns, motion signature — replacing the deterministic mock.
-- [ ] **Privacy audit:** packet-capture proof that no raw audio/video crosses the network during onboarding or retraining.
+- [ ] **`ExecuTorchInferenceAdapter` (Phase 2)** — wired against quantized Llama 3.2 11B Vision + Whisper-tiny + TitaNet-small in a custom EAS dev build.
+- [ ] **On-device feature extraction (Phase 2):** voice timbre, pacing, vocabulary fingerprint, color palette, framing patterns, motion signature — replacing the deterministic mock.
+- [ ] **Privacy audit (Phase 2):** packet-capture proof that no raw audio/video crosses the network during onboarding or retraining.
 
 ### Tests
 
