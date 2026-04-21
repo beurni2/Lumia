@@ -2,12 +2,12 @@
 
 # Lumina
 
-### Your invisible, always-on creative empire.
+### The only app that works for you while you live your life.
 
-**The world's first autonomous GenAI creative swarm that turns every 1K–50K follower micro-creator in Southeast Asia and Latin America into a full-time, self-monetizing viral sensation — while they live their life.**
+**Lumina is the world's first autonomous GenAI creative swarm that instantly transforms every 1K–50K follower micro-creator in Southeast Asia and Latin America into a full-time, self-monetizing viral sensation — turning raw ideas, hyper-local trends, and personal cultural flair into scroll-stopping short-form videos that autonomously create, post, A/B test, negotiate deals, and deposit earnings while you live your life.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-c084fc.svg)](LICENSE)
-[![Status: Sprint 0](https://img.shields.io/badge/status-Sprint%200%20%C2%B7%20Vision%20Lock-ff8da1)](ROADMAP.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-c084fc.svg)](LICENSE.md)
+[![Status: Sprint 0 · Vision Lock](https://img.shields.io/badge/sprint-0%20%C2%B7%20vision%20lock-ff8da1)](ROADMAP.md)
 [![Built for: SEA + LATAM](https://img.shields.io/badge/built%20for-SEA%20%2B%20LATAM-a855f7)](#who-its-for)
 [![Privacy: On-device first](https://img.shields.io/badge/privacy-on--device%20first-0a0820)](ARCHITECTURE.md)
 
@@ -15,9 +15,11 @@
 
 ---
 
-## The Magic Sentence
+## The 1000× Elevated Vision
 
-> Lumina is a privacy-first swarm of specialized AI agents that lives entirely inside your phone and operates like the world's highest-paid content team — Hollywood director, growth analyst, brand strategist, and deal-closer fused into one delightful partner that creates, posts, A/B tests, negotiates deals, and deposits earnings while you sleep.
+> Lumina is **not an app**. It is your invisible, always-on creative empire — a privacy-first swarm of specialized AI agents that lives entirely inside your phone and operates like the world's highest-paid content team, Hollywood director, growth analyst, brand strategist, and deal-closer fused into one delightful partner.
+
+**Positioning:** *The only app that works for you while you live your life.*
 
 ## Who It's For
 
@@ -137,4 +139,4 @@ Be the kind of collaborator Maria and Rian deserve: kind, direct, and ruthlessly
 
 ## License
 
-[MIT](LICENSE) © Lumina contributors.
+[MIT](LICENSE.md) © Lumina contributors.

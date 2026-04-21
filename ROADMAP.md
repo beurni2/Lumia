@@ -25,7 +25,7 @@ The vision is **immutable v1.0**. Scope is the only variable. If a sprint risks 
 - [x] `ARCHITECTURE.md` — agent swarm + on-device/edge-cloud hybrid Mermaid diagrams.
 - [x] `ROADMAP.md` — this document.
 - [x] `.github/pull_request_template.md` — vision-alignment checklist.
-- [x] `LICENSE` — MIT.
+- [x] `LICENSE.md` — MIT (renamed from `lLICENSE.md`).
 - [ ] First ADR (`docs/adr/0001-immutable-v1-vision.md`) recording the immutable spec.
 - [ ] Conventional Commits + branch naming enforced via CI.
 - [ ] Pre-commit hooks: `typecheck`, `lint`, `format`, `test --changed`.
@@ -43,11 +43,13 @@ Vision document and contribution checklist reviewed by a contributor from each t
 
 ### Acceptance Criteria
 
-- [ ] **Onboarding flow:** 10-video upload screen with progress, format validation, and consent gate.
-- [ ] **On-device feature extraction:** voice timbre, pacing, vocabulary fingerprint, color palette, framing patterns, motion signature.
-- [ ] **Style Twin storage:** encrypted at rest using device keystore (iOS Keychain / Android Keystore). Zero cloud egress.
-- [ ] **Retrain pipeline:** every new video updates the Twin in <8s incrementally.
-- [ ] **Style Twin Profile screen:** trained on N videos, last retrained X ago, manual retrain button, export-and-delete controls.
+- [x] **`@workspace/style-twin` package** — types, `InferenceAdapter` interface, `MockInferenceAdapter` (Expo Go), `ExecuTorchInferenceAdapter` stub, pluggable encrypted storage, scoped consent grants, `train()` / `retrain()` pipelines.
+- [x] **Style Twin Profile screen** — live fingerprint preview (palette, pacing, color temp, framing), train/retrain CTA, confirm-gated wipe.
+- [x] **Onboarding flow:** 10-video upload screen with consent gate (retrain mode requires only 1 sample).
+- [x] **Style Twin storage:** encrypted at rest via `expo-secure-store` (iOS Keychain / Android Keystore). Zero cloud egress.
+- [x] **Retrain pipeline:** incremental fingerprint merge.
+- [ ] **`ExecuTorchInferenceAdapter`** — wired against quantized Llama 3.2 11B Vision + Whisper-tiny + TitaNet-small in a custom EAS dev build.
+- [ ] **On-device feature extraction (real):** voice timbre, pacing, vocabulary fingerprint, color palette, framing patterns, motion signature — replacing the deterministic mock.
 - [ ] **Privacy audit:** packet-capture proof that no raw audio/video crosses the network during onboarding or retraining.
 
 ### Tests

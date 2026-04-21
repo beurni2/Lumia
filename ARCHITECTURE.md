@@ -146,6 +146,22 @@ sequenceDiagram
     App->>Memory: Update Style Twin + win patterns
 ```
 
+## Quantization Spec
+
+| Model | Role | Precision | On-Device Footprint | Notes |
+|---|---|---|---|---|
+| **Llama 3.2 11B Vision** | Director, Editor (multimodal) | **4-bit (Q4_K_M)** | ~6.2 GB | Vision-text fusion for storyboards, palette, framing |
+| **Mistral 7B** | Orchestrator, Monetizer (language + negotiation) | **4-bit (Q4_K_M)** | ~4.0 GB | Low-latency routing and DM drafting |
+| **Qwen 3.5 9B** | Ideator (multilingual cultural intelligence) | **8-bit (Q8_0)** | ~9.0 GB *(loaded on demand)* | Native pt-BR, id-ID, vi-VN, th-TH, tl-PH, es-MX/CO/AR |
+| **Whisper-tiny** | Voice features for Style Twin | **4-bit** | ~150 MB | Pacing, energy, transcription only — never streamed |
+| **TitaNet-small** | Speaker embedding for Style Twin | **fp16** | ~80 MB | 192-dim timbre vector |
+
+**Loader policy:** Llama and Mistral remain warm. Qwen is paged in only when the Ideator runs (nightly + on demand). Total resident memory budget: **≤ 5.5 GB on 8 GB devices**, **≤ 12 GB on 12 GB+ devices** (Qwen warm).
+
+**Runtime:** [`react-native-executorch`](https://github.com/software-mansion/react-native-executorch) for Llama / Mistral / Whisper / TitaNet. Qwen via [`llama.rn`](https://github.com/mybigday/llama.rn) with mmap-backed lazy load.
+
+---
+
 **Burst rules** — the edge-cloud layer is invoked only when:
 
 1. The render exceeds the device's thermal/memory budget (4K upscale, 3D VFX, multi-track music synthesis).
