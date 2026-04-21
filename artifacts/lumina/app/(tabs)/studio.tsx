@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
-import { getOrchestrator, makeContext } from "@/lib/swarmFactory";
+import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
 import type {
   Brief,
   DealDraft,
@@ -71,6 +71,11 @@ export default function StudioScreen() {
     const { orchestrator } = getOrchestrator();
     const ctx = makeContext(twin, "br"); // Maria — São Paulo
     try {
+      // Seed the encrypted vector memory on first run so kNN has neighbors.
+      // No-op once real Editor renders have been appended.
+      await ensureSeededVectors(twin);
+      if (!isLive()) return;
+
       if (isLive()) setStatuses((s) => ({ ...s, ideator: "active" }));
       const bs = await orchestrator.dailyBriefs(ctx);
       if (!isLive()) return;
@@ -240,16 +245,55 @@ function StepRow({
 
 function BriefsBlock({ briefs, colors }: { briefs: Brief[]; colors: ReturnType<typeof useColors> }) {
   return (
-    <Section title="Today's briefs" colors={colors}>
-      {briefs.map((b) => (
-        <View key={b.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-          <Text style={[styles.subEyebrow, { color: colors.tint }]}>{b.culturalTag.toUpperCase()}</Text>
-          <Text style={[styles.subTitle, { color: colors.foreground }]}>{b.hook}</Text>
-          <Text style={[styles.subBody, { color: colors.mutedForeground }]}>
-            {b.beats.join(" → ")}
-          </Text>
-        </View>
-      ))}
+    <Section title="Today's briefs · scored live against your Twin" colors={colors}>
+      {briefs.map((b) => {
+        const aff = b.twinAffinity;
+        const gateColor = aff.meetsAudioGate
+          ? colors.tint
+          : (colors.destructive ?? "#ff6b6b");
+        return (
+          <View key={b.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <View style={styles.briefHeader}>
+              <Text style={[styles.subEyebrow, { color: colors.tint }]}>{b.culturalTag.toUpperCase()}</Text>
+              <View style={[styles.affinityPill, { borderColor: gateColor }]}>
+                <Feather
+                  name={aff.meetsAudioGate ? "check-circle" : "alert-circle"}
+                  size={11}
+                  color={gateColor}
+                />
+                <Text style={[styles.affinityPillText, { color: gateColor }]}>
+                  {(aff.overall * 100).toFixed(1)}% on-Twin
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.subTitle, { color: colors.foreground }]}>{b.hook}</Text>
+            <Text style={[styles.subBody, { color: colors.mutedForeground }]}>
+              {b.beats.join(" → ")}
+            </Text>
+            <View style={styles.affinityRow}>
+              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
+                voice <Text style={{ color: colors.foreground, fontWeight: "700" }}>{(aff.voice * 100).toFixed(1)}%</Text>
+              </Text>
+              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
+                vocab <Text style={{ color: colors.foreground, fontWeight: "700" }}>{(aff.vocabulary * 100).toFixed(1)}%</Text>
+              </Text>
+              {b.pastWinReferences.length > 0 && (() => {
+                const real = b.pastWinReferences.filter((p) => !p.synthetic).length;
+                const synth = b.pastWinReferences.length - real;
+                const label =
+                  real > 0
+                    ? `${real} past win${real === 1 ? "" : "s"} matched`
+                    : `${synth} demo neighbor${synth === 1 ? "" : "s"}`;
+                return (
+                  <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
+                    {label}
+                  </Text>
+                );
+              })()}
+            </View>
+          </View>
+        );
+      })}
     </Section>
   );
 }
@@ -386,6 +430,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderRadius: 8,
   },
   feeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+  briefHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  affinityPill: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderRadius: 999,
+  },
+  affinityPillText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.4 },
+  affinityRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 4 },
   errorCard: { marginHorizontal: 24, padding: 14, borderWidth: 1, borderRadius: 12 },
   cta: {
     flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center",

@@ -11,7 +11,7 @@
 export * from "./types";
 export { InMemoryMemoryGraph, AlwaysAllowConsent } from "./memory";
 export { MockOrchestrator, type MockOrchestratorOptions } from "./mockOrchestrator";
-export { ideate, isoDay } from "./agents/ideator";
+export { ideate, isoDay, scoreBrief } from "./agents/ideator";
 export { direct } from "./agents/director";
 export { edit, TwinMatchRejected } from "./agents/editor";
 export { monetize } from "./agents/monetizer";

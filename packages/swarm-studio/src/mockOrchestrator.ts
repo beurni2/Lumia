@@ -1,4 +1,4 @@
-import { ideate, isoDay } from "./agents/ideator";
+import { ideate, isoDay, scoreBrief } from "./agents/ideator";
 import { direct } from "./agents/director";
 import { edit } from "./agents/editor";
 import { monetize } from "./agents/monetizer";
@@ -42,12 +42,23 @@ export class MockOrchestrator implements Orchestrator {
   }
 
   async dailyBriefs(ctx: OrchestratorContext): Promise<Brief[]> {
-    const briefs = ideate(ctx.styleTwin, ctx.region, this.dayKey());
-    for (const b of briefs) {
+    const shortlist = ideate(ctx.styleTwin, ctx.region, this.dayKey());
+
+    // Per-brief enrichment with verifyMatch() + nearest() against the
+    // creator's encrypted on-device vector memory. Runs in parallel so the
+    // UI doesn't pay 3× the latency of a single scoring call.
+    const enriched = await Promise.all(
+      shortlist.map(async ({ brief, trend }) => {
+        const enrichment = await scoreBrief(ctx.styleTwin, trend);
+        return { ...brief, ...enrichment } as Brief;
+      }),
+    );
+
+    for (const b of enriched) {
       this.briefs.set(b.id, b);
       await ctx.memory.write({ id: b.id, kind: "brief", payload: b });
     }
-    return briefs;
+    return enriched;
   }
 
   async storyboard(ctx: OrchestratorContext, briefId: string): Promise<Storyboard> {

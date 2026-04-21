@@ -6,6 +6,29 @@ export type CulturalRegion =
   | "br" | "mx" | "co" | "ar"
   | "id" | "ph" | "vn" | "th";
 
+/** Per-brief Twin affinity, computed live by verifyMatch() against the user's Style Twin. */
+export interface TwinAffinity {
+  /** Overall similarity score (0–1) of this brief's projected fingerprint vs the user's Twin. */
+  readonly overall: number;
+  /** Sub-score for voice/pacing match. */
+  readonly voice: number;
+  /** Sub-score for vocabulary/catchphrase overlap. */
+  readonly vocabulary: number;
+  /** True iff overall ≥ HEADLINE_MATCH_TARGET (0.998). */
+  readonly meetsHeadlineGate: boolean;
+  /** True iff voice ≥ AUDIO_MATCH_GATE (0.95) — the publish gate. */
+  readonly meetsAudioGate: boolean;
+}
+
+/** Reference to a past on-device win the Director can riff on. */
+export interface PastWinReference {
+  readonly sampleId: string;
+  readonly score: number;
+  readonly capturedAt: number;
+  /** True if this neighbor came from synthetic demo seed data, not a real win. */
+  readonly synthetic: boolean;
+}
+
 export interface Brief {
   id: string;
   hook: string;
@@ -13,6 +36,10 @@ export interface Brief {
   culturalTag: string;
   region: CulturalRegion;
   trendSourceIds: string[];
+  /** Real-time score from @workspace/style-twin verifyMatch(). */
+  twinAffinity: TwinAffinity;
+  /** Top-k past wins from the encrypted on-device vector memory (kNN). */
+  pastWinReferences: PastWinReference[];
 }
 
 export interface Storyboard {

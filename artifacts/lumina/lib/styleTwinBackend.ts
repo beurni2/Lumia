@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import {
   configureBackend,
+  configureVectorBackend,
   MemoryBackend,
   type SecureBackend,
 } from "@workspace/style-twin";
@@ -20,12 +21,16 @@ class ExpoSecureBackend implements SecureBackend {
 
 let configured = false;
 
+/**
+ * Configures BOTH the StyleTwin envelope storage AND the encrypted vector
+ * memory used by `nearest()` kNN. Both share the same SecureBackend so a
+ * single device-key wipe clears the entire on-device footprint.
+ */
 export function ensureStyleTwinBackend() {
   if (configured) return;
-  if (Platform.OS === "web") {
-    configureBackend(new MemoryBackend());
-  } else {
-    configureBackend(new ExpoSecureBackend());
-  }
+  const backend: SecureBackend =
+    Platform.OS === "web" ? new MemoryBackend() : new ExpoSecureBackend();
+  configureBackend(backend);
+  configureVectorBackend(backend);
   configured = true;
 }
