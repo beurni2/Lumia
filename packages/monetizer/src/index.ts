@@ -99,5 +99,51 @@ export interface PayoutGateway {
 }
 
 export const SPRINT = 4 as const;
-export const STATUS = "stub" as const;
+export const STATUS = "scaffold" as const;
 export const PERFORMANCE_FEE_RATE = 0.10 as const;
+
+/* ────────────── Sprint 4 starter scaffold re-exports ────────────── */
+export type { CulturalRegion } from "./types";
+export {
+  detectAffiliates,
+  type AffiliateMatch,
+  type AffiliateNetwork,
+  type ScanInput,
+} from "./affiliate";
+export {
+  InMemoryBrandGraph,
+  type BrandRecord,
+  type BrandMatch,
+  type ReputationEvent,
+} from "./brandGraph";
+export {
+  generatePitchDeck,
+  type PitchDeck,
+  type PitchInput,
+  type CarouselSlide,
+} from "./pitchDeck";
+export {
+  draftDm,
+  type DmChannel,
+  type DmDraft,
+  type DmInput,
+} from "./dmDraft";
+export {
+  InMemoryEscrow,
+  draftPayout,
+  pickRail,
+  type EscrowEvent,
+} from "./escrow";
+export {
+  PerformanceFeeLedger,
+  type LedgerEntry,
+  type LedgerSummary,
+} from "./ledger";
+export {
+  ReferralRocket,
+  referralCodeFor,
+  BOUNTY_USD,
+  type ReferralLink,
+  type ReferralAttribution,
+  type ReferralBounty,
+} from "./referral";
