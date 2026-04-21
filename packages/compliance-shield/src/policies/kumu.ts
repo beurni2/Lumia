@@ -36,8 +36,10 @@ export const KUMU_PACK: PolicyPack = {
         "Kumu's PH discovery algorithm boosts Taglish (Tagalog + English) captions for PH creators. We added a short Tagalog lead-in.",
       match: (c) => {
         if (!c.regions.includes("ph")) return false;
-        // crude Tagalog token check
-        return !/(ang|ng|sa|na|po|naman|talaga|pre)\b/i.test(c.caption);
+        // Crude Tagalog token check. Both word-boundaries are required —
+        // without the leading \b, "morning" matches "ng" and "sand" matches
+        // "sa", masking a Tagalog-deficit caption as already-localised.
+        return !/\b(ang|ng|sa|na|po|naman|talaga|pre)\b/i.test(c.caption);
       },
       rewrite: (c) => ({ ...c, caption: `Grabe — ${c.caption}` }),
     },

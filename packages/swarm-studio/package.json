@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/__tests__/ideator.test.ts && tsx src/__tests__/orchestrator.test.ts && tsx src/__tests__/editor.test.ts && tsx src/__tests__/publisher.test.ts"
+    "test": "tsx src/__tests__/ideator.test.ts && tsx src/__tests__/orchestrator.test.ts && tsx src/__tests__/editor.test.ts && tsx src/__tests__/publisher.test.ts && tsx src/__tests__/winnerPromotion.test.ts && tsx src/__tests__/adaptation.test.ts"
   },
   "dependencies": {
     "@workspace/style-twin": "workspace:*",

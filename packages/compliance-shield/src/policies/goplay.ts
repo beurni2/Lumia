@@ -50,7 +50,7 @@ export const GOPLAY_PACK: PolicyPack = {
       severity: "soft",
       humanExplanation:
         "GoPlay's discovery algorithm prioritises Bahasa Indonesia captions for ID region. We added a short Bahasa lead-in.",
-      match: (c) => c.regions.includes("id") && !/[\u00C0-\u017F]?(yang|untuk|dari|kamu|aku|gue)\b/i.test(c.caption),
+      match: (c) => c.regions.includes("id") && !/\b(yang|untuk|dari|kamu|aku|gue)\b/i.test(c.caption),
       rewrite: (c) => ({ ...c, caption: `Cek ini — ${c.caption}` }),
     },
   ],
