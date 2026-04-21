@@ -4,13 +4,22 @@
   "files": [],
   "references": [
     {
-      "path": "./lib/db"
+      "path": "./packages/api-client-react"
     },
     {
-      "path": "./lib/api-client-react"
+      "path": "./packages/api-zod"
     },
     {
-      "path": "./lib/api-zod"
+      "path": "./packages/style-twin"
+    },
+    {
+      "path": "./packages/swarm-studio"
+    },
+    {
+      "path": "./packages/monetizer"
+    },
+    {
+      "path": "./packages/edge-cloud"
     }
   ]
 }

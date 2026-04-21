@@ -82,16 +82,22 @@ Scan the Expo QR from the Replit URL bar to load the app on your physical device
 
 ```
 artifacts/
-├── lumina/         # Expo mobile app (the product)
-├── api-server/     # Express 5 backend (Compliance Shield, deal pipeline, payouts)
-└── mockup-sandbox/ # UI exploration canvas
-lib/
-├── api-spec/       # OpenAPI single source of truth
-├── api-client-react/ # Generated React Query hooks
-├── api-zod/        # Generated Zod schemas
-└── db/             # Drizzle schemas + migrations
-.agents/            # Agent definitions, prompts, and orchestration graphs
+├── lumina/             # Expo mobile app — the product surface
+├── api-server/         # DEPRECATED · frozen until Sprint 3 (edge-cloud burst layer)
+└── mockup-sandbox/     # Canvas for UI exploration
+packages/
+├── style-twin/         # Personal Style Twin · 99.8% on-device clone (Sprint 1)
+├── swarm-studio/       # 4-agent collaborative swarm (Sprint 2)
+├── monetizer/          # Closed-loop monetization · 10% performance fee (Sprint 4)
+├── edge-cloud/         # Stateless burst client · <5s additional (Sprint 2/3)
+├── api-spec/           # OpenAPI single source of truth
+├── api-client-react/   # Generated React Query hooks (Orval)
+└── api-zod/            # Generated Zod schemas (Orval)
+.agents/                # Agent definitions, prompts, memory-graph schemas
+scripts/                # Repo-wide tooling
 ```
+
+> **On-device-first by construction.** PostgreSQL has been removed from the workspace — there is no `lib/db`. The api-server artifact is frozen until Sprint 3 unfreezes it strictly for the Compliance Shield CDN, Deal Router, and stateless burst layer described in `ARCHITECTURE.md`.
 
 ## Roadmap
 

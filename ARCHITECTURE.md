@@ -190,19 +190,22 @@ Trend sync is a **delta-only nightly pull** of regional trend metadata (no per-c
 
 ```
 artifacts/
-├── lumina/         # Expo mobile app — the product surface
-├── api-server/     # Express 5 — Compliance Shield API, deal router, payout escrow
-└── mockup-sandbox/ # Canvas for UI exploration
-lib/
-├── api-spec/       # OpenAPI single source of truth
-├── api-client-react/ # Generated React Query hooks (Orval)
-├── api-zod/        # Generated Zod schemas (Orval)
-└── db/             # Drizzle schemas + migrations
-.agents/            # Agent definitions, prompts, memory-graph schemas
-scripts/            # Repo-wide tooling
+├── lumina/             # Expo mobile app — the product surface
+├── api-server/         # DEPRECATED · reserved for Sprint 3 burst layer
+└── mockup-sandbox/     # Canvas for UI exploration
+packages/
+├── style-twin/         # Personal Style Twin (Sprint 1) — types, train/retrain, encrypted storage, ExecuTorch adapter
+├── swarm-studio/       # Orchestrator + 4 agents + memory graph contracts (Sprint 2)
+├── monetizer/          # 10% performance-fee accounting + Deal Router types (Sprint 4)
+├── edge-cloud/         # Stateless burst client + nightly trend delta (Sprint 2/3)
+├── api-spec/           # OpenAPI single source of truth
+├── api-client-react/   # Generated React Query hooks (Orval)
+└── api-zod/            # Generated Zod schemas (Orval)
+.agents/                # Agent definitions, prompts, memory-graph schemas
+scripts/                # Repo-wide tooling
 ```
 
-Workspace conventions: pnpm workspaces, TypeScript project references, OpenAPI-first contracts, Orval codegen, Drizzle for persistence, Pino for structured logging.
+Workspace conventions: pnpm workspaces, TypeScript project references, OpenAPI-first contracts, Orval codegen, Pino for structured logging. **PostgreSQL has been removed** — the immutable v1.0 spec mandates on-device storage; encrypted device keystores (iOS Keychain / Android Keystore via `expo-secure-store`) are the only persistence layer for creator data.
 
 ---
 
