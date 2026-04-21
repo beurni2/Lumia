@@ -85,7 +85,7 @@ export default function StudioScreen() {
     setRunning(true);
 
     const { orchestrator } = getOrchestrator();
-    const ctx = makeContext(twin, "br");
+    const ctx = makeContext(twin, "us");
     try {
       await ensureSeededVectors(twin);
       if (!isLive()) return;
@@ -175,7 +175,7 @@ export default function StudioScreen() {
       </View>
 
       <SystemBubble colors={colors}>
-        Good morning, Maria. The swarm is starting a fresh run for São Paulo (BR).
+        Good morning, Alex. The swarm is starting a fresh run for Brooklyn, NY (US-EN).
       </SystemBubble>
 
       {ORDER.map((id) => {

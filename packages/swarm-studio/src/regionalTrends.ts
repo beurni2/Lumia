@@ -17,6 +17,76 @@ export interface RegionalTrend {
 }
 
 export const REGIONAL_TRENDS: Record<CulturalRegion, RegionalTrend[]> = {
+  // Day-1 English-first markets (v2.0 GTM blueprint)
+  us: [
+    {
+      id: "us-y2k-thrift",
+      hook: "you won't believe what $20 got me at this thrift store",
+      audioCue: "Olivia Rodrigo · sped up",
+      culturalTag: "thrift-flip",
+      beats: ["mirror reveal", "before/after cut", "outfit walk"],
+    },
+    {
+      id: "us-grwm-nyfw",
+      hook: "GRWM for my first NYFW after-party",
+      audioCue: "Doja Cat · slowed",
+      culturalTag: "grwm-fashion-week",
+      beats: ["bare face", "outfit drop", "final twirl"],
+    },
+    {
+      id: "us-cafe-brooklyn",
+      hook: "the Brooklyn matcha that's breaking TikTok",
+      audioCue: "lo-fi café",
+      culturalTag: "hidden-gem-cafe",
+      beats: ["walk-in shot", "menu close-up", "first sip reaction"],
+    },
+  ],
+  gb: [
+    {
+      id: "gb-london-streetstyle",
+      hook: "London street style under £30",
+      audioCue: "UK garage edit",
+      culturalTag: "streetstyle",
+      beats: ["walking shot", "outfit details", "final pose"],
+    },
+  ],
+  ca: [
+    {
+      id: "ca-toronto-eats",
+      hook: "ranking Toronto's best $10 lunch",
+      audioCue: "Drake · slowed",
+      culturalTag: "food-rank",
+      beats: ["spot walk-up", "bite test", "score reveal"],
+    },
+  ],
+  au: [
+    {
+      id: "au-bondi-grwm",
+      hook: "GRWM for a Bondi sunrise swim",
+      audioCue: "indie surf-pop",
+      culturalTag: "grwm-lifestyle",
+      beats: ["bare face", "fit pick", "beach walk"],
+    },
+  ],
+  in: [
+    {
+      id: "in-mumbai-cafe",
+      hook: "the Mumbai café everyone's posting about",
+      audioCue: "indie Hindi chill",
+      culturalTag: "hidden-gem-cafe",
+      beats: ["entry shot", "menu close-up", "first sip"],
+    },
+  ],
+  ng: [
+    {
+      id: "ng-lagos-fit",
+      hook: "Lagos street fits under ₦15k",
+      audioCue: "Burna Boy · slowed",
+      culturalTag: "streetstyle",
+      beats: ["market walk", "outfit reveal", "price flash"],
+    },
+  ],
+  // Phase 1 SEA/LATAM markets (engine-ready, layered remotely months 2–6)
   br: [
     {
       id: "br-y2k-thrift",

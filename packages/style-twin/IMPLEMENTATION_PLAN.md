@@ -1,6 +1,6 @@
 # Personal Style Twin — Implementation Plan
 
-> **Sprint 1 (weeks 1–2)** of the immutable v1.0 roadmap. Ships the first irreversible moat: a 99.8% voice/aesthetic clone that lives entirely on the creator's phone.
+> **Sprint 1 (weeks 1–2)** of the immutable LUMINA PROJECT BLUEPRINT v2.0 roadmap (US-first / English-first GTM). Ships the first irreversible moat: a 99.8% voice/aesthetic clone that lives entirely on the creator's phone.
 >
 > **Status:** mock pipeline shipped end-to-end (upload → train → encrypted store → preview). Real on-device Llama 3.2 11B Vision wiring is the remaining gap — this doc is the runbook.
 

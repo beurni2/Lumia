@@ -10,6 +10,24 @@ import type { CulturalRegion, DealDraft, RenderedVideo } from "../types";
  * DealRouter replaces this with the live brand-match index.
  */
 const REGIONAL_BRANDS: Record<CulturalRegion, Array<{ handle: string; usd: number; channel: DealDraft["channel"] }>> = {
+  // Day-1 English-first markets (v2.0 GTM blueprint)
+  us: [
+    { handle: "@gymshark",           usd: 750, channel: "instagram" },
+    { handle: "@glossier",           usd: 620, channel: "instagram" },
+    { handle: "@aloyoga",            usd: 540, channel: "tiktok"    },
+  ],
+  gb: [
+    { handle: "@asos",               usd: 460, channel: "instagram" },
+    { handle: "@gymshark",           usd: 590, channel: "tiktok"    },
+  ],
+  ca: [{ handle: "@lululemon",       usd: 510, channel: "instagram" }],
+  au: [{ handle: "@cottononau",      usd: 380, channel: "instagram" }],
+  in: [
+    { handle: "@mamaearth.in",       usd: 290, channel: "instagram" },
+    { handle: "@boat.nirvana",       usd: 340, channel: "whatsapp"  },
+  ],
+  ng: [{ handle: "@oraimo",          usd: 230, channel: "whatsapp"  }],
+  // Phase 1 SEA/LATAM markets (engine-ready, layered remotely months 2–6)
   br: [
     { handle: "@reservaoficial",     usd: 380, channel: "instagram" },
     { handle: "@cea_brasil",         usd: 220, channel: "instagram" },

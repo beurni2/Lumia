@@ -1,0 +1,67 @@
+You are ProjectForge AI, Chief Architect of Lumina.  
+The new LUMINA PROJECT BLUEPRINT v2.0 (US-first / English-first GTM) is now the single immutable source of truth for the entire project.
+
+Here is the complete blueprint v2.0:
+
+LUMINA PROJECT BLUEPRINT v2.0 – US-FIRST / ENGLISH-FIRST GTM ADOPTED
+
+Executive Summary of the Strategic Shift  
+We are pivoting the entire Go-To-Market from SEA/LATAM-first to US-first + English-speaking markets (US, UK, Canada, Australia, India, Philippines, Nigeria). The founder’s US base makes this the only viable path for rapid validation, revenue, and de-risking. The core agentic magic — Personal Style Twin, Swarm Studio, Smart Publisher, Earnings Engine, on-device privacy-first swarm — remains 100% intact and non-negotiable. This shift accelerates time-to-first-revenue by 3–4×, simplifies onboarding and compliance, and creates a stronger proof point before any emerging-market expansion. Every document, feature, roadmap item, and line of copy now defaults to English-speaking micro-creators (1K–50K followers) who speak English as primary or fluent second language.
+
+Revised Phased GTM & Timeline  
+Phase 0 – Weeks 1–4: English-First Validation  
+Target: 100–200 beta micro-creators in US/UK/CA/AU/IN/PH/NG.  
+Channels: TikTok/Instagram DM outreach, Reddit (r/TikTokCreativity, r/Influencer), Discord creator servers, nano-influencer seeding via Collab Mode referrals.  
+Offer: Lifetime 50% off Pro + bonus revenue-share (15% instead of 10% on first $5K earned).  
+Success metric: ≥40% of beta users complete full video in <5 min, post it, and earn their first $10+ within 7 days.  
+Kill criteria: <25% completion rate or <15% monetization rate after 200 sign-ups → immediate pivot or pause.
+
+Phase 1 – Months 2–6: Remote SEA/LATAM Layering  
+Only after US/English proof (earnings screenshots, testimonials, viral “Made with Lumina” watermarks).  
+Remote contractor model: 1 Creator Success specialist per market (Indonesia + Brazil) at $2–3K/mo.  
+Virality engine: “Made with Lumina” smart watermarks + cash referral credits paid in local currency (Pix, GCash, etc.).
+
+Phase 2+ – Months 7–18: Global Rollout  
+De-risked global expansion using US proof as the primary marketing asset.
+
+Updated Product Requirements & Feature Specs  
+- Onboarding & First-Run Experience: Default English (US spelling). One-tap language switch. Prioritize US/English cultural voice packs and templates from day one.  
+- Personal Style Twin: Fully on-device, unchanged. Add modular “Cultural Voice Pack” system so the Twin can instantly adapt (US Gen-Z humor, lighting preferences, slang first).  
+- Swarm Studio: Unchanged core. Ideator, Director, Editor, Monetizer agents default to English trends and US/English platform quirks.  
+- Smart Publisher: Day-1 priority: TikTok, Instagram Reels, YouTube Shorts with full API integration, 12-variant A/B, smart timing, and Compliance Shield tuned for US/EU policies first.  
+- Earnings Engine: Lead with Stripe + PayPal instant payouts (US bank accounts first). 10% performance revenue-share on incremental earnings only.  
+- Compliance & Privacy: Ship with full US/EU readiness (CCPA, EU AI Act, COPPA) from MVP. On-device moat remains the #1 global differentiator.  
+- Delight Features: “While You Slept” recap, Viral Confidence Score, confetti animations, Soul Check — all in English-first with US-centric earnings examples.
+
+Revised MVP Scope & 2-Week Validation Plan  
+MVP Core: Personal Style Twin + Swarm Studio + Smart Publisher + basic Earnings Engine (affiliate matching + Stripe simulation).  
+2-Week Beta Validation Plan (starting Week 1):  
+1. Day 1–3: Closed beta invite list of 100 English-speaking micro-creators via DMs and Discord.  
+2. Day 4–7: Onboard, train Style Twin, run full Swarm Studio → Smart Publisher flow.  
+3. Day 8–14: Track % completing full cycle + first earnings. Collect testimonials and “Made with Lumina” content.  
+Success: 40%+ monetization rate + ≥3 viral videos (10K+ views each).
+
+Technical Architecture Adjustments  
+No breaking changes to Flutter + on-device Llama/Mistral/Qwen hybrids + Supabase (US-west region for CCPA compliance). Cultural Voice Pack system added as modular on-device vector store extension.
+
+Monetization & Unit Economics (US-first)  
+- Spark: Free (3 videos/day)  
+- Lumina Pro: $12.99/mo  
+- Performance revenue share: 10% of incremental earnings Lumina generates.  
+US-first LTV projected $180–$420 in first 6 months.
+
+Marketing & Growth Engine  
+Positioning: “The only app that works for you while you live your life — your invisible creative agency that posts, A/B tests, and earns while you sleep.”  
+Virality: Smart “Made with Lumina” watermarks + cash referral credits.
+
+Risks & Mitigation for the New Plan  
+Risk: Slower initial virality in English markets → Mitigation: Lifetime 50% off + revenue-share bonus.  
+Risk: Regulatory scrutiny → Mitigation: On-device privacy-first + full US/EU readiness from day one.
+
+This blueprint v2.0 is now the single source of truth. Every future commit, PR, prompt, and decision must align 100% with it. The original SEA/LATAM-first language has been fully removed from all docs, code comments, and marketing copy.
+
+Task:  
+1. Update README.md, ROADMAP.md, ARCHITECTURE.md, and every relevant file in the repo to reflect this exact v2.0 blueprint.  
+2. Remove or rewrite any remaining SEA/LATAM-first references.  
+3. Output every updated file as a complete ready-to-commit block.  
+4. Provide the exact git commands for one atomic conventional commit: "docs: lock LUMINA PROJECT BLUEPRINT v2.0 – US-first/English-first GTM as single source of truth".

@@ -6,8 +6,11 @@ import type { SmartWatermark } from "./watermark";
 export type AgentId = "ideator" | "director" | "editor" | "monetizer" | "publisher";
 
 export type CulturalRegion =
+  // Day-1 English-first markets (v2.0 GTM blueprint)
+  | "us" | "gb" | "ca" | "au" | "in" | "ph" | "ng"
+  // Phase 1 SEA/LATAM markets — engine-ready, layered remotely months 2–6
   | "br" | "mx" | "co" | "ar"
-  | "id" | "ph" | "vn" | "th";
+  | "id" | "vn" | "th";
 
 /** Per-brief Twin affinity, computed live by verifyMatch() against the user's Style Twin. */
 export interface TwinAffinity {

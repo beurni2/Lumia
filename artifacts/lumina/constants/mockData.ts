@@ -1,60 +1,60 @@
 import { ImageSourcePropType } from "react-native";
 
 export const CREATORS = {
-  MARIA: {
+  ALEX: {
     id: "c1",
-    name: "Maria",
-    location: "São Paulo",
-    niche: "Fashion & Lifestyle",
-    followers: 42500,
-    currency: "BRL",
+    name: "Alex",
+    location: "Brooklyn, NY",
+    niche: "Fitness & Lifestyle",
+    followers: 11400,
+    currency: "USD",
     image: require("@/assets/images/creator-1.png") as ImageSourcePropType,
   },
-  RIAN: {
+  PRIYA: {
     id: "c2",
-    name: "Rian",
-    location: "Jakarta",
-    niche: "Street Food",
-    followers: 28100,
-    currency: "IDR",
+    name: "Priya",
+    location: "Austin, TX",
+    niche: "Beauty & GRWM",
+    followers: 8700,
+    currency: "USD",
     image: require("@/assets/images/creator-2.png") as ImageSourcePropType,
   },
-  SOFIA: {
+  JAMES: {
     id: "c3",
-    name: "Sofia",
-    location: "Mexico City",
-    niche: "Beauty & Makeup",
+    name: "James",
+    location: "London, UK",
+    niche: "Tech & Productivity",
     followers: 15300,
-    currency: "MXN",
+    currency: "GBP",
     image: require("@/assets/images/creator-3.png") as ImageSourcePropType,
   },
 };
 
-export const CURRENT_USER = CREATORS.MARIA;
+export const CURRENT_USER = CREATORS.ALEX;
 
 export const TREND_BRIEFS = [
   {
     id: "t1",
     title: "Y2K Revival Thrift Haul",
-    context: "São Paulo · funk beat",
+    context: "US Gen-Z · trending sound",
     viralPotential: 92,
-    description: "A fast-paced thrift flip using the trending 'Tubarão Te Amo' audio.",
+    description: "A fast-paced thrift flip using the trending audio everyone in NYC is using this week.",
     image: require("@/assets/images/creator-1.png"),
   },
   {
     id: "t2",
-    title: "Hidden Gem: Liberdade",
-    context: "São Paulo · aesthetic cafe",
+    title: "Hidden Gem: Brooklyn Matcha",
+    context: "US lifestyle · aesthetic cafe",
     viralPotential: 85,
-    description: "Cinematic shots of the new matcha place in Liberdade.",
+    description: "Cinematic shots of the new matcha place in Williamsburg, GRWM-style narration.",
     image: require("@/assets/images/creator-2.png"),
   },
   {
     id: "t3",
     title: "Get Ready With Me: Night Out",
-    context: "Brazil · GRWM storytime",
+    context: "US Gen-Z · GRWM storytime",
     viralPotential: 78,
-    description: "Chatty GRWM talking about the craziest clubbing experience.",
+    description: "Chatty GRWM talking about the craziest going-out story.",
     image: require("@/assets/images/creator-3.png"),
   },
 ];
@@ -77,10 +77,10 @@ export const VIDEOS = [
   },
   {
     id: "v2",
-    title: "Liberdade Matcha Review",
+    title: "Brooklyn Matcha Review",
     status: "Ready",
     viralScore: 94,
-    reasoning: "94% — high engagement expected on aesthetic cafe content in SP.",
+    reasoning: "94% — high engagement expected on aesthetic cafe content for US Gen-Z.",
     thumbnail: require("@/assets/images/creator-2.png"),
     agents: {
       Ideator: "done",
@@ -88,14 +88,14 @@ export const VIDEOS = [
       Editor: "done",
       Monetizer: "done",
     },
-    script: "Hook: Is this the best matcha in São Paulo?\n\nBody: I went to the new hidden cafe in Liberdade. The aesthetic is 10/10 and the matcha is imported straight from Kyoto.\n\nCTA: Tag who you're taking here!",
+    script: "Hook: Is this the best matcha in NYC?\n\nBody: I went to the new hidden cafe in Williamsburg. The aesthetic is 10/10 and the matcha is imported straight from Kyoto.\n\nCTA: Tag who you're taking here!",
   },
   {
     id: "v3",
-    title: "GRWM: SPFW Edition",
+    title: "GRWM: NYFW Edition",
     status: "Ideating",
     viralScore: null,
-    reasoning: "Analyzing current trends for São Paulo Fashion Week...",
+    reasoning: "Analyzing current trends for New York Fashion Week...",
     thumbnail: require("@/assets/images/creator-3.png"),
     agents: {
       Ideator: "active",
@@ -103,18 +103,18 @@ export const VIDEOS = [
       Editor: "pending",
       Monetizer: "pending",
     },
-    script: "Generating script based on latest SPFW trends...",
+    script: "Generating script based on latest NYFW trends...",
   },
 ];
 
 export const EARNINGS = {
-  currentMonth: 4250,
-  currency: "BRL",
+  currentMonth: 1850,
+  currency: "USD",
   growth: "+15%",
   deals: [
-    { id: "d1", brand: "O Boticário", status: "Signed", amount: 1500 },
-    { id: "d2", brand: "Amaro", status: "Negotiating", amount: 2000 },
-    { id: "d3", brand: "C&A", status: "Paid", amount: 800 },
+    { id: "d1", brand: "Gymshark", status: "Signed", amount: 750 },
+    { id: "d2", brand: "Glossier", status: "Negotiating", amount: 1200 },
+    { id: "d3", brand: "Alo Yoga", status: "Paid", amount: 400 },
   ],
-  history: [2000, 2500, 2200, 3100, 2800, 3800, 4250],
+  history: [820, 1050, 980, 1320, 1180, 1640, 1850],
 };

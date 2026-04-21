@@ -4,15 +4,26 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+This monorepo ships **Lumina** — an autonomous GenAI creative swarm for English-speaking micro-creators.
+
+## Lumina v2.0 Blueprint (single source of truth)
+
+US-first / English-first GTM. Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG. Day-1 platforms: TikTok, Reels, Shorts. Day-1 payouts: Stripe Connect + PayPal instant. Day-1 compliance: CCPA, EU AI Act, COPPA, FTC disclosure, GDPR. SEA/LATAM is layered remotely in Phase 1 (months 2–6) once US proof lands. Pricing: Spark free (3 videos/day) · Lumina Pro $12.99/mo · 10% performance fee on incremental only.
+
+The core agentic stack — Personal Style Twin, Swarm Studio, Smart Publisher, Earnings Engine, on-device privacy-first inference — is intact and non-negotiable. See `README.md`, `ARCHITECTURE.md`, `ROADMAP.md`.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Mobile**: Expo (React Native) · Reanimated · NativeTabs (iOS 26 liquid glass)
+- **On-device inference**: quantized Llama 3.2 11B Vision · Mistral 7B · Qwen 3.5 9B (4/8-bit)
+- **API framework**: Express 5 (`artifacts/api-server` is **frozen** until Sprint 3 unfreezes it strictly for the Compliance Shield CDN, Deal Router, and stateless burst layer — see `ARCHITECTURE.md`)
+- **Backend hosting**: Supabase US-west (CCPA region) for the Sprint 3+ burst layer
+- **Payouts (Day-1)**: Stripe Connect + PayPal instant; Phase 1 layers Pix / GCash / OVO / SPEI / PromptPay / Wise
+- **Validation**: Zod (`zod/v4`)
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
@@ -21,7 +32,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm --filter @workspace/lumina run dev` — run the Lumina mobile app (Expo)
+- `pnpm --filter @workspace/api-server run dev` — run the (currently frozen) API server locally
+- `pnpm -r test` — run the full workspace test suite (the permanent quality gate)
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

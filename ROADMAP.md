@@ -2,7 +2,7 @@
 
 > Six 2-week sprints. Tests-first → implement → test → review → harden → optimize. Every sprint ends with a "Phase Complete" report and a ruthless self-verification audit.
 
-The vision is **immutable v1.0**. Scope is the only variable. If a sprint risks slipping, we cut surface area, never quality.
+The product vision and the GTM are governed by the **immutable LUMINA PROJECT BLUEPRINT v2.0 — US-first / English-first** (single source of truth across `README.md`, `ARCHITECTURE.md`, `FOUNDER_DEMO_SCRIPT.md`, and `replit.md`). Scope is the only variable. If a sprint risks slipping, we cut surface area, never quality.
 
 ---
 
@@ -33,7 +33,7 @@ The vision is **immutable v1.0**. Scope is the only variable. If a sprint risks 
 
 ### Phase-Complete Audit
 
-Vision document and contribution checklist reviewed by a contributor from each target region (BR, MX, ID, PH). Sign-off recorded in the PR.
+Vision document and contribution checklist reviewed by a contributor from each Day-1 English-speaking market (US, UK, CA, AU, IN, PH, NG). Sign-off recorded in the PR. Phase 1 SEA/LATAM regional reviewers (BR, MX, ID) onboard during the SEA/LATAM layering phase, not Sprint 0.
 
 ---
 
@@ -95,7 +95,7 @@ Random 5% sample of fixture videos reviewed by hand. Twin similarity score must 
 
 ### Phase-Complete Audit
 
-10 end-to-end videos generated across 5 cultural contexts (BR fashion, MX beauty, ID street food, PH lifestyle, VN gaming). A regional contributor scores each on cultural authenticity (target ≥ 4.2 / 5). *Audit runs on the EAS dev build — Phase 2 prerequisite.*
+10 end-to-end videos generated across 5 English-first cultural contexts (US Gen-Z fitness, US beauty/GRWM, UK lifestyle, AU food, IN-EN tech-creator). A regional contributor scores each on cultural authenticity (target ≥ 4.2 / 5). *Audit runs on the EAS dev build — Phase 2 prerequisite.* Phase 1 adds the SEA/LATAM contexts (BR fashion, MX beauty, ID street food, PH lifestyle, VN gaming) over the same Voice Pack interface.
 
 ---
 
@@ -182,7 +182,7 @@ Sprint 3 closes only when **every** box below is checked. Any unchecked item is 
 - [x] **Per-platform launch contract** — `PlatformClient` interface + 6 mock clients with platform-shaped URLs, deterministic given `(videoId, watermarkSig, content, shield)`. Sprint 5 OAuth swap-point locked. [`platformClients.test.ts`](packages/swarm-studio/src/__tests__/platformClients.test.ts).
 - [x] **Dramatic launch celebration** — confetti burst + "You just launched X videos while you lived your life" hero animation wired into the Smart Publisher screen.
 - [ ] **Real platform sandbox publish** — at least one successful sandbox post on each of the 6 platforms. *(Deferred to Sprint 5 — gated on per-platform OAuth + EAS dev build, not a Sprint 3 cancel-criterion under the revised acceptance.)*
-- [ ] **Cultural reviewer sign-off** — one BR + one ID + one PH contributor reviews 5 sample plans each. *(Deferred to Sprint 5 beta launch — coupled with the São Paulo + Jakarta cultural-board onboarding.)*
+- [ ] **Cultural reviewer sign-off** — one US + one UK + one IN-EN + one PH-EN contributor reviews 5 sample plans each. *(Coupled with the Sprint 5 English-first beta cultural-board onboarding. Phase 1 adds BR + ID reviewers when SEA/LATAM packs go live.)*
 - [ ] **Demo video** — one continuous take: train Twin → run swarm → open Publisher → launch → see per-platform verdicts. *(Deferred to Sprint 5 — recorded against the EAS dev build for credible app-store-quality framing.)*
 
 ---
@@ -244,27 +244,59 @@ Hash-chained ledger reconciliation against the simulated overnight feed: zero di
 
 ---
 
-## Sprint 5 — Beta Launch: São Paulo + Jakarta *(weeks 9–10)*
+## Sprint 5 — English-First Beta Launch *(weeks 9–10)*
 
-**Objective:** 200 invited creators (100 BR, 100 ID) running Lumina in production. Daily active use. First real payouts.
+> **Per the v2.0 blueprint, the founder's US base makes English-first the only viable path for rapid validation, revenue, and de-risking.** SEA/LATAM is layered remotely in Phase 1 (months 2–6) once US/English proof exists.
+
+**Objective:** 100–200 invited English-speaking micro-creators (US primary, plus UK, CA, AU, IN, PH, NG) running Lumina in production. Daily active use. First real payouts via Stripe Connect + PayPal.
 
 ### Acceptance Criteria
 
+- [ ] **Closed-beta invite list of 100 English-speaking micro-creators** (1K–50K followers) sourced via TikTok / Instagram DM outreach, Reddit (r/TikTokCreativity, r/Influencer), Discord creator servers, and nano-influencer seeding via Collab Mode referrals.
+- [ ] **Beta offer wired in code:** Lifetime 50% off Pro + 15% revenue-share bonus (vs. standard 10%) on the first $5K earned per user. Drift-detected by a monetizer test fixture.
+- [ ] **Stripe Connect + PayPal instant payout adapters** swap into the Sprint 4 `PayoutGateway` interface (US bank accounts first). Sandbox reconciliation: zero discrepancies.
+- [ ] **Real platform OAuth + sandbox publish** on TikTok, Instagram Reels, YouTube Shorts (Day-1 priority). Kwai / GoPlay / Kumu adapters stay behind the same `PlatformClient` interface for Phase 1.
+- [ ] **Cultural Voice Packs Day-1** — US-EN (default), UK-EN, CA-EN, AU-EN, IN-EN, PH-EN, NG-EN registered and switchable on-device.
+- [ ] **Compliance Shield US/EU readiness** — CCPA, EU AI Act, COPPA, FTC disclosure, GDPR rules surfaced in the Smart Publisher UI; locked by `redTeamCorpus` extensions.
 - [ ] Production builds on iOS App Store TestFlight + Android internal testing.
 - [ ] Observability: structured logs, crash-free sessions ≥ 99.7%, compliance-event dashboard.
 - [ ] On-call rotation defined.
 - [ ] In-app feedback hook with weekly Soul Check digest review.
-- [ ] Localized copy: pt-BR, id-ID, en-fallback.
-- [ ] Daily KPI dashboard: videos generated, posted, A/B winners, earnings, retention.
+- [ ] Localized copy: en-US (default), en-GB, en-CA, en-AU, en-IN, en-PH, en-NG. Phase 1 adds pt-BR, id-ID over the same i18n interface.
+- [ ] Daily KPI dashboard: videos generated, posted, A/B winners, USD earnings, retention.
+
+### 14-Day Validation Plan (per v2.0 blueprint)
+
+1. **Day 1–3:** ship the closed-beta invite list (100 creators) via DMs and Discord.
+2. **Day 4–7:** onboard, train Style Twin, run full Swarm Studio → Smart Publisher flow.
+3. **Day 8–14:** track full-cycle completion + first earnings; collect testimonials and "Made with Lumina" content.
 
 ### Phase-Complete Audit
 
 End of week 10:
 
+- **≥ 40% of beta users complete a full video in <5 min, post it, and earn their first $10+ within 7 days** (v2.0 blueprint Phase 0 success metric).
+- **≥ 3 viral videos (10K+ views each)** with the "Made with Lumina" watermark in the wild.
 - ≥ 60% D7 retention.
 - ≥ 4 videos posted per active creator per week.
 - ≥ 30% of paid users earn back their subscription within 14 days.
-- Zero critical compliance incidents.
+- Zero critical compliance incidents (CCPA / EU AI Act / COPPA / FTC / GDPR).
+
+### Kill Criteria
+
+Per the v2.0 blueprint: **<25% completion rate or <15% monetization rate after 200 sign-ups → immediate pivot or pause.**
+
+---
+
+## Phase 1 — Remote SEA/LATAM Layering *(months 2–6, post-Sprint 5)*
+
+> **Only after US/English proof** — earnings screenshots, testimonials, viral "Made with Lumina" watermarks. De-risked global expansion using US proof as the primary marketing asset.
+
+- Remote contractor model: 1 Creator Success specialist per market (Indonesia + Brazil) at $2–3K/mo.
+- Virality engine: "Made with Lumina" smart watermarks + cash referral credits paid in local currency (Pix, GCash, OVO, SPEI, PromptPay).
+- Cultural Voice Packs: pt-BR, id-ID, vi-VN, th-TH, tl-PH, es-MX/CO/AR loaded over the same on-device pack interface as the Day-1 English packs.
+- Compliance: Kwai / GoPlay-ID / Kumu-PH policy packs already shipped Sprint 3 — flip the platform-priority config flag.
+- Payout rails: Pix / GCash / OVO / SPEI / PromptPay / Wise adapters slot into the same `PayoutGateway` interface used by Stripe + PayPal.
 
 ---
 
@@ -286,11 +318,12 @@ End of week 10:
 
 | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
-| On-device quality/speed misses target | Medium | High | Pre-tuned local cultural template packs co-created with top SEA/LATAM creators |
+| On-device quality/speed misses target | Medium | High | Pre-tuned Cultural Voice Packs co-created with top US/EN creators (UK, CA, AU, IN, PH, NG layered Day-1; SEA/LATAM Phase 1) |
 | Voice authenticity rejection by users | Low | High | Radical transparency + one-tap override + instant retraining |
-| Platform policy changes breaking publish | Medium | High | Multi-platform redundancy + Compliance Shield + nightly policy delta |
-| Price sensitivity in target markets | High | Medium | Spark free tier + 10% performance fee that pays users before they pay us |
-| Payout-provider regulatory blocker | Low | High | Per-region rail (Pix, GCash, OVO) + Wise fallback |
+| Platform policy changes breaking publish | Medium | High | Multi-platform redundancy + Compliance Shield (CCPA/EU AI Act/COPPA/FTC/GDPR-tuned) + nightly policy delta |
+| Slower initial virality in English markets | Medium | Medium | Lifetime 50% off Pro + 15% revenue-share bonus on first $5K + nano-influencer Collab seeding |
+| US/EU regulatory scrutiny on AI-generated media | Medium | High | On-device privacy-first moat + full CCPA / EU AI Act / COPPA / FTC / GDPR readiness from MVP |
+| Payout-provider regulatory blocker | Low | High | Stripe Connect + PayPal instant (US-first) with Wise + per-region rails (Pix, GCash, OVO, SPEI, PromptPay) layered Phase 1 |
 
 ---
 

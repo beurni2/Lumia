@@ -9,7 +9,23 @@
  * Sprint 4 phase-complete audit (zero discrepancies tolerated).
  */
 
-export type Currency = "USD" | "BRL" | "MXN" | "COP" | "ARS" | "IDR" | "PHP" | "VND" | "THB";
+export type Currency =
+  // Day-1 English-first markets (v2.0 blueprint)
+  | "USD"
+  | "GBP"
+  | "CAD"
+  | "AUD"
+  | "INR"
+  | "NGN"
+  // Phase 1 SEA/LATAM markets — engine-ready, layered remotely months 2–6
+  | "BRL"
+  | "MXN"
+  | "COP"
+  | "ARS"
+  | "IDR"
+  | "PHP"
+  | "VND"
+  | "THB";
 
 export type PayoutRail =
   | "wise"          // global fallback

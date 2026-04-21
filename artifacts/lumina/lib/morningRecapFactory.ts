@@ -83,8 +83,8 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
   const wallet = new LocalWallet();
 
   // Seed an attribution so the recap always shows the bounty-fired path —
-  // this is the demo's "Maria was referred by Aisha last week" story.
-  const referrerKey = "demo-referrer-aisha";
+  // this is the demo's "Alex was referred by Sam last week" story.
+  const referrerKey = "demo-referrer-sam";
   referrals.attribute(creatorKey, referralCodeFor(referrerKey), DEMO_NIGHT_MS - 86_400_000);
 
   const events = seedNightEvents(creatorKey);
@@ -95,7 +95,7 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
   await runEarningsCycle(
     {
       creatorId: creatorKey,
-      creatorRegion: "br",
+      creatorRegion: "us",
       creatorKey,
       ledger,
       escrow,
@@ -113,11 +113,12 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
       // Exercise the auto-match step end-to-end so the recap genuinely
       // walks the full Sprint 4 flywheel (affiliate scan → simulated
       // RevenueEvent[] → ledger → escrow → wallet). The seeded caption
-      // contains a Shopee link the matcher will pick up deterministically.
+      // contains an Amazon Associates link the matcher will pick up
+      // deterministically — Day-1 US affiliate network per v2.0 blueprint.
       autoMatch: {
         videoId: `night-${creatorKey}-auto`,
         content: {
-          caption: "Tap the Shopee link in bio for the gloss → https://shopee.com.br/product/123/456",
+          caption: "Tap the Amazon link in bio for the gloss → https://www.amazon.com/dp/B0CXYZ123?tag=lumina-20",
           hook: "Find the gloss everyone's been asking about ↓",
         },
         projectedReach: 12_000,
@@ -157,7 +158,7 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
     : `You earned $${totalUsdEquivalent.toFixed(2)} overnight`;
 
   const subtitle = otherCurrencies
-    ? `…plus ${otherCurrencies} from regional payouts.`
+    ? `…plus ${otherCurrencies} from international payouts.`
     : "…the swarm worked an 8-hour shift so you didn't have to.";
 
   return {
@@ -197,22 +198,28 @@ function toRecapDeposit(e: WalletEntry): RecapDeposit {
 }
 
 /**
- * Deterministic overnight feed for the demo. Three integrations land in
- * three currencies; sums are well below the 12-month $1.5K threshold so
- * the ledger genuinely exercises the 10%-on-incremental rule end to end.
+ * Deterministic overnight feed for the demo — v2.0 US-first blueprint.
+ * USD is primary (Stripe Connect / PayPal day-1); a single GBP entry
+ * proves the multi-currency rail picker and English-first international
+ * coverage (UK is a Day-1 market). Sums sit well below the 12-month
+ * $1.5K threshold so the ledger genuinely exercises the 10%-on-incremental
+ * rule end to end.
  */
 function seedNightEvents(creatorKey: string): RevenueEvent[] {
   const at = DEMO_NIGHT_MS - 4 * 3600 * 1000; // 4h before "wake up"
+  const brandDealUsd = EARNINGS?.deals?.[0]?.amount
+    ? Math.min(EARNINGS.deals[0].amount, 120)
+    : 120;
   return [
     {
       id: `night-${creatorKey}-1`,
       videoId: "v-night-1",
-      amount: EARNINGS?.deals?.[0]?.amount ? Math.min(EARNINGS.deals[0].amount, 220) : 220,
-      currency: "BRL",
+      amount: brandDealUsd,
+      currency: "USD",
       source: "brand-deal",
       occurredAt: at,
       attributableToLumina: true,
-      baseline: 60,
+      baseline: 30,
     },
     {
       id: `night-${creatorKey}-2`,
@@ -227,8 +234,8 @@ function seedNightEvents(creatorKey: string): RevenueEvent[] {
     {
       id: `night-${creatorKey}-3`,
       videoId: "v-night-3",
-      amount: 18,
-      currency: "USD",
+      amount: 42,
+      currency: "GBP",
       source: "tip",
       occurredAt: at + 3600_000,
       attributableToLumina: true,

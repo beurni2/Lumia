@@ -127,7 +127,7 @@ export default function WhileYouSleptScreen() {
                   {cur} {(amt ?? 0).toLocaleString()}
                 </Text>
                 <Text style={[styles.balanceLabel, { color: colors.mutedForeground }]}>
-                  {cur === "USD" ? "wallet" : "regional"}
+                  {cur === "USD" ? "wallet" : "international"}
                 </Text>
               </View>
             ))}
