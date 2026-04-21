@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "XQGmgpw3wqQf3lmWbvHjI"
@@ -24,3 +23,9 @@ id = "SniwodELByP_e5IjwRirl"
 uri = "file://artifacts/lumina/assets/images/creator-3.png"
 type = "image"
 title = "beauty creator portrait"
+
+[[outputs]]
+id = "skirkYnBrtwTuUpZ70QN9"
+uri = "file://FOUNDER_DEMO_SCRIPT.md"
+type = "text"
+title = "Lumina — Founder Demo Script (one-pager)"
