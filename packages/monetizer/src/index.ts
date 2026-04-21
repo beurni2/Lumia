@@ -143,7 +143,20 @@ export {
   ReferralRocket,
   referralCodeFor,
   BOUNTY_USD,
+  REFERRER_BOUNTY_USD,
+  REFEREE_BOUNTY_USD,
   type ReferralLink,
   type ReferralAttribution,
   type ReferralBounty,
 } from "./referral";
+export {
+  LocalWallet,
+  type DepositSource,
+  type WalletEntry,
+  type WalletSummary,
+} from "./wallet";
+export {
+  autoMatchAffiliates,
+  type AutoMatchInput,
+  type AutoMatchResult,
+} from "./affiliateMatcher";

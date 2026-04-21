@@ -34,10 +34,18 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.section}>
-        <View style={[styles.recapCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Pressable
+          onPress={() => router.push("/while-you-slept")}
+          style={({ pressed }) => [
+            styles.recapCard,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.recapHeader}>
             <Feather name="star" size={20} color={colors.accent} />
             <Text style={[styles.recapTitle, { color: colors.foreground }]}>While You Slept</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
           </View>
           <View style={styles.recapStats}>
             <View style={styles.recapStat}>
@@ -52,7 +60,10 @@ export default function HomeScreen() {
               <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Earned</Text>
             </View>
           </View>
-        </View>
+          <Text style={[styles.recapCta, { color: colors.tint }]}>
+            Open full overnight recap →
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.section}>
@@ -162,6 +173,11 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     marginHorizontal: 20,
+  },
+  recapCta: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 14,
   },
   trendsContainer: {
     paddingHorizontal: 24,

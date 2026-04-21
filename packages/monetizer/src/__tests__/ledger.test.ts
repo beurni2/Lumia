@@ -54,13 +54,29 @@ function run() {
   }
 
   // ── 4. Tamper detection ───────────────────────────────────────────────
-  // Mutate an entry's hash → verify must fail.
+  // 4a. Mutate an entry's hash → verify must fail.
   const mutated = new PerformanceFeeLedger();
   mutated.record(evt("a", 100, 0));
   mutated.record(evt("b", 200, 100));
   // @ts-expect-error reach into private to simulate tampering for the audit drill
   mutated.entries[1].hash = "deadbeefdeadbeef";
   assert.equal(mutated.verify(), false, "tampered hash must fail verification");
+
+  // 4b. Hash chain commits to event payload — mutating event.amount must
+  //     break verify() even if event.id and fee.fee are left untouched.
+  const payloadTamper = new PerformanceFeeLedger();
+  payloadTamper.record(evt("a", 100, 0));
+  payloadTamper.record(evt("b", 200, 100));
+  // @ts-expect-error reach into private to mutate the underlying event
+  payloadTamper.entries[1].event.amount = 999_999;
+  assert.equal(payloadTamper.verify(), false, "amount mutation must break the hash chain");
+
+  // 4c. Mutating event.currency must also break the chain.
+  const curTamper = new PerformanceFeeLedger();
+  curTamper.record(evt("a", 100, 0));
+  // @ts-expect-error reach into private to mutate the underlying event
+  curTamper.entries[0].event.currency = "BRL";
+  assert.equal(curTamper.verify(), false, "currency mutation must break the hash chain");
 
   // ── 5. Duplicate event rejection ──────────────────────────────────────
   const dup = new PerformanceFeeLedger();

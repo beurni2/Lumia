@@ -33,6 +33,12 @@ export {
   type WatermarkInput,
 } from "./watermark";
 export { REGIONAL_TRENDS, type RegionalTrend } from "./regionalTrends";
+export {
+  runEarningsCycle,
+  type EarningsContext,
+  type EarningsCycleInput,
+  type EarningsCycleResult,
+} from "./agents/earnings";
 
 export const SPRINT = 3 as const;
 export const STATUS = "smart-publisher" as const;

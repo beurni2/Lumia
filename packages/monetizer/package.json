@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/__tests__/feeAccounting.test.ts && tsx src/__tests__/affiliate.test.ts && tsx src/__tests__/brandGraph.test.ts && tsx src/__tests__/escrow.test.ts && tsx src/__tests__/ledger.test.ts && tsx src/__tests__/referral.test.ts && tsx src/__tests__/pitchDeck.test.ts"
+    "test": "tsx src/__tests__/feeAccounting.test.ts && tsx src/__tests__/affiliate.test.ts && tsx src/__tests__/affiliateMatcher.test.ts && tsx src/__tests__/brandGraph.test.ts && tsx src/__tests__/escrow.test.ts && tsx src/__tests__/ledger.test.ts && tsx src/__tests__/referral.test.ts && tsx src/__tests__/pitchDeck.test.ts && tsx src/__tests__/wallet.test.ts"
   },
   "devDependencies": {
     "typescript": "~5.9.2"

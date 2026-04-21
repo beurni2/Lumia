@@ -17,7 +17,13 @@ export interface LedgerEntry {
   readonly seq: number;
   readonly event: RevenueEvent;
   readonly fee: FeeCalculation;
-  /** FNV-1a hash chain over (prevHash | seq | event.id | fee.fee). */
+  /**
+   * FNV-1a hash chain over a canonical commitment of every audit-relevant
+   * field of the entry (prevHash | seq | event.id | event.amount |
+   * event.currency | event.baseline | event.source | event.occurredAt |
+   * event.attributableToLumina | fee.fee | fee.creatorTake | fee.incremental).
+   * Mutating any of these post-write breaks `verify()`.
+   */
   readonly hash: string;
   readonly prevHash: string;
 }
@@ -45,7 +51,7 @@ export class PerformanceFeeLedger {
     const fee = calculateFee(event);
     const seq = this.entries.length + 1;
     const prevHash = this.entries.length === 0 ? GENESIS : this.entries[this.entries.length - 1]!.hash;
-    const hash = fnv1a16(`${prevHash}|${seq}|${event.id}|${fee.fee.toFixed(2)}`);
+    const hash = fnv1a16(commitmentPayload(prevHash, seq, event, fee));
     const entry: LedgerEntry = { seq, event, fee, hash, prevHash };
     this.entries.push(entry);
     return entry;
@@ -59,7 +65,7 @@ export class PerformanceFeeLedger {
   verify(): boolean {
     let prev = GENESIS;
     for (const e of this.entries) {
-      const expected = fnv1a16(`${prev}|${e.seq}|${e.event.id}|${e.fee.fee.toFixed(2)}`);
+      const expected = fnv1a16(commitmentPayload(prev, e.seq, e.event, e.fee));
       if (e.hash !== expected || e.prevHash !== prev) return false;
       prev = e.hash;
     }
@@ -87,6 +93,29 @@ export class PerformanceFeeLedger {
       feeRate: PERFORMANCE_FEE_RATE,
     };
   }
+}
+
+/**
+ * Canonical hash-chain commitment payload. Every audit-relevant field of
+ * the entry is included so post-hoc mutation of the event (amount, currency,
+ * baseline, source, attribution flag, occurredAt) or the calculated fee
+ * (fee, creatorTake, incremental) can be detected by `verify()`.
+ */
+function commitmentPayload(prevHash: string, seq: number, event: RevenueEvent, fee: FeeCalculation): string {
+  return [
+    prevHash,
+    seq,
+    event.id,
+    event.amount.toFixed(2),
+    event.currency,
+    event.baseline.toFixed(2),
+    event.source,
+    event.occurredAt,
+    event.attributableToLumina ? 1 : 0,
+    fee.fee.toFixed(2),
+    fee.creatorTake.toFixed(2),
+    fee.incremental.toFixed(2),
+  ].join("|");
 }
 
 function fnv1a16(s: string): string {
