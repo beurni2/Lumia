@@ -2,11 +2,15 @@ import { ideate, isoDay, scoreBrief } from "./agents/ideator";
 import { direct } from "./agents/director";
 import { edit } from "./agents/editor";
 import { monetize } from "./agents/monetizer";
+import { buildPublishPlan, launchPublishPlan } from "./agents/publisher";
 import type {
   Brief,
   DealDraft,
   Orchestrator,
   OrchestratorContext,
+  PublishPlan,
+  PublishRequest,
+  PublishResult,
   RenderedVideo,
   Storyboard,
 } from "./types";
@@ -20,19 +24,18 @@ export interface MockOrchestratorOptions {
 
 /**
  * MockOrchestrator — coordinates Ideator → Director → Editor → Monetizer
- * against the in-memory MemoryGraph. Every step writes a node so the UI can
- * render the audit trail (the same trail the Compliance Shield audits in
- * production).
+ * → Publisher against the in-memory MemoryGraph.
  *
- * Determinism contract: given identical (StyleTwin, region, dayKey, now),
- * the orchestrator produces bit-identical Brief / Storyboard / RenderedVideo
- * / DealDraft outputs. Wall-clock dependence is isolated to the injectable
- * `now()` and `dayKey()` so tests can pin them.
+ * Determinism contract (Sprint 2 + extended in Sprint 3): given identical
+ * (StyleTwin, region, dayKey, now, platforms, creatorKey, regions) the
+ * orchestrator produces bit-identical Brief / Storyboard / RenderedVideo /
+ * DealDraft / PublishPlan / PublishResult outputs.
  */
 export class MockOrchestrator implements Orchestrator {
   private briefs = new Map<string, Brief>();
   private storyboards = new Map<string, Storyboard>();
   private videos = new Map<string, RenderedVideo>();
+  private plans = new Map<string, PublishPlan>();
   private now: () => number;
   private dayKey: () => string;
 
@@ -43,17 +46,12 @@ export class MockOrchestrator implements Orchestrator {
 
   async dailyBriefs(ctx: OrchestratorContext): Promise<Brief[]> {
     const shortlist = ideate(ctx.styleTwin, ctx.region, this.dayKey());
-
-    // Per-brief enrichment with verifyMatch() + nearest() against the
-    // creator's encrypted on-device vector memory. Runs in parallel so the
-    // UI doesn't pay 3× the latency of a single scoring call.
     const enriched = await Promise.all(
       shortlist.map(async ({ brief, trend }) => {
         const enrichment = await scoreBrief(ctx.styleTwin, trend);
         return { ...brief, ...enrichment } as Brief;
       }),
     );
-
     for (const b of enriched) {
       this.briefs.set(b.id, b);
       await ctx.memory.write({ id: b.id, kind: "brief", payload: b });
@@ -75,8 +73,6 @@ export class MockOrchestrator implements Orchestrator {
     if (!sb) throw new Error(`Storyboard not found: ${storyboardId}`);
     const allowed = await ctx.consent.request("burst-render");
     if (!allowed) throw new Error("Render denied by consent gate");
-    // edit() throws TwinMatchRejected if the candidate falls below the gate;
-    // the orchestrator surfaces it to the caller verbatim.
     const video = edit(sb, ctx.styleTwin);
     this.videos.set(video.id, video);
     await ctx.memory.write({ id: video.id, kind: "video", payload: video });
@@ -98,5 +94,35 @@ export class MockOrchestrator implements Orchestrator {
       await ctx.memory.write({ id: d.id, kind: "deal", payload: d });
     }
     return drafts;
+  }
+
+  async plan(
+    ctx: OrchestratorContext,
+    videoId: string,
+    request: PublishRequest,
+  ): Promise<PublishPlan> {
+    const video = this.videos.get(videoId);
+    if (!video) throw new Error(`Video not found: ${videoId}`);
+    const sb = this.storyboards.get(video.storyboardId);
+    if (!sb) throw new Error(`Storyboard not found for video ${videoId}`);
+    const plan = await buildPublishPlan({
+      twin: ctx.styleTwin,
+      storyboard: sb,
+      video,
+      platforms: request.platforms,
+      creatorKey: request.creatorKey,
+      regions: request.regions,
+    });
+    this.plans.set(plan.planId, plan);
+    await ctx.memory.write({ id: plan.planId, kind: "publish-plan", payload: plan });
+    return plan;
+  }
+
+  async launch(ctx: OrchestratorContext, planId: string): Promise<PublishResult> {
+    const plan = this.plans.get(planId);
+    if (!plan) throw new Error(`PublishPlan not found: ${planId}`);
+    const allowed = await ctx.consent.request("publish");
+    if (!allowed) throw new Error("Publish denied by consent gate");
+    return launchPublishPlan(plan, this.now());
   }
 }

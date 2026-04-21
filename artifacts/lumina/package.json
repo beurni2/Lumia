@@ -25,6 +25,7 @@
     "@workspace/style-twin": "workspace:*",
     "@workspace/swarm-studio": "workspace:*",
     "@workspace/monetizer": "workspace:*",
+    "@workspace/compliance-shield": "workspace:*",
     "expo-secure-store": "~15.0.7",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
     "expo": "~54.0.27",

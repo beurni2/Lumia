@@ -43,6 +43,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="onboarding" options={{ presentation: "fullScreenModal" }} />
       <Stack.Screen name="studio/[id]" options={{ presentation: "modal" }} />
+      <Stack.Screen name="publisher" options={{ presentation: "modal" }} />
     </Stack>
   );
 }

@@ -220,8 +220,26 @@ export default function StudioScreen() {
 
       {!running && deals && (
         <SystemBubble colors={colors}>
-          Run complete. Tap below to start another.
+          Run complete. Send it to the world or run another draft.
         </SystemBubble>
+      )}
+
+      {!running && deals && (
+        <Pressable
+          onPress={() => router.push("/publisher")}
+          style={({ pressed }) => [
+            styles.cta,
+            {
+              backgroundColor: "#22c2a5",
+              opacity: pressed ? 0.85 : 1,
+              marginHorizontal: 24,
+              marginTop: 8,
+            },
+          ]}
+        >
+          <Feather name="zap" size={16} color="#fff" />
+          <Text style={styles.ctaText}>Launch to the World</Text>
+        </Pressable>
       )}
 
       <Pressable

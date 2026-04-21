@@ -1,6 +1,9 @@
 import type { StyleTwin } from "@workspace/style-twin";
+import type { PlatformId, PublishContent, ShieldVerdict } from "@workspace/compliance-shield";
+import type { ABVariant } from "./abTest";
+import type { SmartWatermark } from "./watermark";
 
-export type AgentId = "ideator" | "director" | "editor" | "monetizer";
+export type AgentId = "ideator" | "director" | "editor" | "monetizer" | "publisher";
 
 export type CulturalRegion =
   | "br" | "mx" | "co" | "ar"
@@ -8,24 +11,17 @@ export type CulturalRegion =
 
 /** Per-brief Twin affinity, computed live by verifyMatch() against the user's Style Twin. */
 export interface TwinAffinity {
-  /** Overall similarity score (0–1) of this brief's projected fingerprint vs the user's Twin. */
   readonly overall: number;
-  /** Sub-score for voice/pacing match. */
   readonly voice: number;
-  /** Sub-score for vocabulary/catchphrase overlap. */
   readonly vocabulary: number;
-  /** True iff overall ≥ HEADLINE_MATCH_TARGET (0.998). */
   readonly meetsHeadlineGate: boolean;
-  /** True iff voice ≥ AUDIO_MATCH_GATE (0.95) — the publish gate. */
   readonly meetsAudioGate: boolean;
 }
 
-/** Reference to a past on-device win the Director can riff on. */
 export interface PastWinReference {
   readonly sampleId: string;
   readonly score: number;
   readonly capturedAt: number;
-  /** True if this neighbor came from synthetic demo seed data, not a real win. */
   readonly synthetic: boolean;
 }
 
@@ -36,9 +32,7 @@ export interface Brief {
   culturalTag: string;
   region: CulturalRegion;
   trendSourceIds: string[];
-  /** Real-time score from @workspace/style-twin verifyMatch(). */
   twinAffinity: TwinAffinity;
-  /** Top-k past wins from the encrypted on-device vector memory (kNN). */
   pastWinReferences: PastWinReference[];
 }
 
@@ -54,9 +48,7 @@ export interface RenderedVideo {
   storyboardId: string;
   filePath: string;
   durationSec: number;
-  /** Confidence the rendered video clones the StyleTwin within tolerance. */
   viralConfidence: number;
-  /** Twin-similarity overall score (0–1) — must be ≥ 0.95 to publish. */
   twinMatchScore: number;
   reasoning: string;
 }
@@ -74,7 +66,7 @@ export interface DealDraft {
 
 export interface MemoryGraphNode {
   id: string;
-  kind: "video" | "brief" | "storyboard" | "win" | "audience-signal" | "deal";
+  kind: "video" | "brief" | "storyboard" | "win" | "audience-signal" | "deal" | "publish-plan";
   payload: unknown;
   createdAt: number;
 }
@@ -95,9 +87,62 @@ export interface OrchestratorContext {
   region: CulturalRegion;
 }
 
+/* ────────────── Sprint 3: Smart Publisher types ────────────── */
+
+export interface PublishPlatformPlan {
+  readonly platform: PlatformId;
+  readonly adaptation: {
+    readonly aspect: "9:16" | "1:1" | "16:9";
+    readonly maxCaptionLen: number;
+    readonly maxDurationSec: number;
+    readonly captionStyle: "casual" | "punchy" | "title";
+  };
+  readonly shield: ShieldVerdict;
+  /** Final content to actually post (= shield.rewritten). */
+  readonly content: PublishContent;
+}
+
+export interface PublishPlan {
+  readonly planId: string;
+  readonly videoId: string;
+  /** All 12 A/B variants the orchestrator considered. */
+  readonly variants: readonly ABVariant[];
+  /** ID of the winning variant, or null if no variant cleared the audio gate. */
+  readonly winnerId: string | null;
+  readonly watermark: SmartWatermark;
+  readonly perPlatform: readonly PublishPlatformPlan[];
+  /** Set when winnerId is null — the UI surfaces this verbatim. */
+  readonly blockedReason: string | null;
+}
+
+export interface PublishResult {
+  readonly planId: string;
+  readonly launchedAt: number;
+  readonly perPlatform: ReadonlyArray<{
+    readonly platform: PlatformId;
+    readonly status: "posted" | "posted-rewritten" | "blocked";
+    readonly reason: string | null;
+    readonly mockUrl: string | null;
+  }>;
+  readonly hardBlocked: boolean;
+  readonly summary: string;
+}
+
+/* ────────────── Orchestrator interface ────────────── */
+
+export interface PublishRequest {
+  readonly platforms: readonly PlatformId[];
+  readonly creatorKey: string;
+  readonly regions: readonly string[];
+}
+
 export interface Orchestrator {
   dailyBriefs(ctx: OrchestratorContext): Promise<Brief[]>;
   storyboard(ctx: OrchestratorContext, briefId: string): Promise<Storyboard>;
   produce(ctx: OrchestratorContext, storyboardId: string): Promise<RenderedVideo>;
   monetize(ctx: OrchestratorContext, videoId: string): Promise<DealDraft[]>;
+  /** Sprint 3: Smart Publisher — builds the 12-variant A/B + Shield plan. */
+  plan(ctx: OrchestratorContext, videoId: string, request: PublishRequest): Promise<PublishPlan>;
+  /** Sprint 3: launch a previously-built plan (mock platform clients). */
+  launch(ctx: OrchestratorContext, planId: string): Promise<PublishResult>;
 }

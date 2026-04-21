@@ -1,0 +1,16 @@
+{
+  "name": "@workspace/compliance-shield",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/__tests__/shield.test.ts && tsx src/__tests__/rewrite.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}
