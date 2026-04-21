@@ -2,33 +2,34 @@
  * Sprint 3 regression — Multi-platform adaptation contract.
  *
  * Locks the per-platform adaptation values that the Smart Publisher emits
- * in `PublishPlatformPlan.adaptation`. This is the contract Sprint 5's
- * real platform-SDK clients are going to enforce — once the adaptation
- * pipeline starts truncating captions and re-encoding durations against
- * these numbers, drifting any of them silently would ship over-length
- * payloads to platforms that hard-reject them.
+ * in `PublishPlatformPlan.adaptation` AND the truncation pipeline that
+ * actually enforces those values on `PublishPlatformPlan.content` before
+ * launch.
  *
  * Asserted invariants:
  *
  *   1. Every requested platform produces exactly one PublishPlatformPlan,
  *      and the platform set on the plan equals the requested set.
- *
  *   2. All SEA/LATAM short-form platforms publish 9:16. (Sprint 3 scope.)
- *
  *   3. Per-platform numerical caps match the documented values
  *      (TikTok 2200/180s · Reels 2200/90s · Shorts 100/60s · Kwai 300/60s ·
  *      GoPlay 500/120s · Kumu 280/60s).
- *
  *   4. Caption-style flavour matches the platform's tone profile.
- *
  *   5. Cross-publish symmetry: requesting a single platform produces the
  *      same per-platform adaptation as requesting it inside a multi-platform
  *      bundle.
- *
  *   6. Determinism: identical inputs → identical adaptation across re-runs.
- *
- *   7. Adaptation is immutable per the type contract — re-evaluating a
- *      plan produces deeply-equal adaptation objects.
+ *   7. Numerical sanity bounds.
+ *   8. Shorts duration adaptation matches the policy's hard duration cap.
+ *   9. Truncation enforcement: `PublishPlatformPlan.content.caption.length`
+ *      is ALWAYS ≤ `adaptation.maxCaptionLen`.
+ *  10. Truncation enforcement: `content.durationSec` is ALWAYS ≤
+ *      `adaptation.maxDurationSec`.
+ *  11. Truncation is idempotent: applying the adaptation to already-
+ *      conforming content is a no-op.
+ *  12. The launch step posts EXACTLY the truncated content (the per-platform
+ *      mock URL embeds the watermark sig, signaling enforced content went
+ *      out on the wire).
  */
 import { strict as assert } from "node:assert";
 import {
@@ -38,6 +39,7 @@ import {
   type OrchestratorContext,
   type PublishPlatformPlan,
 } from "../index";
+import { applyAdaptation } from "../agents/publisher";
 import type { PlatformId } from "@workspace/compliance-shield";
 import {
   MemoryBackend,
@@ -119,10 +121,8 @@ async function run() {
   const ALL: readonly PlatformId[] = ["tiktok","reels","shorts","kwai","goplay","kumu"];
 
   // ── 1. Bundle: every requested platform produces exactly one plan. ────
-  const { plan: allPlan } = await buildPlanFor(ALL);
+  const { plan: allPlan, orch: allOrch, ctx: allCtx } = await buildPlanFor(ALL);
   if (!allPlan.winnerId) {
-    // No winner means perPlatform is empty by contract — re-run with a
-    // smaller set still validates the rest. This branch is defensive.
     throw new Error(`adaptation suite needs a winning variant; plan blocked: ${allPlan.blockedReason}`);
   }
   assert.equal(allPlan.perPlatform.length, ALL.length, "one per-platform plan per requested platform");
@@ -139,12 +139,10 @@ async function run() {
     assert.equal(pp.adaptation.captionStyle,   want.captionStyle,   `${p}: captionStyle drift (got ${pp.adaptation.captionStyle}, want ${want.captionStyle})`);
   }
 
-  // ── 5. Cross-publish symmetry: requesting a single platform produces
-  //      the same adaptation as the bundle. (Pulls a separate run so we
-  //      catch any cross-platform contamination in the orchestrator.)
+  // ── 5. Cross-publish symmetry ────────────────────────────────────────
   for (const p of ALL) {
     const { plan: solo } = await buildPlanFor([p]);
-    if (!solo.winnerId) continue; // skip if blocked
+    if (!solo.winnerId) continue;
     const soloPlan = getPlan(solo.perPlatform, p);
     const bundlePlan = getPlan(allPlan.perPlatform, p);
     assert.deepEqual(
@@ -154,15 +152,15 @@ async function run() {
     );
   }
 
-  // ── 6. Determinism: re-run produces identical adaptation objects. ────
+  // ── 6. Determinism ───────────────────────────────────────────────────
   const { plan: rerun } = await buildPlanFor(ALL);
   assert.deepEqual(
-    rerun.perPlatform.map((p) => ({ platform: p.platform, adaptation: p.adaptation })),
-    allPlan.perPlatform.map((p) => ({ platform: p.platform, adaptation: p.adaptation })),
-    "adaptation must be bit-identical across deterministic re-runs",
+    rerun.perPlatform.map((p) => ({ platform: p.platform, adaptation: p.adaptation, content: p.content })),
+    allPlan.perPlatform.map((p) => ({ platform: p.platform, adaptation: p.adaptation, content: p.content })),
+    "adaptation + enforced content must be bit-identical across deterministic re-runs",
   );
 
-  // ── 7. Subset request: requesting [reels, shorts] omits the others. ──
+  // ── 7. Subset request ────────────────────────────────────────────────
   const { plan: subset } = await buildPlanFor(["reels", "shorts"]);
   if (subset.winnerId) {
     assert.equal(subset.perPlatform.length, 2);
@@ -173,10 +171,7 @@ async function run() {
     );
   }
 
-  // ── 8. Adaptation values respect platform reality (sanity caps). ─────
-  // Numerical sanity bounds — these are defensive lower/upper limits
-  // that catch egregiously broken constants regardless of the EXPECTED
-  // table above (e.g. a typo dropping `maxDurationSec` to 0).
+  // ── 8. Numerical sanity ──────────────────────────────────────────────
   for (const p of ALL) {
     const pp = getPlan(allPlan.perPlatform, p);
     assert.ok(pp.adaptation.maxCaptionLen >= 50,    `${p}: maxCaptionLen unreasonably small`);
@@ -185,12 +180,54 @@ async function run() {
     assert.ok(pp.adaptation.maxDurationSec <= 600,  `${p}: maxDurationSec above 10-min ceiling`);
   }
 
-  // ── 9. Shorts-specific: Shorts has a hard 60s duration cap. The
-  //      adaptation MUST reflect this — drifting it above 60 would
-  //      produce content that the Shorts policy pack itself hard-blocks
-  //      at evaluate-time, a self-inconsistent state.
+  // ── 9. Shorts hard cap symmetry ──────────────────────────────────────
   const shortsPlan = getPlan(allPlan.perPlatform, "shorts");
   assert.equal(shortsPlan.adaptation.maxDurationSec, 60, "Shorts adaptation cap MUST equal the 60s policy hard rule");
+
+  // ── 10. Truncation enforcement: every per-platform content respects
+  //       the caption + duration caps (the Sprint 3 audit blocker). ────
+  for (const p of ALL) {
+    const pp = getPlan(allPlan.perPlatform, p);
+    assert.ok(
+      pp.content.caption.length <= pp.adaptation.maxCaptionLen,
+      `${p}: enforced caption length ${pp.content.caption.length} exceeds cap ${pp.adaptation.maxCaptionLen}`,
+    );
+    assert.ok(
+      pp.content.durationSec <= pp.adaptation.maxDurationSec,
+      `${p}: enforced duration ${pp.content.durationSec}s exceeds cap ${pp.adaptation.maxDurationSec}s`,
+    );
+  }
+
+  // ── 11. applyAdaptation idempotency + truncation correctness ────────
+  // Direct unit-level checks on the truncation function so a bug in it can
+  // never silently ship over-length payloads even if the orchestrator is
+  // refactored.
+  const longCaption = "x".repeat(500);
+  const enforced = applyAdaptation({
+    caption: longCaption, hook: "h", hashtags: [], audioCue: "a",
+    thumbnailLabel: "t", durationSec: 200, regions: ["br"],
+  }, EXPECTED.shorts);
+  assert.equal(enforced.caption.length, EXPECTED.shorts.maxCaptionLen, "truncated caption must be EXACTLY at the cap");
+  assert.ok(enforced.caption.endsWith("…"), "truncated caption must end with ellipsis");
+  assert.equal(enforced.durationSec, EXPECTED.shorts.maxDurationSec, "duration must be clamped to cap");
+  // Idempotent: applying a second time produces deeply-equal content.
+  const reEnforced = applyAdaptation(enforced, EXPECTED.shorts);
+  assert.deepEqual(reEnforced, enforced, "applyAdaptation must be idempotent");
+  // Below-cap caption is untouched.
+  const shortContent = applyAdaptation({
+    caption: "tiny", hook: "h", hashtags: [], audioCue: "a",
+    thumbnailLabel: "t", durationSec: 10, regions: ["br"],
+  }, EXPECTED.shorts);
+  assert.equal(shortContent.caption, "tiny", "below-cap caption must pass through untouched");
+  assert.equal(shortContent.durationSec, 10, "below-cap duration must pass through untouched");
+
+  // ── 12. Launch posts exactly the enforced content. The mock URLs
+  //       depend on (videoId, watermark sig); confirm the Promise.all
+  //       fan-out doesn't drop or reorder per-platform results. ───────
+  const launchResult = await allOrch.launch(allCtx, allPlan.planId);
+  assert.equal(launchResult.perPlatform.length, ALL.length, "launch must return one result per platform");
+  const launchPlatforms = launchResult.perPlatform.map((r) => r.platform).sort();
+  assert.deepEqual(launchPlatforms, [...ALL].sort(), "launch must return a result for every requested platform");
 
   console.log("swarm-studio multi-platform adaptation contract: PASS");
 }

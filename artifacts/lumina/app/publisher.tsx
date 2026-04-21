@@ -16,6 +16,8 @@ import { useColors } from "@/hooks/useColors";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
 import { creatorKeyFor, DEFAULT_PLATFORMS, DEFAULT_REGIONS } from "@/lib/publisherFactory";
+import ConfettiBurst from "@/components/ConfettiBurst";
+import LaunchSuccessHero from "@/components/LaunchSuccessHero";
 import type {
   PublishPlan,
   PublishResult,
@@ -156,11 +158,17 @@ export default function PublisherScreen() {
     );
   }
 
+  // Confetti only fires on the first successful launch result the user sees,
+  // so re-renders for unrelated state changes don't replay the animation.
+  const launchedOnce = phase === "launched" && result != null && !result.hardBlocked;
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingTop: topInset + 16, paddingBottom: bottomInset + 24, gap: 16 }}
     >
+      {launchedOnce && <ConfettiBurst />}
+
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backRow}>
           <Feather name="chevron-left" size={20} color={colors.mutedForeground} />
@@ -278,27 +286,35 @@ export default function PublisherScreen() {
         </>
       )}
 
-      {result && (
-        <Card colors={colors}>
-          <SectionTitle colors={colors}>Launch result</SectionTitle>
-          <Text style={[styles.bodyText, { color: colors.foreground, marginBottom: 8 }]}>
-            {result.summary}
-          </Text>
-          {result.perPlatform.map((r) => (
-            <Row key={r.platform}>
-              <Feather
-                name={r.status === "blocked" ? "x-circle" : "check-circle"}
-                size={16}
-                color={r.status === "blocked" ? (colors.destructive ?? "#ff6b6b") : "#22c2a5"}
-              />
-              <Text style={[styles.bodyText, { color: colors.foreground, marginLeft: 8, flex: 1 }]}>
-                {r.platform} — {r.status}
-                {r.mockUrl ? `  ·  ${r.mockUrl}` : ""}
-              </Text>
-            </Row>
-          ))}
-        </Card>
-      )}
+      {result && (() => {
+        const posted = result.perPlatform.filter((r) => r.status !== "blocked").length;
+        const blocked = result.perPlatform.length - posted;
+        return (
+          <>
+            <LaunchSuccessHero
+              platformsPosted={posted}
+              platformsBlocked={blocked}
+              summary={result.summary}
+            />
+            <Card colors={colors}>
+              <SectionTitle colors={colors}>Per-platform result</SectionTitle>
+              {result.perPlatform.map((r) => (
+                <Row key={r.platform}>
+                  <Feather
+                    name={r.status === "blocked" ? "x-circle" : "check-circle"}
+                    size={16}
+                    color={r.status === "blocked" ? (colors.destructive ?? "#ff6b6b") : "#22c2a5"}
+                  />
+                  <Text style={[styles.bodyText, { color: colors.foreground, marginLeft: 8, flex: 1 }]}>
+                    {r.platform} — {r.status}
+                    {r.mockUrl ? `  ·  ${r.mockUrl}` : ""}
+                  </Text>
+                </Row>
+              ))}
+            </Card>
+          </>
+        );
+      })()}
 
       <Pressable
         onPress={launch}

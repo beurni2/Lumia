@@ -5,7 +5,6 @@ import {
   type PlatformId,
   type PolicyPack,
   type PublishContent,
-  type ShieldVerdict,
 } from "@workspace/compliance-shield";
 import type { StyleTwin } from "@workspace/style-twin";
 import {
@@ -14,7 +13,7 @@ import {
   type ABVariant,
   VARIANT_COUNT,
 } from "../abTest";
-import { watermark, type SmartWatermark } from "../watermark";
+import { watermark } from "../watermark";
 import type {
   PublishPlan,
   PublishPlatformPlan,
@@ -22,6 +21,7 @@ import type {
   RenderedVideo,
   Storyboard,
 } from "../types";
+import { clientFor } from "./platformClients";
 
 /**
  * Smart Publisher — Sprint 3.
@@ -33,8 +33,11 @@ import type {
  *   3. Pick the winning variant (gate-aware).
  *   4. Sign the rendered video with the lossless smart watermark.
  *   5. For every requested platform, run the winner through the Compliance
- *      Shield's autoRewrite pipeline. Per-platform aspect-ratio + caption
- *      adaptation is encoded in `PublishPlatformPlan.adaptation`.
+ *      Shield's autoRewrite pipeline AND apply per-platform adaptation
+ *      (caption truncation + duration clamp). Per-platform aspect-ratio +
+ *      caption tone is encoded in `PublishPlatformPlan.adaptation`.
+ *   6. Launch dispatches each per-platform plan to its `PlatformClient`
+ *      (mock in Sprint 3, real OAuth + SDK in Sprint 5).
  *
  * The pipeline is pure given (twin, video, storyboard, platforms,
  * creatorKey) plus the deterministic vector memory backend. Every Sprint 2
@@ -81,9 +84,9 @@ export async function buildPublishPlan(input: BuildPlanInput): Promise<PublishPl
 
   // 3. Pick the winner. Null = no variant cleared the audio gate.
   const winner = pickWinner(variants);
-  // Plan identity must be stable across (video, platforms, creatorKey, regions) so
-  // calling buildPublishPlan() twice with different requests on the same video
-  // doesn't collide in the orchestrator's plans map.
+  // Plan identity must be stable across (video, platforms, creatorKey, regions)
+  // so calling buildPublishPlan() twice with different requests on the same
+  // video doesn't collide in the orchestrator's plans map.
   const planId = `plan-${input.video.id}-${planFingerprint(
     input.platforms,
     input.creatorKey,
@@ -105,17 +108,22 @@ export async function buildPublishPlan(input: BuildPlanInput): Promise<PublishPl
   // 4. Watermark the video.
   const wm = watermark({ video: input.video, creatorKey: input.creatorKey });
 
-  // 5. Per-platform Shield verdicts.
+  // 5. Per-platform Shield verdicts + adaptation enforcement.
   const perPlatform: PublishPlatformPlan[] = [];
   for (const platform of input.platforms) {
     const pack: PolicyPack = POLICY_PACKS[platform];
     const baseContent = winnerToContent(winner, input.video, input.regions);
     const verdict = autoRewrite(baseContent, [pack]);
+    const adaptation = adaptationFor(platform, input.video.durationSec);
+    // Truncate caption + clamp duration so what we hand to the platform
+    // client is exactly what it will accept. This is the Sprint 3 audit
+    // requirement: declarative caps must be enforced before launch.
+    const enforced = applyAdaptation(verdict.rewritten, adaptation);
     perPlatform.push({
       platform,
-      adaptation: adaptationFor(platform, input.video.durationSec),
+      adaptation,
       shield: verdict,
-      content: verdict.rewritten,
+      content: enforced,
     });
   }
 
@@ -151,13 +159,11 @@ function planFingerprint(
 }
 
 /**
- * Mock platform launch. Sprint 3 keeps everything in-process — Sprint 5
- * wires real OAuth + per-platform SDK clients. The contract surface here
- * is what the Sprint 5 work will swap into.
+ * Per-platform launch. Sprint 3 dispatches through the in-process
+ * `PlatformClient` registry — Sprint 5 swaps in the real per-platform OAuth
+ * + SDK clients without changing this surface or the contract the UI sees.
  *
- * Refuses to launch any platform whose Shield verdict is `blocked`. Returns
- * a per-platform result with a deterministic mock URL so the UI can render
- * "✓ Posted to TikTok" affordances.
+ * Refuses to launch any platform whose Shield verdict is `blocked`.
  */
 export async function launchPublishPlan(plan: PublishPlan, now: number = Date.now()): Promise<PublishResult> {
   if (plan.blockedReason) {
@@ -169,24 +175,17 @@ export async function launchPublishPlan(plan: PublishPlan, now: number = Date.no
       summary: plan.blockedReason,
     };
   }
-  const results = plan.perPlatform.map((p) => {
-    if (p.shield.status === "blocked") {
-      const reason = p.shield.hits.find((h) => h.severity === "hard")?.explanation
-        ?? "Shield blocked this platform.";
-      return {
-        platform: p.platform,
-        status: "blocked" as const,
-        reason,
-        mockUrl: null as string | null,
-      };
-    }
-    return {
-      platform: p.platform,
-      status: p.shield.status === "rewritten" ? ("posted-rewritten" as const) : ("posted" as const),
-      reason: null as string | null,
-      mockUrl: `mock://${p.platform}/${plan.videoId}`,
-    };
-  });
+  // Dispatch to per-platform clients in parallel.
+  const results = await Promise.all(
+    plan.perPlatform.map((pp) =>
+      clientFor(pp.platform).post({
+        videoId: plan.videoId,
+        watermarkSig: plan.watermark.signature,
+        content: pp.content,
+        shield: pp.shield,
+      }),
+    ),
+  );
   const posted = results.filter((r) => r.status !== "blocked").length;
   const blocked = results.length - posted;
   return {
@@ -267,4 +266,36 @@ function adaptationFor(platform: PlatformId, durationSec: number): PublishPlatfo
   }
 }
 
+/**
+ * Apply per-platform adaptation to content. Truncates the caption to fit
+ * `maxCaptionLen` (preserving an ellipsis when truncation actually happens)
+ * and clamps `durationSec` to `maxDurationSec`. The result is what the
+ * Sprint 3 mock client posts; in Sprint 5 the real client will hand this
+ * exact payload to the platform SDK.
+ *
+ * Idempotent: re-applying the same adaptation to already-conforming content
+ * returns deeply-equal content (locked in adaptation.test.ts).
+ */
+export function applyAdaptation(
+  content: PublishContent,
+  adaptation: PublishPlatformPlan["adaptation"],
+): PublishContent {
+  return {
+    ...content,
+    caption: truncateCaption(content.caption, adaptation.maxCaptionLen),
+    durationSec: Math.min(content.durationSec, adaptation.maxDurationSec),
+  };
+}
+
+function truncateCaption(caption: string, max: number): string {
+  if (caption.length <= max) return caption;
+  if (max <= 1) return caption.slice(0, max);
+  // Reserve one slot for the ellipsis so the on-platform total length is
+  // EXACTLY `max`. The "…" is a single Unicode glyph (U+2026), one code
+  // unit in JS string length.
+  return caption.slice(0, max - 1).trimEnd() + "…";
+}
+
 export { ALL_PLATFORMS };
+export type { PlatformClient, PlatformPostInput, PlatformPostResult } from "./platformClients";
+export { PLATFORM_CLIENTS, clientFor } from "./platformClients";
