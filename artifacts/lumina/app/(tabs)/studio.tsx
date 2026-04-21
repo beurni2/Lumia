@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -24,12 +26,23 @@ import type {
 type StepId = "ideator" | "director" | "editor" | "monetizer";
 type StepStatus = "pending" | "active" | "done" | "error";
 
-const STEPS: { id: StepId; title: string; verb: string }[] = [
-  { id: "ideator",   title: "Ideator",   verb: "Scanning regional trends"      },
-  { id: "director",  title: "Director",  verb: "Storyboarding to your rhythm"  },
-  { id: "editor",    title: "Editor",    verb: "Assembling and self-scoring"   },
-  { id: "monetizer", title: "Monetizer", verb: "Drafting brand pitches"        },
-];
+type AgentMeta = {
+  id: StepId;
+  name: string;
+  initial: string;
+  hue: string; // avatar background tint
+  workingMsg: string;
+  doneMsg: string;
+};
+
+const AGENTS: Record<StepId, AgentMeta> = {
+  ideator:   { id: "ideator",   name: "Ideator",   initial: "I", hue: "#7c5cff", workingMsg: "Scanning today's regional trends and scoring each one against your Twin…", doneMsg: "Here are three briefs I scored live for you:" },
+  director:  { id: "director",  name: "Director",  initial: "D", hue: "#3aa6ff", workingMsg: "Storyboarding the top brief to your natural rhythm…",                          doneMsg: "Storyboard ready — paced to your Twin's wpm:" },
+  editor:    { id: "editor",    name: "Editor",    initial: "E", hue: "#f25fa6", workingMsg: "Assembling the cut and self-scoring against the publish gate…",              doneMsg: "Cut assembled. Here's how it scored:" },
+  monetizer: { id: "monetizer", name: "Monetizer", initial: "M", hue: "#ffb547", workingMsg: "Drafting brand pitches sized to projected reach…",                            doneMsg: "Brand pitches drafted — fee preview included:" },
+};
+
+const ORDER: StepId[] = ["ideator", "director", "editor", "monetizer"];
 
 export default function StudioScreen() {
   const insets = useSafeAreaInsets();
@@ -51,13 +64,16 @@ export default function StudioScreen() {
   const [deals, setDeals] = useState<DealDraft[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Run-version guard: every invocation increments runIdRef. Async stages
-  // check their captured `myRun` against the current runId before writing
-  // state, so a stale run from a re-render or duplicated effect cannot
-  // overwrite a newer run's results.
+  const scrollRef = useRef<ScrollView>(null);
   const runIdRef = useRef(0);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+
+  // Auto-scroll to bottom whenever a new bubble lands.
+  useEffect(() => {
+    const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+    return () => clearTimeout(t);
+  }, [statuses, briefs, storyboard, video, deals, error]);
 
   const runSwarm = useCallback(async () => {
     if (!twin) return;
@@ -69,10 +85,8 @@ export default function StudioScreen() {
     setRunning(true);
 
     const { orchestrator } = getOrchestrator();
-    const ctx = makeContext(twin, "br"); // Maria — São Paulo
+    const ctx = makeContext(twin, "br");
     try {
-      // Seed the encrypted vector memory on first run so kNN has neighbors.
-      // No-op once real Editor renders have been appended.
       await ensureSeededVectors(twin);
       if (!isLive()) return;
 
@@ -125,9 +139,7 @@ export default function StudioScreen() {
 
   if (!twin) {
     return (
-      <View
-        style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}
-      >
+      <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}>
         <Feather name="user-x" size={42} color={colors.mutedForeground} />
         <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
           Train your Style Twin first
@@ -150,8 +162,9 @@ export default function StudioScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topInset + 20, paddingBottom: bottomInset, gap: 18 }}
+      contentContainerStyle={{ paddingTop: topInset + 16, paddingBottom: bottomInset + 88, gap: 14 }}
     >
       <View style={styles.header}>
         <Text style={[styles.eyebrow, { color: colors.tint }]}>SWARM STUDIO</Text>
@@ -161,29 +174,55 @@ export default function StudioScreen() {
         </Text>
       </View>
 
-      <View style={styles.stepsCard}>
-        {STEPS.map((s, i) => (
-          <StepRow
-            key={s.id}
-            index={i}
-            title={s.title}
-            verb={s.verb}
-            status={statuses[s.id]}
-            colors={colors}
-          />
-        ))}
-      </View>
+      <SystemBubble colors={colors}>
+        Good morning, Maria. The swarm is starting a fresh run for São Paulo (BR).
+      </SystemBubble>
 
-      {error && (
-        <View style={[styles.errorCard, { borderColor: colors.destructive ?? "#ff6b6b" }]}>
-          <Text style={{ color: colors.destructive ?? "#ff6b6b" }}>{error}</Text>
-        </View>
+      {ORDER.map((id) => {
+        const status = statuses[id];
+        const agent = AGENTS[id];
+        if (status === "pending") return null;
+
+        // Working bubble (typing indicator)
+        if (status === "active") {
+          return (
+            <AgentBubble key={id} agent={agent} colors={colors}>
+              <Text style={[styles.bubbleText, { color: colors.foreground }]}>
+                {agent.workingMsg}
+              </Text>
+              <TypingDots colors={colors} />
+            </AgentBubble>
+          );
+        }
+
+        // Error bubble
+        if (status === "error") {
+          return (
+            <AgentBubble key={id} agent={agent} colors={colors} tone="error">
+              <Text style={{ color: colors.destructive ?? "#ff6b6b", fontWeight: "600" }}>
+                I had to stop. {error}
+              </Text>
+            </AgentBubble>
+          );
+        }
+
+        // Done bubble — render the agent's actual output inline.
+        return (
+          <AgentBubble key={id} agent={agent} colors={colors}>
+            <Text style={[styles.bubbleText, { color: colors.foreground }]}>{agent.doneMsg}</Text>
+            {id === "ideator"   && briefs     && <BriefsContent     briefs={briefs}         colors={colors} />}
+            {id === "director"  && storyboard && <StoryboardContent storyboard={storyboard} colors={colors} />}
+            {id === "editor"    && video      && <VideoContent      video={video}           colors={colors} />}
+            {id === "monetizer" && deals      && <DealsContent      deals={deals}           colors={colors} />}
+          </AgentBubble>
+        );
+      })}
+
+      {!running && deals && (
+        <SystemBubble colors={colors}>
+          Run complete. Tap below to start another.
+        </SystemBubble>
       )}
-
-      {briefs && <BriefsBlock briefs={briefs} colors={colors} />}
-      {storyboard && <StoryboardBlock storyboard={storyboard} colors={colors} />}
-      {video && <VideoBlock video={video} colors={colors} />}
-      {deals && <DealsBlock deals={deals} colors={colors} />}
 
       <Pressable
         onPress={runSwarm}
@@ -194,6 +233,7 @@ export default function StudioScreen() {
             backgroundColor: colors.tint,
             opacity: running ? 0.5 : pressed ? 0.85 : 1,
             marginHorizontal: 24,
+            marginTop: 8,
           },
         ]}
       >
@@ -206,53 +246,109 @@ export default function StudioScreen() {
   );
 }
 
-function StepRow({
-  index, title, verb, status, colors,
+/* ───────────────────── Bubble primitives ──────────────────── */
+
+function AgentBubble({
+  agent, colors, tone, children,
 }: {
-  index: number; title: string; verb: string; status: StepStatus;
+  agent: AgentMeta;
   colors: ReturnType<typeof useColors>;
+  tone?: "error";
+  children: React.ReactNode;
 }) {
-  const accent =
-    status === "done" ? colors.tint :
-    status === "active" ? colors.tint :
-    status === "error" ? (colors.destructive ?? "#ff6b6b") :
-    colors.mutedForeground;
+  const borderColor = tone === "error"
+    ? (colors.destructive ?? "#ff6b6b")
+    : colors.border;
   return (
-    <View style={[styles.step, { borderColor: colors.border }]}>
-      <View
-        style={[
-          styles.stepIcon,
-          { borderColor: accent, backgroundColor: status === "done" ? accent : "transparent" },
-        ]}
-      >
-        {status === "active" ? (
-          <ActivityIndicator size="small" color={accent} />
-        ) : status === "done" ? (
-          <Feather name="check" size={14} color="#0a0820" />
-        ) : status === "error" ? (
-          <Feather name="alert-triangle" size={14} color={accent} />
-        ) : (
-          <Text style={[styles.stepIndex, { color: accent }]}>{index + 1}</Text>
-        )}
+    <View style={styles.bubbleRow}>
+      <View style={[styles.avatar, { backgroundColor: agent.hue }]}>
+        <Text style={styles.avatarLetter}>{agent.initial}</Text>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.stepTitle, { color: colors.foreground }]}>{title}</Text>
-        <Text style={[styles.stepVerb, { color: colors.mutedForeground }]}>{verb}</Text>
+      <View style={styles.bubbleColumn}>
+        <Text style={[styles.bubbleAuthor, { color: colors.mutedForeground }]}>
+          {agent.name}
+        </Text>
+        <View
+          style={[
+            styles.bubble,
+            {
+              backgroundColor: colors.card,
+              borderColor,
+              borderTopLeftRadius: 4,
+            },
+          ]}
+        >
+          {children}
+        </View>
       </View>
     </View>
   );
 }
 
-function BriefsBlock({ briefs, colors }: { briefs: Brief[]; colors: ReturnType<typeof useColors> }) {
+function SystemBubble({
+  colors, children,
+}: { colors: ReturnType<typeof useColors>; children: React.ReactNode }) {
   return (
-    <Section title="Today's briefs · scored live against your Twin" colors={colors}>
+    <View style={styles.systemRow}>
+      <View
+        style={[
+          styles.systemBubble,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.systemText, { color: colors.mutedForeground }]}>
+          {children}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function TypingDots({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const a = useRef(new Animated.Value(0)).current;
+  const b = useRef(new Animated.Value(0)).current;
+  const c = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const dot = (v: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(v, { toValue: 1, duration: 360, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: 360, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]),
+      );
+    const loops = [dot(a, 0), dot(b, 140), dot(c, 280)];
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [a, b, c]);
+
+  const dotStyle = (v: Animated.Value) => ({
+    opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }),
+    transform: [
+      { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) },
+    ],
+  });
+
+  return (
+    <View style={styles.typingRow}>
+      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(a)]} />
+      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(b)]} />
+      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(c)]} />
+    </View>
+  );
+}
+
+/* ───────────────────── Bubble bodies ──────────────────── */
+
+function BriefsContent({ briefs, colors }: { briefs: Brief[]; colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={{ gap: 10, marginTop: 10 }}>
       {briefs.map((b) => {
         const aff = b.twinAffinity;
-        const gateColor = aff.meetsAudioGate
-          ? colors.tint
-          : (colors.destructive ?? "#ff6b6b");
+        const gateColor = aff.meetsAudioGate ? colors.tint : (colors.destructive ?? "#ff6b6b");
         return (
-          <View key={b.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          <View key={b.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background }]}>
             <View style={styles.briefHeader}>
               <Text style={[styles.subEyebrow, { color: colors.tint }]}>{b.culturalTag.toUpperCase()}</Text>
               <View style={[styles.affinityPill, { borderColor: gateColor }]}>
@@ -285,72 +381,69 @@ function BriefsBlock({ briefs, colors }: { briefs: Brief[]; colors: ReturnType<t
                     ? `${real} past win${real === 1 ? "" : "s"} matched`
                     : `${synth} demo neighbor${synth === 1 ? "" : "s"}`;
                 return (
-                  <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-                    {label}
-                  </Text>
+                  <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>{label}</Text>
                 );
               })()}
             </View>
           </View>
         );
       })}
-    </Section>
+    </View>
   );
 }
 
-function StoryboardBlock({ storyboard, colors }: { storyboard: Storyboard; colors: ReturnType<typeof useColors> }) {
+function StoryboardContent({ storyboard, colors }: { storyboard: Storyboard; colors: ReturnType<typeof useColors> }) {
   const total = storyboard.shots.reduce((s, x) => s + x.duration, 0);
   return (
-    <Section title={`Storyboard · ${total.toFixed(1)}s`} colors={colors}>
-      <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-        {storyboard.shots.map((shot, i) => (
-          <View key={i} style={styles.shotRow}>
-            <Text style={[styles.shotDuration, { color: colors.tint }]}>
-              {shot.duration.toFixed(1)}s
-            </Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.subBody, { color: colors.foreground }]}>{shot.description}</Text>
-              {shot.cameraNote && (
-                <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-                  {shot.cameraNote}
-                </Text>
-              )}
-            </View>
+    <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background, marginTop: 10 }]}>
+      <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>
+        TOTAL · {total.toFixed(1)}s
+      </Text>
+      {storyboard.shots.map((shot, i) => (
+        <View key={i} style={styles.shotRow}>
+          <Text style={[styles.shotDuration, { color: colors.tint }]}>
+            {shot.duration.toFixed(1)}s
+          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.subBody, { color: colors.foreground }]}>{shot.description}</Text>
+            {shot.cameraNote && (
+              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
+                {shot.cameraNote}
+              </Text>
+            )}
           </View>
+        </View>
+      ))}
+      <View style={{ marginTop: 10, gap: 4 }}>
+        <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>HOOK VARIANTS</Text>
+        {storyboard.hookVariants.map((h, i) => (
+          <Text key={i} style={[styles.subBody, { color: colors.foreground }]}>
+            · {h}
+          </Text>
         ))}
-        <View style={{ marginTop: 10, gap: 4 }}>
-          <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>HOOK VARIANTS</Text>
-          {storyboard.hookVariants.map((h, i) => (
-            <Text key={i} style={[styles.subBody, { color: colors.foreground }]}>
-              · {h}
-            </Text>
-          ))}
-        </View>
       </View>
-    </Section>
+    </View>
   );
 }
 
-function VideoBlock({ video, colors }: { video: RenderedVideo; colors: ReturnType<typeof useColors> }) {
+function VideoContent({ video, colors }: { video: RenderedVideo; colors: ReturnType<typeof useColors> }) {
   return (
-    <Section title="Editor's verdict" colors={colors}>
-      <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-        <View style={styles.scoreRow}>
-          <ScoreBlock label="Viral confidence" value={`${Math.round(video.viralConfidence * 100)}%`} colors={colors} />
-          <ScoreBlock label="Twin match" value={`${Math.round(video.twinMatchScore * 100)}%`} colors={colors} />
-          <ScoreBlock label="Duration" value={`${video.durationSec.toFixed(1)}s`} colors={colors} />
-        </View>
-        <Text style={[styles.subBody, { color: colors.mutedForeground }]}>{video.reasoning}</Text>
+    <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background, marginTop: 10 }]}>
+      <View style={styles.scoreRow}>
+        <ScoreBlock label="Viral confidence" value={`${Math.round(video.viralConfidence * 100)}%`} colors={colors} />
+        <ScoreBlock label="Twin match" value={`${Math.round(video.twinMatchScore * 100)}%`} colors={colors} />
+        <ScoreBlock label="Duration" value={`${video.durationSec.toFixed(1)}s`} colors={colors} />
       </View>
-    </Section>
+      <Text style={[styles.subBody, { color: colors.mutedForeground }]}>{video.reasoning}</Text>
+    </View>
   );
 }
 
-function DealsBlock({ deals, colors }: { deals: DealDraft[]; colors: ReturnType<typeof useColors> }) {
+function DealsContent({ deals, colors }: { deals: DealDraft[]; colors: ReturnType<typeof useColors> }) {
   return (
-    <Section title="Brand pitches drafted" colors={colors}>
+    <View style={{ gap: 10, marginTop: 10 }}>
       {deals.map((d) => (
-        <View key={d.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+        <View key={d.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background }]}>
           <View style={styles.dealHeader}>
             <Text style={[styles.subTitle, { color: colors.foreground }]}>{d.brandHandle}</Text>
             <Text style={[styles.channelTag, { color: colors.tint, borderColor: colors.tint }]}>
@@ -368,17 +461,6 @@ function DealsBlock({ deals, colors }: { deals: DealDraft[]; colors: ReturnType<
           </View>
         </View>
       ))}
-    </Section>
-  );
-}
-
-function Section({
-  title, children, colors,
-}: { title: string; children: React.ReactNode; colors: ReturnType<typeof useColors> }) {
-  return (
-    <View style={{ paddingHorizontal: 24, gap: 10 }}>
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{title}</Text>
-      {children}
     </View>
   );
 }
@@ -397,25 +479,59 @@ function ScoreBlock({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
-  header: { paddingHorizontal: 24, gap: 6 },
+  header: { paddingHorizontal: 24, gap: 6, marginBottom: 4 },
   eyebrow: { fontSize: 11, letterSpacing: 1.6, fontWeight: "700" },
   title: { fontSize: 32, fontWeight: "700" },
   subtitle: { fontSize: 15 },
-  stepsCard: { marginHorizontal: 24, gap: 12 },
-  step: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    paddingVertical: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderRadius: 14,
+
+  // Chat row
+  bubbleRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 10,
+    alignItems: "flex-start",
   },
-  stepIcon: {
-    width: 28, height: 28, borderRadius: 14, borderWidth: 1,
+  avatar: {
+    width: 34, height: 34, borderRadius: 17,
     alignItems: "center", justifyContent: "center",
+    marginTop: 18,
   },
-  stepIndex: { fontSize: 13, fontWeight: "700" },
-  stepTitle: { fontSize: 15, fontWeight: "600" },
-  stepVerb: { fontSize: 12, marginTop: 2 },
-  sectionTitle: { fontSize: 13, fontWeight: "600", letterSpacing: 0.4, opacity: 0.85 },
-  subCard: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 },
+  avatarLetter: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  bubbleColumn: { flex: 1, gap: 4 },
+  bubbleAuthor: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    paddingLeft: 4,
+  },
+  bubble: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+  },
+  bubbleText: { fontSize: 14, lineHeight: 20 },
+
+  // System (centered) bubble
+  systemRow: {
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
+  systemBubble: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    maxWidth: "90%",
+  },
+  systemText: { fontSize: 12, textAlign: "center" },
+
+  // Typing indicator
+  typingRow: { flexDirection: "row", gap: 5, marginTop: 6, paddingLeft: 2 },
+  typingDot: { width: 6, height: 6, borderRadius: 3 },
+
+  // Sub-cards inside bubbles
+  subCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
   subEyebrow: { fontSize: 10, letterSpacing: 1.4, fontWeight: "700" },
   subTitle: { fontSize: 16, fontWeight: "700" },
   subBody: { fontSize: 14, lineHeight: 20 },
@@ -438,7 +554,7 @@ const styles = StyleSheet.create({
   },
   affinityPillText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.4 },
   affinityRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 4 },
-  errorCard: { marginHorizontal: 24, padding: 14, borderWidth: 1, borderRadius: 12 },
+
   cta: {
     flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center",
     paddingVertical: 14, borderRadius: 14,
