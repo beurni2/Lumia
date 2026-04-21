@@ -1,0 +1,76 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "24.0.0",
+      "env": {
+        "EXPO_PUBLIC_LUMINA_BLUEPRINT": "v2.0",
+        "EXPO_PUBLIC_LUMINA_GTM": "us-first"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "EXPO_PUBLIC_INFERENCE_BACKEND": "executorch",
+        "EXPO_PUBLIC_MODEL_OTA_BASE": "https://models.lumina.app/v2"
+      }
+    },
+    "development-simulator": {
+      "extends": "development",
+      "ios": { "simulator": true },
+      "env": {
+        "EXPO_PUBLIC_INFERENCE_BACKEND": "mock"
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": { "resourceClass": "m-medium" },
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_INFERENCE_BACKEND": "executorch",
+        "EXPO_PUBLIC_MODEL_OTA_BASE": "https://models.lumina.app/v2"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "channel": "production",
+      "autoIncrement": true,
+      "ios": { "resourceClass": "m-medium" },
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_INFERENCE_BACKEND": "executorch",
+        "EXPO_PUBLIC_MODEL_OTA_BASE": "https://models.lumina.app/v2"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": { "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_ID" },
+      "android": { "track": "internal" }
+    }
+  },
+  "update": {
+    "channels": {
+      "development": { "policy": "always" },
+      "preview": { "policy": "always" },
+      "production": { "policy": "rollout-percentage" }
+    }
+  }
+}
