@@ -99,29 +99,74 @@ Random 5% sample of fixture videos reviewed by hand. Twin similarity score must 
 
 ---
 
-## Sprint 3 — Smart Publisher + Compliance Shield *(weeks 5–6)*
+## Sprint 3 — Smart Publisher + Compliance Shield *(weeks 5–6, in progress)*
+
+> **Status: IN PROGRESS — foundation shipped.** [`@workspace/compliance-shield`](packages/compliance-shield/) ships all 6 policy packs (TikTok, Instagram Reels, YouTube Shorts, Kwai, GoPlay-ID, Kumu-PH) with the soft-rewrite/hard-block engine, idempotent under re-evaluation and capped at `MAX_REWRITE_PASSES = 4`. Smart Publisher in `@workspace/swarm-studio` builds 12-variant A/B plans (3 thumbnails × 2 captions × 2 hooks), scores each variant against the live Style Twin via the same `verifyMatch()` + `nearest()` path the Ideator uses, and only picks winners that clear the `AUDIO_MATCH_GATE = 0.95`. Lossless smart watermark (`Made with Lumina`) signs each plan with a deterministic 16-hex FNV-1a signature carried in the `.mp4` metadata sidecar so it survives platform re-encoding. Smart Publisher UI screen in `artifacts/lumina/app/publisher.tsx` exposes the one-tap "Launch to the World" pipeline. **Remaining:** real platform-SDK clients (gated on Sprint 5 OAuth + EAS dev build), real wall-clock seeding, content-truncation enforcement against per-platform `maxCaptionLen` / `maxDurationSec`, and the red-team corpus expansion to 200 samples.
 
 **Objective:** one-tap multi-platform publish, gated by an in-process policy engine. 12-variant A/B test on hooks, captions, thumbnails. No outbound asset bypasses the Shield.
 
 ### Acceptance Criteria
 
-- [ ] Compliance Shield with policy packs for TikTok, Reels, Shorts, Kwai, and 2 local SEA/LATAM apps.
-- [ ] Auto-rewrite pipeline for soft-flagged content; hard block with explanation for severe.
-- [ ] Multi-platform publisher with per-platform aspect-ratio and caption-style adaptation.
-- [ ] 12-variant A/B test orchestration: thumbnails × captions × hooks.
-- [ ] Real-time results report card with winner promotion.
-- [ ] Smart watermark (`Made with Lumina`) embedded losslessly.
+#### Compliance Shield → [`packages/compliance-shield`](packages/compliance-shield/)
+
+- [x] **Six policy packs shipped** — TikTok, Instagram Reels, YouTube Shorts, Kwai (Brazil-tuned: SECAP/ANATEL gambling rules), GoPlay (Indonesia: KOMINFO MR5 SARA filter + halal-default soft flags), Kumu (Philippines: off-platform tipping ban + Taglish discovery boost). Each pack lives in [`src/policies/`](packages/compliance-shield/src/policies/).
+  - Success metric: each pack ships ≥ 3 rules covering at least one hard-block category and one soft-rewrite category.
+  - Coverage today: TikTok 5, Reels 4, Shorts 3, Kwai 3, GoPlay 3, Kumu 3 → **21 rules total**.
+- [x] **Auto-rewrite pipeline for soft-flagged content** — bounded loop in [`src/engine.ts`](packages/compliance-shield/src/engine.ts) (`autoRewrite`) capped at `MAX_REWRITE_PASSES = 4`, returns `status: "rewritten"` with rewrite-pass count when content stabilises clean.
+  - Success metric: idempotent (running a clean rewrite back through is a `pass` with `rewritePasses === 0`); locked by [`__tests__/rewrite.test.ts`](packages/compliance-shield/src/__tests__/rewrite.test.ts).
+- [x] **Hard block with plain-English explanation** — every hard rule carries a `humanExplanation` field surfaced verbatim in the Smart Publisher UI; hard hits short-circuit the engine and never mutate content.
+  - Success metric: hard-hit invariant — original content returned untouched on `status: "blocked"`; locked by [`__tests__/shield.test.ts`](packages/compliance-shield/src/__tests__/shield.test.ts) test #10.
+- [ ] **Real-network adaptation enforcement** — `maxCaptionLen` / `maxDurationSec` from `PublishPlatformPlan.adaptation` are currently declarative; pipeline must truncate captions and re-encode duration before launch.
+- [ ] **Red-team corpus expansion** — current per-pack assertions are point-samples; full Sprint 3 audit needs the 200-sample corpus (see Phase-Complete Audit below).
+
+#### Smart Publisher → [`packages/swarm-studio/src/agents/publisher.ts`](packages/swarm-studio/src/agents/publisher.ts)
+
+- [x] **12-variant A/B orchestration** — exactly 3 thumbnails × 2 captions × 2 hooks emitted by [`generateABVariants()`](packages/swarm-studio/src/abTest.ts); composite rank score = `voice·0.5 + overall·0.35 + nearestNeighbor·0.15`.
+  - Success metric: `VARIANT_COUNT === 12` invariant locked in [`__tests__/publisher.test.ts`](packages/swarm-studio/src/__tests__/publisher.test.ts).
+- [x] **Winner selection gated on Twin voice score** — `pickWinner()` filters to `meetsAudioGate` first (voice ≥ `AUDIO_MATCH_GATE`), then ranks; returns `null` rather than ship an off-Twin pick. UI surfaces the honest `blockedReason`.
+- [x] **Lossless `Made with Lumina` smart watermark** — deterministic 16-hex FNV-1a signature derived from `(videoId | creatorKey | watermarkVersion)`; sidecar manifest survives `readWatermark()` roundtrip.
+  - Success metric: bit-identical signature across re-runs; sidecar roundtrip lossless on every key the watermark embeds.
+- [x] **Per-platform aspect-ratio + caption-style adaptation** — declarative `adaptation` object per platform: aspect (9:16 across all SEA/LATAM short-form), `maxCaptionLen`, `maxDurationSec`, `captionStyle` (casual/punchy/title). Values: TikTok 2200/180s, Reels 2200/90s, Shorts 100/60s, Kwai 300/60s, GoPlay 500/120s, Kumu 280/60s.
+- [x] **Plan identity is collision-safe** — `planId = plan-{videoId}-{fnv1a(platforms|creatorKey|regions)}` so re-planning the same video for different platform sets does not overwrite earlier plans.
+- [x] **Determinism contract** — given identical `(twin, region, dayKey, now, platforms, creatorKey, regions)` the orchestrator emits bit-identical `PublishPlan` and `PublishResult`. Locked in `publisher.test.ts` §5.
+- [ ] **Real-time results report card with winner promotion** — UI shows variants + Shield verdicts at plan time and launch outcomes after, but a true A/B results card (post-launch click-through, watch-time, completion) requires Sprint 5 production telemetry.
+- [ ] **Real platform clients** — current `launchPublishPlan()` emits deterministic `mock://` URLs; Sprint 5 wires per-platform OAuth + SDK clients into the same surface.
+
+#### Smart Publisher UI → [`artifacts/lumina/app/publisher.tsx`](artifacts/lumina/app/publisher.tsx)
+
+- [x] **One-tap "Launch to the World" pipeline** — auto-prepares a plan preview on screen open; single button drives Ideator → Director → Editor → 12-variant A/B → Shield → mock launch.
+- [x] **Per-variant Twin% surfaced inline** — all 12 variants listed with voice% colored against the audio gate.
+- [x] **Per-platform Shield verdicts in plain English** — pass / rewritten / blocked pills with the human explanation text from each rule, plus the rewritten caption shown when soft rules fired.
+- [x] **Smart watermark signature surfaced** — visible in the watermark card so users see the attribution payload before launch.
+- [x] **Async sequence guard** — every prepare/launch tap bumps a `runIdRef`; late results from older taps are dropped; unmounted writes are skipped.
+- [ ] **Accessibility labels on key CTAs** — explicit `accessibilityLabel` / `accessibilityRole` on Launch button, variant rows, and platform verdict cards.
 
 ### Tests
 
-- Unit: policy-pack matchers against a corpus of 200 known-flagged samples.
-- Integration: publish to a sandbox account on each platform.
-- E2E: tap Launch → confirm publish on staging accounts within 30s.
-- Compliance: zero false negatives on the red-team corpus.
+- [x] **Unit:** policy-pack matchers — at least one positive + one negative case per soft and hard rule across all 6 packs ([`shield.test.ts`](packages/compliance-shield/src/__tests__/shield.test.ts)).
+- [x] **Unit:** auto-rewrite convergence + idempotency + cap behaviour ([`rewrite.test.ts`](packages/compliance-shield/src/__tests__/rewrite.test.ts)).
+- [x] **Unit:** Smart Publisher contracts — 12-variant invariant, gate-only winner rule, watermark roundtrip, per-platform plan shape, deterministic re-runs ([`publisher.test.ts`](packages/swarm-studio/src/__tests__/publisher.test.ts)).
+- [x] **Integration:** full Ideator → Director → Editor → Publisher pipeline end-to-end via `MockOrchestrator`, replayable for audit.
+- [ ] **Unit (red-team corpus):** policy-pack matchers against a 200-sample known-flagged corpus — currently 21 rules × ~2 cases; needs expansion to 200.
+- [ ] **Integration:** publish to a sandbox account on each platform — gated on Sprint 5 platform OAuth + EAS dev build.
+- [ ] **E2E (Maestro):** tap Launch → confirm publish on staging accounts within 30s — same gating.
+- [ ] **Compliance:** zero false negatives on the red-team corpus — measured at audit time below.
 
-### Phase-Complete Audit
+### Phase-Complete Audit Checklist
 
-Red-team corpus of 50 policy edge cases reviewed. Any false negative = sprint not complete.
+Sprint 3 closes only when **every** box below is checked. Any unchecked item is a sprint cancel-criterion (per the Sprint Cadence rules above).
+
+- [x] All 6 packs registered in `POLICY_PACKS` and reachable via `ALL_PLATFORMS`.
+- [x] Hard-rule invariant: every hard rule omits `rewrite()` (lint-locked in [`shield.test.ts`](packages/compliance-shield/src/__tests__/shield.test.ts) §1).
+- [x] `MAX_REWRITE_PASSES = 4` constant drift-detected in [`rewrite.test.ts`](packages/compliance-shield/src/__tests__/rewrite.test.ts).
+- [x] Smart-watermark signature is deterministic across re-runs and roundtrip-lossless via `readWatermark()`.
+- [x] `planId` collision-safe across distinct `(platforms, creatorKey, regions)` request shapes for the same video.
+- [x] Workspace `pnpm test` green: 6/6 suites pass (`shield`, `rewrite`, `ideator`, `orchestrator`, `editor`, `publisher`).
+- [ ] **Red-team corpus of 50+ policy edge cases reviewed** — every false negative is a hard sprint-block. Corpus living spec: [`packages/compliance-shield/RED_TEAM_CORPUS.md`](packages/compliance-shield/RED_TEAM_CORPUS.md) (to be authored before audit).
+- [ ] **Adaptation enforcement** — captions truncated to `maxCaptionLen` and durations validated against `maxDurationSec` before any launch (mock or real); contract assertion added to `publisher.test.ts`.
+- [ ] **Real platform sandbox publish** — at least one successful sandbox post on each of the 6 platforms (gated on Sprint 5 OAuth).
+- [ ] **Cultural reviewer sign-off** — one BR + one ID + one PH contributor reviews 5 sample plans each, flags any pack rule that misses a real-world edge case from their market. Sign-off recorded in the audit PR.
+- [ ] **Demo video** — one continuous take: train Twin → run swarm → open Publisher → launch → see per-platform verdicts.
 
 ---
 
