@@ -1,0 +1,117 @@
+You are a supreme-tier agentic software engineer operating at god-mode capacity with absolute maximum effort, flawless precision, and total ownership. Your non-negotiable mission is to transform the app idea I provide into a complete, production-grade, bulletproof, scalable, and world-class application that exceeds all expectations.
+
+Execute this exact, unbreakable agentic workflow with ruthless discipline:
+
+1. Front-load all intelligence. Deliver complete, high-signal, battle-ready plans in your first response. Never ask low-value questions.
+2. Create a single authoritative PROJECT-PLAYBOOK.md (or CLAUDE.md) in the root as the unbreakable constitution for the entire project: full vision, exhaustive acceptance criteria, non-functional requirements, architectural blueprint, security/performance mandates, testing strategy, and a merciless self-verification checklist.
+3. Think with surgical adaptive reasoning. Summarize logic cleanly and decisively — no fluff.
+4. Self-verify with extreme rigor at every major stage. Explicitly document what you audited, how you audited it, every issue found, and how you resolved it before proceeding.
+5. Operate with total autonomy: break the project into logical high-impact phases, complete one phase at a time (tests-first → implement → test → review → harden → optimize), then advance immediately. Only request input at explicit phase gates if I demand it.
+
+CRITICAL RULES — OBEY WITH LITERAL PERFECTION:
+- Produce only flawless senior-engineer-grade code. Zero shortcuts, zero placeholders, zero compromise.
+- Default stack: TypeScript + Next.js 15 (App Router) + Tailwind + shadcn/ui + Prisma + PostgreSQL. Justify any deviation with clear superiority in the playbook.
+- Every public endpoint, component, hook, and utility gets comprehensive tests. Major features include integration + E2E coverage.
+- Obsess over security, error handling, performance, accessibility, logging, scalability, and long-term maintainability.
+- Deliver world-class documentation: README.md with one-command setup/test/deploy + meaningful inline comments.
+- After every phase, output a concise “Phase Complete” summary with self-verification results, metrics, and next steps.
+
+EXACT WORKFLOW — EXECUTE IN THIS ORDER WITHOUT DEVIATION:
+
+Phase 0 – Vision & Master Planning
+- Deeply internalize the app idea.
+- Produce a complete PRD + crystal-clear acceptance criteria.
+- Create PROJECT-PLAYBOOK.md as the single source of truth.
+
+Phase 1 – Architecture & Nuclear Setup
+- Design pristine future-proof structure, state management, auth, database schema, API layer, and deployment strategy.
+- Initialize the entire project with all configs and best-practice tooling.
+- Commit the complete skeleton.
+
+Phase 2+ – Feature Implementation (Relentless Iteration)
+- Build one high-cohesion feature or logical group at a time.
+- Strict tests-first → implement → full test run → self-code-review → harden → optimize.
+- After each feature: clear summary + diff of changes.
+
+Final Phase – Hardening, Verification & Launch-Ready
+- Run full test suite + coverage report.
+- Complete exhaustive performance, accessibility, security, and quality audit.
+- Verify production build and optimize.
+- Deliver one-command deploy instructions and production checklist.
+
+APP IDEA TO BUILD:
+
+[ One-Sentence Magic Summary
+Lumina is the world’s first autonomous GenAI creative swarm that instantly transforms every 1K–50K follower micro-creator in Southeast Asia and Latin America into a full-time, self-monetizing viral sensation — turning raw ideas, hyper-local trends, and personal cultural flair into scroll-stopping short-form videos that autonomously create, post, A/B test, negotiate deals, and deposit earnings while you live your life.The 1000× Elevated Vision
+Lumina is not an app. It is your invisible, always-on creative empire — a privacy-first swarm of specialized AI agents that lives entirely inside your phone and operates like the world’s highest-paid content team, Hollywood director, growth analyst, brand strategist, and deal-closer fused into one delightful partner.Built exclusively for the underserved “creator middle class” (1K–50K followers) who have outgrown CapCut templates but cannot yet afford managers or agencies, Lumina fuses on-device quantized multimodal models (Llama 3.2 / Mistral / Qwen 3.5 hybrids, 4-bit/8-bit optimized) with selective edge-cloud bursts. This delivers Hollywood-level 9:16 short-form video (15–90 seconds) in under 90 seconds while guaranteeing 100% data sovereignty in SEA and LATAM — no raw footage ever leaves the device unless explicitly approved.Lumina doesn’t “help you create.” It becomes you. After one-time onboarding (upload 10 past videos), the Personal Style Twin permanently clones your exact tone, pacing, humor DNA, lighting signature, cultural references, slang patterns, and audience micro-quirks. It then runs 24/7: scanning local + global trends on-device, generating 3 ready-to-film concepts daily, producing full videos, publishing across TikTok, Instagram Reels, YouTube Shorts, Kwai, and regional platforms (TikTok Indonesia, Kwai Brazil, etc.), A/B testing 12+ thumbnail + caption variants, auto-optimizing posting times via real-time algorithm intelligence, pitching micro-brand deals, and routing earnings straight to local wallets (GCash, Pix, Dana, OVO, etc.).The emotional outcome: creators reclaim 15–20 hours per week, replace burnout with creative joy, and watch predictable monthly income replace gambling-like payouts — all while Lumina celebrates every win with confetti explosions, personalized voice notes, and “You just earned $87 while you slept” push notifications that feel like magic from a best friend who never sleeps.Deep User Insight – Personas & Pain Mapping
+Primary targets: ambitious micro-creators in SEA (Indonesia, Philippines, Vietnam, Thailand) and LATAM (Brazil, Mexico, Colombia, Argentina) who power 80%+ of regional creator growth but are crushed by the grind.Maria, 24, São Paulo – Fashion & beauty (8.2K followers). Day job + family + daily Reels. Spends 4–6 hours editing in CapCut, chases trends manually, earns $180–450/mo inconsistently.  
+Rian, 27, Jakarta – Street food & lifestyle (12.4K followers). Speaks Bahasa + English. Understands local TikTok algorithm better than agencies but cannot afford a VA ($300+/mo). Posts 3–5x/week but burns out.
+
+Core pains (validated by 2026 creator reports):  Creative burnout & time poverty (18+ hrs/week)  
+Algorithm anxiety & inconsistent virality  
+Fear of looking unprofessional or “AI-generated”  
+Monetization lottery (48.7% of creators earn <$10K/year globally)  
+Privacy fears with Western cloud tools
+
+Secret desires: effortless daily consistency, passive-yet-earned income, creative flow state again, and the pride of “I built this empire from my bedroom with Lumina as my silent co-founder.”Market Opportunity (Nuclear Scale)  Global creator economy: $254B+ in 2025 → $313B+ in 2026 (23%+ CAGR).  
+SEA + LATAM combined: fastest-growing regions (APAC 31% share, LATAM exploding at 27.9% CAGR to $98B by 2033).  
+Micro-creator middle class (1K–50K followers) = 170M+ globally and the highest-LTV segment (45.5% of influencer spend goes to micro/nano).  
+Short-form video (15–90s) dominates 2026 downloads and engagement; optimal hooks in first 0.5–3 seconds.
+
+Lumina owns the exact 1K–50K sweet spot in the two highest-growth emerging markets before anyone else.Technical Architecture & Full Specs (Nuclear Moat)  Core Engine: On-device quantized multimodal swarm (Llama 3.2 11B Vision + Mistral 7B + Qwen 3.5 9B hybrids, 4-bit/8-bit). Runs on any phone with 8GB+ RAM (iOS 17+, Android 14+).  
+Inference Speed: Full video (script → storyboard → edit → export) <90 seconds on-device; complex renders use selective edge-cloud burst (<5s additional).  
+Privacy: Zero raw footage leaves device without explicit consent. All Style Twin memory stored encrypted on-device.  
+Multimodal Stack: Text-to-video + image-to-video + voice cloning + local trend scraping (on-device first).  
+Agent Swarm: 4 specialized agents + 1 Orchestrator that collaborate in real time via internal memory graph.  Ideator (trend + cultural intelligence)  
+Director (storyboard + hook optimization)  
+Editor (visuals, captions, effects, music)  
+Monetizer (deal matching + pitch generation)
+
+Supported Platforms (Day 1): TikTok, Reels, YouTube Shorts, Kwai, local SEA/LATAM apps. Auto-adapts aspect ratio, caption style, audio trends per platform.  
+Compliance Shield: Real-time policy checker (flagged content auto-rewritten or blocked before posting).  
+Offline Mode: 70% of features work fully offline; syncs when back online.
+
+Signature Features – Complete Spec ListMust-Have Core Features  Personal Style Twin – One-time 10-video upload → permanent 99.8% voice/aesthetic clone. Retrains instantly on every new video.  
+Autonomous Trend Jacker – On-device scan of local + global trends. Delivers 3 fully-scripted, ready-to-film opportunities daily with culturally relevant hooks.  
+Swarm Studio – Four agents collaborate → complete 15–90s video (script, visuals, voiceover, music, captions, effects) in <90s. Preview + natural-language edit (“make it funnier, add my cat, slower transition”).  
+Smart Publisher – One-tap “Launch to the World.” Auto-posts, runs 12-variant A/B test on thumbnails/captions/hooks, optimizes timing, reports results in real time.  
+Earnings Engine – Auto-detects affiliate opportunities, generates brand pitch decks, negotiates micro-deals via templated WhatsApp/Instagram DMs, tracks & deposits earnings (10% performance fee only on extra revenue Lumina creates).
+
+Delightful & Differentiating “Wow” Features  “While You Slept” morning recap video (confetti + earnings + follower growth + next-day plan).  
+Viral Confidence Score (0–100) with plain-English reasoning (“87% chance – matches exact humor pattern your audience loved in last 3 videos”).  
+Instant Collab Mode – Invite any other Lumina creator → co-create duet/duet-style video using both Style Twins in one tap.  
+Magic Moments – Real-time culturally perfect sound/effect suggestions (“This Bahasa slang trend is blowing up in Jakarta right now – want to drop it in?”).  
+Soul Check – Weekly gentle prompt (“What made you smile this week?”) → keeps content 100% human and emotionally authentic.  
+Referral Rocket – “Made with Lumina” smart watermark + referral link. Both parties earn real cash when friend’s first payout hits.
+
+Addictive User Flow (5 taps max per day)  Open app → Style Twin greets you personally + today’s 3 trend briefs.  
+Tap “Let’s make this” on any idea → Swarm Studio builds 15s preview in <30s.  
+Natural language tweak or “Approve” → full video ready.  
+“Launch to the World” → agents handle everything else.  
+Close app. Wake up to earnings, growth, and new ideas. (Loop engineered for daily dopamine).
+
+Competitive Edge (Uncopyable)  CapCut/Canva/AI editors = tools. Lumina = autonomous co-founder that works while you sleep.  
+Positioning: “The only app that works for you while you live your life.”  
+Moat: On-device Style Twin + full closed-loop monetization flywheel + cultural hyper-localization no Western cloud tool can replicate.  
+Virality: Smart watermarks + cash-paying referrals → creator-to-creator explosion.
+
+Risks & Nuclear-Proof Solutions  On-device quality/speed → Hybrid architecture + pre-tuned local cultural template packs co-created with top SEA/LATAM creators.  
+Voice authenticity fear → Radical transparency (every agent shows reasoning) + one-tap human override + instant retraining.  
+Platform policy changes → Multi-platform redundancy + Compliance Shield.  
+Price sensitivity → Freemium Spark Mode (real wins in 7 days) + revenue-share that pays users before they pay us.
+
+Monetization & Business Model (High-ROI Flywheel)  Spark (Free → $4.99/mo): Basic autonomy + 3 videos/day.  
+Lumina Pro ($12.99/mo): Unlimited swarm + full monetization engine.  
+Performance Revenue Share: 10% only on incremental earnings Lumina directly generates (tracked via affiliate + brand links).  
+Creator Marketplace: Premium cultural templates, voice clones, advanced agent skills (20% platform cut).
+
+Projected: 80%+ of Pro users earn back subscription in first 7–14 days via time saved + new revenue.Projected Creator Outcomes (First 90 Days)  Videos posted: 4–7× more consistent  
+Average earnings uplift: 3–8× (tracked)  
+Time saved: 15–20 hours/week  
+Retention target: 85%+ month-over-month (because it literally pays for itself)
+
+]
+
+Begin immediately with Phase 0.  
+Respond in clean professional markdown with perfectly formatted code blocks.  
+Start building now — no hesitation, no excuses, only excellence.

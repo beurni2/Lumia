@@ -1,0 +1,26 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "XQGmgpw3wqQf3lmWbvHjI"
+uri = "file://artifacts/lumina/assets/images/icon.png"
+type = "image"
+title = "lumina app icon"
+
+[[generated]]
+id = "bKII6wrGwMQaPxL9YfCXI"
+uri = "file://artifacts/lumina/assets/images/creator-1.png"
+type = "image"
+title = "fashion creator reel"
+
+[[generated]]
+id = "3e-KCoq-tSFBs6Tj1XvJD"
+uri = "file://artifacts/lumina/assets/images/creator-2.png"
+type = "image"
+title = "jakarta street food"
+
+[[generated]]
+id = "SniwodELByP_e5IjwRirl"
+uri = "file://artifacts/lumina/assets/images/creator-3.png"
+type = "image"
+title = "beauty creator portrait"
