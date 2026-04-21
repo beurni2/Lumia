@@ -1,93 +1,77 @@
 # Lumina — Founder Demo Script
 
-**Length:** 4 minutes · **Audience:** investor / partner / first design partner
-**Stack:** Replit preview → `artifacts/lumina` (Expo web). One continuous take.
-**Pre-flight:** preview pane visible, viewport ~390×844 (iPhone 14), workflow `artifacts/lumina: expo` running.
-**Blueprint:** v2.0 — US-first / English-first GTM. Demo creator is **Alex (Brooklyn, fitness & lifestyle)**.
+**Length:** 4 min · one continuous take · **Audience:** investor / partner / first design partner
+**Stack:** Replit preview → `artifacts/lumina` (Expo web), viewport ~390×844 (iPhone 14)
+**Pre-flight:** workflow `artifacts/lumina: expo` running · onboarding completed · creator = **Alex, Brooklyn NY · fitness & lifestyle · 8.4K followers**
+**Blueprint:** **v2.0 — US-first / English-first GTM** (single source of truth)
 
 ---
 
-## Cold open · 0:00 → 0:20 — *“The 1K–50K creator is a one-person studio. Lumina is their swarm.”*
+### Cold open · 0:00 → 0:15
+> "There are millions of English-speaking micro-creators across the US, UK, CA, AU, IN, PH, and NG who out-earn mega-creators per follower — and burn out in 18 months. Lumina runs the studio for them while they sleep."
 
-> "There are millions of English-speaking micro-creators in the US, UK, Canada, Australia, India, the Philippines, and Nigeria who out-earn mega-creators per follower — but burn out in 18 months because they're producing, editing, posting, and chasing brand DMs alone. Lumina runs the studio for them while they sleep."
-
-**Action:** preview pane shows the home tab. Pause on the hero.
-
----
-
-## Beat 1 · 0:20 → 0:50 — Personal Style Twin (`/style-twin-train`)
-
-**Tap:** Profile tab → **"Train your Style Twin"**.
-
-> "First thing every creator does is train their Style Twin — a 99.8% voice + aesthetic clone, on-device. We never upload raw footage. It learns from 20 of their best videos in under 4 minutes on an iPhone 12 or better. The Twin then layers a Cultural Voice Pack — US Gen-Z by default, with UK, CA, AU, IN-EN, PH-EN, and NG-EN switchable Day 1."
-
-**Show:** progress bar, the on-device-inference badge, the cosine-similarity gate.
-**Land the line:** "This is the moat. The Twin owns the creator's voice — Lumina just rents the compute."
+**Action:** preview shows the home tab. Hold on the hero card "Good morning, Alex — Brooklyn, NY (US-EN)".
 
 ---
 
-## Beat 2 · 0:50 → 1:40 — Swarm Studio (`/(tabs)/studio`)
+### Beat 1 · 0:15 → 0:55 — Personal Style Twin
+**Tap sequence:** `Profile` tab → **"Train your Style Twin"** → **"Use 20 sample clips"** → **Start training**.
 
-**Tap:** Studio tab.
+> "First, the Twin. A 99.8% voice + aesthetic clone trained **entirely on-device** — never a frame leaves the phone. 20 clips, under 4 minutes on an iPhone 12+. Then we layer a Cultural Voice Pack: US Gen-Z by default, switchable to UK, CA, AU, IN-EN, PH-EN, NG-EN."
 
-> "The swarm is five agents working in parallel: Ideator pulls English-first trends scoped to the creator's niche, Director storyboards, Editor cuts, Monetizer matches affiliates and brands, Publisher schedules. Every output is checked against the creator's Twin before it leaves the device."
-
-**Show:** today's queued briefs, the trend hooks with viral-potential scores, the "approve → swarm runs" CTA.
-**Land the line:** "The creator approves the **idea**. The swarm does the **work**."
-
----
-
-## Beat 3 · 1:40 → 2:30 — Smart Publisher (`/publisher`)
-
-**Tap:** the top brief → **"Open Publisher"**.
-
-> "Publisher generates 12 platform-adapted variants — TikTok, Reels, Shorts on Day 1 — runs each through the Compliance Shield (368 red-team patterns, zero false negatives, tuned to CCPA / EU AI Act / COPPA / FTC / GDPR), watermarks them with the creator's referral code, then schedules an A/B test. The winner gets promoted automatically."
-
-**Show:** the variant grid, the per-platform verdicts (PUBLISH / HOLD / REWRITE), the auto-rewrite that converged in 2 passes.
-**Land the line:** "This is the closed loop. Every post is a hypothesis. The swarm learns from the winner."
+**Show:** progress bar · `on-device inference` badge · cosine-similarity gate locking at **0.998**.
+**Land:** "This is the moat. The Twin owns the voice; we just rent the compute."
 
 ---
 
-## Beat 4 · 2:30 → 3:30 — Earnings + “While You Slept” (`/(tabs)/earnings` → `/while-you-slept`)
+### Beat 2 · 0:55 → 1:55 — Swarm Studio
+**Tap sequence:** `Studio` tab → **"Run my swarm"** (single button).
 
-**Tap:** Earnings tab → the **"While You Slept"** card.
+> "Four agents — Ideator, Director, Editor, Monetizer — collaborate live against the Twin and a US trend pool: NYFW GRWMs, Brooklyn matcha, Y2K thrift flips. Every brief is scored against the Twin in real time. Anything below 0.95 is killed before it reaches you."
 
-> "This is what the creator wakes up to. Last night, Alex's swarm matched an Amazon Associates affiliate, opened a brand deal in USD, settled both via Stripe Connect and PayPal instant payout, and deposited their 90% take into the on-device wallet. We took 10% — but only on the **incremental** revenue we created, audit-trailed by a hash-chained ledger that catches any tampering down to the cent."
+**Show, in order, as chat bubbles stream in:**
+1. **Ideator** → 3 briefs, hooks like *"the Brooklyn matcha that's breaking TikTok"*, Twin-affinity 0.97 / 0.96 / 0.95.
+2. **Director** → storyboard with beats + audio cue (*Olivia Rodrigo · sped up*).
+3. **Editor** → 12-variant A/B cut card, watermark + Compliance Shield ✓.
+4. **Monetizer** → deal drafts: **@gymshark $750** · **@glossier $620** · **@aloyoga $540** + Amazon Associates affiliate auto-matched.
 
-**Show on screen:**
-- Hero: **"You earned $151.70 while you slept · plus £42 from international payouts"**
-- Referral Rocket fired card: **"You earned $25 and your referrer earned $25"** with a live referral code
-- Deposits list: USD creator-take · GBP creator-take · USD welcome bounty
-
-> "Referral Rocket pays both sides $25 in real cash on the referee's first payout — and the dual-credit is **atomic**: if the referrer's wallet can't be reached, the referee isn't credited either, and the next cycle retries cleanly. We tested it under simulated network failure."
-
----
-
-## Close · 3:30 → 4:00 — *“This is the new creator economy operating system.”*
-
-> "Lumina is privacy-first, on-device, and aligned: we only get paid when our creators get paid more than they would have without us. We're launching with 100–200 invited US/UK/CA/AU/IN/PH/NG English-speaking creators in the next 14 days. Spark is free; Pro is $12.99 a month, lifetime 50% off for design partners. Phase 1 layers Brazil and Indonesia remotely once US proof lands. We're raising a $2.5M seed."
-
-**End on:** the "While You Slept" recap still on screen — confetti subtle, the $25 + $25 callout visible.
+**Land:** "From idea to publish-ready in ~90 seconds. The creator approves; the swarm ships."
 
 ---
 
-## Backup answers (don't volunteer — only if asked)
+### Beat 3 · 1:55 → 2:35 — Smart Publisher (one-tap launch)
+**Tap sequence:** on the winning variant card → **"Publish to all"** → confirm sheet shows `TikTok · Reels · Shorts` pre-checked → **"Launch"**.
 
-- **"Why on-device?"** — The Twin is the moat; we won't centralize voice clones. Latency, privacy, and regulatory tailwind in the US (CCPA), EU (EU AI Act, GDPR), and via FTC disclosure rules.
-- **"How do you take 10% and stay aligned?"** — Performance fee is gated on `attributableToLumina = true` revenue *above* the creator's pre-Lumina baseline. If we don't lift them, we don't earn. Locked in `feeAccounting.test.ts` against 100 fixtures.
-- **"What if a brand deal falls through?"** — Escrow state machine: `open → in-escrow → settled | reversed`. Reversed payouts roll the ledger back atomically; the creator's wallet is append-only and never sees the false credit.
-- **"Why US + English first?"** — Founder is US-based — fastest path to validation, revenue, and de-risking. English-speaking markets share platform mechanics, payout rails (Stripe + PayPal), and regulatory regime. SEA/LATAM is layered remotely in Phase 1 once we have earnings screenshots and viral "Made with Lumina" content as marketing assets.
-- **"What's your beta offer?"** — Lifetime 50% off Pro + 15% revenue-share bonus (vs. standard 10%) on the first $5K earned. Kill criteria: <25% completion or <15% monetization after 200 sign-ups → immediate pivot.
+> "One tap. Three platforms. Each cut is auto-adapted — 9:16 framing, captions, hashtags, FTC `#ad` disclosure baked in by the Compliance Shield. The 12-variant A/B fans out, and the winner gets promoted automatically once the early-signal threshold trips."
+
+**Show:** publish toast `Launched to TikTok · Reels · Shorts` · A/B dashboard begins ticking · Compliance Shield card flashes `CCPA ✓ · EU AI Act ✓ · COPPA ✓ · FTC ✓ · GDPR ✓`.
 
 ---
 
-## Run-of-show cheat sheet (tape to your laptop)
+### Beat 4 · 2:35 → 3:30 — Earnings recap (Stripe + PayPal)
+**Tap sequence:** close publisher → home tab → notification banner **"You earned $319.08 while you slept"** → tap to open `/while-you-slept`.
 
-| t | screen | one phrase |
-| --- | --- | --- |
-| 0:00 | Home | "Studio for one." |
-| 0:20 | Style Twin Train | "99.8% voice clone, on-device, US-EN default." |
-| 0:50 | Studio | "Five agents. Creator approves the idea." |
-| 1:40 | Publisher | "12 variants, Shield-cleared (CCPA/EU AI Act/COPPA/FTC/GDPR), watermarked." |
-| 2:30 | Earnings → While You Slept | "$151.70 + $25 + $25, while they slept. Stripe + PayPal." |
-| 3:30 | (recap held) | "Aligned. Privacy-first. $2.5M seed." |
+> "This is what Alex wakes up to. Overnight the swarm pushed the winner, the Earnings Engine attributed every dollar, and payouts already cleared — Stripe Connect for the brand deal, PayPal instant for the affiliate."
+
+**Show, top to bottom:**
+- Headline **"You earned $319.08 while you slept"** · subtitle *"…plus GBP 37.8 from international payouts."*
+- Balance row: **USD 294.08 · WALLET** | **GBP 37.8 · INTERNATIONAL**
+- **Referral Rocket fired** card — `$25` to Alex, `$25` to Sam (referrer), code `L5353939A5353`.
+- Deposits ledger:
+  - `+USD 269.08` · Creator take from overnight payout *(Stripe Connect · Gymshark)*
+  - `+GBP 37.8` · Creator take from overnight payout *(PayPal instant · ASOS UK)*
+  - `+USD 25` · Welcome bounty (you joined via a friend)
+
+---
+
+### Close · 3:30 → 4:00
+> "Spark is free — 3 videos a day. Lumina Pro is **$12.99/month**, and we take **10% only on incremental earnings** the swarm produces. Day 1 we ship to seven English-speaking markets on TikTok, Reels, and Shorts with Stripe + PayPal payouts. SEA and LATAM are the engine-ready Phase 1 layer once US proof lands. Beta opens with **lifetime 50% off Pro + a 15% rev-share on the first $5K**. Two hundred invites. We move now."
+
+**End frame:** home hero · "Good morning, Alex — Brooklyn, NY (US-EN)". Cut.
+
+---
+
+### Demo guard-rails
+- If a route lands on onboarding, complete it once before recording.
+- The recap is deterministic — same numbers every run. Don't refresh mid-beat.
+- Keep one tap per beat-arrow above. No detours; total runtime hard-capped at 4:00.
