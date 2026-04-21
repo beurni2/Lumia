@@ -165,7 +165,21 @@ function planFingerprint(
  *
  * Refuses to launch any platform whose Shield verdict is `blocked`.
  */
-export async function launchPublishPlan(plan: PublishPlan, now: number = Date.now()): Promise<PublishResult> {
+export interface LaunchOptions {
+  /**
+   * Per-platform overlay. When a platform is present in this map, its
+   * client overrides the default mock from `PLATFORM_CLIENTS`. Used by the
+   * Lumina app to wire real OAuth-backed clients (TikTok / Reels / Shorts)
+   * while leaving SEA platforms on the mock registry until Phase 1.
+   */
+  readonly clients?: Partial<Record<PlatformId, import("./platformClients").PlatformClient>>;
+}
+
+export async function launchPublishPlan(
+  plan: PublishPlan,
+  now: number = Date.now(),
+  opts: LaunchOptions = {},
+): Promise<PublishResult> {
   if (plan.blockedReason) {
     return {
       planId: plan.planId,
@@ -175,10 +189,11 @@ export async function launchPublishPlan(plan: PublishPlan, now: number = Date.no
       summary: plan.blockedReason,
     };
   }
+  const resolve = (p: PlatformId) => opts.clients?.[p] ?? clientFor(p);
   // Dispatch to per-platform clients in parallel.
   const results = await Promise.all(
     plan.perPlatform.map((pp) =>
-      clientFor(pp.platform).post({
+      resolve(pp.platform).post({
         videoId: plan.videoId,
         watermarkSig: plan.watermark.signature,
         content: pp.content,

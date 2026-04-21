@@ -13,7 +13,15 @@ export { ideate, isoDay, scoreBrief } from "./agents/ideator";
 export { direct } from "./agents/director";
 export { edit, TwinMatchRejected } from "./agents/editor";
 export { monetize } from "./agents/monetizer";
-export { buildPublishPlan, launchPublishPlan, ALL_PLATFORMS } from "./agents/publisher";
+export { buildPublishPlan, launchPublishPlan, ALL_PLATFORMS, type LaunchOptions } from "./agents/publisher";
+export {
+  PLATFORM_CLIENTS,
+  clientFor,
+  type PlatformClient,
+  type PlatformPostInput,
+  type PlatformPostResult,
+} from "./agents/platformClients";
+export * from "./platforms";
 export {
   generateABVariants,
   pickWinner,

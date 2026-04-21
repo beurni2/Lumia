@@ -7,7 +7,7 @@
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "rootDir": "src",
-    "lib": ["es2022"]
+    "lib": ["es2022", "dom"]
   },
   "include": ["src"],
   "exclude": ["src/__tests__"],
