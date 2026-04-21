@@ -21,6 +21,12 @@
     },
     {
       "path": "../../packages/style-twin"
+    },
+    {
+      "path": "../../packages/swarm-studio"
+    },
+    {
+      "path": "../../packages/monetizer"
     }
   ]
 }

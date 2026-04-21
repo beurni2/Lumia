@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/style-twin": "workspace:*"
+    "@workspace/style-twin": "workspace:*",
+    "@workspace/monetizer": "workspace:*"
   },
   "devDependencies": {
     "typescript": "~5.9.2"

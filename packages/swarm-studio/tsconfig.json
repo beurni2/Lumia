@@ -11,6 +11,7 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../style-twin" }
+    { "path": "../style-twin" },
+    { "path": "../monetizer" }
   ]
 }

@@ -248,9 +248,15 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../packages/api-client-react
+      '@workspace/monetizer':
+        specifier: workspace:*
+        version: link:../../packages/monetizer
       '@workspace/style-twin':
         specifier: workspace:*
         version: link:../../packages/style-twin
+      '@workspace/swarm-studio':
+        specifier: workspace:*
+        version: link:../../packages/swarm-studio
       babel-plugin-react-compiler:
         specifier: ^19.0.0-beta-e993439-20250117
         version: 19.0.0-beta-ebf51a3-20250411
@@ -572,6 +578,9 @@ importers:
 
   packages/swarm-studio:
     dependencies:
+      '@workspace/monetizer':
+        specifier: workspace:*
+        version: link:../monetizer
       '@workspace/style-twin':
         specifier: workspace:*
         version: link:../style-twin
