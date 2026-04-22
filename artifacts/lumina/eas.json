@@ -65,12 +65,5 @@
       "ios": { "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_ID" },
       "android": { "track": "internal" }
     }
-  },
-  "update": {
-    "channels": {
-      "development": { "policy": "always" },
-      "preview": { "policy": "always" },
-      "production": { "policy": "rollout-percentage" }
-    }
   }
 }
