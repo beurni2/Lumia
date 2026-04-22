@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
@@ -48,6 +48,31 @@ export default function PublisherScreen() {
   const colors = useColors();
   const router = useRouter();
   const { twin, loading: twinLoading } = useStyleTwin();
+  // Optional creative override forwarded from /studio/[id] when the user
+  // submitted a prompt through the lily-pad. Threaded into dailyBriefs so
+  // the variants the Publisher renders + launches actually reflect that
+  // prompt rather than a fresh deterministic ideation.
+  //
+  // We consume the URL param into local state once and then strip it from
+  // the URL via router.replace. Two reasons:
+  //   1. Privacy — free-form user prompts shouldn't sit in browser
+  //      history / link previews / referrer headers on web.
+  //   2. Back-nav hygiene — the override applies to *this* visit, not
+  //      to a future stale return to the screen.
+  const params = useLocalSearchParams<{ override?: string }>();
+  const [creativeOverride, setCreativeOverride] = useState<string | undefined>(undefined);
+  const consumedOverrideRef = useRef(false);
+  useEffect(() => {
+    if (consumedOverrideRef.current) return;
+    const raw = params.override;
+    if (typeof raw !== "string") return;
+    consumedOverrideRef.current = true;
+    const trimmed = raw.trim();
+    if (trimmed.length > 0) setCreativeOverride(trimmed);
+    // Strip the param so back-nav / deep-link reload doesn't replay it,
+    // and so the prompt text doesn't persist in the URL.
+    router.replace("/publisher");
+  }, [params.override, router]);
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 67 : insets.top;
@@ -70,7 +95,7 @@ export default function PublisherScreen() {
     const { orchestrator } = getOrchestrator();
     const ctx = makeContext(twin, "br");
     await ensureSeededVectors(twin);
-    const briefs = await orchestrator.dailyBriefs(ctx);
+    const briefs = await orchestrator.dailyBriefs(ctx, { creativeOverride });
     const sb = await orchestrator.storyboard(ctx, briefs[0].id);
     const v = await orchestrator.produce(ctx, sb.id);
     const p = await orchestrator.plan(ctx, v.id, {
@@ -79,7 +104,7 @@ export default function PublisherScreen() {
       regions: DEFAULT_REGIONS,
     });
     return { ctx, plan: p, orchestrator };
-  }, [twin]);
+  }, [twin, creativeOverride]);
 
   // Auto-prepare a plan preview (without launching) once the Twin is ready,
   // so the user sees the variants + Shield verdicts BEFORE one-tap launch.
@@ -135,6 +160,18 @@ export default function PublisherScreen() {
   useEffect(() => {
     if (twin && phase === "idle") prepare();
   }, [twin, phase, prepare]);
+
+  // If the override resolves *after* the initial auto-prepare already ran
+  // (e.g. params arrived a tick late), re-prepare so the displayed
+  // variants reflect the user's prompt.
+  const lastBuiltOverrideRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!twin) return;
+    if (lastBuiltOverrideRef.current === creativeOverride) return;
+    if (phase === "preparing" || phase === "launching") return;
+    lastBuiltOverrideRef.current = creativeOverride;
+    void prepare();
+  }, [twin, creativeOverride, phase, prepare]);
 
   const winner = useMemo<ABVariant | null>(() => {
     if (!plan?.winnerId) return null;
@@ -205,6 +242,14 @@ export default function PublisherScreen() {
         <Text style={[styles.subtitle, { color: "rgba(255,255,255,0.65)" }]}>
           12-variant A/B against your Twin · Compliance Shield against 6 platform packs · lossless smart watermark.
         </Text>
+        {creativeOverride && (
+          <View style={[styles.overrideChip, { borderColor: lumina.firefly }]}>
+            <Feather name="message-circle" size={12} color={lumina.firefly} />
+            <Text style={[styles.overrideChipText, { color: "#FFFFFF" }]} numberOfLines={2}>
+              Built around your prompt: <Text style={{ fontStyle: "italic" }}>{creativeOverride}</Text>
+            </Text>
+          </View>
+        )}
       </View>
 
       {phase === "preparing" && (
@@ -431,4 +476,16 @@ const styles = StyleSheet.create({
   ctaText: { color: "#fff", fontWeight: "700" },
   emptyTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
   emptyBody: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  overrideChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  overrideChipText: { fontSize: 12, lineHeight: 16, flex: 1 },
 });

@@ -182,6 +182,11 @@ export default function SwarmStudioScreen() {
 
   // Prompt input
   const [prompt, setPrompt] = useState("");
+  // Sticky override: the most recent non-empty prompt the user submitted
+  // through the lily-pad. We pass this to the Publisher so the variants
+  // it generates actually reflect what the user just typed in Studio
+  // (otherwise the Publisher silently re-runs ideation from scratch).
+  const [stickyOverride, setStickyOverride] = useState<string | undefined>(undefined);
 
   // Publish flow state machine: idle → walking → exploding → done(navigate)
   const [phase, setPhase] = useState<"idle" | "walking" | "exploding">("idle");
@@ -213,8 +218,14 @@ export default function SwarmStudioScreen() {
     // Reset state in case the user navigates back to /studio later.
     setPhase("idle");
     setWalkAgent(null);
-    router.push("/publisher");
-  }, [router]);
+    // Carry the user's lily-pad prompt forward so the Publisher's plan
+    // is built around the override they just typed, not a fresh ideation.
+    router.push(
+      stickyOverride
+        ? { pathname: "/publisher", params: { override: stickyOverride } }
+        : "/publisher",
+    );
+  }, [router, stickyOverride]);
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -229,6 +240,7 @@ export default function SwarmStudioScreen() {
           ideator: `Heard: "${trimmed}". Re-running the swarm with this in mind…`,
         }));
       }
+      if (trimmed) setStickyOverride(trimmed);
       setPrompt("");
       setIdleStep(0);
       void runSwarmChain({
