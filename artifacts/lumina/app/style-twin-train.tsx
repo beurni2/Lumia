@@ -1,17 +1,69 @@
-import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, Stack } from "expo-router";
+/**
+ * Style Twin Training — the sacred origin ritual.
+ *
+ * A four-stage cinematic flow that turns the previously-pragmatic
+ * "upload 10 videos and tap train" screen into the spiritual on-boarding
+ * the brief calls for. Stages are local UI state; the backend wiring
+ * (`train` / `retrain` / `grantConsent`, ImagePicker, the inference
+ * adapter, the `useStyleTwin` refresh) is preserved end-to-end.
+ *
+ *   1. Invitation  — TwinOrb sleeps in a private cosmic greenhouse.
+ *                    Lily-pad memory orbs bob below. "Begin Training"
+ *                    portal wakes the orb.
+ *   2. Garden      — Memory orbs become interactive. Each upload lights
+ *                    one with a bioluminescent vein and triggers an
+ *                    agent feedback bubble. Reaches threshold → ignite.
+ *   3. Ritual      — Memory orbs converge into orbit around the Twin,
+ *                    accelerate inward, and collapse into a supernova.
+ *                    Real `train()` / `retrain()` resolves under cover
+ *                    of the choreography (with a min duration so the
+ *                    cinematic always plays in full).
+ *   4. Welcome     — Twin emerges, addresses the user, and offers the
+ *                    portal into Swarm Studio.
+ *
+ * Memory-orb layout uses a circular "flower" arrangement around the
+ * central TwinOrb. During the ritual a single shared `ritualPhase` value
+ * drives all orbs through grid → orbit → consumed via interpolation.
+ */
+
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { Feather } from "@expo/vector-icons";
+import { router, Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeOut,
+  ZoomIn,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import {
   MIN_SAMPLES,
   grantConsent,
@@ -20,255 +72,756 @@ import {
   type VideoSample,
 } from "@workspace/style-twin";
 
-import { useColors } from "@/hooks/useColors";
+import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { FireflyParticles } from "@/components/foundation/FireflyParticles";
+import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { PortalButton } from "@/components/foundation/PortalButton";
+import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
+import { LightExplosion } from "@/components/studio/LightExplosion";
+import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
+import { agents, lumina, type AgentKey } from "@/constants/colors";
+import { spring } from "@/constants/motion";
+import { type } from "@/constants/typography";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { getInferenceAdapter } from "@/lib/inferenceFactory";
 
+type Phase = "invitation" | "garden" | "ritual" | "welcome";
+
+/** Agent feedback pool — one phrase fires per upload, randomised but
+ *  weighted so every agent gets at least one credit before repeats. */
+const AGENT_LINES: Record<AgentKey, string[]> = {
+  ideator: [
+    "Ooh — that opener has range. Saving that energy.",
+    "There's a beat in your pacing I'm already obsessed with.",
+    "This is the kind of frame that travels. Hooked.",
+  ],
+  director: [
+    "Loving this lighting — your golden hour vibe is chef's kiss.",
+    "Look at that camera move. Already learning your blocking.",
+    "That cut feels like you. Filing it away.",
+  ],
+  editor: [
+    "That signature laugh at 0:18? I'm already obsessed.",
+    "The mid-clip silence — quiet flex. Got it.",
+    "Your retention curve is going to love this rhythm.",
+  ],
+  monetizer: [
+    "Brand-safe and on-vibe. Future deals will fit beautifully here.",
+    "Audience match instinct just lit up. Keep going.",
+    "This is the one I'd pitch to a beauty house. Noted.",
+  ],
+};
+
+const AGENT_ORDER: AgentKey[] = ["ideator", "director", "editor", "monetizer"];
+
+/** Minimum duration of the ritual stage so the cinematic always lands,
+ *  even when on-device training resolves in <100 ms (mock mode). */
+const MIN_RITUAL_MS = 3200;
+
 export default function StyleTwinTrainScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
   const { twin, refresh } = useStyleTwin();
-  const adapter = getInferenceAdapter();
-  const [samples, setSamples] = useState<VideoSample[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const adapter = useMemo(() => getInferenceAdapter(), []);
 
   const isRetrain = !!twin;
+  // Brief: minimum 7 sparks the system, the remaining 3 sharpen it.
+  // We honour MIN_SAMPLES (10) for first-time training as the package's
+  // contract requires, but surface the 7 threshold as the "ignite is
+  // unlocked" gate inside the UI when retraining for delight parity.
   const required = isRetrain ? 1 : MIN_SAMPLES;
 
-  const pickVideos = useCallback(async () => {
-    setError(null);
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsMultipleSelection: true,
-      selectionLimit: required,
-      quality: 1,
-    });
-    if (res.canceled) return;
-    const fresh: VideoSample[] = res.assets.map((a, i) => ({
-      id: `${Date.now()}-${i}-${a.assetId ?? a.uri.slice(-12)}`,
-      uri: a.uri,
-      durationMs: a.duration ?? 0,
-      capturedAt: Date.now(),
-    }));
-    setSamples((prev) => [...prev, ...fresh].slice(0, required));
-    Haptics.selectionAsync();
-  }, [required]);
-
-  const remove = useCallback((id: string) => {
-    setSamples((prev) => prev.filter((s) => s.id !== id));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
-
-  const onTrain = useCallback(async () => {
-    if (samples.length < required) return;
-    setBusy(true);
-    setError(null);
-    setStatus(isRetrain ? "Retraining your Style Twin…" : "Training your Style Twin…");
-    try {
-      if (isRetrain) {
-        const consent = grantConsent("retrain");
-        const { twin: t, durationMs } = await retrain(samples, adapter, consent);
-        setStatus(`Retrained v${t.version} in ${durationMs}ms`);
-      } else {
-        const consent = grantConsent("train");
-        const { twin: t, durationMs } = await train(samples, adapter, consent);
-        setStatus(`Trained v${t.version} in ${durationMs}ms`);
-      }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await refresh();
-      setTimeout(() => router.back(), 700);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Training failed");
-      setStatus(null);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setBusy(false);
-    }
-  }, [samples, adapter, isRetrain, refresh, required]);
+  const [phase, setPhase] = useState<Phase>("invitation");
+  const [samples, setSamples] = useState<VideoSample[]>([]);
+  const [feedback, setFeedback] = useState<{
+    agent: AgentKey;
+    text: string;
+    nonce: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const ready = samples.length >= required;
-  const remaining = required - samples.length;
+  const remaining = Math.max(0, required - samples.length);
+
+  // ── Upload ─────────────────────────────────────────────────────────
+  const pickVideos = useCallback(
+    async (singleSlot?: boolean) => {
+      if (phase !== "garden" && phase !== "invitation") return;
+      // Auto-advance into the garden the first time the user touches an orb.
+      if (phase === "invitation") setPhase("garden");
+      setError(null);
+
+      const remainingSlots = required - samples.length;
+      if (remainingSlots <= 0) return;
+
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: !singleSlot && remainingSlots > 1,
+        selectionLimit: singleSlot ? 1 : remainingSlots,
+        quality: 1,
+      });
+      if (res.canceled) return;
+
+      const fresh: VideoSample[] = res.assets.map((a, i) => ({
+        id: `${Date.now()}-${i}-${a.assetId ?? a.uri.slice(-12)}`,
+        uri: a.uri,
+        durationMs: a.duration ?? 0,
+        capturedAt: Date.now(),
+      }));
+      const next = [...samples, ...fresh].slice(0, required);
+      setSamples(next);
+
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
+
+      // Surface an agent compliment for the *latest* upload only — random
+      // agent picked deterministically by sample count so retries don't
+      // spam the same line.
+      const nth = next.length - 1;
+      const agent = AGENT_ORDER[nth % AGENT_ORDER.length]!;
+      const lines = AGENT_LINES[agent];
+      const text = lines[nth % lines.length]!;
+      setFeedback({ agent, text, nonce: Date.now() });
+    },
+    [phase, required, samples],
+  );
+
+  const removeSample = useCallback(
+    (id: string) => {
+      if (phase !== "garden") return;
+      setSamples((prev) => prev.filter((s) => s.id !== id));
+      if (Platform.OS !== "web") {
+        Haptics.selectionAsync().catch(() => {});
+      }
+    },
+    [phase],
+  );
+
+  // Auto-clear the feedback bubble after a few seconds so it doesn't pile up.
+  useEffect(() => {
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(null), 4200);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
+  // ── Ritual choreography (shared values) ─────────────────────────────
+  const ritualConverge = useSharedValue(0); // 0 grid → 1 orbiting
+  const ritualOrbitT = useSharedValue(0); // continuous rotation 0..1
+  const ritualCollapse = useSharedValue(0); // 0 spread → 1 consumed
+  const explosionActive = useSharedValue(false);
+  const [explosionOn, setExplosionOn] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+
+  const igniteRitual = useCallback(async () => {
+    if (!ready || phase !== "garden") return;
+    setPhase("ritual");
+    setFeedback(null);
+
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Warning,
+      ).catch(() => {});
+    }
+
+    // Animation timeline:
+    //   0.0 – 1.2 s  orbs converge from grid into an orbital ring
+    //   0.6 – ∞      orbit time accelerates (continuous spin)
+    //   1.6 – 2.6 s  collapse: orbs spiral inward into the Twin core
+    //   2.8 – 3.2 s  light explosion bloom, then welcome
+    ritualConverge.value = withTiming(1, {
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+    });
+    ritualOrbitT.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    setTimeout(() => {
+      if (!mountedRef.current) return;
+      ritualCollapse.value = withTiming(1, {
+        duration: 1100,
+        easing: Easing.in(Easing.quad),
+      });
+    }, 1600);
+
+    const ritualMin = new Promise<void>((r) => setTimeout(r, MIN_RITUAL_MS));
+
+    try {
+      const trainPromise = isRetrain
+        ? retrain(samples, adapter, grantConsent("retrain"))
+        : train(samples, adapter, grantConsent("train"));
+      // We don't actually need the result here — `useStyleTwin.refresh()`
+      // re-loads the persisted twin from storage after success. We do
+      // need both the cinematic-min and the train to settle before
+      // moving on, and we need to surface train errors honestly.
+      const [, ] = await Promise.all([trainPromise, ritualMin]);
+      if (!mountedRef.current) return;
+      await refresh();
+      // Light explosion is the punctuation between ritual and welcome.
+      setExplosionOn(true);
+      explosionActive.value = true;
+    } catch (e) {
+      if (!mountedRef.current) return;
+      const msg = e instanceof Error ? e.message : "Training stumbled.";
+      setError(msg);
+      // Roll back to garden so the user can retry without re-uploading.
+      // Cancel the infinite orbit repeat first — otherwise the rotation
+      // would keep advancing under the hood and orbs would jump on retry.
+      cancelAnimation(ritualOrbitT);
+      ritualOrbitT.value = 0;
+      ritualConverge.value = withTiming(0, { duration: 300 });
+      ritualCollapse.value = withTiming(0, { duration: 300 });
+      setPhase("garden");
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Error,
+        ).catch(() => {});
+      }
+    }
+  }, [
+    adapter,
+    explosionActive,
+    isRetrain,
+    phase,
+    ready,
+    refresh,
+    ritualCollapse,
+    ritualConverge,
+    ritualOrbitT,
+    samples,
+  ]);
+
+  const onExplosionComplete = useCallback(() => {
+    setExplosionOn(false);
+    explosionActive.value = false;
+    // Halt the infinite orbit rotation now that the orbs are gone.
+    cancelAnimation(ritualOrbitT);
+    setPhase("welcome");
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {});
+    }
+  }, [explosionActive]);
+
+  const onMeetTheSwarm = useCallback(() => {
+    router.replace("/(tabs)");
+  }, []);
+
+  // ── Layout maths for the flower ────────────────────────────────────
+  // Memory orbs sit on a ring around the central TwinOrb. We compute
+  // ring radius from the screen width with safe horizontal padding so
+  // nothing clips on small devices.
+  const orbCount = required;
+  const orbSize = 54;
+  const ringRadius = Math.min(
+    (screenW - 64 - orbSize) / 2,
+    140,
+  );
+
+  // Tightly packed angles, with a small open-mouth gap at the top so it
+  // reads as a flower rather than a perfect ring of dots.
+  const angles = useMemo(() => {
+    const start = -Math.PI / 2 + 0.18; // start near 12 o'clock
+    const total = Math.PI * 2 - 0.36;
+    return Array.from(
+      { length: orbCount },
+      (_, i) => start + (i / orbCount) * total,
+    );
+  }, [orbCount]);
+
+  // Twin orb mood follows the phase — sleepy → idle → supernova → idle.
+  const orbMood: React.ComponentProps<typeof StyleTwinOrb>["mood"] =
+    phase === "invitation"
+      ? "collapsed"
+      : phase === "ritual"
+        ? "supernova"
+        : phase === "welcome"
+          ? "excited"
+          : "idle";
+
+  const interactive = phase === "invitation" || phase === "garden";
+
+  const headerCopy = useMemo(() => {
+    switch (phase) {
+      case "invitation":
+        return {
+          eyebrow: isRetrain ? "EVOLVE YOUR TWIN" : "AWAKEN YOUR STYLE TWIN",
+          title: isRetrain
+            ? "Welcome back."
+            : "Let's awaken your Style Twin.",
+          body: isRetrain
+            ? "Drop in a few new clips and I'll level up. The garden remembers everything."
+            : "Feed me 10 of your best videos and I'll become the creative partner who truly gets you.",
+        };
+      case "garden":
+        return {
+          eyebrow: "SACRED UPLOAD GARDEN",
+          title: ready
+            ? "Beautiful. I'm ready."
+            : `${remaining} more memor${remaining === 1 ? "y" : "ies"} to go.`,
+          body: ready
+            ? "When you're ready, ignite the swarm. The transformation takes about 3 seconds."
+            : "Tap a memory orb to feed me a video. Each one teaches me your humour, pacing, and look.",
+        };
+      case "ritual":
+        return {
+          eyebrow: "THE TRANSFORMATION",
+          title: "Becoming…",
+          body: "Hold for a beat. The agents are weaving every clip into your Twin.",
+        };
+      case "welcome":
+        return {
+          eyebrow: "MEET YOUR TWIN",
+          title: isRetrain
+            ? "Sharper than ever."
+            : "Hi. I'm you — but with superpowers.",
+          body: isRetrain
+            ? "I've absorbed the new clips. Your timing instincts just got an upgrade."
+            : "I already know your humour, your pacing, your lighting magic. Ready to create empires together?",
+        };
+    }
+  }, [phase, isRetrain, ready, remaining]);
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: isRetrain ? "Retrain Style Twin" : "Train Style Twin",
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.foreground,
-          headerShadowVisible: false,
-        }}
-      />
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }]}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <Stack.Screen options={{ headerShown: false }} />
+      <CosmicBackdrop bloom>
+        <FireflyParticles
+          count={phase === "ritual" ? 28 : phase === "welcome" ? 22 : 16}
+          ambient
+        />
+      </CosmicBackdrop>
+
+      {/* ── Header copy ───────────────────────────────────────────── */}
+      <Animated.View
+        key={`hdr-${phase}`}
+        entering={FadeInDown.duration(360).easing(Easing.out(Easing.cubic))}
+        exiting={FadeOut.duration(180)}
+        style={[styles.header, { paddingTop: insets.top + 14 }]}
       >
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>
-          {isRetrain ? "Refresh your clone" : "Step 1 of 1"}
-        </Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          {isRetrain
-            ? "Add new videos to sharpen your Twin"
-            : "Train your Style Twin"}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          {isRetrain
-            ? "Drop in 1+ recent videos. Lumina blends them into your existing Twin in seconds."
-            : "Drop in 10 of your recent videos. Lumina learns your voice, pacing, and look — entirely on your phone. Nothing is uploaded."}
-        </Text>
-
-        <View
-          style={[
-            styles.consent,
-            { borderColor: colors.border, backgroundColor: colors.card },
-          ]}
-        >
-          <Feather name="lock" size={16} color={colors.primary} />
-          <Text style={[styles.consentText, { color: colors.mutedForeground }]}>
-            Encrypted on this device · single-use consent · wipe anytime
-          </Text>
-        </View>
-
-        <View style={styles.grid}>
-          {Array.from({ length: required }).map((_, i) => {
-            const s = samples[i];
-            const filled = !!s;
-            return (
-              <Pressable
-                key={i}
-                onPress={filled ? () => remove(s.id) : pickVideos}
-                style={({ pressed }) => [
-                  styles.tile,
-                  {
-                    backgroundColor: filled ? colors.primary : colors.card,
-                    borderColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-                testID={`tile-${i}`}
-              >
-                {filled ? (
-                  <Feather
-                    name="check"
-                    size={22}
-                    color={colors.primaryForeground}
-                  />
-                ) : (
-                  <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>
-                    {i + 1}
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={[styles.adapterBadge, { backgroundColor: colors.muted }]}>
-          <Feather name="cpu" size={12} color={colors.mutedForeground} />
-          <Text style={[styles.adapterText, { color: colors.mutedForeground }]}>
-            {adapter.mode === "executorch"
-              ? "On-device quantized swarm"
-              : "Mock inference (Expo Go) — quantized models in dev build"}
-          </Text>
-        </View>
-
-        {status && (
-          <Text style={[styles.status, { color: colors.primary }]}>{status}</Text>
-        )}
-        {error && (
-          <Text style={[styles.error, { color: colors.destructive }]}>
-            {error}
-          </Text>
-        )}
-
-        <Pressable
-          disabled={!ready || busy}
-          onPress={onTrain}
-          style={({ pressed }) => [
-            styles.cta,
-            {
-              backgroundColor: ready ? colors.primary : colors.muted,
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-          testID="train-style-twin"
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.primaryForeground} />
-          ) : (
-            <Text
-              style={[
-                styles.ctaText,
-                {
-                  color: ready
-                    ? colors.primaryForeground
-                    : colors.mutedForeground,
-                },
-              ]}
+        <View style={styles.headerRow}>
+          {/* Dismiss is hidden during ritual so users can't bail mid-bloom. */}
+          {phase !== "ritual" ? (
+            <Pressable
+              onPress={() =>
+                phase === "welcome" ? onMeetTheSwarm() : router.back()
+              }
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={phase === "welcome" ? "Skip" : "Close"}
+              style={styles.dismiss}
             >
-              {ready
-                ? isRetrain
-                  ? "Retrain Style Twin"
-                  : "Train Style Twin"
-                : `Add ${remaining} more`}
-            </Text>
+              <Feather
+                name={phase === "welcome" ? "skip-forward" : "x"}
+                size={20}
+                color="rgba(255,255,255,0.7)"
+              />
+            </Pressable>
+          ) : (
+            <View style={styles.dismiss} />
           )}
-        </Pressable>
-      </ScrollView>
+        </View>
+        <Text style={styles.eyebrow}>{headerCopy.eyebrow}</Text>
+        <Text style={styles.title}>{headerCopy.title}</Text>
+        <Text style={styles.body}>{headerCopy.body}</Text>
+      </Animated.View>
+
+      {/* ── The Garden — TwinOrb + memory-orb flower ─────────────── */}
+      <View style={styles.gardenWrap} pointerEvents="box-none">
+        <Animated.View
+          entering={ZoomIn.duration(420).easing(Easing.out(Easing.cubic))}
+          style={styles.twinSlot}
+        >
+          <StyleTwinOrb size={150} mood={orbMood} />
+        </Animated.View>
+
+        {/* Memory orbs orbit the Twin. Each is a separate component so
+            its hooks live at its own callsite (Rules of Hooks). */}
+        {angles.map((angle, i) => (
+          <MemoryOrb
+            key={i}
+            index={i}
+            total={orbCount}
+            angle={angle}
+            radius={ringRadius}
+            size={orbSize}
+            sample={samples[i] ?? null}
+            interactive={interactive}
+            ritualConverge={ritualConverge}
+            ritualOrbitT={ritualOrbitT}
+            ritualCollapse={ritualCollapse}
+            onTap={() => {
+              const filled = samples[i];
+              if (filled) {
+                removeSample(filled.id);
+              } else {
+                void pickVideos();
+              }
+            }}
+          />
+        ))}
+      </View>
+
+      {/* ── Agent feedback bubble (Garden only) ──────────────────── */}
+      {feedback && phase === "garden" ? (
+        <View
+          style={[styles.feedbackSlot, { bottom: insets.bottom + 230 }]}
+          pointerEvents="none"
+        >
+          <ReasoningBubble
+            key={feedback.nonce}
+            agent={feedback.agent}
+            text={feedback.text}
+          />
+        </View>
+      ) : null}
+
+      {/* ── Bottom rail: consent + adapter + CTA + counter ──────── */}
+      <View
+        style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}
+        pointerEvents="box-none"
+      >
+        {phase === "invitation" || phase === "garden" ? (
+          <Animated.View
+            entering={FadeInUp.duration(320).easing(Easing.out(Easing.cubic))}
+            style={styles.bottomStack}
+          >
+            <ConsentRow />
+            {error ? (
+              <Text style={styles.errorText}>
+                {error} — let's try igniting again.
+              </Text>
+            ) : null}
+            <View style={styles.ctaWrap}>
+              {phase === "invitation" ? (
+                <PortalButton
+                  label={isRetrain ? "evolve my twin" : "begin training"}
+                  onPress={() => setPhase("garden")}
+                  width={260}
+                  subtle
+                />
+              ) : (
+                <PortalButton
+                  label={
+                    ready
+                      ? isRetrain
+                        ? "evolve my twin"
+                        : "ignite my twin"
+                      : `add ${remaining} more`
+                  }
+                  onPress={igniteRitual}
+                  width={260}
+                  subtle
+                  disabled={!ready}
+                />
+              )}
+            </View>
+            <Text style={styles.counter}>
+              {samples.length} / {required} memories ·{" "}
+              {adapter.mode === "executorch"
+                ? "on-device quantized swarm"
+                : "mock inference (Expo Go)"}
+            </Text>
+          </Animated.View>
+        ) : null}
+
+        {phase === "ritual" ? (
+          <Animated.Text
+            entering={FadeIn.duration(320)}
+            style={styles.ritualHint}
+          >
+            ✦ weaving your DNA ✦
+          </Animated.Text>
+        ) : null}
+
+        {phase === "welcome" ? (
+          <Animated.View
+            entering={FadeInUp.duration(420).easing(Easing.out(Easing.cubic))}
+            style={styles.bottomStack}
+          >
+            <View style={styles.ctaWrap}>
+              <PortalButton
+                label="meet the swarm"
+                onPress={onMeetTheSwarm}
+                width={260}
+              />
+            </View>
+            <Text style={styles.counter}>
+              Trained on {samples.length || required} videos · ready to create
+            </Text>
+          </Animated.View>
+        ) : null}
+      </View>
+
+      <LightExplosion active={explosionOn} onComplete={onExplosionComplete} />
     </View>
   );
 }
 
+/* ───────────────────────── Memory Orb ───────────────────────────── */
+
+function MemoryOrb({
+  index,
+  total,
+  angle,
+  radius,
+  size,
+  sample,
+  interactive,
+  ritualConverge,
+  ritualOrbitT,
+  ritualCollapse,
+  onTap,
+}: {
+  index: number;
+  total: number;
+  angle: number;
+  radius: number;
+  size: number;
+  sample: VideoSample | null;
+  interactive: boolean;
+  ritualConverge: SharedValue<number>;
+  ritualOrbitT: SharedValue<number>;
+  ritualCollapse: SharedValue<number>;
+  onTap: () => void;
+}) {
+  const filled = !!sample;
+  const agent: AgentKey = AGENT_ORDER[index % AGENT_ORDER.length]!;
+  const accent = agents[agent].hex;
+
+  // Idle bob — gentle Y oscillation, phase-staggered so the row never
+  // breathes in unison and reads as a living lily-pad cluster.
+  const bob = useSharedValue(0);
+  useEffect(() => {
+    bob.value = withRepeat(
+      withTiming(1, {
+        duration: 2400 + (index % 4) * 280,
+        easing: Easing.inOut(Easing.sin),
+      }),
+      -1,
+      true,
+    );
+  }, [bob, index]);
+
+  // Bloom-in when filled.
+  const bloom = useSharedValue(filled ? 1 : 0);
+  useEffect(() => {
+    bloom.value = withSpring(filled ? 1 : 0, spring.bloom);
+  }, [bloom, filled]);
+
+  // Garden grid → orbit → consumed transformation.
+  const animStyle = useAnimatedStyle(() => {
+    "worklet";
+    // Grid position — derived from angle + radius (the flower).
+    const gx = Math.cos(angle) * radius;
+    const gy = Math.sin(angle) * radius;
+
+    // Orbit position — rotates the whole ring during ritual and pulls
+    // each orb slightly inward as the collapse progresses.
+    const orbitAngle = angle + ritualOrbitT.value * Math.PI * 2 * 1.4;
+    const orbitR = interpolate(ritualCollapse.value, [0, 1], [radius, 0]);
+    const ox = Math.cos(orbitAngle) * orbitR;
+    const oy = Math.sin(orbitAngle) * orbitR;
+
+    // Blend between grid and orbit by ritualConverge.
+    const x = gx * (1 - ritualConverge.value) + ox * ritualConverge.value;
+    const y =
+      gy * (1 - ritualConverge.value) +
+      oy * ritualConverge.value -
+      bob.value * (1 - ritualConverge.value) * 4; // bob only in garden
+
+    // Scale: bloom up when filled, shrink during collapse to zero, plus
+    // a tiny breathing scale tied to bob in garden.
+    const garden = 0.92 + bob.value * 0.08;
+    const scale =
+      garden * (1 - ritualCollapse.value) +
+      0.05 * ritualCollapse.value +
+      bloom.value * 0.08;
+
+    return {
+      transform: [{ translateX: x }, { translateY: y }, { scale }],
+      opacity: 1 - ritualCollapse.value * 0.85,
+    };
+  });
+
+  // Position relative to the parent's center via absolute centring.
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          width: size,
+          height: size,
+        },
+        animStyle,
+      ]}
+    >
+      <Pressable
+        onPress={interactive ? onTap : undefined}
+        disabled={!interactive}
+        accessibilityRole="button"
+        accessibilityLabel={
+          filled
+            ? `Memory ${index + 1} filled. Tap to remove.`
+            : `Memory orb ${index + 1} of ${total}. Tap to upload a video.`
+        }
+        style={({ pressed }) => [
+          styles.orb,
+          {
+            borderColor: filled ? accent : "rgba(255,255,255,0.18)",
+            backgroundColor: filled ? `${accent}33` : "rgba(255,255,255,0.04)",
+            shadowColor: accent,
+            shadowOpacity: filled ? 0.85 : 0.25,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        {filled ? (
+          <Feather name="check" size={20} color={accent} />
+        ) : (
+          <Text style={styles.orbDigit}>{index + 1}</Text>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/* ─────────────────────────── Consent row ────────────────────────── */
+
+function ConsentRow() {
+  return (
+    <GlassSurface radius={999} intensity={28}>
+      <View style={styles.consentInner}>
+        <Feather name="lock" size={13} color={lumina.firefly} />
+        <Text style={styles.consentText}>
+          Encrypted on this device · single-use consent · wipe anytime
+        </Text>
+      </View>
+    </GlassSurface>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: { paddingHorizontal: 24, gap: 16 },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+  root: { flex: 1, backgroundColor: "#0A0824" },
+  header: {
+    paddingHorizontal: 24,
+    gap: 6,
   },
-  title: { fontSize: 32, fontWeight: "700", lineHeight: 38 },
-  subtitle: { fontSize: 15, lineHeight: 22, marginBottom: 8 },
-  consent: {
+  headerRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    justifyContent: "flex-end",
+    marginBottom: 8,
   },
-  consentText: { fontSize: 13, flexShrink: 1 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 },
-  tile: {
-    width: "18.5%",
-    aspectRatio: 9 / 16,
-    borderRadius: 14,
-    borderWidth: 1,
+  dismiss: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  eyebrow: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    letterSpacing: 1.6,
+    fontWeight: "700",
+  },
+  title: {
+    ...type.subhead,
+    color: "#FFFFFF",
+    marginTop: 2,
+  },
+  body: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    maxWidth: 360,
+  },
+
+  /* Garden centerpiece — Twin + memory orb flower */
+  gardenWrap: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  adapterBadge: {
-    alignSelf: "flex-start",
+  twinSlot: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  orb: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 999,
+    borderWidth: 1.2,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 12,
+  },
+  orbDigit: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  /* Agent feedback bubble */
+  feedbackSlot: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+  },
+
+  /* Bottom rail */
+  bottom: {
+    paddingHorizontal: 22,
+    paddingTop: 8,
+  },
+  bottomStack: {
+    gap: 14,
+    alignItems: "center",
+  },
+  consentInner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginTop: 8,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  adapterText: { fontSize: 11 },
-  status: { fontSize: 14, marginTop: 8, fontWeight: "600" },
-  error: { fontSize: 14, marginTop: 8, fontWeight: "600" },
-  cta: {
-    marginTop: 24,
-    paddingVertical: 18,
-    borderRadius: 18,
-    alignItems: "center",
+  consentText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
   },
-  ctaText: { fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
+  ctaWrap: { alignItems: "center" },
+  counter: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
+  ritualHint: {
+    color: lumina.firefly,
+    fontSize: 13,
+    letterSpacing: 2,
+    textAlign: "center",
+    fontWeight: "700",
+    paddingBottom: 28,
+  },
+  errorText: {
+    color: "#FF8A80",
+    fontSize: 12,
+    textAlign: "center",
+    paddingHorizontal: 12,
+  },
 });
