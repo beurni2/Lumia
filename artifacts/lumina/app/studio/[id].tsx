@@ -115,7 +115,7 @@ export default function SwarmStudioScreen() {
   const { twin } = useStyleTwin();
   const runIdRef = useRef(0);
   const runSwarmChain = useCallback(
-    async (opts?: { preserveIdeatorAck?: boolean }) => {
+    async (opts?: { preserveIdeatorAck?: boolean; creativeOverride?: string }) => {
       if (!twin) return;
       const myRun = ++runIdRef.current;
       const isLive = () => runIdRef.current === myRun;
@@ -135,7 +135,9 @@ export default function SwarmStudioScreen() {
         await ensureSeededVectors(twin);
         if (!isLive()) return;
 
-        const briefs = await orchestrator.dailyBriefs(ctx);
+        const briefs = await orchestrator.dailyBriefs(ctx, {
+          creativeOverride: opts?.creativeOverride,
+        });
         if (!isLive() || briefs.length === 0) return;
         const brief = briefs[0]!;
         const affinity = Math.round(brief.twinAffinity.overall * 100);
@@ -229,7 +231,10 @@ export default function SwarmStudioScreen() {
       }
       setPrompt("");
       setIdleStep(0);
-      void runSwarmChain({ preserveIdeatorAck: trimmed.length > 0 });
+      void runSwarmChain({
+        preserveIdeatorAck: trimmed.length > 0,
+        creativeOverride: trimmed || undefined,
+      });
     },
     [runSwarmChain],
   );

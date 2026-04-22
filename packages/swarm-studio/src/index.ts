@@ -7,8 +7,16 @@
  *             watermark + per-platform adaptation).
  */
 export * from "./types";
-export { InMemoryMemoryGraph, AlwaysAllowConsent } from "./memory";
-export { MockOrchestrator, type MockOrchestratorOptions } from "./mockOrchestrator";
+export {
+  InMemoryMemoryGraph,
+  type InMemoryMemoryGraphOptions,
+  AlwaysAllowConsent,
+} from "./memory";
+export {
+  MockOrchestrator,
+  type MockOrchestratorOptions,
+  type DailyBriefsOptions,
+} from "./mockOrchestrator";
 export { ideate, isoDay, scoreBrief } from "./agents/ideator";
 export { direct } from "./agents/director";
 export { edit, TwinMatchRejected } from "./agents/editor";

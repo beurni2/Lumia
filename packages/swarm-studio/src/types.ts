@@ -140,7 +140,10 @@ export interface PublishRequest {
 }
 
 export interface Orchestrator {
-  dailyBriefs(ctx: OrchestratorContext): Promise<Brief[]>;
+  dailyBriefs(
+    ctx: OrchestratorContext,
+    opts?: { creativeOverride?: string },
+  ): Promise<Brief[]>;
   storyboard(ctx: OrchestratorContext, briefId: string): Promise<Storyboard>;
   produce(ctx: OrchestratorContext, storyboardId: string): Promise<RenderedVideo>;
   monetize(ctx: OrchestratorContext, videoId: string): Promise<DealDraft[]>;
