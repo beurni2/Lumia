@@ -1,127 +1,260 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/useColors";
-import { EARNINGS } from "@/constants/mockData";
+/**
+ * Earnings — the swarm's payout, with a cosmic skin.
+ *
+ * Bioluminescent redesign:
+ *   • Cosmic backdrop + ambient fireflies
+ *   • Hero: chromatic gradient month total (the gold→firefly axis)
+ *   • Sparkline: 7-point history ribbon, glowing endpoint
+ *   • Brand deals as glass cards with status pills coloured by state
+ *     (Paid → firefly, Signed → gold, Negotiating → amethyst)
+ */
+
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo } from "react";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
+
+import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { FireflyParticles } from "@/components/foundation/FireflyParticles";
+import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { lumina } from "@/constants/colors";
+import { EARNINGS } from "@/constants/mockData";
+import { type } from "@/constants/typography";
+
+const STATUS_TONE: Record<string, { hex: string; bg: string }> = {
+  Paid: { hex: lumina.firefly, bg: "rgba(0,255,204,0.12)" },
+  Signed: { hex: lumina.goldTo, bg: "rgba(255,215,0,0.12)" },
+  Negotiating: { hex: lumina.coreSoft, bg: "rgba(139,77,255,0.18)" },
+};
 
 export default function EarningsScreen() {
   const insets = useSafeAreaInsets();
-  const colors = useColors();
 
   const isWeb = Platform.OS === "web";
-  const topInset = isWeb ? 67 : insets.top;
-  const bottomInset = isWeb ? 84 : insets.bottom + 60;
+  const topInset = isWeb ? 24 : insets.top;
+  const bottomInset = isWeb ? 84 : insets.bottom + 84;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topInset + 20, paddingBottom: bottomInset }}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Earnings</Text>
-      </View>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <CosmicBackdrop bloom>
+        <FireflyParticles count={14} ambient />
+      </CosmicBackdrop>
 
-      <View style={styles.hero}>
-        <Text style={[styles.heroLabel, { color: colors.mutedForeground }]}>Current Month</Text>
-        <Text style={[styles.heroAmount, { color: colors.foreground }]}>
-          {EARNINGS.currency} {EARNINGS.currentMonth.toLocaleString()}
-        </Text>
-        <View style={[styles.growthTag, { backgroundColor: colors.muted }]}>
-          <Feather name="arrow-up-right" size={16} color={colors.tint} />
-          <Text style={[styles.growthText, { color: colors.tint }]}>{EARNINGS.growth} vs last month</Text>
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: topInset + 12,
+          paddingBottom: bottomInset,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={[type.label, styles.eyebrow]}>earnings</Text>
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Brand Deals</Text>
-        <View style={styles.dealsList}>
-          {EARNINGS.deals.map((deal) => (
-            <View key={deal.id} style={[styles.dealCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.dealInfo}>
-                <Text style={[styles.dealBrand, { color: colors.foreground }]}>{deal.brand}</Text>
-                <Text style={[styles.dealStatus, { color: colors.mutedForeground }]}>{deal.status}</Text>
-              </View>
-              <Text style={[styles.dealAmount, { color: colors.foreground }]}>
-                {EARNINGS.currency} {deal.amount.toLocaleString()}
-              </Text>
-            </View>
-          ))}
+        {/* Hero: chromatic month total */}
+        <View style={styles.hero}>
+          <Text style={[type.microDelight, styles.heroLabel]}>
+            this month
+          </Text>
+          <View style={styles.heroAmountWrap}>
+            <Text style={[type.numeric, styles.heroAmount]}>
+              ${EARNINGS.currentMonth.toLocaleString()}
+            </Text>
+            {/* Chromatic underline — replaces web-only mix-blend overlay so
+                the gold→firefly→spark axis shows on native too. */}
+            <LinearGradient
+              colors={[lumina.goldFrom, lumina.firefly, lumina.spark] as [
+                string,
+                string,
+                string,
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.heroUnderline}
+            />
+          </View>
+          <View style={styles.growthTag}>
+            <Feather name="arrow-up-right" size={14} color={lumina.firefly} />
+            <Text style={[type.label, styles.growthText]}>
+              {EARNINGS.growth} vs last month
+            </Text>
+          </View>
+
+          {/* Sparkline */}
+          <View style={styles.sparklineWrap}>
+            <Sparkline data={EARNINGS.history} />
+          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* Deals */}
+        <View style={styles.section}>
+          <Text style={[type.subheadSm, styles.sectionTitle]}>
+            brand deals
+          </Text>
+          <View style={styles.dealsList}>
+            {EARNINGS.deals.map((deal) => {
+              const tone = STATUS_TONE[deal.status] ?? STATUS_TONE.Negotiating!;
+              return (
+                <GlassSurface key={deal.id} radius={20}>
+                  <View style={styles.dealRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[type.bodyEmphasis, styles.dealBrand]}>
+                        {deal.brand}
+                      </Text>
+                      <View
+                        style={[styles.statusPill, { backgroundColor: tone.bg }]}
+                      >
+                        <View
+                          style={[
+                            styles.statusDot,
+                            {
+                              backgroundColor: tone.hex,
+                              shadowColor: tone.hex,
+                              shadowOpacity: 0.9,
+                            },
+                          ]}
+                        />
+                        <Text style={[type.label, { color: tone.hex, fontSize: 12 }]}>
+                          {deal.status.toLowerCase()}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[type.subheadSm, styles.dealAmount]}>
+                      ${deal.amount.toLocaleString()}
+                    </Text>
+                  </View>
+                </GlassSurface>
+              );
+            })}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function Sparkline({ data }: { data: number[] }) {
+  const w = 280;
+  const h = 64;
+  const pad = 8;
+
+  const { path, endpoint } = useMemo(() => {
+    if (data.length === 0) return { path: "", endpoint: { x: 0, y: 0 } };
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = Math.max(1, max - min);
+    const dx = (w - pad * 2) / Math.max(1, data.length - 1);
+    const points = data.map((v, i) => ({
+      x: pad + i * dx,
+      y: pad + (h - pad * 2) * (1 - (v - min) / range),
+    }));
+    let d = `M ${points[0]!.x} ${points[0]!.y}`;
+    for (let i = 1; i < points.length; i++) {
+      const p0 = points[i - 1]!;
+      const p1 = points[i]!;
+      const cx = (p0.x + p1.x) / 2;
+      d += ` Q ${cx} ${p0.y} ${cx} ${(p0.y + p1.y) / 2} T ${p1.x} ${p1.y}`;
+    }
+    return { path: d, endpoint: points[points.length - 1]! };
+  }, [data]);
+
+  return (
+    <Svg width={w} height={h}>
+      <Path
+        d={path}
+        stroke={lumina.firefly}
+        strokeWidth={2}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.95}
+      />
+      <Circle cx={endpoint.x} cy={endpoint.y} r={6} fill={lumina.firefly} opacity={0.25} />
+      <Circle cx={endpoint.x} cy={endpoint.y} r={3} fill={lumina.firefly} />
+    </Svg>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: "#0A0824" },
+  header: { paddingHorizontal: 22, marginBottom: 6 },
+  eyebrow: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
   },
-  header: {
-    paddingHorizontal: 24,
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-  },
-  hero: {
-    paddingHorizontal: 24,
-    marginBottom: 40,
-    alignItems: "center",
-  },
-  heroLabel: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
+  hero: { paddingHorizontal: 22, alignItems: "center", marginBottom: 36 },
+  heroLabel: { color: "rgba(255,255,255,0.65)", marginBottom: 6, fontSize: 13 },
+  heroAmountWrap: { alignItems: "center" },
   heroAmount: {
-    fontSize: 48,
-    fontWeight: "800",
-    marginBottom: 16,
+    color: "#FFFFFF",
+    fontSize: 64,
+    lineHeight: 68,
+    textShadowColor: "rgba(0,255,204,0.4)",
+    textShadowRadius: 22,
+  },
+  heroUnderline: {
+    height: 3,
+    width: 180,
+    borderRadius: 2,
+    marginTop: 4,
+    opacity: 0.85,
   },
   growthTag: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,255,204,0.10)",
+    borderColor: "rgba(0,255,204,0.35)",
+    borderWidth: 0.5,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 100,
-    gap: 6,
+    borderRadius: 999,
+    marginTop: 10,
   },
-  growthText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  section: {
-    paddingHorizontal: 24,
-  },
+  growthText: { color: lumina.firefly, fontSize: 12 },
+  sparklineWrap: { marginTop: 22, alignItems: "center" },
+  section: { paddingHorizontal: 22 },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 16,
+    color: "#FFFFFF",
+    fontSize: 18,
+    marginBottom: 14,
+    textTransform: "lowercase",
   },
-  dealsList: {
-    gap: 12,
-  },
-  dealCard: {
+  dealsList: { gap: 12 },
+  dealRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
   },
-  dealInfo: {
-    gap: 4,
+  dealBrand: { color: "#FFFFFF", marginBottom: 6 },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
-  dealBrand: {
-    fontSize: 16,
-    fontWeight: "600",
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 5,
   },
-  dealStatus: {
-    fontSize: 14,
-  },
-  dealAmount: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  dealAmount: { color: "#FFFFFF" },
 });

@@ -12,6 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
+import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { FireflyParticles } from "@/components/foundation/FireflyParticles";
+import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { PortalButton } from "@/components/foundation/PortalButton";
+import { lumina } from "@/constants/colors";
 import { useColors } from "@/hooks/useColors";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
@@ -133,27 +138,39 @@ export default function PublisherScreen() {
 
   if (twinLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.tint} />
+      <View style={styles.root}>
+        <CosmicBackdrop bloom>
+          <FireflyParticles count={10} ambient />
+        </CosmicBackdrop>
+        <View style={styles.center}>
+          <ActivityIndicator color={lumina.firefly} />
+        </View>
       </View>
     );
   }
   if (!twin) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}>
-        <Feather name="user-x" size={42} color={colors.mutedForeground} />
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-          Train your Style Twin first
-        </Text>
-        <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
-          The Smart Publisher needs your voice and aesthetic before it can pick variants.
-        </Text>
-        <Pressable
-          onPress={() => router.push("/style-twin-train")}
-          style={({ pressed }) => [styles.cta, { backgroundColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}
-        >
-          <Text style={styles.ctaText}>Train Style Twin</Text>
-        </Pressable>
+      <View style={styles.root}>
+        <CosmicBackdrop bloom>
+          <FireflyParticles count={14} ambient />
+        </CosmicBackdrop>
+        <View style={[styles.center, { paddingHorizontal: 32 }]}>
+          <Feather name="user-x" size={42} color="rgba(255,255,255,0.4)" />
+          <Text style={[styles.emptyTitle, { color: "#FFFFFF" }]}>
+            Train your Style Twin first
+          </Text>
+          <Text style={[styles.emptyBody, { color: "rgba(255,255,255,0.65)" }]}>
+            The Smart Publisher needs your voice and aesthetic before it can pick variants.
+          </Text>
+          <View style={{ marginTop: 22 }}>
+            <PortalButton
+              label="train style twin"
+              onPress={() => router.push("/style-twin-train")}
+              width={240}
+              subtle
+            />
+          </View>
+        </View>
       </View>
     );
   }
@@ -163,20 +180,24 @@ export default function PublisherScreen() {
   const launchedOnce = phase === "launched" && result != null && !result.hardBlocked;
 
   return (
+    <View style={styles.root}>
+      <CosmicBackdrop bloom>
+        <FireflyParticles count={14} ambient />
+      </CosmicBackdrop>
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={styles.container}
       contentContainerStyle={{ paddingTop: topInset + 16, paddingBottom: bottomInset + 24, gap: 16 }}
     >
       {launchedOnce && <ConfettiBurst />}
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backRow}>
-          <Feather name="chevron-left" size={20} color={colors.mutedForeground} />
-          <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>Studio</Text>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backRow} accessibilityRole="button" accessibilityLabel="Back to Studio">
+          <Feather name="chevron-left" size={20} color="rgba(255,255,255,0.55)" />
+          <Text style={{ color: "rgba(255,255,255,0.55)", fontWeight: "600" }}>Studio</Text>
         </Pressable>
-        <Text style={[styles.eyebrow, { color: colors.tint }]}>SMART PUBLISHER</Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>Launch to the World</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+        <Text style={[styles.eyebrow, { color: lumina.firefly }]}>SMART PUBLISHER</Text>
+        <Text style={[styles.title, { color: "#FFFFFF" }]}>Launch to the World</Text>
+        <Text style={[styles.subtitle, { color: "rgba(255,255,255,0.65)" }]}>
           12-variant A/B against your Twin · Compliance Shield against 6 platform packs · lossless smart watermark.
         </Text>
       </View>
@@ -316,38 +337,38 @@ export default function PublisherScreen() {
         );
       })()}
 
-      <Pressable
-        onPress={launch}
-        disabled={phase === "preparing" || phase === "launching" || (plan != null && !plan.winnerId)}
-        style={({ pressed }) => [
-          styles.launchCta,
-          {
-            backgroundColor: colors.tint,
-            opacity: phase === "preparing" || phase === "launching"
-              ? 0.6
-              : (plan != null && !plan.winnerId) ? 0.4 : pressed ? 0.85 : 1,
-          },
-        ]}
-      >
-        <Feather name="zap" size={18} color="#fff" />
-        <Text style={styles.launchCtaText}>
-          {phase === "launching" ? "Launching…" : phase === "launched" ? "Launch again" : "Launch to the World"}
-        </Text>
-      </Pressable>
+      <View style={{ alignItems: "center", marginTop: 14 }}>
+        <PortalButton
+          label={
+            phase === "launching"
+              ? "launching…"
+              : phase === "launched"
+                ? "launch again"
+                : "launch to the world"
+          }
+          onPress={launch}
+          width={280}
+          subtle
+          disabled={
+            phase === "preparing" ||
+            phase === "launching" ||
+            (plan != null && !plan.winnerId)
+          }
+        />
+      </View>
     </ScrollView>
+    </View>
   );
 }
 
 /* ─────── primitives ─────── */
 
-function Card({ children, colors, tone }: { children: React.ReactNode; colors: ReturnType<typeof useColors>; tone?: "error" }) {
+function Card({ children, tone }: { children: React.ReactNode; colors: ReturnType<typeof useColors>; tone?: "error" }) {
   return (
-    <View style={[styles.card, {
-      backgroundColor: colors.card,
-      borderColor: tone === "error" ? (colors.destructive ?? "#ff6b6b") : colors.border,
-      marginHorizontal: 16,
-    }]}>
-      {children}
+    <View style={{ marginHorizontal: 16 }}>
+      <GlassSurface radius={18} agent={tone === "error" ? "director" : "ideator"}>
+        <View style={{ padding: 16, gap: 4 }}>{children}</View>
+      </GlassSurface>
     </View>
   );
 }
@@ -370,13 +391,19 @@ function Pill({ children, bg, fg }: { children: React.ReactNode; bg: string; fg:
   );
 }
 
-function ShieldStatusPill({ status, colors }: { status: "pass" | "rewritten" | "blocked"; colors: ReturnType<typeof useColors> }) {
-  const bg = status === "pass" ? "#22c2a5" : status === "rewritten" ? "#ffb547" : (colors.destructive ?? "#ff6b6b");
-  return <Pill bg={bg} fg="#fff">{status.toUpperCase()}</Pill>;
+function ShieldStatusPill({ status }: { status: "pass" | "rewritten" | "blocked"; colors: ReturnType<typeof useColors> }) {
+  const bg =
+    status === "pass" ? lumina.firefly : status === "rewritten" ? lumina.goldTo : "#FF5A80";
+  return (
+    <Pill bg={bg} fg="#0A0824">
+      {status.toUpperCase()}
+    </Pill>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  root: { flex: 1, backgroundColor: "#0A0824" },
+  container: { flex: 1, backgroundColor: "transparent" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   header: { paddingHorizontal: 24, gap: 4 },
   backRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },

@@ -1,41 +1,62 @@
+/**
+ * Profile — the Style Twin garden.
+ *
+ * Bioluminescent redesign:
+ *   • Cosmic backdrop with ambient fireflies
+ *   • Style Twin orb hero (the user's twin literally radiates from the page)
+ *   • Glass identity card (name, niche, location)
+ *   • Glass twin status card with the existing inner StyleTwinPreview
+ *   • Portal-flavoured train CTA + ghost wipe button
+ */
+
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import * as Haptics from "expo-haptics";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Image,
-  Pressable,
   Alert,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
-import { useColors } from "@/hooks/useColors";
-import { useStyleTwin } from "@/hooks/useStyleTwin";
+
+import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { FireflyParticles } from "@/components/foundation/FireflyParticles";
+import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { PortalButton } from "@/components/foundation/PortalButton";
+import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { StyleTwinPreview } from "@/components/StyleTwinPreview";
+import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { CURRENT_USER } from "@/constants/mockData";
+import { type } from "@/constants/typography";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const colors = useColors();
   const router = useRouter();
   const { twin, loading, isTrained, remove } = useStyleTwin();
 
   const isWeb = Platform.OS === "web";
-  const topInset = isWeb ? 67 : insets.top;
-  const bottomInset = isWeb ? 84 : insets.bottom + 60;
+  const topInset = isWeb ? 24 : insets.top;
+  const bottomInset = isWeb ? 84 : insets.bottom + 84;
 
   const goTrain = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.push("/style-twin-train");
   };
 
   const onWipe = () => {
     const confirm = async () => {
       await remove();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     };
     if (Platform.OS === "web") {
       if (
@@ -57,91 +78,97 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topInset + 20, paddingBottom: bottomInset }}
-    >
-      <View style={styles.header}>
-        <Image source={CURRENT_USER.image} style={styles.avatar} />
-        <Text style={[styles.name, { color: colors.foreground }]}>
-          {CURRENT_USER.name}
-        </Text>
-        <Text style={[styles.location, { color: colors.mutedForeground }]}>
-          {CURRENT_USER.location}
-        </Text>
-      </View>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <CosmicBackdrop bloom>
+        <FireflyParticles count={14} ambient />
+      </CosmicBackdrop>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          Personal Style Twin
-        </Text>
-
-        <StyleTwinPreview twin={twin} inferenceMode="mock" />
-
-        <Pressable
-          onPress={goTrain}
-          disabled={loading}
-          style={({ pressed }) => [
-            styles.button,
-            {
-              backgroundColor: colors.primary,
-              opacity: pressed ? 0.85 : 1,
-              marginTop: 16,
-            },
-          ]}
-          testID="train-or-retrain"
-        >
-          <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
-            {isTrained ? "Retrain Style Twin" : "Train Style Twin"}
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: topInset + 12,
+          paddingBottom: bottomInset,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Twin orb hero */}
+        <View style={styles.hero}>
+          <StyleTwinOrb size={180} mood={isTrained ? "excited" : "idle"}>
+            <Image source={CURRENT_USER.image} style={styles.avatar} />
+          </StyleTwinOrb>
+          <Text style={[type.subhead, styles.name]}>{CURRENT_USER.name}</Text>
+          <Text style={[type.microDelight, styles.location]}>
+            {CURRENT_USER.location} · {CURRENT_USER.niche}
           </Text>
-        </Pressable>
+        </View>
 
-        {isTrained && (
-          <Pressable
-            onPress={onWipe}
-            style={({ pressed }) => [
-              styles.buttonGhost,
-              {
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-                marginTop: 10,
-              },
-            ]}
-            testID="wipe-twin"
-          >
-            <Text
-              style={[styles.buttonGhostText, { color: colors.destructive }]}
+        {/* Twin status */}
+        <View style={styles.section}>
+          <Text style={[type.label, styles.sectionLabel]}>your style twin</Text>
+          <GlassSurface radius={22} agent="monetizer" breathing>
+            <View style={styles.cardInner}>
+              <StyleTwinPreview twin={twin} inferenceMode="mock" />
+            </View>
+          </GlassSurface>
+
+          <View style={{ alignItems: "center", marginTop: 18 }}>
+            <PortalButton
+              label={isTrained ? "retrain style twin" : "train style twin"}
+              onPress={goTrain}
+              width={260}
+              subtle
+              disabled={loading}
+            />
+          </View>
+
+          {isTrained && (
+            <Pressable
+              onPress={onWipe}
+              style={({ pressed }) => [
+                styles.wipeBtn,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              testID="wipe-twin"
+              accessibilityRole="button"
+              accessibilityLabel="Wipe Style Twin from this device"
             >
-              Wipe Twin from this device
-            </Text>
-          </Pressable>
-        )}
-      </View>
-    </ScrollView>
+              <Text style={[type.label, styles.wipeText]}>
+                wipe twin from this device
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { alignItems: "center", marginBottom: 32 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 16 },
-  name: { fontSize: 24, fontWeight: "700", marginBottom: 4 },
-  location: { fontSize: 16 },
-  section: { paddingHorizontal: 24, gap: 4 },
+  root: { flex: 1, backgroundColor: "#0A0824" },
+  hero: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 32,
+    paddingHorizontal: 22,
+  },
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
+  name: { color: "#FFFFFF", marginTop: 18 },
+  location: { color: "rgba(255,255,255,0.65)", marginTop: 4, fontSize: 13 },
+  section: { paddingHorizontal: 22 },
   sectionLabel: {
+    color: "rgba(255,255,255,0.55)",
     fontSize: 11,
-    letterSpacing: 1.5,
+    letterSpacing: 1.6,
     textTransform: "uppercase",
-    fontWeight: "600",
     marginBottom: 12,
   },
-  button: { paddingVertical: 14, borderRadius: 12, alignItems: "center" },
-  buttonText: { fontSize: 16, fontWeight: "600" },
-  buttonGhost: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  buttonGhostText: { fontSize: 14, fontWeight: "600" },
+  cardInner: { padding: 16 },
+  wipeBtn: { paddingVertical: 14, alignItems: "center", marginTop: 10 },
+  wipeText: { color: "rgba(255,90,128,0.85)", fontSize: 13 },
 });
