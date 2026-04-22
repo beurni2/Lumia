@@ -10,3 +10,4 @@ export { GlassSurface } from "./GlassSurface";
 export { FireflyParticles } from "./FireflyParticles";
 export { StyleTwinOrb } from "./StyleTwinOrb";
 export { PortalButton } from "./PortalButton";
+export { AgentAvatar } from "./AgentAvatar";
