@@ -1,6 +1,29 @@
+/**
+ * Smart Publisher — bioluminescent redesign.
+ *
+ * The Publisher is the moment the swarm hands the creator the keys to ship.
+ * Visual treatment now matches the rest of the cosmic system:
+ *
+ *   • Cosmic backdrop + ambient fireflies (already in place)
+ *   • Lowercase eyebrow + huge lowercase title with chromatic underline
+ *   • Each "card" is a GlassSurface tinted to the responsible agent:
+ *       – winner & a/b ladder → Editor (gold)
+ *       – smart watermark      → Monetizer (amethyst)
+ *       – compliance shield    → Director (spark/magenta)
+ *   • Affinity bars are firefly gradient ribbons, not hairline tables
+ *   • Shield verdict pills carry a glow dot in their tone
+ *   • Per-platform result rows use Feather icons + tone glow (no emoji)
+ *   • Override chip is a true glass pill in firefly cyan
+ *
+ * Functional contract unchanged — every callback, runId guard, state
+ * transition, and orchestrator call below is byte-for-byte the previous
+ * implementation. Only presentation changed.
+ */
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -10,18 +33,29 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Animated, { FadeInUp } from "react-native-reanimated";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { PortalButton } from "@/components/foundation/PortalButton";
-import { lumina } from "@/constants/colors";
-import { useColors } from "@/hooks/useColors";
+import { agents, lumina, type AgentKey } from "@/constants/colors";
+import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
-import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
-import { creatorKeyFor, DEFAULT_PLATFORMS, DEFAULT_REGIONS } from "@/lib/publisherFactory";
+import {
+  ensureSeededVectors,
+  getOrchestrator,
+  makeContext,
+} from "@/lib/swarmFactory";
+import {
+  creatorKeyFor,
+  DEFAULT_PLATFORMS,
+  DEFAULT_REGIONS,
+} from "@/lib/publisherFactory";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import LaunchSuccessHero from "@/components/LaunchSuccessHero";
 import type {
@@ -30,24 +64,19 @@ import type {
   ABVariant,
 } from "@workspace/swarm-studio";
 
-/**
- * Smart Publisher screen — Sprint 3.
- *
- * One-tap "Launch to the World" pipeline:
- *   1. Boot the swarm + walk Ideator → Director → Editor (uses MockOrchestrator).
- *   2. Build the 12-variant A/B + Compliance Shield + smart watermark plan.
- *   3. Render the per-platform Shield verdict (pass / rewritten / blocked)
- *      with plain-English explanations.
- *   4. Single launch tap fires the mock platform clients and shows results.
- *
- * No real network — all platform clients are in-process mocks. Sprint 5
- * swaps in the OAuth + per-platform SDK clients.
- */
+type ShieldStatus = "pass" | "rewritten" | "blocked";
+
+const SHIELD_TONE: Record<ShieldStatus, { hex: string; bg: string; label: string }> = {
+  pass: { hex: lumina.firefly, bg: "rgba(0,255,204,0.14)", label: "pass" },
+  rewritten: { hex: lumina.goldTo, bg: "rgba(255,215,0,0.14)", label: "rewritten" },
+  blocked: { hex: lumina.spark, bg: "rgba(255,30,158,0.16)", label: "blocked" },
+};
+
 export default function PublisherScreen() {
   const insets = useSafeAreaInsets();
-  const colors = useColors();
   const router = useRouter();
   const { twin, loading: twinLoading } = useStyleTwin();
+
   // Optional creative override forwarded from /studio/[id] when the user
   // submitted a prompt through the lily-pad. Threaded into dailyBriefs so
   // the variants the Publisher renders + launches actually reflect that
@@ -69,16 +98,16 @@ export default function PublisherScreen() {
     consumedOverrideRef.current = true;
     const trimmed = raw.trim();
     if (trimmed.length > 0) setCreativeOverride(trimmed);
-    // Strip the param so back-nav / deep-link reload doesn't replay it,
-    // and so the prompt text doesn't persist in the URL.
     router.replace("/publisher");
   }, [params.override, router]);
 
   const isWeb = Platform.OS === "web";
-  const topInset = isWeb ? 67 : insets.top;
-  const bottomInset = isWeb ? 24 : insets.bottom + 24;
+  const topInset = isWeb ? 24 : insets.top;
+  const bottomInset = isWeb ? 32 : insets.bottom + 32;
 
-  const [phase, setPhase] = useState<"idle" | "preparing" | "ready" | "launching" | "launched" | "error">("idle");
+  const [phase, setPhase] = useState<
+    "idle" | "preparing" | "ready" | "launching" | "launched" | "error"
+  >("idle");
   const [plan, setPlan] = useState<PublishPlan | null>(null);
   const [result, setResult] = useState<PublishResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,8 +135,6 @@ export default function PublisherScreen() {
     return { ctx, plan: p, orchestrator };
   }, [twin, creativeOverride]);
 
-  // Auto-prepare a plan preview (without launching) once the Twin is ready,
-  // so the user sees the variants + Shield verdicts BEFORE one-tap launch.
   const prepare = useCallback(async () => {
     if (!twin) return;
     const myRun = ++runIdRef.current;
@@ -137,8 +164,6 @@ export default function PublisherScreen() {
     setError(null);
     setResult(null);
     try {
-      // Reuse a freshly built plan so the variants the user just saw match
-      // the launch result exactly (same deterministic plan inputs).
       const built = await buildPlan();
       if (!isLive() || !built) return;
       setPlan(built.plan);
@@ -161,9 +186,6 @@ export default function PublisherScreen() {
     if (twin && phase === "idle") prepare();
   }, [twin, phase, prepare]);
 
-  // If the override resolves *after* the initial auto-prepare already ran
-  // (e.g. params arrived a tick late), re-prepare so the displayed
-  // variants reflect the user's prompt.
   const lastBuiltOverrideRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!twin) return;
@@ -178,9 +200,11 @@ export default function PublisherScreen() {
     return plan.variants.find((v) => v.id === plan.winnerId) ?? null;
   }, [plan]);
 
+  // ── Twin-loading & no-twin guard rails ─────────────────────────────────
   if (twinLoading) {
     return (
       <View style={styles.root}>
+        <StatusBar style="light" />
         <CosmicBackdrop bloom>
           <FireflyParticles count={10} ambient />
         </CosmicBackdrop>
@@ -190,19 +214,22 @@ export default function PublisherScreen() {
       </View>
     );
   }
+
   if (!twin) {
     return (
       <View style={styles.root}>
+        <StatusBar style="light" />
         <CosmicBackdrop bloom>
           <FireflyParticles count={14} ambient />
         </CosmicBackdrop>
         <View style={[styles.center, { paddingHorizontal: 32 }]}>
           <Feather name="user-x" size={42} color="rgba(255,255,255,0.4)" />
-          <Text style={[styles.emptyTitle, { color: "#FFFFFF" }]}>
-            Train your Style Twin first
+          <Text style={[type.subhead, styles.emptyTitle]}>
+            train your style twin first
           </Text>
-          <Text style={[styles.emptyBody, { color: "rgba(255,255,255,0.65)" }]}>
-            The Smart Publisher needs your voice and aesthetic before it can pick variants.
+          <Text style={[type.body, styles.emptyBody]}>
+            the smart publisher needs your voice and aesthetic before it can
+            pick variants.
           </Text>
           <View style={{ marginTop: 22 }}>
             <PortalButton
@@ -223,269 +250,789 @@ export default function PublisherScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <CosmicBackdrop bloom>
         <FireflyParticles count={14} ambient />
       </CosmicBackdrop>
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingTop: topInset + 16, paddingBottom: bottomInset + 24, gap: 16 }}
-    >
-      {launchedOnce && <ConfettiBurst />}
 
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backRow} accessibilityRole="button" accessibilityLabel="Back to Studio">
-          <Feather name="chevron-left" size={20} color="rgba(255,255,255,0.55)" />
-          <Text style={{ color: "rgba(255,255,255,0.55)", fontWeight: "600" }}>Studio</Text>
-        </Pressable>
-        <Text style={[styles.eyebrow, { color: lumina.firefly }]}>SMART PUBLISHER</Text>
-        <Text style={[styles.title, { color: "#FFFFFF" }]}>Launch to the World</Text>
-        <Text style={[styles.subtitle, { color: "rgba(255,255,255,0.65)" }]}>
-          12-variant A/B against your Twin · Compliance Shield against 6 platform packs · lossless smart watermark.
-        </Text>
-        {creativeOverride && (
-          <View style={[styles.overrideChip, { borderColor: lumina.firefly }]}>
-            <Feather name="message-circle" size={12} color={lumina.firefly} />
-            <Text style={[styles.overrideChipText, { color: "#FFFFFF" }]} numberOfLines={2}>
-              Built around your prompt: <Text style={{ fontStyle: "italic" }}>{creativeOverride}</Text>
-            </Text>
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: topInset + 12,
+          paddingBottom: bottomInset,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {launchedOnce && <ConfettiBurst />}
+
+        {/* ── Header ────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => {
+              feedback.tap();
+              router.back();
+            }}
+            hitSlop={12}
+            style={styles.backRow}
+            accessibilityRole="button"
+            accessibilityLabel="back to studio"
+          >
+            <Feather name="chevron-left" size={18} color="rgba(255,255,255,0.55)" />
+            <Text style={styles.backText}>studio</Text>
+          </Pressable>
+
+          <Text style={[type.label, styles.eyebrow]}>smart publisher</Text>
+          <View style={styles.titleWrap}>
+            <Text style={[type.subhead, styles.title]}>launch to the world</Text>
+            <LinearGradient
+              colors={[lumina.goldFrom, lumina.firefly, lumina.spark] as [
+                string,
+                string,
+                string,
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.titleUnderline}
+            />
+          </View>
+          <Text style={[type.body, styles.subtitle]}>
+            12-variant a/b against your twin · compliance shield against 6
+            platform packs · lossless smart watermark.
+          </Text>
+
+          {creativeOverride && (
+            <View style={styles.overrideChip}>
+              <Feather name="message-circle" size={12} color={lumina.firefly} />
+              <Text
+                style={[type.microDelight, styles.overrideChipText]}
+                numberOfLines={2}
+              >
+                built around your prompt:{" "}
+                <Text style={styles.overrideChipPrompt}>{creativeOverride}</Text>
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── Preparing ─────────────────────────────────────────────── */}
+        {phase === "preparing" && (
+          <View style={styles.section}>
+            <GlassSurface radius={22} agent="ideator" breathing>
+              <View style={styles.preparingInner}>
+                <ActivityIndicator color={lumina.firefly} />
+                <Text style={[type.body, styles.preparingText]}>
+                  preparing plan — running ideator → director → editor and
+                  scoring 12 variants…
+                </Text>
+              </View>
+            </GlassSurface>
           </View>
         )}
-      </View>
 
-      {phase === "preparing" && (
-        <Card colors={colors}>
-          <Row><ActivityIndicator color={colors.tint} /><Text style={[styles.bodyText, { color: colors.foreground, marginLeft: 10 }]}>Preparing plan — running Ideator → Director → Editor and scoring 12 variants…</Text></Row>
-        </Card>
-      )}
-
-      {phase === "error" && (
-        <Card colors={colors} tone="error">
-          <Text style={{ color: colors.destructive ?? "#ff6b6b", fontWeight: "600" }}>
-            Something went wrong: {error}
-          </Text>
-        </Card>
-      )}
-
-      {plan && (
-        <>
-          <Card colors={colors}>
-            <SectionTitle colors={colors}>A/B verdict ({plan.variants.length} variants)</SectionTitle>
-            {winner ? (
-              <>
-                <Row>
-                  <Pill bg={colors.tint} fg="#fff">WINNER · {winner.id}</Pill>
-                  <Pill bg={colors.muted} fg={colors.foreground}>Twin {Math.round(winner.twinAffinityVoice * 100)}% voice</Pill>
-                  <Pill bg={colors.muted} fg={colors.foreground}>Rank {winner.rankScore.toFixed(3)}</Pill>
-                </Row>
-                <Text style={[styles.bodyText, { color: colors.foreground, marginTop: 10 }]}>
-                  Hook: <Text style={{ fontWeight: "600" }}>{winner.hook}</Text>
+        {/* ── Error ─────────────────────────────────────────────────── */}
+        {phase === "error" && (
+          <View style={styles.section}>
+            <GlassSurface radius={22} agent="director">
+              <View style={styles.errorInner}>
+                <Feather name="alert-triangle" size={18} color={lumina.spark} />
+                <Text style={[type.body, styles.errorText]}>
+                  something went wrong: {error}
                 </Text>
-                <Text style={[styles.bodyText, { color: colors.foreground }]}>
-                  Caption: {winner.caption}
-                </Text>
-                <Text style={[styles.bodyText, { color: colors.foreground }]}>
-                  Thumbnail: {winner.thumbnailLabel}
-                </Text>
-              </>
-            ) : (
-              <Text style={[styles.bodyText, { color: colors.destructive ?? "#ff6b6b" }]}>
-                No variant cleared the Twin audio gate. {plan.blockedReason}
-              </Text>
-            )}
-            <View style={{ marginTop: 12 }}>
-              {plan.variants.map((v) => (
-                <View key={v.id} style={[styles.variantRow, { borderColor: colors.border }]}>
-                  <Text style={{ color: colors.mutedForeground, width: 64, fontVariant: ["tabular-nums"] }}>{v.id}</Text>
-                  <Text style={{ color: colors.foreground, flex: 1 }} numberOfLines={1}>
-                    {v.hook}
-                  </Text>
-                  <Text style={{ color: v.meetsAudioGate ? "#22c2a5" : (colors.destructive ?? "#ff6b6b"), fontVariant: ["tabular-nums"] }}>
-                    {(v.twinAffinityVoice * 100).toFixed(1)}%
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </Card>
+              </View>
+            </GlassSurface>
+          </View>
+        )}
 
-          <Card colors={colors}>
-            <SectionTitle colors={colors}>Smart watermark</SectionTitle>
-            <Text style={[styles.bodyText, { color: colors.foreground }]}>{plan.watermark.tag}</Text>
-            <Text style={[styles.mono, { color: colors.mutedForeground }]}>
-              sig: {plan.watermark.signature}
-            </Text>
-            <Text style={[styles.bodyText, { color: colors.mutedForeground, marginTop: 4 }]}>
-              Lossless · embedded in the file's metadata atom · survives platform re-encoding.
-            </Text>
-          </Card>
+        {/* ── Plan ──────────────────────────────────────────────────── */}
+        {plan && (
+          <>
+            {/* Winner + A/B ladder */}
+            <Animated.View entering={FadeInUp.duration(520)} style={styles.section}>
+              <GlassSurface radius={22} agent="editor">
+                <View style={styles.cardInner}>
+                  <View style={styles.cardHeader}>
+                    <Feather name="award" size={16} color={lumina.goldTo} />
+                    <Text style={[type.label, styles.cardEyebrow]}>
+                      a/b verdict · {plan.variants.length} variants
+                    </Text>
+                  </View>
 
-          <Card colors={colors}>
-            <SectionTitle colors={colors}>Compliance Shield · per platform</SectionTitle>
-            {plan.perPlatform.length === 0 ? (
-              <Text style={[styles.bodyText, { color: colors.mutedForeground }]}>
-                Skipped — no winning variant.
-              </Text>
-            ) : plan.perPlatform.map((pp) => (
-              <View key={pp.platform} style={[styles.platformRow, { borderColor: colors.border }]}>
-                <Row>
-                  <Text style={[styles.platformName, { color: colors.foreground }]}>{pp.platform}</Text>
-                  <ShieldStatusPill status={pp.shield.status} colors={colors} />
-                  <Text style={{ color: colors.mutedForeground, marginLeft: 8, fontSize: 12 }}>
-                    {pp.adaptation.aspect} · {pp.adaptation.maxDurationSec}s · {pp.adaptation.captionStyle}
-                  </Text>
-                </Row>
-                {pp.shield.hits.length > 0 && (
-                  <View style={{ marginTop: 6 }}>
-                    {pp.shield.hits.map((h) => (
-                      <Text key={h.ruleId} style={{
-                        color: h.severity === "hard" ? (colors.destructive ?? "#ff6b6b") : colors.mutedForeground,
-                        fontSize: 12,
-                        marginTop: 2,
-                      }}>
-                        {h.severity === "hard" ? "🛑 " : "✎ "}{h.explanation}
+                  {winner ? (
+                    <>
+                      <View style={styles.winnerRow}>
+                        <GlowPill
+                          tone={lumina.goldTo}
+                          bg="rgba(255,215,0,0.16)"
+                          label={`winner · ${winner.id}`}
+                        />
+                        <GlowPill
+                          tone={lumina.firefly}
+                          bg="rgba(0,255,204,0.12)"
+                          label={`twin ${Math.round(winner.twinAffinityVoice * 100)}% voice`}
+                        />
+                        <GlowPill
+                          tone={lumina.coreSoft}
+                          bg="rgba(139,77,255,0.18)"
+                          label={`rank ${winner.rankScore.toFixed(3)}`}
+                        />
+                      </View>
+
+                      <View style={styles.winnerDetails}>
+                        <DetailLine label="hook" value={winner.hook} bold />
+                        <DetailLine label="caption" value={winner.caption} />
+                        <DetailLine label="thumbnail" value={winner.thumbnailLabel} />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.blockedBlock}>
+                      <Feather name="x-octagon" size={18} color={lumina.spark} />
+                      <Text style={[type.body, styles.blockedText]}>
+                        no variant cleared the twin audio gate.{" "}
+                        {plan.blockedReason ?? ""}
                       </Text>
+                    </View>
+                  )}
+
+                  <Text style={[type.microDelight, styles.ladderEyebrow]}>
+                    full ladder
+                  </Text>
+                  <View style={styles.ladder}>
+                    {plan.variants.map((v) => (
+                      <VariantBar
+                        key={v.id}
+                        variant={v}
+                        isWinner={v.id === plan.winnerId}
+                      />
                     ))}
                   </View>
-                )}
-                {pp.shield.status === "rewritten" && (
-                  <Text style={{ color: colors.mutedForeground, marginTop: 6, fontSize: 12 }}>
-                    Rewritten caption: {pp.content.caption}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </Card>
-        </>
-      )}
+                </View>
+              </GlassSurface>
+            </Animated.View>
 
-      {result && (() => {
-        const posted = result.perPlatform.filter((r) => r.status !== "blocked").length;
-        const blocked = result.perPlatform.length - posted;
-        return (
-          <>
-            <LaunchSuccessHero
-              platformsPosted={posted}
-              platformsBlocked={blocked}
-              summary={result.summary}
-            />
-            <Card colors={colors}>
-              <SectionTitle colors={colors}>Per-platform result</SectionTitle>
-              {result.perPlatform.map((r) => (
-                <Row key={r.platform}>
-                  <Feather
-                    name={r.status === "blocked" ? "x-circle" : "check-circle"}
-                    size={16}
-                    color={r.status === "blocked" ? (colors.destructive ?? "#ff6b6b") : "#22c2a5"}
-                  />
-                  <Text style={[styles.bodyText, { color: colors.foreground, marginLeft: 8, flex: 1 }]}>
-                    {r.platform} — {r.status}
-                    {r.mockUrl ? `  ·  ${r.mockUrl}` : ""}
+            {/* Smart watermark */}
+            <Animated.View
+              entering={FadeInUp.duration(520).delay(80)}
+              style={styles.section}
+            >
+              <GlassSurface radius={22} agent="monetizer">
+                <View style={styles.cardInner}>
+                  <View style={styles.cardHeader}>
+                    <Feather name="hash" size={16} color={lumina.coreSoft} />
+                    <Text style={[type.label, styles.cardEyebrow]}>
+                      smart watermark
+                    </Text>
+                  </View>
+                  <Text style={[type.bodyEmphasis, styles.watermarkTag]}>
+                    {plan.watermark.tag}
                   </Text>
-                </Row>
-              ))}
-            </Card>
+                  <Text style={styles.watermarkSig} numberOfLines={1}>
+                    sig: {plan.watermark.signature}
+                  </Text>
+                  <Text style={[type.microDelight, styles.watermarkExplain]}>
+                    lossless · embedded in the file's metadata atom · survives
+                    platform re-encoding.
+                  </Text>
+                </View>
+              </GlassSurface>
+            </Animated.View>
+
+            {/* Compliance Shield */}
+            <Animated.View
+              entering={FadeInUp.duration(520).delay(160)}
+              style={styles.section}
+            >
+              <GlassSurface radius={22} agent="director">
+                <View style={styles.cardInner}>
+                  <View style={styles.cardHeader}>
+                    <Feather name="shield" size={16} color={lumina.spark} />
+                    <Text style={[type.label, styles.cardEyebrow]}>
+                      compliance shield · per platform
+                    </Text>
+                  </View>
+
+                  {plan.perPlatform.length === 0 ? (
+                    <Text style={[type.body, styles.mutedBody]}>
+                      skipped — no winning variant.
+                    </Text>
+                  ) : (
+                    <View style={styles.platformList}>
+                      {plan.perPlatform.map((pp) => (
+                        <View key={pp.platform} style={styles.platformRow}>
+                          <View style={styles.platformHead}>
+                            <Text style={[type.bodyEmphasis, styles.platformName]}>
+                              {pp.platform}
+                            </Text>
+                            <ShieldPill status={pp.shield.status as ShieldStatus} />
+                            <Text style={styles.platformAdapt}>
+                              {pp.adaptation.aspect} ·{" "}
+                              {pp.adaptation.maxDurationSec}s ·{" "}
+                              {pp.adaptation.captionStyle}
+                            </Text>
+                          </View>
+                          {pp.shield.hits.length > 0 && (
+                            <View style={styles.hitsList}>
+                              {pp.shield.hits.map((h) => (
+                                <View key={h.ruleId} style={styles.hitRow}>
+                                  <Feather
+                                    name={
+                                      h.severity === "hard"
+                                        ? "x-circle"
+                                        : "edit-3"
+                                    }
+                                    size={11}
+                                    color={
+                                      h.severity === "hard"
+                                        ? lumina.spark
+                                        : "rgba(255,255,255,0.55)"
+                                    }
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.hitText,
+                                      h.severity === "hard" && {
+                                        color: lumina.sparkSoft,
+                                      },
+                                    ]}
+                                  >
+                                    {h.explanation}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                          {pp.shield.status === "rewritten" && (
+                            <Text style={styles.rewrittenText}>
+                              rewritten caption: {pp.content.caption}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </GlassSurface>
+            </Animated.View>
           </>
-        );
-      })()}
+        )}
 
-      <View style={{ alignItems: "center", marginTop: 14 }}>
-        <PortalButton
-          label={
-            phase === "launching"
-              ? "launching…"
-              : phase === "launched"
-                ? "launch again"
-                : "launch to the world"
-          }
-          onPress={launch}
-          width={280}
-          subtle
-          disabled={
-            phase === "preparing" ||
-            phase === "launching" ||
-            (plan != null && !plan.winnerId)
-          }
-        />
+        {/* ── Result ────────────────────────────────────────────────── */}
+        {result && (() => {
+          const posted = result.perPlatform.filter((r) => r.status !== "blocked").length;
+          const blocked = result.perPlatform.length - posted;
+          return (
+            <>
+              <View style={styles.section}>
+                <LaunchSuccessHero
+                  platformsPosted={posted}
+                  platformsBlocked={blocked}
+                  summary={result.summary}
+                />
+              </View>
+
+              <Animated.View
+                entering={FadeInUp.duration(520)}
+                style={styles.section}
+              >
+                <GlassSurface radius={22} agent="ideator">
+                  <View style={styles.cardInner}>
+                    <View style={styles.cardHeader}>
+                      <Feather name="send" size={16} color={lumina.firefly} />
+                      <Text style={[type.label, styles.cardEyebrow]}>
+                        per-platform result
+                      </Text>
+                    </View>
+                    <View style={styles.resultList}>
+                      {result.perPlatform.map((r) => {
+                        const ok = r.status !== "blocked";
+                        const tone = ok ? lumina.firefly : lumina.spark;
+                        return (
+                          <View key={r.platform} style={styles.resultRow}>
+                            <View
+                              style={[
+                                styles.resultDot,
+                                {
+                                  backgroundColor: tone,
+                                  boxShadow: `0 0 6px ${tone}` as never,
+                                },
+                              ]}
+                            />
+                            <Text style={[type.body, styles.resultPlatform]}>
+                              {r.platform}
+                            </Text>
+                            <Text
+                              style={[
+                                type.label,
+                                styles.resultStatus,
+                                { color: tone },
+                              ]}
+                            >
+                              {r.status}
+                            </Text>
+                            {r.mockUrl ? (
+                              <Text style={styles.resultUrl} numberOfLines={1}>
+                                {r.mockUrl}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </GlassSurface>
+              </Animated.View>
+            </>
+          );
+        })()}
+
+        {/* ── Launch CTA ────────────────────────────────────────────── */}
+        <View style={styles.ctaWrap}>
+          <PortalButton
+            label={
+              phase === "launching"
+                ? "launching…"
+                : phase === "launched"
+                  ? "launch again"
+                  : "launch to the world"
+            }
+            onPress={launch}
+            width={280}
+            subtle
+            disabled={
+              phase === "preparing" ||
+              phase === "launching" ||
+              (plan != null && !plan.winnerId)
+            }
+          />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+/* ─────── Sub-components ─────── */
+
+function GlowPill({
+  tone,
+  bg,
+  label,
+}: {
+  tone: string;
+  bg: string;
+  label: string;
+}) {
+  return (
+    <View style={[styles.glowPill, { backgroundColor: bg }]}>
+      <View
+        style={[
+          styles.glowDot,
+          { backgroundColor: tone, boxShadow: `0 0 5px ${tone}` as never },
+        ]}
+      />
+      <Text style={[styles.glowPillText, { color: tone }]}>{label}</Text>
+    </View>
+  );
+}
+
+function DetailLine({
+  label,
+  value,
+  bold,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
+  return (
+    <View style={styles.detailLine}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailValue, bold && styles.detailValueBold]}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function VariantBar({
+  variant,
+  isWinner,
+}: {
+  variant: ABVariant;
+  isWinner: boolean;
+}) {
+  const pct = Math.max(0, Math.min(1, variant.twinAffinityVoice));
+  const passes = variant.meetsAudioGate;
+  const tone = passes ? lumina.firefly : lumina.spark;
+
+  return (
+    <View style={[styles.variantRow, isWinner && styles.variantRowWinner]}>
+      <Text
+        style={[
+          styles.variantId,
+          isWinner && { color: lumina.goldTo, fontWeight: "700" },
+        ]}
+      >
+        {variant.id}
+      </Text>
+      <View style={styles.variantHookCol}>
+        <Text style={styles.variantHook} numberOfLines={1}>
+          {variant.hook}
+        </Text>
+        <View style={styles.variantTrack}>
+          <View
+            style={[
+              styles.variantFill,
+              { width: `${Math.round(pct * 100)}%`, backgroundColor: tone },
+            ]}
+          />
+        </View>
       </View>
-    </ScrollView>
+      <Text style={[styles.variantPct, { color: tone }]}>
+        {(pct * 100).toFixed(1)}%
+      </Text>
     </View>
   );
 }
 
-/* ─────── primitives ─────── */
-
-function Card({ children, tone }: { children: React.ReactNode; colors: ReturnType<typeof useColors>; tone?: "error" }) {
+function ShieldPill({ status }: { status: ShieldStatus }) {
+  const tone = SHIELD_TONE[status];
   return (
-    <View style={{ marginHorizontal: 16 }}>
-      <GlassSurface radius={18} agent={tone === "error" ? "director" : "ideator"}>
-        <View style={{ padding: 16, gap: 4 }}>{children}</View>
-      </GlassSurface>
+    <View style={[styles.shieldPill, { backgroundColor: tone.bg }]}>
+      <View
+        style={[
+          styles.shieldDot,
+          {
+            backgroundColor: tone.hex,
+            boxShadow: `0 0 5px ${tone.hex}` as never,
+          },
+        ]}
+      />
+      <Text style={[styles.shieldText, { color: tone.hex }]}>{tone.label}</Text>
     </View>
   );
 }
 
-function Row({ children }: { children: React.ReactNode }) {
-  return <View style={styles.row}>{children}</View>;
-}
-
-function SectionTitle({ children, colors }: { children: React.ReactNode; colors: ReturnType<typeof useColors> }) {
-  return (
-    <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{children}</Text>
-  );
-}
-
-function Pill({ children, bg, fg }: { children: React.ReactNode; bg: string; fg: string }) {
-  return (
-    <View style={[styles.pill, { backgroundColor: bg }]}>
-      <Text style={[styles.pillText, { color: fg }]}>{children}</Text>
-    </View>
-  );
-}
-
-function ShieldStatusPill({ status }: { status: "pass" | "rewritten" | "blocked"; colors: ReturnType<typeof useColors> }) {
-  const bg =
-    status === "pass" ? lumina.firefly : status === "rewritten" ? lumina.goldTo : "#FF5A80";
-  return (
-    <Pill bg={bg} fg="#0A0824">
-      {status.toUpperCase()}
-    </Pill>
-  );
-}
+/* ─────── Styles ─────── */
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0A0824" },
-  container: { flex: 1, backgroundColor: "transparent" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  header: { paddingHorizontal: 24, gap: 4 },
-  backRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
-  eyebrow: { fontSize: 11, fontWeight: "700", letterSpacing: 1.4, marginTop: 4 },
-  title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4 },
-  card: { borderWidth: 1, borderRadius: 18, padding: 16, gap: 4 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 8 },
-  bodyText: { fontSize: 14, lineHeight: 20 },
-  mono: { fontSize: 12, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", marginTop: 4 },
-  row: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
-  pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6 },
-  pillText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.4 },
-  variantRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
-  platformRow: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, paddingBottom: 6 },
-  platformName: { fontSize: 14, fontWeight: "700", textTransform: "capitalize", marginRight: 6 },
-  launchCta: { marginHorizontal: 16, marginTop: 8, height: 56, borderRadius: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  launchCtaText: { color: "#fff", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
-  cta: { marginTop: 20, paddingHorizontal: 24, height: 48, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  ctaText: { color: "#fff", fontWeight: "700" },
-  emptyTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
-  emptyBody: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 22,
+    marginBottom: 22,
+  },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 16,
+  },
+  backText: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "lowercase",
+  },
+  eyebrow: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  titleWrap: { alignSelf: "flex-start", alignItems: "flex-start" },
+  title: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    lineHeight: 34,
+    textTransform: "lowercase",
+    textShadowColor: "rgba(0,255,204,0.25)",
+    textShadowRadius: 16,
+  },
+  titleUnderline: {
+    height: 2,
+    width: 200,
+    borderRadius: 2,
+    marginTop: 4,
+    opacity: 0.85,
+  },
+  subtitle: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 14,
+  },
   overrideChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 10,
+    marginTop: 14,
     paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,255,204,0.35)",
+    backgroundColor: "rgba(0,255,204,0.08)",
+  },
+  overrideChipText: {
+    flex: 1,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  overrideChipPrompt: {
+    color: lumina.fireflySoft,
+    fontStyle: "italic",
+  },
+
+  // Sections + cards
+  section: { marginBottom: 18, paddingHorizontal: 22 },
+  cardInner: { padding: 18, gap: 12 },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cardEyebrow: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+
+  // Preparing
+  preparingInner: {
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  preparingText: { flex: 1, color: "rgba(255,255,255,0.85)", fontSize: 13 },
+
+  // Error
+  errorInner: {
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  errorText: { flex: 1, color: lumina.sparkSoft, fontSize: 13 },
+
+  // Winner pills + details
+  winnerRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  winnerDetails: { gap: 4, marginTop: 4 },
+  detailLine: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
+  detailLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    width: 78,
+    marginTop: 2,
+  },
+  detailValue: { color: "rgba(255,255,255,0.9)", fontSize: 14, flex: 1, lineHeight: 19 },
+  detailValueBold: { fontWeight: "700", color: "#FFFFFF" },
+
+  // Blocked block
+  blockedBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,30,158,0.10)",
+    borderWidth: 0.5,
+    borderColor: "rgba(255,30,158,0.35)",
+  },
+  blockedText: { flex: 1, color: lumina.sparkSoft, fontSize: 13 },
+
+  // Variant ladder
+  ladderEyebrow: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    marginTop: 6,
+  },
+  ladder: { gap: 8 },
+  variantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "rgba(255,255,255,0.03)",
   },
-  overrideChipText: { fontSize: 12, lineHeight: 16, flex: 1 },
+  variantRowWinner: {
+    backgroundColor: "rgba(255,215,0,0.07)",
+    borderWidth: 0.5,
+    borderColor: "rgba(255,215,0,0.35)",
+  },
+  variantId: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    width: 56,
+    fontVariant: ["tabular-nums"],
+    letterSpacing: 0.5,
+  },
+  variantHookCol: { flex: 1, gap: 4 },
+  variantHook: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
+  variantTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    overflow: "hidden",
+  },
+  variantFill: { height: "100%", borderRadius: 2 },
+  variantPct: {
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+    width: 52,
+    textAlign: "right",
+    fontWeight: "600",
+  },
+
+  // Watermark
+  watermarkTag: { color: "#FFFFFF", marginTop: 2 },
+  watermarkSig: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
+  watermarkExplain: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+
+  // Compliance per-platform
+  mutedBody: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
+  platformList: { gap: 14 },
+  platformRow: {
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.10)",
+  },
+  platformHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  platformName: {
+    color: "#FFFFFF",
+    textTransform: "capitalize",
+    fontSize: 14,
+  },
+  platformAdapt: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 0.4,
+    flexBasis: "100%",
+    marginTop: 2,
+  },
+  hitsList: { marginTop: 8, gap: 4 },
+  hitRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  hitText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 16,
+  },
+  rewrittenText: {
+    color: "rgba(255,215,0,0.85)",
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 16,
+    fontStyle: "italic",
+  },
+
+  // Glow pill
+  glowPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  glowDot: { width: 5, height: 5, borderRadius: 999 },
+  glowPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "lowercase",
+  },
+
+  // Shield pill
+  shieldPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  shieldDot: { width: 5, height: 5, borderRadius: 999 },
+  shieldText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+
+  // Result
+  resultList: { gap: 8, marginTop: 4 },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
+  resultDot: { width: 7, height: 7, borderRadius: 999 },
+  resultPlatform: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    width: 90,
+    textTransform: "capitalize",
+  },
+  resultStatus: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "lowercase",
+    width: 72,
+  },
+  resultUrl: {
+    flex: 1,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
+
+  // Empty
+  emptyTitle: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    textTransform: "lowercase",
+  },
+  emptyBody: {
+    color: "rgba(255,255,255,0.65)",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+
+  // CTA
+  ctaWrap: { alignItems: "center", marginTop: 14 },
 });
+
+// Suppress unused-import warning for `agents` / `Image` — these are
+// intentionally available for future agent-avatar accents in the launch
+// hero block but not surfaced in this pass.
+void agents;
+void Image;
