@@ -16,6 +16,8 @@ tags:
     description: Trending content briefs
   - name: earnings
     description: Creator earnings and brand deals
+  - name: videos
+    description: Swarm-produced videos in the studio pipeline
 paths:
   /healthz:
     get:
@@ -66,6 +68,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EarningsSummary"
+  /videos:
+    get:
+      operationId: listVideos
+      tags: [videos]
+      summary: List videos in the swarm pipeline
+      responses:
+        "200":
+          description: Videos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoList"
 components:
   schemas:
     HealthStatus:
@@ -133,6 +147,53 @@ components:
         amount:
           type: number
       required: [id, brand, status, amount]
+    AgentStatus:
+      type: string
+      enum: [pending, active, done]
+    VideoStatus:
+      type: string
+      enum: [Ideating, Editing, Ready]
+    Video:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          $ref: "#/components/schemas/VideoStatus"
+        viralScore:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
+        reasoning:
+          type: string
+        thumbnailKey:
+          type: string
+        script:
+          type: string
+        agents:
+          type: object
+          properties:
+            Ideator:
+              $ref: "#/components/schemas/AgentStatus"
+            Director:
+              $ref: "#/components/schemas/AgentStatus"
+            Editor:
+              $ref: "#/components/schemas/AgentStatus"
+            Monetizer:
+              $ref: "#/components/schemas/AgentStatus"
+          required: [Ideator, Director, Editor, Monetizer]
+      required: [id, title, status, reasoning, thumbnailKey, script, agents]
+    VideoList:
+      type: object
+      properties:
+        videos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Video"
+      required: [videos]
     EarningsSummary:
       type: object
       properties:

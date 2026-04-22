@@ -18,6 +18,7 @@ import type {
   EarningsSummary,
   HealthStatus,
   TrendBriefList,
+  VideoList,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -322,6 +323,79 @@ export function useGetEarningsSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetEarningsSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List videos in the swarm pipeline
+ */
+export const getListVideosUrl = () => {
+  return `/api/videos`;
+};
+
+export const listVideos = async (options?: RequestInit): Promise<VideoList> => {
+  return customFetch<VideoList>(getListVideosUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListVideosQueryKey = () => {
+  return [`/api/videos`] as const;
+};
+
+export const getListVideosQueryOptions = <
+  TData = Awaited<ReturnType<typeof listVideos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVideos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListVideosQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listVideos>>> = ({
+    signal,
+  }) => listVideos({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listVideos>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListVideosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listVideos>>
+>;
+export type ListVideosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List videos in the swarm pipeline
+ */
+
+export function useListVideos<
+  TData = Awaited<ReturnType<typeof listVideos>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVideos>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListVideosQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

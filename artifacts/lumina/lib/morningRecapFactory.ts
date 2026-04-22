@@ -14,7 +14,14 @@ import {
 } from "@workspace/monetizer";
 import { runEarningsCycle } from "@workspace/swarm-studio";
 
-import { TREND_BRIEFS, EARNINGS } from "@/constants/mockData";
+/** Lightweight shape for trend briefs handed in by the caller. Keeps this
+ * factory pure (no React Query / no module-level mock data dependency). */
+export interface TrendBriefInput {
+  readonly id: string;
+  readonly title: string;
+  readonly context: string;
+  readonly viralPotential: number;
+}
 
 /**
  * "While You Slept" morning recap — Sprint 4.
@@ -72,11 +79,23 @@ export interface MorningRecap {
   readonly subtitle: string;
 }
 
+export interface MorningRecapInputs {
+  /** Trend briefs to populate Tomorrow's Promise. Empty list = no plan card. */
+  readonly trendBriefs?: readonly TrendBriefInput[];
+  /** Optional override for the seed brand-deal amount used in the synthetic
+   *  overnight feed. Pulled from the live earnings summary in production;
+   *  defaults to a stable demo value when absent. */
+  readonly seedBrandDealUsd?: number;
+}
+
 /**
  * Build a deterministic recap. Pure and idempotent — call as often as the
  * UI re-renders. Sprint 5 swaps `seedNightEvents()` for the real feed.
  */
-export async function buildMorningRecap(creatorKey: string): Promise<MorningRecap> {
+export async function buildMorningRecap(
+  creatorKey: string,
+  inputs: MorningRecapInputs = {},
+): Promise<MorningRecap> {
   const ledger = new PerformanceFeeLedger();
   const escrow = new InMemoryEscrow(() => DEMO_NIGHT_MS);
   const referrals = new ReferralRocket();
@@ -87,7 +106,7 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
   const referrerKey = "demo-referrer-sam";
   referrals.attribute(creatorKey, referralCodeFor(referrerKey), DEMO_NIGHT_MS - 86_400_000);
 
-  const events = seedNightEvents(creatorKey);
+  const events = seedNightEvents(creatorKey, inputs.seedBrandDealUsd);
 
   let referrerCreditCaptured = 0;
   let bountyCaptured: ReferralBounty | null = null;
@@ -137,7 +156,7 @@ export async function buildMorningRecap(creatorKey: string): Promise<MorningReca
   const bountyFired = bounty !== null;
 
   // Tomorrow's plan — pull the top 3 viral-potential briefs.
-  const tomorrowPlan: RecapBriefSlot[] = [...TREND_BRIEFS]
+  const tomorrowPlan: RecapBriefSlot[] = [...(inputs.trendBriefs ?? [])]
     .sort((a, b) => b.viralPotential - a.viralPotential)
     .slice(0, 3)
     .map((t) => ({
@@ -205,11 +224,15 @@ function toRecapDeposit(e: WalletEntry): RecapDeposit {
  * $1.5K threshold so the ledger genuinely exercises the 10%-on-incremental
  * rule end to end.
  */
-function seedNightEvents(creatorKey: string): RevenueEvent[] {
+function seedNightEvents(
+  creatorKey: string,
+  seedBrandDealUsd?: number,
+): RevenueEvent[] {
   const at = DEMO_NIGHT_MS - 4 * 3600 * 1000; // 4h before "wake up"
-  const brandDealUsd = EARNINGS?.deals?.[0]?.amount
-    ? Math.min(EARNINGS.deals[0].amount, 120)
-    : 120;
+  const brandDealUsd =
+    seedBrandDealUsd && seedBrandDealUsd > 0
+      ? Math.min(seedBrandDealUsd, 120)
+      : 120;
   return [
     {
       id: `night-${creatorKey}-1`,

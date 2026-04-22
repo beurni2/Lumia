@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./agentStatus";
 export * from "./brandDeal";
 export * from "./brandDealStatus";
 export * from "./creator";
@@ -13,3 +14,7 @@ export * from "./earningsSummary";
 export * from "./healthStatus";
 export * from "./trendBrief";
 export * from "./trendBriefList";
+export * from "./video";
+export * from "./videoAgents";
+export * from "./videoList";
+export * from "./videoStatus";

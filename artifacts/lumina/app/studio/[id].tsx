@@ -44,7 +44,8 @@ import { LilyPadInput } from "@/components/studio/LilyPadInput";
 import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
 import { type AgentKey } from "@/constants/colors";
 import { type } from "@/constants/typography";
-import { VIDEOS } from "@/constants/mockData";
+import { getImage } from "@/lib/imageRegistry";
+import { useListVideos } from "@workspace/api-client-react";
 
 const REASONING_TIMELINE: Array<{
   agent: AgentKey;
@@ -85,7 +86,9 @@ export default function SwarmStudioScreen() {
   const topInset = isWeb ? 24 : insets.top;
   const bottomInset = insets.bottom + 16;
 
-  const video = VIDEOS.find((v) => v.id === id) ?? VIDEOS[0];
+  const { data: videosData } = useListVideos();
+  const videos = videosData?.videos ?? [];
+  const video = videos.find((v) => v.id === id) ?? videos[0];
 
   // Idle cycling: rotate through the four agents so the constellation
   // feels alive whenever the user isn't actively prompting or publishing.
@@ -211,8 +214,11 @@ export default function SwarmStudioScreen() {
         <View style={styles.previewWrap}>
           <GlassSurface radius={20} agent={activeAgent}>
             <View style={styles.previewInner}>
-              {video?.thumbnail ? (
-                <Image source={video.thumbnail} style={styles.previewImage} />
+              {video?.thumbnailKey ? (
+                <Image
+                  source={getImage(video.thumbnailKey)}
+                  style={styles.previewImage}
+                />
               ) : (
                 <View
                   style={[styles.previewImage, { backgroundColor: "#15123A" }]}

@@ -53,6 +53,48 @@ export interface BrandDeal {
   amount: number;
 }
 
+export type AgentStatus = (typeof AgentStatus)[keyof typeof AgentStatus];
+
+export const AgentStatus = {
+  pending: "pending",
+  active: "active",
+  done: "done",
+} as const;
+
+export type VideoStatus = (typeof VideoStatus)[keyof typeof VideoStatus];
+
+export const VideoStatus = {
+  Ideating: "Ideating",
+  Editing: "Editing",
+  Ready: "Ready",
+} as const;
+
+export type VideoAgents = {
+  Ideator: AgentStatus;
+  Director: AgentStatus;
+  Editor: AgentStatus;
+  Monetizer: AgentStatus;
+};
+
+export interface Video {
+  id: string;
+  title: string;
+  status: VideoStatus;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  viralScore?: number | null;
+  reasoning: string;
+  thumbnailKey: string;
+  script: string;
+  agents: VideoAgents;
+}
+
+export interface VideoList {
+  videos: Video[];
+}
+
 export interface EarningsSummary {
   currentMonth: number;
   currency: string;

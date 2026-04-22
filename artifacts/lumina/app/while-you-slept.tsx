@@ -66,6 +66,7 @@ import { agents, lumina, type AgentKey } from "@/constants/colors";
 import { getImage } from "@/lib/imageRegistry";
 import {
   useGetCurrentCreator,
+  useGetEarningsSummary,
   useListTrendBriefs,
 } from "@workspace/api-client-react";
 import { type } from "@/constants/typography";
@@ -124,7 +125,12 @@ export default function WhileYouSleptScreen() {
   const { twin, loading: twinLoading } = useStyleTwin();
   const { data: creator } = useGetCurrentCreator();
   const { data: trendsData } = useListTrendBriefs();
-  const trendBriefs = trendsData?.briefs ?? [];
+  const { data: earnings } = useGetEarningsSummary();
+  // Stabilise the array reference — React Query memoises `data`, but the
+  // optional-chained fallback would otherwise build a fresh `[]` each render
+  // and retrigger the recap effect endlessly while data is loading.
+  const trendBriefs = useMemo(() => trendsData?.briefs ?? [], [trendsData]);
+  const seedBrandDealUsd = earnings?.deals?.[0]?.amount;
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -139,7 +145,10 @@ export default function WhileYouSleptScreen() {
     const key = twin ? creatorKeyFor(twin) : "lumina-demo-creator";
     (async () => {
       try {
-        const r = await buildMorningRecap(key);
+        const r = await buildMorningRecap(key, {
+          trendBriefs,
+          seedBrandDealUsd,
+        });
         if (mounted) setRecap(r);
       } catch (e) {
         if (mounted) setError(String(e));
@@ -148,7 +157,7 @@ export default function WhileYouSleptScreen() {
     return () => {
       mounted = false;
     };
-  }, [twin, twinLoading]);
+  }, [twin, twinLoading, trendBriefs, seedBrandDealUsd]);
 
   // Total USD overnight earnings — drives the supernova count-up + mood.
   const usdTotal = recap?.totalsByCurrency.USD ?? 0;

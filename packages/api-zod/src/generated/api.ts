@@ -69,3 +69,33 @@ export const GetEarningsSummaryResponse = zod.object({
   ),
   history: zod.array(zod.number()),
 });
+
+/**
+ * @summary List videos in the swarm pipeline
+ */
+export const listVideosResponseVideosItemViralScoreMin = 0;
+export const listVideosResponseVideosItemViralScoreMax = 100;
+
+export const ListVideosResponse = zod.object({
+  videos: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      status: zod.enum(["Ideating", "Editing", "Ready"]),
+      viralScore: zod
+        .number()
+        .min(listVideosResponseVideosItemViralScoreMin)
+        .max(listVideosResponseVideosItemViralScoreMax)
+        .nullish(),
+      reasoning: zod.string(),
+      thumbnailKey: zod.string(),
+      script: zod.string(),
+      agents: zod.object({
+        Ideator: zod.enum(["pending", "active", "done"]),
+        Director: zod.enum(["pending", "active", "done"]),
+        Editor: zod.enum(["pending", "active", "done"]),
+        Monetizer: zod.enum(["pending", "active", "done"]),
+      }),
+    }),
+  ),
+});
