@@ -1,10 +1,15 @@
 import {
   Inter_400Regular,
+  Inter_400Regular_Italic,
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -52,9 +57,12 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
+    Inter_400Regular_Italic,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
   });
 
   useEffect(() => {

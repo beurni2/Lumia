@@ -1,75 +1,138 @@
 /**
- * Lumina design tokens — a creative, futuristic palette for an AI
- * companion that helps micro-creators in SEA & LATAM go viral.
+ * Lumina 2026 Bioluminescent Design System — single source of truth.
  *
- * The visual identity is dark-first: deep midnight indigo surfaces with
- * a glowing magenta-to-violet primary that evokes the "swarm" of agents
- * working on your behalf. Warm coral accents add humanity and warmth.
+ * Mood: a private midnight greenhouse where Studio Ghibli fireflies meet
+ * Apple Vision Pro spatial depth. Every token below feeds the
+ * `<CosmicBackdrop>`, `<GlassSurface>`, `<FireflyParticles>` foundation
+ * primitives and the per-agent visualization layer.
  *
- * The design subagent may refine these tokens but should preserve the
- * dark-luminous direction.
+ * If you change a hex here, audit `useColors()` consumers — the whole app
+ * pulls from this file.
  */
+
+export const lumina = {
+  /** Deep electric amethyst — the heart of the brand. Pulses brighter on wins. */
+  core: "#6B1EFF",
+  coreSoft: "#8B4DFF",
+  coreDeep: "#3B0DA8",
+
+  /** Vibrant cyan-teal — Firefly Energy, reacts to agent activity. */
+  firefly: "#00FFCC",
+  fireflySoft: "#5CFFE0",
+
+  /** Hot magenta — Cheeky Spark for delight moments, confetti, CTAs. */
+  spark: "#FF1E9E",
+  sparkSoft: "#FF6BBD",
+
+  /** Victory Gold gradient (from → to) with soft radial bloom. */
+  goldFrom: "#FFEA80",
+  goldTo: "#FFD700",
+} as const;
+
+/** Cosmic Void Base — the dark canvas. */
+export const cosmic = {
+  voidTop: "#0A0824",
+  voidBottom: "#1F1B45",
+  voidMid: "#15123A",
+} as const;
+
+/** Dawn Light — warm, alive, with micro bioluminescent veins. */
+export const dawn = {
+  top: "#F9F6FF",
+  bottom: "#FFF8EB",
+  mid: "#FCF1F0",
+} as const;
+
+/**
+ * Per-agent color identity. Used by avatars, reasoning bubbles, neural
+ * threads, and the chromatic edge of GlassSurface when an agent is active.
+ */
+export const agents = {
+  ideator: { hex: "#00FFCC", name: "Firefly", glow: "rgba(0,255,204,0.45)" },
+  director: { hex: "#FF1E9E", name: "Spark", glow: "rgba(255,30,158,0.45)" },
+  editor: { hex: "#FFD700", name: "Gold", glow: "rgba(255,215,0,0.45)" },
+  monetizer: { hex: "#6B1EFF", name: "Amethyst", glow: "rgba(107,30,255,0.45)" },
+} as const;
+
+export type AgentKey = keyof typeof agents;
 
 const colors = {
   light: {
-    text: "#0b0820",
-    tint: "#a855f7",
+    text: "#0B0824",
+    tint: lumina.core,
 
-    background: "#fbf9ff",
-    foreground: "#0b0820",
+    background: dawn.top,
+    backgroundAlt: dawn.bottom,
+    foreground: "#0B0824",
 
-    card: "#ffffff",
-    cardForeground: "#0b0820",
+    card: "rgba(255,255,255,0.65)",
+    cardForeground: "#0B0824",
 
-    primary: "#a855f7",
-    primaryForeground: "#ffffff",
+    primary: lumina.core,
+    primaryForeground: "#FFFFFF",
 
-    secondary: "#f1ecff",
-    secondaryForeground: "#3b1d6b",
+    secondary: "#F0E9FF",
+    secondaryForeground: "#3B0DA8",
 
-    muted: "#f1ecff",
-    mutedForeground: "#6b6485",
+    muted: "#F0E9FF",
+    mutedForeground: "#6B6485",
 
-    accent: "#ff7a8a",
-    accentForeground: "#ffffff",
+    accent: lumina.spark,
+    accentForeground: "#FFFFFF",
 
-    destructive: "#ef4444",
-    destructiveForeground: "#ffffff",
+    firefly: lumina.firefly,
+    spark: lumina.spark,
+    gold: lumina.goldTo,
 
-    border: "#e9e3ff",
-    input: "#e9e3ff",
+    destructive: "#EF4444",
+    destructiveForeground: "#FFFFFF",
+
+    border: "rgba(107,30,255,0.18)",
+    borderGlow: "rgba(107,30,255,0.35)",
+    input: "rgba(107,30,255,0.18)",
   },
 
   dark: {
-    text: "#f6f3ff",
-    tint: "#c084fc",
+    text: "#F6F3FF",
+    tint: lumina.core,
 
-    background: "#0a0820",
-    foreground: "#f6f3ff",
+    background: cosmic.voidTop,
+    backgroundAlt: cosmic.voidBottom,
+    foreground: "#F6F3FF",
 
-    card: "#15123a",
-    cardForeground: "#f6f3ff",
+    /** Glassmorphism 2.0 default surface — 25% opacity over the void. */
+    card: "rgba(255,255,255,0.06)",
+    cardForeground: "#F6F3FF",
 
-    primary: "#c084fc",
-    primaryForeground: "#0a0820",
+    primary: lumina.core,
+    primaryForeground: "#FFFFFF",
 
-    secondary: "#1f1a4a",
-    secondaryForeground: "#e9e3ff",
+    secondary: "#1F1A4A",
+    secondaryForeground: "#E9E3FF",
 
-    muted: "#1a1740",
-    mutedForeground: "#9b95c2",
+    muted: "#1A1740",
+    mutedForeground: "#9B95C2",
 
-    accent: "#ff8da1",
-    accentForeground: "#1a0820",
+    accent: lumina.spark,
+    accentForeground: "#FFFFFF",
 
-    destructive: "#f87171",
-    destructiveForeground: "#1a0820",
+    firefly: lumina.firefly,
+    spark: lumina.spark,
+    gold: lumina.goldTo,
 
-    border: "#2a2560",
-    input: "#2a2560",
+    destructive: "#F87171",
+    destructiveForeground: "#1A0820",
+
+    /** 0.8 px neon border with 8 % opacity inner glow. */
+    border: "rgba(255,255,255,0.08)",
+    borderGlow: "rgba(0,255,204,0.22)",
+    input: "rgba(255,255,255,0.08)",
   },
 
-  radius: 18,
-};
+  radius: 22,
+  radiusLg: 32,
+  radiusFull: 999,
+} as const;
 
+export type LuminaColorScheme = "light" | "dark";
 export default colors;

@@ -63,6 +63,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "expo-dev-client": "~6.0.20",
     "expo-updates": "~29.0.16"
   }
