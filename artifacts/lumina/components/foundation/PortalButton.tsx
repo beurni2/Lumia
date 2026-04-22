@@ -33,6 +33,8 @@ type Props = {
   /** Disable the breathing loop (useful inside busy screens). */
   staticPulse?: boolean;
   disabled?: boolean;
+  /** Reduce halo size + opacity for inline use inside dense screens. */
+  subtle?: boolean;
 };
 
 export function PortalButton({
@@ -41,6 +43,7 @@ export function PortalButton({
   width = 240,
   staticPulse = false,
   disabled = false,
+  subtle = false,
 }: Props) {
   const pulse = useSharedValue(0);
   const press = useSharedValue(1);
@@ -99,11 +102,11 @@ export function PortalButton({
         style={[
           {
             position: "absolute",
-            width: width + 64,
-            height: width + 64,
+            width: subtle ? width + 18 : width + 64,
+            height: subtle ? 80 : width + 64,
             borderRadius: 999,
             backgroundColor: lumina.core,
-            opacity: 0.22,
+            opacity: subtle ? 0.18 : 0.22,
           },
           haloStyle,
         ]}

@@ -1,26 +1,31 @@
 /**
  * Swarm Studio — the centerpiece masterpiece screen.
  *
- * Pass A scaffold:
+ * Pass A scaffold + Pass B finishing touches:
  *   • Cosmic backdrop + ambient firefly layer
  *   • Header with the video title + dismiss control
  *   • Top constellation: 4 agent avatars in elliptical orbit around the
  *     Hive Core, with thin neural threads that brighten on the active agent
  *   • Cinematic preview with 9:16 safe-zone overlays + film burn edges
- *   • Reasoning bubble stack — surfaces the active agent's thought
+ *   • Reasoning bubble — surfaces the active agent's thought
+ *   • Lily-pad input bar with rising suggestion fireflies
+ *   • "Let the Hive Publish" portal CTA — triggers a 4-agent walkthrough
+ *     then a full-screen light explosion that fades into the publisher
  *
- * Pass B (next iteration) will add:
- *   • Bottom lily-pad input with rising suggestion fireflies
- *   • "Let the Hive Publish" portal CTA + light-explosion transition
- *   • Live wiring to swarm-studio's mockOrchestrator
+ * TODO(phase 5): swap the local REASONING_TIMELINE for live calls into
+ * `getOrchestrator()` from `lib/swarmFactory` (storyboard → produce →
+ * monetize), and surface the actual returned copy/transcript/deal text
+ * inside the reasoning bubbles. The animation choreography below already
+ * matches the agent ordering so the hand-off is mechanical.
  */
 
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -32,7 +37,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { PortalButton } from "@/components/foundation/PortalButton";
 import { AgentConstellation } from "@/components/studio/AgentConstellation";
+import { LightExplosion } from "@/components/studio/LightExplosion";
+import { LilyPadInput } from "@/components/studio/LilyPadInput";
 import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
 import { type AgentKey } from "@/constants/colors";
 import { type } from "@/constants/typography";
@@ -60,27 +68,86 @@ const REASONING_TIMELINE: Array<{
   },
 ];
 
+const AGENT_ORDER: AgentKey[] = ["ideator", "director", "editor", "monetizer"];
+
+const SUGGESTIONS = [
+  "Make the hook punchier",
+  "Add a B-roll sweep",
+  "Caption in PT/BR too",
+];
+
 export default function SwarmStudioScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(0);
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
-  const bottomInset = insets.bottom + 24;
+  const bottomInset = insets.bottom + 16;
 
   const video = VIDEOS.find((v) => v.id === id) ?? VIDEOS[0];
 
-  // Cycle the active agent every ~3.6 s so the constellation feels alive.
+  // Idle cycling: rotate through the four agents so the constellation
+  // feels alive whenever the user isn't actively prompting or publishing.
+  const [idleStep, setIdleStep] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => {
-      setStep((s) => (s + 1) % REASONING_TIMELINE.length);
+    const t = setInterval(() => {
+      setIdleStep((s) => (s + 1) % REASONING_TIMELINE.length);
     }, 3600);
-    return () => clearInterval(id);
+    return () => clearInterval(t);
   }, []);
 
-  const current = REASONING_TIMELINE[step]!;
+  // Prompt input
+  const [prompt, setPrompt] = useState("");
+
+  // Publish flow state machine: idle → walking → exploding → done(navigate)
+  const [phase, setPhase] = useState<"idle" | "walking" | "exploding">("idle");
+  const [walkAgent, setWalkAgent] = useState<AgentKey | null>(null);
+  const walkTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+
+  const clearWalkTimers = useCallback(() => {
+    walkTimers.current.forEach(clearTimeout);
+    walkTimers.current = [];
+  }, []);
+
+  useEffect(() => () => clearWalkTimers(), [clearWalkTimers]);
+
+  const handlePublish = useCallback(() => {
+    setPhase("walking");
+    clearWalkTimers();
+    AGENT_ORDER.forEach((agent, i) => {
+      const t = setTimeout(() => setWalkAgent(agent), i * 700);
+      walkTimers.current.push(t);
+    });
+    // After the four-agent walkthrough, ignite the light explosion.
+    const ignite = setTimeout(() => {
+      setPhase("exploding");
+    }, AGENT_ORDER.length * 700);
+    walkTimers.current.push(ignite);
+  }, [clearWalkTimers]);
+
+  const handleExplosionComplete = useCallback(() => {
+    // Reset state in case the user navigates back to /studio later.
+    setPhase("idle");
+    setWalkAgent(null);
+    router.push("/publisher");
+  }, [router]);
+
+  const handleSubmit = useCallback((text: string) => {
+    // TODO(phase 5): pipe `text` into the orchestrator as a creative
+    // override and re-run the storyboard → produce → monetize chain.
+    // For now we acknowledge by surging the Ideator and clearing input.
+    setPrompt("");
+    setIdleStep(0);
+  }, []);
+
+  // Active agent + reasoning text. During walking, the publish walkthrough
+  // takes over; otherwise the idle cycler drives the bubble.
+  const activeAgent =
+    phase === "walking" && walkAgent ? walkAgent : REASONING_TIMELINE[idleStep]!.agent;
+  const activeBubble = useMemo(() => {
+    return REASONING_TIMELINE.find((r) => r.agent === activeAgent) ?? REASONING_TIMELINE[0]!;
+  }, [activeAgent]);
 
   return (
     <View style={styles.root}>
@@ -90,73 +157,110 @@ export default function SwarmStudioScreen() {
         <FireflyParticles count={14} ambient />
       </CosmicBackdrop>
 
-      <View style={[styles.header, { paddingTop: topInset + 8 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.iconBtn}
-          hitSlop={12}
-        >
-          <Feather name="chevron-down" size={24} color="#FFFFFF" />
-        </Pressable>
-        <View style={styles.headerCentre}>
-          <Text style={[type.label, styles.headerEyebrow]}>swarm studio</Text>
-          <Text style={[type.subheadSm, styles.headerTitle]} numberOfLines={1}>
-            {video?.title ?? "Untitled"}
-          </Text>
-        </View>
-        <View style={styles.iconBtn} />
-      </View>
-
-      {/* The constellation — the masterpiece centrepiece */}
-      <View style={styles.constellation}>
-        <AgentConstellation
-          size={320}
-          active={current.agent}
-          agreeing={
-            step % 4 === 0 ? ["ideator", "director", "editor", "monetizer"] : []
-          }
-        />
-      </View>
-
-      {/* Reasoning bubble — surfaces the active agent's thought */}
-      <View style={styles.bubbleSlot}>
-        <ReasoningBubble
-          key={`${current.agent}-${step}`}
-          agent={current.agent}
-          text={current.text}
-        />
-      </View>
-
-      {/* Cinematic preview with 9:16 safe-zone */}
-      <View style={[styles.previewWrap, { paddingBottom: bottomInset }]}>
-        <GlassSurface radius={28} agent={current.agent} breathing>
-          <View style={styles.previewInner}>
-            {video?.thumbnail ? (
-              <Image source={video.thumbnail} style={styles.previewImage} />
-            ) : (
-              <View
-                style={[styles.previewImage, { backgroundColor: "#15123A" }]}
-              />
-            )}
-
-            {/* Safe-zone overlay: TikTok/Reels UI chrome guides */}
-            <View pointerEvents="none" style={styles.safeZone}>
-              <View style={styles.safeTop} />
-              <View style={styles.safeBottom} />
-              <View style={styles.safeRight} />
-            </View>
-
-            {/* Film burn edges */}
-            <View pointerEvents="none" style={styles.filmBurn} />
-
-            <View style={styles.previewMeta}>
-              <Text style={[type.microDelight, styles.previewLabel]}>
-                ✦ live preview · safe-zone honoured
-              </Text>
-            </View>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={topInset}
+      >
+        <View style={[styles.header, { paddingTop: topInset + 8 }]}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close swarm studio"
+          >
+            <Feather name="chevron-down" size={24} color="#FFFFFF" />
+          </Pressable>
+          <View style={styles.headerCentre}>
+            <Text style={[type.label, styles.headerEyebrow]}>swarm studio</Text>
+            <Text
+              style={[type.subheadSm, styles.headerTitle]}
+              numberOfLines={1}
+            >
+              {video?.title ?? "Untitled"}
+            </Text>
           </View>
-        </GlassSurface>
-      </View>
+          <View style={styles.iconBtn} />
+        </View>
+
+        {/* Constellation centrepiece */}
+        <View style={styles.constellation}>
+          <AgentConstellation
+            size={300}
+            active={activeAgent}
+            agreeing={
+              phase === "walking" && walkAgent === "monetizer"
+                ? AGENT_ORDER
+                : []
+            }
+          />
+        </View>
+
+        {/* Reasoning bubble */}
+        <View style={styles.bubbleSlot}>
+          <ReasoningBubble
+            key={`${activeAgent}-${phase === "walking" ? "walk" : idleStep}`}
+            agent={activeBubble.agent}
+            text={activeBubble.text}
+          />
+        </View>
+
+        {/* Cinematic preview with 9:16 safe-zone — fixed height so the
+            input bar + publish CTA always sit in the bottom third. */}
+        <View style={styles.previewWrap}>
+          <GlassSurface radius={20} agent={activeAgent}>
+            <View style={styles.previewInner}>
+              {video?.thumbnail ? (
+                <Image source={video.thumbnail} style={styles.previewImage} />
+              ) : (
+                <View
+                  style={[styles.previewImage, { backgroundColor: "#15123A" }]}
+                />
+              )}
+              <View pointerEvents="none" style={styles.safeZone}>
+                <View style={styles.safeTop} />
+                <View style={styles.safeBottom} />
+                <View style={styles.safeRight} />
+              </View>
+              <View pointerEvents="none" style={styles.filmBurn} />
+              <View style={styles.previewMeta}>
+                <Text style={[type.microDelight, styles.previewLabel]}>
+                  ✦ live preview · safe-zone honoured
+                </Text>
+              </View>
+            </View>
+          </GlassSurface>
+        </View>
+
+        {/* Publish portal CTA */}
+        <View style={styles.publishWrap}>
+          <PortalButton
+            label={phase === "walking" ? "the hive is publishing…" : "let the hive publish"}
+            onPress={handlePublish}
+            width={260}
+            subtle
+            disabled={phase !== "idle"}
+          />
+        </View>
+
+        {/* Lily-pad input bar */}
+        <View style={{ paddingBottom: bottomInset }}>
+          <LilyPadInput
+            value={prompt}
+            onChangeText={setPrompt}
+            onSubmit={handleSubmit}
+            suggestions={SUGGESTIONS}
+            disabled={phase !== "idle"}
+          />
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Light-explosion overlay */}
+      <LightExplosion
+        active={phase === "exploding"}
+        onComplete={handleExplosionComplete}
+      />
     </View>
   );
 }
@@ -165,6 +269,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#0A0824",
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -197,21 +304,20 @@ const styles = StyleSheet.create({
   constellation: {
     alignItems: "center",
     justifyContent: "center",
-    height: 320,
+    height: 300,
   },
   bubbleSlot: {
     paddingHorizontal: 22,
-    minHeight: 110,
+    minHeight: 96,
     justifyContent: "center",
   },
   previewWrap: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 14,
+    paddingHorizontal: 80,
+    paddingTop: 4,
   },
   previewInner: {
-    aspectRatio: 9 / 16,
     width: "100%",
+    height: 180,
     overflow: "hidden",
     position: "relative",
   },
@@ -220,16 +326,13 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "cover",
   },
-  safeZone: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  safeZone: { ...StyleSheet.absoluteFillObject },
   safeTop: {
     position: "absolute",
     top: "12%",
     left: 12,
     right: 12,
     height: 1,
-    backgroundColor: "rgba(0,255,204,0.35)",
     borderStyle: "dashed",
     borderWidth: 0.5,
     borderColor: "rgba(0,255,204,0.35)",
@@ -268,5 +371,11 @@ const styles = StyleSheet.create({
   },
   previewLabel: {
     color: "rgba(0,255,204,0.85)",
+  },
+  publishWrap: {
+    alignItems: "center",
+    paddingTop: 18,
+    paddingBottom: 6,
+    marginTop: "auto",
   },
 });
