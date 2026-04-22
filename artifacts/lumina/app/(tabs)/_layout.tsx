@@ -1,13 +1,9 @@
-import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
-import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { HiveTabRing } from "@/components/shell/HiveTabRing";
 
 function NativeTabLayout() {
   return (
@@ -33,91 +29,17 @@ function NativeTabLayout() {
 }
 
 function ClassicTabLayout() {
-  const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
-  const isWeb = Platform.OS === "web";
-
+  // The hive ring renders its own background, border, and orbs — we
+  // strip every default tabBar style so it can float freely.
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.background },
-              ]}
-            />
-          ) : null,
-      }}
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <HiveTabRing {...props} />}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="sparkles" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="studio"
-        options={{
-          title: "Studio",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="play.rectangle" tintColor={color} size={24} />
-            ) : (
-              <Feather name="play-circle" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="earnings"
-        options={{
-          title: "Earnings",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={24} />
-            ) : (
-              <Feather name="trending-up" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
-            ) : (
-              <Feather name="user" size={22} color={color} />
-            ),
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="studio" options={{ title: "Studio" }} />
+      <Tabs.Screen name="earnings" options={{ title: "Earnings" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
 }

@@ -53,7 +53,8 @@ export default function HomeScreen() {
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
-  const bottomInset = isWeb ? 84 : insets.bottom + 84;
+  // Floating Hive Tab Ring needs ~24pt of breathing room below content.
+  const bottomInset = isWeb ? 108 : insets.bottom + 108;
 
   return (
     <View style={styles.root}>

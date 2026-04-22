@@ -44,7 +44,7 @@ export default function ProfileScreen() {
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
-  const bottomInset = isWeb ? 84 : insets.bottom + 84;
+  const bottomInset = isWeb ? 108 : insets.bottom + 108;
 
   const goTrain = () => {
     feedback.portal();

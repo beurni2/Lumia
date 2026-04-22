@@ -119,7 +119,7 @@ export default function StudioTabScreen() {
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
   // Tab bar inset — leave room above the floating glass tab bar.
-  const bottomInset = (isWeb ? 84 : insets.bottom + 60) + 8;
+  const bottomInset = isWeb ? 108 : insets.bottom + 108;
 
   const { twin, loading: twinLoading } = useStyleTwin();
 
