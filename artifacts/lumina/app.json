@@ -14,7 +14,11 @@
       "backgroundColor": "#0a0820"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.beurniboss.lumina",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {},
     "web": {
@@ -38,6 +42,12 @@
       "eas": {
         "projectId": "ea4f07aa-ba75-4967-88f4-35ffa51961ec"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ea4f07aa-ba75-4967-88f4-35ffa51961ec"
     }
   }
 }
