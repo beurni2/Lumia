@@ -11,7 +11,6 @@
 
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as Haptics from "expo-haptics";
 import React from "react";
 import {
   Alert,
@@ -34,6 +33,7 @@ import { StyleTwinPreview } from "@/components/StyleTwinPreview";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { CURRENT_USER } from "@/constants/mockData";
 import { type } from "@/constants/typography";
+import { feedback } from "@/lib/feedback";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -45,18 +45,14 @@ export default function ProfileScreen() {
   const bottomInset = isWeb ? 84 : insets.bottom + 84;
 
   const goTrain = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    feedback.portal();
     router.push("/style-twin-train");
   };
 
   const onWipe = () => {
     const confirm = async () => {
       await remove();
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      feedback.success();
     };
     if (Platform.OS === "web") {
       if (

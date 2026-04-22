@@ -24,6 +24,7 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
@@ -33,6 +34,7 @@ import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { lumina } from "@/constants/colors";
 import { CURRENT_USER, EARNINGS, TREND_BRIEFS } from "@/constants/mockData";
 import { type } from "@/constants/typography";
+import { feedback } from "@/lib/feedback";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -77,9 +79,15 @@ export default function HomeScreen() {
         </View>
 
         {/* While You Slept */}
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInDown.duration(520).delay(120)}
+          style={styles.section}
+        >
           <Pressable
-            onPress={() => router.push("/while-you-slept")}
+            onPress={() => {
+              feedback.tap();
+              router.push("/while-you-slept");
+            }}
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
             accessibilityRole="button"
             accessibilityLabel="Open overnight recap"
@@ -112,10 +120,13 @@ export default function HomeScreen() {
               </View>
             </GlassSurface>
           </Pressable>
-        </View>
+        </Animated.View>
 
         {/* Trend briefs */}
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInDown.duration(520).delay(260)}
+          style={styles.section}
+        >
           <Text style={[type.subheadSm, styles.sectionTitle]}>
             today's trend briefs
           </Text>
@@ -133,7 +144,10 @@ export default function HomeScreen() {
                   styles.trendCard,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
-                onPress={() => router.push(`/studio/new?trendId=${trend.id}`)}
+                onPress={() => {
+                  feedback.spark();
+                  router.push(`/studio/new?trendId=${trend.id}`);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open trend: ${trend.title}`}
               >
@@ -147,7 +161,11 @@ export default function HomeScreen() {
                         : "monetizer"
                   }
                 >
-                  <Image source={trend.image} style={styles.trendImage} />
+                  <Image
+                    source={trend.image}
+                    style={styles.trendImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.trendContent}>
                     <Text style={[type.microDelight, styles.trendContext]}>
                       {trend.context}
@@ -164,7 +182,7 @@ export default function HomeScreen() {
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -186,7 +204,7 @@ function ViralScore({ score }: { score: number }) {
       <View
         style={[
           styles.viralDot,
-          { backgroundColor: tone, shadowColor: tone, shadowOpacity: 0.9 },
+          { backgroundColor: tone, boxShadow: `0 0 6px ${tone}` as never },
         ]}
       />
       <Text style={[type.label, { color: tone, fontSize: 13 }]}>
@@ -258,7 +276,6 @@ const styles = StyleSheet.create({
   trendImage: {
     width: "100%",
     height: 150,
-    resizeMode: "cover",
   },
   trendContent: { padding: 14, gap: 8 },
   trendContext: {
@@ -274,11 +291,5 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 4,
   },
-  viralDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 6,
-  },
+  viralDot: { width: 7, height: 7, borderRadius: 999 },
 });

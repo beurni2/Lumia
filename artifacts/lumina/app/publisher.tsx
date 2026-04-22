@@ -18,6 +18,7 @@ import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { PortalButton } from "@/components/foundation/PortalButton";
 import { lumina } from "@/constants/colors";
 import { useColors } from "@/hooks/useColors";
+import { feedback } from "@/lib/feedback";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
 import { creatorKeyFor, DEFAULT_PLATFORMS, DEFAULT_REGIONS } from "@/lib/publisherFactory";
@@ -104,6 +105,7 @@ export default function PublisherScreen() {
 
   const launch = useCallback(async () => {
     if (!twin) return;
+    feedback.portal();
     const myRun = ++runIdRef.current;
     const isLive = () => mountedRef.current && runIdRef.current === myRun;
     setPhase("preparing");
@@ -120,10 +122,13 @@ export default function PublisherScreen() {
       if (!isLive()) return;
       setResult(r);
       setPhase("launched");
+      if (!r.hardBlocked) feedback.success();
+      else feedback.error();
     } catch (err) {
       if (!isLive()) return;
       setError((err as Error).message);
       setPhase("error");
+      feedback.error();
     }
   }, [twin, buildPlan]);
 

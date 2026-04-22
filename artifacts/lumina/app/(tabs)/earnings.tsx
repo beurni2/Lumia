@@ -29,6 +29,7 @@ import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { lumina } from "@/constants/colors";
 import { EARNINGS } from "@/constants/mockData";
 import { type } from "@/constants/typography";
+import { useCountUp } from "@/hooks/useCountUp";
 
 const STATUS_TONE: Record<string, { hex: string; bg: string }> = {
   Paid: { hex: lumina.firefly, bg: "rgba(0,255,204,0.12)" },
@@ -38,6 +39,7 @@ const STATUS_TONE: Record<string, { hex: string; bg: string }> = {
 
 export default function EarningsScreen() {
   const insets = useSafeAreaInsets();
+  const animatedAmount = useCountUp(EARNINGS.currentMonth, 1400);
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -68,7 +70,7 @@ export default function EarningsScreen() {
           </Text>
           <View style={styles.heroAmountWrap}>
             <Text style={[type.numeric, styles.heroAmount]}>
-              ${EARNINGS.currentMonth.toLocaleString()}
+              ${animatedAmount.toLocaleString()}
             </Text>
             {/* Chromatic underline — replaces web-only mix-blend overlay so
                 the gold→firefly→spark axis shows on native too. */}
@@ -119,8 +121,7 @@ export default function EarningsScreen() {
                             styles.statusDot,
                             {
                               backgroundColor: tone.hex,
-                              shadowColor: tone.hex,
-                              shadowOpacity: 0.9,
+                              boxShadow: `0 0 5px ${tone.hex}` as never,
                             },
                           ]}
                         />
@@ -203,6 +204,7 @@ const styles = StyleSheet.create({
     lineHeight: 68,
     textShadowColor: "rgba(0,255,204,0.4)",
     textShadowRadius: 22,
+    fontVariant: ["tabular-nums"],
   },
   heroUnderline: {
     height: 3,
@@ -249,12 +251,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  statusDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 999,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 5,
-  },
+  statusDot: { width: 5, height: 5, borderRadius: 999 },
   dealAmount: { color: "#FFFFFF" },
 });
