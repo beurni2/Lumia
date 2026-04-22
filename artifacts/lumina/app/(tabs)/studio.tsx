@@ -1,21 +1,69 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+/**
+ * Swarm Studio Tab — the beating heart of Lumina.
+ *
+ * This is the *tab landing* version of Studio. It shares the cinematic
+ * primitives with `app/studio/[id].tsx` (constellation, reasoning bubble,
+ * lily-pad input, light-explosion → publisher hand-off) but is composed
+ * for an open-ended landing experience rather than a specific video.
+ *
+ * Differences from `studio/[id].tsx`:
+ *   1. Top Command Deck instead of a back-button header — small Twin orb
+ *      on the left, live status pill in the centre, "new idea" portal on
+ *      the right. There is no /tabs back-nav by design.
+ *   2. The preview theater renders **live swarm output** (top brief →
+ *      storyboard → video → deal) as the chain resolves, instead of a
+ *      pre-bound video thumbnail. Empty state shows the lily-pad zone.
+ *   3. A subtle "Hive Ignition" bloom on first mount: constellation +
+ *      preview slide/fade in with a 320 ms spring overshoot.
+ *
+ * Data path mirrors `studio/[id].tsx` exactly: a guarded async chain
+ * (Ideator → Director → Editor → Monetizer) with seeded fallbacks so
+ * the bubble + status pill always have something cinematic to say even
+ * before live data resolves.
+ */
+
+import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
-  Easing,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useColors } from "@/hooks/useColors";
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeInUp,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+
+import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { FireflyParticles } from "@/components/foundation/FireflyParticles";
+import { GlassSurface } from "@/components/foundation/GlassSurface";
+import { PortalButton } from "@/components/foundation/PortalButton";
+import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
+import { AgentConstellation } from "@/components/studio/AgentConstellation";
+import { LightExplosion } from "@/components/studio/LightExplosion";
+import { LilyPadInput } from "@/components/studio/LilyPadInput";
+import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
+import { agents, lumina, type AgentKey } from "@/constants/colors";
+import { type } from "@/constants/typography";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
-import { ensureSeededVectors, getOrchestrator, makeContext } from "@/lib/swarmFactory";
+import {
+  ensureSeededVectors,
+  getOrchestrator,
+  makeContext,
+} from "@/lib/swarmFactory";
 import type {
   Brief,
   DealDraft,
@@ -23,561 +71,953 @@ import type {
   Storyboard,
 } from "@workspace/swarm-studio";
 
-type StepId = "ideator" | "director" | "editor" | "monetizer";
-type StepStatus = "pending" | "active" | "done" | "error";
+type ReasoningMap = Record<AgentKey, string>;
 
-type AgentMeta = {
-  id: StepId;
-  name: string;
-  initial: string;
-  hue: string; // avatar background tint
-  workingMsg: string;
-  doneMsg: string;
+/** Where in the chain we currently are. Drives status pill + preview state. */
+type ChainStep =
+  | "warming"
+  | "ideating"
+  | "directing"
+  | "editing"
+  | "monetizing"
+  | "complete"
+  | "error";
+
+const SEED_REASONING: ReasoningMap = {
+  ideator:
+    "Scanning today's regional trend feed for hooks that match your timbre fingerprint…",
+  director:
+    "Sketching a 9:16 storyboard with safe-zone-aware framing…",
+  editor:
+    "Pacing the middle beats against your retention-curve memory…",
+  monetizer:
+    "Matching your audience to brand pools — drafting a respectful DM…",
 };
 
-const AGENTS: Record<StepId, AgentMeta> = {
-  ideator:   { id: "ideator",   name: "Ideator",   initial: "I", hue: "#7c5cff", workingMsg: "Scanning today's regional trends and scoring each one against your Twin…", doneMsg: "Here are three briefs I scored live for you:" },
-  director:  { id: "director",  name: "Director",  initial: "D", hue: "#3aa6ff", workingMsg: "Storyboarding the top brief to your natural rhythm…",                          doneMsg: "Storyboard ready — paced to your Twin's wpm:" },
-  editor:    { id: "editor",    name: "Editor",    initial: "E", hue: "#f25fa6", workingMsg: "Assembling the cut and self-scoring against the publish gate…",              doneMsg: "Cut assembled. Here's how it scored:" },
-  monetizer: { id: "monetizer", name: "Monetizer", initial: "M", hue: "#ffb547", workingMsg: "Drafting brand pitches sized to projected reach…",                            doneMsg: "Brand pitches drafted — fee preview included:" },
+const AGENT_ORDER: AgentKey[] = ["ideator", "director", "editor", "monetizer"];
+
+const SUGGESTIONS = [
+  "Make the hook punchier",
+  "Add a B-roll sweep",
+  "Caption in PT/BR too",
+];
+
+/** Status pill copy keyed on chain step. */
+const STATUS_COPY: Record<ChainStep, string> = {
+  warming: "Swarm warming up · 4 agents online",
+  ideating: "Ideator scoring trends…",
+  directing: "Director storyboarding…",
+  editing: "Editor cutting + scoring…",
+  monetizing: "Monetizer drafting deals…",
+  complete: "Swarm ready · tap to publish",
+  error: "Swarm hit a snag · retry from the bar",
 };
 
-const ORDER: StepId[] = ["ideator", "director", "editor", "monetizer"];
-
-export default function StudioScreen() {
-  const insets = useSafeAreaInsets();
-  const colors = useColors();
+export default function StudioTabScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isWeb = Platform.OS === "web";
+  const topInset = isWeb ? 24 : insets.top;
+  // Tab bar inset — leave room above the floating glass tab bar.
+  const bottomInset = (isWeb ? 84 : insets.bottom + 60) + 8;
+
   const { twin, loading: twinLoading } = useStyleTwin();
 
-  const isWeb = Platform.OS === "web";
-  const topInset = isWeb ? 67 : insets.top;
-  const bottomInset = isWeb ? 84 : insets.bottom + 60;
-
-  const [running, setRunning] = useState(false);
-  const [statuses, setStatuses] = useState<Record<StepId, StepStatus>>({
-    ideator: "pending", director: "pending", editor: "pending", monetizer: "pending",
-  });
+  // ── Live swarm chain state ───────────────────────────────────────────
+  const [reasoning, setReasoning] = useState<ReasoningMap>(SEED_REASONING);
+  const [chainStep, setChainStep] = useState<ChainStep>("warming");
   const [briefs, setBriefs] = useState<Brief[] | null>(null);
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
   const [video, setVideo] = useState<RenderedVideo | null>(null);
   const [deals, setDeals] = useState<DealDraft[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [chainError, setChainError] = useState<string | null>(null);
 
-  const scrollRef = useRef<ScrollView>(null);
+  // Cycle through agents *only while idle* so the constellation breathes
+  // without remounting bubbles during an active chain or publish walk.
+  const [idleStep, setIdleStep] = useState(0);
+
+  // Run-id guard + unmount guard so a late chain doesn't overwrite a
+  // fresher one *and* so callbacks resolving after unmount become no-ops.
   const runIdRef = useRef(0);
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+  const runSwarmChain = useCallback(
+    async (opts?: {
+      preserveIdeatorAck?: boolean;
+      creativeOverride?: string;
+    }) => {
+      if (!twin) return;
+      const myRun = ++runIdRef.current;
+      const isLive = () =>
+        mountedRef.current && runIdRef.current === myRun;
 
-  // Auto-scroll to bottom whenever a new bubble lands.
-  useEffect(() => {
-    const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
-    return () => clearTimeout(t);
-  }, [statuses, briefs, storyboard, video, deals, error]);
+      setReasoning((prev) =>
+        opts?.preserveIdeatorAck
+          ? { ...SEED_REASONING, ideator: prev.ideator }
+          : SEED_REASONING,
+      );
+      setBriefs(null);
+      setStoryboard(null);
+      setVideo(null);
+      setDeals(null);
+      setChainError(null);
+      setChainStep("ideating");
 
-  const runSwarm = useCallback(async () => {
-    if (!twin) return;
-    const myRun = ++runIdRef.current;
-    const isLive = () => mountedRef.current && runIdRef.current === myRun;
+      const { orchestrator } = getOrchestrator();
+      const ctx = makeContext(twin, "us");
+      try {
+        await ensureSeededVectors(twin);
+        if (!isLive()) return;
 
-    setStatuses({ ideator: "pending", director: "pending", editor: "pending", monetizer: "pending" });
-    setBriefs(null); setStoryboard(null); setVideo(null); setDeals(null); setError(null);
-    setRunning(true);
-
-    const { orchestrator } = getOrchestrator();
-    const ctx = makeContext(twin, "us");
-    try {
-      await ensureSeededVectors(twin);
-      if (!isLive()) return;
-
-      if (isLive()) setStatuses((s) => ({ ...s, ideator: "active" }));
-      const bs = await orchestrator.dailyBriefs(ctx);
-      if (!isLive()) return;
-      setBriefs(bs);
-      setStatuses((s) => ({ ...s, ideator: "done", director: "active" }));
-
-      const sb = await orchestrator.storyboard(ctx, bs[0].id);
-      if (!isLive()) return;
-      setStoryboard(sb);
-      setStatuses((s) => ({ ...s, director: "done", editor: "active" }));
-
-      const v = await orchestrator.produce(ctx, sb.id);
-      if (!isLive()) return;
-      setVideo(v);
-      setStatuses((s) => ({ ...s, editor: "done", monetizer: "active" }));
-
-      const ds = await orchestrator.monetize(ctx, v.id);
-      if (!isLive()) return;
-      setDeals(ds);
-      setStatuses((s) => ({ ...s, monetizer: "done" }));
-    } catch (err) {
-      if (!isLive()) return;
-      setError((err as Error).message);
-      setStatuses((s) => {
-        const next = { ...s };
-        for (const id of Object.keys(next) as StepId[]) {
-          if (next[id] === "active") next[id] = "error";
+        const bs = await orchestrator.dailyBriefs(ctx, {
+          creativeOverride: opts?.creativeOverride,
+        });
+        if (!isLive()) return;
+        // Empty briefs is a recoverable terminal state — surface it instead
+        // of leaving the pill stuck on "Ideator scoring trends…".
+        if (bs.length === 0) {
+          setChainError("No briefs surfaced. Try a different prompt.");
+          setChainStep("error");
+          return;
         }
-        return next;
-      });
-    } finally {
-      if (isLive()) setRunning(false);
-    }
-  }, [twin]);
+        const brief = bs[0]!;
+        setBriefs(bs);
+        const affinity = Math.round(brief.twinAffinity.overall * 100);
+        setReasoning((r) => ({
+          ...r,
+          ideator: `Hook: "${brief.hook}" — ${brief.culturalTag}, ${affinity}% twin affinity.`,
+        }));
+        setChainStep("directing");
+
+        const sb = await orchestrator.storyboard(ctx, brief.id);
+        if (!isLive()) return;
+        setStoryboard(sb);
+        const opener = sb.shots[0]?.description ?? "opening shot";
+        setReasoning((r) => ({
+          ...r,
+          director: `${sb.shots.length}-shot vertical board. Opening on: ${opener}`,
+        }));
+        setChainStep("editing");
+
+        const v = await orchestrator.produce(ctx, sb.id);
+        if (!isLive()) return;
+        setVideo(v);
+        setReasoning((r) => ({ ...r, editor: v.reasoning }));
+        setChainStep("monetizing");
+
+        const drafts = await orchestrator.monetize(ctx, v.id);
+        if (!isLive()) return;
+        // No matched brand pool — still a successful render, just nothing
+        // to monetize today. Mark complete so the user can publish anyway.
+        if (drafts.length === 0) {
+          setReasoning((r) => ({
+            ...r,
+            monetizer:
+              "No brand pool matched today — publishing organically is still a great call.",
+          }));
+          setChainStep("complete");
+          return;
+        }
+        setDeals(drafts);
+        const d = drafts[0]!;
+        setReasoning((r) => ({
+          ...r,
+          monetizer: `Brand fit: ${d.brandHandle} via ${d.channel} — ~$${d.estimatedCreatorTakeUsd.toFixed(0)} creator take. Drafting DM.`,
+        }));
+        setChainStep("complete");
+      } catch (err) {
+        if (!isLive()) return;
+        if (__DEV__) console.warn("[studio-tab] swarm chain failed", err);
+        setChainError((err as Error).message);
+        setChainStep("error");
+      }
+    },
+    [twin],
+  );
 
   useEffect(() => {
-    if (twin && !running && !briefs && !error) runSwarm();
-  }, [twin, briefs, running, error, runSwarm]);
+    void runSwarmChain();
+  }, [runSwarmChain]);
 
+  // ── Prompt + publish state ───────────────────────────────────────────
+  const [prompt, setPrompt] = useState("");
+  const [stickyOverride, setStickyOverride] = useState<string | undefined>(
+    undefined,
+  );
+  const [phase, setPhase] = useState<"idle" | "walking" | "exploding">("idle");
+  const [walkAgent, setWalkAgent] = useState<AgentKey | null>(null);
+  const walkTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+
+  const clearWalkTimers = useCallback(() => {
+    walkTimers.current.forEach(clearTimeout);
+    walkTimers.current = [];
+  }, []);
+  useEffect(() => () => clearWalkTimers(), [clearWalkTimers]);
+
+  const handlePublish = useCallback(() => {
+    if (chainStep !== "complete") return;
+    setPhase("walking");
+    clearWalkTimers();
+    AGENT_ORDER.forEach((agent, i) => {
+      const t = setTimeout(() => setWalkAgent(agent), i * 700);
+      walkTimers.current.push(t);
+    });
+    const ignite = setTimeout(() => {
+      setPhase("exploding");
+    }, AGENT_ORDER.length * 700);
+    walkTimers.current.push(ignite);
+  }, [clearWalkTimers, chainStep]);
+
+  const handleExplosionComplete = useCallback(() => {
+    setPhase("idle");
+    setWalkAgent(null);
+    router.push(
+      stickyOverride
+        ? { pathname: "/publisher", params: { override: stickyOverride } }
+        : "/publisher",
+    );
+  }, [router, stickyOverride]);
+
+  const handleSubmit = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (trimmed) {
+        setReasoning((r) => ({
+          ...r,
+          ideator: `Heard: "${trimmed}". Re-running the swarm with this in mind…`,
+        }));
+        setStickyOverride(trimmed);
+      }
+      setPrompt("");
+      setIdleStep(0);
+      void runSwarmChain({
+        preserveIdeatorAck: trimmed.length > 0,
+        creativeOverride: trimmed || undefined,
+      });
+    },
+    [runSwarmChain],
+  );
+
+  // ── Active agent for constellation surge + bubble ────────────────────
+  // While the chain is actively running, the *running* agent surges. While
+  // walking the publish sequence, walkAgent overrides. Otherwise idle
+  // cycler drives.
+  const runningAgent: AgentKey | null = useMemo(() => {
+    switch (chainStep) {
+      case "ideating":
+        return "ideator";
+      case "directing":
+        return "director";
+      case "editing":
+        return "editor";
+      case "monetizing":
+        return "monetizer";
+      default:
+        return null;
+    }
+  }, [chainStep]);
+
+  // Idle = chain is settled AND we're not in the publish walk. We only let
+  // the idle cycler tick (and only let it influence the rendered active
+  // agent / bubble key) in idle, so an active chain has cinematic
+  // continuity instead of remount churn every 3.6 s.
+  const isIdle = phase === "idle" && runningAgent === null;
+  useEffect(() => {
+    if (!isIdle) return;
+    const t = setInterval(
+      () => setIdleStep((s) => (s + 1) % AGENT_ORDER.length),
+      3600,
+    );
+    return () => clearInterval(t);
+  }, [isIdle]);
+
+  const activeAgent: AgentKey =
+    phase === "walking" && walkAgent
+      ? walkAgent
+      : (runningAgent ?? AGENT_ORDER[idleStep]!);
+
+  const activeBubbleText = reasoning[activeAgent];
+
+  // Only re-key the bubble on idle ticks while idle; otherwise key by the
+  // chain phase + active agent so the bubble persists across cycler ticks.
+  const bubbleKey = isIdle
+    ? `idle-${activeAgent}-${idleStep}`
+    : `${activeAgent}-${chainStep}-${phase}`;
+
+  // ── Empty Twin gate ──────────────────────────────────────────────────
   if (twinLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.tint} />
-      </View>
-    );
-  }
-
-  if (!twin) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}>
-        <Feather name="user-x" size={42} color={colors.mutedForeground} />
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-          Train your Style Twin first
-        </Text>
-        <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
-          The swarm needs your voice and aesthetic before it can work for you.
-        </Text>
-        <Pressable
-          onPress={() => router.push("/style-twin-train")}
-          style={({ pressed }) => [
-            styles.cta,
-            { backgroundColor: colors.tint, opacity: pressed ? 0.85 : 1 },
-          ]}
-        >
-          <Text style={styles.ctaText}>Train Style Twin</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      ref={scrollRef}
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topInset + 16, paddingBottom: bottomInset + 88, gap: 14 }}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.eyebrow, { color: colors.tint }]}>SWARM STUDIO</Text>
-        <Text style={[styles.title, { color: colors.foreground }]}>Working for you</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          Four agents collaborating on your next post — entirely on your phone.
-        </Text>
-      </View>
-
-      <SystemBubble colors={colors}>
-        Good morning, Alex. The swarm is starting a fresh run for Brooklyn, NY (US-EN).
-      </SystemBubble>
-
-      {ORDER.map((id) => {
-        const status = statuses[id];
-        const agent = AGENTS[id];
-        if (status === "pending") return null;
-
-        // Working bubble (typing indicator)
-        if (status === "active") {
-          return (
-            <AgentBubble key={id} agent={agent} colors={colors}>
-              <Text style={[styles.bubbleText, { color: colors.foreground }]}>
-                {agent.workingMsg}
-              </Text>
-              <TypingDots colors={colors} />
-            </AgentBubble>
-          );
-        }
-
-        // Error bubble
-        if (status === "error") {
-          return (
-            <AgentBubble key={id} agent={agent} colors={colors} tone="error">
-              <Text style={{ color: colors.destructive ?? "#ff6b6b", fontWeight: "600" }}>
-                I had to stop. {error}
-              </Text>
-            </AgentBubble>
-          );
-        }
-
-        // Done bubble — render the agent's actual output inline.
-        return (
-          <AgentBubble key={id} agent={agent} colors={colors}>
-            <Text style={[styles.bubbleText, { color: colors.foreground }]}>{agent.doneMsg}</Text>
-            {id === "ideator"   && briefs     && <BriefsContent     briefs={briefs}         colors={colors} />}
-            {id === "director"  && storyboard && <StoryboardContent storyboard={storyboard} colors={colors} />}
-            {id === "editor"    && video      && <VideoContent      video={video}           colors={colors} />}
-            {id === "monetizer" && deals      && <DealsContent      deals={deals}           colors={colors} />}
-          </AgentBubble>
-        );
-      })}
-
-      {!running && deals && (
-        <SystemBubble colors={colors}>
-          Run complete. Send it to the world or run another draft.
-        </SystemBubble>
-      )}
-
-      {!running && deals && (
-        <Pressable
-          onPress={() => router.push("/publisher")}
-          style={({ pressed }) => [
-            styles.cta,
-            {
-              backgroundColor: "#22c2a5",
-              opacity: pressed ? 0.85 : 1,
-              marginHorizontal: 24,
-              marginTop: 8,
-            },
-          ]}
-        >
-          <Feather name="zap" size={16} color="#fff" />
-          <Text style={styles.ctaText}>Launch to the World</Text>
-        </Pressable>
-      )}
-
-      <Pressable
-        onPress={runSwarm}
-        disabled={running}
-        style={({ pressed }) => [
-          styles.cta,
-          {
-            backgroundColor: colors.tint,
-            opacity: running ? 0.5 : pressed ? 0.85 : 1,
-            marginHorizontal: 24,
-            marginTop: 8,
-          },
-        ]}
-      >
-        <Feather name="refresh-cw" size={16} color="#fff" />
-        <Text style={styles.ctaText}>
-          {running ? "Swarm working…" : "Run swarm again"}
-        </Text>
-      </Pressable>
-    </ScrollView>
-  );
-}
-
-/* ───────────────────── Bubble primitives ──────────────────── */
-
-function AgentBubble({
-  agent, colors, tone, children,
-}: {
-  agent: AgentMeta;
-  colors: ReturnType<typeof useColors>;
-  tone?: "error";
-  children: React.ReactNode;
-}) {
-  const borderColor = tone === "error"
-    ? (colors.destructive ?? "#ff6b6b")
-    : colors.border;
-  return (
-    <View style={styles.bubbleRow}>
-      <View style={[styles.avatar, { backgroundColor: agent.hue }]}>
-        <Text style={styles.avatarLetter}>{agent.initial}</Text>
-      </View>
-      <View style={styles.bubbleColumn}>
-        <Text style={[styles.bubbleAuthor, { color: colors.mutedForeground }]}>
-          {agent.name}
-        </Text>
-        <View
-          style={[
-            styles.bubble,
-            {
-              backgroundColor: colors.card,
-              borderColor,
-              borderTopLeftRadius: 4,
-            },
-          ]}
-        >
-          {children}
+      <View style={styles.root}>
+        <CosmicBackdrop bloom>
+          <FireflyParticles count={10} ambient />
+        </CosmicBackdrop>
+        <View style={styles.center}>
+          <ActivityIndicator color={lumina.firefly} />
         </View>
       </View>
+    );
+  }
+  if (!twin) {
+    return (
+      <View style={styles.root}>
+        <CosmicBackdrop bloom>
+          <FireflyParticles count={14} ambient />
+        </CosmicBackdrop>
+        <View style={[styles.center, { paddingHorizontal: 32 }]}>
+          <Feather
+            name="user-x"
+            size={42}
+            color="rgba(255,255,255,0.4)"
+          />
+          <Text style={[styles.emptyTitle, { color: "#FFFFFF" }]}>
+            Train your Style Twin first
+          </Text>
+          <Text style={[styles.emptyBody, { color: "rgba(255,255,255,0.65)" }]}>
+            The hive needs your voice and aesthetic before it can light up.
+          </Text>
+          <View style={{ marginTop: 22 }}>
+            <PortalButton
+              label="train style twin"
+              onPress={() => router.push("/style-twin-train")}
+              width={240}
+              subtle
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style="light" />
+
+      <CosmicBackdrop bloom>
+        <FireflyParticles count={14} ambient />
+      </CosmicBackdrop>
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={topInset}
+      >
+        {/* ── Top Command Deck ────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInDown.duration(320).easing(
+            Easing.out(Easing.cubic),
+          )}
+          style={[styles.commandDeck, { paddingTop: topInset + 8 }]}
+          accessibilityLiveRegion="polite"
+        >
+          {/* Mini Twin orb — left */}
+          <View style={styles.twinOrbSlot}>
+            <StyleTwinOrb
+              size={56}
+              mood={runningAgent ? "excited" : "idle"}
+            />
+          </View>
+
+          {/* Status pill — center */}
+          <View style={styles.statusSlot}>
+            <StatusPill step={chainStep} />
+          </View>
+
+          {/* New idea — right */}
+          <Pressable
+            onPress={() => {
+              if (phase !== "idle") return;
+              setPrompt("");
+              setStickyOverride(undefined);
+              setIdleStep(0);
+              void runSwarmChain();
+            }}
+            disabled={phase !== "idle"}
+            accessibilityRole="button"
+            accessibilityLabel="Run a fresh swarm idea"
+            style={({ pressed }) => [
+              styles.newIdeaBtn,
+              {
+                opacity: phase !== "idle" ? 0.4 : pressed ? 0.7 : 1,
+                shadowColor: lumina.spark,
+              },
+            ]}
+            hitSlop={10}
+          >
+            <Feather name="plus" size={20} color="#FFFFFF" />
+          </Pressable>
+        </Animated.View>
+
+        {/* ── Constellation centerpiece — Hive Ignition bloom ─────── */}
+        <Animated.View
+          entering={ZoomIn.duration(360).easing(
+            Easing.out(Easing.cubic),
+          )}
+          style={styles.constellation}
+        >
+          <AgentConstellation
+            size={300}
+            active={activeAgent}
+            agreeing={
+              phase === "walking" && walkAgent === "monetizer"
+                ? AGENT_ORDER
+                : []
+            }
+          />
+        </Animated.View>
+
+        {/* ── Reasoning bubble ────────────────────────────────────── */}
+        <View style={styles.bubbleSlot}>
+          <ReasoningBubble
+            key={bubbleKey}
+            agent={activeAgent}
+            text={activeBubbleText}
+          />
+        </View>
+
+        {/* ── Cinematic Preview Theater ───────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.duration(380)
+            .delay(120)
+            .easing(Easing.out(Easing.cubic))}
+          style={styles.previewWrap}
+        >
+          <GlassSurface radius={20} agent={activeAgent} breathing>
+            <LiveOutputPreview
+              chainStep={chainStep}
+              briefs={briefs}
+              storyboard={storyboard}
+              video={video}
+              deals={deals}
+              chainError={chainError}
+            />
+          </GlassSurface>
+        </Animated.View>
+
+        {/* ── Publish portal ───────────────────────────────────────── */}
+        <View style={styles.publishWrap}>
+          <PortalButton
+            label={
+              phase === "walking"
+                ? "the hive is publishing…"
+                : chainStep === "complete"
+                  ? "approve & publish"
+                  : "the hive is still working…"
+            }
+            onPress={handlePublish}
+            width={260}
+            subtle
+            disabled={phase !== "idle" || chainStep !== "complete"}
+          />
+        </View>
+
+        {/* ── Lily-pad command bar ─────────────────────────────────── */}
+        <View style={{ paddingBottom: bottomInset }}>
+          <LilyPadInput
+            value={prompt}
+            onChangeText={setPrompt}
+            onSubmit={handleSubmit}
+            suggestions={SUGGESTIONS}
+            disabled={phase !== "idle"}
+          />
+        </View>
+      </KeyboardAvoidingView>
+
+      <LightExplosion
+        active={phase === "exploding"}
+        onComplete={handleExplosionComplete}
+      />
     </View>
   );
 }
 
-function SystemBubble({
-  colors, children,
-}: { colors: ReturnType<typeof useColors>; children: React.ReactNode }) {
-  return (
-    <View style={styles.systemRow}>
-      <View
-        style={[
-          styles.systemBubble,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.systemText, { color: colors.mutedForeground }]}>
-          {children}
+/* ────────────────────── Live Output Preview ──────────────────────── */
+
+/**
+ * Theater contents — morphs as the chain progresses. Empty state shows
+ * the lily-pad zone; each completed step replaces it with a compact
+ * cinematic card. Every agent contribution becomes visible *here* the
+ * moment it lands.
+ */
+function LiveOutputPreview({
+  chainStep,
+  briefs,
+  storyboard,
+  video,
+  deals,
+  chainError,
+}: {
+  chainStep: ChainStep;
+  briefs: Brief[] | null;
+  storyboard: Storyboard | null;
+  video: RenderedVideo | null;
+  deals: DealDraft[] | null;
+  chainError: string | null;
+}) {
+  // Pick the most-advanced piece of data we have.
+  const latest: "deals" | "video" | "storyboard" | "briefs" | "empty" =
+    deals && deals.length > 0
+      ? "deals"
+      : video
+        ? "video"
+        : storyboard
+          ? "storyboard"
+          : briefs && briefs.length > 0
+            ? "briefs"
+            : "empty";
+
+  if (chainStep === "error") {
+    return (
+      <View style={styles.previewInner}>
+        <Feather
+          name="alert-circle"
+          size={28}
+          color={lumina.spark}
+          style={{ alignSelf: "center", marginBottom: 8 }}
+        />
+        <Text
+          style={[type.body, styles.previewBody, { textAlign: "center" }]}
+        >
+          The hive paused.{chainError ? ` ${chainError}` : ""} Tap the bar
+          below to ask the swarm to try again.
         </Text>
       </View>
+    );
+  }
+
+  if (latest === "empty") {
+    return <EmptyLilyPadState />;
+  }
+
+  if (latest === "briefs" && briefs) {
+    const brief = briefs[0]!;
+    const aff = Math.round(brief.twinAffinity.overall * 100);
+    return (
+      <View style={styles.previewInner}>
+        <PreviewEyebrow color={agents.ideator.hex}>
+          IDEATOR · BRIEF #1
+        </PreviewEyebrow>
+        <Text style={[type.subheadSm, styles.previewHook]}>
+          “{brief.hook}”
+        </Text>
+        <View style={styles.previewMetaRow}>
+          <PreviewChip
+            label={brief.culturalTag.toUpperCase()}
+            tint={agents.ideator.hex}
+          />
+          <PreviewChip
+            label={`${aff}% on-twin`}
+            tint={
+              brief.twinAffinity.meetsAudioGate
+                ? lumina.firefly
+                : lumina.spark
+            }
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (latest === "storyboard" && storyboard) {
+    const total = storyboard.shots.reduce((s, x) => s + x.duration, 0);
+    return (
+      <View style={styles.previewInner}>
+        <PreviewEyebrow color={agents.director.hex}>
+          DIRECTOR · {storyboard.shots.length} SHOTS · {total.toFixed(1)}s
+        </PreviewEyebrow>
+        <Text style={[type.body, styles.previewBody]} numberOfLines={3}>
+          Opening on: {storyboard.shots[0]?.description ?? "—"}
+        </Text>
+        <View style={styles.previewMetaRow}>
+          {storyboard.shots.slice(0, 4).map((shot, i) => (
+            <View
+              key={i}
+              style={[
+                styles.shotTick,
+                { backgroundColor: agents.director.hex },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (latest === "video" && video) {
+    return (
+      <View style={styles.previewInner}>
+        <PreviewEyebrow color={agents.editor.hex}>
+          EDITOR · CUT ASSEMBLED
+        </PreviewEyebrow>
+        <View style={styles.previewScoreRow}>
+          <ScoreBlock
+            label="VIRAL"
+            value={`${Math.round(video.viralConfidence * 100)}%`}
+          />
+          <ScoreBlock
+            label="TWIN"
+            value={`${Math.round(video.twinMatchScore * 100)}%`}
+          />
+          <ScoreBlock
+            label="DUR"
+            value={`${video.durationSec.toFixed(1)}s`}
+          />
+        </View>
+        <Text style={[type.body, styles.previewBody]} numberOfLines={2}>
+          {video.reasoning}
+        </Text>
+      </View>
+    );
+  }
+
+  // deals (the chain is complete — show the brand match)
+  if (latest === "deals" && deals) {
+    const d = deals[0]!;
+    return (
+      <View style={styles.previewInner}>
+        <PreviewEyebrow color={agents.monetizer.hex}>
+          MONETIZER · DEAL DRAFTED
+        </PreviewEyebrow>
+        <Text style={[type.subheadSm, styles.previewHook]}>
+          {d.brandHandle}
+        </Text>
+        <Text style={[type.body, styles.previewBody]} numberOfLines={2}>
+          {d.dmDraft}
+        </Text>
+        <View style={styles.previewMetaRow}>
+          <PreviewChip
+            label={d.channel.toUpperCase()}
+            tint={agents.monetizer.hex}
+          />
+          <PreviewChip
+            label={`$${d.estimatedCreatorTakeUsd} take`}
+            tint={lumina.firefly}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  return <EmptyLilyPadState />;
+}
+
+function EmptyLilyPadState() {
+  return (
+    <View style={[styles.previewInner, { alignItems: "center" }]}>
+      <View style={styles.lilyDots}>
+        <LilyDot offset={0} />
+        <LilyDot offset={0.33} />
+        <LilyDot offset={0.66} />
+      </View>
+      <Text style={[type.microDelight, styles.lilyHint]}>
+        Drop an idea below — the swarm is listening.
+      </Text>
     </View>
   );
 }
 
-function TypingDots({ colors }: { colors: ReturnType<typeof useColors> }) {
-  const a = useRef(new Animated.Value(0)).current;
-  const b = useRef(new Animated.Value(0)).current;
-  const c = useRef(new Animated.Value(0)).current;
-
+/** Single bobbing dot — split out so each instance gets its own hook
+ *  call site (Rules of Hooks). They share phase by their `offset` prop. */
+function LilyDot({ offset }: { offset: number }) {
+  const a = useSharedValue(0);
   useEffect(() => {
-    const dot = (v: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(v, { toValue: 1, duration: 360, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0, duration: 360, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ]),
-      );
-    const loops = [dot(a, 0), dot(b, 140), dot(c, 280)];
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [a, b, c]);
+    a.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [a]);
+  const style = useAnimatedStyle(() => {
+    "worklet";
+    const v = (a.value + offset) % 1;
+    return {
+      opacity: 0.35 + 0.5 * Math.sin(v * Math.PI),
+      transform: [{ scale: 0.9 + 0.2 * Math.sin(v * Math.PI) }],
+    };
+  });
+  return <Animated.View style={[styles.lilyDot, style]} />;
+}
 
-  const dotStyle = (v: Animated.Value) => ({
-    opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }),
-    transform: [
-      { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) },
-    ],
+/* ────────────────────────── Status pill ──────────────────────────── */
+
+function StatusPill({ step }: { step: ChainStep }) {
+  const live = step !== "complete" && step !== "error" && step !== "warming";
+  const dotColor =
+    step === "error"
+      ? lumina.spark
+      : step === "complete"
+        ? lumina.firefly
+        : live
+          ? lumina.goldTo
+          : lumina.firefly;
+
+  // Subtle heartbeat on the leading dot — faster while live, slower idle.
+  const beat = useSharedValue(0);
+  useEffect(() => {
+    beat.value = withRepeat(
+      withTiming(1, {
+        duration: live ? 800 : 1800,
+        easing: Easing.inOut(Easing.sin),
+      }),
+      -1,
+      true,
+    );
+  }, [beat, live]);
+  const dotStyle = useAnimatedStyle(() => {
+    "worklet";
+    return {
+      opacity: 0.55 + 0.45 * beat.value,
+      transform: [{ scale: 0.85 + 0.25 * beat.value }],
+    };
   });
 
   return (
-    <View style={styles.typingRow}>
-      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(a)]} />
-      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(b)]} />
-      <Animated.View style={[styles.typingDot, { backgroundColor: colors.mutedForeground }, dotStyle(c)]} />
-    </View>
-  );
-}
-
-/* ───────────────────── Bubble bodies ──────────────────── */
-
-function BriefsContent({ briefs, colors }: { briefs: Brief[]; colors: ReturnType<typeof useColors> }) {
-  return (
-    <View style={{ gap: 10, marginTop: 10 }}>
-      {briefs.map((b) => {
-        const aff = b.twinAffinity;
-        const gateColor = aff.meetsAudioGate ? colors.tint : (colors.destructive ?? "#ff6b6b");
-        return (
-          <View key={b.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background }]}>
-            <View style={styles.briefHeader}>
-              <Text style={[styles.subEyebrow, { color: colors.tint }]}>{b.culturalTag.toUpperCase()}</Text>
-              <View style={[styles.affinityPill, { borderColor: gateColor }]}>
-                <Feather
-                  name={aff.meetsAudioGate ? "check-circle" : "alert-circle"}
-                  size={11}
-                  color={gateColor}
-                />
-                <Text style={[styles.affinityPillText, { color: gateColor }]}>
-                  {(aff.overall * 100).toFixed(1)}% on-Twin
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.subTitle, { color: colors.foreground }]}>{b.hook}</Text>
-            <Text style={[styles.subBody, { color: colors.mutedForeground }]}>
-              {b.beats.join(" → ")}
-            </Text>
-            <View style={styles.affinityRow}>
-              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-                voice <Text style={{ color: colors.foreground, fontWeight: "700" }}>{(aff.voice * 100).toFixed(1)}%</Text>
-              </Text>
-              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-                vocab <Text style={{ color: colors.foreground, fontWeight: "700" }}>{(aff.vocabulary * 100).toFixed(1)}%</Text>
-              </Text>
-              {b.pastWinReferences.length > 0 && (() => {
-                const real = b.pastWinReferences.filter((p) => !p.synthetic).length;
-                const synth = b.pastWinReferences.length - real;
-                const label =
-                  real > 0
-                    ? `${real} past win${real === 1 ? "" : "s"} matched`
-                    : `${synth} demo neighbor${synth === 1 ? "" : "s"}`;
-                return (
-                  <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>{label}</Text>
-                );
-              })()}
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-function StoryboardContent({ storyboard, colors }: { storyboard: Storyboard; colors: ReturnType<typeof useColors> }) {
-  const total = storyboard.shots.reduce((s, x) => s + x.duration, 0);
-  return (
-    <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background, marginTop: 10 }]}>
-      <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>
-        TOTAL · {total.toFixed(1)}s
-      </Text>
-      {storyboard.shots.map((shot, i) => (
-        <View key={i} style={styles.shotRow}>
-          <Text style={[styles.shotDuration, { color: colors.tint }]}>
-            {shot.duration.toFixed(1)}s
-          </Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.subBody, { color: colors.foreground }]}>{shot.description}</Text>
-            {shot.cameraNote && (
-              <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-                {shot.cameraNote}
-              </Text>
-            )}
-          </View>
-        </View>
-      ))}
-      <View style={{ marginTop: 10, gap: 4 }}>
-        <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>HOOK VARIANTS</Text>
-        {storyboard.hookVariants.map((h, i) => (
-          <Text key={i} style={[styles.subBody, { color: colors.foreground }]}>
-            · {h}
-          </Text>
-        ))}
+    <GlassSurface radius={999} intensity={30}>
+      <View
+        style={styles.statusInner}
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`Swarm status: ${STATUS_COPY[step]}`}
+        accessibilityLiveRegion="polite"
+      >
+        <Animated.View
+          style={[
+            styles.statusDot,
+            { backgroundColor: dotColor, shadowColor: dotColor },
+            dotStyle,
+          ]}
+        />
+        <Text style={styles.statusText} numberOfLines={1}>
+          {STATUS_COPY[step]}
+        </Text>
       </View>
-    </View>
+    </GlassSurface>
   );
 }
 
-function VideoContent({ video, colors }: { video: RenderedVideo; colors: ReturnType<typeof useColors> }) {
+/* ─────────────────────── Preview primitives ─────────────────────── */
+
+function PreviewEyebrow({
+  color,
+  children,
+}: {
+  color: string;
+  children: React.ReactNode;
+}) {
   return (
-    <View style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background, marginTop: 10 }]}>
-      <View style={styles.scoreRow}>
-        <ScoreBlock label="Viral confidence" value={`${Math.round(video.viralConfidence * 100)}%`} colors={colors} />
-        <ScoreBlock label="Twin match" value={`${Math.round(video.twinMatchScore * 100)}%`} colors={colors} />
-        <ScoreBlock label="Duration" value={`${video.durationSec.toFixed(1)}s`} colors={colors} />
-      </View>
-      <Text style={[styles.subBody, { color: colors.mutedForeground }]}>{video.reasoning}</Text>
-    </View>
+    <Text
+      style={[
+        type.label,
+        {
+          color,
+          fontSize: 11,
+          letterSpacing: 1.4,
+          marginBottom: 8,
+        },
+      ]}
+    >
+      {children}
+    </Text>
   );
 }
 
-function DealsContent({ deals, colors }: { deals: DealDraft[]; colors: ReturnType<typeof useColors> }) {
+function PreviewChip({ label, tint }: { label: string; tint: string }) {
   return (
-    <View style={{ gap: 10, marginTop: 10 }}>
-      {deals.map((d) => (
-        <View key={d.id} style={[styles.subCard, { borderColor: colors.border, backgroundColor: colors.background }]}>
-          <View style={styles.dealHeader}>
-            <Text style={[styles.subTitle, { color: colors.foreground }]}>{d.brandHandle}</Text>
-            <Text style={[styles.channelTag, { color: colors.tint, borderColor: colors.tint }]}>
-              {d.channel.toUpperCase()}
-            </Text>
-          </View>
-          <Text style={[styles.subBody, { color: colors.mutedForeground }]}>{d.dmDraft}</Text>
-          <View style={styles.feeRow}>
-            <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-              You take: <Text style={{ color: colors.foreground, fontWeight: "700" }}>${d.estimatedCreatorTakeUsd}</Text>
-            </Text>
-            <Text style={[styles.subMeta, { color: colors.mutedForeground }]}>
-              Lumina fee: ${d.estimatedFeeUsd}
-            </Text>
-          </View>
-        </View>
-      ))}
+    <View
+      style={[
+        styles.previewChip,
+        { borderColor: tint, backgroundColor: `${tint}1A` },
+      ]}
+    >
+      <Text style={[styles.previewChipText, { color: tint }]}>{label}</Text>
     </View>
   );
 }
 
-function ScoreBlock({
-  label, value, colors,
-}: { label: string; value: string; colors: ReturnType<typeof useColors> }) {
+function ScoreBlock({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text style={[styles.subEyebrow, { color: colors.mutedForeground }]}>{label.toUpperCase()}</Text>
-      <Text style={[styles.scoreValue, { color: colors.foreground }]}>{value}</Text>
+      <Text
+        style={{
+          color: "rgba(255,255,255,0.5)",
+          fontSize: 10,
+          letterSpacing: 1.2,
+          fontWeight: "700",
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          color: "#FFFFFF",
+          fontSize: 22,
+          fontWeight: "700",
+          marginTop: 2,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
-  header: { paddingHorizontal: 24, gap: 6, marginBottom: 4 },
-  eyebrow: { fontSize: 11, letterSpacing: 1.6, fontWeight: "700" },
-  title: { fontSize: 32, fontWeight: "700" },
-  subtitle: { fontSize: 15 },
+  root: { flex: 1, backgroundColor: "#0A0824" },
+  flex: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
 
-  // Chat row
-  bubbleRow: {
+  /* Top command deck */
+  commandDeck: {
     flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    gap: 10,
-    alignItems: "flex-start",
+    paddingBottom: 4,
+    gap: 12,
   },
-  avatar: {
-    width: 34, height: 34, borderRadius: 17,
-    alignItems: "center", justifyContent: "center",
-    marginTop: 18,
+  twinOrbSlot: {
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  avatarLetter: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  bubbleColumn: { flex: 1, gap: 4 },
-  bubbleAuthor: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    paddingLeft: 4,
-  },
-  bubble: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    gap: 6,
-  },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
-
-  // System (centered) bubble
-  systemRow: {
-    paddingHorizontal: 24,
+  statusSlot: {
+    flex: 1,
     alignItems: "center",
   },
-  systemBubble: {
-    borderWidth: 1,
-    borderRadius: 999,
+  statusInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    maxWidth: "90%",
+    paddingVertical: 8,
   },
-  systemText: { fontSize: 12, textAlign: "center" },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  statusText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    maxWidth: 220,
+  },
+  newIdeaBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,30,158,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,30,158,0.55)",
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
 
-  // Typing indicator
-  typingRow: { flexDirection: "row", gap: 5, marginTop: 6, paddingLeft: 2 },
-  typingDot: { width: 6, height: 6, borderRadius: 3 },
+  /* Constellation centrepiece */
+  constellation: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: 280,
+    marginTop: 4,
+  },
 
-  // Sub-cards inside bubbles
-  subCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
-  subEyebrow: { fontSize: 10, letterSpacing: 1.4, fontWeight: "700" },
-  subTitle: { fontSize: 16, fontWeight: "700" },
-  subBody: { fontSize: 14, lineHeight: 20 },
-  subMeta: { fontSize: 12 },
-  shotRow: { flexDirection: "row", gap: 12, paddingVertical: 6 },
-  shotDuration: { fontSize: 13, fontWeight: "700", width: 44 },
-  scoreRow: { flexDirection: "row", gap: 14, marginBottom: 6 },
-  scoreValue: { fontSize: 22, fontWeight: "700", marginTop: 2 },
-  dealHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  channelTag: {
-    fontSize: 10, fontWeight: "700", letterSpacing: 1,
-    paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderRadius: 8,
+  /* Reasoning bubble slot */
+  bubbleSlot: {
+    paddingHorizontal: 22,
+    minHeight: 92,
+    justifyContent: "center",
   },
-  feeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  briefHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  affinityPill: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderRadius: 999,
-  },
-  affinityPillText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.4 },
-  affinityRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 4 },
 
-  cta: {
-    flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center",
-    paddingVertical: 14, borderRadius: 14,
+  /* Preview theater */
+  previewWrap: {
+    paddingHorizontal: 22,
+    paddingTop: 4,
   },
-  ctaText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  previewInner: {
+    minHeight: 132,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    justifyContent: "center",
+  },
+  previewHook: {
+    color: "#FFFFFF",
+    marginBottom: 10,
+  },
+  previewBody: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  previewMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  previewChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  previewChipText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+  },
+  previewScoreRow: {
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 8,
+  },
+  shotTick: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.65,
+  },
+  lilyDots: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  lilyDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: lumina.firefly,
+    shadowColor: lumina.firefly,
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  lilyHint: {
+    color: "rgba(255,255,255,0.65)",
+    textAlign: "center",
+  },
+
+  /* Publish CTA */
+  publishWrap: {
+    alignItems: "center",
+    paddingTop: 16,
+    paddingBottom: 6,
+    marginTop: "auto",
+  },
+
+  /* Twin-gate empty state */
   emptyTitle: { fontSize: 22, fontWeight: "700", textAlign: "center" },
-  emptyBody: { fontSize: 15, textAlign: "center" },
+  emptyBody: { fontSize: 15, textAlign: "center", lineHeight: 21 },
 });
