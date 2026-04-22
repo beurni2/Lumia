@@ -31,14 +31,16 @@ import { PortalButton } from "@/components/foundation/PortalButton";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { StyleTwinPreview } from "@/components/StyleTwinPreview";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
-import { CURRENT_USER } from "@/constants/mockData";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
+import { getImage } from "@/lib/imageRegistry";
+import { useGetCurrentCreator } from "@workspace/api-client-react";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { twin, loading, isTrained, remove } = useStyleTwin();
+  const { data: creator } = useGetCurrentCreator();
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -90,11 +92,11 @@ export default function ProfileScreen() {
         {/* Twin orb hero */}
         <View style={styles.hero}>
           <StyleTwinOrb size={180} mood={isTrained ? "excited" : "idle"}>
-            <Image source={CURRENT_USER.image} style={styles.avatar} />
+            <Image source={getImage(creator?.imageKey)} style={styles.avatar} />
           </StyleTwinOrb>
-          <Text style={[type.subhead, styles.name]}>{CURRENT_USER.name}</Text>
+          <Text style={[type.subhead, styles.name]}>{creator?.name ?? "—"}</Text>
           <Text style={[type.microDelight, styles.location]}>
-            {CURRENT_USER.location} · {CURRENT_USER.niche}
+            {creator ? `${creator.location} · ${creator.niche}` : ""}
           </Text>
         </View>
 

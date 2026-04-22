@@ -63,7 +63,11 @@ import {
 } from "@/components/foundation";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import { agents, lumina, type AgentKey } from "@/constants/colors";
-import { CURRENT_USER, TREND_BRIEFS } from "@/constants/mockData";
+import { getImage } from "@/lib/imageRegistry";
+import {
+  useGetCurrentCreator,
+  useListTrendBriefs,
+} from "@workspace/api-client-react";
 import { type } from "@/constants/typography";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
@@ -118,6 +122,9 @@ export default function WhileYouSleptScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { twin, loading: twinLoading } = useStyleTwin();
+  const { data: creator } = useGetCurrentCreator();
+  const { data: trendsData } = useListTrendBriefs();
+  const trendBriefs = trendsData?.briefs ?? [];
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -275,7 +282,7 @@ export default function WhileYouSleptScreen() {
         >
           <StyleTwinOrb size={196} mood={orbMood}>
             <Image
-              source={CURRENT_USER.image}
+              source={getImage(creator?.imageKey)}
               style={styles.heroAvatar}
               accessibilityIgnoresInvertColors
             />
@@ -283,7 +290,7 @@ export default function WhileYouSleptScreen() {
 
           <Text style={[type.subhead, styles.heroHeadline]}>
             Good morning,{"\n"}
-            <Text style={styles.heroHeadlineEmphasis}>{CURRENT_USER.name}</Text>
+            <Text style={styles.heroHeadlineEmphasis}>{creator?.name ?? ""}</Text>
           </Text>
           <Text style={[type.body, styles.heroSub]}>
             Your hive never sleeps — and neither does your empire.
@@ -436,7 +443,7 @@ export default function WhileYouSleptScreen() {
               <View style={styles.bestInner}>
                 <View style={styles.bestThumbWrap}>
                   <Image
-                    source={TREND_BRIEFS[0]?.image}
+                    source={getImage(trendBriefs[0]?.imageKey)}
                     style={styles.bestThumb}
                     resizeMode="cover"
                   />
@@ -450,7 +457,7 @@ export default function WhileYouSleptScreen() {
                     best performer
                   </Text>
                   <Text style={[type.bodyEmphasis, styles.bestTitle]}>
-                    {TREND_BRIEFS[0]?.title ?? "Last night's hero"}
+                    {trendBriefs[0]?.title ?? "Last night's hero"}
                   </Text>
                   <Text style={[type.microDelight, styles.bestNote]}>
                     your signature humor + cat cameo = magic

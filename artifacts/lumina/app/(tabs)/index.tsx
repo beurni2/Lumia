@@ -27,18 +27,29 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  useGetCurrentCreator,
+  useGetEarningsSummary,
+  useListTrendBriefs,
+} from "@workspace/api-client-react";
+
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { lumina } from "@/constants/colors";
-import { CURRENT_USER, EARNINGS, TREND_BRIEFS } from "@/constants/mockData";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
+import { getImage } from "@/lib/imageRegistry";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { data: creator } = useGetCurrentCreator();
+  const { data: earnings } = useGetEarningsSummary();
+  const { data: trendsData } = useListTrendBriefs();
+  const trendBriefs = trendsData?.briefs ?? [];
+  const lastEarning = earnings?.history?.at(-1);
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -63,7 +74,7 @@ export default function HomeScreen() {
           <View style={styles.heroText}>
             <Text style={[type.label, styles.eyebrow]}>good morning</Text>
             <Text style={[type.subhead, styles.greeting]}>
-              {CURRENT_USER.name}
+              {creator?.name ?? "—"}
             </Text>
             <Text style={[type.microDelight, styles.subGreeting]}>
               the swarm cooked up 3 ideas while you slept
@@ -73,7 +84,7 @@ export default function HomeScreen() {
           {/* Creator avatar nestled in the StyleTwin orb */}
           <View style={styles.orbAvatar}>
             <StyleTwinOrb size={88} mood="idle">
-              <Image source={CURRENT_USER.image} style={styles.avatarImg} />
+              <Image source={getImage(creator?.imageKey)} style={styles.avatarImg} />
             </StyleTwinOrb>
           </View>
         </View>
@@ -110,7 +121,11 @@ export default function HomeScreen() {
                   <Stat value="+142" label="new followers" />
                   <View style={styles.statDivider} />
                   <Stat
-                    value={`${EARNINGS.currency} ${EARNINGS.history.at(-1)}`}
+                    value={
+                      earnings && lastEarning != null
+                        ? `${earnings.currency} ${lastEarning}`
+                        : "—"
+                    }
                     label="earned"
                   />
                 </View>
@@ -137,7 +152,7 @@ export default function HomeScreen() {
             decelerationRate="fast"
             snapToInterval={296}
           >
-            {TREND_BRIEFS.map((trend) => (
+            {trendBriefs.map((trend) => (
               <Pressable
                 key={trend.id}
                 style={({ pressed }) => [
@@ -162,7 +177,7 @@ export default function HomeScreen() {
                   }
                 >
                   <Image
-                    source={trend.image}
+                    source={getImage(trend.imageKey)}
                     style={styles.trendImage}
                     resizeMode="cover"
                   />

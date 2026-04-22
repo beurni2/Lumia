@@ -13,7 +13,12 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  Creator,
+  EarningsSummary,
+  HealthStatus,
+  TrendBriefList,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
 import type { ErrorType } from "../custom-fetch";
@@ -92,6 +97,231 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the signed-in creator's profile
+ */
+export const getGetCurrentCreatorUrl = () => {
+  return `/api/creator/me`;
+};
+
+export const getCurrentCreator = async (
+  options?: RequestInit,
+): Promise<Creator> => {
+  return customFetch<Creator>(getGetCurrentCreatorUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCurrentCreatorQueryKey = () => {
+  return [`/api/creator/me`] as const;
+};
+
+export const getGetCurrentCreatorQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrentCreator>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentCreator>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCurrentCreatorQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCurrentCreator>>
+  > = ({ signal }) => getCurrentCreator({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentCreator>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrentCreatorQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrentCreator>>
+>;
+export type GetCurrentCreatorQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the signed-in creator's profile
+ */
+
+export function useGetCurrentCreator<
+  TData = Awaited<ReturnType<typeof getCurrentCreator>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentCreator>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrentCreatorQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List today's trend briefs
+ */
+export const getListTrendBriefsUrl = () => {
+  return `/api/trends`;
+};
+
+export const listTrendBriefs = async (
+  options?: RequestInit,
+): Promise<TrendBriefList> => {
+  return customFetch<TrendBriefList>(getListTrendBriefsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTrendBriefsQueryKey = () => {
+  return [`/api/trends`] as const;
+};
+
+export const getListTrendBriefsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTrendBriefs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTrendBriefs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTrendBriefsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrendBriefs>>> = ({
+    signal,
+  }) => listTrendBriefs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTrendBriefs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTrendBriefsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTrendBriefs>>
+>;
+export type ListTrendBriefsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List today's trend briefs
+ */
+
+export function useListTrendBriefs<
+  TData = Awaited<ReturnType<typeof listTrendBriefs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listTrendBriefs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTrendBriefsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Current month earnings summary
+ */
+export const getGetEarningsSummaryUrl = () => {
+  return `/api/earnings/summary`;
+};
+
+export const getEarningsSummary = async (
+  options?: RequestInit,
+): Promise<EarningsSummary> => {
+  return customFetch<EarningsSummary>(getGetEarningsSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetEarningsSummaryQueryKey = () => {
+  return [`/api/earnings/summary`] as const;
+};
+
+export const getGetEarningsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEarningsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEarningsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEarningsSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getEarningsSummary>>
+  > = ({ signal }) => getEarningsSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getEarningsSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetEarningsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEarningsSummary>>
+>;
+export type GetEarningsSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Current month earnings summary
+ */
+
+export function useGetEarningsSummary<
+  TData = Awaited<ReturnType<typeof getEarningsSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getEarningsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetEarningsSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

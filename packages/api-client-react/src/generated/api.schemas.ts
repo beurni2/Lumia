@@ -8,3 +8,55 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface Creator {
+  id: string;
+  name: string;
+  location: string;
+  niche: string;
+  followers: number;
+  currency: string;
+  /** Stable key for the bundled creator avatar (e.g. "creator-1") */
+  imageKey: string;
+}
+
+export interface TrendBrief {
+  id: string;
+  title: string;
+  context: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  viralPotential: number;
+  description: string;
+  imageKey: string;
+}
+
+export interface TrendBriefList {
+  briefs: TrendBrief[];
+}
+
+export type BrandDealStatus =
+  (typeof BrandDealStatus)[keyof typeof BrandDealStatus];
+
+export const BrandDealStatus = {
+  Signed: "Signed",
+  Negotiating: "Negotiating",
+  Paid: "Paid",
+} as const;
+
+export interface BrandDeal {
+  id: string;
+  brand: string;
+  status: BrandDealStatus;
+  amount: number;
+}
+
+export interface EarningsSummary {
+  currentMonth: number;
+  currency: string;
+  growth: string;
+  deals: BrandDeal[];
+  history: number[];
+}

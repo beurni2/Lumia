@@ -23,11 +23,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
+import { useGetEarningsSummary } from "@workspace/api-client-react";
+
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { lumina } from "@/constants/colors";
-import { EARNINGS } from "@/constants/mockData";
 import { type } from "@/constants/typography";
 import { useCountUp } from "@/hooks/useCountUp";
 
@@ -39,7 +40,11 @@ const STATUS_TONE: Record<string, { hex: string; bg: string }> = {
 
 export default function EarningsScreen() {
   const insets = useSafeAreaInsets();
-  const animatedAmount = useCountUp(EARNINGS.currentMonth, 1400);
+  const { data: earnings } = useGetEarningsSummary();
+  const animatedAmount = useCountUp(earnings?.currentMonth ?? 0, 1400);
+  const deals = earnings?.deals ?? [];
+  const history = earnings?.history ?? [];
+  const growth = earnings?.growth ?? "";
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -88,13 +93,13 @@ export default function EarningsScreen() {
           <View style={styles.growthTag}>
             <Feather name="arrow-up-right" size={14} color={lumina.firefly} />
             <Text style={[type.label, styles.growthText]}>
-              {EARNINGS.growth} vs last month
+              {growth} vs last month
             </Text>
           </View>
 
           {/* Sparkline */}
           <View style={styles.sparklineWrap}>
-            <Sparkline data={EARNINGS.history} />
+            <Sparkline data={history} />
           </View>
         </View>
 
@@ -104,7 +109,7 @@ export default function EarningsScreen() {
             brand deals
           </Text>
           <View style={styles.dealsList}>
-            {EARNINGS.deals.map((deal) => {
+            {deals.map((deal) => {
               const tone = STATUS_TONE[deal.status] ?? STATUS_TONE.Negotiating!;
               return (
                 <GlassSurface key={deal.id} radius={20}>

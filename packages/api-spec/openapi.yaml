@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: creator
+    description: Creator profile
+  - name: trends
+    description: Trending content briefs
+  - name: earnings
+    description: Creator earnings and brand deals
 paths:
   /healthz:
     get:
@@ -24,6 +30,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /creator/me:
+    get:
+      operationId: getCurrentCreator
+      tags: [creator]
+      summary: Get the signed-in creator's profile
+      responses:
+        "200":
+          description: Creator profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Creator"
+  /trends:
+    get:
+      operationId: listTrendBriefs
+      tags: [trends]
+      summary: List today's trend briefs
+      responses:
+        "200":
+          description: Trend briefs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendBriefList"
+  /earnings/summary:
+    get:
+      operationId: getEarningsSummary
+      tags: [earnings]
+      summary: Current month earnings summary
+      responses:
+        "200":
+          description: Earnings summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsSummary"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +75,79 @@ components:
           type: string
       required:
         - status
-
+    Creator:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        niche:
+          type: string
+        followers:
+          type: integer
+        currency:
+          type: string
+        imageKey:
+          type: string
+          description: Stable key for the bundled creator avatar (e.g. "creator-1")
+      required: [id, name, location, niche, followers, currency, imageKey]
+    TrendBrief:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        context:
+          type: string
+        viralPotential:
+          type: integer
+          minimum: 0
+          maximum: 100
+        description:
+          type: string
+        imageKey:
+          type: string
+      required: [id, title, context, viralPotential, description, imageKey]
+    TrendBriefList:
+      type: object
+      properties:
+        briefs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendBrief"
+      required: [briefs]
+    BrandDeal:
+      type: object
+      properties:
+        id:
+          type: string
+        brand:
+          type: string
+        status:
+          type: string
+          enum: [Signed, Negotiating, Paid]
+        amount:
+          type: number
+      required: [id, brand, status, amount]
+    EarningsSummary:
+      type: object
+      properties:
+        currentMonth:
+          type: number
+        currency:
+          type: string
+        growth:
+          type: string
+        deals:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandDeal"
+        history:
+          type: array
+          items:
+            type: number
+      required: [currentMonth, currency, growth, deals, history]
