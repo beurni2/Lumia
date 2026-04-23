@@ -143,6 +143,58 @@ export interface SwarmRunList {
   runs: SwarmRunSummary[];
 }
 
+export type PublicationPlatform =
+  (typeof PublicationPlatform)[keyof typeof PublicationPlatform];
+
+export const PublicationPlatform = {
+  tiktok: "tiktok",
+  reels: "reels",
+  shorts: "shorts",
+} as const;
+
+export type PublicationStatus =
+  (typeof PublicationStatus)[keyof typeof PublicationStatus];
+
+export const PublicationStatus = {
+  queued: "queued",
+  published: "published",
+  failed: "failed",
+  blocked: "blocked",
+} as const;
+
+export interface Publication {
+  id: string;
+  videoId: string;
+  platform: PublicationPlatform;
+  status: PublicationStatus;
+  /** @maxLength 255 */
+  platformPostId?: string | null;
+  /** @maxLength 2048 */
+  mockUrl?: string | null;
+  scheduledFor?: string | null;
+  publishedAt?: string | null;
+  /** @maxLength 2000 */
+  error?: string | null;
+  createdAt: string;
+}
+
+export interface PublicationList {
+  publications: Publication[];
+}
+
+export interface CreatePublicationInput {
+  platform: PublicationPlatform;
+  status: PublicationStatus;
+  /** @maxLength 255 */
+  platformPostId?: string | null;
+  /** @maxLength 2048 */
+  mockUrl?: string | null;
+  scheduledFor?: string | null;
+  publishedAt?: string | null;
+  /** @maxLength 2000 */
+  error?: string | null;
+}
+
 export interface SwarmRunDetail {
   id: string;
   status: SwarmRunStatus;

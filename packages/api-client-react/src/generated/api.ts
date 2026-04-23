@@ -17,9 +17,12 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CreatePublicationInput,
   Creator,
   EarningsSummary,
   HealthStatus,
+  Publication,
+  PublicationList,
   SwarmRunDetail,
   SwarmRunList,
   SwarmRunStart,
@@ -28,7 +31,7 @@ import type {
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -651,6 +654,257 @@ export function useGetSwarmRun<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetSwarmRunQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Record one platform publish outcome for a video
+ */
+export const getRecordPublicationUrl = (id: string) => {
+  return `/api/videos/${id}/publications`;
+};
+
+export const recordPublication = async (
+  id: string,
+  createPublicationInput: CreatePublicationInput,
+  options?: RequestInit,
+): Promise<Publication> => {
+  return customFetch<Publication>(getRecordPublicationUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPublicationInput),
+  });
+};
+
+export const getRecordPublicationMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordPublication>>,
+    TError,
+    { id: string; data: BodyType<CreatePublicationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordPublication>>,
+  TError,
+  { id: string; data: BodyType<CreatePublicationInput> },
+  TContext
+> => {
+  const mutationKey = ["recordPublication"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordPublication>>,
+    { id: string; data: BodyType<CreatePublicationInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return recordPublication(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordPublicationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordPublication>>
+>;
+export type RecordPublicationMutationBody = BodyType<CreatePublicationInput>;
+export type RecordPublicationMutationError = ErrorType<void>;
+
+/**
+ * @summary Record one platform publish outcome for a video
+ */
+export const useRecordPublication = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordPublication>>,
+    TError,
+    { id: string; data: BodyType<CreatePublicationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof recordPublication>>,
+  TError,
+  { id: string; data: BodyType<CreatePublicationInput> },
+  TContext
+> => {
+  return useMutation(getRecordPublicationMutationOptions(options));
+};
+
+/**
+ * @summary List publications for a video
+ */
+export const getListVideoPublicationsUrl = (id: string) => {
+  return `/api/videos/${id}/publications`;
+};
+
+export const listVideoPublications = async (
+  id: string,
+  options?: RequestInit,
+): Promise<PublicationList> => {
+  return customFetch<PublicationList>(getListVideoPublicationsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListVideoPublicationsQueryKey = (id: string) => {
+  return [`/api/videos/${id}/publications`] as const;
+};
+
+export const getListVideoPublicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listVideoPublications>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listVideoPublications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListVideoPublicationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listVideoPublications>>
+  > = ({ signal }) => listVideoPublications(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listVideoPublications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListVideoPublicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listVideoPublications>>
+>;
+export type ListVideoPublicationsQueryError = ErrorType<void>;
+
+/**
+ * @summary List publications for a video
+ */
+
+export function useListVideoPublications<
+  TData = Awaited<ReturnType<typeof listVideoPublications>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listVideoPublications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListVideoPublicationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Recent publications across all videos for the signed-in creator
+ */
+export const getListRecentPublicationsUrl = () => {
+  return `/api/publications/recent`;
+};
+
+export const listRecentPublications = async (
+  options?: RequestInit,
+): Promise<PublicationList> => {
+  return customFetch<PublicationList>(getListRecentPublicationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRecentPublicationsQueryKey = () => {
+  return [`/api/publications/recent`] as const;
+};
+
+export const getListRecentPublicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRecentPublications>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentPublications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRecentPublicationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRecentPublications>>
+  > = ({ signal }) => listRecentPublications({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentPublications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRecentPublicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRecentPublications>>
+>;
+export type ListRecentPublicationsQueryError = ErrorType<void>;
+
+/**
+ * @summary Recent publications across all videos for the signed-in creator
+ */
+
+export function useListRecentPublications<
+  TData = Awaited<ReturnType<typeof listRecentPublications>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listRecentPublications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRecentPublicationsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

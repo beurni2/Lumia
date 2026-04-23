@@ -165,6 +165,43 @@ export const agentRuns = pgTable(
 export type Creator = typeof creators.$inferSelect;
 export type TrendBrief = typeof trendBriefs.$inferSelect;
 export type Video = typeof videos.$inferSelect;
+
+/**
+ * publications — per-(video, platform) publish outcome tracking.
+ *
+ * One row per platform attempt. The Smart Publisher launches up to 3
+ * platforms in parallel (TikTok / Reels / Shorts) and writes one row
+ * per result. Status mirrors what the platform returned so the UI can
+ * show "✓ tiktok" badges or "blocked: caption rewritten" hints without
+ * re-running the orchestrator.
+ */
+export const publications = pgTable(
+  "publications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    videoId: varchar("video_id", { length: 64 })
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    status: varchar("status", { length: 16 }).notNull(),
+    platformPostId: text("platform_post_id"),
+    mockUrl: text("mock_url"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_publications_creator_created").on(t.creatorId, t.createdAt),
+    index("idx_publications_video").on(t.videoId),
+  ],
+);
+export type Publication = typeof publications.$inferSelect;
 export type BrandDeal = typeof brandDeals.$inferSelect;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
 export type AgentRun = typeof agentRuns.$inferSelect;

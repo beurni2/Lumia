@@ -132,6 +132,69 @@ paths:
                 $ref: "#/components/schemas/SwarmRunDetail"
         "404":
           description: Run not found
+  /videos/{id}/publications:
+    post:
+      operationId: recordPublication
+      tags: [publications]
+      summary: Record one platform publish outcome for a video
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePublicationInput"
+      responses:
+        "201":
+          description: Publication recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publication"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unknown user
+        "404":
+          description: Video not found
+    get:
+      operationId: listVideoPublications
+      tags: [publications]
+      summary: List publications for a video
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Publications for the video
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationList"
+        "401":
+          description: Unknown user
+  /publications/recent:
+    get:
+      operationId: listRecentPublications
+      tags: [publications]
+      summary: Recent publications across all videos for the signed-in creator
+      responses:
+        "200":
+          description: Recent publications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationList"
+        "401":
+          description: Unknown user
 components:
   schemas:
     HealthStatus:
@@ -311,6 +374,83 @@ components:
           items:
             $ref: "#/components/schemas/SwarmRunSummary"
       required: [runs]
+    PublicationPlatform:
+      type: string
+      enum: [tiktok, reels, shorts]
+    PublicationStatus:
+      type: string
+      enum: [queued, published, failed, blocked]
+    Publication:
+      type: object
+      properties:
+        id:
+          type: string
+        videoId:
+          type: string
+        platform:
+          $ref: "#/components/schemas/PublicationPlatform"
+        status:
+          $ref: "#/components/schemas/PublicationStatus"
+        platformPostId:
+          type: string
+          maxLength: 255
+          nullable: true
+        mockUrl:
+          type: string
+          maxLength: 2048
+          nullable: true
+        scheduledFor:
+          type: string
+          format: date-time
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          maxLength: 2000
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, videoId, platform, status, createdAt]
+    PublicationList:
+      type: object
+      properties:
+        publications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Publication"
+      required: [publications]
+    CreatePublicationInput:
+      type: object
+      properties:
+        platform:
+          $ref: "#/components/schemas/PublicationPlatform"
+        status:
+          $ref: "#/components/schemas/PublicationStatus"
+        platformPostId:
+          type: string
+          maxLength: 255
+          nullable: true
+        mockUrl:
+          type: string
+          maxLength: 2048
+          nullable: true
+        scheduledFor:
+          type: string
+          format: date-time
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          maxLength: 2000
+          nullable: true
+      required: [platform, status]
     SwarmRunDetail:
       type: object
       properties:

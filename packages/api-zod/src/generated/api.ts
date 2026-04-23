@@ -144,3 +144,103 @@ export const GetSwarmRunResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Record one platform publish outcome for a video
+ */
+export const RecordPublicationParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const recordPublicationBodyPlatformPostIdMax = 255;
+
+export const recordPublicationBodyMockUrlMax = 2048;
+
+export const recordPublicationBodyErrorMax = 2000;
+
+export const RecordPublicationBody = zod.object({
+  platform: zod.enum(["tiktok", "reels", "shorts"]),
+  status: zod.enum(["queued", "published", "failed", "blocked"]),
+  platformPostId: zod
+    .string()
+    .max(recordPublicationBodyPlatformPostIdMax)
+    .nullish(),
+  mockUrl: zod.string().max(recordPublicationBodyMockUrlMax).nullish(),
+  scheduledFor: zod.coerce.date().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+  error: zod.string().max(recordPublicationBodyErrorMax).nullish(),
+});
+
+/**
+ * @summary List publications for a video
+ */
+export const ListVideoPublicationsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const listVideoPublicationsResponsePublicationsItemPlatformPostIdMax = 255;
+
+export const listVideoPublicationsResponsePublicationsItemMockUrlMax = 2048;
+
+export const listVideoPublicationsResponsePublicationsItemErrorMax = 2000;
+
+export const ListVideoPublicationsResponse = zod.object({
+  publications: zod.array(
+    zod.object({
+      id: zod.string(),
+      videoId: zod.string(),
+      platform: zod.enum(["tiktok", "reels", "shorts"]),
+      status: zod.enum(["queued", "published", "failed", "blocked"]),
+      platformPostId: zod
+        .string()
+        .max(listVideoPublicationsResponsePublicationsItemPlatformPostIdMax)
+        .nullish(),
+      mockUrl: zod
+        .string()
+        .max(listVideoPublicationsResponsePublicationsItemMockUrlMax)
+        .nullish(),
+      scheduledFor: zod.coerce.date().nullish(),
+      publishedAt: zod.coerce.date().nullish(),
+      error: zod
+        .string()
+        .max(listVideoPublicationsResponsePublicationsItemErrorMax)
+        .nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Recent publications across all videos for the signed-in creator
+ */
+export const listRecentPublicationsResponsePublicationsItemPlatformPostIdMax = 255;
+
+export const listRecentPublicationsResponsePublicationsItemMockUrlMax = 2048;
+
+export const listRecentPublicationsResponsePublicationsItemErrorMax = 2000;
+
+export const ListRecentPublicationsResponse = zod.object({
+  publications: zod.array(
+    zod.object({
+      id: zod.string(),
+      videoId: zod.string(),
+      platform: zod.enum(["tiktok", "reels", "shorts"]),
+      status: zod.enum(["queued", "published", "failed", "blocked"]),
+      platformPostId: zod
+        .string()
+        .max(listRecentPublicationsResponsePublicationsItemPlatformPostIdMax)
+        .nullish(),
+      mockUrl: zod
+        .string()
+        .max(listRecentPublicationsResponsePublicationsItemMockUrlMax)
+        .nullish(),
+      scheduledFor: zod.coerce.date().nullish(),
+      publishedAt: zod.coerce.date().nullish(),
+      error: zod
+        .string()
+        .max(listRecentPublicationsResponsePublicationsItemErrorMax)
+        .nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});

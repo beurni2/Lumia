@@ -63,6 +63,12 @@ import type {
   PublishResult,
   ABVariant,
 } from "@workspace/swarm-studio";
+import {
+  useRecordPublication,
+  getListVideoPublicationsQueryKey,
+  getListRecentPublicationsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ShieldStatus = "pass" | "rewritten" | "blocked";
 
@@ -88,18 +94,36 @@ export default function PublisherScreen() {
   //      history / link previews / referrer headers on web.
   //   2. Back-nav hygiene — the override applies to *this* visit, not
   //      to a future stale return to the screen.
-  const params = useLocalSearchParams<{ override?: string }>();
+  const params = useLocalSearchParams<{ override?: string; videoId?: string }>();
   const [creativeOverride, setCreativeOverride] = useState<string | undefined>(undefined);
+  // The swarm-produced DB videoId (if Studio handed us one). Used purely
+  // for persisting per-platform publish outcomes back to the backend so
+  // Studio can render "✓ tiktok / ✓ reels" badges on next visit. Held in
+  // a ref because it's a side-channel that doesn't drive any rendering.
+  const targetVideoIdRef = useRef<string | null>(null);
   const consumedOverrideRef = useRef(false);
   useEffect(() => {
     if (consumedOverrideRef.current) return;
-    const raw = params.override;
-    if (typeof raw !== "string") return;
+    const rawOverride = params.override;
+    const rawVideoId = params.videoId;
+    if (typeof rawOverride !== "string" && typeof rawVideoId !== "string") return;
     consumedOverrideRef.current = true;
-    const trimmed = raw.trim();
-    if (trimmed.length > 0) setCreativeOverride(trimmed);
+    if (typeof rawOverride === "string") {
+      const trimmed = rawOverride.trim();
+      if (trimmed.length > 0) setCreativeOverride(trimmed);
+    }
+    if (typeof rawVideoId === "string" && rawVideoId.length > 0) {
+      targetVideoIdRef.current = rawVideoId;
+    }
+    // Strip both params for the same privacy / back-nav-hygiene reasons
+    // — the override is freeform user text, and the videoId is a one-shot
+    // signal we've now captured into local state.
     router.replace("/publisher");
-  }, [params.override, router]);
+  }, [params.override, params.videoId, router]);
+
+  // Persistence wiring — only fires when we have a target videoId.
+  const queryClient = useQueryClient();
+  const recordPublication = useRecordPublication();
 
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -174,13 +198,57 @@ export default function PublisherScreen() {
       setPhase("launched");
       if (!r.hardBlocked) feedback.success();
       else feedback.error();
+
+      // Persist per-platform outcomes against the swarm-produced video.
+      // Best-effort: failures here never throw to the caller — the
+      // launch itself succeeded, and a failed persistence just means
+      // the badges won't hydrate. We log to dev console so it's
+      // diagnosable without crashing the user-visible flow.
+      const targetVideoId = targetVideoIdRef.current;
+      if (targetVideoId) {
+        const PLATFORM_TO_API: Record<string, "tiktok" | "reels" | "shorts"> = {
+          tiktok: "tiktok",
+          reels: "reels",
+          shorts: "shorts",
+        };
+        await Promise.allSettled(
+          r.perPlatform.map(async (pp) => {
+            const apiPlatform = PLATFORM_TO_API[pp.platform];
+            if (!apiPlatform) return;
+            const status: "published" | "blocked" =
+              pp.status === "blocked" ? "blocked" : "published";
+            try {
+              await recordPublication.mutateAsync({
+                id: targetVideoId,
+                data: {
+                  platform: apiPlatform,
+                  status,
+                  mockUrl: pp.mockUrl ?? null,
+                  error: pp.reason ?? null,
+                },
+              });
+            } catch (persistErr) {
+              if (__DEV__) {
+                // eslint-disable-next-line no-console
+                console.warn("[publisher] persistence failed", persistErr);
+              }
+            }
+          }),
+        );
+        await queryClient.invalidateQueries({
+          queryKey: getListVideoPublicationsQueryKey(targetVideoId),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: getListRecentPublicationsQueryKey(),
+        });
+      }
     } catch (err) {
       if (!isLive()) return;
       setError((err as Error).message);
       setPhase("error");
       feedback.error();
     }
-  }, [twin, buildPlan]);
+  }, [twin, buildPlan, recordPublication, queryClient]);
 
   useEffect(() => {
     if (twin && phase === "idle") prepare();

@@ -52,7 +52,11 @@ import {
   getOrchestrator,
   makeContext,
 } from "@/lib/swarmFactory";
-import { useListVideos } from "@workspace/api-client-react";
+import {
+  useListVideos,
+  useListVideoPublications,
+  getListVideoPublicationsQueryKey,
+} from "@workspace/api-client-react";
 
 type ReasoningMap = Record<AgentKey, string>;
 
@@ -220,12 +224,40 @@ export default function SwarmStudioScreen() {
     setWalkAgent(null);
     // Carry the user's lily-pad prompt forward so the Publisher's plan
     // is built around the override they just typed, not a fresh ideation.
+    // Carry both the freeform override (if any) and the swarm-produced
+    // videoId. The Publisher uses the videoId to persist per-platform
+    // outcomes against this exact video so the badges below the preview
+    // hydrate correctly on return.
+    const params: Record<string, string> = {};
+    if (stickyOverride) params.override = stickyOverride;
+    if (video?.id) params.videoId = video.id;
     router.push(
-      stickyOverride
-        ? { pathname: "/publisher", params: { override: stickyOverride } }
+      Object.keys(params).length > 0
+        ? { pathname: "/publisher", params }
         : "/publisher",
     );
-  }, [router, stickyOverride]);
+  }, [router, stickyOverride, video?.id]);
+
+  // Live published-to set for the badges row under the preview.
+  // Only meaningful for swarm-produced videos (real DB rows); for
+  // demo seed rows the query simply returns no publications and the
+  // row collapses.
+  // Use the orval-generated query key so the publisher's post-launch
+  // invalidation (which targets the same generated key) actually wakes
+  // this query and refreshes the badges without a manual refresh.
+  const { data: pubsData } = useListVideoPublications(video?.id ?? "", {
+    query: {
+      queryKey: getListVideoPublicationsQueryKey(video?.id ?? ""),
+      enabled: !!video?.id,
+    },
+  });
+  const publishedPlatforms = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of pubsData?.publications ?? []) {
+      if (p.status === "published") set.add(p.platform);
+    }
+    return set;
+  }, [pubsData]);
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -345,6 +377,18 @@ export default function SwarmStudioScreen() {
               </View>
             </View>
           </GlassSurface>
+          {publishedPlatforms.size > 0 && (
+            <View style={styles.publishedBadges}>
+              {(["tiktok", "reels", "shorts"] as const).map((p) =>
+                publishedPlatforms.has(p) ? (
+                  <View key={p} style={styles.publishedBadge}>
+                    <Feather name="check" size={11} color="#00FFCC" />
+                    <Text style={styles.publishedBadgeText}>{p}</Text>
+                  </View>
+                ) : null,
+              )}
+            </View>
+          )}
         </View>
 
         {/* Publish portal CTA */}
@@ -476,6 +520,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.65,
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 18,
+  },
+  publishedBadges: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+  },
+  publishedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.10)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,255,204,0.35)",
+  },
+  publishedBadgeText: {
+    color: "#00FFCC",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: "lowercase",
   },
   previewMeta: {
     position: "absolute",
