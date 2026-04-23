@@ -43,8 +43,10 @@ export default function SignInScreen() {
 
   return (
     <AuthShell
+      eyebrow="act 0 · arrival"
       title="welcome back"
       subtitle="your hive is waiting"
+      mood={submitting ? "supernova" : email || password ? "excited" : "idle"}
       footer={
         <View style={styles.footRow}>
           <Text style={[type.body, styles.footText]}>new here? </Text>

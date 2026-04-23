@@ -59,8 +59,10 @@ export default function SignUpScreen() {
   if (needsVerification) {
     return (
       <AuthShell
+        eyebrow="act 0 · verification"
         title="check your inbox"
         subtitle={`we sent a code to ${email}`}
+        mood={submitting ? "supernova" : code ? "excited" : "idle"}
       >
         <AuthField
           label="verification code"
@@ -95,8 +97,10 @@ export default function SignUpScreen() {
 
   return (
     <AuthShell
+      eyebrow="act 0 · arrival"
       title="join the swarm"
       subtitle="three taps and you're in"
+      mood={submitting ? "supernova" : email || password ? "excited" : "idle"}
       footer={
         <View style={styles.footRow}>
           <Text style={[type.body, styles.footText]}>

@@ -2,13 +2,23 @@
  * AuthShell — bioluminescent backdrop + glass card for sign-in / sign-up.
  *
  * Reuses the same cosmic palette and motion primitives as the rest of
- * Lumina so the auth surface feels native, not bolted-on.
+ * Lumina so the auth surface feels native, not bolted-on. The orb
+ * accepts a `mood` so screens can drive it (idle / excited while the
+ * user types, supernova on successful submit).
  */
 
 import { BlurView } from "expo-blur";
-import React from "react";
-import { Platform, StyleSheet, Text, View, ScrollView } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Easing,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+} from "react-native";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
@@ -17,16 +27,41 @@ import { lumina } from "@/constants/colors";
 import { type } from "@/constants/typography";
 
 export function AuthShell({
+  eyebrow,
   title,
   subtitle,
   children,
   footer,
+  mood = "idle",
 }: {
+  eyebrow?: string;
   title: string;
   subtitle: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  mood?: "idle" | "excited" | "supernova";
 }) {
+  // A slow-rotating constellation halo around the orb — the same visual
+  // language the swarm studio uses for the agent ring, but smaller and
+  // calmer so it reads as "presence" rather than activity.
+  const haloRot = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(haloRot, {
+        toValue: 1,
+        duration: 24000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [haloRot]);
+  const haloSpin = haloRot.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
     <View style={styles.root}>
       <CosmicBackdrop>
@@ -40,15 +75,37 @@ export function AuthShell({
       >
         <View style={styles.header}>
           <View style={styles.orbWrap}>
-            <StyleTwinOrb size={140} mood="idle" />
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.halo, { transform: [{ rotate: haloSpin }] }]}
+            >
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.haloDot,
+                    {
+                      transform: [
+                        { rotate: `${i * 60}deg` },
+                        { translateY: -88 },
+                      ],
+                    },
+                  ]}
+                />
+              ))}
+            </Animated.View>
+            <StyleTwinOrb size={140} mood={mood} />
           </View>
-          <Animated.View entering={FadeInDown.duration(420).delay(120)}>
+          <Reanimated.View entering={FadeInDown.duration(420).delay(120)}>
+            {eyebrow ? (
+              <Text style={[type.microDelight, styles.eyebrow]}>{eyebrow}</Text>
+            ) : null}
             <Text style={[type.heroDisplay, styles.title]}>{title}</Text>
             <Text style={[type.body, styles.subtitle]}>{subtitle}</Text>
-          </Animated.View>
+          </Reanimated.View>
         </View>
 
-        <Animated.View
+        <Reanimated.View
           entering={FadeInDown.duration(420).delay(220)}
           style={styles.cardWrap}
         >
@@ -63,7 +120,10 @@ export function AuthShell({
           ) : (
             <View style={[styles.card, styles.cardFallback]}>{children}</View>
           )}
-        </Animated.View>
+          {/* bottom bioluminescent under-glow so the card looks like it
+              radiates rather than just sits on the backdrop */}
+          <View pointerEvents="none" style={styles.cardUnderglow} />
+        </Reanimated.View>
 
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </ScrollView>
@@ -85,6 +145,35 @@ const styles = StyleSheet.create({
   },
   orbWrap: {
     marginBottom: 18,
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  halo: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  haloDot: {
+    position: "absolute",
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: lumina.core,
+    shadowColor: lumina.core,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 6,
+    shadowOpacity: 0.9,
+  },
+  eyebrow: {
+    color: "rgba(0,255,204,0.85)",
+    textAlign: "center",
+    letterSpacing: 2,
+    marginBottom: 6,
+    textTransform: "uppercase",
   },
   title: {
     color: "#FFFFFF",
@@ -116,6 +205,20 @@ const styles = StyleSheet.create({
   },
   cardFallback: {
     backgroundColor: "rgba(20, 12, 60, 0.78)",
+  },
+  cardUnderglow: {
+    position: "absolute",
+    bottom: -18,
+    left: 24,
+    right: 24,
+    height: 18,
+    borderRadius: 18,
+    backgroundColor: lumina.core,
+    opacity: 0.18,
+    shadowColor: lumina.core,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 24,
+    shadowOpacity: 0.7,
   },
   footer: {
     marginTop: 22,
