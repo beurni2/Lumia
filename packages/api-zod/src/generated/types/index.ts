@@ -6,12 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./agentName";
 export * from "./agentStatus";
 export * from "./brandDeal";
 export * from "./brandDealStatus";
 export * from "./creator";
 export * from "./earningsSummary";
 export * from "./healthStatus";
+export * from "./swarmAgentRun";
+export * from "./swarmRunDetail";
+export * from "./swarmRunList";
+export * from "./swarmRunStart";
+export * from "./swarmRunStatus";
+export * from "./swarmRunSummary";
 export * from "./trendBrief";
 export * from "./trendBriefList";
 export * from "./video";

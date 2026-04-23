@@ -95,6 +95,65 @@ export interface VideoList {
   videos: Video[];
 }
 
+export interface SwarmRunStart {
+  runId: string;
+}
+
+export type SwarmRunStatus =
+  (typeof SwarmRunStatus)[keyof typeof SwarmRunStatus];
+
+export const SwarmRunStatus = {
+  queued: "queued",
+  running: "running",
+  done: "done",
+  failed: "failed",
+} as const;
+
+export type AgentName = (typeof AgentName)[keyof typeof AgentName];
+
+export const AgentName = {
+  ideator: "ideator",
+  director: "director",
+  editor: "editor",
+  monetizer: "monetizer",
+} as const;
+
+export interface SwarmAgentRun {
+  agent: AgentName;
+  status: SwarmRunStatus;
+  summary?: string | null;
+  error?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+export interface SwarmRunSummary {
+  id: string;
+  /** Always 'swarm' for parent runs */
+  agent: string;
+  status: SwarmRunStatus;
+  summary?: string | null;
+  error?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  createdAt: string;
+}
+
+export interface SwarmRunList {
+  runs: SwarmRunSummary[];
+}
+
+export interface SwarmRunDetail {
+  id: string;
+  status: SwarmRunStatus;
+  summary?: string | null;
+  error?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  createdAt: string;
+  agents: SwarmAgentRun[];
+}
+
 export interface EarningsSummary {
   currentMonth: number;
   currency: string;

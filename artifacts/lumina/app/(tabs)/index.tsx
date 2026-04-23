@@ -33,6 +33,7 @@ import {
   useListTrendBriefs,
 } from "@workspace/api-client-react";
 
+import { SwarmCta } from "@/components/SwarmCta";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
@@ -136,6 +137,16 @@ export default function HomeScreen() {
               </View>
             </GlassSurface>
           </Pressable>
+        </Animated.View>
+
+        {/* Run-the-swarm CTA — kicks off a fresh four-agent cycle on
+            demand so creators (and the demo) don't have to wait for
+            an actual overnight run. */}
+        <Animated.View
+          entering={FadeInDown.duration(520).delay(200)}
+          style={[styles.section, { alignItems: "center" }]}
+        >
+          <SwarmCta />
         </Animated.View>
 
         {/* Trend briefs */}

@@ -130,8 +130,41 @@ export const ledgerEntries = pgTable(
   (t) => [index("idx_ledger_creator_month").on(t.creatorId, t.monthBucket)],
 );
 
+/**
+ * agent_runs — one row per swarm/agent invocation.
+ *
+ * The orchestrator inserts a parent row with agent='swarm' and one
+ * child row per agent (ideator/director/editor/monetizer) referencing
+ * the parent via parent_run_id. This gives us a tree per cycle so the
+ * mobile app can show "what the swarm did last night" without joining
+ * across four tables.
+ */
+export const agentRuns = pgTable(
+  "agent_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    // 'swarm' (parent) | 'ideator' | 'director' | 'editor' | 'monetizer'
+    agent: varchar("agent", { length: 32 }).notNull(),
+    // 'queued' | 'running' | 'done' | 'failed'
+    status: varchar("status", { length: 16 }).notNull().default("queued"),
+    parentRunId: uuid("parent_run_id"),
+    summary: text("summary"),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("idx_agent_runs_creator_created").on(t.creatorId, t.createdAt)],
+);
+
 export type Creator = typeof creators.$inferSelect;
 export type TrendBrief = typeof trendBriefs.$inferSelect;
 export type Video = typeof videos.$inferSelect;
 export type BrandDeal = typeof brandDeals.$inferSelect;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
+export type AgentRun = typeof agentRuns.$inferSelect;

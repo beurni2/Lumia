@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -17,6 +20,9 @@ import type {
   Creator,
   EarningsSummary,
   HealthStatus,
+  SwarmRunDetail,
+  SwarmRunList,
+  SwarmRunStart,
   TrendBriefList,
   VideoList,
 } from "./api.schemas";
@@ -396,6 +402,255 @@ export function useListVideos<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListVideosQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Starts the four-agent pipeline (Ideator → Director → Editor → Monetizer)
+for the resolved creator. Returns immediately with a `runId` the client
+can poll. The pipeline writes new trend briefs, a video, a brand deal,
+and a ledger entry; the existing /trends, /videos, /earnings/summary
+endpoints reflect those changes on next refetch.
+
+ * @summary Kick off a swarm cycle for the signed-in creator
+ */
+export const getStartSwarmRunUrl = () => {
+  return `/api/agents/run-overnight`;
+};
+
+export const startSwarmRun = async (
+  options?: RequestInit,
+): Promise<SwarmRunStart> => {
+  return customFetch<SwarmRunStart>(getStartSwarmRunUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartSwarmRunMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSwarmRun>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startSwarmRun>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["startSwarmRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startSwarmRun>>,
+    void
+  > = () => {
+    return startSwarmRun(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartSwarmRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startSwarmRun>>
+>;
+
+export type StartSwarmRunMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Kick off a swarm cycle for the signed-in creator
+ */
+export const useStartSwarmRun = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSwarmRun>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startSwarmRun>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getStartSwarmRunMutationOptions(options));
+};
+
+/**
+ * @summary Recent swarm runs for the signed-in creator
+ */
+export const getListSwarmRunsUrl = () => {
+  return `/api/agents/runs`;
+};
+
+export const listSwarmRuns = async (
+  options?: RequestInit,
+): Promise<SwarmRunList> => {
+  return customFetch<SwarmRunList>(getListSwarmRunsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSwarmRunsQueryKey = () => {
+  return [`/api/agents/runs`] as const;
+};
+
+export const getListSwarmRunsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSwarmRuns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSwarmRuns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSwarmRunsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSwarmRuns>>> = ({
+    signal,
+  }) => listSwarmRuns({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSwarmRuns>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSwarmRunsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSwarmRuns>>
+>;
+export type ListSwarmRunsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Recent swarm runs for the signed-in creator
+ */
+
+export function useListSwarmRuns<
+  TData = Awaited<ReturnType<typeof listSwarmRuns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSwarmRuns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSwarmRunsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Detailed view of one swarm run with per-agent status
+ */
+export const getGetSwarmRunUrl = (id: string) => {
+  return `/api/agents/runs/${id}`;
+};
+
+export const getSwarmRun = async (
+  id: string,
+  options?: RequestInit,
+): Promise<SwarmRunDetail> => {
+  return customFetch<SwarmRunDetail>(getGetSwarmRunUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSwarmRunQueryKey = (id: string) => {
+  return [`/api/agents/runs/${id}`] as const;
+};
+
+export const getGetSwarmRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSwarmRun>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSwarmRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSwarmRunQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSwarmRun>>> = ({
+    signal,
+  }) => getSwarmRun(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSwarmRun>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSwarmRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSwarmRun>>
+>;
+export type GetSwarmRunQueryError = ErrorType<void>;
+
+/**
+ * @summary Detailed view of one swarm run with per-agent status
+ */
+
+export function useGetSwarmRun<
+  TData = Awaited<ReturnType<typeof getSwarmRun>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSwarmRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSwarmRunQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

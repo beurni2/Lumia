@@ -99,3 +99,48 @@ export const ListVideosResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Recent swarm runs for the signed-in creator
+ */
+export const ListSwarmRunsResponse = zod.object({
+  runs: zod.array(
+    zod.object({
+      id: zod.string(),
+      agent: zod.string().describe("Always 'swarm' for parent runs"),
+      status: zod.enum(["queued", "running", "done", "failed"]),
+      summary: zod.string().nullish(),
+      error: zod.string().nullish(),
+      startedAt: zod.string().nullish(),
+      finishedAt: zod.string().nullish(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Detailed view of one swarm run with per-agent status
+ */
+export const GetSwarmRunParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetSwarmRunResponse = zod.object({
+  id: zod.string(),
+  status: zod.enum(["queued", "running", "done", "failed"]),
+  summary: zod.string().nullish(),
+  error: zod.string().nullish(),
+  startedAt: zod.string().nullish(),
+  finishedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  agents: zod.array(
+    zod.object({
+      agent: zod.enum(["ideator", "director", "editor", "monetizer"]),
+      status: zod.enum(["queued", "running", "done", "failed"]),
+      summary: zod.string().nullish(),
+      error: zod.string().nullish(),
+      startedAt: zod.string().nullish(),
+      finishedAt: zod.string().nullish(),
+    }),
+  ),
+});

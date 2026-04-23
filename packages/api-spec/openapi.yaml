@@ -18,6 +18,8 @@ tags:
     description: Creator earnings and brand deals
   - name: videos
     description: Swarm-produced videos in the studio pipeline
+  - name: agents
+    description: Autonomous swarm — Ideator, Director, Editor, Monetizer
 paths:
   /healthz:
     get:
@@ -80,6 +82,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VideoList"
+  /agents/run-overnight:
+    post:
+      operationId: startSwarmRun
+      tags: [agents]
+      summary: Kick off a swarm cycle for the signed-in creator
+      description: |
+        Starts the four-agent pipeline (Ideator → Director → Editor → Monetizer)
+        for the resolved creator. Returns immediately with a `runId` the client
+        can poll. The pipeline writes new trend briefs, a video, a brand deal,
+        and a ledger entry; the existing /trends, /videos, /earnings/summary
+        endpoints reflect those changes on next refetch.
+      responses:
+        "202":
+          description: Swarm run accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwarmRunStart"
+  /agents/runs:
+    get:
+      operationId: listSwarmRuns
+      tags: [agents]
+      summary: Recent swarm runs for the signed-in creator
+      responses:
+        "200":
+          description: Swarm runs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwarmRunList"
+  /agents/runs/{id}:
+    get:
+      operationId: getSwarmRun
+      tags: [agents]
+      summary: Detailed view of one swarm run with per-agent status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Swarm run detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwarmRunDetail"
+        "404":
+          description: Run not found
 components:
   schemas:
     HealthStatus:
@@ -194,6 +246,97 @@ components:
           items:
             $ref: "#/components/schemas/Video"
       required: [videos]
+    SwarmRunStart:
+      type: object
+      properties:
+        runId:
+          type: string
+      required: [runId]
+    SwarmRunStatus:
+      type: string
+      enum: [queued, running, done, failed]
+    AgentName:
+      type: string
+      enum: [ideator, director, editor, monetizer]
+    SwarmAgentRun:
+      type: object
+      properties:
+        agent:
+          $ref: "#/components/schemas/AgentName"
+        status:
+          $ref: "#/components/schemas/SwarmRunStatus"
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          nullable: true
+        finishedAt:
+          type: string
+          nullable: true
+      required: [agent, status]
+    SwarmRunSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        agent:
+          type: string
+          description: Always 'swarm' for parent runs
+        status:
+          $ref: "#/components/schemas/SwarmRunStatus"
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          nullable: true
+        finishedAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, agent, status, createdAt]
+    SwarmRunList:
+      type: object
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SwarmRunSummary"
+      required: [runs]
+    SwarmRunDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: "#/components/schemas/SwarmRunStatus"
+        summary:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          nullable: true
+        finishedAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/SwarmAgentRun"
+      required: [id, status, createdAt, agents]
     EarningsSummary:
       type: object
       properties:

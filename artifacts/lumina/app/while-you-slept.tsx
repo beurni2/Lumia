@@ -62,6 +62,7 @@ import {
   StyleTwinOrb,
 } from "@/components/foundation";
 import ConfettiBurst from "@/components/ConfettiBurst";
+import { SwarmCta } from "@/components/SwarmCta";
 import { agents, lumina, type AgentKey } from "@/constants/colors";
 import { getImage } from "@/lib/imageRegistry";
 import {
@@ -580,6 +581,12 @@ export default function WhileYouSleptScreen() {
           <Text style={[type.subheadSm, styles.sectionTitle]}>
             while you were dreaming, we already planned tomorrow
           </Text>
+          {/* Manual swarm trigger — fires the four-agent pipeline so
+              the demo can produce fresh briefs/videos/deals on
+              demand without waiting for an actual overnight run. */}
+          <View style={styles.swarmCtaWrap}>
+            <SwarmCta label="Run the swarm now" />
+          </View>
           {recap.tomorrowPlan.map((slot, i) => (
             <Pressable
               key={slot.id}
@@ -716,6 +723,7 @@ function DepositRow({ d }: { d: RecapDeposit }) {
 }
 
 const styles = StyleSheet.create({
+  swarmCtaWrap: { alignItems: "center", marginBottom: 18 },
   root: { flex: 1, backgroundColor: cosmicBg() },
   loading: {
     flex: 1,
