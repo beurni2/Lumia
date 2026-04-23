@@ -1,19 +1,65 @@
 import { Router, type IRouter } from "express";
+import { asc, eq, sum } from "drizzle-orm";
+import { db, schema } from "../db/client";
+import { resolveCreator } from "../lib/resolveCreator";
 
 const router: IRouter = Router();
 
-router.get("/earnings/summary", (_req, res) => {
-  res.json({
-    currentMonth: 1850,
-    currency: "USD",
-    growth: "+15%",
-    deals: [
-      { id: "d1", brand: "Gymshark", status: "Signed", amount: 750 },
-      { id: "d2", brand: "Glossier", status: "Negotiating", amount: 1200 },
-      { id: "d3", brand: "Alo Yoga", status: "Paid", amount: 400 },
-    ],
-    history: [820, 1050, 980, 1320, 1180, 1640, 1850],
-  });
+/**
+ * GET /api/earnings/summary
+ *
+ * Aggregates the resolved creator's ledger into a sparkline + growth %
+ * and returns their current brand-deal pipeline.
+ */
+router.get("/earnings/summary", async (req, res, next) => {
+  try {
+    const r = await resolveCreator(req);
+    if (r.kind !== "found") {
+      res.status(401).json({ error: "unknown_user" });
+      return;
+    }
+    const creator = r.creator;
+
+    const monthly = await db
+      .select({
+        month: schema.ledgerEntries.monthBucket,
+        total: sum(schema.ledgerEntries.amount).as("total"),
+      })
+      .from(schema.ledgerEntries)
+      .where(eq(schema.ledgerEntries.creatorId, creator.id))
+      .groupBy(schema.ledgerEntries.monthBucket)
+      .orderBy(asc(schema.ledgerEntries.monthBucket));
+
+    const history = monthly.map((m) => Number(m.total));
+    const currentMonth = history[history.length - 1] ?? 0;
+    const previousMonth = history[history.length - 2] ?? 0;
+    const growth =
+      previousMonth > 0
+        ? `${currentMonth >= previousMonth ? "+" : ""}${Math.round(
+            ((currentMonth - previousMonth) / previousMonth) * 100,
+          )}%`
+        : "—";
+
+    const deals = await db
+      .select()
+      .from(schema.brandDeals)
+      .where(eq(schema.brandDeals.creatorId, creator.id));
+
+    res.json({
+      currentMonth,
+      currency: creator.currency,
+      growth,
+      deals: deals.map((d) => ({
+        id: d.id,
+        brand: d.brand,
+        status: d.status,
+        amount: d.amount,
+      })),
+      history,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

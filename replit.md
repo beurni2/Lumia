@@ -20,8 +20,9 @@ The core agentic stack — Personal Style Twin, Swarm Studio, Smart Publisher, E
 - **TypeScript version**: 5.9
 - **Mobile**: Expo (React Native) · Reanimated · NativeTabs (iOS 26 liquid glass)
 - **On-device inference**: quantized Llama 3.2 11B Vision · Mistral 7B · Qwen 3.5 9B (4/8-bit)
-- **API framework**: Express 5 (`artifacts/api-server` is **frozen** until Sprint 3 unfreezes it strictly for the Compliance Shield CDN, Deal Router, and stateless burst layer — see `ARCHITECTURE.md`)
-- **Backend hosting**: Supabase US-west (CCPA region) for the Sprint 3+ burst layer
+- **API framework**: Express 5 (`artifacts/api-server`) — now backed by Replit Postgres via Drizzle ORM (`src/db/schema.ts`, `src/db/client.ts`). All four routes (`/creator/me`, `/earnings/summary`, `/trends`, `/videos`) read from the database; the Sprint 3 Compliance Shield CDN / Deal Router / burst-layer endpoints layer on top — see `ARCHITECTURE.md`
+- **Database**: Replit-managed PostgreSQL. Schema = creators · trend_briefs · videos · brand_deals · ledger_entries. Seed script: `artifacts/api-server/src/db/seed.ts`. Until Clerk is wired, routes fall back to the seeded demo creator (`is_demo = TRUE`) so the mobile app keeps rendering content while signed out
+- **Auth (planned next)**: Clerk (default per skill) — frontend onboarding UI exists in `app/onboarding.tsx`; backend session middleware + `/creator/me` scoping by `x-auth-user-id` header is the immediate next step
 - **Payouts (Day-1)**: Stripe Connect + PayPal instant; Phase 1 layers Pix / GCash / OVO / SPEI / PromptPay / Wise
 - **Validation**: Zod (`zod/v4`)
 - **API codegen**: Orval (from OpenAPI spec)
