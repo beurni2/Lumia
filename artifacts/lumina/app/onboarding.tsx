@@ -37,8 +37,9 @@ import { lumina } from "@/constants/colors";
 import { spring } from "@/constants/motion";
 import { type } from "@/constants/typography";
 import { useAppState } from "@/hooks/useAppState";
+import { useUpsertConsent } from "@workspace/api-client-react";
 
-type Act = "genesis" | "awaken" | "emerge";
+type Act = "genesis" | "awaken" | "emerge" | "consent";
 const TARGET_CLIPS = 3;
 
 export default function OnboardingScreen() {
@@ -70,7 +71,12 @@ export default function OnboardingScreen() {
     );
   }, []);
 
-  const handleEnter = useCallback(async () => {
+  // Emerge → Consent (FTC AI-disclosure + COPPA adult gate). The
+  // server-side swarm/publish endpoints refuse to act for unconsented
+  // creators, so we collect consent here before granting tab access.
+  const handleEnter = useCallback(() => setAct("consent"), []);
+
+  const handleConsentDone = useCallback(async () => {
     await setHasCompletedOnboarding(true);
     router.replace("/(tabs)");
   }, [router, setHasCompletedOnboarding]);
@@ -91,6 +97,7 @@ export default function OnboardingScreen() {
           <AwakenAct count={clips.length} onClip={handleClip} />
         ) : null}
         {act === "emerge" ? <EmergeAct onEnter={handleEnter} /> : null}
+        {act === "consent" ? <ConsentAct onDone={handleConsentDone} /> : null}
       </View>
 
       {/* Skip — only for Genesis, never for Emerge */}
@@ -241,6 +248,122 @@ function EmergeAct({ onEnter }: { onEnter: () => void }) {
   );
 }
 
+/* ─── Act 4 · Consent ────────────────────────────────────────────── */
+
+/**
+ * The compliance gate. Two affirmations the creator must actively make
+ * before the swarm is allowed to produce content on their behalf:
+ *
+ *   • FTC AI-content disclosure — every Lumina post will be labelled
+ *     as AI-assisted on-platform per FTC endorsement guides + EU AI Act.
+ *   • COPPA / age — creator confirms they are 18+ to use generative
+ *     monetisation features.
+ *
+ * Withdrawn or missing consent flips the server gates closed; the
+ * Privacy panel on Profile lets the creator revisit this any time.
+ */
+function ConsentAct({ onDone }: { onDone: () => void }) {
+  const upsert = useUpsertConsent();
+  const [aiOk, setAiOk] = useState(false);
+  const [adultOk, setAdultOk] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const ready = aiOk && adultOk && !submitting;
+
+  const submit = useCallback(async () => {
+    if (!ready) return;
+    setSubmitting(true);
+    try {
+      await upsert.mutateAsync({
+        data: { aiDisclosureConsented: true, adultConfirmed: true },
+      });
+      onDone();
+    } catch {
+      setSubmitting(false);
+    }
+  }, [ready, upsert, onDone]);
+
+  return (
+    <Animated.View
+      entering={FadeIn.duration(420)}
+      style={styles.actCenter}
+    >
+      <View style={styles.copyTop}>
+        <Text style={[type.subhead, styles.consentTitle]}>
+          One last constellation.
+        </Text>
+        <Text style={[type.body, styles.consentSub]}>
+          Lumina is a swarm of AI agents. Before we light it up, we need
+          two quick acknowledgements.
+        </Text>
+      </View>
+
+      <View style={styles.consentList}>
+        <ConsentRow
+          checked={aiOk}
+          onToggle={() => setAiOk((v) => !v)}
+          label="I understand every post is AI-assisted and Lumina will label it as such on each platform (FTC · EU AI Act)."
+        />
+        <ConsentRow
+          checked={adultOk}
+          onToggle={() => setAdultOk((v) => !v)}
+          label="I am 18 or older and the creator of the account being managed (COPPA)."
+        />
+      </View>
+
+      <View style={{ height: 28 }} />
+
+      <PortalButton
+        label={submitting ? "lighting up…" : "agree & enter the hive"}
+        onPress={submit}
+        width={280}
+        disabled={!ready}
+      />
+
+      <Text style={[type.microDelight, styles.consentFootnote]}>
+        you can revisit or withdraw these any time from profile → privacy
+      </Text>
+    </Animated.View>
+  );
+}
+
+function ConsentRow({
+  checked,
+  onToggle,
+  label,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={({ pressed }) => [
+        styles.consentRow,
+        { opacity: pressed ? 0.85 : 1 },
+      ]}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={label}
+    >
+      <View
+        style={[
+          styles.consentBox,
+          checked && {
+            backgroundColor: lumina.core,
+            borderColor: lumina.core,
+          },
+        ]}
+      >
+        {checked ? (
+          <Text style={styles.consentBoxTick}>✓</Text>
+        ) : null}
+      </View>
+      <Text style={[type.body, styles.consentLabel]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /* ─── Styles ─────────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
@@ -311,5 +434,54 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     paddingVertical: 8,
     paddingHorizontal: 18,
+  },
+  consentTitle: { color: "#FFFFFF", textAlign: "center" },
+  consentSub: {
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    marginTop: 10,
+    maxWidth: 320,
+  },
+  consentList: {
+    width: "100%",
+    maxWidth: 360,
+    gap: 14,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  consentBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  consentBoxTick: {
+    color: "#0A0824",
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 16,
+  },
+  consentLabel: {
+    color: "rgba(255,255,255,0.85)",
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  consentFootnote: {
+    color: "rgba(255,255,255,0.45)",
+    marginTop: 22,
+    textAlign: "center",
   },
 });

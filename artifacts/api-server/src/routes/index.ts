@@ -6,6 +6,7 @@ import earningsRouter from "./earnings";
 import videosRouter from "./videos";
 import agentsRouter from "./agents";
 import publicationsRouter from "./publications";
+import meRouter from "./me";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(earningsRouter);
 router.use(videosRouter);
 router.use(agentsRouter);
 router.use(publicationsRouter);
+router.use(meRouter);
 
 export default router;

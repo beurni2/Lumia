@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startNightlyScheduler } from "./lib/nightlyScheduler";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  // Boot the nightly swarm scheduler — opt-in creators only, dedupe
+  // guarded inside the tick. Idempotent: safe even if the module is
+  // re-imported under hot reload.
+  startNightlyScheduler();
 });

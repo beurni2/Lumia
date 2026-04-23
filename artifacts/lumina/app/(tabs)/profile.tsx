@@ -30,6 +30,7 @@ import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { PortalButton } from "@/components/foundation/PortalButton";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { StyleTwinPreview } from "@/components/StyleTwinPreview";
+import { PrivacyAndScheduleCards } from "@/components/profile/PrivacyAndScheduleCards";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
@@ -136,6 +137,13 @@ export default function ProfileScreen() {
             </Pressable>
           )}
         </View>
+
+        <View style={{ height: 36 }} />
+
+        {/* Privacy & disclosures + nightly swarm scheduler.
+            Server-side gates refuse swarm runs / publications without
+            valid consent — these cards are how the user grants it. */}
+        <PrivacyAndScheduleCards />
       </ScrollView>
     </View>
   );

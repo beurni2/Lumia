@@ -211,6 +211,11 @@ export default function PublisherScreen() {
           reels: "reels",
           shorts: "shorts",
         };
+        // Build a platform→shield-verdict lookup from the publish PLAN
+        // (the launch RESULT carries only post outcomes, not shield state).
+        const shieldByPlatform = new Map(
+          built.plan.perPlatform.map((pp) => [pp.platform, pp.shield.status]),
+        );
         await Promise.allSettled(
           r.perPlatform.map(async (pp) => {
             const apiPlatform = PLATFORM_TO_API[pp.platform];
@@ -223,6 +228,11 @@ export default function PublisherScreen() {
                 data: {
                   platform: apiPlatform,
                   status,
+                  // Shield verdict captured at the moment of publish; the
+                  // server cross-checks this and refuses status='published'
+                  // rows whose verdict is 'blocked'.
+                  shieldVerdict: (shieldByPlatform.get(pp.platform) ??
+                    "pass") as "pass" | "rewritten" | "blocked",
                   mockUrl: pp.mockUrl ?? null,
                   error: pp.reason ?? null,
                 },

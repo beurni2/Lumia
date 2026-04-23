@@ -167,4 +167,38 @@ export class InstagramPostingClient {
       error: null,
     };
   }
+
+  /**
+   * Reels metrics via /{media-id}/insights. We request the four metric
+   * names that map to our normalized `{views, likes, comments, shares}`
+   * shape; missing values become zero so downstream consumers always
+   * see a complete record.
+   */
+  async fetchMetrics(
+    remoteId: string,
+  ): Promise<{ views: number; likes: number; comments: number; shares: number }> {
+    const accessToken = await this.tokens.getValidAccessToken("instagram");
+    const url = `${IG_GRAPH_BASE}/${remoteId}/insights?${encodeForm({
+      metric: "plays,likes,comments,shares",
+      access_token: accessToken,
+    })}`;
+    const res = await this.fetchImpl(url);
+    if (!res.ok) {
+      throw new PlatformPostFailedError(
+        "instagram",
+        `insights HTTP ${res.status}`,
+      );
+    }
+    const json = (await res.json()) as {
+      data?: Array<{ name: string; values?: Array<{ value?: number }> }>;
+    };
+    const lookup = (name: string) =>
+      json.data?.find((d) => d.name === name)?.values?.[0]?.value ?? 0;
+    return {
+      views: lookup("plays"),
+      likes: lookup("likes"),
+      comments: lookup("comments"),
+      shares: lookup("shares"),
+    };
+  }
 }

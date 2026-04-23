@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicationMetrics } from "./publicationMetrics";
 import type { PublicationPlatform } from "./publicationPlatform";
 import type { PublicationStatus } from "./publicationStatus";
+import type { ShieldVerdict } from "./shieldVerdict";
 
 export interface Publication {
   id: string;
@@ -21,5 +23,8 @@ export interface Publication {
   publishedAt?: Date | null;
   /** @maxLength 2000 */
   error?: string | null;
+  shieldVerdict?: ShieldVerdict | null;
+  metrics?: PublicationMetrics | null;
+  metricsFetchedAt?: Date | null;
   createdAt: Date;
 }

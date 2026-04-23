@@ -17,12 +17,19 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ConsentInput,
+  ConsentState,
   CreatePublicationInput,
   Creator,
+  DeleteMyData200,
   EarningsSummary,
+  ExportMyData200,
   HealthStatus,
   Publication,
   PublicationList,
+  PublicationMetrics,
+  ScheduleInput,
+  ScheduleState,
   SwarmRunDetail,
   SwarmRunList,
   SwarmRunStart,
@@ -836,6 +843,582 @@ export function useListVideoPublications<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Mobile-driven analytics refresh. The mobile app holds the OAuth
+tokens for TikTok / Instagram / YouTube; it fetches the post's
+latest views/likes/comments/shares and PATCHes them here.
+
+ * @summary Store fresh platform metrics for a publication
+ */
+export const getUpdatePublicationMetricsUrl = (id: string, pubId: string) => {
+  return `/api/videos/${id}/publications/${pubId}/metrics`;
+};
+
+export const updatePublicationMetrics = async (
+  id: string,
+  pubId: string,
+  publicationMetrics: PublicationMetrics,
+  options?: RequestInit,
+): Promise<Publication> => {
+  return customFetch<Publication>(getUpdatePublicationMetricsUrl(id, pubId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publicationMetrics),
+  });
+};
+
+export const getUpdatePublicationMetricsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePublicationMetrics>>,
+    TError,
+    { id: string; pubId: string; data: BodyType<PublicationMetrics> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePublicationMetrics>>,
+  TError,
+  { id: string; pubId: string; data: BodyType<PublicationMetrics> },
+  TContext
+> => {
+  const mutationKey = ["updatePublicationMetrics"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePublicationMetrics>>,
+    { id: string; pubId: string; data: BodyType<PublicationMetrics> }
+  > = (props) => {
+    const { id, pubId, data } = props ?? {};
+
+    return updatePublicationMetrics(id, pubId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePublicationMetricsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePublicationMetrics>>
+>;
+export type UpdatePublicationMetricsMutationBody = BodyType<PublicationMetrics>;
+export type UpdatePublicationMetricsMutationError = ErrorType<void>;
+
+/**
+ * @summary Store fresh platform metrics for a publication
+ */
+export const useUpdatePublicationMetrics = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePublicationMetrics>>,
+    TError,
+    { id: string; pubId: string; data: BodyType<PublicationMetrics> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePublicationMetrics>>,
+  TError,
+  { id: string; pubId: string; data: BodyType<PublicationMetrics> },
+  TContext
+> => {
+  return useMutation(getUpdatePublicationMetricsMutationOptions(options));
+};
+
+/**
+ * @summary Current AI-disclosure + adult-confirmation consent state
+ */
+export const getGetConsentUrl = () => {
+  return `/api/me/consent`;
+};
+
+export const getConsent = async (
+  options?: RequestInit,
+): Promise<ConsentState> => {
+  return customFetch<ConsentState>(getGetConsentUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetConsentQueryKey = () => {
+  return [`/api/me/consent`] as const;
+};
+
+export const getGetConsentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConsent>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getConsent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetConsentQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getConsent>>> = ({
+    signal,
+  }) => getConsent({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConsent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConsentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConsent>>
+>;
+export type GetConsentQueryError = ErrorType<void>;
+
+/**
+ * @summary Current AI-disclosure + adult-confirmation consent state
+ */
+
+export function useGetConsent<
+  TData = Awaited<ReturnType<typeof getConsent>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getConsent>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConsentQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Grant or withdraw AI-disclosure / adult consent
+ */
+export const getUpsertConsentUrl = () => {
+  return `/api/me/consent`;
+};
+
+export const upsertConsent = async (
+  consentInput: ConsentInput,
+  options?: RequestInit,
+): Promise<ConsentState> => {
+  return customFetch<ConsentState>(getUpsertConsentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(consentInput),
+  });
+};
+
+export const getUpsertConsentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertConsent>>,
+    TError,
+    { data: BodyType<ConsentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertConsent>>,
+  TError,
+  { data: BodyType<ConsentInput> },
+  TContext
+> => {
+  const mutationKey = ["upsertConsent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertConsent>>,
+    { data: BodyType<ConsentInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertConsent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertConsentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertConsent>>
+>;
+export type UpsertConsentMutationBody = BodyType<ConsentInput>;
+export type UpsertConsentMutationError = ErrorType<void>;
+
+/**
+ * @summary Grant or withdraw AI-disclosure / adult consent
+ */
+export const useUpsertConsent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertConsent>>,
+    TError,
+    { data: BodyType<ConsentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertConsent>>,
+  TError,
+  { data: BodyType<ConsentInput> },
+  TContext
+> => {
+  return useMutation(getUpsertConsentMutationOptions(options));
+};
+
+/**
+ * @summary Nightly swarm schedule preferences
+ */
+export const getGetScheduleUrl = () => {
+  return `/api/me/schedule`;
+};
+
+export const getSchedule = async (
+  options?: RequestInit,
+): Promise<ScheduleState> => {
+  return customFetch<ScheduleState>(getGetScheduleUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetScheduleQueryKey = () => {
+  return [`/api/me/schedule`] as const;
+};
+
+export const getGetScheduleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSchedule>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSchedule>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetScheduleQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedule>>> = ({
+    signal,
+  }) => getSchedule({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSchedule>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetScheduleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSchedule>>
+>;
+export type GetScheduleQueryError = ErrorType<void>;
+
+/**
+ * @summary Nightly swarm schedule preferences
+ */
+
+export function useGetSchedule<
+  TData = Awaited<ReturnType<typeof getSchedule>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSchedule>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetScheduleQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set nightly swarm schedule preferences
+ */
+export const getUpsertScheduleUrl = () => {
+  return `/api/me/schedule`;
+};
+
+export const upsertSchedule = async (
+  scheduleInput: ScheduleInput,
+  options?: RequestInit,
+): Promise<ScheduleInput> => {
+  return customFetch<ScheduleInput>(getUpsertScheduleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scheduleInput),
+  });
+};
+
+export const getUpsertScheduleMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertSchedule>>,
+    TError,
+    { data: BodyType<ScheduleInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertSchedule>>,
+  TError,
+  { data: BodyType<ScheduleInput> },
+  TContext
+> => {
+  const mutationKey = ["upsertSchedule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertSchedule>>,
+    { data: BodyType<ScheduleInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return upsertSchedule(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertScheduleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertSchedule>>
+>;
+export type UpsertScheduleMutationBody = BodyType<ScheduleInput>;
+export type UpsertScheduleMutationError = ErrorType<void>;
+
+/**
+ * @summary Set nightly swarm schedule preferences
+ */
+export const useUpsertSchedule = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertSchedule>>,
+    TError,
+    { data: BodyType<ScheduleInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertSchedule>>,
+  TError,
+  { data: BodyType<ScheduleInput> },
+  TContext
+> => {
+  return useMutation(getUpsertScheduleMutationOptions(options));
+};
+
+/**
+ * @summary GDPR/CCPA — every row owned by this creator as JSON
+ */
+export const getExportMyDataUrl = () => {
+  return `/api/me/data-export`;
+};
+
+export const exportMyData = async (
+  options?: RequestInit,
+): Promise<ExportMyData200> => {
+  return customFetch<ExportMyData200>(getExportMyDataUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getExportMyDataMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportMyData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof exportMyData>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["exportMyData"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof exportMyData>>,
+    void
+  > = () => {
+    return exportMyData(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExportMyDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof exportMyData>>
+>;
+
+export type ExportMyDataMutationError = ErrorType<void>;
+
+/**
+ * @summary GDPR/CCPA — every row owned by this creator as JSON
+ */
+export const useExportMyData = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportMyData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof exportMyData>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getExportMyDataMutationOptions(options));
+};
+
+/**
+ * @summary GDPR/CCPA — hard-delete this creator and all owned rows
+ */
+export const getDeleteMyDataUrl = () => {
+  return `/api/me/data-delete`;
+};
+
+export const deleteMyData = async (
+  options?: RequestInit,
+): Promise<DeleteMyData200> => {
+  return customFetch<DeleteMyData200>(getDeleteMyDataUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDeleteMyDataMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMyData>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteMyData"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMyData>>,
+    void
+  > = () => {
+    return deleteMyData(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMyDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMyData>>
+>;
+
+export type DeleteMyDataMutationError = ErrorType<void>;
+
+/**
+ * @summary GDPR/CCPA — hard-delete this creator and all owned rows
+ */
+export const useDeleteMyData = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyData>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMyData>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMyDataMutationOptions(options));
+};
 
 /**
  * @summary Recent publications across all videos for the signed-in creator

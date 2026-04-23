@@ -24,6 +24,8 @@ import type { TokenManager } from "./tokens";
 const TIKTOK_AUTHORIZE_URL = "https://www.tiktok.com/v2/auth/authorize/";
 const TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
 const TIKTOK_POST_INIT_URL = "https://open.tiktokapis.com/v2/post/publish/video/init/";
+const TIKTOK_VIDEO_QUERY_URL =
+  "https://open.tiktokapis.com/v2/video/query/?fields=id,view_count,like_count,comment_count,share_count";
 
 interface TikTokTokenResponse {
   readonly access_token: string;
@@ -166,3 +168,49 @@ export class TikTokPostingClient {
 function truncate(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max - 1).trimEnd() + "…";
 }
+
+/* Augment TikTokPostingClient with metrics fetch via /v2/video/query/. */
+declare module "./tiktok" {
+  interface TikTokPostingClient {
+    fetchMetrics(
+      remoteId: string,
+    ): Promise<{ views: number; likes: number; comments: number; shares: number }>;
+  }
+}
+
+TikTokPostingClient.prototype.fetchMetrics = async function fetchMetrics(
+  this: TikTokPostingClient,
+  remoteId: string,
+) {
+  // The private-prop access is intentional — fetchMetrics belongs with
+  // the client and shares its token + fetch implementation.
+  const self = this as unknown as {
+    tokens: TokenManager;
+    fetchImpl: typeof fetch;
+  };
+  const accessToken = await self.tokens.getValidAccessToken("tiktok");
+  const res = await self.fetchImpl(TIKTOK_VIDEO_QUERY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+    body: JSON.stringify({ filters: { video_ids: [remoteId] } }),
+  });
+  if (!res.ok) {
+    throw new PlatformPostFailedError(
+      "tiktok",
+      `video/query HTTP ${res.status}`,
+    );
+  }
+  const json = (await res.json()) as {
+    data?: { videos?: Array<{ view_count?: number; like_count?: number; comment_count?: number; share_count?: number }> };
+  };
+  const v = json.data?.videos?.[0] ?? {};
+  return {
+    views: v.view_count ?? 0,
+    likes: v.like_count ?? 0,
+    comments: v.comment_count ?? 0,
+    shares: v.share_count ?? 0,
+  };
+};

@@ -23,6 +23,16 @@ router.post("/agents/run-overnight", async (req, res, next) => {
       res.status(401).json({ error: "unknown_user" });
       return;
     }
+    // Compliance gate: the swarm produces AI content. We refuse to
+    // generate anything until the creator has acknowledged the FTC
+    // AI-disclosure statement and confirmed they're 18+.
+    if (
+      !r.creator.aiDisclosureConsentedAt ||
+      !r.creator.adultConfirmedAt
+    ) {
+      res.status(403).json({ error: "consent_required" });
+      return;
+    }
     const { runId } = await startSwarmRun(r.creator.id);
     setImmediate(() => {
       executeSwarmRun(runId, r.creator.id).catch(() => {

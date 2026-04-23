@@ -7,10 +7,12 @@
  */
 import type { PublicationPlatform } from "./publicationPlatform";
 import type { PublicationStatus } from "./publicationStatus";
+import type { ShieldVerdict } from "./shieldVerdict";
 
 export interface CreatePublicationInput {
   platform: PublicationPlatform;
   status: PublicationStatus;
+  shieldVerdict: ShieldVerdict;
   /** @maxLength 255 */
   platformPostId?: string | null;
   /** @maxLength 2048 */

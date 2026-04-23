@@ -56,7 +56,9 @@ import {
   useListVideos,
   useListVideoPublications,
   getListVideoPublicationsQueryKey,
+  useUpdatePublicationMetrics,
 } from "@workspace/api-client-react";
+import { refreshAllMetricsForVideo } from "@/lib/metricsRefresher";
 
 type ReasoningMap = Record<AgentKey, string>;
 
@@ -259,6 +261,60 @@ export default function SwarmStudioScreen() {
     return set;
   }, [pubsData]);
 
+  // Aggregate metrics by platform for the badge row. We pick the latest
+  // published row per platform; mock-mode rows simply have no metrics and
+  // the badge falls back to its bare ✓ rendering.
+  const metricsByPlatform = useMemo(() => {
+    const out = new Map<string, { views: number; likes: number }>();
+    for (const p of pubsData?.publications ?? []) {
+      if (p.status !== "published") continue;
+      const m = (p as { metrics?: { views?: number; likes?: number } | null })
+        .metrics;
+      if (m && typeof m === "object") {
+        out.set(p.platform, {
+          views: Number(m.views ?? 0) || 0,
+          likes: Number(m.likes ?? 0) || 0,
+        });
+      }
+    }
+    return out;
+  }, [pubsData]);
+
+  const updateMetrics = useUpdatePublicationMetrics();
+  const [refreshingMetrics, setRefreshingMetrics] = useState(false);
+  const handleRefreshMetrics = useCallback(async () => {
+    if (!video?.id || refreshingMetrics) return;
+    const pubs = pubsData?.publications ?? [];
+    if (pubs.length === 0) return;
+    setRefreshingMetrics(true);
+    try {
+      await refreshAllMetricsForVideo(
+        pubs.map((p) => ({
+          id: p.id,
+          platform: p.platform,
+          status: p.status,
+          platformPostId: (p as { platformPostId?: string | null })
+            .platformPostId,
+        })),
+        async ({ pubId, data }) => {
+          await updateMetrics.mutateAsync({ id: video.id, pubId, data });
+        },
+      );
+    } catch {
+      // Refresh failures are silent — the next manual or 5-min foreground
+      // tick will retry. Keeping the studio choreography uninterrupted is
+      // more important than surfacing transient platform errors here.
+    } finally {
+      setRefreshingMetrics(false);
+    }
+  }, [video?.id, pubsData, updateMetrics, refreshingMetrics]);
+
+  const compact = (n: number): string => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return String(n);
+  };
+
   const handleSubmit = useCallback(
     (text: string) => {
       // The orchestrator API doesn't currently accept a free-form override;
@@ -379,14 +435,34 @@ export default function SwarmStudioScreen() {
           </GlassSurface>
           {publishedPlatforms.size > 0 && (
             <View style={styles.publishedBadges}>
-              {(["tiktok", "reels", "shorts"] as const).map((p) =>
-                publishedPlatforms.has(p) ? (
+              {(["tiktok", "reels", "shorts"] as const).map((p) => {
+                if (!publishedPlatforms.has(p)) return null;
+                const m = metricsByPlatform.get(p);
+                return (
                   <View key={p} style={styles.publishedBadge}>
                     <Feather name="check" size={11} color="#00FFCC" />
                     <Text style={styles.publishedBadgeText}>{p}</Text>
+                    {m && (m.views > 0 || m.likes > 0) && (
+                      <Text style={styles.publishedBadgeText}>
+                        · {compact(m.views)} ▶
+                      </Text>
+                    )}
                   </View>
-                ) : null,
-              )}
+                );
+              })}
+              <Pressable
+                onPress={handleRefreshMetrics}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Refresh platform metrics"
+                style={styles.metricsRefreshBtn}
+              >
+                <Feather
+                  name={refreshingMetrics ? "loader" : "refresh-cw"}
+                  size={11}
+                  color="#00FFCC"
+                />
+              </Pressable>
             </View>
           )}
         </View>
@@ -543,6 +619,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "lowercase",
+  },
+  metricsRefreshBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,255,204,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   previewMeta: {
     position: "absolute",

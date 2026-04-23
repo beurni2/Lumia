@@ -162,6 +162,58 @@ export const PublicationStatus = {
   blocked: "blocked",
 } as const;
 
+export type ShieldVerdict = (typeof ShieldVerdict)[keyof typeof ShieldVerdict];
+
+export const ShieldVerdict = {
+  pass: "pass",
+  rewritten: "rewritten",
+  blocked: "blocked",
+} as const;
+
+export interface PublicationMetrics {
+  /** @minimum 0 */
+  views: number;
+  /** @minimum 0 */
+  likes: number;
+  /** @minimum 0 */
+  comments: number;
+  /** @minimum 0 */
+  shares: number;
+}
+
+export interface ConsentState {
+  aiDisclosureConsentedAt: string | null;
+  adultConfirmedAt: string | null;
+}
+
+export interface ConsentInput {
+  aiDisclosureConsented: boolean;
+  adultConfirmed: boolean;
+}
+
+export interface ScheduleState {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @maximum 23
+   */
+  hour: number | null;
+  /** @maxLength 64 */
+  tz: string | null;
+  lastRunAt: string | null;
+}
+
+export interface ScheduleInput {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @maximum 23
+   */
+  hour: number | null;
+  /** @maxLength 64 */
+  tz: string | null;
+}
+
 export interface Publication {
   id: string;
   videoId: string;
@@ -175,6 +227,9 @@ export interface Publication {
   publishedAt?: string | null;
   /** @maxLength 2000 */
   error?: string | null;
+  shieldVerdict?: ShieldVerdict | null;
+  metrics?: PublicationMetrics | null;
+  metricsFetchedAt?: string | null;
   createdAt: string;
 }
 
@@ -185,6 +240,7 @@ export interface PublicationList {
 export interface CreatePublicationInput {
   platform: PublicationPlatform;
   status: PublicationStatus;
+  shieldVerdict: ShieldVerdict;
   /** @maxLength 255 */
   platformPostId?: string | null;
   /** @maxLength 2048 */
@@ -213,3 +269,9 @@ export interface EarningsSummary {
   deals: BrandDeal[];
   history: number[];
 }
+
+export type ExportMyData200 = { [key: string]: unknown };
+
+export type DeleteMyData200 = {
+  deleted: boolean;
+};

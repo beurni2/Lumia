@@ -178,6 +178,44 @@ export class YouTubePostingClient {
       error: null,
     };
   }
+
+  /**
+   * Shorts metrics via Data API videos.list with statistics part.
+   * `viewCount`, `likeCount` and `commentCount` are first-class. There
+   * is no "shares" stat on YouTube (unlike TikTok/IG), so we report 0
+   * for shares to keep the response shape consistent across platforms.
+   */
+  async fetchMetrics(
+    remoteId: string,
+  ): Promise<{ views: number; likes: number; comments: number; shares: number }> {
+    const accessToken = await this.tokens.getValidAccessToken("youtube");
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${encodeURIComponent(remoteId)}`;
+    const res = await this.fetchImpl(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      throw new PlatformPostFailedError(
+        "youtube",
+        `videos.list HTTP ${res.status}`,
+      );
+    }
+    const json = (await res.json()) as {
+      items?: Array<{
+        statistics?: {
+          viewCount?: string;
+          likeCount?: string;
+          commentCount?: string;
+        };
+      }>;
+    };
+    const s = json.items?.[0]?.statistics ?? {};
+    return {
+      views: Number(s.viewCount ?? 0) || 0,
+      likes: Number(s.likeCount ?? 0) || 0,
+      comments: Number(s.commentCount ?? 0) || 0,
+      shares: 0,
+    };
+  }
 }
 
 function truncate(s: string, max: number): string {

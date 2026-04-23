@@ -161,6 +161,7 @@ export const recordPublicationBodyErrorMax = 2000;
 export const RecordPublicationBody = zod.object({
   platform: zod.enum(["tiktok", "reels", "shorts"]),
   status: zod.enum(["queued", "published", "failed", "blocked"]),
+  shieldVerdict: zod.enum(["pass", "rewritten", "blocked"]),
   platformPostId: zod
     .string()
     .max(recordPublicationBodyPlatformPostIdMax)
@@ -184,6 +185,14 @@ export const listVideoPublicationsResponsePublicationsItemMockUrlMax = 2048;
 
 export const listVideoPublicationsResponsePublicationsItemErrorMax = 2000;
 
+export const listVideoPublicationsResponsePublicationsItemMetricsOneViewsMin = 0;
+
+export const listVideoPublicationsResponsePublicationsItemMetricsOneLikesMin = 0;
+
+export const listVideoPublicationsResponsePublicationsItemMetricsOneCommentsMin = 0;
+
+export const listVideoPublicationsResponsePublicationsItemMetricsOneSharesMin = 0;
+
 export const ListVideoPublicationsResponse = zod.object({
   publications: zod.array(
     zod.object({
@@ -205,9 +214,198 @@ export const ListVideoPublicationsResponse = zod.object({
         .string()
         .max(listVideoPublicationsResponsePublicationsItemErrorMax)
         .nullish(),
+      shieldVerdict: zod.enum(["pass", "rewritten", "blocked"]).nullish(),
+      metrics: zod
+        .object({
+          views: zod
+            .number()
+            .min(
+              listVideoPublicationsResponsePublicationsItemMetricsOneViewsMin,
+            ),
+          likes: zod
+            .number()
+            .min(
+              listVideoPublicationsResponsePublicationsItemMetricsOneLikesMin,
+            ),
+          comments: zod
+            .number()
+            .min(
+              listVideoPublicationsResponsePublicationsItemMetricsOneCommentsMin,
+            ),
+          shares: zod
+            .number()
+            .min(
+              listVideoPublicationsResponsePublicationsItemMetricsOneSharesMin,
+            ),
+        })
+        .nullish(),
+      metricsFetchedAt: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     }),
   ),
+});
+
+/**
+ * Mobile-driven analytics refresh. The mobile app holds the OAuth
+tokens for TikTok / Instagram / YouTube; it fetches the post's
+latest views/likes/comments/shares and PATCHes them here.
+
+ * @summary Store fresh platform metrics for a publication
+ */
+export const UpdatePublicationMetricsParams = zod.object({
+  id: zod.coerce.string(),
+  pubId: zod.coerce.string(),
+});
+
+export const updatePublicationMetricsBodyViewsMin = 0;
+
+export const updatePublicationMetricsBodyLikesMin = 0;
+
+export const updatePublicationMetricsBodyCommentsMin = 0;
+
+export const updatePublicationMetricsBodySharesMin = 0;
+
+export const UpdatePublicationMetricsBody = zod.object({
+  views: zod.number().min(updatePublicationMetricsBodyViewsMin),
+  likes: zod.number().min(updatePublicationMetricsBodyLikesMin),
+  comments: zod.number().min(updatePublicationMetricsBodyCommentsMin),
+  shares: zod.number().min(updatePublicationMetricsBodySharesMin),
+});
+
+export const updatePublicationMetricsResponsePlatformPostIdMax = 255;
+
+export const updatePublicationMetricsResponseMockUrlMax = 2048;
+
+export const updatePublicationMetricsResponseErrorMax = 2000;
+
+export const updatePublicationMetricsResponseMetricsOneViewsMin = 0;
+
+export const updatePublicationMetricsResponseMetricsOneLikesMin = 0;
+
+export const updatePublicationMetricsResponseMetricsOneCommentsMin = 0;
+
+export const updatePublicationMetricsResponseMetricsOneSharesMin = 0;
+
+export const UpdatePublicationMetricsResponse = zod.object({
+  id: zod.string(),
+  videoId: zod.string(),
+  platform: zod.enum(["tiktok", "reels", "shorts"]),
+  status: zod.enum(["queued", "published", "failed", "blocked"]),
+  platformPostId: zod
+    .string()
+    .max(updatePublicationMetricsResponsePlatformPostIdMax)
+    .nullish(),
+  mockUrl: zod
+    .string()
+    .max(updatePublicationMetricsResponseMockUrlMax)
+    .nullish(),
+  scheduledFor: zod.coerce.date().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+  error: zod.string().max(updatePublicationMetricsResponseErrorMax).nullish(),
+  shieldVerdict: zod.enum(["pass", "rewritten", "blocked"]).nullish(),
+  metrics: zod
+    .object({
+      views: zod
+        .number()
+        .min(updatePublicationMetricsResponseMetricsOneViewsMin),
+      likes: zod
+        .number()
+        .min(updatePublicationMetricsResponseMetricsOneLikesMin),
+      comments: zod
+        .number()
+        .min(updatePublicationMetricsResponseMetricsOneCommentsMin),
+      shares: zod
+        .number()
+        .min(updatePublicationMetricsResponseMetricsOneSharesMin),
+    })
+    .nullish(),
+  metricsFetchedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Current AI-disclosure + adult-confirmation consent state
+ */
+export const GetConsentResponse = zod.object({
+  aiDisclosureConsentedAt: zod.coerce.date().nullable(),
+  adultConfirmedAt: zod.coerce.date().nullable(),
+});
+
+/**
+ * @summary Grant or withdraw AI-disclosure / adult consent
+ */
+export const UpsertConsentBody = zod.object({
+  aiDisclosureConsented: zod.boolean(),
+  adultConfirmed: zod.boolean(),
+});
+
+export const UpsertConsentResponse = zod.object({
+  aiDisclosureConsentedAt: zod.coerce.date().nullable(),
+  adultConfirmedAt: zod.coerce.date().nullable(),
+});
+
+/**
+ * @summary Nightly swarm schedule preferences
+ */
+export const getScheduleResponseHourMin = 0;
+export const getScheduleResponseHourMax = 23;
+
+export const getScheduleResponseTzMax = 64;
+
+export const GetScheduleResponse = zod.object({
+  enabled: zod.boolean(),
+  hour: zod
+    .number()
+    .min(getScheduleResponseHourMin)
+    .max(getScheduleResponseHourMax)
+    .nullable(),
+  tz: zod.string().max(getScheduleResponseTzMax).nullable(),
+  lastRunAt: zod.coerce.date().nullable(),
+});
+
+/**
+ * @summary Set nightly swarm schedule preferences
+ */
+export const upsertScheduleBodyHourMin = 0;
+export const upsertScheduleBodyHourMax = 23;
+
+export const upsertScheduleBodyTzMax = 64;
+
+export const UpsertScheduleBody = zod.object({
+  enabled: zod.boolean(),
+  hour: zod
+    .number()
+    .min(upsertScheduleBodyHourMin)
+    .max(upsertScheduleBodyHourMax)
+    .nullable(),
+  tz: zod.string().max(upsertScheduleBodyTzMax).nullable(),
+});
+
+export const upsertScheduleResponseHourMin = 0;
+export const upsertScheduleResponseHourMax = 23;
+
+export const upsertScheduleResponseTzMax = 64;
+
+export const UpsertScheduleResponse = zod.object({
+  enabled: zod.boolean(),
+  hour: zod
+    .number()
+    .min(upsertScheduleResponseHourMin)
+    .max(upsertScheduleResponseHourMax)
+    .nullable(),
+  tz: zod.string().max(upsertScheduleResponseTzMax).nullable(),
+});
+
+/**
+ * @summary GDPR/CCPA — every row owned by this creator as JSON
+ */
+export const ExportMyDataResponse = zod.object({}).passthrough();
+
+/**
+ * @summary GDPR/CCPA — hard-delete this creator and all owned rows
+ */
+export const DeleteMyDataResponse = zod.object({
+  deleted: zod.boolean(),
 });
 
 /**
@@ -218,6 +416,14 @@ export const listRecentPublicationsResponsePublicationsItemPlatformPostIdMax = 2
 export const listRecentPublicationsResponsePublicationsItemMockUrlMax = 2048;
 
 export const listRecentPublicationsResponsePublicationsItemErrorMax = 2000;
+
+export const listRecentPublicationsResponsePublicationsItemMetricsOneViewsMin = 0;
+
+export const listRecentPublicationsResponsePublicationsItemMetricsOneLikesMin = 0;
+
+export const listRecentPublicationsResponsePublicationsItemMetricsOneCommentsMin = 0;
+
+export const listRecentPublicationsResponsePublicationsItemMetricsOneSharesMin = 0;
 
 export const ListRecentPublicationsResponse = zod.object({
   publications: zod.array(
@@ -240,6 +446,32 @@ export const ListRecentPublicationsResponse = zod.object({
         .string()
         .max(listRecentPublicationsResponsePublicationsItemErrorMax)
         .nullish(),
+      shieldVerdict: zod.enum(["pass", "rewritten", "blocked"]).nullish(),
+      metrics: zod
+        .object({
+          views: zod
+            .number()
+            .min(
+              listRecentPublicationsResponsePublicationsItemMetricsOneViewsMin,
+            ),
+          likes: zod
+            .number()
+            .min(
+              listRecentPublicationsResponsePublicationsItemMetricsOneLikesMin,
+            ),
+          comments: zod
+            .number()
+            .min(
+              listRecentPublicationsResponsePublicationsItemMetricsOneCommentsMin,
+            ),
+          shares: zod
+            .number()
+            .min(
+              listRecentPublicationsResponsePublicationsItemMetricsOneSharesMin,
+            ),
+        })
+        .nullish(),
+      metricsFetchedAt: zod.coerce.date().nullish(),
       createdAt: zod.coerce.date(),
     }),
   ),

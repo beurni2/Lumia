@@ -40,3 +40,11 @@ The core agentic stack — Personal Style Twin, Swarm Studio, Smart Publisher, E
 - `pnpm -r test` — run the full workspace test suite (the permanent quality gate)
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Compliance, Scheduler, Metrics (Apr 2026)
+
+- **Consent surface**: `creators.ai_disclosure_consented_at` + `adult_confirmed_at`. Endpoints: `GET/POST /api/me/consent`, `POST /api/me/data-export`, `POST /api/me/data-delete`. Mobile onboarding has a 4th "consent" Act; profile screen exposes withdraw/export/delete.
+- **Server-side gates**: `POST /api/videos/:id/publications`, `POST /api/agents/run-overnight`, and `POST /api/me/schedule` (enable=true) all require BOTH consents → 403 `consent_required`. The publications route also requires a `shieldVerdict` field and rejects `status='published' + verdict='blocked'` with 409.
+- **Overnight scheduler**: `creators.nightly_swarm_{enabled,hour,tz,last_nightly_run_at}`. `lib/nightlyScheduler.ts` ticks every 5 min, computes IANA-tz local hour, atomic-claims via conditional `UPDATE ... WHERE lastNightlyRunAt IS NULL OR < dedupeFloor` (race-safe, 20h dedupe). Mobile profile has toggle + horizontal hour picker, tz auto-detected via `Intl`.
+- **Platform metrics**: `publications.metrics` (jsonb `{views,likes,comments,shares}`) + `metrics_fetched_at`. `PATCH /api/videos/:id/publications/:pubId/metrics`, ownership-validated. OAuth posting clients (`TikTok`, `Instagram`, `YouTube`) each have a `fetchMetrics(remoteId)` method hitting the official analytics endpoints. Mobile `lib/metricsRefresher.ts` walks publications and PATCHes via the orval `useUpdatePublicationMetrics` hook; Studio badge row shows compact view counts (e.g. `12.5k ▶`) when metrics present, with a small refresh affordance.
+- **Migrations** are one-shot pg scripts (`migrate-consent.ts`, `migrate-schedule-and-metrics.ts`) following the existing `migrate-publications.ts` / `migrate-agent-runs.ts` pattern (`ADD COLUMN IF NOT EXISTS`). No drizzle-kit in this repo.

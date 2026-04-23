@@ -42,6 +42,24 @@ export const creators = pgTable("creators", {
   // Demo creators are returned by /creator/me when no auth context exists,
   // letting the mobile app render content during onboarding / signed-out.
   isDemo: boolean("is_demo").notNull().default(false),
+  // Compliance surface (FTC AI-content disclosure + COPPA adult gate).
+  // Both nullable until the user actively consents — server-side gates
+  // (publication recording + swarm runs) refuse to proceed until both
+  // timestamps are populated.
+  aiDisclosureConsentedAt: timestamp("ai_disclosure_consented_at", {
+    withTimezone: true,
+  }),
+  adultConfirmedAt: timestamp("adult_confirmed_at", { withTimezone: true }),
+  // Nightly swarm scheduler — opt-in fire-and-forget. The scheduler ticks
+  // every 5 min and runs a swarm cycle for any opted-in creator whose
+  // local hour (per `nightlySwarmTz`) currently equals `nightlySwarmHour`
+  // and whose `lastNightlyRunAt` is older than 20 hours.
+  nightlySwarmEnabled: boolean("nightly_swarm_enabled")
+    .notNull()
+    .default(false),
+  nightlySwarmHour: integer("nightly_swarm_hour"),
+  nightlySwarmTz: varchar("nightly_swarm_tz", { length: 64 }),
+  lastNightlyRunAt: timestamp("last_nightly_run_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -192,6 +210,20 @@ export const publications = pgTable(
     scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     error: text("error"),
+    // Compliance Shield verdict captured at the moment of publish.
+    // Server rejects status='published' rows whose verdict='blocked'
+    // — preventing a buggy or malicious client from recording a
+    // "successful" post the Shield refused to allow.
+    shieldVerdict: varchar("shield_verdict", { length: 16 }),
+    // Last-known platform metrics for this post, refreshed by the
+    // mobile client (the only place that holds the OAuth tokens).
+    metrics: jsonb("metrics").$type<{
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+    }>(),
+    metricsFetchedAt: timestamp("metrics_fetched_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

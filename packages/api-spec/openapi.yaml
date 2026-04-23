@@ -181,6 +181,149 @@ paths:
                 $ref: "#/components/schemas/PublicationList"
         "401":
           description: Unknown user
+  /videos/{id}/publications/{pubId}/metrics:
+    patch:
+      operationId: updatePublicationMetrics
+      tags: [publications]
+      summary: Store fresh platform metrics for a publication
+      description: |
+        Mobile-driven analytics refresh. The mobile app holds the OAuth
+        tokens for TikTok / Instagram / YouTube; it fetches the post's
+        latest views/likes/comments/shares and PATCHes them here.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pubId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicationMetrics"
+      responses:
+        "200":
+          description: Metrics persisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Publication"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unknown user
+        "404":
+          description: Publication not found
+  /me/consent:
+    get:
+      operationId: getConsent
+      tags: [me]
+      summary: Current AI-disclosure + adult-confirmation consent state
+      responses:
+        "200":
+          description: Consent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentState"
+        "401":
+          description: Unknown user
+    post:
+      operationId: upsertConsent
+      tags: [me]
+      summary: Grant or withdraw AI-disclosure / adult consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentInput"
+      responses:
+        "200":
+          description: Updated consent state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentState"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unknown user
+  /me/schedule:
+    get:
+      operationId: getSchedule
+      tags: [me]
+      summary: Nightly swarm schedule preferences
+      responses:
+        "200":
+          description: Schedule state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleState"
+        "401":
+          description: Unknown user
+    post:
+      operationId: upsertSchedule
+      tags: [me]
+      summary: Set nightly swarm schedule preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleInput"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleInput"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unknown user
+        "403":
+          description: Consent required to enable
+  /me/data-export:
+    post:
+      operationId: exportMyData
+      tags: [me]
+      summary: GDPR/CCPA — every row owned by this creator as JSON
+      responses:
+        "200":
+          description: Data export
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Unknown user
+  /me/data-delete:
+    post:
+      operationId: deleteMyData
+      tags: [me]
+      summary: GDPR/CCPA — hard-delete this creator and all owned rows
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                required: [deleted]
+        "401":
+          description: Unknown user
   /publications/recent:
     get:
       operationId: listRecentPublications
@@ -380,6 +523,79 @@ components:
     PublicationStatus:
       type: string
       enum: [queued, published, failed, blocked]
+    ShieldVerdict:
+      type: string
+      enum: [pass, rewritten, blocked]
+    PublicationMetrics:
+      type: object
+      properties:
+        views:
+          type: integer
+          minimum: 0
+        likes:
+          type: integer
+          minimum: 0
+        comments:
+          type: integer
+          minimum: 0
+        shares:
+          type: integer
+          minimum: 0
+      required: [views, likes, comments, shares]
+    ConsentState:
+      type: object
+      properties:
+        aiDisclosureConsentedAt:
+          type: string
+          format: date-time
+          nullable: true
+        adultConfirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [aiDisclosureConsentedAt, adultConfirmedAt]
+    ConsentInput:
+      type: object
+      properties:
+        aiDisclosureConsented:
+          type: boolean
+        adultConfirmed:
+          type: boolean
+      required: [aiDisclosureConsented, adultConfirmed]
+    ScheduleState:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+          nullable: true
+        tz:
+          type: string
+          maxLength: 64
+          nullable: true
+        lastRunAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [enabled, hour, tz, lastRunAt]
+    ScheduleInput:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+          nullable: true
+        tz:
+          type: string
+          maxLength: 64
+          nullable: true
+      required: [enabled, hour, tz]
     Publication:
       type: object
       properties:
@@ -411,6 +627,18 @@ components:
           type: string
           maxLength: 2000
           nullable: true
+        shieldVerdict:
+          allOf:
+            - $ref: "#/components/schemas/ShieldVerdict"
+          nullable: true
+        metrics:
+          allOf:
+            - $ref: "#/components/schemas/PublicationMetrics"
+          nullable: true
+        metricsFetchedAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -430,6 +658,8 @@ components:
           $ref: "#/components/schemas/PublicationPlatform"
         status:
           $ref: "#/components/schemas/PublicationStatus"
+        shieldVerdict:
+          $ref: "#/components/schemas/ShieldVerdict"
         platformPostId:
           type: string
           maxLength: 255
@@ -450,7 +680,7 @@ components:
           type: string
           maxLength: 2000
           nullable: true
-      required: [platform, status]
+      required: [platform, status, shieldVerdict]
     SwarmRunDetail:
       type: object
       properties:
