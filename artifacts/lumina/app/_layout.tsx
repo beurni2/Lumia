@@ -10,12 +10,17 @@ import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
-import { setBaseUrl } from "@workspace/api-client-react";
+import {
+  setAuthTokenGetter,
+  setBaseUrl,
+} from "@workspace/api-client-react";
+import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, type Href } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { Platform } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -23,7 +28,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppStateProvider, useAppState } from "@/hooks/useAppState";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -32,13 +36,8 @@ const queryClient = new QueryClient();
 // and production, both artifacts are reachable through the same proxy domain
 // (api-server lives under /api/*). EXPO_PUBLIC_DOMAIN is baked into the
 // bundle by scripts/build.js.
-//
-// On web preview the bundle runs in a browser, so a relative `/api/...` URL
-// works fine — leave the base URL unset. On native (iOS/Android), relative
-// URLs cannot be resolved by fetch, so a missing domain is a hard error.
 {
   const raw = process.env.EXPO_PUBLIC_DOMAIN;
-  // Strip any accidental protocol prefix to avoid `https://https://...`.
   const host = raw?.replace(/^https?:\/\//, "").replace(/\/+$/, "");
   if (host) {
     setBaseUrl(`https://${host}`);
@@ -51,36 +50,102 @@ const queryClient = new QueryClient();
   }
 }
 
-function RootLayoutNav() {
-  const { hasCompletedOnboarding, isLoading } = useAppState();
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+if (!publishableKey) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[Lumina] EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY missing — auth will not work. " +
+      "Verify the dev script forwards CLERK_PUBLISHABLE_KEY.",
+  );
+}
+
+/**
+ * Routes the user based on their auth + onboarding state:
+ *   signed-out                          → /(auth)/sign-in
+ *   signed-in & not onboarded           → /onboarding
+ *   signed-in & onboarded & on auth     → /(tabs)
+ *   signed-in & onboarded & on onboard  → /(tabs)
+ *
+ * Also wires the Clerk session token into the generated API client so
+ * every request carries a Bearer token the api-server can verify.
+ */
+// Module-scoped ref to the latest getToken. The token getter is registered
+// SYNCHRONOUSLY at module load, so the very first API request — even if
+// fired during initial render before any effect runs — finds the getter
+// installed. Each render updates the ref so the getter always delegates
+// to the freshest Clerk session.
+const getTokenRef: { current: null | (() => Promise<string | null>) } = {
+  current: null,
+};
+setAuthTokenGetter(async () => {
+  if (!getTokenRef.current) return null;
+  return getTokenRef.current();
+});
+
+function AuthAwareRouter() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { hasCompletedOnboarding, isLoading: stateLoading } = useAppState();
   const router = useRouter();
   const segments = useSegments();
+  const liveGetToken = useRef(getToken);
+  liveGetToken.current = getToken;
+  // Wire the module-scoped delegate to the freshest hook value every render.
+  getTokenRef.current = () => liveGetToken.current();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (!isLoaded || stateLoading) return;
 
-    const inTabsGroup = segments[0] === "(tabs)";
+    const firstSegment = segments[0] as string | undefined;
+    const inAuthGroup = firstSegment === "(auth)";
+    const onOnboarding = firstSegment === "onboarding";
 
-    if (!hasCompletedOnboarding && inTabsGroup) {
-      router.replace("/onboarding");
-    } else if (hasCompletedOnboarding && segments[0] === "onboarding") {
+    if (!isSignedIn) {
+      if (!inAuthGroup) router.replace("/(auth)/sign-in" as Href);
+      return;
+    }
+
+    if (!hasCompletedOnboarding) {
+      if (!onOnboarding) router.replace("/onboarding");
+      return;
+    }
+
+    if (inAuthGroup || onOnboarding) {
       router.replace("/(tabs)");
     }
-  }, [hasCompletedOnboarding, isLoading, segments, router]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    stateLoading,
+    hasCompletedOnboarding,
+    segments,
+    router,
+  ]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" options={{ presentation: "fullScreenModal" }} />
-      <Stack.Screen name="studio/[id]" options={{ presentation: "modal" }} />
+      <Stack.Screen
+        name="onboarding"
+        options={{ presentation: "fullScreenModal" }}
+      />
+      <Stack.Screen
+        name="studio/[id]"
+        options={{ presentation: "modal" }}
+      />
       <Stack.Screen name="publisher" options={{ presentation: "modal" }} />
-      <Stack.Screen name="while-you-slept" options={{ presentation: "modal" }} />
+      <Stack.Screen
+        name="while-you-slept"
+        options={{ presentation: "modal" }}
+      />
     </Stack>
   );
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
     Inter_500Medium,
@@ -91,26 +156,32 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+    <ErrorBoundary>
+      <ClerkProvider
+        publishableKey={publishableKey ?? ""}
+        tokenCache={tokenCache}
+        proxyUrl={clerkProxyUrl}
+      >
+        <ClerkLoaded>
+          <SafeAreaProvider>
             <KeyboardProvider>
-              <AppStateProvider>
-                <RootLayoutNav />
-              </AppStateProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <QueryClientProvider client={queryClient}>
+                  <AppStateProvider>
+                    <AuthAwareRouter />
+                  </AppStateProvider>
+                </QueryClientProvider>
+              </GestureHandlerRootView>
             </KeyboardProvider>
-          </GestureHandlerRootView>
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+          </SafeAreaProvider>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </ErrorBoundary>
   );
 }

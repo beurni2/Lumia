@@ -1,23 +1,19 @@
 /**
- * Single source of truth for "which creator is this request about?"
+ * Single source of truth for "which creator owns this request?"
  *
- * Contract (uniform across every user-scoped route):
- *   - If x-auth-user-id header is present:
- *       - Return the matching creator row, OR
- *       - Return null if no creator owns that authUserId.  The route MUST
- *         respond 401 in that case rather than silently falling back to
- *         the demo account (otherwise tabs would show contradictory
- *         identities for the same caller).
- *   - If x-auth-user-id is absent (signed-out / onboarding state):
- *       - Return the seeded demo creator so the mobile app keeps
- *         rendering content.
- *
- * Once Clerk middleware lands this header read becomes a verified
- * `req.auth.userId` lookup; the rest of the contract is unchanged.
+ * Resolution order:
+ *   1. Clerk session present → look up creators.auth_user_id == userId.
+ *      If none exists yet (first sign-in), provision a fresh creator
+ *      row using the Clerk userId so subsequent calls find it.
+ *   2. No Clerk session → fall back to the seeded demo creator
+ *      (is_demo = TRUE) so signed-out / onboarding-stage clients still
+ *      render content. The mobile app gates the tabs behind sign-in,
+ *      so in production this branch only fires for curl / dev tools.
  */
 
 import type { Request } from "express";
 import { eq } from "drizzle-orm";
+import { getAuth } from "@clerk/express";
 import { db, schema } from "../db/client";
 import type { Creator } from "../db/schema";
 
@@ -25,20 +21,45 @@ export type CreatorResolution =
   | { kind: "found"; creator: Creator }
   | { kind: "unauthenticated_unknown" };
 
+async function findOrCreateForAuthUser(
+  authUserId: string,
+): Promise<Creator | undefined> {
+  // Atomic provision: INSERT ... ON CONFLICT DO NOTHING is safe under
+  // concurrent first requests for the same Clerk user. We always
+  // re-select afterwards so both branches (created here vs created by
+  // a racing request) return the same row.
+  await db
+    .insert(schema.creators)
+    .values({
+      authUserId,
+      name: "New Creator",
+      location: "—",
+      niche: "—",
+      followers: 0,
+      currency: "USD",
+      imageKey: "creator-1",
+      isDemo: false,
+    })
+    .onConflictDoNothing({ target: schema.creators.authUserId });
+
+  return (
+    await db
+      .select()
+      .from(schema.creators)
+      .where(eq(schema.creators.authUserId, authUserId))
+      .limit(1)
+  )[0];
+}
+
 export async function resolveCreator(
   req: Request,
 ): Promise<CreatorResolution> {
-  const authUserId = req.header("x-auth-user-id");
+  const auth = getAuth(req);
+  const authUserId = auth?.userId;
 
   if (authUserId) {
-    const row = (
-      await db
-        .select()
-        .from(schema.creators)
-        .where(eq(schema.creators.authUserId, authUserId))
-        .limit(1)
-    )[0];
-    if (row) return { kind: "found", creator: row };
+    const creator = await findOrCreateForAuthUser(authUserId);
+    if (creator) return { kind: "found", creator };
     return { kind: "unauthenticated_unknown" };
   }
 

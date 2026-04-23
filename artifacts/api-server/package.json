@@ -10,11 +10,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@clerk/express": "^2.1.5",
     "@workspace/api-zod": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
     "drizzle-orm": "catalog:",
     "express": "^5",
+    "http-proxy-middleware": "^3.0.5",
     "pg": "^8.20.0",
     "pino": "^9",
     "pino-http": "^10"
