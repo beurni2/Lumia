@@ -138,4 +138,34 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 7,
+    name: "error_events",
+    // Structured error capture. Every uncaught error reaching the
+    // express error handler writes one row here so we can answer
+    // "what's been failing for whom in the last hour" without
+    // grepping through pino-rotated JSON files. creator_id is
+    // nullable because some errors happen before auth resolution
+    // (e.g. malformed JSON body).
+    sql: `
+      CREATE TABLE IF NOT EXISTS error_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        request_id varchar(64),
+        occurred_at timestamptz NOT NULL DEFAULT now(),
+        method varchar(8),
+        route text,
+        status_code integer,
+        creator_id uuid REFERENCES creators(id) ON DELETE SET NULL,
+        error_name varchar(120),
+        error_message text,
+        error_stack text,
+        context jsonb NOT NULL DEFAULT '{}'::jsonb
+      );
+      CREATE INDEX IF NOT EXISTS idx_error_events_occurred
+        ON error_events (occurred_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_error_events_creator_occurred
+        ON error_events (creator_id, occurred_at DESC)
+        WHERE creator_id IS NOT NULL;
+    `,
+  },
 ];

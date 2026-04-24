@@ -1,5 +1,9 @@
 import app from "./app";
 import { runMigrations } from "./db/migrate";
+import {
+  startCleanupSweeper,
+  stopCleanupSweeper,
+} from "./lib/cleanupSweeper";
 import { startJobWorker, stopJobWorker } from "./lib/jobQueue";
 import { logger } from "./lib/logger";
 import {
@@ -43,6 +47,7 @@ async function boot() {
     // immediately and any orphan-recovery sweeps don't block startup.
     void startJobWorker();
     startNightlyScheduler();
+    startCleanupSweeper();
   });
 
   // Graceful shutdown: stop accepting new connections, stop the
@@ -55,6 +60,7 @@ async function boot() {
     shuttingDown = true;
     logger.info({ signal }, "shutdown initiated");
     stopNightlyScheduler();
+    stopCleanupSweeper();
     server.close(() => logger.info("http server closed"));
     try {
       await stopJobWorker(25_000);

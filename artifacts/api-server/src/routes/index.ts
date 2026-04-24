@@ -7,6 +7,7 @@ import videosRouter from "./videos";
 import agentsRouter from "./agents";
 import publicationsRouter from "./publications";
 import meRouter from "./me";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(videosRouter);
 router.use(agentsRouter);
 router.use(publicationsRouter);
 router.use(meRouter);
+router.use(adminRouter);
 
 export default router;

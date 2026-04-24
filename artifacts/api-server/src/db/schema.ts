@@ -299,3 +299,35 @@ export const usageCounters = pgTable(
 
 export type Job = typeof jobs.$inferSelect;
 export type UsageCounter = typeof usageCounters.$inferSelect;
+
+/**
+ * error_events — structured error capture.
+ *
+ * Populated by the express error handler middleware. One row per
+ * uncaught error reaching the boundary, with the request_id surfaced
+ * in response headers so a creator's bug report can be correlated to
+ * the row. Read-only from app code; writes go through lib/errorCapture.
+ */
+export const errorEvents = pgTable(
+  "error_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: varchar("request_id", { length: 64 }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    method: varchar("method", { length: 8 }),
+    route: text("route"),
+    statusCode: integer("status_code"),
+    creatorId: uuid("creator_id").references(() => creators.id, {
+      onDelete: "set null",
+    }),
+    errorName: varchar("error_name", { length: 120 }),
+    errorMessage: text("error_message"),
+    errorStack: text("error_stack"),
+    context: jsonb("context").notNull().default({}),
+  },
+  (t) => [index("idx_error_events_occurred").on(t.occurredAt)],
+);
+
+export type ErrorEvent = typeof errorEvents.$inferSelect;

@@ -6,14 +6,23 @@ import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
 } from "./middlewares/clerkProxyMiddleware";
+import { requestIdMiddleware } from "./middlewares/requestId";
+import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Request id MUST come before pino-http so the logger picks it up via
+// `req.id`, and before any handler that might throw so the error
+// boundary can include it on the row + response header.
+app.use(requestIdMiddleware());
+
 app.use(
   pinoHttp({
     logger,
+    // Reuse the id we just minted instead of pino-http's default.
+    genReqId: (req) => (req as unknown as { id?: string }).id ?? "",
     serializers: {
       req(req) {
         return {
@@ -44,5 +53,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(clerkMiddleware());
 
 app.use("/api", router);
+
+// Error boundary — must be the LAST middleware so it catches
+// everything thrown above. Persists each error to `error_events` and
+// returns a sanitized JSON body. See middlewares/errorHandler.ts.
+app.use(errorHandlerMiddleware());
 
 export default app;
