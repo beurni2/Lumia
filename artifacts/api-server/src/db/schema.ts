@@ -172,6 +172,11 @@ export const agentRuns = pgTable(
     status: varchar("status", { length: 16 }).notNull().default("queued"),
     parentRunId: uuid("parent_run_id"),
     summary: text("summary"),
+    // Machine-readable handoff payload from the agent function (e.g.
+    // {topBriefId} from ideator, {videoId} from director). Persisted
+    // so a re-invocation of the parent swarm can recover the value
+    // and skip re-executing the step.
+    output: jsonb("output").$type<unknown>(),
     error: text("error"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),

@@ -80,6 +80,15 @@ export type RateLimitOpts = {
   max: number;
   /** Bucket-key prefix so different middleware instances don't share buckets. */
   prefix?: string;
+  /**
+   * Optional predicate that, when it returns true for a request, lets
+   * the request bypass this limiter entirely without incrementing the
+   * bucket. Used to keep specific paths (e.g. webhook receivers) on
+   * their own dedicated limiter instead of competing for the global
+   * /api bucket — a flood of bogus webhooks must not push real API
+   * traffic from the same IP into 429s.
+   */
+  skip?: (req: Request) => boolean;
 };
 
 /**
@@ -93,7 +102,12 @@ export function rateLimit(opts: RateLimitOpts) {
   const prefix = opts.prefix ?? "rl";
   startJanitor();
 
+  const skip = opts.skip;
   return (req: Request, res: Response, next: NextFunction): void => {
+    if (skip && skip(req)) {
+      next();
+      return;
+    }
     const now = Date.now();
     const key = `${prefix}:${clientIp(req)}`;
     let bucket = buckets.get(key);

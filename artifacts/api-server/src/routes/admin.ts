@@ -253,4 +253,162 @@ router.get(
   },
 );
 
+/**
+ * GET /api/admin/overview
+ *
+ * Single read-only snapshot for an ops dashboard. Bundles the four
+ * numbers an operator looks at first when they ask "is anything on
+ * fire right now?":
+ *
+ *   - jobs queue depth by status (pending / running / failed)
+ *   - error_events count over the last hour, plus the top 3 names
+ *   - swarm runs today by status (queued / running / done / failed)
+ *   - today's AI spend (USD) and the top 5 spending creators
+ *
+ * Each piece is independent so a single slow query can't tank the
+ * whole snapshot. Read-only — no mutation, no side effects.
+ */
+router.get("/admin/overview", async (_req: Request, res: Response) => {
+  // Run the read queries in parallel — they touch different tables
+  // and indexes so there's no contention to serialize.
+  //
+  // Promise.allSettled (not Promise.all): one slow / failed widget
+  // must not blank the whole dashboard. Each section is independent
+  // and the operator wants whatever data IS available. A failed
+  // section is reported in a top-level `errors` array so the caller
+  // can show "spend data temporarily unavailable" instead of a 500.
+  const settled = await Promise.allSettled([
+      db.execute(sql`
+        SELECT status, count(*)::int AS n
+          FROM jobs
+         WHERE status IN ('pending', 'running', 'failed')
+         GROUP BY status
+      `),
+      db.execute(sql`
+        SELECT count(*)::int AS n
+          FROM error_events
+         WHERE occurred_at >= now() - interval '1 hour'
+      `),
+      db.execute(sql`
+        SELECT coalesce(error_name, '<unknown>') AS name,
+               count(*)::int AS n
+          FROM error_events
+         WHERE occurred_at >= now() - interval '1 hour'
+         GROUP BY name
+         ORDER BY n DESC
+         LIMIT 3
+      `),
+      db.execute(sql`
+        SELECT status, count(*)::int AS n
+          FROM agent_runs
+         WHERE agent = 'swarm'
+           AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC')
+                              AT TIME ZONE 'UTC'
+         GROUP BY status
+      `),
+      db.execute(sql`
+        WITH window_start AS (
+          SELECT (date_trunc('day', now() AT TIME ZONE 'UTC')
+                  AT TIME ZONE 'UTC') AS ts
+        )
+        SELECT
+          coalesce(sum(cost_usd_micro), 0)::bigint AS micro,
+          count(*)::int AS calls
+          FROM ai_usage, window_start
+         WHERE created_at >= window_start.ts
+      `),
+      db.execute(sql`
+        WITH window_start AS (
+          SELECT (date_trunc('day', now() AT TIME ZONE 'UTC')
+                  AT TIME ZONE 'UTC') AS ts
+        )
+        SELECT
+          u.creator_id,
+          c.name,
+          coalesce(sum(u.cost_usd_micro), 0)::bigint AS micro
+          FROM ai_usage u
+          LEFT JOIN creators c ON c.id = u.creator_id
+        , window_start
+         WHERE u.created_at >= window_start.ts
+           AND u.creator_id IS NOT NULL
+         GROUP BY u.creator_id, c.name
+         ORDER BY micro DESC
+         LIMIT 5
+      `),
+    ]);
+
+  const sectionNames = [
+    "jobs",
+    "errorsCount",
+    "errorsTop",
+    "swarms",
+    "spendTotal",
+    "spendTop",
+  ] as const;
+
+  const errors: { section: string; message: string }[] = [];
+  const rowsOf = <T,>(idx: number): T[] => {
+    const r = settled[idx];
+    if (r.status === "rejected") {
+      const msg =
+        r.reason instanceof Error ? r.reason.message : String(r.reason);
+      errors.push({ section: sectionNames[idx], message: msg });
+      return [];
+    }
+    return (
+      (r.value as unknown as { rows: T[] }).rows ?? []
+    );
+  };
+
+  const jobsRows = rowsOf<{ status: string; n: number }>(0);
+  const errsCountRows = rowsOf<{ n: number }>(1);
+  const errsTopRows = rowsOf<{ name: string; n: number }>(2);
+  const swarmsRows = rowsOf<{ status: string; n: number }>(3);
+  const spendTotalRows = rowsOf<{ micro: string | number; calls: number }>(4);
+  const spendTopRows =
+    rowsOf<{ creator_id: string; name: string | null; micro: string | number }>(
+      5,
+    );
+
+  const jobsByStatus: Record<string, number> = {
+    pending: 0,
+    running: 0,
+    failed: 0,
+  };
+  for (const r of jobsRows) jobsByStatus[r.status] = Number(r.n);
+
+  const swarmsByStatus: Record<string, number> = {
+    queued: 0,
+    running: 0,
+    done: 0,
+    failed: 0,
+  };
+  for (const r of swarmsRows) swarmsByStatus[r.status] = Number(r.n);
+
+  const totalMicro = Number(spendTotalRows[0]?.micro ?? 0);
+  const totalCalls = Number(spendTotalRows[0]?.calls ?? 0);
+
+  res.json({
+    asOf: new Date().toISOString(),
+    jobs: jobsByStatus,
+    errorsLastHour: {
+      total: Number(errsCountRows[0]?.n ?? 0),
+      top: errsTopRows.map((r) => ({ name: r.name, count: Number(r.n) })),
+    },
+    swarmsToday: swarmsByStatus,
+    spendToday: {
+      usd: totalMicro / 1_000_000,
+      calls: totalCalls,
+      topSpenders: spendTopRows.map((r) => ({
+        creatorId: r.creator_id,
+        name: r.name,
+        usd: Number(r.micro) / 1_000_000,
+      })),
+    },
+    // Empty when all six widgets succeeded; a non-empty array means
+    // the corresponding section's data is missing or stale.
+    errors,
+  });
+});
+
 export default router;

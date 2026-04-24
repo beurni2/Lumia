@@ -8,6 +8,7 @@ import agentsRouter from "./agents";
 import publicationsRouter from "./publications";
 import meRouter from "./me";
 import adminRouter from "./admin";
+import webhooksRouter from "./webhooks";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(agentsRouter);
 router.use(publicationsRouter);
 router.use(meRouter);
 router.use(adminRouter);
+router.use(webhooksRouter);
 
 export default router;

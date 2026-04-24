@@ -55,6 +55,18 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
+
+// Webhook receivers MUST see the raw request body to verify the
+// provider's HMAC signature — once express.json() has parsed and
+// re-stringified the bytes, the signature is dead. So mount a raw
+// body parser scoped to /api/webhooks/* BEFORE the global JSON
+// parser. The `type: '*/*'` is intentional: providers occasionally
+// send unusual content-types and we want the bytes either way.
+app.use(
+  "/api/webhooks",
+  express.raw({ type: "*/*", limit: "1mb" }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -66,7 +78,21 @@ app.use(clerkMiddleware());
 // generous enough that a real interactive client never trips it but
 // stops a runaway script from hammering the server. Tighter caps for
 // individual sensitive routes are applied inside their routers.
-app.use("/api", rateLimit({ max: 600, windowMs: 60_000, prefix: "api" }));
+//
+// Webhook receivers are excluded from this bucket — they get their
+// own dedicated limiter inside the webhooks router. Otherwise a
+// flood of bogus signed-webhook attempts from one IP could starve
+// legitimate API calls from the same address (e.g. shared office
+// NAT) of their bucket.
+app.use(
+  "/api",
+  rateLimit({
+    max: 600,
+    windowMs: 60_000,
+    prefix: "api",
+    skip: (req) => req.path.startsWith("/webhooks"),
+  }),
+);
 
 app.use("/api", router);
 

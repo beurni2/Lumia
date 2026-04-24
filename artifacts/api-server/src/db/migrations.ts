@@ -198,4 +198,40 @@ export const migrations: Migration[] = [
         ON ai_usage (created_at DESC);
     `,
   },
+  {
+    id: 9,
+    name: "agent_runs_output",
+    // Persist each step's structured result on its agent_runs row so a
+    // re-invocation of the parent swarm can short-circuit any step
+    // that already finished (per-step idempotency / resume). The
+    // existing `summary` column is human-readable text; this jsonb is
+    // the machine-readable handoff payload (e.g. {topBriefId, videoId})
+    // that downstream agents consume in-process.
+    sql: `
+      ALTER TABLE agent_runs
+        ADD COLUMN IF NOT EXISTS output jsonb;
+      CREATE INDEX IF NOT EXISTS idx_agent_runs_parent_agent_status
+        ON agent_runs (parent_run_id, agent, status)
+        WHERE parent_run_id IS NOT NULL;
+    `,
+  },
+  {
+    id: 10,
+    name: "webhook_events",
+    // Permanent idempotency log for inbound webhooks. Composite PK is
+    // the only unique constraint we need — duplicates are rejected by
+    // ON CONFLICT DO NOTHING in the receiver. The jobs queue already
+    // has its own dedupe on pending/running, but that gap closes the
+    // moment a job moves to 'done': without this table, a Stripe
+    // re-delivery of an already-processed event id would create a
+    // brand-new pending job and double-process it.
+    sql: `
+      CREATE TABLE IF NOT EXISTS webhook_events (
+        provider varchar(16) NOT NULL,
+        event_id varchar(255) NOT NULL,
+        received_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (provider, event_id)
+      );
+    `,
+  },
 ];
