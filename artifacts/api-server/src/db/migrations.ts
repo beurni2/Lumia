@@ -168,4 +168,34 @@ export const migrations: Migration[] = [
         WHERE creator_id IS NOT NULL;
     `,
   },
+  {
+    id: 8,
+    name: "ai_usage",
+    // Per-call AI spend ledger. Cost is stored in micro-dollars
+    // (1 USD = 1_000_000) as bigint so we never lose pennies to
+    // float drift when summing across thousands of rows. agent_run_id
+    // is nullable so cost can be recorded even when a call happens
+    // outside a tracked agent run (e.g. ad-hoc admin tooling).
+    sql: `
+      CREATE TABLE IF NOT EXISTS ai_usage (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        creator_id uuid REFERENCES creators(id) ON DELETE SET NULL,
+        agent_run_id uuid REFERENCES agent_runs(id) ON DELETE SET NULL,
+        agent varchar(32),
+        model varchar(64) NOT NULL,
+        input_tokens integer NOT NULL DEFAULT 0,
+        output_tokens integer NOT NULL DEFAULT 0,
+        cost_usd_micro bigint NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_usage_creator_created
+        ON ai_usage (creator_id, created_at DESC)
+        WHERE creator_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_ai_usage_run
+        ON ai_usage (agent_run_id)
+        WHERE agent_run_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_ai_usage_created
+        ON ai_usage (created_at DESC);
+    `,
+  },
 ];

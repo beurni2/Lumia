@@ -44,6 +44,11 @@ export async function monetizerAgent(
   if (!creator) throw new Error("creator not found");
 
   const out = await callJsonAgent({
+    ctx: {
+      creatorId: ctx.creatorId,
+      agentRunId: ctx.parentRunId,
+      agent: "monetizer",
+    },
     schema: monetizerSchema,
     system:
       "You are the Monetizer agent — a brand partnerships matcher. You " +

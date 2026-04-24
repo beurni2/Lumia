@@ -30,6 +30,11 @@ export async function editorAgent(
   if (!video) throw new Error(`video ${videoId} not found`);
 
   const out = await callJsonAgent({
+    ctx: {
+      creatorId: ctx.creatorId,
+      agentRunId: ctx.parentRunId,
+      agent: "editor",
+    },
     schema: editorSchema,
     system:
       "You are the Editor agent — a retention-obsessed cutter. You take " +

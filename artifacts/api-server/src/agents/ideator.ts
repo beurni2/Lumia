@@ -60,6 +60,11 @@ export async function ideatorAgent(
       : "(no recent trends)";
 
   const out = await callJsonAgent({
+    ctx: {
+      creatorId: ctx.creatorId,
+      agentRunId: ctx.parentRunId,
+      agent: "ideator",
+    },
     schema: ideatorSchema,
     system:
       "You are the Ideator agent in Lumina's creative swarm — a sharp, " +

@@ -41,6 +41,11 @@ export async function directorAgent(
   if (!creator) throw new Error("creator not found");
 
   const out = await callJsonAgent({
+    ctx: {
+      creatorId: ctx.creatorId,
+      agentRunId: ctx.parentRunId,
+      agent: "director",
+    },
     schema: directorSchema,
     system:
       "You are the Director agent — a short-form video showrunner. " +
