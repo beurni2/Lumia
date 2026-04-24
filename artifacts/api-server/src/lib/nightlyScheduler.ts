@@ -23,7 +23,8 @@
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db, schema } from "../db/client";
 import { logger } from "./logger";
-import { executeSwarmRun, startSwarmRun } from "../agents/swarm";
+import { startSwarmRun } from "../agents/swarm";
+import { enqueueSwarmRun } from "./swarmJobs";
 
 const TICK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const RUN_DEDUPE_HOURS = 20;
@@ -102,15 +103,18 @@ async function tick(): Promise<void> {
 
     try {
       const { runId } = await startSwarmRun(c.id);
-      logger.info({ creatorId: c.id, runId }, "[nightlyScheduler] kicked");
-      setImmediate(() => {
-        executeSwarmRun(runId, c.id).catch((err) => {
-          logger.error(
-            { err, creatorId: c.id, runId },
-            "[nightlyScheduler] run failed",
-          );
-        });
+      // Enqueue durable job instead of fire-and-forget — survives
+      // process crashes, retries with exponential backoff, and is
+      // dedupped on (creator, calendar day) so a second tick that
+      // somehow slips past `lastNightlyRunAt` still can't double-run.
+      const dayBucket = now.toISOString().slice(0, 10);
+      const { deduped, jobId } = await enqueueSwarmRun(runId, c.id, {
+        dedupeKey: `swarm.run:${c.id}:${dayBucket}`,
       });
+      logger.info(
+        { creatorId: c.id, runId, jobId, deduped },
+        "[nightlyScheduler] enqueued",
+      );
     } catch (err) {
       logger.error({ err, creatorId: c.id }, "[nightlyScheduler] start failed");
     }

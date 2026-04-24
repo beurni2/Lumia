@@ -11,7 +11,7 @@
  * polished video → monetizer → deal + ledger).
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "../db/client";
 import { ideatorAgent } from "./ideator";
 import { directorAgent } from "./director";
@@ -42,17 +42,46 @@ export async function startSwarmRun(
 }
 
 /**
- * Drives the four-agent pipeline. Best run via setImmediate so the
- * HTTP request doesn't block on it.
+ * Drives the four-agent pipeline. Best run via the job queue so the
+ * HTTP request doesn't block on it and crashes get retried.
+ *
+ * Idempotency guard: the parent agent_runs row is only flipped from
+ * 'queued' → 'running' inside a conditional UPDATE that returns the
+ * row id. If the conditional misses (status is already 'done' /
+ * 'failed' / 'running'), we treat it as "another worker has this" and
+ * exit silently. This protects against the job-queue's at-least-once
+ * delivery from re-running a swarm cycle that has already finalized
+ * (which would otherwise create duplicate trends, videos, and ledger
+ * entries — the bug architect flagged in the queue review).
+ *
+ * Note: this guard does NOT resume a partially-executed pipeline. If
+ * a worker crashes mid-run, a retry will see status='running' (set by
+ * the failed worker but never finalized) and skip. The previous
+ * attempt's parent row will eventually be reclaimable by the queue's
+ * orphan recovery → marked failed → operator visibility. Per-step
+ * resumability is a deliberate v2 trade-off.
  */
 export async function executeSwarmRun(
   runId: string,
   creatorId: string,
 ): Promise<void> {
-  await db
+  const claimed = await db
     .update(schema.agentRuns)
     .set({ status: "running", startedAt: new Date() })
-    .where(eq(schema.agentRuns.id, runId));
+    .where(
+      and(
+        eq(schema.agentRuns.id, runId),
+        eq(schema.agentRuns.status, "queued"),
+      ),
+    )
+    .returning({ id: schema.agentRuns.id });
+  if (claimed.length === 0) {
+    logger.warn(
+      { runId },
+      "[swarm] executeSwarmRun called for a run that is no longer 'queued' — skipping",
+    );
+    return;
+  }
 
   const ctx = { creatorId, parentRunId: runId };
   const summaries: string[] = [];

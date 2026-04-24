@@ -2,7 +2,9 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../db/client";
 import { resolveCreator } from "../lib/resolveCreator";
-import { executeSwarmRun, startSwarmRun } from "../agents/swarm";
+import { startSwarmRun } from "../agents/swarm";
+import { consumeQuota, refundQuota } from "../lib/quota";
+import { enqueueSwarmRun } from "../lib/swarmJobs";
 
 const router: IRouter = Router();
 
@@ -33,13 +35,33 @@ router.post("/agents/run-overnight", async (req, res, next) => {
       res.status(403).json({ error: "consent_required" });
       return;
     }
-    const { runId } = await startSwarmRun(r.creator.id);
-    setImmediate(() => {
-      executeSwarmRun(runId, r.creator.id).catch(() => {
-        // executeSwarmRun handles its own error recording; this catch
-        // exists only so an unhandled rejection never crashes the proc.
+    // Cost guardrail: enforce a per-creator daily cap on swarm runs so
+    // a compromised account or runaway client can't drain the AI
+    // budget. Limit configurable via LUMINA_MAX_SWARM_RUNS_PER_DAY.
+    const quota = await consumeQuota(r.creator.id, "swarm_run");
+    if (!quota.ok) {
+      res.status(429).json({
+        error: "quota_exceeded",
+        kind: "swarm_run",
+        used: quota.count,
+        limit: quota.limit,
       });
-    });
+      return;
+    }
+    // Refund the quota unit on any failure between consumption and
+    // successful enqueue, so transient DB hiccups don't permanently
+    // burn a creator's daily budget.
+    let runId: string | undefined;
+    try {
+      ({ runId } = await startSwarmRun(r.creator.id));
+      // Hand off to the durable job queue. If the process dies before
+      // the swarm finishes, the worker recovers the orphaned job on
+      // next boot and retries with exponential backoff.
+      await enqueueSwarmRun(runId, r.creator.id);
+    } catch (e) {
+      await refundQuota(r.creator.id, "swarm_run").catch(() => {});
+      throw e;
+    }
     res.status(202).json({ runId });
   } catch (err) {
     next(err);

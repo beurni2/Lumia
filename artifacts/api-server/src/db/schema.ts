@@ -18,10 +18,12 @@
 
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -237,3 +239,63 @@ export type Publication = typeof publications.$inferSelect;
 export type BrandDeal = typeof brandDeals.$inferSelect;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
 export type AgentRun = typeof agentRuns.$inferSelect;
+
+/**
+ * jobs — durable background work queue.
+ *
+ * Backs the swarm scheduler and any future enqueue-based work
+ * (metrics refresh, scheduled publishes, etc.). See lib/jobQueue.ts
+ * for the worker. `dedupeKey` makes "enqueue if not already pending"
+ * a one-row insert thanks to the partial unique index in migration 5.
+ */
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: varchar("type", { length: 64 }).notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    // 'pending' | 'running' | 'succeeded' | 'failed'
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    runAt: timestamp("run_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    lastError: text("last_error"),
+    dedupeKey: varchar("dedupe_key", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("idx_jobs_pending_run_at").on(t.status, t.runAt)],
+);
+
+/**
+ * usage_counters — per-creator, per-day, per-kind counters.
+ *
+ * Used by lib/quota.ts to cap expensive operations (currently the
+ * nightly swarm). Composite PK (creator_id, day, kind) means upserts
+ * are a single row each.
+ */
+export const usageCounters = pgTable(
+  "usage_counters",
+  {
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    kind: varchar("kind", { length: 32 }).notNull(),
+    count: integer("count").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.creatorId, t.day, t.kind] })],
+);
+
+export type Job = typeof jobs.$inferSelect;
+export type UsageCounter = typeof usageCounters.$inferSelect;
