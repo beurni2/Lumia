@@ -8,10 +8,20 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import { requestIdMiddleware } from "./middlewares/requestId";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
+import { rateLimit } from "./middlewares/rateLimit";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+// trust proxy: explicit `false` so req.ip uses the immediate socket
+// address rather than honoring inbound X-Forwarded-For. This is the
+// correct setting today (the rate limiter needs to see real client
+// addresses, not a spoofable header). When we move behind a managed
+// proxy or load balancer we'll need to set this to the appropriate
+// hop count or trusted CIDR — see middlewares/rateLimit.ts header
+// comment for the migration note.
+app.set("trust proxy", false);
 
 // Request id MUST come before pino-http so the logger picks it up via
 // `req.id`, and before any handler that might throw so the error
@@ -51,6 +61,12 @@ app.use(express.urlencoded({ extended: true }));
 // Verifies the Clerk session token (Bearer / cookie) and exposes
 // `req.auth` to every downstream handler. resolveCreator() reads it.
 app.use(clerkMiddleware());
+
+// Coarse abuse guard for the API surface. 600 hits / minute / IP is
+// generous enough that a real interactive client never trips it but
+// stops a runaway script from hammering the server. Tighter caps for
+// individual sensitive routes are applied inside their routers.
+app.use("/api", rateLimit({ max: 600, windowMs: 60_000, prefix: "api" }));
 
 app.use("/api", router);
 

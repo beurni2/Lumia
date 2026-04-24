@@ -12,8 +12,15 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
+import { rateLimit } from "../middlewares/rateLimit";
 
 const router: IRouter = Router();
+
+// Tight per-IP rate limit on the admin surface. The global limiter
+// already covers /api/*, but an exposed admin endpoint is a juicier
+// target for token-guessing — cap it harder so a brute-force attempt
+// has to come from many IPs to be effective.
+router.use("/admin", rateLimit({ max: 30, windowMs: 60_000, prefix: "admin" }));
 
 function adminAuthOk(req: Request): boolean {
   const expected = process.env["LUMINA_ADMIN_TOKEN"];
