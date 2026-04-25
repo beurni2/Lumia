@@ -134,23 +134,41 @@ pnpm --filter @workspace/lumina run dev
 artifacts/
 ├── lumina/              # Expo mobile app — the product surface
 ├── api-server/          # Express API — ideator + style profile + trends + videos
+│   └── src/lib/
+│       ├── styleProfile.ts   # Phase 1: lightweight rule-based Style Profile schema
+│       └── ideaGen.ts        # Phase 1: single Haiku call with hard constraints
 └── mockup-sandbox/      # Canvas for UI exploration
 packages/
-├── style-twin/          # Rule-based style extraction (KEPT — central to v1)
+├── lumina-trends/       # Phase 1: static regional trend bundles (western · IN · PH · NG)
 ├── api-spec/            # OpenAPI single source of truth
 ├── api-client-react/    # Generated React Query hooks (Orval)
 ├── api-zod/             # Generated Zod schemas (Orval)
-├── lumina-trends/       # (Phase 1 build) static regional trend bundles + audio packs
-├── swarm-studio/        # FROZEN (will move to /archive)
-├── monetizer/           # FROZEN (will move to /archive)
-├── compliance-shield/   # FROZEN (will move to /archive)
-└── edge-cloud/          # FROZEN (will move to /archive)
+├── style-twin/          # FROZEN — was the 99.8% on-device clone (v2.0 blueprint).
+│                        #   v1 uses the rule-based Style Profile in api-server/src/lib instead.
+├── swarm-studio/        # FROZEN — autonomous swarm + Smart Publisher + 12-variant A/B
+├── monetizer/           # FROZEN — 10% perf fee + brand graph + escrow + payout rails
+├── compliance-shield/   # FROZEN — 6 policy packs + 368-sample red-team corpus
+└── edge-cloud/          # FROZEN — stateless burst-render client
 ```
+
+All `FROZEN` packages stay in tree (gated by `ARCHIVED_AUTONOMY` / `ARCHIVED_MONETIZATION` / `ARCHIVED_POSTING` feature flags) until milestone **M7** in [`ROADMAP.md`](ROADMAP.md), at which point they physically relocate to `/archive`.
 
 ## Success metrics (v1)
 
 - ≥ **60 %** of ideas users select are Lumina-generated
 - ≥ **3 exports** per user in the first 7 days
+
+## Documentation map
+
+| Doc | What it's for |
+|---|---|
+| [`README.md`](README.md) | This document — magnetic intro + v1 scope |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Phase 1 MVP architecture (5 surfaces, 4 templates, Style Profile schema, trend bundles, tech stack) |
+| [`ROADMAP.md`](ROADMAP.md) | Phase 1 MVP roadmap (M0 → M8) with hard-constraint quality gates |
+| [`replit.md`](replit.md) | Workspace memory — what's where, env vars, conventions, archived systems |
+| [`attached_assets/Pasted-LUMINA-PHASE-1-MVP-FINAL-LOCKED-SPEC*`](attached_assets/) | The locked spec |
+
+The earlier v2.0 blueprint (autonomous swarm, Smart Publisher, Compliance Shield, Earnings Engine, Stripe Connect, 99.8% Style Twin clone) is preserved as historical context inside the Archived sections of `ARCHITECTURE.md`, `ROADMAP.md`, and `replit.md`.
 
 ## License
 

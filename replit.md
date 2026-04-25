@@ -4,19 +4,37 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
-This monorepo ships **Lumina** — a creator tool that lifts daily consistency for English-speaking micro-creators. Onboarding (region picker + 3 video imports) → rule-based Style Profile → cloud Ideator (region-conditioned) → template-based Create → side-by-side Review → export.
+This monorepo ships **Lumina** — a creator tool that lifts daily consistency for English-speaking micro-creators (1K–50K followers). The whole product is one loop:
+
+> **Onboarding (region picker + 3 video imports) → rule-based Style Profile → cloud Ideator (region-conditioned) → templated Create → side-by-side Review → export.**
 
 ## Lumina Phase 1 MVP scope (single source of truth)
 
-**Pivoted April 2026** from the autonomous GenAI swarm + monetization roadmap to a tightly-scoped Phase 1 MVP (see `README.md` and `attached_assets/Pasted-LUMINA-PHASE-1-MVP-FINAL-LOCKED-SPEC*.txt`). Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG.
+**Pivoted April 2026** from the autonomous GenAI swarm + monetization roadmap to a tightly-scoped Phase 1 MVP. Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG. The locked spec lives at [`attached_assets/Pasted-LUMINA-PHASE-1-MVP-FINAL-LOCKED-SPEC*.txt`](attached_assets/) and is mirrored across [`README.md`](README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md), and [`ROADMAP.md`](ROADMAP.md).
 
-**Frozen behind feature flags** (`ARCHIVED_AUTONOMY`, `ARCHIVED_MONETIZATION`, `ARCHIVED_POSTING` — defaults ON; flip via env to `"false"` to revive): swarm agents, Stripe billing/payouts, brand deals, OAuth posting/publications, schedulers, admin dashboards, earnings projections, performance fees, Lumina Pro tier. Source still present in tree; physical move to `/archive` is a deliberate follow-up gated on user approval.
+**What's in v1:**
 
-**Kept and reused for v1**: rule-based style extraction (`packages/style-twin`), `src/agents/ideator.ts` (single endpoint, no orchestrator), foundation/ design system, BlackHoleUpload, StyleTwinPreview, ConfettiBurst, LaunchSuccessHero, morningRecapFactory, feedback haptics, Clerk auth (with demo-creator fallback).
+- One LLM surface only — `POST /api/ideator/generate` (Claude Haiku 4.5 via Replit AI Integrations), conditioned by a lightweight rule-based **Style Profile** + a static regional **Trend Bundle**.
+- Hard constraints baked into the Ideator: hook ≤ 3 s · ≤ 8 words (understandable in < 3 s) · shoot ≤ 30 min.
+- Four region bundles in `packages/lumina-trends`: western · india · philippines · nigeria.
+- Four fixed timing templates (A Fast Hook · B Story Build · C POV/Relatable · D Trend Jack), selected deterministically from the Ideator's `templateHint`.
+- Side-by-side review using a past video of the creator's vs. the Lumina version + plain-English diff.
+- One-tap export to gallery + optional "Made with Lumina" watermark.
+- Daily $ cap on AI spend (`$5` default, `LUMINA_DAILY_AI_USD_CAP`). Quota: 2 idea batches / creator / UTC day (`LUMINA_MAX_IDEA_BATCHES_PER_DAY`).
 
-**To build for v1**: `packages/lumina-trends` (4 region JSONs + audio packs), `src/routes/{ideator,styleProfile}.ts`, mobile RegionPicker + 3-video onboarding + create-flow + side-by-side review, additive migration #12 (`creators.style_profile_json jsonb`, `creators.region varchar(16)`, `creators.last_idea_batch_at timestamptz`).
+**Frozen behind feature flags** (defaults ON in `lib/featureFlags.ts`; flip env to `"false"` to revive selectively):
 
-The earlier v2.0 blueprint (autonomous swarm + Stripe Connect + brand deal negotiation + 99.8% clone + 10% performance fee) is **archived**, not active. Older `ARCHITECTURE.md` / `ROADMAP.md` content describes the frozen systems and should be read as historical context, not current scope.
+- `ARCHIVED_AUTONOMY=true` → swarm agents, overnight scheduler, agent run routes
+- `ARCHIVED_MONETIZATION=true` → monetizer package, earnings routes, Stripe billing + Stripe Connect payout routes, PayPal, brand deals, performance fees, Lumina Pro tier
+- `ARCHIVED_POSTING=true` → Smart Publisher, OAuth posting (TikTok / IG Reels / YT Shorts), publications routes, smart watermark, A/B variants
+
+Source for archived systems still present in tree; physical move to `/archive/` is milestone **M7** in [`ROADMAP.md`](ROADMAP.md), gated on user approval after the v1 loop works end-to-end.
+
+**Kept and reused for v1**: Express + Drizzle + Postgres infrastructure, Clerk auth (with demo-creator fallback), pino logging, Postgres job queue, AI cost ledger (`lib/aiCost.ts`), per-creator quota counters (`lib/quota.ts`), consent surface (`/api/me/consent`, `/api/me/data-export`, `/api/me/data-delete`), foundation/design system, BlackHoleUpload, ConfettiBurst, feedback haptics.
+
+**Newly built for v1**: `packages/lumina-trends` (4 region JSONs), `src/lib/styleProfile.ts` (Zod-typed, all-optional defaults), `src/lib/ideaGen.ts` (Haiku call with hard constraints + recovery), `src/routes/ideator.ts`, `src/routes/styleProfile.ts`. Migration #12 added `creators.region varchar(16)` + `creators.style_profile_json jsonb` + `creators.last_idea_batch_at timestamptz` (pure additive, no PK changes).
+
+The earlier v2.0 blueprint (autonomous swarm + Stripe Connect + brand-deal negotiation + 99.8 % Style Twin clone + 10 % performance fee + 12-variant A/B publisher + 6-pack Compliance Shield) is **archived**. Older content in any doc that contradicts this section should be read as historical context, not current scope.
 
 ## Stack
 
@@ -24,14 +42,13 @@ The earlier v2.0 blueprint (autonomous swarm + Stripe Connect + brand deal negot
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **Mobile**: Expo (React Native) · Reanimated · NativeTabs (iOS 26 liquid glass)
-- **On-device inference**: quantized Llama 3.2 11B Vision · Mistral 7B · Qwen 3.5 9B (4/8-bit)
-- **API framework**: Express 5 (`artifacts/api-server`) — now backed by Replit Postgres via Drizzle ORM (`src/db/schema.ts`, `src/db/client.ts`). All four routes (`/creator/me`, `/earnings/summary`, `/trends`, `/videos`) read from the database; the Sprint 3 Compliance Shield CDN / Deal Router / burst-layer endpoints layer on top — see `ARCHITECTURE.md`
-- **Database**: Replit-managed PostgreSQL. Schema = creators · trend_briefs · videos · brand_deals · ledger_entries. Seed script: `artifacts/api-server/src/db/seed.ts`. The seeded demo creator (`is_demo = TRUE`) still serves any unauthenticated request so dev tooling and pre-sign-up onboarding renders content
-- **Autonomous Swarm (Phase 1 — DONE)**: Four-agent pipeline lives in `artifacts/api-server/src/agents/`. `runner.ts` wraps each agent in agent_runs lifecycle bookkeeping (queued → running → done|failed). `ideator.ts` calls Claude Haiku 4.5 (`AI_INTEGRATIONS_ANTHROPIC_*` via Replit AI Integrations) to surface 2 fresh trend_briefs scoped to the creator. `director.ts` drafts a video row from the top brief (status='Editing', honoring the existing `VideoStatus` + `agents` OpenAPI contract: Ideating|Editing|Ready × pending|active|done). `editor.ts` refines the script + predicts viralScore → status='Ready'. `monetizer.ts` matches the video to a brand_deal and books a projected ledger_entries row (the 10% perf fee is computed downstream in `/earnings/summary`, never double-recorded). `swarm.ts` orchestrates them strictly sequentially via a parent agent_runs row; routes mounted at `POST /api/agents/run-overnight` (202 + runId, fire-and-forget via setImmediate), `GET /api/agents/runs`, `GET /api/agents/runs/:id`. Mobile `components/SwarmCta.tsx` wraps `useStartSwarmRun` + polling `useGetSwarmRun`, invalidates trends/videos/earnings caches on done. CTA lives on home + while-you-slept "Tomorrow's Promise". `agent_runs` table created via one-shot `src/db/migrate-agent-runs.ts` (no drizzle-kit installed; pure-additive `CREATE TABLE IF NOT EXISTS`)
-- **Smart Publisher (Phase 3 — DONE)**: `packages/swarm-studio` already shipped real OAuth providers + posting clients for TikTok / Instagram Reels / YouTube Shorts (`src/platforms/{tiktok,instagram,youtube}.ts`); mobile `lib/oauth/platformAuthRegistry.ts` + `lib/publisherFactory.ts` wire them with a single `EXPO_PUBLIC_PUBLISHER_BACKEND=real` flip (mock registry stays default). Phase 3 closed the persistence gap: new `publications` table (`creator_id`, `video_id` → videos, `platform`, `status`, `platform_post_id`, `mock_url`, `scheduled_for`, `published_at`, `error`) created via one-shot `src/db/migrate-publications.ts`. Routes in `src/routes/publications.ts`: `POST /api/videos/:id/publications` (zod-validated, 401 on unknown user, 404 if video not owned by resolved creator), `GET /api/videos/:id/publications`, `GET /api/publications/recent`. OpenAPI declares `format: date-time` + `maxLength` constraints matching server validation. Mobile bridge: `app/studio/[id].tsx` passes `videoId` (and any sticky override) to `/publisher`, then renders ✓ tiktok / ✓ reels / ✓ shorts pill badges sourced from `useListVideoPublications` keyed by the orval-generated query key. `app/publisher.tsx` consumes both URL params (one-shot, then `router.replace` to strip), and after `launchPublishPlan` resolves it `Promise.allSettled`-fires `useRecordPublication` per platform result and invalidates the same generated query keys so badges hydrate without a manual refresh. Persistence is best-effort (logged to dev console on failure) so a flaky network never breaks the launch UX
-- **Auth**: Clerk (whitelabel) — server uses `@clerk/express` `clerkMiddleware()` mounted before routes; Clerk's edge is exposed under `/api/__clerk` via a streaming proxy that runs *before* body parsers. `lib/resolveCreator.ts` reads `getAuth(req).userId`, atomically upserts (`ON CONFLICT (auth_user_id) DO NOTHING`) a fresh creator row on first sign-in, then re-selects so concurrent first requests deterministically resolve the same row. The mobile app wraps the tree in `ClerkProvider` (token cache + proxy URL) and gates routing in `app/_layout.tsx`: signed-out → `/(auth)/sign-in`; signed-in & not onboarded → `/onboarding`; signed-in & onboarded → `/(tabs)`. The generated API client's `setAuthTokenGetter` is registered at module scope and delegates through a ref so the very first request — even one fired during initial render — carries the freshest Clerk Bearer token. Branded `(auth)/sign-in.tsx` and `(auth)/sign-up.tsx` use the cosmic backdrop + firefly + Style-Twin orb language, built on Clerk Core v3 `useSignIn` / `useSignUp` (custom UI is required for Expo Go). Env vars `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` / `VITE_CLERK_PUBLISHABLE_KEY` are managed by Replit; the Lumina dev script and `scripts/build.js` forward `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and `EXPO_PUBLIC_CLERK_PROXY_URL` into the bundle
-- **Payouts (Day-1)**: Stripe Connect + PayPal instant; Phase 1 layers Pix / GCash / OVO / SPEI / PromptPay / Wise
+- **Mobile**: Expo (React Native) · Reanimated · NativeTabs (iOS 26 liquid glass). The locked spec calls for an eventual move to **Flutter + ExecuTorch/LiteRT + FFmpeg-kit** for the on-device parts — Phase 2 only, after the v1 loop validates. Expo + Express stays for v1 to avoid a stack rewrite ahead of product proof.
+- **API framework**: Express 5 (`artifacts/api-server`) backed by Replit Postgres via Drizzle ORM (`src/db/schema.ts`, `src/db/client.ts`).
+- **Database**: Replit-managed PostgreSQL. Active v1 tables: `creators` · `videos` · `ai_usage` · `usage_counters` · `jobs` · `agent_runs` · `error_events`. Tables present in `schema.ts` from earlier work but not read or written by any v1 code path: `brand_deals`, `ledger_entries`, `publications`, `webhook_events` (belong to archived systems).
+- **LLM**: Claude Haiku 4.5 via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_*`). Single endpoint. Output cap clamped at 8000 tokens (within Haiku 4.5's 8192 ceiling) — enough for 20-idea quality batches.
+- **Style extraction**: Rule-based (regex + keyword frequency + simple scene-change detection). No vector DB, no on-device model. Schema in [`artifacts/api-server/src/lib/styleProfile.ts`](artifacts/api-server/src/lib/styleProfile.ts).
+- **Trends**: Static JSON bundles in [`packages/lumina-trends`](packages/lumina-trends), one per region. Manual refresh every few days.
+- **Auth**: Clerk (`@clerk/express`). `clerkMiddleware()` mounts before routes; Clerk's edge is exposed under `/api/__clerk` via a streaming proxy that runs *before* body parsers. `lib/resolveCreator.ts` reads `getAuth(req).userId`, atomically upserts (`ON CONFLICT (auth_user_id) DO NOTHING`) a fresh creator row on first sign-in. The seeded demo creator (`is_demo = TRUE`) serves any unauthenticated request so dev tooling and pre-sign-up onboarding renders content; the demo creator also bypasses the idea-batch quota so curl-based quality testing isn't blocked at idea 21. Mobile wraps the tree in `ClerkProvider`; Lumina dev script + `scripts/build.js` forward `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and `EXPO_PUBLIC_CLERK_PROXY_URL` into the bundle.
 - **Validation**: Zod (`zod/v4`)
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
@@ -42,38 +59,54 @@ The earlier v2.0 blueprint (autonomous swarm + Stripe Connect + brand deal negot
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/lumina run dev` — run the Lumina mobile app (Expo)
-- `pnpm --filter @workspace/api-server run dev` — run the (currently frozen) API server locally
-- `pnpm -r test` — run the full workspace test suite (the permanent quality gate)
+- `pnpm --filter @workspace/api-server run dev` — run the API server locally (port 8080)
+- `pnpm -r test` — run the full workspace test suite
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
 
-## Compliance, Scheduler, Metrics (Apr 2026)
+## Phase 1 MVP — what's where
 
-- **Consent surface**: `creators.ai_disclosure_consented_at` + `adult_confirmed_at`. Endpoints: `GET/POST /api/me/consent`, `POST /api/me/data-export`, `POST /api/me/data-delete`. Mobile onboarding has a 4th "consent" Act; profile screen exposes withdraw/export/delete.
-- **Server-side gates**: `POST /api/videos/:id/publications`, `POST /api/agents/run-overnight`, and `POST /api/me/schedule` (enable=true) all require BOTH consents → 403 `consent_required`. The publications route also requires a `shieldVerdict` field and rejects `status='published' + verdict='blocked'` with 409.
-- **Overnight scheduler**: `creators.nightly_swarm_{enabled,hour,tz,last_nightly_run_at}`. `lib/nightlyScheduler.ts` ticks every 5 min, computes IANA-tz local hour, atomic-claims via conditional `UPDATE ... WHERE lastNightlyRunAt IS NULL OR < dedupeFloor` (race-safe, 20h dedupe). Mobile profile has toggle + horizontal hour picker, tz auto-detected via `Intl`.
-- **Platform metrics**: `publications.metrics` (jsonb `{views,likes,comments,shares}`) + `metrics_fetched_at`. `PATCH /api/videos/:id/publications/:pubId/metrics`, ownership-validated. OAuth posting clients (`TikTok`, `Instagram`, `YouTube`) each have a `fetchMetrics(remoteId)` method hitting the official analytics endpoints. Mobile `lib/metricsRefresher.ts` walks publications and PATCHes via the orval `useUpdatePublicationMetrics` hook; Studio badge row shows compact view counts (e.g. `12.5k ▶`) when metrics present, with a small refresh affordance.
-- **Migrations** are one-shot pg scripts (`migrate-consent.ts`, `migrate-schedule-and-metrics.ts`) following the existing `migrate-publications.ts` / `migrate-agent-runs.ts` pattern (`ADD COLUMN IF NOT EXISTS`). No drizzle-kit in this repo. Subsequent migrations use a small versioned registry in `src/db/migrations.ts` + `src/db/migrate.ts` (advisory-lock, `IF NOT EXISTS` only, runs on every boot — same safety guarantees as drizzle-push, kept additive only).
+| Surface | Location | Notes |
+|---|---|---|
+| **Region trend bundles** | `packages/lumina-trends/src/bundles/{western,india,philippines,nigeria}.json` | ~25 hooks + 15 captions + 10 formats per region with `popularityScore` + `recencyScore` |
+| **Trend bundle loader** | `packages/lumina-trends/src/index.ts` | Typed `loadTrendBundle()` + `topByScore()` + `isRegion()` |
+| **Style Profile schema** | `artifacts/api-server/src/lib/styleProfile.ts` | Zod-validated, all-optional defaults |
+| **Ideator** | `artifacts/api-server/src/lib/ideaGen.ts` | Single Haiku call. Output cap clamps `hookSeconds ≤ 3` and `shootMinutes ≤ 30` defensively |
+| **Ideator route** | `artifacts/api-server/src/routes/ideator.ts` | `POST /api/ideator/generate`. Body: `{ region?, count?, regenerate?, styleProfile? }`. Resolves region from body > `creators.region` > `western`. Demo creator bypasses quota |
+| **Style Profile route** | `artifacts/api-server/src/routes/styleProfile.ts` | `GET/POST /api/style-profile`. Persists `creators.style_profile_json` + `creators.region` |
+| **Quota** | `artifacts/api-server/src/lib/quota.ts` | `idea_batch` kind: 2/day default. `swarm_run` kind kept for the archived swarm but no v1 code calls it |
+| **AI cost cap** | `artifacts/api-server/src/lib/aiCost.ts` | $5/day per-creator default. Throws `DailyCapExceededError` *before* billing |
+| **Migration #12** | `artifacts/api-server/src/db/migrations.ts` | Pure additive `ALTER TABLE creators ADD COLUMN IF NOT EXISTS …` for region + style_profile_json + last_idea_batch_at |
+| **Feature flags** | `artifacts/api-server/src/lib/featureFlags.ts` | `ARCHIVED_AUTONOMY` · `ARCHIVED_MONETIZATION` · `ARCHIVED_POSTING` (defaults ON) |
 
-## Production hardening (Apr 2026)
+## Database conventions
 
-Across three rounds the API server picked up the production-readiness layer that the original blueprint deferred. All changes are pure-additive and run on boot:
+- All migrations are **pure additive** (`ALTER TABLE … ADD COLUMN IF NOT EXISTS …`, `CREATE TABLE IF NOT EXISTS …`, `CREATE INDEX IF NOT EXISTS …`). No `DROP`, no `ALTER COLUMN`, no PK changes — ever.
+- No `drizzle-kit` in this repo. Migrations use a small versioned registry in [`src/db/migrations.ts`](artifacts/api-server/src/db/migrations.ts) + [`src/db/migrate.ts`](artifacts/api-server/src/db/migrate.ts) (advisory-locked, runs on every boot — same safety guarantees as drizzle-push, kept additive only).
+- Primary-key types are immutable. `creators.id` is `uuid` with `gen_random_uuid()` default. `videos.id` / `brand_deals.id` / `trend_briefs.id` are `varchar(64)`. Composite PKs on `usage_counters (creator_id, day, kind)` and `webhook_events (provider, event_id)`.
 
-- **Postgres job queue + scheduler**: `jobs` table (status/run_at/attempts/dedupe_key) with a partial unique index on `(dedupe_key) WHERE status IN ('pending','running')` that prevents duplicate work without blocking later re-enqueues. `nightlyScheduler` enqueues `swarm.run` jobs instead of calling `runOvernightSwarm` directly. `agent_runs` orphan reaper marks rows stuck in `running` past a TTL as `failed` so dashboards stay accurate.
-- **AI cost ledger**: `ai_usage` rows record per-call input/output tokens, micro-USD cost (`Math.ceil`, zod-validated rate table per model), creator/agent/parent_run linkage. `lib/aiCost.ts` enforces a per-creator-per-UTC-day cap (`$5` default, configurable) and throws `DailyCapExceededError` *before* billing the call. `/api/admin/ai-usage` exposes daily / per-creator views (range scan via window-CTE, no full-table sort).
-- **Per-step swarm idempotency**: `agent_runs.output jsonb` + partial index on `(parent_run_id, agent, status) WHERE parent_run_id IS NOT NULL`. `runner.ts` now checks for a prior `done` child by `(parent_run_id, agent)` and reuses its `summary + output` instead of re-billing the agent. End-to-end verified: 3 calls → 1 child row, fn invoked once.
-- **Operational endpoints**: `/api/healthz` (process liveness) + `/api/readyz` (DB ping); `/api/admin/errors` (paged error_events); `/api/admin/overview` (jobs, errors-last-hour, swarms-today, AI spend + top spenders — `Promise.allSettled` so one slow widget can't blank the dashboard, partial failures returned in `errors[]`). All `/admin/*` routes refuse closed-by-default without `LUMINA_ADMIN_TOKEN`.
-- **Webhooks**: `POST /api/webhooks/{stripe,clerk}` with manual HMAC-SHA256 signature verification (no svix/stripe SDK dependency). Raw body parser mounted at `/api/webhooks` *before* `express.json`. `constantTimeEqual` hashes both inputs to 32-byte SHA-256 digests before `timingSafeEqual` so it cannot throw on length mismatch and never leaks signature length via timing. Webhooks bypass the global 600/min IP limiter (skip predicate on `req.path.startsWith('/webhooks')`) so a flood of bogus signed-events can't starve real API traffic. Stripe handler dedupes via the new `webhook_events (provider, event_id)` PK *and* the jobs queue dedupe key — closes the gap where a successful job's dedupe slot would otherwise free up. Clerk handler inline-clears `auth_user_id` on `user.deleted` and back-fills empty names on `user.updated`. Both endpoints return `503 webhook_disabled` when the corresponding `*_WEBHOOK_SECRET` env var is missing (closed by default).
-- **Other hardening**: structured `error_events` capture with stable name+digest grouping; in-process per-IP rate limiter on `/api` with optional `skip` predicate; `LUMINA_ADMIN_TOKEN` for ops endpoints; `cors` allowlist; pino structured logging.
+## Production hardening (Apr 2026, kept in v1)
 
-## Stripe billing + Connect payouts (Apr 2026)
+These were built during the v2.0 push but are infrastructure rather than product surface, so they remain active for v1:
 
-The "demoable → billable" gap is closed end-to-end and stays **closed-by-default** when STRIPE_SECRET_KEY isn't set so dev environments aren't blocked.
+- **Postgres job queue + scheduler**: `jobs` table (status / run_at / attempts / dedupe_key) with a partial unique index on `(dedupe_key) WHERE status IN ('pending','running')`. The nightly scheduler that previously enqueued `swarm.run` jobs is gated behind `ARCHIVED_AUTONOMY` and does not run in v1.
+- **AI cost ledger**: `ai_usage` rows record per-call input/output tokens, micro-USD cost (`Math.ceil`, zod-validated rate table), creator/agent/parent_run linkage. `lib/aiCost.ts` enforces a per-creator-per-UTC-day cap (`$5` default, `LUMINA_DAILY_AI_USD_CAP`) and throws `DailyCapExceededError` *before* billing the call.
+- **Operational endpoints**: `/api/healthz` (process liveness) + `/api/readyz` (DB ping). Admin endpoints (`/api/admin/*`) are closed-by-default behind `LUMINA_ADMIN_TOKEN`.
+- **Structured error capture**: `error_events` with stable name+digest grouping. In-process per-IP rate limiter on `/api`. Pino structured logging.
+- **Webhooks**: `POST /api/webhooks/{stripe,clerk}` plumbing exists with manual HMAC-SHA256 signature verification (no svix/stripe SDK dependency). Both endpoints return `503 webhook_disabled` when the corresponding `*_WEBHOOK_SECRET` env var is missing — closed by default in v1.
+- **Consent surface**: `creators.ai_disclosure_consented_at` + `adult_confirmed_at`. Endpoints: `GET/POST /api/me/consent`, `POST /api/me/data-export`, `POST /api/me/data-delete`. Mobile profile screen exposes withdraw / export / delete.
 
-- **Schema (migration #11 — pure additive, non-PK columns only)**: `creators` gains `stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, `subscription_plan`, `subscription_current_period_end`, `connect_account_id`, `connect_payouts_enabled` (default `false`), `connect_charges_enabled` (default `false`), `connect_country`. Two partial indexes: one on `stripe_customer_id` (webhook lookup) and one on `connect_account_id` (Connect webhook lookup), both `WHERE … IS NOT NULL`. No PK type changes anywhere in this round.
-- **Singleton client**: `src/lib/stripe.ts` lazily constructs the Stripe SDK once, gated by `isStripeEnabled()`. apiVersion pinned to `2025-02-24.acacia` (newer `2025-09-30.clover` failed the SDK type bundle on this Stripe major).
-- **Job consumer**: `src/lib/stripeJobs.ts` registers handlers for `customer.subscription.{created,updated,deleted}`, `account.updated`, and `payout.paid`. `customer.subscription.*` upserts subscription state on the matching creator; if the customer link hasn't yet been written by `POST /billing/checkout` (race), the handler **throws** so the postgres job queue retries with backoff (was previously skipping → fixed). `account.updated` mirrors `payouts_enabled` + `charges_enabled` capability flags. `payout.paid` writes a `ledger_entries` row keyed by `creator_id`/`month_bucket` (`varchar(7)` UTC YYYY-MM)/`amount` (integer cents)/`source='payout'`. Unknown event types log at `debug` level (was `info` → demoted) so high-traffic prod doesn't drown.
-- **Routes**: `POST /api/billing/checkout` and `POST /api/billing/portal` (subscription lifecycle), `GET /api/billing/status` (read-only); `POST /api/payouts/connect/onboard` and `GET /api/payouts/connect/status`. All five mounted under the existing `/api` rate limiter + Clerk middleware. The three `POST` routes are Zod-gated (strict empty body today, future-proofed) and refuse the demo creator with `403 demo_account_cannot_subscribe` / `demo_account_cannot_onboard` so the shared anonymous seed can never accidentally be promoted to a real billing entity.
-- **Webhook integration**: leverages the existing `POST /api/webhooks/stripe` HMAC verifier from the production-hardening round; events that pass HMAC and dedupe enqueue a `stripe.webhook` job that fans out to the per-event handlers above.
-- **Mobile**: `components/profile/BillingAndPayoutsCards.tsx` renders two glass cards (Lumina Pro · Stripe Connect Payouts) between the style-twin section and `PrivacyAndScheduleCards`. CTAs open the returned Stripe redirect URL via `Linking.openURL`. Status auto-refreshes on Profile-tab focus AND on `AppState` "active" so users see the new state within seconds of returning from Stripe-hosted Checkout/Portal/Connect, even if the deep-link return URL is dismissed via system back gesture. React Query v5 mutations are typed with explicit `useMutation<RedirectResponse>` generic. The api-client-react package now also re-exports `customFetch` / `ApiError` / `ResponseParseError` so hand-rolled hooks (these endpoints aren't in the OpenAPI spec yet) can share the same auth + base-url plumbing as the orval-generated client.
-- **Env vars (closed-by-default)**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_PRO`, `STRIPE_BILLING_RETURN_URL`, `STRIPE_CONNECT_REFRESH_URL`, `STRIPE_CONNECT_RETURN_URL`. None are required in dev — endpoints surface `503 stripe_misconfigured` when the secret is missing rather than crashing.
+## Archived systems (still in tree, not active in v1)
+
+The following are from the v2.0 blueprint and are **frozen behind feature flags**. Source remains in the tree until the physical `/archive` move (roadmap milestone M7). None are in the v1 read/write path.
+
+| System | Where it lives | Flag |
+|---|---|---|
+| Autonomous Swarm (Ideator → Director → Editor → Monetizer orchestrator + overnight scheduler + agent_runs idempotency) | `artifacts/api-server/src/agents/*` (excluding the file the v1 ideator-route lives in: it does not import the swarm) · `routes/agents.ts` | `ARCHIVED_AUTONOMY` |
+| Smart Publisher + 12-variant A/B + smart watermark + Cultural Voice Packs | `packages/swarm-studio` · `routes/publications.ts` | `ARCHIVED_POSTING` |
+| Compliance Shield (6 policy packs · 21 rules · 368-sample red-team corpus · auto-rewrite · hard-block) | `packages/compliance-shield` | (not mounted) |
+| Earnings Engine + Monetization (10% perf fee · hash-chained ledger · brand graph · pitch deck · DM drafts · escrow · regional rails: Pix / GCash / OVO / SPEI / PromptPay / Wise) | `packages/monetizer` · `routes/earnings.ts` | `ARCHIVED_MONETIZATION` |
+| Stripe billing + Stripe Connect payouts + PayPal | `routes/billing.ts` · `routes/payouts.ts` · `lib/stripe.ts` · `lib/stripeJobs.ts` | `ARCHIVED_MONETIZATION` (also closed-by-default unless `STRIPE_SECRET_KEY` set) |
+| 99.8% Style Twin clone (encrypted on-device storage · similarity gates · voice timbre · vector kNN) | `packages/style-twin` | (not active; v1 uses `lib/styleProfile.ts` instead) |
+| On-device inference (quantized Llama 3.2 11B Vision · Mistral 7B · Qwen 3.5 9B · ExecuTorch / llama.rn) | `packages/style-twin/IMPLEMENTATION_PLAN.md` (runbook only) | (not built) |
+| Earnings dashboard + Referral Rocket (`while-you-slept.tsx` · morning recap · dual $25 bounty) | `artifacts/lumina/app/while-you-slept.tsx` | (removed from active navigation) |

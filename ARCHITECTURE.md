@@ -1,273 +1,234 @@
-# Lumina — Architecture
+# Lumina — Architecture (Phase 1 MVP)
 
-> **Immutable v2.0 blueprint:** an autonomous, privacy-first GenAI creative swarm that lives inside the creator's phone, operates a closed-loop monetization flywheel, and ships **English-first / US-first** by default with a modular Cultural Voice Pack system that layers UK/CA/AU/IN/PH/NG on Day 1 and SEA/LATAM in Phase 1.
-
-This document defines the architectural blueprint for Lumina. It is the single source of truth for how the agent swarm, on-device inference engine, edge-cloud burst layer, and monetization pipeline fit together.
-
----
-
-## Architectural Principles
-
-1. **On-device first, always.** Inference, memory, and Style Twin storage live on the device. Cloud is a burst layer, not a default path.
-2. **Zero-trust egress.** No raw footage, voice, or biometric signal leaves the device without explicit per-action consent.
-3. **Swarm over monolith.** Specialized agents collaborate via a shared memory graph. No single agent owns the full pipeline.
-4. **Compliance is a runtime concern, not a review.** The Compliance Shield gates every outbound post — tuned to **US/EU policies first** (CCPA, EU AI Act, COPPA, FTC disclosure, GDPR).
-5. **Cultural intelligence is a first-class subsystem — English-first.** Trend, language, and platform signals ship Day 1 for US English (primary) plus UK / CA / AU / IN-EN / PH-EN / NG-EN via the **Cultural Voice Pack** system. Bahasa, Tagalog, Vietnamese, Thai, Portuguese-BR, Spanish-MX/CO/AR are loadable Phase 1 modules over the same interface.
-6. **Determinism where the creator notices, learning where they don't.** UX is predictable; ranking and matching are adaptive.
+> **Current scope:** Phase 1 MVP only. Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG.
+> Locked spec: [`attached_assets/Pasted-LUMINA-PHASE-1-MVP-FINAL-LOCKED-SPEC*`](attached_assets/).
+>
+> **Earlier v2.0 blueprint** (autonomous swarm, on-device Llama/Mistral/Qwen, Compliance Shield, Stripe Connect, brand-deal router, 99.8 % Style Twin clone, 12-variant A/B publisher) is **archived** — see [§ Archived v2.0 blueprint](#archived-v20-blueprint) at the bottom of this document for historical context.
 
 ---
 
-## System Overview
+## Architectural principles (Phase 1)
+
+1. **One small cloud LLM call per surface.** No autonomous orchestrator, no overnight swarm. The Ideator is the only AI surface in v1; everything else is rule-based or template-based.
+2. **Region-conditioned, not on-device-clone.** The creator's "voice" comes from a lightweight rule-based **Style Profile** extracted from 3+ uploaded videos, fed into the Ideator alongside a static regional **Trend Bundle**. No vector DB, no quantized model, no 99.8 % clone target.
+3. **Templates, not dynamic AI cutting.** Creation uses one of four fixed timing templates (A/B/C/D), deterministically selected from the idea's hook type.
+4. **Static trends, refreshed manually.** No real-time scraping. Each region ships ~25 hooks + 15 captions + 10 formats as a versioned JSON bundle in [`packages/lumina-trends`](packages/lumina-trends).
+5. **Cost discipline.** A per-creator daily AI spend cap (`$5` default) sits in front of the only LLM call. Two ideator batches per UTC day (one normal + one regenerate).
+6. **Privacy by minimisation.** The Ideator never sees raw footage. Only the Style Profile JSON + region + a regenerate flag cross the wire. Consent surface (`/api/me/*`) supports withdraw / export / delete.
+
+---
+
+## System overview
 
 ```mermaid
-flowchart TB
-    subgraph Device["📱 Creator's Phone — On-Device (8GB+ RAM, iOS 17+ / Android 14+)"]
-        UI["Expo Mobile App<br/>(React Native · Reanimated · NativeTabs)"]
-        Orchestrator{{"Orchestrator<br/>memory graph · routing · consent gate"}}
-
-        subgraph Swarm["🧠 Agent Swarm (Quantized 4-bit / 8-bit)"]
-            Ideator["Ideator<br/>English trends · US/EN platform quirks"]
-            Director["Director<br/>storyboard · hook optimization"]
-            Editor["Editor<br/>visuals · captions · music · effects"]
-            Monetizer["Monetizer<br/>deal matching · pitch generation"]
-        end
-
-        subgraph Inference["⚡ Hybrid Inference Engine"]
-            Llama["Llama 3.2 11B Vision<br/>(multimodal)"]
-            Mistral["Mistral 7B<br/>(language · negotiation)"]
-            Qwen["Qwen 3.5 9B<br/>(multilingual · Phase 1 packs)"]
-        end
-
-        subgraph Memory["🔐 Encrypted On-Device Memory"]
-            StyleTwin[("Personal Style Twin<br/>99.8% voice/aesthetic clone")]
-            VoicePacks[("Cultural Voice Packs<br/>US-EN default · UK/CA/AU/IN/PH/NG · SEA/LATAM Phase 1")]
-            MemoryGraph[("Memory Graph<br/>past videos · audience signals · wins")]
-            TrendCache[("Local Trend Cache<br/>regional · refreshed nightly")]
-        end
-
-        Compliance["🛡️ Compliance Shield<br/>CCPA · EU AI Act · COPPA · FTC · GDPR"]
+flowchart LR
+    subgraph Mobile["📱 Expo mobile (artifacts/lumina)"]
+        Onboard["Onboarding<br/>Region picker · 3-video import"]
+        Profile["Rule-based Style Profile<br/>hooks · captions · pacing · topics"]
+        Home["Home — 3 daily ideas"]
+        Create["Create — pick idea · film · template"]
+        Review["Side-by-side review · export"]
     end
 
-    subgraph EdgeCloud["☁️ Edge-Cloud Burst (selective · <5s · stateless · Supabase US-west)"]
-        HeavyRender["Heavy Render Bursts<br/>(4K upscale · complex VFX)"]
-        TrendSync["Trend Sync<br/>(nightly delta only)"]
-        DealRouter["Deal Router<br/>(brand match · payout escrow)"]
+    subgraph API["☁️ Express API (artifacts/api-server)"]
+        IdeatorRoute["POST /api/ideator/generate<br/>(quota: 2/day · daily $ cap)"]
+        StyleProfRoute["GET/POST /api/style-profile"]
+        VideosRoute["GET/POST /api/videos"]
+        MeRoute["/api/me/* — consent · export · delete"]
     end
 
-    subgraph Platforms["📡 Distribution (Day-1 priority)"]
-        TikTok["TikTok"]
-        Reels["Instagram Reels"]
-        Shorts["YouTube Shorts"]
-        Phase1["Phase 1: Kwai · GoPlay · Kumu"]
+    subgraph Trends["📦 packages/lumina-trends"]
+        T1["western.json"]
+        T2["india.json"]
+        T3["philippines.json"]
+        T4["nigeria.json"]
     end
 
-    subgraph Money["💰 Closed-Loop Monetization"]
-        Affiliate["Affiliate Detection"]
-        BrandDM["Brand Outreach<br/>(Email · IG · WhatsApp)"]
-        Payout["Payout & Performance Fee<br/>(Stripe Connect + PayPal · 10% on incremental only)"]
+    subgraph LLM["🤖 Replit AI Integrations (Anthropic)"]
+        Haiku["Claude Haiku 4.5<br/>single call · ≤8000 output tokens"]
     end
 
-    UI <--> Orchestrator
-    Orchestrator <--> Swarm
-    Swarm <--> Inference
-    Swarm <--> Memory
-    Orchestrator --> Compliance
+    subgraph DB["🗄️ Replit Postgres"]
+        Creators[("creators<br/>region · style_profile_json<br/>last_idea_batch_at")]
+        Videos[("videos")]
+        Usage[("ai_usage · usage_counters")]
+    end
 
-    Compliance -.->|opt-in burst| HeavyRender
-    Ideator -.->|delta pull| TrendSync
-    Monetizer -.->|opt-in| DealRouter
+    Onboard --> StyleProfRoute
+    Profile --> StyleProfRoute
+    Home --> IdeatorRoute
+    Create --> VideosRoute
+    Review --> VideosRoute
 
-    Compliance --> Platforms
-    DealRouter --> Money
-    Money --> Payout
-    Payout --> UI
+    IdeatorRoute --> Trends
+    IdeatorRoute --> Haiku
+    IdeatorRoute --> Creators
+    IdeatorRoute --> Usage
+    StyleProfRoute --> Creators
+    VideosRoute --> Videos
+    MeRoute --> Creators
 
-    classDef device fill:#0a0820,stroke:#c084fc,color:#f6f3ff
-    classDef cloud fill:#15123a,stroke:#ff8da1,color:#f6f3ff
-    classDef money fill:#1f1a4a,stroke:#a855f7,color:#f6f3ff
-    class Device,Swarm,Inference,Memory device
-    class EdgeCloud,HeavyRender,TrendSync,DealRouter cloud
-    class Money,Affiliate,BrandDM,Payout money
+    classDef mobile fill:#0a0820,stroke:#c084fc,color:#f6f3ff
+    classDef api fill:#15123a,stroke:#ff8da1,color:#f6f3ff
+    classDef data fill:#1f1a4a,stroke:#a855f7,color:#f6f3ff
+    class Mobile,Onboard,Profile,Home,Create,Review mobile
+    class API,IdeatorRoute,StyleProfRoute,VideosRoute,MeRoute api
+    class Trends,LLM,DB,Haiku,T1,T2,T3,T4,Creators,Videos,Usage data
 ```
 
 ---
 
-## The Agent Swarm
+## The five surfaces of v1
 
-| Agent | Responsibility | Primary Model | Inputs | Outputs |
-|---|---|---|---|---|
-| **Orchestrator** | Routes intents, enforces consent gates, maintains memory graph coherence | Mistral 7B | User intent, memory graph, agent state | Agent invocation plan |
-| **Ideator** | Mines English-first trends, generates 3 daily US/EN-relevant opportunities (UK/CA/AU/IN/PH/NG aware via Voice Pack) | Qwen 3.5 9B | Trend cache, Style Twin, active Voice Pack | Scripted brief with hook, beat, cultural tag |
-| **Director** | Translates briefs into shot-by-shot storyboards, optimizes the 0.5–3s hook | Llama 3.2 11B Vision | Brief, Style Twin, audience win patterns | Storyboard, shot list, hook variants |
-| **Editor** | Renders visuals, captions, music, effects in <90s | Llama 3.2 11B Vision | Storyboard, raw footage, music library | Final 15–90s video file |
-| **Monetizer** | Detects affiliate fits, drafts brand pitches, drafts manual outreach (sent only on user tap) | Mistral 7B | Video metadata, brand graph, past deals | Outreach drafts, pitch decks, deal terms |
+| Surface | Where it lives | What it does | Notes |
+|---|---|---|---|
+| **Onboarding** | mobile · `app/(onboarding)/*` | Region picker + 3-video gallery import | Region: `western` (US/UK/CA/AU) · `india` · `philippines` · `nigeria`. Changeable in Settings. |
+| **Style Profile** | mobile (rule-based extraction) + API (`POST /api/style-profile`) | Hook type · caption tone · pacing · topics · content type → JSON | Stored on `creators.style_profile_json`. Defaults sensibly when missing so the Ideator works pre-onboarding. |
+| **Daily Ideator** | API · `POST /api/ideator/generate` | Region-conditioned ideas with hard constraints | One LLM call. Ideas must be **understandable in <3s** (hook ≤3s · ≤8 words) and **shootable in <30 min**. Output cap clamps both. |
+| **Templated creation** | mobile · `app/create/*` | Pick idea · film on native camera · template-based edit | Four fixed templates: A Fast Hook · B Story Build · C POV/Relatable · D Trend Jack. Selected deterministically from `templateHint`. |
+| **Side-by-side review + export** | mobile · `app/review/*` | Past video left · Lumina version right · plain-English diff · one-tap export | "Make another version" reuses the same idea with hook variation or different template. |
 
-Agents communicate exclusively through the shared **Memory Graph**. No agent calls another directly — the Orchestrator routes all transitions, which makes the swarm debuggable, replayable, and consent-auditable.
+---
 
-### Cultural Voice Pack System
+## The four fixed templates
 
-The Twin owns the creator's voice. The **Voice Pack** layers a culture on top — humor reference set, slang dictionary, lighting/aesthetic priors, platform-quirk weights — without retraining the Twin. Day-1 packs:
+Deterministic selection from `idea.templateHint` returned by the Ideator. No dynamic AI cutting in v1.
 
-| Pack | Locale | Status |
+| Template | Best for | Timing |
 |---|---|---|
-| **US-EN (Gen-Z)** | en-US | Default · Day 1 |
-| **UK-EN** | en-GB | Day 1 |
-| **CA-EN** | en-CA | Day 1 |
-| **AU-EN** | en-AU | Day 1 |
-| **IN-EN** | en-IN | Day 1 |
-| **PH-EN (Taglish-aware)** | en-PH | Day 1 |
-| **NG-EN (Pidgin-aware)** | en-NG | Day 1 |
-| pt-BR · id-ID · vi-VN · th-TH · es-MX/CO/AR | … | **Phase 1** (months 2–6) |
+| **A — Fast Hook** | Question or bold-statement openers (educational / entertainment) | 0–2s hook overlay · 2–5s reveal · 5–12s main · 12–18s payoff |
+| **B — Story Build** | Narrative · twist · reveal | 0–3s scenario hook · 3–10s build · 10–20s twist |
+| **C — POV / Relatable** | Personal · talking-head · lifestyle | 0–3s direct-to-cam hook · 3–12s story · 12–18s CTA |
+| **D — Trend Jack** | Trend-based · audio-driven | 0–1.5s trending audio sync · 1.5–6s visual match · 6–15s cultural twist |
 
-Packs are modular on-device vector-store extensions — switching packs is instant, training is unchanged.
+Auto-captions match the creator's profile (emoji count ±1, sentence-length range, tone). Audio packs are bundled per region with fixed sync points — no dynamic beat detection in v1.
 
 ---
 
-## On-Device / Edge-Cloud Hybrid
+## The Style Profile (rule-based extraction)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Creator
-    participant App as Expo App
-    participant Orch as Orchestrator
-    participant Swarm as Agent Swarm
-    participant Memory as Encrypted Memory
-    participant Shield as Compliance Shield
-    participant Burst as Edge-Cloud Burst
-    participant Platform as TikTok / Reels / Shorts
-
-    Creator->>App: Open app
-    App->>Orch: Request daily briefs
-    Orch->>Memory: Load Style Twin + Voice Pack (US-EN default) + audience patterns
-    Orch->>Swarm: Invoke Ideator
-    Swarm-->>Orch: 3 English-first briefs
-    Orch-->>App: Render briefs
-    Creator->>App: "Let's make this"
-    App->>Orch: Approve brief #2
-    Orch->>Swarm: Invoke Director → Editor
-    Swarm->>Swarm: Local inference (<90s)
-
-    alt Heavy render needed
-        Orch->>Creator: Consent prompt (one-tap)
-        Creator-->>Orch: Approve
-        Orch->>Burst: Stateless render burst (<5s · Supabase US-west)
-        Burst-->>Orch: Rendered asset
-    end
-
-    Orch->>Shield: Policy check (CCPA · EU AI Act · COPPA · FTC · GDPR)
-    Shield-->>Orch: Approved (or auto-rewrite)
-    Creator->>App: "Launch to the World"
-    App->>Platform: Multi-platform publish + 12-variant A/B (TikTok · Reels · Shorts)
-    Platform-->>App: Engagement signals
-    App->>Memory: Update Style Twin + win patterns
-```
-
-## Quantization Spec
-
-| Model | Role | Precision | On-Device Footprint | Notes |
-|---|---|---|---|---|
-| **Llama 3.2 11B Vision** | Director, Editor (multimodal) | **4-bit (Q4_K_M)** | ~6.2 GB | Vision-text fusion for storyboards, palette, framing |
-| **Mistral 7B** | Orchestrator, Monetizer (language + negotiation) | **4-bit (Q4_K_M)** | ~4.0 GB | Low-latency routing and outreach drafting |
-| **Qwen 3.5 9B** | Ideator (multilingual cultural intelligence) | **8-bit (Q8_0)** | ~9.0 GB *(loaded on demand)* | Native en-* + (Phase 1) pt-BR, id-ID, vi-VN, th-TH, tl-PH, es-MX/CO/AR |
-| **Whisper-tiny** | Voice features for Style Twin | **4-bit** | ~150 MB | Pacing, energy, transcription only — never streamed |
-| **TitaNet-small** | Speaker embedding for Style Twin | **fp16** | ~80 MB | 192-dim timbre vector |
-
-**Loader policy:** Llama and Mistral remain warm. Qwen is paged in only when the Ideator runs (nightly + on demand). Total resident memory budget: **≤ 5.5 GB on 8 GB devices**, **≤ 12 GB on 12 GB+ devices** (Qwen warm).
-
-**Runtime:** [`react-native-executorch`](https://github.com/software-mansion/react-native-executorch) for Llama / Mistral / Whisper / TitaNet. Qwen via [`llama.rn`](https://github.com/mybigday/llama.rn) with mmap-backed lazy load.
-
----
-
-**Burst rules** — the edge-cloud layer is invoked only when:
-
-1. The render exceeds the device's thermal/memory budget (4K upscale, 3D VFX, multi-track music synthesis).
-2. The user has explicitly opted in for that action.
-3. The payload is **stateless** — no creator identity, no Style Twin, no raw audio. The burst layer never persists creator data.
-4. Hosted in **Supabase US-west** for CCPA-default residency.
-
-Trend sync is a **delta-only nightly pull** of regional trend metadata (no per-creator queries).
-
----
-
-## Privacy & Consent Model
-
-| Surface | Default | Opt-in Required For |
+| Field | Extracted from | Default if missing |
 |---|---|---|
-| Raw video / audio | Stays on device | Heavy render burst (per-action, scoped) |
-| Style Twin | Encrypted on device | Never leaves device — zero exceptions |
-| Memory graph | Encrypted on device | Cross-device sync (future, opt-in) |
-| Engagement signals | Stays on device | Aggregated trend contribution (off by default) |
-| Brand outreach drafts | Stays on device | Sent only on user's explicit tap |
+| `hookStyle.primary` | First-sentence classification across uploaded videos | `question` |
+| `hookStyle.distribution` | Frequency of each hook type | `{question: 0.34, bold: 0.33, sceneSetter: 0.33}` |
+| `hookStyle.sampleHooks` | Top 5 of the creator's actual past hooks | `[]` |
+| `captionStyle.tone` | Average sentence length classifier | `short` |
+| `captionStyle.avgEmojiCount` + `emojiRange` | Per-video emoji density | `2` (range `1–4`) |
+| `captionStyle.punctuationPattern` | Frequency of `!` / `?` / mixed | `mixed` |
+| `pacing.avgCutsPerSecond` | Simple scene-change detection | `0.5` |
+| `pacing.avgVideoDurationSeconds` | Mean clip length | `20` |
+| `topics.contentType` | Caption + on-screen text keyword cluster | `lifestyle` |
+| `topics.keywords` + `recurringPhrases` | Frequency tally over captions | `[]` |
+| `language.primary` + `slangMarkers` | Region + caption-language detection (en-US / en-IN / en-PH / en-NG) | `en-US` |
 
-**Compliance Shield** runs as an in-process policy engine on every outbound asset before publish. Tuned to **US/EU policies first** — CCPA, EU AI Act, COPPA, FTC disclosure, GDPR — with TikTok / Reels / Shorts as Day-1 packs. Kwai / GoPlay-ID / Kumu-PH packs ship pre-wired so Phase 1 SEA/LATAM expansion is a config flip, not a refactor. Flagged content is either auto-rewritten by the Editor or blocked with an explanation.
+Schema lives at [`artifacts/api-server/src/lib/styleProfile.ts`](artifacts/api-server/src/lib/styleProfile.ts). Single JSON document on `creators.style_profile_json` — small enough to round-trip on every Ideator request without a join.
 
 ---
 
-## Monetization Architecture
+## The regional Trend Bundle
 
-| Layer | Day-1 (US-first) | Phase 1 (SEA/LATAM layered) |
+Static JSON shipped with the API — manually refreshed every few days.
+
+```
+packages/lumina-trends/
+├── src/
+│   ├── index.ts          # typed loader + topByScore()
+│   └── bundles/
+│       ├── western.json
+│       ├── india.json
+│       ├── philippines.json
+│       └── nigeria.json
+```
+
+Each bundle contains ~25 trending hooks, ~15 caption templates, and ~10 video formats. Every item carries `popularityScore` (1–10) and `recencyScore` (1–10); the Ideator passes the top-K by combined score into Haiku's prompt to keep the context lean.
+
+---
+
+## Tech stack (v1)
+
+| Layer | Choice | Notes |
 |---|---|---|
-| **Performance fee** | 10% of incremental revenue Lumina creates, audit-trailed via FNV-1a hash chain | Same engine, no change |
-| **Affiliate detection** | Amazon Associates, Linktree, TikTok Shop, Rakuten | Shopee, Lazada, Tokopedia, Magalu, Mercado Livre, Kwai Shop |
-| **Brand outreach** | Email + IG DM + WhatsApp drafts (manual-send gate) | Same |
-| **Payout rails** | **Stripe Connect + PayPal instant** (US bank accounts first) | Pix · GCash · OVO · SPEI · PromptPay · Wise |
-| **Pricing** | Spark free (3 videos/day) · Lumina Pro $12.99/mo · 10% performance fee | Same headline; localized currency display |
-
-Sprint 4 ships the engine end-to-end behind these interfaces — Sprint 5 swaps the Stripe/PayPal adapters in behind `PayoutGateway` without touching call sites.
-
----
-
-## Repository Layout
-
-```
-artifacts/
-├── lumina/             # Expo mobile app — the product surface
-├── api-server/         # DEPRECATED · reserved for Sprint 3 burst layer
-└── mockup-sandbox/     # Canvas for UI exploration
-packages/
-├── style-twin/         # Personal Style Twin (Sprint 1) — types, train/retrain, encrypted storage, ExecuTorch adapter
-├── swarm-studio/       # Orchestrator + 4 agents + memory graph contracts (Sprint 2)
-├── compliance-shield/  # Per-platform policy engine + auto-rewrite + 368-sample red-team corpus (Sprint 3)
-├── monetizer/          # 10% performance-fee accounting + Stripe/PayPal-first payout rails (Sprint 4)
-├── edge-cloud/         # Stateless burst client + nightly trend delta (Sprint 2/3)
-├── api-spec/           # OpenAPI single source of truth
-├── api-client-react/   # Generated React Query hooks (Orval)
-└── api-zod/            # Generated Zod schemas (Orval)
-.agents/                # Agent definitions, prompts, memory-graph schemas
-scripts/                # Repo-wide tooling
-```
-
-Workspace conventions: pnpm workspaces, TypeScript project references, OpenAPI-first contracts, Orval codegen, Pino for structured logging. Encrypted device keystores (iOS Keychain / Android Keystore via `expo-secure-store`) are the only persistence layer for creator data; cloud burst payloads are stateless and hosted in **Supabase US-west**.
+| Mobile | **Expo (React Native)** · TypeScript · Reanimated · NativeTabs (iOS 26 liquid glass) | The spec calls for an eventual move to **Flutter + ExecuTorch/LiteRT + FFmpeg-kit** for the on-device parts — Phase 2 only, after the loop is validated. Expo + Express stays for v1 to avoid a stack rewrite ahead of product proof. |
+| API | **Express 5** · TypeScript · Drizzle ORM · esbuild | One artifact: `artifacts/api-server`. |
+| Database | **Replit Postgres** | Schema = `creators · videos · ai_usage · usage_counters · jobs · agent_runs · error_events` (others present but archived behind feature flags — see below). |
+| LLM | **Claude Haiku 4.5** via Replit AI Integrations (`AI_INTEGRATIONS_ANTHROPIC_*`) | Single endpoint. `$5/day` per-creator cap enforced by `lib/aiCost.ts`. |
+| Style extraction | **Rule-based** (regex + keyword frequency + simple scene-change detection) | No vector DB, no on-device model. |
+| Templates | **4 fixed timing templates** | No dynamic AI cutting. |
+| Trends | **Static JSON bundles** per region | `packages/lumina-trends`. |
+| Auth | **Clerk** (with demo-creator fallback) | First idea lands before sign-up. |
+| Codegen | **Orval** from OpenAPI | `packages/api-spec` → `api-client-react` + `api-zod`. |
 
 ---
 
-## Non-Functional Requirements
+## Database schema (in active use)
 
-| Concern | Target |
-|---|---|
-| End-to-end video generation (script → export) | < 90s on-device |
-| Heavy render burst | < 5s additional |
-| Cold app start | < 1.5s on iPhone 13 / Pixel 7 |
-| Style Twin retrain | < 8s incremental |
-| Offline coverage | 70% of features fully usable offline |
-| Crash-free sessions | ≥ 99.7% |
-| Compliance Shield latency | < 250ms per asset |
-| Battery cost per video | ≤ 3% on 4000mAh device |
-| Test coverage | ≥ 85% lines, 100% on monetization & consent paths |
+| Table | Purpose | Phase 1 columns of note |
+|---|---|---|
+| `creators` | One row per signed-in creator (or the singleton demo) | `region` (varchar 16) · `style_profile_json` (jsonb) · `last_idea_batch_at` (timestamptz) · existing consent + Clerk fields |
+| `videos` | Imported clips + Lumina-built outputs | unchanged |
+| `ai_usage` | Per-call token + USD ledger | feeds the daily $ cap |
+| `usage_counters` | Per-creator-per-day quota counters | `idea_batch` (default 2/day, env-tunable) |
+| `jobs` | Postgres job queue (background work) | dedupe-keyed |
+| `agent_runs` | Run/agent lifecycle bookkeeping | reused but not driven by an autonomous swarm |
+| `error_events` | Structured error capture | grouped by `name+digest` |
 
----
+Migrations are versioned in [`artifacts/api-server/src/db/migrations.ts`](artifacts/api-server/src/db/migrations.ts) — pure additive (`ADD COLUMN IF NOT EXISTS`), advisory-locked, runs on every boot. Migration #12 added the three Phase 1 columns above. **No primary-key types are ever changed.**
 
-## Threat Model — Top 5
-
-1. **Style Twin exfiltration** — mitigated by on-device encrypted storage + zero cloud sync by default.
-2. **Platform policy drift** — mitigated by Compliance Shield + multi-platform redundancy + nightly policy delta pull.
-3. **Deal-router fraud / fake brands** — mitigated by escrowed payouts + brand graph reputation scoring.
-4. **Trend-cache poisoning** — mitigated by signed delta pulls and on-device anomaly detection.
-5. **Voice-clone misuse** — mitigated by radical transparency (every agent shows reasoning) + one-tap human override + watermarking on every outbound asset.
+The following tables exist in `schema.ts` from earlier work but are **not read or written by any v1 code path** (they belong to archived systems): `brand_deals`, `ledger_entries`, `publications`, `webhook_events`. They will stay until the physical `/archive` move (gated on user approval).
 
 ---
 
-## Decision Log
+## v1 success metrics
 
-Architectural decisions of consequence are recorded as ADRs in `docs/adr/NNNN-title.md`. The first ADR locks the immutable v2.0 blueprint (US-first / English-first GTM).
+- **≥ 60 %** of ideas creators select are Lumina-generated.
+- **≥ 3 exports** per creator in the first 7 days.
+
+---
+
+## Privacy & consent
+
+| Surface | Default | Notes |
+|---|---|---|
+| Raw video / audio | Stays on device + uploaded only to your own Lumina account for review pairing | Never sent to the LLM. |
+| Style Profile JSON | Persisted server-side in Postgres | Withdrawable + exportable + deletable via `/api/me/*`. |
+| Region | Persisted on `creators.region` | Changeable in Settings. |
+| AI calls | Logged to `ai_usage` (tokens + USD only, no content) | Powers the daily $ cap. |
+
+The `/api/me/data-export` and `/api/me/data-delete` endpoints from the earlier consent work are still active and authoritative for v1.
+
+---
+
+## Explicitly NOT in v1
+
+Listed for clarity since this is a deliberate scope contraction:
+
+- Vector DBs or heavy on-device ML for style extraction
+- Dynamic / smart AI cutting (only the four fixed templates)
+- Real-time trend scraping (static JSON only)
+- In-app camera UI (use the native camera)
+- Numeric performance projections
+- Engagement / earnings / metrics dashboards
+- Anything autonomous (no nightly swarm, no auto-publish)
+- Anything monetization-related (no subscriptions, no Stripe Connect, no payouts, no brand deals, no performance fees, no Lumina Pro tier)
+- One-tap publish to TikTok / Reels / Shorts
+- A/B test variants of hooks, captions, or thumbnails
+
+---
+
+## Archived v2.0 blueprint
+
+Earlier work shipped a much wider system. It is **not the current scope** but the source remains in the tree for now (frozen behind feature flags) so we can revive selectively if the v1 loop validates. **All of the following are archived:**
+
+| System | Where the code still sits | Status |
+|---|---|---|
+| **Autonomous Swarm** (Ideator → Director → Editor → Monetizer orchestrator, overnight scheduler, agent_runs idempotency) | `artifacts/api-server/src/agents/swarm.ts` + scheduler + `routes/agents.ts` | Frozen behind `ARCHIVED_AUTONOMY=true`. Routes return 404. |
+| **Smart Publisher** (12-variant A/B, real OAuth posting to TikTok / IG Reels / YT Shorts, Kwai / GoPlay / Kumu mock clients, smart watermark) | `packages/swarm-studio` + `routes/publications.ts` | Frozen behind `ARCHIVED_POSTING=true`. |
+| **Compliance Shield** (6 policy packs, 21 rules, 368-sample red-team corpus, auto-rewrite, hard-block) | `packages/compliance-shield` | Frozen — not mounted as MVP. |
+| **Earnings Engine + Monetization** (10 % performance fee, hash-chained ledger, brand graph, pitch deck, DM drafts, escrow with regional rails) | `packages/monetizer` + `routes/earnings.ts` | Frozen behind `ARCHIVED_MONETIZATION=true`. |
+| **Stripe billing + Stripe Connect payouts + PayPal** (subscription lifecycle, account onboarding, webhook handlers) | `routes/billing.ts` · `routes/payouts.ts` · `lib/stripe.ts` · `lib/stripeJobs.ts` | Frozen — closed-by-default unless `STRIPE_SECRET_KEY` set. Not in v1 scope regardless. |
+| **99.8 % Style Twin clone** (encrypted on-device storage, similarity gates, voice timbre, vector kNN) | `packages/style-twin` | Frozen. v1 uses the lightweight rule-based Style Profile in [`artifacts/api-server/src/lib/styleProfile.ts`](artifacts/api-server/src/lib/styleProfile.ts) instead. |
+| **On-device inference** (quantized Llama 3.2 11B Vision · Mistral 7B · Qwen 3.5 9B via ExecuTorch / llama.rn) | EAS dev-build runbook in `packages/style-twin/IMPLEMENTATION_PLAN.md` | Not built. Phase 2 stack-rewrite item only. |
+| **Multi-agent orchestrator** (memory graph, Cultural Voice Packs, consent-gated routing) | `packages/swarm-studio/src/orchestrator.ts` | Frozen. |
+| **Earnings dashboard + Referral Rocket** (`while-you-slept.tsx`, morning recap, dual $25 bounty) | `artifacts/lumina/app/while-you-slept.tsx` | Removed from active navigation. Source intact. |
+
+Physical move of all of the above into `/archive/` is a deliberate follow-up, gated on the v1 loop working end-to-end.
