@@ -8,6 +8,12 @@
  * read from the same cache. If the cache is empty or stale, we
  * fall back to a server fetch.
  *
+ * Cache-first behaviour is load-bearing: every mount and every
+ * retry checks AsyncStorage first and only falls through to the
+ * ideator when the cache misses. Re-opening the app within the
+ * same UTC day must NEVER fire `/api/ideator/generate` —
+ * regression-test that path before changing this screen.
+ *
  * The "regenerate" affordance uses the ideator's second-batch
  * slot (server enforces a 2-batch-per-UTC-day cap) so the user
  * can ask for a different angle without waiting until tomorrow.
@@ -19,8 +25,9 @@
  */
 
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -61,6 +68,7 @@ type IdeatorResponse = {
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
@@ -72,59 +80,63 @@ export default function HomeScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  /* ---------- Initial load ----------------------------------- */
+  // Tracks the most recent `loadIdeas` invocation so a slow
+  // initial load that resolves AFTER the user tapped Retry can't
+  // overwrite the fresher result. Cheaper than maintaining a
+  // separate AbortController for both code paths.
+  const loadCallIdRef = useRef(0);
 
-  // First mount: figure out the user's region (server is the
-  // source of truth, the cache only knows region as a key) and
-  // hydrate ideas from cache. If the cache has nothing fresh,
-  // call the ideator. Both fetches are tied to a `cancelled`
-  // flag so a fast unmount doesn't write into stale state.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const sp = await customFetch<StyleProfileResponse>("/api/style-profile");
-        if (cancelled) return;
-        if (!sp.region) {
-          // Pre-onboarding state shouldn't be reachable from
-          // here (the auth layout routes signed-in users to
-          // onboarding until hasCompletedOnboarding flips), so
-          // surface the unexpected case rather than silently
-          // showing an empty Home.
-          setErrorMsg("No region on your profile yet.");
-          return;
-        }
-        setRegion(sp.region);
+  /* ---------- Load (cache-first) ----------------------------- */
 
-        const cached = await readDailyIdeas(sp.region);
-        if (cancelled) return;
-        if (cached) {
-          setIdeas(cached);
-          return;
-        }
-
-        const fresh = await customFetch<IdeatorResponse>(
-          "/api/ideator/generate",
-          {
-            method: "POST",
-            body: JSON.stringify({ region: sp.region, count: 3 }),
-          },
-        );
-        if (cancelled) return;
-        setIdeas(fresh.ideas);
-        await writeDailyIdeas(sp.region, fresh.ideas);
-      } catch (err) {
-        if (!cancelled) {
-          setErrorMsg(formatError(err, "Couldn't load today's ideas."));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  // Single source of truth for the load sequence — used by both
+  // the initial mount effect and the Retry button. Cache-first
+  // by design: we ALWAYS hit AsyncStorage before the network, so
+  // re-opening Home within the same UTC day costs zero ideator
+  // quota.
+  const loadIdeas = useCallback(async () => {
+    const callId = ++loadCallIdRef.current;
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const sp = await customFetch<StyleProfileResponse>("/api/style-profile");
+      if (callId !== loadCallIdRef.current) return;
+      if (!sp.region) {
+        setErrorMsg("No region on your profile yet.");
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setRegion(sp.region);
+
+      // Cache hit → done. No network call to the ideator.
+      const cached = await readDailyIdeas(sp.region);
+      if (callId !== loadCallIdRef.current) return;
+      if (cached) {
+        setIdeas(cached);
+        return;
+      }
+
+      // Cache miss → fetch fresh, then write through so the next
+      // open in this UTC day stays cache-only.
+      const fresh = await customFetch<IdeatorResponse>(
+        "/api/ideator/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({ region: sp.region, count: 3 }),
+        },
+      );
+      if (callId !== loadCallIdRef.current) return;
+      setIdeas(fresh.ideas);
+      await writeDailyIdeas(sp.region, fresh.ideas);
+    } catch (err) {
+      if (callId !== loadCallIdRef.current) return;
+      setErrorMsg(formatError(err, "We couldn't load ideas. Try again."));
+    } finally {
+      if (callId === loadCallIdRef.current) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadIdeas();
+  }, [loadIdeas]);
 
   /* ---------- Regenerate (uses today's 2nd ideator slot) ----- */
 
@@ -153,7 +165,31 @@ export default function HomeScreen() {
     }
   }, [region, regenerating]);
 
+  /* ---------- Idea press → creation flow ---------------------- */
+
+  // Stable navigator: opens the create flow with this idea as
+  // its starting point. The whole idea object is JSON-encoded
+  // into params because there is no server-side stable id we
+  // could fetch by — the ideator's response is transient.
+  const openCreate = useCallback(
+    (idea: CachedIdea) => {
+      router.push({
+        pathname: "/create",
+        params: { idea: JSON.stringify(idea) },
+      });
+    },
+    [router],
+  );
+
   /* ---------- Render ----------------------------------------- */
+
+  // Treat an empty array the same as null — both mean "nothing to
+  // show". Without this, an ideator response of `{ ideas: [] }`
+  // would slip past `!loading && ideas` (truthy) and `!ideas`
+  // (false), leaving the user staring at a blank Home with only
+  // the regenerate button to escape.
+  const hasIdeas = Array.isArray(ideas) && ideas.length > 0;
+  const showEmptyError = !loading && !hasIdeas;
 
   return (
     <View style={styles.root}>
@@ -197,14 +233,20 @@ export default function HomeScreen() {
               // across regenerate when the same idea happens to
               // come back, while the index prevents collisions
               // among same-prefix ideas.
-              <IdeaCard
+              <Pressable
                 key={
                   idea.id ??
                   `${i}-${(idea.hook ?? "idea").slice(0, 24)}`
                 }
-                idea={idea}
-                index={i + 1}
-              />
+                onPress={() => openCreate(idea)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open creation flow for ${idea.hook}`}
+                style={({ pressed }) => [
+                  pressed ? styles.cardPressed : null,
+                ]}
+              >
+                <IdeaCard idea={idea} index={i + 1} />
+              </Pressable>
             ))}
           </Animated.View>
         ) : null}
@@ -233,8 +275,41 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
-        {errorMsg ? (
+        {/* Inline error for the regenerate path — only shows
+            when ideas are already on screen, otherwise the full
+            error block below covers it. */}
+        {!loading && ideas && errorMsg ? (
           <Text style={styles.error}>{errorMsg}</Text>
+        ) : null}
+
+        {/* Full empty/error state — covers initial-load failures
+            and the (unlikely) case where the load resolved but
+            returned no ideas. */}
+        {showEmptyError ? (
+          <View style={styles.errorBlock}>
+            <Feather
+              name="alert-circle"
+              size={28}
+              color={lumina.firefly}
+              style={{ marginBottom: 14 }}
+            />
+            <Text style={styles.errorBlockTitle}>
+              {errorMsg ?? "We couldn't load ideas. Try again."}
+            </Text>
+            <Pressable
+              onPress={loadIdeas}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.retryBtn,
+                pressed && !loading ? styles.retryBtnPressed : null,
+                loading ? styles.retryBtnDisabled : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading ideas"
+            >
+              <Text style={styles.retryLabel}>Retry</Text>
+            </Pressable>
+          </View>
         ) : null}
       </ScrollView>
     </View>
@@ -290,6 +365,10 @@ const styles = StyleSheet.create({
   feed: {
     marginTop: 4,
   },
+  cardPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
+  },
   refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -320,5 +399,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 18,
     textAlign: "center",
+  },
+  errorBlock: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  errorBlockTitle: {
+    ...type.body,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+    marginBottom: 18,
+  },
+  retryBtn: {
+    backgroundColor: lumina.firefly,
+    borderRadius: 999,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+  },
+  retryBtnPressed: {
+    opacity: 0.85,
+  },
+  retryBtnDisabled: {
+    opacity: 0.4,
+  },
+  retryLabel: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#0A0824",
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
 });

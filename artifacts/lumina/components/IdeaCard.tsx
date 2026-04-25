@@ -52,25 +52,27 @@ export function IdeaCard({
     );
   }
 
+  // Friendly metadata footer — kept deliberately to two human
+  // pieces (length + filming time). Hook-second timing and other
+  // production-y numbers are dropped from the card to keep it
+  // feeling like a creative prompt, not a dashboard.
+  const lengthChip =
+    typeof idea.videoLengthSec === "number"
+      ? `${idea.videoLengthSec} sec video`
+      : null;
+  const filmChip =
+    typeof idea.filmingTimeMin === "number"
+      ? `${idea.filmingTimeMin} min to film`
+      : null;
+
   return (
     <View
       style={[styles.card, highlight ? styles.cardHighlight : null]}
       accessibilityRole="summary"
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardKicker}>
-          {index ? `idea ${index}` : "first idea"}
-          {typeof idea.hookSeconds === "number"
-            ? ` · hook ${idea.hookSeconds}s`
-            : ""}
-        </Text>
-        {typeof idea.videoLengthSec === "number" &&
-        typeof idea.filmingTimeMin === "number" ? (
-          <Text style={styles.cardKickerRight}>
-            {idea.videoLengthSec}s · film in {idea.filmingTimeMin}m
-          </Text>
-        ) : null}
-      </View>
+      <Text style={styles.cardKicker}>
+        {index ? `idea ${index}` : "first idea"}
+      </Text>
       <Text style={styles.cardHook}>{idea.hook}</Text>
       {idea.visualHook ? (
         <>
@@ -90,6 +92,20 @@ export function IdeaCard({
           <Text style={styles.cardBody}>{idea.caption}</Text>
         </>
       ) : null}
+      {lengthChip || filmChip ? (
+        <View style={styles.metaRow}>
+          {lengthChip ? (
+            <View style={styles.metaPill}>
+              <Text style={styles.metaText}>{lengthChip}</Text>
+            </View>
+          ) : null}
+          {filmChip ? (
+            <View style={styles.metaPill}>
+              <Text style={styles.metaText}>{filmChip}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -107,24 +123,32 @@ const styles = StyleSheet.create({
     borderColor: lumina.firefly,
     backgroundColor: "rgba(0,255,204,0.06)",
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
   cardKicker: {
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",
+    marginBottom: 10,
   },
-  cardKickerRight: {
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+  metaPill: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  metaText: {
     fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
   },
   cardHook: {
     ...type.subhead,
