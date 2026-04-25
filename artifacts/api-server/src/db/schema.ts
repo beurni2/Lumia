@@ -86,6 +86,19 @@ export const creators = pgTable("creators", {
     .notNull()
     .default(false),
   connectCountry: varchar("connect_country", { length: 2 }),
+  // ----- Phase 1 MVP additions (migration #12) ----- //
+  // Region picker on onboarding — drives the trend bundle the ideator
+  // pulls from + the audio pack the create flow uses. Nullable until
+  // the creator picks one (default behaviour: "western").
+  region: varchar("region", { length: 16 }),
+  // Lightweight rule-based Style Profile (see lib/styleProfile.ts).
+  // Persisted as a single jsonb document — small enough to round-trip
+  // on every ideator request without a join.
+  styleProfileJson: jsonb("style_profile_json").$type<unknown>(),
+  // Stamped each time the ideator successfully returns a batch — lets
+  // the home screen reason about "today's ideas" freshness without
+  // a separate cache table.
+  lastIdeaBatchAt: timestamp("last_idea_batch_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -13,10 +13,14 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
 
-export type QuotaKind = "swarm_run";
+export type QuotaKind = "swarm_run" | "idea_batch";
 
 const DEFAULTS: Record<QuotaKind, number> = {
   swarm_run: 10,
+  // Phase 1 MVP: each creator gets at most 2 ideator batches per UTC
+  // day — the initial morning batch + at most one regeneration if
+  // the first three ideas don't appeal. Tuneable via env.
+  idea_batch: 2,
 };
 
 function envInt(key: string, fallback: number): number {
@@ -29,6 +33,9 @@ function envInt(key: string, fallback: number): number {
 export function quotaLimit(kind: QuotaKind): number {
   if (kind === "swarm_run") {
     return envInt("LUMINA_MAX_SWARM_RUNS_PER_DAY", DEFAULTS.swarm_run);
+  }
+  if (kind === "idea_batch") {
+    return envInt("LUMINA_MAX_IDEA_BATCHES_PER_DAY", DEFAULTS.idea_batch);
   }
   return DEFAULTS[kind];
 }

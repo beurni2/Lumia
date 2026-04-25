@@ -13,22 +13,28 @@ import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
 import billingRouter from "./billing";
 import payoutsRouter from "./payouts";
+import ideatorRouter from "./ideator";
+import styleProfileRouter from "./styleProfile";
 
 const router: IRouter = Router();
 
 // ---------------------------------------------------------------- //
 // v1 MVP routes (always mounted)                                   //
 // ---------------------------------------------------------------- //
-//   • health  — operational pings
-//   • creator — `/api/creator/me`, the single resolved-creator read
-//   • trends  — region-aware trend bundles for the ideator
-//   • videos  — the user's imported clips
-//   • me      — consent surface (withdraw / export / delete)
+//   • health         — operational pings
+//   • creator        — /api/creator/me, the single resolved-creator read
+//   • trends         — legacy global trend feed (kept for back-compat)
+//   • videos         — the user's imported clips
+//   • me             — consent surface (withdraw / export / delete)
+//   • style-profile  — GET/POST the lightweight rule-based Style Profile
+//   • ideator        — POST /api/ideator/generate, the single v1 LLM call
 router.use(healthRouter);
 router.use(creatorRouter);
 router.use(trendsRouter);
 router.use(videosRouter);
 router.use(meRouter);
+router.use(styleProfileRouter);
+router.use(ideatorRouter);
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //

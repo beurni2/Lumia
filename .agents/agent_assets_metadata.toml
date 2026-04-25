@@ -29,3 +29,9 @@ id = "skirkYnBrtwTuUpZ70QN9"
 uri = "file://FOUNDER_DEMO_SCRIPT.md"
 type = "text"
 title = "Lumina — Founder Demo Script (one-pager)"
+
+[[outputs]]
+id = "W_o7zuarI5yfcEmOsDNPv"
+uri = "file://.local/quality-samples/SAMPLES.md"
+type = "text"
+title = "Lumina Ideator — 78 Ideas Across 4 Regions (Quality Validation)"

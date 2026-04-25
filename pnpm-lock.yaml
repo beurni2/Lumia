@@ -175,6 +175,9 @@ importers:
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../packages/api-zod
+      '@workspace/lumina-trends':
+        specifier: workspace:*
+        version: link:../../packages/lumina-trends
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -611,6 +614,12 @@ importers:
         version: 5.9.3
 
   packages/edge-cloud:
+    devDependencies:
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
+  packages/lumina-trends:
     devDependencies:
       typescript:
         specifier: ~5.9.2

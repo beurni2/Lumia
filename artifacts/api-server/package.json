@@ -13,6 +13,7 @@
     "@anthropic-ai/sdk": "^0.90.0",
     "@clerk/express": "^2.1.5",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/lumina-trends": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
     "drizzle-orm": "catalog:",

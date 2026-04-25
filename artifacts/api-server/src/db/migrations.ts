@@ -243,6 +243,23 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 12,
+    name: "creators_phase1_mvp",
+    // Phase 1 MVP additions on `creators` for region-conditioned
+    // ideation + the lightweight Style Profile.
+    //
+    // Pure additive — only ADD COLUMN IF NOT EXISTS, no PK touched,
+    // no existing column altered. The new columns are nullable
+    // because pre-onboarding rows have no profile yet, and the
+    // ideator endpoint defaults sensibly on absence.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS region varchar(16),
+        ADD COLUMN IF NOT EXISTS style_profile_json jsonb,
+        ADD COLUMN IF NOT EXISTS last_idea_batch_at timestamptz;
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

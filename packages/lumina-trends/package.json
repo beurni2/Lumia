@@ -1,0 +1,16 @@
+{
+  "name": "@workspace/lumina-trends",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bundles/*": "./src/bundles/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}
