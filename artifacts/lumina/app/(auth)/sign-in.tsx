@@ -12,8 +12,17 @@ import { AuthField } from "@/components/auth/AuthField";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PortalButton } from "@/components/foundation/PortalButton";
 import { type } from "@/constants/typography";
+import { isWebQaMode } from "@/lib/qaMode";
 
 export default function SignInScreen() {
+  // QA mode bypasses Clerk; the QaAwareRouter redirects away from
+  // /(auth)/* before this screen mounts. This early-return is a
+  // safety net so useSignIn() never runs without ClerkProvider.
+  // isWebQaMode() is stable for a session, so calling 0 hooks vs
+  // calling all hooks consistently across renders is rules-of-
+  // hooks safe.
+  if (isWebQaMode()) return null;
+
   const { signIn, errors, fetchStatus } = useSignIn();
   const router = useRouter();
 
