@@ -120,6 +120,22 @@ export default function CreateScreen() {
     router.replace("/(tabs)");
   }, [router]);
 
+  // Hand-off to the side-by-side review skeleton. We pass the
+  // idea + clip JSON-encoded so /review is fully self-contained
+  // and can be re-entered (back-nav, deep-link) without needing
+  // any global state. Guarded on `clip` so the button can only
+  // fire from the preview stage.
+  const handleSeeReview = useCallback(() => {
+    if (!idea || !clip) return;
+    router.push({
+      pathname: "/review",
+      params: {
+        idea: JSON.stringify(idea),
+        clip: JSON.stringify(clip),
+      },
+    });
+  }, [router, idea, clip]);
+
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -194,7 +210,12 @@ export default function CreateScreen() {
           <ImportStage onPick={handlePickClip} busy={busy} />
         ) : null}
         {stage === "preview" && clip ? (
-          <PreviewStage idea={idea} clip={clip} onDone={handleDone} />
+          <PreviewStage
+            idea={idea}
+            clip={clip}
+            onDone={handleDone}
+            onSeeReview={handleSeeReview}
+          />
         ) : null}
 
         {errorMsg ? (
@@ -295,10 +316,12 @@ function PreviewStage({
   idea,
   clip,
   onDone,
+  onSeeReview,
 }: {
   idea: IdeaCardData;
   clip: FilmedClip;
   onDone: () => void;
+  onSeeReview: () => void;
 }) {
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
@@ -338,6 +361,12 @@ function PreviewStage({
         </View>
       ) : null}
 
+      {/* Primary forward action — show the side-by-side review
+          of this take against a past similar video. This is the
+          new "next beat" after preview; "Back to ideas" stays as
+          the secondary escape hatch. */}
+      <PrimaryButton label="See how this compares" onPress={onSeeReview} />
+
       {/* Iteration-loop placeholder. Disabled on purpose — wiring
           this to a real "regenerate this preview with a different
           take" pass lands with the export PR. Keeping it visible
@@ -349,7 +378,7 @@ function PreviewStage({
         accessibilityLabel="Make another version (coming soon)"
       />
 
-      <PrimaryButton label="Back to ideas" onPress={onDone} />
+      <TextButton label="Back to ideas" onPress={onDone} />
     </Animated.View>
   );
 }
@@ -393,6 +422,30 @@ function PrimaryButton({
       ) : (
         <Text style={styles.primaryLabel}>{label}</Text>
       )}
+    </Pressable>
+  );
+}
+
+// Tertiary "text link" button — used for escape-hatch actions
+// that we don't want competing with the primary forward CTA.
+function TextButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.textButton,
+        pressed ? styles.textButtonPressed : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={styles.textButtonLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -700,6 +753,21 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: "uppercase",
     marginTop: 4,
+  },
+  // Tertiary text-link button — used as the secondary escape
+  // hatch when the primary CTA points forward to the next stage.
+  textButton: {
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  textButtonPressed: {
+    opacity: 0.6,
+  },
+  textButtonLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 14,
   },
   error: {
     fontFamily: fontFamily.bodyMedium,
