@@ -121,10 +121,25 @@ export async function callJsonAgent<T extends z.ZodTypeAny>({
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(
+    // Attach the full raw text to the error so callers can attempt
+    // partial recovery (e.g. salvaging complete idea objects from a
+    // truncated array). The user-facing message stays bounded.
+    const e = new Error(
       `Agent returned non-JSON output: ${cleaned.slice(0, 200)}…`,
-    );
+    ) as Error & { rawText?: string };
+    e.rawText = cleaned;
+    throw e;
   }
 
-  return schema.parse(parsed);
+  try {
+    return schema.parse(parsed);
+  } catch (err) {
+    // Schema validation failed (e.g. one idea had 9 words in hook,
+    // another had too-long shotPlan). Attach raw text so the caller's
+    // recovery path can salvage individually-valid ideas via safeParse.
+    if (err && typeof err === "object") {
+      (err as { rawText?: string }).rawText = cleaned;
+    }
+    throw err;
+  }
 }
