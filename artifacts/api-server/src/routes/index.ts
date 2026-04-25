@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+
+import { flags } from "../lib/featureFlags";
 import healthRouter from "./health";
 import creatorRouter from "./creator";
 import trendsRouter from "./trends";
@@ -14,17 +16,45 @@ import payoutsRouter from "./payouts";
 
 const router: IRouter = Router();
 
+// ---------------------------------------------------------------- //
+// v1 MVP routes (always mounted)                                   //
+// ---------------------------------------------------------------- //
+//   • health  — operational pings
+//   • creator — `/api/creator/me`, the single resolved-creator read
+//   • trends  — region-aware trend bundles for the ideator
+//   • videos  — the user's imported clips
+//   • me      — consent surface (withdraw / export / delete)
 router.use(healthRouter);
 router.use(creatorRouter);
 router.use(trendsRouter);
-router.use(earningsRouter);
 router.use(videosRouter);
-router.use(agentsRouter);
-router.use(publicationsRouter);
 router.use(meRouter);
-router.use(adminRouter);
-router.use(webhooksRouter);
-router.use(billingRouter);
-router.use(payoutsRouter);
+
+// ---------------------------------------------------------------- //
+// Archived routes (Phase 1 freeze)                                 //
+// ---------------------------------------------------------------- //
+// Each subsystem is gated on its own flag. In the default build
+// every flag is ON ⇒ none of these routes are reachable. A request
+// to a frozen path falls through to the 404 handler, which is the
+// desired closed-by-default behaviour while we validate the v1 loop.
+if (!flags.ARCHIVED_AUTONOMY) {
+  router.use(agentsRouter);
+  router.use(adminRouter);
+}
+if (!flags.ARCHIVED_MONETIZATION) {
+  router.use(earningsRouter);
+  router.use(billingRouter);
+  router.use(payoutsRouter);
+}
+if (!flags.ARCHIVED_POSTING) {
+  router.use(publicationsRouter);
+}
+// Webhooks bundle Stripe (monetization) + Clerk (account lifecycle
+// for posting / metrics). Mount only if at least one of those
+// dependent subsystems is unfrozen, otherwise no event has anywhere
+// to be dispatched and we'd rather 404 than accept-and-drop.
+if (!flags.ARCHIVED_MONETIZATION || !flags.ARCHIVED_POSTING) {
+  router.use(webhooksRouter);
+}
 
 export default router;

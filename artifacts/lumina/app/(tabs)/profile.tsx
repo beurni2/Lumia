@@ -35,6 +35,7 @@ import { PrivacyAndScheduleCards } from "@/components/profile/PrivacyAndSchedule
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
+import { flags } from "@/lib/featureFlags";
 import { getImage } from "@/lib/imageRegistry";
 import { useGetCurrentCreator } from "@workspace/api-client-react";
 
@@ -141,17 +142,17 @@ export default function ProfileScreen() {
 
         <View style={{ height: 36 }} />
 
-        {/* Billing (Lumina Pro subscription) + Payouts (Stripe Connect).
-            Both fall back to muted "not enabled" state when the server
-            reports stripeConfigured:false — i.e. before the operator
-            has set STRIPE_SECRET_KEY. The buttons open Stripe-hosted
-            flows in the device browser and refresh on tap. */}
-        <BillingAndPayoutsCards />
+        {/* Billing + Payouts (Lumina Pro / Stripe Connect). Frozen
+            under the Phase 1 MVP scope — there is no monetization
+            surface in v1. Returns when monetization comes back. */}
+        {!flags.ARCHIVED_MONETIZATION && <BillingAndPayoutsCards />}
 
-        {/* Privacy & disclosures + nightly swarm scheduler.
-            Server-side gates refuse swarm runs / publications without
-            valid consent — these cards are how the user grants it. */}
-        <PrivacyAndScheduleCards />
+        {/* Privacy/consent + nightly swarm scheduler. The consent
+            half existed to unblock autonomous publishing/swarm runs;
+            with both archived in Phase 1 the surface is dormant.
+            Will be split — the consent half returns separately if
+            v1 ever adds publishing. */}
+        {!flags.ARCHIVED_AUTONOMY && <PrivacyAndScheduleCards />}
       </ScrollView>
     </View>
   );

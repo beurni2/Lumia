@@ -41,6 +41,7 @@ import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { lumina } from "@/constants/colors";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
+import { flags } from "@/lib/featureFlags";
 import { getImage } from "@/lib/imageRegistry";
 
 export default function HomeScreen() {
@@ -91,63 +92,69 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* While You Slept */}
-        <Animated.View
-          entering={FadeInDown.duration(520).delay(120)}
-          style={styles.section}
-        >
-          <Pressable
-            onPress={() => {
-              feedback.tap();
-              router.push("/while-you-slept");
-            }}
-            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-            accessibilityRole="button"
-            accessibilityLabel="Open overnight recap"
+        {/* While You Slept — overnight autonomous swarm recap. Frozen
+            under the Phase 1 MVP scope; the recap surface comes back
+            in v2 once autonomy is reactivated. */}
+        {!flags.ARCHIVED_AUTONOMY && (
+          <Animated.View
+            entering={FadeInDown.duration(520).delay(120)}
+            style={styles.section}
           >
-            <GlassSurface radius={22} agent="ideator" breathing>
-              <View style={styles.recapInner}>
-                <View style={styles.recapHeader}>
-                  <Feather name="moon" size={16} color={lumina.firefly} />
-                  <Text style={[type.label, styles.recapTitle]}>
-                    while you slept
+            <Pressable
+              onPress={() => {
+                feedback.tap();
+                router.push("/while-you-slept");
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+              accessibilityRole="button"
+              accessibilityLabel="Open overnight recap"
+            >
+              <GlassSurface radius={22} agent="ideator" breathing>
+                <View style={styles.recapInner}>
+                  <View style={styles.recapHeader}>
+                    <Feather name="moon" size={16} color={lumina.firefly} />
+                    <Text style={[type.label, styles.recapTitle]}>
+                      while you slept
+                    </Text>
+                    <View style={styles.flex} />
+                    <Feather
+                      name="chevron-right"
+                      size={18}
+                      color="rgba(255,255,255,0.45)"
+                    />
+                  </View>
+                  <View style={styles.recapStats}>
+                    <Stat value="+142" label="new followers" />
+                    <View style={styles.statDivider} />
+                    <Stat
+                      value={
+                        earnings && lastEarning != null
+                          ? `${earnings.currency} ${lastEarning}`
+                          : "—"
+                      }
+                      label="earned"
+                    />
+                  </View>
+                  <Text style={[type.microDelight, styles.recapCta]}>
+                    ✦ tap for the full overnight recap
                   </Text>
-                  <View style={styles.flex} />
-                  <Feather
-                    name="chevron-right"
-                    size={18}
-                    color="rgba(255,255,255,0.45)"
-                  />
                 </View>
-                <View style={styles.recapStats}>
-                  <Stat value="+142" label="new followers" />
-                  <View style={styles.statDivider} />
-                  <Stat
-                    value={
-                      earnings && lastEarning != null
-                        ? `${earnings.currency} ${lastEarning}`
-                        : "—"
-                    }
-                    label="earned"
-                  />
-                </View>
-                <Text style={[type.microDelight, styles.recapCta]}>
-                  ✦ tap for the full overnight recap
-                </Text>
-              </View>
-            </GlassSurface>
-          </Pressable>
-        </Animated.View>
+              </GlassSurface>
+            </Pressable>
+          </Animated.View>
+        )}
 
         {/* Run-the-swarm CTA — kicks off a fresh four-agent cycle on
-            demand so creators (and the demo) don't have to wait for
-            an actual overnight run. */}
-        <Animated.View
-          entering={FadeInDown.duration(520).delay(200)}
-          style={[styles.section, { alignItems: "center" }]}
-        >
-          <SwarmCta />
-        </Animated.View>
+            demand. Frozen under Phase 1 MVP; replaced in v1 by the
+            "3 daily ideas" home surface (delivered in the next round). */}
+        {!flags.ARCHIVED_AUTONOMY && (
+          <Animated.View
+            entering={FadeInDown.duration(520).delay(200)}
+            style={[styles.section, { alignItems: "center" }]}
+          >
+            <SwarmCta />
+          </Animated.View>
+        )}
 
         {/* Trend briefs */}
         <Animated.View

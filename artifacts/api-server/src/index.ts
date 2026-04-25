@@ -4,6 +4,7 @@ import {
   startCleanupSweeper,
   stopCleanupSweeper,
 } from "./lib/cleanupSweeper";
+import { flags } from "./lib/featureFlags";
 import { startJobWorker, stopJobWorker } from "./lib/jobQueue";
 import { logger } from "./lib/logger";
 import {
@@ -12,6 +13,13 @@ import {
 } from "./lib/nightlyScheduler";
 import { registerStripeJobHandlers } from "./lib/stripeJobs";
 import { registerSwarmJobHandlers } from "./lib/swarmJobs";
+
+// True when at least one job-producing subsystem is still active. We
+// only spin up the postgres job worker (and its periodic cleanup
+// sweeper) when there is something to consume; otherwise both run
+// for nothing every 5 s.
+const anyJobsActive =
+  !flags.ARCHIVED_AUTONOMY || !flags.ARCHIVED_MONETIZATION;
 
 const rawPort = process.env["PORT"];
 
@@ -34,22 +42,36 @@ async function boot() {
   await runMigrations();
 
   // Register every job-type handler before the worker starts polling
-  // so the very first claim has somewhere to dispatch.
-  registerSwarmJobHandlers();
-  registerStripeJobHandlers();
+  // so the very first claim has somewhere to dispatch. Phase 1 MVP
+  // freezes both autonomy and monetization, so by default neither
+  // handler registers — leaving the queue idle but intact.
+  if (!flags.ARCHIVED_AUTONOMY) registerSwarmJobHandlers();
+  if (!flags.ARCHIVED_MONETIZATION) registerStripeJobHandlers();
 
   const server = app.listen(port, (err) => {
     if (err) {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port }, "Server listening");
+    logger.info(
+      {
+        port,
+        archived: {
+          autonomy: flags.ARCHIVED_AUTONOMY,
+          monetization: flags.ARCHIVED_MONETIZATION,
+          posting: flags.ARCHIVED_POSTING,
+        },
+      },
+      "Server listening",
+    );
 
     // Background workers boot AFTER listen so health checks pass
     // immediately and any orphan-recovery sweeps don't block startup.
-    void startJobWorker();
-    startNightlyScheduler();
-    startCleanupSweeper();
+    if (anyJobsActive) void startJobWorker();
+    if (!flags.ARCHIVED_AUTONOMY) {
+      startNightlyScheduler();
+      startCleanupSweeper();
+    }
   });
 
   // Graceful shutdown: stop accepting new connections, stop the
@@ -61,13 +83,17 @@ async function boot() {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info({ signal }, "shutdown initiated");
-    stopNightlyScheduler();
-    stopCleanupSweeper();
+    if (!flags.ARCHIVED_AUTONOMY) {
+      stopNightlyScheduler();
+      stopCleanupSweeper();
+    }
     server.close(() => logger.info("http server closed"));
-    try {
-      await stopJobWorker(25_000);
-    } catch (err) {
-      logger.error({ err }, "stopJobWorker failed");
+    if (anyJobsActive) {
+      try {
+        await stopJobWorker(25_000);
+      } catch (err) {
+        logger.error({ err }, "stopJobWorker failed");
+      }
     }
     // Give pino a beat to flush.
     setTimeout(() => process.exit(0), 200);
