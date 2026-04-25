@@ -338,12 +338,18 @@ function PreviewStage({
         </View>
       ) : null}
 
-      <View style={styles.exportNoteBlock}>
-        <Feather name="info" size={14} color={lumina.firefly} />
-        <Text style={styles.exportNote}>Export coming soon.</Text>
-      </View>
+      {/* Iteration-loop placeholder. Disabled on purpose — wiring
+          this to a real "regenerate this preview with a different
+          take" pass lands with the export PR. Keeping it visible
+          (not hidden) so the user can see the loop is the next
+          beat after preview, not a dead end. */}
+      <ComingSoonButton
+        label="Make another version"
+        hint="coming soon"
+        accessibilityLabel="Make another version (coming soon)"
+      />
 
-      <PrimaryButton label="Done" onPress={onDone} />
+      <PrimaryButton label="Back to ideas" onPress={onDone} />
     </Animated.View>
   );
 }
@@ -387,6 +393,34 @@ function PrimaryButton({
       ) : (
         <Text style={styles.primaryLabel}>{label}</Text>
       )}
+    </Pressable>
+  );
+}
+
+// Visible-but-disabled affordance for skeleton screens. Renders
+// the label + a small "coming soon" hint, and is wired up as a
+// Pressable with disabled=true so it picks up the right
+// accessibilityState (vs. just a styled View, which screen
+// readers wouldn't recognise as a button at all).
+function ComingSoonButton({
+  label,
+  hint,
+  accessibilityLabel,
+}: {
+  label: string;
+  hint: string;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      disabled
+      style={styles.secondary}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: true }}
+      accessibilityLabel={accessibilityLabel ?? `${label} (${hint})`}
+    >
+      <Text style={styles.secondaryLabel}>{label}</Text>
+      <Text style={styles.secondaryHint}>{hint}</Text>
     </Pressable>
   );
 }
@@ -622,19 +656,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  exportNoteBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginBottom: 18,
-    paddingVertical: 10,
-  },
-  exportNote: {
-    fontFamily: fontFamily.bodyMedium,
-    color: lumina.firefly,
-    fontSize: 13,
-  },
   // Buttons
   primary: {
     backgroundColor: lumina.firefly,
@@ -654,6 +675,31 @@ const styles = StyleSheet.create({
     color: "#0A0824",
     fontSize: 16,
     letterSpacing: 0.4,
+  },
+  // Disabled "coming soon" placeholder. Reads as a secondary
+  // outlined button with a small hint underneath the label.
+  secondary: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    opacity: 0.6,
+    marginBottom: 4,
+  },
+  secondaryLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 15,
+  },
+  secondaryHint: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginTop: 4,
   },
   error: {
     fontFamily: fontFamily.bodyMedium,
