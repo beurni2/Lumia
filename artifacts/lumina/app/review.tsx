@@ -41,21 +41,32 @@
  * the new take should land harder, not a real performance
  * forecast (that would need analytics, which is out of scope).
  *
- * Out of scope (deliberate): real export, share, save to
- * gallery, publishing, analytics, monetization. The "Back to
- * ideas" CTA returns to Home; "Make another version" stays as
- * the same disabled placeholder used on the preview screen.
+ * Export is in scope here: a real save-to-gallery via
+ * MediaLibrary plus an optional "Made with Lumina" watermark
+ * preference. The watermark is currently overlaid on the
+ * in-app AFTER preview only; burning it into the saved file
+ * needs ffmpeg in a custom dev client (a known constraint of
+ * Expo Go) and is queued for the post-MVP build.
+ *
+ * Out of scope (deliberate): publishing/share automation
+ * (TikTok, Instagram, YouTube), analytics, monetization. The
+ * "Back to ideas" CTA returns to Home; "Make another version"
+ * stays as the same disabled placeholder used on the preview
+ * screen.
  */
 
 import { Feather } from "@expo/vector-icons";
+import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -64,6 +75,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ApiError, customFetch } from "@workspace/api-client-react";
 
+import { Confetti } from "@/components/Confetti";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
@@ -123,6 +135,18 @@ export default function ReviewScreen() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
+
+  // Export state — orthogonal to the match-loading state so a
+  // save can run regardless of whether a past video matched.
+  // Watermark is a UI preference today; see ExportSection +
+  // BeforeAfter for how it's surfaced. SaveState is a tiny
+  // FSM idle → saving → success | error, with success being
+  // sticky until the user navigates away.
+  const [watermarkOn, setWatermarkOn] = useState(false);
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "success" | "error"
+  >("idle");
+  const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
   // Stale-call guard for the same reason as Home — Retry can
   // fire a second `loadMatch` while the first is still in
@@ -191,6 +215,51 @@ export default function ReviewScreen() {
   const handleHome = useCallback(() => {
     router.replace("/(tabs)");
   }, [router]);
+
+  /* ---------- Export --------------------------------------- */
+
+  const handleSave = useCallback(async () => {
+    // Defensive — the Save button is disabled when canSave is
+    // false, but a stale press could still land here.
+    if (!clip?.uri) {
+      setSaveState("error");
+      setSaveErrorMsg(
+        Platform.OS === "web"
+          ? "Saving to your gallery only works on a real device — open the app on your phone."
+          : "No video file to save. Re-record and try again.",
+      );
+      return;
+    }
+    setSaveState("saving");
+    setSaveErrorMsg(null);
+    try {
+      // Android requires the permission before saveToLibrary;
+      // iOS will surface its own modal too, but requesting
+      // first means our error path is consistent across both.
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (perm.status !== "granted") {
+        setSaveState("error");
+        setSaveErrorMsg(
+          "We need permission to save to your gallery. Enable Photos access in Settings and try again.",
+        );
+        return;
+      }
+      // TODO(post-mvp): when we move to a custom dev client,
+      // burn the watermark into a re-encoded copy via ffmpeg
+      // before saving. Today we save the original clip and
+      // surface the watermark as an in-app preview overlay
+      // when the toggle is on (see BeforeAfter).
+      await MediaLibrary.saveToLibraryAsync(clip.uri);
+      setSaveState("success");
+    } catch (err) {
+      setSaveState("error");
+      setSaveErrorMsg(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't save to your gallery. Try again.",
+      );
+    }
+  }, [clip]);
 
   /* ---------- Render --------------------------------------- */
 
@@ -292,7 +361,12 @@ export default function ReviewScreen() {
               from a previous successful load sit underneath an
               error or empty state on retry. */}
           {!loading && !errorMsg && !empty && match ? (
-            <BeforeAfter match={match} clip={clip} idea={idea} />
+            <BeforeAfter
+              match={match}
+              clip={clip}
+              idea={idea}
+              watermarkOn={watermarkOn}
+            />
           ) : null}
 
           {/* WhyBetter renders in success AND empty states, but
@@ -300,6 +374,15 @@ export default function ReviewScreen() {
               would feel disconnected if we couldn't even load
               the comparison data it sits next to. */}
           {!loading && !errorMsg ? <WhyBetterCard idea={idea} /> : null}
+
+          <ExportSection
+            saveState={saveState}
+            saveErrorMsg={saveErrorMsg}
+            watermarkOn={watermarkOn}
+            onToggleWatermark={setWatermarkOn}
+            onSave={handleSave}
+            canSave={typeof clip.uri === "string" && clip.uri.length > 0}
+          />
 
           <ComingSoonButton
             label="Make another version"
@@ -310,6 +393,12 @@ export default function ReviewScreen() {
           <TextButton label="Back to ideas" onPress={handleHome} />
         </Animated.View>
       </ScrollView>
+      {/* Confetti is rendered as a sibling of the ScrollView so
+          it overlays the entire screen rather than just the
+          success block — feels like a real celebration. It's
+          unmounted the moment we leave the success state, so
+          there's no animation lifecycle to manage. */}
+      {saveState === "success" ? <Confetti /> : null}
     </View>
   );
 }
@@ -320,10 +409,12 @@ function BeforeAfter({
   match,
   clip,
   idea,
+  watermarkOn,
 }: {
   match: PastMatch;
   clip: FilmedClip;
   idea: IdeaCardData;
+  watermarkOn: boolean;
 }) {
   const past = match.video;
   return (
@@ -377,8 +468,137 @@ function BeforeAfter({
                 : ""}
             </Text>
           </View>
+          {/* Watermark badge — when on, overlays the AFTER pane
+              so the user sees what "Made with Lumina" looks
+              like in context. The saved video file is NOT
+              currently watermarked — burn-in needs ffmpeg in
+              a custom dev client (see ExportSection + the
+              header doc comment for the constraint). */}
+          {watermarkOn ? (
+            <View style={styles.watermarkBadge} pointerEvents="none">
+              <Text style={styles.watermarkBadgeText}>Made with Lumina</Text>
+            </View>
+          ) : null}
         </View>
       </View>
+    </View>
+  );
+}
+
+/* =================== Export =================== */
+
+function ExportSection({
+  saveState,
+  saveErrorMsg,
+  watermarkOn,
+  onToggleWatermark,
+  onSave,
+  canSave,
+}: {
+  saveState: "idle" | "saving" | "success" | "error";
+  saveErrorMsg: string | null;
+  watermarkOn: boolean;
+  onToggleWatermark: (next: boolean) => void;
+  onSave: () => void;
+  canSave: boolean;
+}) {
+  return (
+    <View style={styles.exportCard}>
+      {/* Watermark toggle is visible in idle/saving/error and
+          hidden in success — keeps the post-save card clean
+          and avoids inviting the user to flip it after the
+          file is already on disk. */}
+      {saveState !== "success" ? (
+        <View style={styles.watermarkRow}>
+          <View style={styles.watermarkLabelCol}>
+            <Text style={styles.watermarkLabel}>Add "Made with Lumina"</Text>
+            <Text style={styles.watermarkHint}>
+              Visible in the AFTER preview above. File burn-in coming soon.
+            </Text>
+          </View>
+          <Switch
+            value={watermarkOn}
+            onValueChange={onToggleWatermark}
+            trackColor={{
+              false: "rgba(255,255,255,0.15)",
+              true: lumina.firefly,
+            }}
+            thumbColor="#FFFFFF"
+            ios_backgroundColor="rgba(255,255,255,0.15)"
+            disabled={saveState === "saving"}
+            accessibilityRole="switch"
+            accessibilityLabel="Add Made with Lumina watermark"
+            accessibilityHint="Shows the watermark on the in-app preview. File burn-in is coming with our next build."
+            accessibilityState={{ checked: watermarkOn }}
+          />
+        </View>
+      ) : null}
+
+      {/* When canSave is false (web preview, or a clip with no
+          local URI for any reason), don't bother showing a
+          dead Save button — show the same explanation inline
+          so the user understands the constraint immediately
+          instead of bouncing off a disabled control. */}
+      {!canSave && saveState !== "saving" && saveState !== "success" ? (
+        <View style={styles.exportNotice}>
+          <Feather
+            name="smartphone"
+            size={16}
+            color={lumina.firefly}
+            style={{ marginTop: 1 }}
+          />
+          <Text style={styles.exportNoticeText}>
+            Saving to your gallery works on the phone app — open Lumina on
+            your phone to export.
+          </Text>
+        </View>
+      ) : null}
+
+      {canSave && (saveState === "idle" || saveState === "error") ? (
+        <Pressable
+          onPress={onSave}
+          style={({ pressed }) => [
+            styles.primary,
+            pressed ? styles.primaryPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            saveState === "error" ? "Try saving again" : "Save to gallery"
+          }
+        >
+          <Text style={styles.primaryLabel}>
+            {saveState === "error" ? "Try again" : "Save to gallery"}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {saveState === "saving" ? (
+        <View style={styles.savingBox}>
+          <ActivityIndicator color={lumina.firefly} />
+          <Text style={styles.savingText}>Saving to your gallery…</Text>
+        </View>
+      ) : null}
+
+      {saveState === "success" ? (
+        <View style={styles.successBox}>
+          <Feather name="check-circle" size={28} color={lumina.firefly} />
+          <Text style={styles.successTitle}>Saved to your gallery.</Text>
+          {watermarkOn ? (
+            <Text style={styles.successHint}>
+              Watermark is visible in the preview above. File burn-in is
+              coming with our next build.
+            </Text>
+          ) : (
+            <Text style={styles.successHint}>
+              Find it in your Photos under recent uploads.
+            </Text>
+          )}
+        </View>
+      ) : null}
+
+      {saveState === "error" && saveErrorMsg ? (
+        <Text style={styles.exportError}>{saveErrorMsg}</Text>
+      ) : null}
     </View>
   );
 }
@@ -569,6 +789,13 @@ export function selectPastVideo(
     b.createdAt.localeCompare(a.createdAt),
   );
 
+  // TODO(post-mvp): match against extracted video topics and
+  // style-profile metadata once the import pipeline starts
+  // tagging past videos with topic/style labels server-side.
+  // Today we only have filename, which rarely fires for raw
+  // phone uploads like IMG_1234.mp4 — filename matching will
+  // stay as a fallback once richer signals land.
+  //
   // Tier 1 — topic keyword vs. filename. Tokenise the filename
   // on non-alphanumeric so we match whole words only ("morning"
   // in "morning-routine.mp4") instead of fragile substrings
@@ -1026,5 +1253,110 @@ const styles = StyleSheet.create({
     color: "#0A0824",
     fontSize: 13,
     letterSpacing: 0.4,
+  },
+  // Export card
+  exportCard: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 8,
+  },
+  watermarkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    gap: 12,
+  },
+  watermarkLabelCol: {
+    flex: 1,
+  },
+  watermarkLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "#FFFFFF",
+    fontSize: 14,
+    marginBottom: 3,
+  },
+  watermarkHint: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  primaryDisabled: {
+    opacity: 0.4,
+  },
+  exportNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  exportNoticeText: {
+    flex: 1,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  savingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+  },
+  savingText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+  },
+  successBox: {
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 8,
+  },
+  successTitle: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+  successHint: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+  exportError: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "#FF8A8A",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    marginTop: 12,
+  },
+  // Watermark badge that overlays the AFTER frame
+  watermarkBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.45)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  watermarkBadgeText: {
+    fontFamily: fontFamily.bodyBold,
+    color: lumina.firefly,
+    fontSize: 8,
+    letterSpacing: 0.6,
   },
 });

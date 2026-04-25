@@ -66,6 +66,7 @@
     "@clerk/expo": "^3.2.1",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
     "expo-dev-client": "~6.0.20",
+    "expo-media-library": "^55.0.15",
     "expo-updates": "~29.0.16"
   }
 }
