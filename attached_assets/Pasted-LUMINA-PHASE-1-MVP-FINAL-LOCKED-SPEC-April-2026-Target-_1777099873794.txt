@@ -1,0 +1,92 @@
+LUMINA PHASE 1 MVP — FINAL LOCKED SPEC (April 2026)
+Target markets: United States (primary focus), United Kingdom, Canada, Australia, India, Philippines, Nigeria.
+Target: Ship a v1 that creators in these English-first markets actually prefer over CapCut for daily consistency and lower thinking effort.
+
+Core Promise (exact wording for app):
+“3 daily ideas that feel like you + post-production that makes your videos consistently better than your last ones.”
+
+Core Loop ONLY (build exactly this):
+
+1. Onboarding (minimal friction + instant value + region setup)
+   - User imports 3 videos minimum from gallery (local only). Encourage adding up to 10 over time.
+   - User selects primary region during onboarding:
+     - Western (US / UK / Canada / Australia)
+     - India
+     - Philippines
+     - Nigeria
+   - Region can be changed later in Settings.
+   - Rule-based style extraction (NO heavy ML):
+     - Hook detection: first-sentence classification (question / bold statement / scene setter)
+     - Caption style: emoji count, sentence length, punctuation patterns, tone (short vs descriptive)
+     - Pacing: approximate cuts-per-second via simple scene-change detection
+     - Topics & slang: keyword frequency + recurring phrases (region-aware: English + Hinglish/Tagalog/Nigerian Pidgin where relevant)
+     - Content type: simple classification (entertainment / educational / lifestyle / storytelling) based on topic keywords and recurring themes
+   - Store as lightweight JSON Style Profile.
+   - Quick-win: After the FIRST video is uploaded, immediately generate and show 1 instant idea + script (no waiting for full profile).
+
+2. Daily Ideator (hybrid, quality-first + region-conditioned)
+   - Cloud LLM for idea generation + freshness.
+   - Conditioned 100% by local Style Profile JSON (never send raw footage).
+   - Trend source: static bundled JSON file containing 50–100 trending hooks, 50 captions, 30 formats. 
+     - Separate sections per region (Western / India / Philippines / Nigeria) so ideas are always region-specific.
+     - Each trend item must include: popularity_score (1–10) and recency_score (1–10).
+     - Ideator prioritizes higher combined score first.
+     - Update manually every few days (or via simple edge API later). No real-time scraping in v1.
+   - Cache ideas locally for offline use.
+   - Allow user to regenerate 1 additional batch per day if initial ideas are not appealing.
+
+3. Creation Flow
+   - User selects one idea (hook + script + shot plan + suggested caption — all region-matched and content-type-aware).
+   - Before recording/import: Show 2–3 simple filming tips (good lighting, keep camera steady, follow shot list).
+   - User records with native phone camera → imports clips into app.
+   - Post-production: Template-based editing system ONLY
+     - Use 3–5 predefined retention-optimized templates with fixed timing:
+       Template A (Fast Hook): 0–2s hook overlay, 2–5s quick reveal, 5–12s main content, 12–18s payoff
+       Template B (Story Build): 0–3s scenario hook, 3–10s build tension, 10–20s twist/payoff
+       Template C (POV/Relatable): 0–3s direct-to-camera hook, 3–12s personal story, 12–18s call-to-action
+       Template D (Trend Jack): 0–1.5s trending audio sync, 1.5–6s visual match, 6–15s cultural twist
+       (Add 1 more if needed after first tests)
+     - Template selection must be deterministic:
+       - Question / bold hook → Template A
+       - Story / narrative → Template B
+       - Personal / talking → Template C
+       - Trend-based → Template D
+     - Auto-captions styled exactly to user’s profile:
+       - Must match emoji count range (±1)
+       - Must match sentence length range
+       - Must match tone (short vs descriptive)
+     - Basic effects/transitions pulled only from user’s style profile
+     - Trending local audio: pre-bundled clips assigned by template type with fixed sync points (e.g. hook drop at 0–1.5s). No dynamic beat detection yet. Region-specific audio packs.
+   - Target: <90 seconds total post-production on-device.
+
+4. Review & Export
+   - Side-by-side screen:
+     - Left: one past similar video selected by simple rule-based matching (same topic keywords + similar duration + similar hook type)
+     - Right: Lumina version
+     - Below: plain-English “Why this should perform better” — MUST reference specific differences from user’s past content (example: “Stronger hook than your last outfit video — starts with a question instead of slow intro”)
+   - One-tap export to gallery + optional static “Made with Lumina” watermark.
+   - After export: Show “Make another version” button (reuse same idea with slight hook variation or different template — one-tap regeneration).
+
+Delight Layer (lightweight only):
+   - Personal greeting using Style Profile
+   - Confetti + “video ready” notification after export
+   - Morning recap (3 new ideas waiting)
+
+Success Metrics (for agent optimization + internal dashboard):
+   - User selects Lumina-generated ideas ≥60% of the time
+   - User exports ≥3 videos within first 7 days
+
+Explicitly DO NOT build:
+- Any vector DB or heavy ML for style extraction
+- Dynamic/smart AI cutting (only fixed templates)
+- Real-time trend scraping
+- In-app camera UI
+- Any numeric performance projections
+- Any engagement metrics dashboard in v1
+- Anything autonomous or monetization-related
+
+Technical Stack:
+- Flutter + ExecuTorch/LiteRT for on-device parts
+- Cloud LLM only for ideator (with clear consent)
+- FFmpeg-kit for editing
+- Fully offline fallback for editing + review once idea is generated
