@@ -1,0 +1,56 @@
+You are correct: the project must be narrowed to the Phase 1 MVP.
+
+Do NOT continue building autonomous swarm, monetization, Stripe, payouts, brand deals, posting automation, dashboards, schedulers, ledgers, or production-hardening layers.
+
+For now, do NOT delete the existing Expo/React Native + Express codebase and do NOT start a full Flutter rewrite yet.
+
+New instruction:
+
+1. Freeze all out-of-scope systems:
+   - swarm agents
+   - monetizer
+   - Stripe/Connect
+   - payouts
+   - brand deals
+   - OAuth posting
+   - schedulers
+   - admin dashboards
+   - earnings projections
+   - performance fee logic
+
+2. Move those into a clearly marked `/archive` or disable behind feature flags:
+   - `ARCHIVED_AUTONOMY`
+   - `ARCHIVED_MONETIZATION`
+   - `ARCHIVED_POSTING`
+
+3. Preserve anything useful:
+   - style extraction logic
+   - prompt/ideator logic
+   - media import/export logic
+   - trend JSON structures
+   - any UI screens that can support onboarding, idea selection, creation, review, export
+
+4. Build Phase 1 MVP inside the existing Expo/React Native app first, unless a hard technical blocker appears.
+
+5. Implement only this loop:
+   - onboarding with 3 video imports
+   - region selector: Western / India / Philippines / Nigeria
+   - lightweight JSON Style Profile
+   - quick-win instant idea after first upload
+   - cloud ideator conditioned by Style Profile + region trend bundle
+   - template-based creation flow
+   - side-by-side review
+   - export to gallery
+   - “make another version”
+
+6. Do not rebuild in Flutter yet.
+   Flutter/ExecuTorch/LiteRT is a later optimization path. The immediate goal is validating the product loop, not perfecting the stack.
+
+7. First deliverable:
+   - a cleanup report listing:
+     A) what will be archived
+     B) what will be reused
+     C) what new files/modules will be created for the Phase 1 MVP
+     D) what can be shipped in the first working build
+
+Wait for approval after that report before making major deletions.
