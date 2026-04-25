@@ -15,6 +15,7 @@ import billingRouter from "./billing";
 import payoutsRouter from "./payouts";
 import ideatorRouter from "./ideator";
 import styleProfileRouter from "./styleProfile";
+import importedVideosRouter from "./importedVideos";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use(videosRouter);
 router.use(meRouter);
 router.use(styleProfileRouter);
 router.use(ideatorRouter);
+router.use(importedVideosRouter);
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //

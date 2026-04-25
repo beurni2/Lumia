@@ -104,6 +104,31 @@ export const creators = pgTable("creators", {
     .defaultNow(),
 });
 
+// Phase 1 MVP — the user's onboarding clip imports. Kept separate
+// from `videos` (which is for agent/template-generated outputs with
+// NOT NULL status/script/agents columns) so an imported clip can
+// be just metadata: filename + duration.
+export const importedVideos = pgTable(
+  "imported_videos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    filename: varchar("filename", { length: 255 }),
+    durationSec: integer("duration_sec"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    byCreatorCreated: index("idx_imported_videos_creator_created").on(
+      t.creatorId,
+      t.createdAt,
+    ),
+  }),
+);
+
 export const trendBriefs = pgTable(
   "trend_briefs",
   {

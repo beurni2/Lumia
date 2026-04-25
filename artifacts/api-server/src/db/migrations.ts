@@ -260,6 +260,29 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 13,
+    name: "imported_videos",
+    // Records each clip the user picks during onboarding. Pure
+    // additive: brand-new table with its own uuid PK, foreign-keys
+    // back to creators(id) which is itself uuid. The existing
+    // `videos` table is intentionally NOT used here — that one's
+    // schema (status/script/agents NOT NULL) was designed for
+    // agent-generated outputs and would force placeholder values
+    // for an imported clip. A separate table keeps both surfaces
+    // honest and lets us count imports cheaply on the home screen.
+    sql: `
+      CREATE TABLE IF NOT EXISTS imported_videos (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        creator_id uuid NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+        filename varchar(255),
+        duration_sec integer,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_imported_videos_creator_created
+        ON imported_videos (creator_id, created_at DESC);
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

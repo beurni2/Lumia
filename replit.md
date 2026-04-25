@@ -77,7 +77,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 | **Quota** | `artifacts/api-server/src/lib/quota.ts` | `idea_batch` kind: 2/day default. `swarm_run` kind kept for the archived swarm but no v1 code calls it |
 | **AI cost cap** | `artifacts/api-server/src/lib/aiCost.ts` | $5/day per-creator default. Throws `DailyCapExceededError` *before* billing |
 | **Migration #12** | `artifacts/api-server/src/db/migrations.ts` | Pure additive `ALTER TABLE creators ADD COLUMN IF NOT EXISTS …` for region + style_profile_json + last_idea_batch_at |
-| **Feature flags** | `artifacts/api-server/src/lib/featureFlags.ts` | `ARCHIVED_AUTONOMY` · `ARCHIVED_MONETIZATION` · `ARCHIVED_POSTING` (defaults ON) |
+| **Migration #13** | `artifacts/api-server/src/db/migrations.ts` | Pure additive `CREATE TABLE imported_videos` (uuid PK, FK→creators(id) ON DELETE CASCADE, idx on (creator_id, created_at DESC)). Records onboarding clip imports as metadata only — kept separate from `videos` (which has NOT NULL columns scoped to agent-generated outputs) |
+| **Imported-videos route** | `artifacts/api-server/src/routes/importedVideos.ts` | `GET /api/imported-videos` (list+count) and `POST` (record metadata). Soft idempotency: same creator + filename within 5s returns the original row instead of duplicating, so network retries can't inflate the onboarding step counter |
+| **MVP onboarding (mobile)** | `artifacts/lumina/app/onboarding.tsx` (router) + `components/onboarding/MvpOnboarding.tsx` (active) + `components/onboarding/CinematicOnboarding.tsx` (legacy) | 3-step flow: region picker (7 countries → 4 bundles), first import → quick-win idea, 2 more imports → daily feed. Sequential POSTs with retry path so the ideator quota isn't burned on transient failures. Uses `customFetch` directly (not codegen) — these endpoints are intentionally outside the OpenAPI spec |
+| **Feature flags** | `artifacts/api-server/src/lib/featureFlags.ts` | `ARCHIVED_AUTONOMY` · `ARCHIVED_MONETIZATION` · `ARCHIVED_POSTING` (defaults ON). Mobile-side: `EXPO_PUBLIC_USE_CINEMATIC_ONBOARDING=true` opts back into the legacy 3-act onboarding |
 
 ## Database conventions
 
