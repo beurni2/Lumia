@@ -42,6 +42,20 @@ export const ideaSchema = z.object({
   ]),
   shootMinutes: z.number().min(1).max(30),
   whyItWorks: z.string().min(2).max(280),
+  /**
+   * Quality attributes — the LLM must self-attest. Validated downstream
+   * against per-batch thresholds (≥60% hasVisualAction, ≥60% hasContrast,
+   * 100% payoffType present).
+   */
+  payoffType: z.enum(["reveal", "reaction", "transformation", "punchline"]),
+  hasContrast: z.boolean(),
+  hasVisualAction: z.boolean(),
+  /**
+   * Required when hasVisualAction = true: a one-line description of the
+   * physical action the camera shows. When hasVisualAction = false (e.g.
+   * pure talking-head educational), can be an empty string.
+   */
+  visualHook: z.string().max(160),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 
@@ -132,14 +146,50 @@ export async function generateIdeas(
   const profile = input.styleProfile ?? DEFAULT_STYLE_PROFILE;
   const bundle = loadTrendBundle(region);
 
+  // Region-specific tone guidance. Western (US/UK/CA/AU) over-indexes
+  // on introspective "self-help / what I learned / mindset" framings
+  // when left to its own devices — bias the model HARD toward the
+  // formats that actually win in feed for English-speaking creators.
+  const regionToneGuidance =
+    region === "western"
+      ? [
+          "WESTERN-REGION TONE BIAS (mandatory):",
+          "  • REDUCE introspective self-help, mindset, 'what I learned', 'my journey', or 'reminder that…' framings — these underperform in feed.",
+          "  • INCREASE POV scenarios (\"POV: you tell your roommate rent went up\"), confrontation comedy, awkward social situations, and situational humor with a clear visual punchline.",
+          "  • Lean into specific, observable life moments (Trader Joe's run, group-chat screenshots, roommate dynamics, dating-app oddities, work-from-home absurdities) over abstract advice.",
+        ].join("\n")
+      : "";
+
   const system = [
     "You are Lumina's Ideator — a sharp, regionally-grounded short-form video strategist for English-speaking 1K–50K micro-creators.",
     "",
     "Your job: produce ideas a real creator can shoot today. Each idea must obey TWO HARD CONSTRAINTS:",
     "  1. SHOOTABLE IN <30 MINUTES end-to-end — single location, props the creator already owns, no actors beyond the creator and (optionally) one friend, no expensive setups.",
-    "  2. UNDERSTANDABLE IN <3 SECONDS — the hook must land within 3 seconds of audio (≤8 words spoken aloud); a viewer scrolling at speed must instantly grasp what the video is about.",
+    "  2. UNDERSTANDABLE IN <3 SECONDS — the hook must land within 3 seconds of audio (≤8 words spoken aloud); a viewer scrolling at speed must instantly grasp what the video is about. THIS IS A HARD WORD COUNT — count the words in your hook before you submit. \"POV:\" counts as one word. If the hook is 9+ words, rewrite it.",
+    "",
+    "QUALITY RULES (per-batch, mandatory):",
+    "  A. EVERY idea must have a clear PAYOFF — declare it in `payoffType` as one of:",
+    "     • reveal       — something hidden or unexpected is shown",
+    "     • reaction     — someone's genuine surprise / amusement / shock is captured",
+    "     • transformation — visible before→after change (look, space, situation)",
+    "     • punchline    — a verbal or visual joke that lands at the end",
+    "     If the idea has no clear payoff, do not submit it. Find a different angle.",
+    "  B. AT LEAST 60% of ideas in the batch must have a visible CONTRAST — set `hasContrast: true` only when the video shows one of:",
+    "     • before / after (her room before vs after)",
+    "     • expectation vs reality ('what I planned' vs 'what actually happened')",
+    "     • assumption vs truth ('what people think jollof rice is' vs 'what it actually is')",
+    "     • two opposing sides (POV scenarios with two characters)",
+    "  C. AT LEAST 60% of ideas must include a clear VISUAL ACTION — set `hasVisualAction: true` only when the camera shows a concrete physical thing happening (not pure talking-head). Articulate the action in `visualHook` (e.g. \"Pours coffee, then accidentally drops phone in cup\"). For talking-head ideas, set `hasVisualAction: false` and leave `visualHook` empty.",
+    "  D. BANNED FORMATS unless the hook contains a sharp TWIST that subverts the format:",
+    "     • \"a day in my life\" / \"day in the life\"",
+    "     • \"X tips\" / \"top X\" / \"things you should know\"",
+    "     • \"what I eat in a day\"",
+    "     • \"get ready with me\" / \"GRWM\"",
+    "     • \"morning routine\" / \"night routine\"",
+    "     If you use any of these framings, the hook MUST contain a clear subversion (e.g. \"Day in my life if I lied about my job\" — twist; \"Day in my life as a freelancer\" — banned).",
     "",
     "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Code-switch to the region's natural slang where appropriate (Hinglish for India, Tagalog for Philippines, Pidgin for Nigeria) — but keep the hook itself parseable to a wider English-speaking audience.",
+    regionToneGuidance,
     "",
     `Match the creator's personal style profile — their hook style, caption tone, emoji density, pacing, content type. If their primary hook style is "${profile.hookStyle.primary}", at least half the ideas should use that hook type.`,
     "",
@@ -153,7 +203,7 @@ export async function generateIdeas(
     TEMPLATE_DESCRIPTIONS,
     "",
     "Each idea is one JSON object with fields:",
-    "  hook (≤8 words, the actual spoken/overlaid first line),",
+    "  hook (≤8 words HARD CAP, the actual spoken/overlaid first line),",
     "  hookSeconds (number 0.5–3, your estimate of how long the hook lands),",
     "  script (10–60 second talking points OR shot narration, plain prose),",
     "  shotPlan (1–6 short shot descriptions, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
@@ -161,7 +211,11 @@ export async function generateIdeas(
     "  templateHint ('A' | 'B' | 'C' | 'D'),",
     "  contentType ('entertainment' | 'educational' | 'lifestyle' | 'storytelling'),",
     "  shootMinutes (integer 1–30, your honest estimate),",
-    "  whyItWorks (one sentence connecting the idea to the creator's style or the regional moment).",
+    "  whyItWorks (one sentence connecting the idea to the creator's style or the regional moment),",
+    "  payoffType ('reveal' | 'reaction' | 'transformation' | 'punchline'),",
+    "  hasContrast (boolean — honest self-attestation per rule B),",
+    "  hasVisualAction (boolean — honest self-attestation per rule C),",
+    "  visualHook (string — required when hasVisualAction=true, empty string otherwise).",
     "",
     "Ideas must be specific and concrete, not generic templates. Reference the regional moment. Avoid clichés.",
     input.regenerate
@@ -180,8 +234,8 @@ export async function generateIdeas(
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
-    `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, shootMinutes, whyItWorks } ] }`,
-    `Remember: every hook ≤8 words, every shootMinutes ≤30.`,
+    `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, shootMinutes, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `Remember: every hook ≤8 words HARD; every shootMinutes ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch.`,
   ].join("\n");
 
   // Output budget: each idea is ~250–320 tokens of structured JSON
