@@ -292,14 +292,14 @@ function ImportStage({
 }) {
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
-      <Text style={styles.kicker}>Step 2 of 3 · Got your clip?</Text>
-      <Text style={styles.title}>Bring in what you filmed.</Text>
+      <Text style={styles.kicker}>Step 2 of 3 · Got your clips?</Text>
+      <Text style={styles.title}>Add 1–2 clips.</Text>
       <Text style={styles.sub}>
-        Pick the clip from your gallery. We'll show you a quick preview
-        of how it would look.
+        First clip is the main video. Pick from your gallery and we'll
+        show you a quick preview.
       </Text>
       <PrimaryButton
-        label={busy ? "Importing…" : "Import my clip"}
+        label={busy ? "Adding…" : "Add clips"}
         onPress={onPick}
         disabled={busy}
         loading={busy}
@@ -531,10 +531,14 @@ async function pickVideo(): Promise<FilmedClip[] | null> {
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: false,
       allowsMultipleSelection: true,
-      // Soft cap so the JSON-stringified payload through the
-      // route param stays well under any URL length limit.
-      // Plenty of headroom for problem → solution shoots.
-      selectionLimit: 8,
+      // Phase 1 cap: 2 clips preferred (problem → solution or
+      // before → after), 3 absolute max if Phase 1 grows. We use
+      // 2 here because templates still render a single short-form
+      // output and there's no sequencer/editor UI yet — letting
+      // the picker accept 8 was overpromising. Bump after Phase 2
+      // ships multi-clip structuring. See replit.md "multi-clip
+      // rule".
+      selectionLimit: 2,
       quality: 0.7,
     });
     if (result.canceled) return null;

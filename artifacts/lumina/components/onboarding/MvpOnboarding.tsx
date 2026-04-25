@@ -55,6 +55,7 @@ import { COUNTRIES, type Bundle, type Country } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
 import { useAppState } from "@/hooks/useAppState";
 import { writeDailyIdeas } from "@/lib/dailyIdeasCache";
+import { isWebQaMode } from "@/lib/qaMode";
 import {
   deriveStyleProfile,
   type DerivedStyleProfile,
@@ -130,6 +131,17 @@ export default function MvpOnboarding() {
   // us where to drop them back in. The hierarchy here picks the
   // furthest-along resume target so they don't redo work.
   useEffect(() => {
+    // QA mode: skip the resume-state sync entirely so a fresh
+    // page load always lands on the "region" step. The demo
+    // creator is shared across QA sessions and accumulates
+    // server-side state (region, style profile, imported_videos
+    // rows) — without this guard, MvpOnboarding reads that
+    // stale state and auto-advances past the region picker,
+    // which is exactly the blocker the user reported. Production
+    // (non-QA) users still need the resume logic to recover from
+    // mid-onboarding crashes. See replit.md "QA-mode
+    // fresh-onboarding rule".
+    if (isWebQaMode()) return;
     let cancelled = false;
     (async () => {
       try {
