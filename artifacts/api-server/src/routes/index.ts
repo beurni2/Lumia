@@ -9,6 +9,8 @@ import publicationsRouter from "./publications";
 import meRouter from "./me";
 import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
+import billingRouter from "./billing";
+import payoutsRouter from "./payouts";
 
 const router: IRouter = Router();
 
@@ -22,5 +24,7 @@ router.use(publicationsRouter);
 router.use(meRouter);
 router.use(adminRouter);
 router.use(webhooksRouter);
+router.use(billingRouter);
+router.use(payoutsRouter);
 
 export default router;

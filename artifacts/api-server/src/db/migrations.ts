@@ -216,6 +216,33 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 11,
+    name: "creators_billing_and_connect",
+    // Adds the Stripe + Stripe Connect columns onto `creators`. Pure
+    // additive — no existing column or index is touched. The two
+    // partial indexes let us look a creator up by either external id
+    // (customer or connect-account) without an OR-scan, which the
+    // webhook job handlers need on every event.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS stripe_customer_id varchar(64),
+        ADD COLUMN IF NOT EXISTS stripe_subscription_id varchar(64),
+        ADD COLUMN IF NOT EXISTS subscription_status varchar(32),
+        ADD COLUMN IF NOT EXISTS subscription_plan varchar(32),
+        ADD COLUMN IF NOT EXISTS subscription_current_period_end timestamptz,
+        ADD COLUMN IF NOT EXISTS connect_account_id varchar(64),
+        ADD COLUMN IF NOT EXISTS connect_payouts_enabled boolean NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS connect_charges_enabled boolean NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS connect_country varchar(2);
+
+      CREATE INDEX IF NOT EXISTS idx_creators_stripe_customer
+        ON creators (stripe_customer_id) WHERE stripe_customer_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_creators_connect_account
+        ON creators (connect_account_id) WHERE connect_account_id IS NOT NULL;
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

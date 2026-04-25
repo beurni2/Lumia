@@ -10,6 +10,7 @@ import {
   startNightlyScheduler,
   stopNightlyScheduler,
 } from "./lib/nightlyScheduler";
+import { registerStripeJobHandlers } from "./lib/stripeJobs";
 import { registerSwarmJobHandlers } from "./lib/swarmJobs";
 
 const rawPort = process.env["PORT"];
@@ -35,6 +36,7 @@ async function boot() {
   // Register every job-type handler before the worker starts polling
   // so the very first claim has somewhere to dispatch.
   registerSwarmJobHandlers();
+  registerStripeJobHandlers();
 
   const server = app.listen(port, (err) => {
     if (err) {

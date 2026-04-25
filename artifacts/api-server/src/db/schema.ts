@@ -62,6 +62,30 @@ export const creators = pgTable("creators", {
   nightlySwarmHour: integer("nightly_swarm_hour"),
   nightlySwarmTz: varchar("nightly_swarm_tz", { length: 64 }),
   lastNightlyRunAt: timestamp("last_nightly_run_at", { withTimezone: true }),
+  // Stripe billing — populated on first checkout, kept in sync by the
+  // stripe.webhook job handler. `subscription_status` mirrors Stripe's
+  // own status string ('trialing'|'active'|'past_due'|'canceled'|...);
+  // a null here means the creator has never started a subscription.
+  stripeCustomerId: varchar("stripe_customer_id", { length: 64 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 64 }),
+  subscriptionStatus: varchar("subscription_status", { length: 32 }),
+  subscriptionPlan: varchar("subscription_plan", { length: 32 }),
+  subscriptionCurrentPeriodEnd: timestamp(
+    "subscription_current_period_end",
+    { withTimezone: true },
+  ),
+  // Stripe Connect (Express) for payouts. `connect_country` is the ISO
+  // alpha-2 we registered the account under and is required by Stripe
+  // at account-creation time. The two boolean flags mirror Stripe's
+  // capability state and are flipped by the account.updated webhook.
+  connectAccountId: varchar("connect_account_id", { length: 64 }),
+  connectPayoutsEnabled: boolean("connect_payouts_enabled")
+    .notNull()
+    .default(false),
+  connectChargesEnabled: boolean("connect_charges_enabled")
+    .notNull()
+    .default(false),
+  connectCountry: varchar("connect_country", { length: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

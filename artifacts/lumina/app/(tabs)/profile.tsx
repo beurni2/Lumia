@@ -30,6 +30,7 @@ import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { PortalButton } from "@/components/foundation/PortalButton";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { StyleTwinPreview } from "@/components/StyleTwinPreview";
+import { BillingAndPayoutsCards } from "@/components/profile/BillingAndPayoutsCards";
 import { PrivacyAndScheduleCards } from "@/components/profile/PrivacyAndScheduleCards";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { type } from "@/constants/typography";
@@ -139,6 +140,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ height: 36 }} />
+
+        {/* Billing (Lumina Pro subscription) + Payouts (Stripe Connect).
+            Both fall back to muted "not enabled" state when the server
+            reports stripeConfigured:false — i.e. before the operator
+            has set STRIPE_SECRET_KEY. The buttons open Stripe-hosted
+            flows in the device browser and refresh on tap. */}
+        <BillingAndPayoutsCards />
 
         {/* Privacy & disclosures + nightly swarm scheduler.
             Server-side gates refuse swarm runs / publications without
