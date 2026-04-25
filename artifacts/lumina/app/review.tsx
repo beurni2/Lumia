@@ -49,10 +49,11 @@
  * Expo Go) and is queued for the post-MVP build.
  *
  * Out of scope (deliberate): publishing/share automation
- * (TikTok, Instagram, YouTube), analytics, monetization. The
- * "Back to ideas" CTA returns to Home; "Make another version"
- * stays as the same disabled placeholder used on the preview
- * screen.
+ * (TikTok, Instagram, YouTube), analytics, monetization.
+ * "Back to ideas" routes to Home; "Make another version"
+ * pops back to /create so the user can re-record a different
+ * take of the same idea (state-preserving, because /create
+ * is still mounted underneath in the nav stack).
  */
 
 import { Feather } from "@expo/vector-icons";
@@ -214,6 +215,22 @@ export default function ReviewScreen() {
 
   const handleHome = useCallback(() => {
     router.replace("/(tabs)");
+  }, [router]);
+
+  const handleMakeAnother = useCallback(() => {
+    // "Make another version" pops back to /create so the user
+    // can re-record a different take of the same idea — going
+    // back through the stack preserves their idea + clip state
+    // because /create is still mounted underneath. We came in
+    // via router.push from /create, so canGoBack should be
+    // true; the explicit guard mirrors handleBack and protects
+    // against deep-link entries with no nav history (router.
+    // back is a no-op in that case, not a throw).
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
   }, [router]);
 
   /* ---------- Export --------------------------------------- */
@@ -381,16 +398,26 @@ export default function ReviewScreen() {
             watermarkOn={watermarkOn}
             onToggleWatermark={setWatermarkOn}
             onSave={handleSave}
+            onMakeAnother={handleMakeAnother}
+            onBack={handleHome}
             canSave={typeof clip.uri === "string" && clip.uri.length > 0}
           />
 
-          <ComingSoonButton
-            label="Make another version"
-            hint="coming soon"
-            accessibilityLabel="Make another version (coming soon)"
-          />
-
-          <TextButton label="Back to ideas" onPress={handleHome} />
+          {/* Bottom navigation tail — keeps "Make another
+              version" visible and functional throughout the
+              flow (not gated on a successful save). Hidden in
+              the success state because the success block
+              already promotes both actions as primary CTAs,
+              and showing them twice would clutter the moment. */}
+          {saveState !== "success" ? (
+            <>
+              <TextButton
+                label="Make another version"
+                onPress={handleMakeAnother}
+              />
+              <TextButton label="Back to ideas" onPress={handleHome} />
+            </>
+          ) : null}
         </Animated.View>
       </ScrollView>
       {/* Confetti is rendered as a sibling of the ScrollView so
@@ -493,6 +520,8 @@ function ExportSection({
   watermarkOn,
   onToggleWatermark,
   onSave,
+  onMakeAnother,
+  onBack,
   canSave,
 }: {
   saveState: "idle" | "saving" | "success" | "error";
@@ -500,6 +529,8 @@ function ExportSection({
   watermarkOn: boolean;
   onToggleWatermark: (next: boolean) => void;
   onSave: () => void;
+  onMakeAnother: () => void;
+  onBack: () => void;
   canSave: boolean;
 }) {
   return (
@@ -581,8 +612,8 @@ function ExportSection({
 
       {saveState === "success" ? (
         <View style={styles.successBox}>
-          <Feather name="check-circle" size={28} color={lumina.firefly} />
-          <Text style={styles.successTitle}>Saved to your gallery.</Text>
+          <Feather name="check-circle" size={32} color={lumina.firefly} />
+          <Text style={styles.successTitle}>Video saved to your gallery</Text>
           {watermarkOn ? (
             <Text style={styles.successHint}>
               Watermark is visible in the preview above. File burn-in is
@@ -593,6 +624,35 @@ function ExportSection({
               Find it in your Photos under recent uploads.
             </Text>
           )}
+          {/* Primary + secondary CTAs sit inside the success
+              block so they read as the natural next-actions
+              after the celebration. The bottom-of-screen
+              navigation tail hides itself in this state to
+              avoid duplicating these controls. */}
+          <View style={styles.successActions}>
+            <Pressable
+              onPress={onMakeAnother}
+              style={({ pressed }) => [
+                styles.primary,
+                pressed ? styles.primaryPressed : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Make another version"
+            >
+              <Text style={styles.primaryLabel}>Make another version</Text>
+            </Pressable>
+            <Pressable
+              onPress={onBack}
+              style={({ pressed }) => [
+                styles.successSecondary,
+                pressed ? styles.successSecondaryPressed : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Back to ideas"
+            >
+              <Text style={styles.successSecondaryLabel}>Back to ideas</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
@@ -699,29 +759,6 @@ function PrimaryButton({
       accessibilityLabel={label}
     >
       <Text style={styles.primaryLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function ComingSoonButton({
-  label,
-  hint,
-  accessibilityLabel,
-}: {
-  label: string;
-  hint: string;
-  accessibilityLabel?: string;
-}) {
-  return (
-    <Pressable
-      disabled
-      style={styles.secondary}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: true }}
-      accessibilityLabel={accessibilityLabel ?? `${label} (${hint})`}
-    >
-      <Text style={styles.secondaryLabel}>{label}</Text>
-      <Text style={styles.secondaryHint}>{hint}</Text>
     </Pressable>
   );
 }
@@ -1201,29 +1238,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.4,
   },
-  secondary: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  secondaryLabel: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 15,
-  },
-  secondaryHint: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    marginTop: 4,
-  },
   textButton: {
     paddingVertical: 14,
     alignItems: "center",
@@ -1332,6 +1346,25 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     textAlign: "center",
     paddingHorizontal: 8,
+  },
+  successActions: {
+    alignSelf: "stretch",
+    marginTop: 10,
+    gap: 6,
+  },
+  successSecondary: {
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successSecondaryPressed: {
+    opacity: 0.6,
+  },
+  successSecondaryLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
   exportError: {
     fontFamily: fontFamily.bodyMedium,
