@@ -111,7 +111,11 @@ export default function ReviewScreen() {
   // Decode params once. Both idea and clip are required to
   // render anything meaningful — if either is missing we render
   // a recovery screen rather than half a comparison.
-  const params = useLocalSearchParams<{ idea?: string; clip?: string }>();
+  const params = useLocalSearchParams<{
+    idea?: string;
+    clip?: string;
+    clips?: string;
+  }>();
   const { idea, clip } = useMemo(() => {
     let parsedIdea: IdeaCardData | null = null;
     let parsedClip: FilmedClip | null = null;
@@ -122,7 +126,22 @@ export default function ReviewScreen() {
         parsedIdea = null;
       }
     }
-    if (params.clip) {
+    // Phase 1: prefer the multi-clip `clips` array and reduce
+    // it to its first element — templates still render a single
+    // short-form output. Fall back to the legacy `clip` param
+    // so deep-link entries from earlier builds keep working.
+    // Multi-clip structuring is Phase 2 — see replit.md.
+    if (params.clips) {
+      try {
+        const arr = JSON.parse(params.clips) as FilmedClip[];
+        if (Array.isArray(arr) && arr.length > 0) {
+          parsedClip = arr[0];
+        }
+      } catch {
+        parsedClip = null;
+      }
+    }
+    if (!parsedClip && params.clip) {
       try {
         parsedClip = JSON.parse(params.clip) as FilmedClip;
       } catch {
@@ -130,7 +149,7 @@ export default function ReviewScreen() {
       }
     }
     return { idea: parsedIdea, clip: parsedClip };
-  }, [params.idea, params.clip]);
+  }, [params.idea, params.clip, params.clips]);
 
   const [match, setMatch] = useState<PastMatch | null>(null);
   const [loading, setLoading] = useState(true);

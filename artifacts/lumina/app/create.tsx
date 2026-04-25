@@ -76,7 +76,7 @@ export default function CreateScreen() {
   }, [params.idea]);
 
   const [stage, setStage] = useState<Stage>("tips");
-  const [clip, setClip] = useState<FilmedClip | null>(null);
+  const [clips, setClips] = useState<FilmedClip[]>([]);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -102,12 +102,17 @@ export default function CreateScreen() {
     setErrorMsg(null);
     try {
       const picked = await pickVideo();
-      if (!picked) {
-        // User cancelled the picker — release the busy lock and
-        // stay on this stage. No error, no advance.
+      if (!picked || picked.length === 0) {
+        // User cancelled the picker (or returned an empty
+        // selection) — release the busy lock and stay on this
+        // stage. No error, no advance.
         return;
       }
-      setClip(picked);
+      // Phase 1 accepts multiple clips at import; the template
+      // still renders a single short-form output (clips[0] is
+      // the canonical primary). Multi-clip structuring lands
+      // in Phase 2 — see replit.md "multi-clip rule".
+      setClips(picked);
       goPreview();
     } catch (err) {
       setErrorMsg(formatError(err, "Couldn't import that clip."));
@@ -126,15 +131,22 @@ export default function CreateScreen() {
   // any global state. Guarded on `clip` so the button can only
   // fire from the preview stage.
   const handleSeeReview = useCallback(() => {
-    if (!idea || !clip) return;
+    if (!idea || clips.length === 0) return;
     router.push({
       pathname: "/review",
       params: {
         idea: JSON.stringify(idea),
-        clip: JSON.stringify(clip),
+        // We pass `clip` (legacy single — the canonical primary
+        // for Phase 1's single-output template) AND `clips` (the
+        // full input array) so the review screen can keep its
+        // existing single-clip behaviour today while Phase 2's
+        // multi-clip structuring picks up the array without a
+        // route-param migration.
+        clip: JSON.stringify(clips[0]),
+        clips: JSON.stringify(clips),
       },
     });
-  }, [router, idea, clip]);
+  }, [router, idea, clips]);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -209,10 +221,10 @@ export default function CreateScreen() {
         {stage === "import" ? (
           <ImportStage onPick={handlePickClip} busy={busy} />
         ) : null}
-        {stage === "preview" && clip ? (
+        {stage === "preview" && clips.length > 0 ? (
           <PreviewStage
             idea={idea}
-            clip={clip}
+            clips={clips}
             onDone={handleDone}
             onSeeReview={handleSeeReview}
           />
@@ -303,15 +315,21 @@ function ImportStage({
 
 function PreviewStage({
   idea,
-  clip,
+  clips,
   onDone,
   onSeeReview,
 }: {
   idea: IdeaCardData;
-  clip: FilmedClip;
+  // Phase 1: clips[0] is the canonical primary clip rendered
+  // into the template; the remainder are carried as data for
+  // Phase 2's multi-clip structuring. No reorder/trim/
+  // transition UI in Phase 1.
+  clips: FilmedClip[];
   onDone: () => void;
   onSeeReview: () => void;
 }) {
+  const primary = clips[0];
+  const extras = clips.length - 1;
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 3 of 3 · Template preview</Text>
@@ -335,12 +353,17 @@ function PreviewStage({
         <View style={styles.frameFooter}>
           <Feather name="film" size={14} color="rgba(255,255,255,0.55)" />
           <Text style={styles.frameClip} numberOfLines={1}>
-            {clip.filename}
-            {typeof clip.durationSec === "number"
-              ? ` · ${clip.durationSec}s`
+            {primary.filename}
+            {typeof primary.durationSec === "number"
+              ? ` · ${primary.durationSec}s`
               : ""}
           </Text>
         </View>
+        {extras > 0 ? (
+          <Text style={styles.metaText}>
+            +{extras} more clip{extras > 1 ? "s" : ""} imported
+          </Text>
+        ) : null}
       </View>
 
       {idea.caption ? (
@@ -482,12 +505,24 @@ function formatError(err: unknown, fallback: string): string {
 // Replit preview iframe stays usable. Kept inline to avoid a
 // cross-package shuffle; when a third caller appears we should
 // promote this to `lib/pickVideo.ts`.
-async function pickVideo(): Promise<FilmedClip | null> {
+// Phase 1 picker: returns one or more clips. Multi-select is
+// enabled at the OS level (iOS surfaces it natively when the
+// user taps "Select"). We don't change the button copy — most
+// flows are still single-clip and we don't want to overpromise
+// editing. Downstream the template renders only clips[0]; the
+// extras ride along as data for Phase 2's multi-clip
+// structuring (see replit.md "multi-clip rule").
+async function pickVideo(): Promise<FilmedClip[] | null> {
   if (Platform.OS === "web") {
-    return {
-      filename: `web-sim-clip-${Date.now()}.mp4`,
-      durationSec: 22,
-    };
+    // Web QA mock — return a single synthetic clip so the
+    // browser test path stays identical. Real multi-clip
+    // selection is exercised on device.
+    return [
+      {
+        filename: `web-sim-clip-${Date.now()}.mp4`,
+        durationSec: 22,
+      },
+    ];
   }
   try {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -495,22 +530,29 @@ async function pickVideo(): Promise<FilmedClip | null> {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      // Soft cap so the JSON-stringified payload through the
+      // route param stays well under any URL length limit.
+      // Plenty of headroom for problem → solution shoots.
+      selectionLimit: 8,
       quality: 0.7,
     });
     if (result.canceled) return null;
-    const asset = result.assets[0];
-    if (!asset) return null;
-    const filename =
-      asset.fileName ??
-      asset.uri.split("/").pop() ??
-      `clip-${Date.now()}.mp4`;
-    const durationSec =
-      typeof asset.duration === "number" && asset.duration > 0
-        ? Math.round(asset.duration / 1000)
-        : undefined;
-    return { filename, durationSec, uri: asset.uri };
+    const assets = result.assets ?? [];
+    if (assets.length === 0) return null;
+    return assets.map((asset, idx) => {
+      const filename =
+        asset.fileName ??
+        asset.uri.split("/").pop() ??
+        `clip-${Date.now()}-${idx}.mp4`;
+      const durationSec =
+        typeof asset.duration === "number" && asset.duration > 0
+          ? Math.round(asset.duration / 1000)
+          : undefined;
+      return { filename, durationSec, uri: asset.uri };
+    });
   } catch {
-    return { filename: `fallback-${Date.now()}.mp4` };
+    return [{ filename: `fallback-${Date.now()}.mp4` }];
   }
 }
 
