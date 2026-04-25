@@ -255,25 +255,14 @@ function TipsStage({
         <TipBlock title="Why it works" body={idea.whyItWorks} />
       ) : null}
 
-      {typeof idea.videoLengthSec === "number" ||
-      typeof idea.filmingTimeMin === "number" ? (
-        <View style={styles.metaRow}>
-          {typeof idea.videoLengthSec === "number" ? (
-            <View style={styles.metaPill}>
-              <Text style={styles.metaText}>
-                Aim for {idea.videoLengthSec} sec
-              </Text>
-            </View>
-          ) : null}
-          {typeof idea.filmingTimeMin === "number" ? (
-            <View style={styles.metaPill}>
-              <Text style={styles.metaText}>
-                ~{idea.filmingTimeMin} min to film
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      <View style={styles.metaRow}>
+        <Text style={styles.metaText}>15–30s video</Text>
+        {typeof idea.filmingTimeMin === "number" ? (
+          <Text style={styles.metaText}>
+            Takes ~{idea.filmingTimeMin} min to shoot
+          </Text>
+        ) : null}
+      </View>
 
       <PrimaryButton label="I'm ready to film" onPress={onContinue} />
     </Animated.View>
@@ -604,9 +593,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    gap: 4,
     marginTop: 6,
     marginBottom: 24,
   },

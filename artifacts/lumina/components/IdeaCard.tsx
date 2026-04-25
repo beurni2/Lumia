@@ -56,13 +56,9 @@ export function IdeaCard({
   // pieces (length + filming time). Hook-second timing and other
   // production-y numbers are dropped from the card to keep it
   // feeling like a creative prompt, not a dashboard.
-  const lengthChip =
-    typeof idea.videoLengthSec === "number"
-      ? `${idea.videoLengthSec} sec video`
-      : null;
-  const filmChip =
+  const shootLine =
     typeof idea.filmingTimeMin === "number"
-      ? `${idea.filmingTimeMin} min to film`
+      ? `Takes ~${idea.filmingTimeMin} min to shoot`
       : null;
 
   return (
@@ -92,20 +88,12 @@ export function IdeaCard({
           <Text style={styles.cardBody}>{idea.caption}</Text>
         </>
       ) : null}
-      {lengthChip || filmChip ? (
-        <View style={styles.metaRow}>
-          {lengthChip ? (
-            <View style={styles.metaPill}>
-              <Text style={styles.metaText}>{lengthChip}</Text>
-            </View>
-          ) : null}
-          {filmChip ? (
-            <View style={styles.metaPill}>
-              <Text style={styles.metaText}>{filmChip}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      <View style={styles.metaRow}>
+        <Text style={styles.metaText}>15–30s video</Text>
+        {shootLine ? (
+          <Text style={styles.metaText}>{shootLine}</Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -132,10 +120,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginTop: 14,
+    gap: 4,
   },
   metaPill: {
     backgroundColor: "rgba(255,255,255,0.06)",
