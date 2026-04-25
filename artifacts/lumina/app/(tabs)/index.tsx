@@ -1,22 +1,28 @@
 /**
- * Home — the floating greeter.
+ * Home — today's three region-conditioned ideas.
  *
- * Bioluminescent redesign:
- *   • Cosmic backdrop with ambient firefly drift
- *   • Hero greeting + creator avatar nestled inside a small Style Twin
- *     orb (the "you, but the swarm version of you")
- *   • While You Slept stat card on a glass surface, with cyan firefly
- *     ticks for the metric values
- *   • Today's Trend Briefs in horizontally-scrolling glass cards, each
- *     with a viral-score halo whose intensity scales with the score
+ * Phase 1 MVP scope: the only persistent surface in v1 besides
+ * onboarding. Onboarding's last step pre-fills the daily-ideas
+ * cache so this screen renders instantly the first time the user
+ * lands on it. On subsequent opens within the same UTC day we
+ * read from the same cache. If the cache is empty or stale, we
+ * fall back to a server fetch.
+ *
+ * The "regenerate" affordance uses the ideator's second-batch
+ * slot (server enforces a 2-batch-per-UTC-day cap) so the user
+ * can ask for a different angle without waiting until tomorrow.
+ *
+ * The legacy swarm Home (While-You-Slept recap, run-the-swarm
+ * CTA, scrolling trend briefs) lives in this file's git history
+ * — it remains gated under `flags.ARCHIVED_AUTONOMY` in the rest
+ * of the codebase but is not rendered here.
  */
 
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Image,
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -27,303 +33,292 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  useGetCurrentCreator,
-  useGetEarningsSummary,
-  useListTrendBriefs,
-} from "@workspace/api-client-react";
+import { ApiError, customFetch } from "@workspace/api-client-react";
 
-import { SwarmCta } from "@/components/SwarmCta";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
-import { GlassSurface } from "@/components/foundation/GlassSurface";
-import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
+import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
-import { type } from "@/constants/typography";
-import { feedback } from "@/lib/feedback";
-import { flags } from "@/lib/featureFlags";
-import { getImage } from "@/lib/imageRegistry";
+import { type Bundle } from "@/constants/regions";
+import { fontFamily, type } from "@/constants/typography";
+import {
+  readDailyIdeas,
+  writeDailyIdeas,
+  type CachedIdea,
+} from "@/lib/dailyIdeasCache";
+
+type StyleProfileResponse = {
+  hasProfile: boolean;
+  profile: unknown;
+  region: Bundle | null;
+  lastIdeaBatchAt: string | null;
+};
+
+type IdeatorResponse = {
+  region: Bundle;
+  count: number;
+  ideas: IdeaCardData[];
+};
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { data: creator } = useGetCurrentCreator();
-  const { data: earnings } = useGetEarningsSummary();
-  const { data: trendsData } = useListTrendBriefs();
-  const trendBriefs = trendsData?.briefs ?? [];
-  const lastEarning = earnings?.history?.at(-1);
-
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
-  // Floating Hive Tab Ring needs ~24pt of breathing room below content.
   const bottomInset = isWeb ? 108 : insets.bottom + 108;
+
+  const [region, setRegion] = useState<Bundle | null>(null);
+  const [ideas, setIdeas] = useState<CachedIdea[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  /* ---------- Initial load ----------------------------------- */
+
+  // First mount: figure out the user's region (server is the
+  // source of truth, the cache only knows region as a key) and
+  // hydrate ideas from cache. If the cache has nothing fresh,
+  // call the ideator. Both fetches are tied to a `cancelled`
+  // flag so a fast unmount doesn't write into stale state.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sp = await customFetch<StyleProfileResponse>("/api/style-profile");
+        if (cancelled) return;
+        if (!sp.region) {
+          // Pre-onboarding state shouldn't be reachable from
+          // here (the auth layout routes signed-in users to
+          // onboarding until hasCompletedOnboarding flips), so
+          // surface the unexpected case rather than silently
+          // showing an empty Home.
+          setErrorMsg("No region on your profile yet.");
+          return;
+        }
+        setRegion(sp.region);
+
+        const cached = await readDailyIdeas(sp.region);
+        if (cancelled) return;
+        if (cached) {
+          setIdeas(cached);
+          return;
+        }
+
+        const fresh = await customFetch<IdeatorResponse>(
+          "/api/ideator/generate",
+          {
+            method: "POST",
+            body: JSON.stringify({ region: sp.region, count: 3 }),
+          },
+        );
+        if (cancelled) return;
+        setIdeas(fresh.ideas);
+        await writeDailyIdeas(sp.region, fresh.ideas);
+      } catch (err) {
+        if (!cancelled) {
+          setErrorMsg(formatError(err, "Couldn't load today's ideas."));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---------- Regenerate (uses today's 2nd ideator slot) ----- */
+
+  const handleRegenerate = useCallback(async () => {
+    if (!region || regenerating) return;
+    setRegenerating(true);
+    setErrorMsg(null);
+    try {
+      const fresh = await customFetch<IdeatorResponse>(
+        "/api/ideator/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            region,
+            count: 3,
+            regenerate: true,
+          }),
+        },
+      );
+      setIdeas(fresh.ideas);
+      await writeDailyIdeas(region, fresh.ideas);
+    } catch (err) {
+      setErrorMsg(formatError(err, "Couldn't refresh ideas."));
+    } finally {
+      setRegenerating(false);
+    }
+  }, [region, regenerating]);
+
+  /* ---------- Render ----------------------------------------- */
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
       <CosmicBackdrop bloom>
-        <FireflyParticles count={18} ambient />
+        <FireflyParticles count={14} ambient />
       </CosmicBackdrop>
 
       <ScrollView
         contentContainerStyle={{
-          paddingTop: topInset + 12,
+          paddingTop: topInset + 24,
           paddingBottom: bottomInset,
+          paddingHorizontal: 22,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting hero */}
-        <View style={styles.hero}>
-          <View style={styles.heroText}>
-            <Text style={[type.label, styles.eyebrow]}>good morning</Text>
-            <Text style={[type.subhead, styles.greeting]}>
-              {creator?.name ?? "—"}
-            </Text>
-            <Text style={[type.microDelight, styles.subGreeting]}>
-              the swarm cooked up 3 ideas while you slept
-            </Text>
-          </View>
-
-          {/* Creator avatar nestled in the StyleTwin orb */}
-          <View style={styles.orbAvatar}>
-            <StyleTwinOrb size={88} mood="idle">
-              <Image source={getImage(creator?.imageKey)} style={styles.avatarImg} />
-            </StyleTwinOrb>
-          </View>
-        </View>
-
-        {/* While You Slept — overnight autonomous swarm recap. Frozen
-            under the Phase 1 MVP scope; the recap surface comes back
-            in v2 once autonomy is reactivated. */}
-        {!flags.ARCHIVED_AUTONOMY && (
-          <Animated.View
-            entering={FadeInDown.duration(520).delay(120)}
-            style={styles.section}
-          >
-            <Pressable
-              onPress={() => {
-                feedback.tap();
-                router.push("/while-you-slept");
-              }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              accessibilityRole="button"
-              accessibilityLabel="Open overnight recap"
-            >
-              <GlassSurface radius={22} agent="ideator" breathing>
-                <View style={styles.recapInner}>
-                  <View style={styles.recapHeader}>
-                    <Feather name="moon" size={16} color={lumina.firefly} />
-                    <Text style={[type.label, styles.recapTitle]}>
-                      while you slept
-                    </Text>
-                    <View style={styles.flex} />
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color="rgba(255,255,255,0.45)"
-                    />
-                  </View>
-                  <View style={styles.recapStats}>
-                    <Stat value="+142" label="new followers" />
-                    <View style={styles.statDivider} />
-                    <Stat
-                      value={
-                        earnings && lastEarning != null
-                          ? `${earnings.currency} ${lastEarning}`
-                          : "—"
-                      }
-                      label="earned"
-                    />
-                  </View>
-                  <Text style={[type.microDelight, styles.recapCta]}>
-                    ✦ tap for the full overnight recap
-                  </Text>
-                </View>
-              </GlassSurface>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {/* Run-the-swarm CTA — kicks off a fresh four-agent cycle on
-            demand. Frozen under Phase 1 MVP; replaced in v1 by the
-            "3 daily ideas" home surface (delivered in the next round). */}
-        {!flags.ARCHIVED_AUTONOMY && (
-          <Animated.View
-            entering={FadeInDown.duration(520).delay(200)}
-            style={[styles.section, { alignItems: "center" }]}
-          >
-            <SwarmCta />
-          </Animated.View>
-        )}
-
-        {/* Trend briefs */}
-        <Animated.View
-          entering={FadeInDown.duration(520).delay(260)}
-          style={styles.section}
-        >
-          <Text style={[type.subheadSm, styles.sectionTitle]}>
-            today's trend briefs
+        <Animated.View entering={FadeInDown.duration(420)}>
+          <Text style={styles.kicker}>today · {greetingTimeOfDay()}</Text>
+          <Text style={styles.title}>Your three ideas.</Text>
+          <Text style={styles.sub}>
+            Region-tuned to your style profile. Pick one to film.
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.trendsRow}
-            decelerationRate="fast"
-            snapToInterval={296}
-          >
-            {trendBriefs.map((trend) => (
-              <Pressable
-                key={trend.id}
-                style={({ pressed }) => [
-                  styles.trendCard,
-                  { opacity: pressed ? 0.85 : 1 },
-                ]}
-                onPress={() => {
-                  feedback.spark();
-                  router.push(`/studio/new?trendId=${trend.id}`);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Open trend: ${trend.title}`}
-              >
-                <GlassSurface
-                  radius={22}
-                  agent={
-                    trend.viralPotential >= 90
-                      ? "director"
-                      : trend.viralPotential >= 80
-                        ? "ideator"
-                        : "monetizer"
-                  }
-                >
-                  <Image
-                    source={getImage(trend.imageKey)}
-                    style={styles.trendImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.trendContent}>
-                    <Text style={[type.microDelight, styles.trendContext]}>
-                      {trend.context}
-                    </Text>
-                    <Text
-                      style={[type.subheadSm, styles.trendTitle]}
-                      numberOfLines={2}
-                    >
-                      {trend.title}
-                    </Text>
-                    <ViralScore score={trend.viralPotential} />
-                  </View>
-                </GlassSurface>
-              </Pressable>
-            ))}
-          </ScrollView>
         </Animated.View>
+
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator color={lumina.firefly} />
+            <Text style={styles.loadingText}>Loading today's ideas…</Text>
+          </View>
+        ) : null}
+
+        {!loading && ideas ? (
+          <Animated.View
+            entering={FadeInDown.duration(520).delay(80)}
+            style={styles.feed}
+          >
+            {ideas.map((idea, i) => (
+              // Ideator responses don't carry a stable `id`, so
+              // fall back to a positional+hook-prefix key. The
+              // hook prefix lets React preserve cell identity
+              // across regenerate when the same idea happens to
+              // come back, while the index prevents collisions
+              // among same-prefix ideas.
+              <IdeaCard
+                key={
+                  idea.id ??
+                  `${i}-${(idea.hook ?? "idea").slice(0, 24)}`
+                }
+                idea={idea}
+                index={i + 1}
+              />
+            ))}
+          </Animated.View>
+        ) : null}
+
+        {!loading && ideas ? (
+          <Pressable
+            onPress={handleRegenerate}
+            disabled={regenerating}
+            style={({ pressed }) => [
+              styles.refreshBtn,
+              pressed && !regenerating ? styles.refreshBtnPressed : null,
+              regenerating ? styles.refreshBtnDisabled : null,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Refresh today's ideas"
+          >
+            <Feather
+              name="refresh-ccw"
+              size={14}
+              color={lumina.firefly}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.refreshLabel}>
+              {regenerating ? "Refreshing…" : "Show me 3 different ideas"}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {errorMsg ? (
+          <Text style={styles.error}>{errorMsg}</Text>
+        ) : null}
       </ScrollView>
     </View>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={[type.subhead, styles.statValue]}>{value}</Text>
-      <Text style={[type.microDelight, styles.statLabel]}>{label}</Text>
-    </View>
-  );
+function greetingTimeOfDay(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "good morning";
+  if (h < 18) return "good afternoon";
+  return "good evening";
 }
 
-function ViralScore({ score }: { score: number }) {
-  const tone = score >= 90 ? lumina.spark : score >= 80 ? lumina.firefly : lumina.coreSoft;
-  return (
-    <View style={styles.viralWrap}>
-      <View
-        style={[
-          styles.viralDot,
-          { backgroundColor: tone, boxShadow: `0 0 6px ${tone}` as never },
-        ]}
-      />
-      <Text style={[type.label, { color: tone, fontSize: 13 }]}>
-        {score}% viral potential
-      </Text>
-    </View>
-  );
+function formatError(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) return err.message ?? fallback;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0A0824" },
-  hero: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 22,
-    marginBottom: 28,
-  },
-  heroText: { flex: 1 },
-  eyebrow: {
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
-  greeting: { color: "#FFFFFF", marginBottom: 6 },
-  subGreeting: { color: "rgba(255,255,255,0.7)", fontSize: 13 },
-  orbAvatar: { width: 100, height: 100, alignItems: "center", justifyContent: "center" },
-  avatarImg: { width: 56, height: 56, borderRadius: 999 },
-  section: { marginBottom: 28 },
-  recapInner: { padding: 18 },
-  recapHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
-  recapTitle: {
-    color: "#FFFFFF",
-    fontSize: 13,
+  kicker: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 12,
     letterSpacing: 1.4,
     textTransform: "uppercase",
+    marginBottom: 10,
   },
-  flex: { flex: 1 },
-  recapStats: { flexDirection: "row", alignItems: "center", marginHorizontal: 6 },
-  stat: { flex: 1 },
-  statValue: { color: "#FFFFFF", fontSize: 28, lineHeight: 32 },
-  statLabel: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    marginTop: 2,
-    textTransform: "lowercase",
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    marginHorizontal: 14,
-  },
-  recapCta: {
-    color: "rgba(0,255,204,0.9)",
-    marginTop: 14,
-    fontSize: 12,
-  },
-  sectionTitle: {
+  title: {
+    ...type.display,
     color: "#FFFFFF",
-    paddingHorizontal: 22,
-    marginBottom: 14,
-    fontSize: 20,
-    textTransform: "lowercase",
+    marginBottom: 8,
   },
-  trendsRow: { paddingHorizontal: 22, gap: 16 },
-  trendCard: { width: 280 },
-  trendImage: {
-    width: "100%",
-    height: 150,
+  sub: {
+    ...type.body,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 15,
+    lineHeight: 21,
+    marginBottom: 22,
   },
-  trendContent: { padding: 14, gap: 8 },
-  trendContext: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  trendTitle: { color: "#FFFFFF", fontSize: 18, lineHeight: 22 },
-  viralWrap: {
+  loadingBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+    paddingVertical: 28,
+  },
+  loadingText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+  },
+  feed: {
     marginTop: 4,
   },
-  viralDot: { width: 7, height: 7, borderRadius: 999 },
+  refreshBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.25)",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginTop: 18,
+  },
+  refreshBtnPressed: {
+    backgroundColor: "rgba(0,255,204,0.12)",
+  },
+  refreshBtnDisabled: {
+    opacity: 0.5,
+  },
+  refreshLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 14,
+  },
+  error: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "#FF8FA1",
+    fontSize: 14,
+    marginTop: 18,
+    textAlign: "center",
+  },
 });

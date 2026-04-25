@@ -1,17 +1,25 @@
 /**
  * MvpOnboarding — the lean Phase 1 onboarding flow.
  *
- * Three steps, designed for "value within 2 minutes":
+ * Four steps, designed for "value within 2 minutes":
  *
- *   1. REGION  — pick a country. We map 7 countries onto the 4 trend
- *                bundles (US/UK/CA/AU → western; IN, PH, NG → own).
- *   2. FIRST   — import 1 video. The instant the picker returns, we
- *                POST /api/imported-videos and call the ideator with
- *                count=1 in parallel — that's the "quick win" idea
- *                the user sees before they've even imported the rest.
- *   3. REST    — import 2 more. On the third, fire the ideator with
- *                count=3 to reveal the full daily feed, then advance
- *                to (tabs).
+ *   1. REGION   — pick a country. We map 7 countries onto the 4
+ *                 trend bundles (US/UK/CA/AU → western; IN, PH,
+ *                 NG → own).
+ *   2. FIRST    — import 1 video. The instant the picker returns
+ *                 we POST /api/imported-videos and call the
+ *                 ideator with count=1 — that's the "quick win"
+ *                 idea the user sees before they've even imported
+ *                 the rest.
+ *   3. REST     — import 2 more clips. The 3rd import triggers
+ *                 the rule-based Style Profile derivation + a
+ *                 count=3 ideator call; both run in series, with
+ *                 a single spinner, and the user advances to the
+ *                 reveal step on success.
+ *   4. PROFILE  — show the derived Style Profile (the payoff
+ *                 moment). "Open Lumina" completes onboarding
+ *                 and routes to the Home tab, which reads the
+ *                 cached 3-idea batch and renders instantly.
  *
  * No consent gate, no orb, no fireflies — those are scoped to the
  * cinematic flow which remains behind the
@@ -39,50 +47,26 @@ import {
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { ApiError, customFetch } from "@workspace/api-client-react";
+
+import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
+import { StyleProfileReveal } from "@/components/onboarding/StyleProfileReveal";
 import { cosmic, lumina } from "@/constants/colors";
+import { COUNTRIES, type Bundle, type Country } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
 import { useAppState } from "@/hooks/useAppState";
-
-/* ---------- Region mapping ---------- */
-
-type Bundle = "western" | "india" | "philippines" | "nigeria";
-
-type Country = {
-  code: string;
-  name: string;
-  bundle: Bundle;
-};
-
-// Order chosen so the four "western" bundle countries cluster at the top
-// and the three single-bundle countries follow — least surprise for a
-// first-time user scanning the list.
-const COUNTRIES: readonly Country[] = [
-  { code: "US", name: "United States", bundle: "western" },
-  { code: "GB", name: "United Kingdom", bundle: "western" },
-  { code: "CA", name: "Canada", bundle: "western" },
-  { code: "AU", name: "Australia", bundle: "western" },
-  { code: "IN", name: "India", bundle: "india" },
-  { code: "PH", name: "Philippines", bundle: "philippines" },
-  { code: "NG", name: "Nigeria", bundle: "nigeria" },
-];
+import { writeDailyIdeas } from "@/lib/dailyIdeasCache";
+import {
+  deriveStyleProfile,
+  type DerivedStyleProfile,
+  type ImportedClipMeta,
+} from "@/lib/deriveStyleProfile";
 
 /* ---------- API payload types ---------- */
-
-type Idea = {
-  id: string;
-  hook: string;
-  hookSeconds: number;
-  videoLengthSec: number;
-  filmingTimeMin: number;
-  payoff: string;
-  payoffType?: string;
-  visualHook?: string;
-};
 
 type IdeatorResponse = {
   region: Bundle;
   count: number;
-  ideas: Idea[];
+  ideas: IdeaCardData[];
 };
 
 type ImportResponse = {
@@ -91,13 +75,31 @@ type ImportResponse = {
   dedup?: boolean;
 };
 
-type CountResponse = {
+type ImportedVideosListResponse = {
   count: number;
+  videos: Array<{
+    id: string;
+    filename: string | null;
+    durationSec: number | null;
+    createdAt: string;
+  }>;
+};
+
+// GET /api/style-profile — used by the resume-state effect to
+// figure out how far the user got on a previous session. The
+// `profile` field is `unknown` until `hasProfile` flips true; in
+// that branch the server's POST-time Zod validation guarantees
+// the shape matches our DerivedStyleProfile.
+type StyleProfileResponse = {
+  hasProfile: boolean;
+  profile: unknown;
+  region: Bundle | null;
+  lastIdeaBatchAt: string | null;
 };
 
 /* ---------- Screen ---------- */
 
-type Step = "region" | "first" | "rest";
+type Step = "region" | "first" | "rest" | "profile";
 
 export default function MvpOnboarding() {
   const router = useRouter();
@@ -113,27 +115,72 @@ export default function MvpOnboarding() {
   // e.g. transient AI provider error) without re-importing the clip
   // and consuming a duplicate row.
   const [firstImportSaved, setFirstImportSaved] = useState(false);
-  const [quickWin, setQuickWin] = useState<Idea | null>(null);
-  const [dailyFeed, setDailyFeed] = useState<Idea[] | null>(null);
+  const [quickWin, setQuickWin] = useState<IdeaCardData | null>(null);
+  const [derivedProfile, setDerivedProfile] =
+    useState<DerivedStyleProfile | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  /* --- One-time sync ------------------------------------------ */
+  /* --- Resume state ------------------------------------------- */
 
-  // Seed the counter from the server. Handles the case where the
-  // user bounced out of onboarding mid-flight (AsyncStorage cleared,
-  // server rows still there) — without this the UI would silently
-  // lie about how many clips are saved.
+  // Onboarding state is local-only (useState). If a user bailed
+  // mid-flow on a previous open — first import landed but they
+  // closed the app, profile got saved but they never tapped "Open
+  // Lumina" — the count + region + hasProfile on the server tells
+  // us where to drop them back in. The hierarchy here picks the
+  // furthest-along resume target so they don't redo work.
   useEffect(() => {
     let cancelled = false;
-    customFetch<CountResponse>("/api/imported-videos")
-      .then((res) => {
-        if (!cancelled) setImportedCount(res.count);
-      })
-      .catch(() => {
-        // Swallow — a failed sync just means the counter starts at
-        // zero, which is the safe default for a new user.
-      });
+    (async () => {
+      try {
+        const [list, sp] = await Promise.all([
+          customFetch<ImportedVideosListResponse>("/api/imported-videos"),
+          customFetch<StyleProfileResponse>("/api/style-profile"),
+        ]);
+        if (cancelled) return;
+
+        const count = list.count;
+        const savedRegion = sp.region;
+        setImportedCount(count);
+
+        // Furthest target: profile already saved → drop them on
+        // the reveal step so they get the payoff moment they
+        // missed before tapping "Open Lumina". The cast is safe
+        // because the server Zod-validates on the POST that wrote
+        // this row, so any profile here matches our shape.
+        if (sp.hasProfile && savedRegion && sp.profile) {
+          setBundle(savedRegion);
+          setDerivedProfile(sp.profile as DerivedStyleProfile);
+          setStep("profile");
+          return;
+        }
+
+        // Region picked but no profile yet → past step 1.
+        if (savedRegion) {
+          setBundle(savedRegion);
+          if (count >= 3) {
+            // 3 imports landed but profile build never finished.
+            // The "rest" step's count>=3 branch shows the
+            // "Build my style profile" retry button.
+            setFirstImportSaved(true);
+            setStep("rest");
+          } else if (count >= 1) {
+            // First import landed. Whether they saw the quick-win
+            // idea is unknowable, so favour forward motion: send
+            // them to "rest" to add more. They can still hit the
+            // build-profile retry once they cross the threshold.
+            setFirstImportSaved(true);
+            setStep("rest");
+          } else {
+            setStep("first");
+          }
+        }
+        // No region & no count → stay on the default "region" step.
+      } catch {
+        // Best-effort — a failed sync just means the user starts
+        // fresh, which is safe (and matches a brand-new user).
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -240,7 +287,56 @@ export default function MvpOnboarding() {
     }
   }, [busy, bundle, generateFirstIdea]);
 
-  /* --- Step 3: imports 2 + 3 → daily feed --------------------- */
+  /* --- Step 3: imports 2 + 3 → profile reveal ----------------- */
+
+  // Fired when the import that crosses the 3-clip threshold lands.
+  // Pulls the full clip list so duration data is available for the
+  // pacing read, derives + persists the profile, generates the
+  // 3-idea daily batch, caches it for Home, then advances to the
+  // reveal step. Any failure surfaces a retry-able error and
+  // leaves the user on the rest step (the import itself already
+  // succeeded, so a retry doesn't need another upload).
+  const buildProfileAndAdvance = useCallback(
+    async (forBundle: Bundle) => {
+      const list = await customFetch<ImportedVideosListResponse>(
+        "/api/imported-videos",
+      );
+      const meta: ImportedClipMeta[] = list.videos.map((v) => ({
+        filename: v.filename,
+        durationSec: v.durationSec,
+      }));
+      const profile = deriveStyleProfile({ region: forBundle, videos: meta });
+
+      // Persist the profile server-side so the ideator can use it
+      // on subsequent calls. The payload is Zod-validated server-
+      // side; a drift between this client shape and
+      // styleProfileSchema surfaces here as a 400.
+      await customFetch("/api/style-profile", {
+        method: "POST",
+        body: JSON.stringify({ styleProfile: profile, region: forBundle }),
+      });
+
+      const ideas = await customFetch<IdeatorResponse>(
+        "/api/ideator/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({ region: forBundle, count: 3 }),
+        },
+      );
+
+      // Hand off to Home — the cache key includes today's UTC day
+      // so opening the app multiple times in the same day shows
+      // the same 3 ideas without burning ideator quota.
+      await writeDailyIdeas(forBundle, ideas.ideas);
+
+      setDerivedProfile(profile);
+      setStep("profile");
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    [],
+  );
 
   const handleAdditionalImport = useCallback(async () => {
     if (busy || !bundle) return;
@@ -257,28 +353,34 @@ export default function MvpOnboarding() {
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      // Trigger the full daily feed exactly once, on the import that
-      // crosses the 3-clip threshold. Server quota allows a second
-      // batch (regenerate) so this won't burn the user's day.
-      if (imp.count >= 3 && !dailyFeed) {
-        const ideas = await customFetch<IdeatorResponse>(
-          "/api/ideator/generate",
-          {
-            method: "POST",
-            body: JSON.stringify({ region: bundle, count: 3 }),
-          },
-        );
-        setDailyFeed(ideas.ideas);
-        if (Platform.OS !== "web") {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
+      // Trigger profile + daily-feed exactly once, on the import
+      // that crosses the 3-clip threshold.
+      if (imp.count >= 3 && !derivedProfile) {
+        await buildProfileAndAdvance(bundle);
       }
     } catch (err) {
       setErrorMsg(formatError(err, "Couldn't import that video."));
     } finally {
       setBusy(false);
     }
-  }, [busy, bundle, dailyFeed]);
+  }, [busy, bundle, derivedProfile, buildProfileAndAdvance]);
+
+  // Retry path for the case where imports landed but the
+  // profile-build pipeline (style-profile POST or ideator call)
+  // failed. We have everything we need server-side already — just
+  // re-run the derivation + downstream calls.
+  const handleRetryProfile = useCallback(async () => {
+    if (busy || !bundle) return;
+    setBusy(true);
+    setErrorMsg(null);
+    try {
+      await buildProfileAndAdvance(bundle);
+    } catch (err) {
+      setErrorMsg(formatError(err, "Couldn't build your profile."));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, bundle, buildProfileAndAdvance]);
 
   /* --- Final: enter the app ---------------------------------- */
 
@@ -319,7 +421,15 @@ export default function MvpOnboarding() {
           <RestStep
             count={importedCount}
             onPick={handleAdditionalImport}
-            dailyFeed={dailyFeed}
+            onRetryProfile={handleRetryProfile}
+            busy={busy}
+          />
+        ) : null}
+
+        {step === "profile" && derivedProfile && bundle ? (
+          <StyleProfileReveal
+            profile={derivedProfile}
+            region={bundle}
             onEnter={handleEnter}
             busy={busy}
           />
@@ -394,7 +504,7 @@ function FirstStep({
   onPick: () => void;
   onRetryIdea: () => void;
   firstImportSaved: boolean;
-  quickWin: Idea | null;
+  quickWin: IdeaCardData | null;
   onContinue: () => void;
   busy: boolean;
 }) {
@@ -408,7 +518,7 @@ function FirstStep({
         </Text>
         <IdeaCard idea={quickWin} highlight />
         <PrimaryButton
-          label="Add 2 more videos to unlock your daily feed"
+          label="Add 2 more videos to unlock your style profile"
           onPress={onContinue}
         />
       </Animated.View>
@@ -461,28 +571,31 @@ function FirstStep({
 function RestStep({
   count,
   onPick,
-  dailyFeed,
-  onEnter,
+  onRetryProfile,
   busy,
 }: {
   count: number;
   onPick: () => void;
-  dailyFeed: Idea[] | null;
-  onEnter: () => void;
+  onRetryProfile: () => void;
   busy: boolean;
 }) {
-  if (dailyFeed) {
+  // The 3rd import already landed but profile-build failed
+  // partway. Offer a single retry that re-runs derive + persist +
+  // ideator without requiring another upload.
+  if (count >= 3) {
     return (
       <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
-        <Text style={styles.stepKicker}>Step 3 of 3 · ready</Text>
-        <Text style={styles.heroTitle}>Your daily feed.</Text>
+        <Text style={styles.stepKicker}>Step 3 of 3</Text>
+        <Text style={styles.heroTitle}>Almost there.</Text>
         <Text style={styles.heroSub}>
-          Three fresh ideas every day. Pick the one you want to film.
+          Your videos are saved. Let's build your style profile.
         </Text>
-        {dailyFeed.map((idea, i) => (
-          <IdeaCard key={idea.id} idea={idea} index={i + 1} />
-        ))}
-        <PrimaryButton label="Open Lumina" onPress={onEnter} />
+        <PrimaryButton
+          label={busy ? "Building your style profile…" : "Build my style profile"}
+          onPress={onRetryProfile}
+          disabled={busy}
+          loading={busy}
+        />
       </Animated.View>
     );
   }
@@ -492,12 +605,10 @@ function RestStep({
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.stepKicker}>Step 3 of 3</Text>
       <Text style={styles.heroTitle}>
-        {remaining === 1
-          ? "One more video."
-          : `${remaining} more videos.`}
+        {remaining === 1 ? "One more video." : `${remaining} more videos.`}
       </Text>
       <Text style={styles.heroSub}>
-        Three clips is the sweet spot — enough for your daily feed.
+        Three clips is the sweet spot — enough for your style profile.
       </Text>
 
       <View style={styles.counterRow}>
@@ -514,7 +625,7 @@ function RestStep({
         label={
           busy
             ? count >= 2
-              ? "Building your daily feed…"
+              ? "Building your style profile…"
               : "Adding your video…"
             : "Import another video"
         }
@@ -523,43 +634,6 @@ function RestStep({
         loading={busy}
       />
     </Animated.View>
-  );
-}
-
-/* =================== Idea card =================== */
-
-function IdeaCard({
-  idea,
-  index,
-  highlight,
-}: {
-  idea: Idea;
-  index?: number;
-  highlight?: boolean;
-}) {
-  return (
-    <View
-      style={[styles.card, highlight ? styles.cardHighlight : null]}
-      accessibilityRole="summary"
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardKicker}>
-          {index ? `idea ${index}` : "first idea"} · hook {idea.hookSeconds}s
-        </Text>
-        <Text style={styles.cardKickerRight}>
-          {idea.videoLengthSec}s · film in {idea.filmingTimeMin}m
-        </Text>
-      </View>
-      <Text style={styles.cardHook}>{idea.hook}</Text>
-      <Text style={styles.cardLabel}>Payoff</Text>
-      <Text style={styles.cardBody}>{idea.payoff}</Text>
-      {idea.visualHook ? (
-        <>
-          <Text style={styles.cardLabel}>Open with</Text>
-          <Text style={styles.cardBody}>{idea.visualHook}</Text>
-        </>
-      ) : null}
-    </View>
   );
 }
 
@@ -730,113 +804,55 @@ const styles = StyleSheet.create({
     backgroundColor: lumina.firefly,
     borderRadius: 14,
     paddingVertical: 16,
-    paddingHorizontal: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 24,
-    minHeight: 54,
+    marginTop: 16,
   },
   primaryPressed: {
-    backgroundColor: lumina.fireflySoft,
+    opacity: 0.85,
   },
   primaryDisabled: {
-    opacity: 0.55,
+    opacity: 0.5,
   },
   primaryLabel: {
-    fontFamily: fontFamily.bodySemiBold,
+    fontFamily: fontFamily.bodyBold,
     color: "#0A0824",
-    fontSize: 15,
-    textAlign: "center",
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   privacy: {
-    ...type.body,
-    color: "rgba(0,255,204,0.6)",
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.45)",
     fontSize: 12,
     textAlign: "center",
-    marginTop: 18,
+    marginTop: 14,
   },
   counterRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop: 8,
+    gap: 8,
     marginBottom: 24,
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.3)",
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   dotFilled: {
     backgroundColor: lumina.firefly,
-    borderColor: lumina.firefly,
   },
   counterText: {
     fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.6)",
     fontSize: 13,
     marginLeft: 6,
   },
-  card: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 16,
-  },
-  cardHighlight: {
-    borderColor: "rgba(0,255,204,0.4)",
-    backgroundColor: "rgba(0,255,204,0.06)",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  cardKicker: {
-    fontFamily: fontFamily.bodyMedium,
-    color: lumina.firefly,
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  cardKickerRight: {
-    ...type.body,
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 11,
-    letterSpacing: 0.6,
-  },
-  cardHook: {
-    fontFamily: fontFamily.bodyBold,
-    color: "#FFFFFF",
-    fontSize: 20,
-    lineHeight: 26,
-    marginBottom: 12,
-  },
-  cardLabel: {
-    fontFamily: fontFamily.bodySemiBold,
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 11,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  cardBody: {
-    ...type.body,
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 14,
-    lineHeight: 20,
-  },
   error: {
-    ...type.body,
-    color: "#FF6BBD",
-    fontSize: 13,
-    textAlign: "center",
+    fontFamily: fontFamily.bodyMedium,
+    color: "#FF8FA1",
+    fontSize: 14,
     marginTop: 18,
+    textAlign: "center",
   },
 });
