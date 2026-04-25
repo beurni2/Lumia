@@ -7,17 +7,30 @@
  * reads as: BEFORE (a past upload) → AFTER (the new clip with
  * the idea hook overlay) → "Why this should perform better".
  *
- * Matching is rule-based and intentionally simple:
- *   - Pull all the user's imported_videos (already populated
- *     server-side from onboarding).
- *   - Pick the one with `durationSec` closest to the new clip's
- *     `durationSec`. Ties broken by most-recent `createdAt`.
- *   - If the new clip has no duration data, fall back to the
- *     most-recently imported video.
- *   - If the user has no past imports at all (shouldn't happen
- *     post-onboarding, but possible mid-session for resumed
- *     flows), surface a friendly empty state and route them
- *     back to Home.
+ * Matching is rule-based and tiered (see `selectPastVideo`):
+ *   1. Topic keyword — extract content tokens from the idea
+ *      (hook, visualHook, whyItWorks, caption, payoffType) and
+ *      check whether any appear as a whole token in any past
+ *      video's filename. Will rarely fire on auto-generated
+ *      filenames (IMG_1234.mp4) but lights up immediately on
+ *      anything human-named (morning-routine.mp4). When past
+ *      videos start carrying real topic metadata server-side,
+ *      this tier picks up automatically.
+ *   2. Same hook type — fall back to a duration bucket match
+ *      (short ≤15s / medium ≤30s / long ≤60s / xlong >60s).
+ *      Prefers the new clip's duration; falls back to the
+ *      idea's planned `videoLengthSec`.
+ *   3. Most recent — if neither tier hits, take the most-
+ *      recently imported video.
+ *
+ * The matched reason is surfaced in the BEFORE pane so the
+ * comparison doesn't feel arbitrary ("matched on topic" /
+ * "matched on length" / "your most recent upload").
+ *
+ * If the user has no past imports at all (shouldn't happen
+ * post-onboarding, but possible for resumed mid-session
+ * flows), the screen shows a clean fallback line and the
+ * WhyBetter card stays in place.
  *
  * The "Why this should perform better" card is a derived view
  * over the idea fields — it does not call the server. It reads
@@ -106,7 +119,7 @@ export default function ReviewScreen() {
     return { idea: parsedIdea, clip: parsedClip };
   }, [params.idea, params.clip]);
 
-  const [past, setPast] = useState<ImportedVideo | null>(null);
+  const [match, setMatch] = useState<PastMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
@@ -126,41 +139,39 @@ export default function ReviewScreen() {
     setEmpty(false);
     // Clear the previous match so a retry that lands on
     // an error/empty state can't show stale BEFORE/AFTER
-    // content underneath the new state. Architect-flagged.
-    setPast(null);
+    // content underneath the new state.
+    setMatch(null);
     try {
       const list = await customFetch<ImportedVideosListResponse>(
         "/api/imported-videos",
       );
       if (callId !== loadCallIdRef.current) return;
 
-      if (!list.videos.length) {
+      if (!list.videos.length || !idea || !clip) {
+        // No past videos at all — surface the friendly fallback.
+        // The idea/clip guard is belt-and-braces; the effect
+        // below is gated on both being present, but the closure
+        // could in theory be invoked with a stale ref.
         setEmpty(true);
         return;
       }
 
-      // Defensive sort by createdAt DESC — the server already
-      // returns most-recent first today, but relying on order
-      // here would couple us to that contract. Cheap to sort
-      // a tiny list locally.
-      const byRecency = [...list.videos].sort((a, b) =>
-        b.createdAt.localeCompare(a.createdAt),
-      );
-
-      const target = clip?.durationSec;
-      const pick =
-        typeof target === "number"
-          ? pickClosestDuration(byRecency, target)
-          : byRecency[0];
-
-      setPast(pick ?? byRecency[0] ?? null);
+      const picked = selectPastVideo(list.videos, idea, clip);
+      if (picked) {
+        setMatch(picked);
+      } else {
+        // selectPastVideo only returns null on empty input —
+        // already handled above — but treat it as empty here
+        // too to keep the state machine total.
+        setEmpty(true);
+      }
     } catch (err) {
       if (callId !== loadCallIdRef.current) return;
       setErrorMsg(formatError(err, "Couldn't load a past video to compare."));
     } finally {
       if (callId === loadCallIdRef.current) setLoading(false);
     }
-  }, [clip?.durationSec]);
+  }, [idea, clip]);
 
   useEffect(() => {
     if (!idea || !clip) return;
@@ -247,10 +258,8 @@ export default function ReviewScreen() {
                 style={{ marginBottom: 12 }}
               />
               <Text style={styles.emptyTitle}>
-                No past videos to compare against yet.
-              </Text>
-              <Text style={styles.emptyBody}>
-                Once you import a few clips, you'll see a side-by-side here.
+                No similar past video yet — we'll compare once you import
+                more.
               </Text>
             </View>
           ) : null}
@@ -279,11 +288,11 @@ export default function ReviewScreen() {
           ) : null}
 
           {/* Only render BEFORE/AFTER on a successful match —
-              gating on `past` alone would let stale content
+              gating on `match` alone would let stale content
               from a previous successful load sit underneath an
               error or empty state on retry. */}
-          {!loading && !errorMsg && !empty && past ? (
-            <BeforeAfter past={past} clip={clip} idea={idea} />
+          {!loading && !errorMsg && !empty && match ? (
+            <BeforeAfter match={match} clip={clip} idea={idea} />
           ) : null}
 
           {/* WhyBetter renders in success AND empty states, but
@@ -308,14 +317,15 @@ export default function ReviewScreen() {
 /* =================== Before / After =================== */
 
 function BeforeAfter({
-  past,
+  match,
   clip,
   idea,
 }: {
-  past: ImportedVideo;
+  match: PastMatch;
   clip: FilmedClip;
   idea: IdeaCardData;
 }) {
+  const past = match.video;
   return (
     <View style={styles.compareRow}>
       <View style={styles.compareCol}>
@@ -323,6 +333,13 @@ function BeforeAfter({
         <View style={styles.frameBefore}>
           <View style={styles.frameBeforeBody}>
             <Text style={styles.frameBeforeHint}>your earlier upload</Text>
+            {/* Surface WHY this past video was picked so the
+                comparison doesn't feel arbitrary. The label
+                comes from the tiered selector — topic > length
+                > recent. */}
+            <Text style={styles.matchReason}>
+              {matchReasonLabel(match.reason)}
+            </Text>
           </View>
           <View style={styles.frameFooter}>
             <Feather name="film" size={12} color="rgba(255,255,255,0.5)" />
@@ -511,29 +528,179 @@ function TextButton({
   );
 }
 
-/* =================== Helpers =================== */
+/* =================== Past-video selector =================== */
 
-// Closest-by-duration match. If two videos tie on absolute
-// distance, the earlier-in-the-list (already DESC by createdAt)
-// wins via the `<` comparison — i.e., the more recent one.
-function pickClosestDuration(
+export type MatchReason = "topic" | "length" | "recent";
+
+export type PastMatch = {
+  video: ImportedVideo;
+  reason: MatchReason;
+};
+
+// Tiered rule-based selector for the BEFORE pane. Past videos
+// today only carry filename + durationSec server-side, so
+// "topic" and "hook type" are best-effort:
+//
+//   - topic: substring match between idea-derived keywords
+//     and the past video's filename. Will rarely fire on
+//     auto-generated filenames (IMG_1234.mp4) but will hit
+//     on anything human-named (morning-routine.mp4). When
+//     past-video metadata grows (a `topic` column, etc.),
+//     this tier picks up automatically without changing the
+//     contract.
+//   - length: same duration bucket as the new clip. Stands
+//     in for "hook type" — short fast-cut hooks vs. medium
+//     vs. long narrative.
+//   - recent: most-recently imported. Always fires if any
+//     past videos exist at all.
+//
+// Returns null only when there are zero past videos. Callers
+// should distinguish that from a successful match.
+export function selectPastVideo(
   videos: ImportedVideo[],
-  target: number,
-): ImportedVideo | null {
-  let best: ImportedVideo | null = null;
-  let bestDist = Infinity;
-  for (const v of videos) {
-    if (typeof v.durationSec !== "number") continue;
-    const d = Math.abs(v.durationSec - target);
-    if (d < bestDist) {
-      best = v;
-      bestDist = d;
-    }
+  idea: IdeaCardData,
+  clip: FilmedClip,
+): PastMatch | null {
+  if (videos.length === 0) return null;
+
+  // Defensive recency sort — server already returns DESC, but
+  // matching on the wrong order here would corrupt every tier.
+  const byRecency = [...videos].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
+
+  // Tier 1 — topic keyword vs. filename. Tokenise the filename
+  // on non-alphanumeric so we match whole words only ("morning"
+  // in "morning-routine.mp4") instead of fragile substrings
+  // ("effective" inside "ineffective"). Filenames typically use
+  // -, _, or . as separators which all become token boundaries.
+  const keywords = extractIdeaKeywords(idea);
+  if (keywords.length > 0) {
+    const keywordSet = new Set(keywords);
+    const topicHit = byRecency.find((v) => {
+      const fn = (v.filename ?? "").toLowerCase();
+      if (fn.length === 0) return false;
+      const tokens = fn.split(/[^a-z0-9]+/).filter((t) => t.length >= 4);
+      return tokens.some((t) => keywordSet.has(t));
+    });
+    if (topicHit) return { video: topicHit, reason: "topic" };
   }
-  // If none of the videos had a recorded duration, fall back to
-  // the first (most-recent) one so the "before" pane has
-  // something to render rather than going blank.
-  return best ?? videos[0] ?? null;
+
+  // Tier 2 — same duration bucket. Prefer the new clip's
+  // length, fall back to the idea's planned length.
+  const targetSec =
+    typeof clip.durationSec === "number"
+      ? clip.durationSec
+      : typeof idea.videoLengthSec === "number"
+        ? idea.videoLengthSec
+        : null;
+  if (targetSec !== null) {
+    const targetBucket = durationBucket(targetSec);
+    const lengthHit = byRecency.find(
+      (v) =>
+        typeof v.durationSec === "number" &&
+        durationBucket(v.durationSec) === targetBucket,
+    );
+    if (lengthHit) return { video: lengthHit, reason: "length" };
+  }
+
+  // Tier 3 — most-recent fallback. Guaranteed to hit because
+  // we already returned null on empty input above.
+  return { video: byRecency[0]!, reason: "recent" };
+}
+
+// Pull a small set of meaningful tokens out of the idea's
+// string fields. Length >= 4 + a tiny stopword set drops the
+// obvious noise ("this", "that", "with", "your") while keeping
+// content-bearing words ("morning", "routine", "tutorial").
+const STOPWORDS = new Set([
+  "this",
+  "that",
+  "with",
+  "your",
+  "what",
+  "when",
+  "have",
+  "will",
+  "from",
+  "into",
+  "they",
+  "them",
+  "then",
+  "than",
+  "just",
+  "like",
+  "only",
+  "even",
+  "more",
+  "most",
+  "much",
+  "some",
+  "such",
+  "very",
+  "well",
+  "here",
+  "there",
+  "about",
+  "after",
+  "before",
+  "again",
+  "would",
+  "could",
+  "should",
+  "these",
+  "those",
+  "every",
+  "while",
+]);
+
+export function extractIdeaKeywords(idea: IdeaCardData): string[] {
+  const blob = [
+    idea.hook,
+    idea.visualHook,
+    idea.whyItWorks,
+    idea.caption,
+    idea.payoffType,
+  ]
+    .filter((s): s is string => typeof s === "string" && s.length > 0)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ");
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tok of blob.split(/\s+/)) {
+    if (tok.length < 4) continue;
+    if (STOPWORDS.has(tok)) continue;
+    if (seen.has(tok)) continue;
+    seen.add(tok);
+    out.push(tok);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+// Coarse duration buckets that approximate "hook type":
+//   short  ≤ 15s  — fast-cut single-beat hook
+//   medium ≤ 30s  — standard short-form
+//   long   ≤ 60s  — longer narrative
+//   xlong  > 60s  — long-form
+export function durationBucket(sec: number): "short" | "medium" | "long" | "xlong" {
+  if (sec <= 15) return "short";
+  if (sec <= 30) return "medium";
+  if (sec <= 60) return "long";
+  return "xlong";
+}
+
+function matchReasonLabel(reason: MatchReason): string {
+  switch (reason) {
+    case "topic":
+      return "matched on topic";
+    case "length":
+      return "matched on length";
+    case "recent":
+      return "your most recent upload";
+  }
 }
 
 function formatError(err: unknown, fallback: string): string {
@@ -668,6 +835,15 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.5)",
     fontSize: 12,
     textAlign: "center",
+  },
+  matchReason: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textAlign: "center",
+    marginTop: 6,
+    opacity: 0.85,
   },
   // AFTER frame — firefly highlight to draw the eye
   frameAfter: {
