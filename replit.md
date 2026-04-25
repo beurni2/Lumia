@@ -39,6 +39,7 @@ Lumina is a pnpm workspace monorepo using TypeScript.
 
 **Feature Specifications:**
 - The Ideator generates video ideas with hard constraints: hook ≤ 3 seconds, ≤ 8 words; shoot ≤ 30 minutes.
+- **Phase 1 entry-point rule (do not violate):** AI-generated ideas are the *only* primary entry into the filming/create flow. No "create your own hook", "write your own idea", or free-text composer is permitted in Phase 1 — the goal is minimize thinking, maximize action. A custom-idea path (provisional copy: "Got your own idea?" / "Remix your idea") will be introduced later as a *secondary* affordance, never as the primary CTA. Until then, every route into `app/create.tsx` must originate from an Ideator-produced idea passed via the `idea` search param.
 - Four fixed timing templates are deterministically selected based on the Ideator's `templateHint`.
 - One-tap export to the gallery with an optional "Made with Lumina" watermark.
 
