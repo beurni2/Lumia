@@ -4,13 +4,19 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
-This monorepo ships **Lumina** — an autonomous GenAI creative swarm for English-speaking micro-creators.
+This monorepo ships **Lumina** — a creator tool that lifts daily consistency for English-speaking micro-creators. Onboarding (region picker + 3 video imports) → rule-based Style Profile → cloud Ideator (region-conditioned) → template-based Create → side-by-side Review → export.
 
-## Lumina v2.0 Blueprint (single source of truth)
+## Lumina Phase 1 MVP scope (single source of truth)
 
-US-first / English-first GTM. Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG. Day-1 platforms: TikTok, Reels, Shorts. Day-1 payouts: Stripe Connect + PayPal instant. Day-1 compliance: CCPA, EU AI Act, COPPA, FTC disclosure, GDPR. SEA/LATAM is layered remotely in Phase 1 (months 2–6) once US proof lands. Pricing: Spark free (3 videos/day) · Lumina Pro $12.99/mo · 10% performance fee on incremental only.
+**Pivoted April 2026** from the autonomous GenAI swarm + monetization roadmap to a tightly-scoped Phase 1 MVP (see `README.md` and `attached_assets/Pasted-LUMINA-PHASE-1-MVP-FINAL-LOCKED-SPEC*.txt`). Day-1 markets: US (primary), UK, CA, AU, IN, PH, NG.
 
-The core agentic stack — Personal Style Twin, Swarm Studio, Smart Publisher, Earnings Engine, on-device privacy-first inference — is intact and non-negotiable. See `README.md`, `ARCHITECTURE.md`, `ROADMAP.md`.
+**Frozen behind feature flags** (`ARCHIVED_AUTONOMY`, `ARCHIVED_MONETIZATION`, `ARCHIVED_POSTING` — defaults ON; flip via env to `"false"` to revive): swarm agents, Stripe billing/payouts, brand deals, OAuth posting/publications, schedulers, admin dashboards, earnings projections, performance fees, Lumina Pro tier. Source still present in tree; physical move to `/archive` is a deliberate follow-up gated on user approval.
+
+**Kept and reused for v1**: rule-based style extraction (`packages/style-twin`), `src/agents/ideator.ts` (single endpoint, no orchestrator), foundation/ design system, BlackHoleUpload, StyleTwinPreview, ConfettiBurst, LaunchSuccessHero, morningRecapFactory, feedback haptics, Clerk auth (with demo-creator fallback).
+
+**To build for v1**: `packages/lumina-trends` (4 region JSONs + audio packs), `src/routes/{ideator,styleProfile}.ts`, mobile RegionPicker + 3-video onboarding + create-flow + side-by-side review, additive migration #12 (`creators.style_profile_json jsonb`, `creators.region varchar(16)`, `creators.last_idea_batch_at timestamptz`).
+
+The earlier v2.0 blueprint (autonomous swarm + Stripe Connect + brand deal negotiation + 99.8% clone + 10% performance fee) is **archived**, not active. Older `ARCHITECTURE.md` / `ROADMAP.md` content describes the frozen systems and should be read as historical context, not current scope.
 
 ## Stack
 
