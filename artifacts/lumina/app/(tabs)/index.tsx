@@ -191,6 +191,16 @@ export default function HomeScreen() {
   // the regenerate button to escape.
   const hasIdeas = Array.isArray(ideas) && ideas.length > 0;
   const showEmptyError = !loading && !hasIdeas;
+  // The ideator does best-effort top-up to reach `count: 3` (see
+  // replit.md "ideator best-effort top-up rule"), but a partial
+  // failure can still land 1 or 2 ideas instead of 3. Showing those
+  // silently — without explanation — is the QA gap we're closing
+  // here: the user gets a friendly inline notice + a clear refresh
+  // affordance so they always know why they're seeing fewer than
+  // the promised three.
+  const ideaCount = ideas?.length ?? 0;
+  const showUndercountNotice =
+    !loading && hasIdeas && ideaCount < 3;
 
   return (
     <View style={styles.root}>
@@ -282,6 +292,27 @@ export default function HomeScreen() {
           </Animated.View>
         ) : null}
 
+        {/* Friendly undercount explainer — sits above the refresh
+            button so the message and the action read together. We
+            only render this when ideas DID land (1 or 2) and the
+            full empty/error block is NOT going to render below; the
+            two are mutually exclusive by construction. */}
+        {showUndercountNotice ? (
+          <View style={styles.undercountBlock}>
+            <Feather
+              name="info"
+              size={14}
+              color={lumina.firefly}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.undercountText}>
+              {`Only ${ideaCount} ${
+                ideaCount === 1 ? "idea" : "ideas"
+              } loaded this time — tap refresh for another batch.`}
+            </Text>
+          </View>
+        ) : null}
+
         {!loading && ideas ? (
           <Pressable
             onPress={handleRegenerate}
@@ -292,14 +323,29 @@ export default function HomeScreen() {
               regenerating ? styles.refreshBtnDisabled : null,
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Refresh today's ideas"
+            accessibilityState={{ busy: regenerating }}
+            accessibilityLabel={
+              regenerating ? "Refreshing ideas" : "Refresh today's ideas"
+            }
           >
-            <Feather
-              name="refresh-ccw"
-              size={14}
-              color={lumina.firefly}
-              style={{ marginRight: 8 }}
-            />
+            {/* Swap the static icon for a real spinner while
+                regenerating so the loading state reads
+                unambiguously — the label change alone wasn't a
+                strong enough signal during QA. */}
+            {regenerating ? (
+              <ActivityIndicator
+                size="small"
+                color={lumina.firefly}
+                style={{ marginRight: 8 }}
+              />
+            ) : (
+              <Feather
+                name="refresh-ccw"
+                size={14}
+                color={lumina.firefly}
+                style={{ marginRight: 8 }}
+              />
+            )}
             <Text style={styles.refreshLabel}>
               {regenerating ? "Refreshing…" : "Show me 3 different ideas"}
             </Text>
@@ -454,6 +500,29 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.99 }],
+  },
+  // Inline explainer for the partial-batch case (1 or 2 ideas
+  // landed instead of 3). Same surface treatment as a tip block
+  // — soft background, small icon + body text, no border — so
+  // it reads as informational rather than as a hard error.
+  undercountBlock: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    alignSelf: "stretch",
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.18)",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  undercountText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 19,
+    flex: 1,
   },
   refreshBtn: {
     flexDirection: "row",
