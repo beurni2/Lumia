@@ -307,7 +307,9 @@ export default function PublisherScreen() {
           </Text>
           <Text style={[type.body, styles.emptyBody]}>
             the smart publisher needs your voice and aesthetic before it can
-            pick variants.
+            pick variants. upload 10–30s clips you've already posted or
+            would post — talking, POV, outfit, reaction, or simple daily
+            moments work best.
           </Text>
           <View style={{ marginTop: 22 }}>
             <PortalButton

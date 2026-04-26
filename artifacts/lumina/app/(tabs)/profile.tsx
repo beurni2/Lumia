@@ -112,6 +112,18 @@ export default function ProfileScreen() {
             </View>
           </GlassSurface>
 
+          {/* QA-driven: surface upload instructions at the entry
+              point so the user knows what to expect BEFORE tapping
+              into the training flow. Only shown when not trained —
+              once trained, the retrain copy is obvious enough. */}
+          {!isTrained && (
+            <Text style={[type.body, styles.trainHint]}>
+              Upload 10–30s videos you've already posted or would post —
+              talking, POV, outfit, reaction, or simple daily clips work
+              best.
+            </Text>
+          )}
+
           <View style={{ alignItems: "center", marginTop: 18 }}>
             <PortalButton
               label={isTrained ? "retrain style twin" : "train style twin"}
@@ -184,6 +196,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardInner: { padding: 16 },
+  // Pre-train upload instruction line — sits between the Twin
+  // preview card and the train CTA so users know what kind of
+  // clips to bring before they tap into the training flow.
+  trainHint: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    marginTop: 14,
+    paddingHorizontal: 6,
+  },
   wipeBtn: { paddingVertical: 14, alignItems: "center", marginTop: 10 },
   wipeText: { color: "rgba(255,90,128,0.85)", fontSize: 13 },
 });

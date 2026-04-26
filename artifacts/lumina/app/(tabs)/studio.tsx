@@ -379,6 +379,8 @@ export default function StudioTabScreen() {
           </Text>
           <Text style={[styles.emptyBody, { color: "rgba(255,255,255,0.65)" }]}>
             The hive needs your voice and aesthetic before it can light up.
+            Upload 10–30s videos you've already posted or would post —
+            talking, POV, outfit, reaction, or simple daily clips work best.
           </Text>
           <View style={{ marginTop: 22 }}>
             <PortalButton

@@ -80,12 +80,36 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // QA-driven: refresh latency is inconsistent (the LLM second-batch
+  // can land in 1s or 8s depending on the model's mood). When it's
+  // slow the UI must not feel frozen — after 5s of waiting we swap
+  // the loading copy to a reassuring "still working" message.
+  const [slowLoad, setSlowLoad] = useState(false);
 
   // Tracks the most recent `loadIdeas` invocation so a slow
   // initial load that resolves AFTER the user tapped Retry can't
   // overwrite the fresher result. Cheaper than maintaining a
   // separate AbortController for both code paths.
   const loadCallIdRef = useRef(0);
+  // Ref to snap back to the top after a successful regenerate —
+  // otherwise the user's scroll position (often near idea 3 because
+  // they just read all three before tapping refresh) sits over the
+  // new batch, hiding the new idea 1.
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Spin up a 5s timer whenever any load is in flight. When it
+  // expires we flip `slowLoad` so the loading copy can change. The
+  // timer is rearmed every time loading/regenerating toggles, and
+  // cleared on unmount, so we never leak it.
+  useEffect(() => {
+    if (!loading && !regenerating) {
+      setSlowLoad(false);
+      return;
+    }
+    setSlowLoad(false);
+    const timer = setTimeout(() => setSlowLoad(true), 5000);
+    return () => clearTimeout(timer);
+  }, [loading, regenerating]);
 
   /* ---------- Load (cache-first) ----------------------------- */
 
@@ -159,6 +183,14 @@ export default function HomeScreen() {
       );
       setIdeas(fresh.ideas);
       await writeDailyIdeas(region, fresh.ideas);
+      // Snap to the top so the new batch reads from idea 1 — the
+      // user almost certainly tapped refresh while sitting near
+      // idea 3 (where the button lives), and seeing idea 1 first
+      // is what "fresh batch" should feel like. Defer one tick so
+      // the scroll runs after the new feed has rendered.
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 0);
     } catch (err) {
       setErrorMsg(formatError(err, "Couldn't refresh ideas."));
     } finally {
@@ -210,6 +242,7 @@ export default function HomeScreen() {
       </CosmicBackdrop>
 
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={{
           paddingTop: topInset + 24,
           paddingBottom: bottomInset,
@@ -225,7 +258,18 @@ export default function HomeScreen() {
           </Text>
         </Animated.View>
 
-        {loading ? (
+        {/* Skeleton screen covers BOTH initial load AND regenerate.
+            QA-driven: the spinner-in-button was easy to miss when
+            the user was scrolled near idea 3, and a slow refresh
+            felt like the app had frozen. Promoting regenerate to
+            the same big skeleton — same as initial load — guarantees
+            the loading state is visible regardless of scroll
+            position, and the loadingText below adapts so the user
+            knows whether they're loading the day's first batch or
+            asking for a refresh. On regenerate FAILURE, regenerating
+            flips back to false in the finally and the existing
+            cards re-render (we never cleared `ideas`). */}
+        {loading || regenerating ? (
           <View style={styles.skeletonFeed}>
             {/* Three skeleton cards mirror the IdeaCard footprint
                 so the layout doesn't reflow when the real ideas
@@ -247,13 +291,17 @@ export default function HomeScreen() {
             <View style={styles.loadingBox}>
               <ActivityIndicator color={lumina.firefly} />
               <Text style={styles.loadingText}>
-                Tuning your three ideas to today…
+                {slowLoad
+                  ? "Still finding better ideas…"
+                  : regenerating
+                    ? "Refreshing your three ideas…"
+                    : "Tuning your three ideas to today…"}
               </Text>
             </View>
           </View>
         ) : null}
 
-        {!loading && ideas ? (
+        {!loading && !regenerating && ideas ? (
           <Animated.View
             entering={FadeInDown.duration(520).delay(80)}
             style={styles.feed}
@@ -313,41 +361,29 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {!loading && ideas ? (
+        {/* Refresh button hides during regenerate — the skeleton
+            above is the loading indicator now, and a duplicate
+            disabled button below it would just clutter. The button
+            reappears when regenerating flips false (success OR
+            error), so the user always has a way to try again. */}
+        {!loading && !regenerating && ideas ? (
           <Pressable
             onPress={handleRegenerate}
-            disabled={regenerating}
             style={({ pressed }) => [
               styles.refreshBtn,
-              pressed && !regenerating ? styles.refreshBtnPressed : null,
-              regenerating ? styles.refreshBtnDisabled : null,
+              pressed ? styles.refreshBtnPressed : null,
             ]}
             accessibilityRole="button"
-            accessibilityState={{ busy: regenerating }}
-            accessibilityLabel={
-              regenerating ? "Refreshing ideas" : "Refresh today's ideas"
-            }
+            accessibilityLabel="Refresh today's ideas"
           >
-            {/* Swap the static icon for a real spinner while
-                regenerating so the loading state reads
-                unambiguously — the label change alone wasn't a
-                strong enough signal during QA. */}
-            {regenerating ? (
-              <ActivityIndicator
-                size="small"
-                color={lumina.firefly}
-                style={{ marginRight: 8 }}
-              />
-            ) : (
-              <Feather
-                name="refresh-ccw"
-                size={14}
-                color={lumina.firefly}
-                style={{ marginRight: 8 }}
-              />
-            )}
+            <Feather
+              name="refresh-ccw"
+              size={14}
+              color={lumina.firefly}
+              style={{ marginRight: 8 }}
+            />
             <Text style={styles.refreshLabel}>
-              {regenerating ? "Refreshing…" : "Show me 3 different ideas"}
+              Show me 3 different ideas
             </Text>
           </Pressable>
         ) : null}
@@ -355,7 +391,7 @@ export default function HomeScreen() {
         {/* Inline error for the regenerate path — only shows
             when ideas are already on screen, otherwise the full
             error block below covers it. */}
-        {!loading && ideas && errorMsg ? (
+        {!loading && !regenerating && ideas && errorMsg ? (
           <Text style={styles.error}>{errorMsg}</Text>
         ) : null}
 

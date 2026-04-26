@@ -358,9 +358,14 @@ export default function StyleTwinTrainScreen() {
           title: isRetrain
             ? "Welcome back."
             : "Let's awaken your Style Twin.",
+          // QA-driven: be explicit about what to upload. Short
+          // (10–30s), real (already-posted or post-able), and
+          // varied (talking, POV, outfit, reaction, daily clips).
+          // The cinematic tone is preserved; the practical
+          // instructions are folded into a single sentence.
           body: isRetrain
-            ? "Drop in a few new clips and I'll level up. The garden remembers everything."
-            : "Feed me 10 of your best videos and I'll become the creative partner who truly gets you.",
+            ? "Drop in a few new 10–30s clips you've already posted or would post — talking, POV, outfit, reaction, or simple daily moments. I'll level up."
+            : "Upload 10 short videos (10–30s each) you've already posted or would post — talking, POV, outfit, reaction, or simple daily clips work best. I'll learn your humour, pacing, and look.",
         };
       case "garden":
         return {
@@ -370,7 +375,7 @@ export default function StyleTwinTrainScreen() {
             : `${remaining} more memor${remaining === 1 ? "y" : "ies"} to go.`,
           body: ready
             ? "When you're ready, ignite the swarm. The transformation takes about 3 seconds."
-            : "Tap a memory orb to feed me a video. Each one teaches me your humour, pacing, and look.",
+            : "Tap a memory orb to feed me a 10–30s video. Use clips you've already posted or would post — talking, POV, outfit, reaction, or simple daily moments work best.",
         };
       case "ritual":
         return {
