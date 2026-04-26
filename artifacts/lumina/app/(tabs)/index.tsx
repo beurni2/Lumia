@@ -45,6 +45,7 @@ import { ApiError, customFetch } from "@workspace/api-client-react";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
+import { IdeaFeedback } from "@/components/IdeaFeedback";
 import { lumina } from "@/constants/colors";
 import { type Bundle } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
@@ -254,20 +255,29 @@ export default function HomeScreen() {
               // across regenerate when the same idea happens to
               // come back, while the index prevents collisions
               // among same-prefix ideas.
-              <Pressable
+              <View
                 key={
                   idea.id ??
                   `${i}-${(idea.hook ?? "idea").slice(0, 24)}`
                 }
-                onPress={() => openCreate(idea)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open creation flow for ${idea.hook}`}
-                style={({ pressed }) => [
-                  pressed ? styles.cardPressed : null,
-                ]}
               >
-                <IdeaCard idea={idea} index={i + 1} />
-              </Pressable>
+                <Pressable
+                  onPress={() => openCreate(idea)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open creation flow for ${idea.hook}`}
+                  style={({ pressed }) => [
+                    pressed ? styles.cardPressed : null,
+                  ]}
+                >
+                  <IdeaCard idea={idea} index={i + 1} />
+                </Pressable>
+                {/* Lightweight per-idea feedback row — sits as a
+                    sibling to the card pressable, not a wrapper, so
+                    voting never accidentally navigates into the
+                    create flow. Hidden once the user has voted (the
+                    component reads its own AsyncStorage cache). */}
+                <IdeaFeedback idea={idea} region={region ?? undefined} />
+              </View>
             ))}
           </Animated.View>
         ) : null}

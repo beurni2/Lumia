@@ -283,6 +283,67 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 14,
+    name: "idea_feedback",
+    // Phase 1 MVP — per-idea creator feedback ("Would you post this?
+    // Yes / Maybe / No"). Pure additive: brand-new table with its
+    // own uuid PK, FK back to creators(id) which is itself uuid.
+    // No FK to any "ideas" table because idea hooks are transient
+    // (they live in AsyncStorage for the day's batch); the natural
+    // identifier is `idea_hook` text.
+    //
+    // Two indexes on purpose:
+    //   • (creator_id, created_at) — "what did this creator just
+    //     say no to?" — drives the future ideator prompt feedback.
+    //   • (verdict, created_at) — "what did the population reject
+    //     this week?" — drives the Phase 2 trending surface.
+    sql: `
+      CREATE TABLE IF NOT EXISTS idea_feedback (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        creator_id uuid NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+        region varchar(16),
+        idea_hook text NOT NULL,
+        idea_caption text,
+        idea_payoff_type varchar(32),
+        verdict varchar(8) NOT NULL,
+        reason text,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_idea_feedback_creator_created
+        ON idea_feedback (creator_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_idea_feedback_verdict_created
+        ON idea_feedback (verdict, created_at DESC);
+    `,
+  },
+  {
+    id: 15,
+    name: "idea_feedback_unique_per_hook",
+    // Atomicity fix for /api/ideas/feedback. The original v14 route
+    // did SELECT-then-INSERT/UPDATE, which races on a fast double-tap
+    // — both requests can miss the SELECT and both INSERT, producing
+    // a duplicate row that corrupts the very signal this loop exists
+    // to collect. A unique index on (creator_id, idea_hook) lets the
+    // route switch to a single-statement INSERT ... ON CONFLICT DO
+    // UPDATE upsert, which is atomic in Postgres.
+    //
+    // Trade-off: a creator who sees the same hook re-surface in a
+    // future day's batch can only have ONE feedback row per hook
+    // forever — the latest verdict overwrites. This matches the
+    // client's AsyncStorage cache (keyed by hook with no day stamp,
+    // see lib/ideaFeedback.ts), so the UI never re-prompts on a
+    // hook the user already voted on anyway. Net signal loss is
+    // effectively zero.
+    //
+    // Safe to apply on the existing table: idea_feedback has only
+    // existed since v14 (this same boot) and the v14 route's 60s
+    // dedup window kept duplicate rows out, so there's no existing
+    // pair that would violate the unique constraint.
+    sql: `
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_idea_feedback_creator_hook
+        ON idea_feedback (creator_id, idea_hook);
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

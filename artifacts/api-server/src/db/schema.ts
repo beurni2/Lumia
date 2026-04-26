@@ -398,3 +398,53 @@ export const errorEvents = pgTable(
 );
 
 export type ErrorEvent = typeof errorEvents.$inferSelect;
+
+// Phase 1 MVP — per-idea creator feedback ("Would you post this?").
+//
+// Pure additive: brand-new table with its own uuid PK, foreign-key
+// back to creators(id) which is itself uuid. There is intentionally
+// no FK to any "ideas" table because the ideator's response is
+// transient (hooks live only as long as the day's batch in
+// AsyncStorage) — the natural identifier is `idea_hook` text. We
+// also persist `region` + `idea_payoff_type` so downstream
+// aggregation ("which payoff types are people skipping in IL-IL?")
+// can be answered without re-deriving them.
+//
+// `verdict` is a short string instead of a real pg enum so we can
+// add a fourth value (e.g. 'skip' or 'block') later without an
+// ALTER TYPE round-trip — matches how the rest of this schema
+// stores small finite domains as varchar.
+export const ideaFeedback = pgTable(
+  "idea_feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    region: varchar("region", { length: 16 }),
+    ideaHook: text("idea_hook").notNull(),
+    ideaCaption: text("idea_caption"),
+    ideaPayoffType: varchar("idea_payoff_type", { length: 32 }),
+    // 'yes' | 'maybe' | 'no'
+    verdict: varchar("verdict", { length: 8 }).notNull(),
+    // Only populated when verdict='no'. Free-text + the 4 chip
+    // suggestions are stored verbatim — chip taps prefill the input
+    // but the text the user actually submits is what lands here.
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_idea_feedback_creator_created").on(
+      t.creatorId,
+      t.createdAt,
+    ),
+    index("idx_idea_feedback_verdict_created").on(
+      t.verdict,
+      t.createdAt,
+    ),
+  ],
+);
+
+export type IdeaFeedback = typeof ideaFeedback.$inferSelect;

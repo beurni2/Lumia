@@ -16,6 +16,7 @@ import payoutsRouter from "./payouts";
 import ideatorRouter from "./ideator";
 import styleProfileRouter from "./styleProfile";
 import importedVideosRouter from "./importedVideos";
+import ideaFeedbackRouter from "./ideaFeedback";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,8 @@ router.use(meRouter);
 router.use(styleProfileRouter);
 router.use(ideatorRouter);
 router.use(importedVideosRouter);
+//   • idea-feedback  — POST /api/ideas/feedback ("Would you post this?")
+router.use(ideaFeedbackRouter);
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //
