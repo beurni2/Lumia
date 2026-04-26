@@ -9,10 +9,22 @@
  * Outputs:
  *   • an array of `Idea` records, each with a hook + script + shot
  *     plan + caption + template hint, plus the hard constraints:
- *       - hookSeconds ≤ 3 (idea must be understandable in <3s)
+ *       - hookSeconds ≤ 2 (idea must be understandable in <2s)
  *       - hook word count ≤ 8 (HARD — clamped on output)
  *       - videoLengthSec ∈ [15,25] (target final length)
  *       - filmingTimeMin ≤ 30 (idea must be shootable in <30 minutes)
+ *
+ * CRITICAL UPDATE — TRIGGER-REACTION STRUCTURE:
+ * Every idea is built as Trigger → Reaction. The trigger is a
+ * SPECIFIC ACTION the creator does on screen (open / check / read /
+ * scroll / watch / find / notice / realize). The reaction is a
+ * VISIBLE EMOTIONAL RESPONSE (face, pause, expression, body
+ * language). Ideas that don't clearly contain BOTH are rejected at
+ * the schema level (`trigger` + `reaction` are required strings)
+ * and at the prompt level (the model is told to drop them rather
+ * than ship them). The pattern enum (pov / reaction / mini_story /
+ * contrast) is the SHAPE; trigger+reaction is the STRUCTURAL UNIT
+ * that lives inside it.
  *
  * Never sees raw footage. Cost ~$0.01–0.05 per call (Haiku 4.5 input
  * + 3–20 ideas of structured JSON output). Per-creator daily $ cap is
@@ -61,6 +73,29 @@ export const ideaSchema = z.object({
       message: "hook must be ≤8 words",
     }),
   hookSeconds: z.number().min(0.5).max(3),
+  /**
+   * TRIGGER-REACTION STRUCTURE (critical post-synthesis update).
+   * Every idea must be built as Trigger → Reaction. These two
+   * required fields force the model to articulate them BEFORE
+   * fleshing out the rest of the idea — if the model can't name
+   * a clear trigger and a visible emotional reaction, the idea
+   * fails schema validation and is dropped.
+   *
+   *   trigger  — the SPECIFIC ACTION the creator does on screen
+   *              (open the bank app, check ex's instagram, read
+   *              mom's text, scroll past your old photo, watch
+   *              the cashier subtotal climb). Verbs to lean on:
+   *              open / check / read / scroll / watch / find /
+   *              notice / realize / hear / see / do.
+   *   reaction — the VISIBLE EMOTIONAL RESPONSE that follows
+   *              (frozen face slow blink, eyes widen then dart
+   *              away, sigh that turns into a laugh, slow head
+   *              shake, lip-bite, the "oh no" face). Must be
+   *              FILMABLE on the creator's own face/body — not
+   *              an internal feeling, not a thought, not narrated.
+   */
+  trigger: z.string().min(5).max(140),
+  reaction: z.string().min(5).max(140),
   script: z.string().min(10).max(800),
   shotPlan: z.array(z.string().min(2).max(160)).min(1).max(10),
   caption: z.string().min(2).max(280),
@@ -219,7 +254,21 @@ export async function generateIdeas(
   const system = [
     "You are Lumina's Ideator — a sharp, regionally-grounded short-form video strategist for English-speaking 1K–50K micro-creators.",
     "",
-    "Your job: produce ideas a real creator can shoot today. Each idea must obey THREE HARD CONSTRAINTS:",
+    "Your job: produce ideas a real creator can shoot today.",
+    "",
+    "TRIGGER-REACTION STRUCTURE (HARD, 100% of ideas — apply this BEFORE picking a pattern, BEFORE writing the hook, BEFORE anything else):",
+    "  Every idea must be built as Trigger → Reaction. If you can't name BOTH for an idea, DROP IT and pick a different angle. Do NOT try to fudge it.",
+    "    • TRIGGER  = a SPECIFIC ACTION the creator does on screen. Use action verbs: open / check / read / scroll / watch / find / notice / realize / hear / see / do. Concrete and observable.",
+    "      ✓ \"opens the bank app\", \"checks her ex's instagram\", \"reads mom's all-caps text\", \"scrolls past her own old photo\", \"watches the cashier subtotal climb\", \"hears the AirPod die mid-sentence\".",
+    "      ✗ \"thinks about money\" (internal — not visible), \"feels overwhelmed\" (state — not action), \"realizes she's been wrong\" (cognitive — needs voiceover to read).",
+    "    • REACTION = a VISIBLE EMOTIONAL RESPONSE that follows the trigger. Filmable on the creator's own face/body. Specific micro-expression or body beat.",
+    "      ✓ \"frozen face, slow blink\", \"eyes widen then dart away\", \"sigh that turns into a laugh\", \"slow head shake, then closes the app\", \"lip-bite, sharp inhale\", \"the 'oh no' face into deadpan stare at camera\".",
+    "      ✗ \"feels embarrassed\" (internal), \"realizes the truth\" (cognitive), \"learns a lesson\" (abstract). The reaction must be SHOOTABLE on the creator's face — if you can't direct the actor to do it, it's not a reaction.",
+    "    • Articulate both in the `trigger` and `reaction` fields. The schema rejects ideas that omit either.",
+    "    • The hook should signal the trigger (\"POV: opening the bank app\", \"When mom sends THE text\"); the payoff IS the reaction. The viewer reads the trigger in <2s and waits for the reaction.",
+    "  This is the single biggest lever on payoff consistency. Pattern is the shape; trigger+reaction is the structural unit inside it.",
+    "",
+    "Each idea must obey THREE HARD CONSTRAINTS:",
     "  1. FILMING TIME ≤30 MINUTES end-to-end — single location, props the creator already owns, no actors beyond the creator and (optionally) one friend, no expensive setups. Declare in `filmingTimeMin`.",
     "  2. TARGET VIDEO LENGTH 15–25 SECONDS — short-form sweet spot for retention; not a TikTok story, not a Reel essay. Declare in `videoLengthSec`.",
     "  3. UNDERSTANDABLE IN <2 SECONDS — the hook must land within 2 seconds of audio AND must be ≤8 WORDS HARD CAP. The viewer should know what kind of video this is and what's about to happen before the third second hits. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words). Examples that FAIL — REWRITE THESE: \"POV: your roommate asks why you're upset\" (8 words counted but 'your' redundant — tighten to \"POV: roommate asks why you're upset\" / 6 words) · \"Have you ever felt invisible at parties?\" (8 but abstract introspective — banned). If your hook is 9+ words OR if the meaning takes 3 seconds to land, REWRITE IT before submitting. NO EXCEPTIONS.",
@@ -236,14 +285,14 @@ export async function generateIdeas(
     // pattern-anchored ideas are inherently visualizable and
     // inherently low-interpretation. This block runs FIRST so the
     // pattern choice frames every other decision.
-    "PATTERN-FIRST GENERATION (HARD, 100% of ideas — apply this BEFORE the gate below):",
-    "  Step 1 — PICK ONE of these four canonical short-form patterns. Do this BEFORE you write the hook. Declare your choice in the `pattern` field.",
-    "    • pov        → POV scenario. Camera IS the viewer. Hook starts \"POV:\" or \"When your…\". Specific observable situation. Examples: \"POV: roommate asks if you're mad\", \"When your barista remembers you\", \"POV: you're the office snack person\".",
-    "    • reaction   → A visible reaction to a stimulus (a text, a photo, a memory, a thought, a sound, a screen). Hook tees up what triggers it. The payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\", \"Reading my old texts at 2am\", \"The face I make checking my bank app\".",
-    "    • mini_story → A micro-narrative with setup → moment → payoff inside 15–25s. The hook sets up a relatable situation, the middle shows the moment unfold, the end has a small payoff (laugh, sigh, knowing look). Includes to-camera \"me when…\" confessionals AND third-person micro-stories. Examples: \"Me trying to act normal at the dentist\", \"Trying to sneak out of yoga early\", \"Me lying about how often I cook\".",
-    "    • contrast   → Visible two-state comparison. Either before/after (a room, outfit, meal, energy) OR expectation vs reality (what I planned vs what happened). Hook names the contrast. Examples: \"My desk before the deadline\", \"Outfit at 8am vs 8pm\", \"How I described my workout vs the actual workout\", \"My meal-prep plan vs what I ate\".",
-    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the pattern in the first 2 seconds. The viewer must know within 2 seconds what kind of video this is and what's about to happen.",
-    "  Step 3 — Fill in `whatToShow` (the simple action that happens on screen — talk through it like you're describing it to a friend) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
+    "PATTERN-FIRST GENERATION (HARD, 100% of ideas — apply this AFTER you've named your trigger+reaction, BEFORE the gate below):",
+    "  Step 1 — Once you have a trigger+reaction pair, PICK ONE of these four canonical short-form patterns as the SHAPE that holds it. Declare your choice in the `pattern` field.",
+    "    • pov        → POV scenario. Camera IS the viewer. Hook starts \"POV:\" or \"When your…\". The trigger is named in the hook; the reaction lands in the next 1–3 seconds. Examples: \"POV: roommate asks if you're mad\" (trigger=is asked / reaction=tight smile + jaw-clench), \"POV: you're the office snack person\" (trigger=desk drawer opens / reaction=guilty smile to camera).",
+    "    • reaction   → A visible reaction to a stimulus (text / photo / memory / sound / screen). Hook tees up the trigger; payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\" (trigger=phone buzz, screen reveal / reaction=slow horror-blink), \"Reading my old texts at 2am\" (trigger=scroll up / reaction=physical wince).",
+    "    • mini_story → A micro-narrative with setup → trigger → reaction → payoff inside 15–25s. Includes to-camera \"me when…\" confessionals AND third-person micro-stories. Examples: \"Me trying to act normal at the dentist\" (trigger=hygienist asks if I floss / reaction=lying-face), \"Me lying about how often I cook\" (trigger=friend asks for recipes / reaction=panicked confidence).",
+    "    • contrast   → Visible two-state comparison where the SECOND state is the reaction. Before/after or expectation vs reality, with the reaction LANDING IN THE SECOND HALF. Examples: \"Outfit at 8am vs 8pm\" (trigger=mirror check / reaction=defeated faceplant on bed), \"How I described my workout vs the actual workout\" (trigger=hitting record / reaction=red-faced gasping). Pure visual transformations with NO visible reaction (e.g. just before/after of a clean room) FAIL the trigger-reaction test — drop them.",
+    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the trigger in the first 2 seconds. The viewer must know within 2 seconds what action is about to happen and brace for the reaction.",
+    "  Step 3 — Fill in `whatToShow` (the simple action that happens on screen — narrate the trigger → reaction beat by beat) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
     "  If you can't make an idea fit one of the four patterns above, DROP it and pick a different angle. Do NOT invent new patterns or stretch the definitions.",
     "",
     "VISUALIZABILITY GATE (HARD, 100% of ideas — applies BEFORE rules A–E):",
@@ -251,14 +300,17 @@ export async function generateIdeas(
     "  Apply this test BEFORE submitting each idea: after reading the hook, can you describe in one sentence exactly what is on screen in the first 2 seconds (where the creator is, what they're doing, what's happening)? If the answer requires 'it depends', 'something like…', or 'maybe they…', the idea FAILS the gate. Rewrite or replace it.",
     "  Every idea must map to one of the four patterns above (pov, reaction, mini_story, contrast). If you can't name the pattern, it fails.",
     "",
-    "  HARD BAN — these patterns are PROHIBITED for all regions (they consistently underperform on 'would you post this WITHOUT changing it much'):",
-    "    ✗ ADVICE — \"You should…\", \"Try this…\", \"Tips for…\", \"How to…\", \"X things to do when…\", \"Stop doing X, start doing Y\" (instructional framing).",
+    "  HARD BAN — these patterns are PROHIBITED for all regions (they consistently underperform on 'would you post this WITHOUT changing it much' AND they fail the trigger-reaction structure):",
+    "    ✗ ADVICE — \"You should…\", \"Try this…\", \"Tips for…\", \"How to…\", \"X things to do when…\", \"Stop doing X, start doing Y\" (instructional framing — has no trigger-reaction beat).",
     "    ✗ MOTIVATIONAL — \"Reminder that…\", \"You're enough\", \"Trust the process\", \"Show up for yourself\", \"Glow up\", \"Mindset shift\", \"Manifest…\", \"Your sign to…\".",
     "    ✗ \"TALK ABOUT\" / \"SHARE YOUR THOUGHTS\" / \"EXPLAIN WHY\" prompts — \"Let's talk about…\", \"Share your thoughts on…\", \"Tell us about…\", \"We need to discuss…\", \"Can we talk about how…\", \"Explain why X matters\", \"Why X is important\", \"Storytime about feelings\". Any framing where the entire video is the creator monologuing ABOUT a topic with no concrete observable scene is OUT.",
-    "    ✗ ABSTRACT concepts as the subject — Confidence, Authenticity, Self-love, Energy, Boundaries, Healing, Growth, Purpose, Worthiness, Alignment. These words may appear inside a concrete scene (\"POV: setting a boundary with mom about Sunday dinner\") but NEVER as the standalone topic (\"Why boundaries matter\").",
-    "    ✗ Vague \"things\" lists with no concrete visual — \"Things that matter\", \"Things I wish I knew\", \"Things you should hear\". Every list-style hook needs a CONCRETE TANGIBLE referent (\"Things only oldest siblings actually do\", \"Things in my fridge that have no business being there\").",
+    "    ✗ ABSTRACT CONCEPTS as the subject — Confidence, Authenticity, Self-love, Energy, Boundaries, Healing, Growth, Purpose, Worthiness, Alignment, Mindfulness, Productivity (as the topic). These words may appear inside a concrete scene (\"POV: setting a boundary with mom about Sunday dinner\") but NEVER as the standalone topic (\"Why boundaries matter\"). Abstract = no filmable trigger, no visible reaction = drop.",
+    "    ✗ PERSONALITY TRAITS as the subject — \"Things only introverts get\", \"Sagittarius behavior\", \"INTJ moments\", \"Type A energy\", \"That girl\", \"Main character\". Trait labels are categorical, not observable — they describe a person, not a beat. Replace with a SPECIFIC observable trigger+reaction inside that trait if needed (\"POV: introvert at a baby shower\" → trigger=hostess pulls you into circle / reaction=panicked smile).",
+    "    ✗ GENERAL STATEMENTS / vibe-only hooks — \"Adulting is hard\", \"Mondays am I right\", \"Life lately\", \"This is your reminder\", \"It's giving…\", \"The duality of…\". Generalities have no specific trigger — there's no action happening on screen, just commentary. If the hook works as a tweet, it's a general statement, not a trigger-reaction idea.",
+    "    ✗ Vague \"things\" lists with no concrete visual — \"Things that matter\", \"Things I wish I knew\", \"Things you should hear\". Every list-style hook needs a CONCRETE TANGIBLE referent (\"Things only oldest siblings actually do\", \"Things in my fridge that have no business being there\") AND a single trigger-reaction beat per item.",
+    "    ✗ DIALOGUE-DEPENDENT ideas — anything where the payoff requires multi-line back-and-forth dialogue between two characters that the creator must perform. \"Me arguing with my sister about who's mom's favorite\", \"Explaining to my boss why I missed the deadline\", \"Talking my way out of a parking ticket\". The creator playing both sides of a dialogue is high-effort, often awkward, and the trigger-reaction beat gets buried in scripted exchange. A SINGLE-LINE STIMULUS (\"roommate asks if you're mad\") is FINE — that's the trigger. What's banned is multi-line scripted dialogue as the engine of the idea.",
     "    ✗ MULTI-STEP CONCEPTS — anything that requires the viewer to track 3+ distinct ideas, follow numbered points, or hold multiple threads in their head. Short-form rewards single-thread ideas. If you find yourself writing \"first… then… finally…\" or \"step 1 / step 2 / step 3\", you're building a tutorial, not a TikTok.",
-    "    ✗ PLANNING-HEAVY ideas — anything that requires the creator to write a detailed script, rehearse dialogue, plan multiple takes, schedule outfits/locations, or block out time. The creator should be able to start filming within 10 seconds of reading the card. If the idea needs preparation more than 'pick up phone and go', it's out.",
+    "    ✗ PLANNING-HEAVY ideas — anything that requires the creator to write a detailed script, rehearse dialogue, plan multiple takes, schedule outfits/locations, or block out time. The creator should be able to start filming within 10 seconds of reading the card.",
     "  If an idea drifts into any banned pattern, scrap it and pick a different angle — do NOT try to salvage it with a tweak.",
     "",
     "  PREFERRED MOMENT TYPES (lean heavily on these — they win on 'would you post this WITHOUT changing it much'):",
@@ -331,10 +383,12 @@ export async function generateIdeas(
     TEMPLATE_DESCRIPTIONS,
     "",
     "Each idea is one JSON object with fields:",
-    "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — picked FIRST per Step 1 above),",
-    "  hook (≤8 words HARD CAP — count them, rewrite if over; lands in <2 seconds; sounds like the user's voice not generic TikTok voice),",
+    "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — the SHAPE that holds the trigger+reaction),",
+    "  hook (≤8 words HARD CAP — count them, rewrite if over; lands in <2 seconds; signals the trigger; sounds like the user's voice not generic TikTok voice),",
     "  hookSeconds (number 0.5–2, your estimate of how long the hook lands — keep ≤2),",
-    "  whatToShow (string 20–500 chars — the simple action that happens on screen, plain English, beat by beat, like you're describing it to a friend. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
+    "  trigger (string 5–140 chars — the SPECIFIC ACTION the creator does on screen using an action verb: open / check / read / scroll / watch / find / notice / realize / hear / see / do. Example: \"opens the bank app and stares at the balance\". Must be observable, not internal.),",
+    "  reaction (string 5–140 chars — the VISIBLE EMOTIONAL RESPONSE that follows the trigger. Filmable on the creator's own face/body. Example: \"frozen face, slow blink, then deadpan stare at the camera\". Must be a shootable micro-expression or body beat — not an internal feeling.),",
+    "  whatToShow (string 20–500 chars — the simple action that happens on screen, plain English, beat by beat, narrating the trigger → reaction. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
     "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed AND already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
     "  script (LOOSE talking-point cues OR vibe direction — NOT a rigid word-for-word script. The user picks the actual words; we set the beats and energy. Keep it short — 2–4 short phrases is plenty. Example: \"Open with the fake-confused face. Mumble 'oh no… ohhhh no'. Beat. Sigh.\"),",
     "  shotPlan (3–8 short shot descriptions ideal, up to 10 max, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
@@ -366,11 +420,12 @@ export async function generateIdeas(
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
-    `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea. This is the single most important gate.`,
     `Remember: every hook ≤8 words HARD and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
-    `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} BEFORE writing the hook. If the idea won't fit a pattern, scrap it.`,
-    `VISUALIZABILITY GATE — for EACH idea ask "can I picture exactly what's on screen in the first 2s?". If not, scrap it.`,
-    `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / multi-step concepts / planning-heavy ideas. Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
+    `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the SHAPE for your trigger+reaction. If the idea won't fit a pattern, scrap it.`,
+    `VISUALIZABILITY GATE — for EACH idea ask "can I picture the trigger AND the reaction on screen in the first 2s?". If not, scrap it.`,
+    `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / personality-trait hooks (Sagittarius / introvert / Type A / etc.) / general statements ("adulting is hard") / dialogue-dependent ideas (multi-line back-and-forth) / multi-step concepts / planning-heavy ideas. Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
     `script is LOOSE — talking-point cues, NOT a rigid word-for-word script. We set the beat; the user brings the voice.`,
     `MATCH THE USER VOICE — the hook should sound like words the creator would actually say (per the Style Profile above), not generic TikTok voice.`,
     `whatToShow + howToFilm are USER-FACING trust signals — concrete, plain-English, no "something" / "maybe" / "like…".`,
@@ -385,7 +440,10 @@ export async function generateIdeas(
   // within Haiku 4.5's 8192 output cap. For count=3 (Home) this is
   // ~2460 — well under cap; for count=12 it hits ~8040 — recovery
   // path handles any truncation past that.
-  const maxTokens = Math.min(600 + count * 620, 8190);
+  // Bumped from 620 → 720 per idea after adding the required
+  // `trigger` + `reaction` fields (≈80 extra tokens of structured
+  // JSON per idea). Cap unchanged.
+  const maxTokens = Math.min(600 + count * 720, 8190);
 
   let out: { ideas: Idea[] };
   try {
@@ -453,8 +511,9 @@ export async function generateIdeas(
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
       `Return strictly:`,
-      `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} before writing the hook. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / multi-step / planning-heavy. WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
+      `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
+      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy. WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
@@ -466,7 +525,7 @@ export async function generateIdeas(
         schema: responseSchema,
         system,
         user: topUpUser,
-        maxTokens: Math.min(600 + deficit * 620, 8190),
+        maxTokens: Math.min(600 + deficit * 720, 8190),
       });
       const extra = topUp.ideas.slice(0, deficit).map(clip);
       ideas.push(...extra);
