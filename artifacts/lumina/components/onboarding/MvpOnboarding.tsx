@@ -526,7 +526,8 @@ function FirstStep({
         <Text style={styles.stepKicker}>Step 2 of 3</Text>
         <Text style={styles.heroTitle}>Your first idea is ready.</Text>
         <Text style={styles.heroSub}>
-          Built around your region. This is what every morning will feel like.
+          This is an idea based on your video — this is what every morning
+          will feel like.
         </Text>
         <IdeaCard idea={quickWin} highlight />
         <PrimaryButton
@@ -563,7 +564,8 @@ function FirstStep({
       <Text style={styles.stepKicker}>Step 2 of 3</Text>
       <Text style={styles.heroTitle}>Show me one of your videos.</Text>
       <Text style={styles.heroSub}>
-        We'll generate your very first idea the moment it lands.
+        Pick a 10–30s clip you've already posted. We'll generate your very
+        first idea the moment it lands.
       </Text>
       <PrimaryButton
         label={busy ? "Generating your first idea…" : "Import a video"}
@@ -574,6 +576,12 @@ function FirstStep({
       <Text style={styles.privacy}>
         We only record the filename · the file stays on your device.
       </Text>
+      {Platform.OS === "web" ? (
+        <Text style={styles.privacy}>
+          Web preview: tapping above will use a simulated upload — on the
+          phone app it opens your real gallery.
+        </Text>
+      ) : null}
     </Animated.View>
   );
 }
@@ -620,7 +628,8 @@ function RestStep({
         {remaining === 1 ? "One more video." : `${remaining} more videos.`}
       </Text>
       <Text style={styles.heroSub}>
-        Three clips is the sweet spot — enough for your style profile.
+        We're learning your style — three 10–30s past clips give us enough
+        signal to match how you actually film.
       </Text>
 
       <View style={styles.counterRow}>

@@ -215,9 +215,30 @@ export default function HomeScreen() {
         </Animated.View>
 
         {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={lumina.firefly} />
-            <Text style={styles.loadingText}>Loading today's ideas…</Text>
+          <View style={styles.skeletonFeed}>
+            {/* Three skeleton cards mirror the IdeaCard footprint
+                so the layout doesn't reflow when the real ideas
+                land — feels like content arriving, not a screen
+                rebuild. The small spinner row beneath gives the
+                user a "we're working" cue without dominating. */}
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonHookA} />
+                <View style={styles.skeletonHookB} />
+                <View style={styles.skeletonMetaRow}>
+                  <View style={styles.skeletonMetaPill} />
+                  <View style={styles.skeletonMetaPill} />
+                </View>
+                <View style={styles.skeletonScript} />
+                <View style={styles.skeletonScriptShort} />
+              </View>
+            ))}
+            <View style={styles.loadingBox}>
+              <ActivityIndicator color={lumina.firefly} />
+              <Text style={styles.loadingText}>
+                Tuning your three ideas to today…
+              </Text>
+            </View>
           </View>
         ) : null}
 
@@ -354,13 +375,68 @@ const styles = StyleSheet.create({
   loadingBox: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 10,
-    paddingVertical: 28,
+    paddingVertical: 12,
   },
   loadingText: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.7)",
     fontSize: 14,
+  },
+  // Skeleton placeholders for the 3-card feed. Sized to roughly
+  // mirror IdeaCard so when real content lands we don't get a
+  // jarring layout shift. Static opacity (no shimmer animation)
+  // — keeps the bundle lighter and feels calm rather than busy
+  // for a load that usually finishes within a couple seconds.
+  skeletonFeed: {
+    marginTop: 4,
+    gap: 14,
+  },
+  skeletonCard: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
+    padding: 18,
+  },
+  skeletonHookA: {
+    height: 14,
+    width: "78%",
+    borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    marginBottom: 8,
+  },
+  skeletonHookB: {
+    height: 14,
+    width: "55%",
+    borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    marginBottom: 14,
+  },
+  skeletonMetaRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  skeletonMetaPill: {
+    height: 18,
+    width: 72,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.08)",
+  },
+  skeletonScript: {
+    height: 10,
+    width: "92%",
+    borderRadius: 5,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    marginBottom: 6,
+  },
+  skeletonScriptShort: {
+    height: 10,
+    width: "64%",
+    borderRadius: 5,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   feed: {
     marginTop: 4,

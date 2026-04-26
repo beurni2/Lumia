@@ -295,8 +295,8 @@ function ImportStage({
       <Text style={styles.kicker}>Step 2 of 3 · Got your clips?</Text>
       <Text style={styles.title}>Add 1–2 clips.</Text>
       <Text style={styles.sub}>
-        First clip is the main video. Pick from your gallery and we'll
-        show you a quick preview.
+        First clip is the main video (10–30s works best). Pick from your
+        gallery and we'll show you a quick preview.
       </Text>
       <PrimaryButton
         label={busy ? "Adding…" : "Add clips"}
@@ -307,6 +307,12 @@ function ImportStage({
       <Text style={styles.privacy}>
         We only record the filename · the file stays on your device.
       </Text>
+      {Platform.OS === "web" ? (
+        <Text style={styles.privacy}>
+          Web preview: tapping above will use a simulated upload — on the
+          phone app it opens your real gallery.
+        </Text>
+      ) : null}
     </Animated.View>
   );
 }

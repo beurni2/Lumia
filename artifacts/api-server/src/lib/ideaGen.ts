@@ -218,6 +218,15 @@ export async function generateIdeas(
     "       ✗ \"What I eat in a day\" (no constraint)",
     "       ✗ \"5 productivity tips\" (no twist)",
     "     If you can't add a strong twist or constraint, pick a different angle entirely.",
+    "  E. LOW-EFFORT BIAS (HARD, ≥50% of batch): At least HALF the ideas must be filmable from the couch / bed / kitchen counter / car — sitting or lying down, no setup, no props beyond what's already at arm's reach, no second location, no outfit change. The creator should be able to start filming within 10 seconds of picking up their phone.",
+    "     PREFERRED low-effort patterns (use these heavily):",
+    "       ✓ Stays seated or in one spot the whole time",
+    "       ✓ Zero props or props already in hand (phone, snack, drink, pet, blanket)",
+    "       ✓ The 'shoot' is essentially: prop phone, talk or react, hit stop",
+    "       ✓ Relatable micro-moments — texting, scrolling, pet noises, snack runs, mid-task pauses, group-chat reactions, things-you-do-when-no-one's-watching",
+    "       ✓ Talking-head reactions to a thought, message, memory, or observation",
+    "     AVOID for the low-effort half: outfit changes, location changes, multiple actors, choreography, food prep that takes >2 min, anything needing a tripod or second pair of hands, anything that requires getting up from the couch. If an idea needs more than 'pick up phone and shoot', it does NOT count toward the 50%.",
+    "     The remaining ≤50% can require slightly more setup (a quick prop swap, a walk to another room, simple before/after) but NEVER more than the 30-minute total filming cap.",
     "",
     "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Code-switch to the region's natural slang where appropriate (Hinglish for India, Tagalog for Philippines, Pidgin for Nigeria) — but keep the hook itself parseable to a wider English-speaking audience.",
     regionToneGuidance,
@@ -306,14 +315,84 @@ export async function generateIdeas(
   // hook words anymore — that destroyed meaning when the model returned
   // an 11-word twist. The schema's .refine() drops over-long hooks; the
   // recovery path salvages the rest of the batch.
-  const ideas = out.ideas.map((i) => ({
+  const clip = (i: Idea): Idea => ({
     ...i,
     hookSeconds: Math.min(i.hookSeconds, 3),
     videoLengthSec: Math.min(Math.max(Math.round(i.videoLengthSec), 15), 25),
     filmingTimeMin: Math.min(Math.max(Math.round(i.filmingTimeMin), 1), 30),
-  }));
+  });
+  const ideas: Idea[] = out.ideas.map(clip);
 
-  return { ideas };
+  // Count-guarantee top-up. Real-world cause: a single idea with a
+  // 9-word hook (or any other refine-failing field) makes the whole
+  // response fail strict schema parse, falling into recoverPartialIdeas
+  // which only returns COMPLETE objects — net result: home renders 1
+  // or 2 ideas instead of 3. We resolve by issuing ONE small follow-up
+  // call asking only for the deficit, with the existing hooks listed
+  // as hard "do-not-overlap". Stays inside the same quota slot — the
+  // outer route consumed quota once for this whole generateIdeas call.
+  if (ideas.length < count) {
+    const deficit = count - ideas.length;
+    const existingHooks = ideas.map((i) => `"${i.hook}"`).join(", ");
+    // Observability — track real-world undercount frequency from
+    // workflow logs without spinning up a metrics pipeline. We log
+    // BEFORE the top-up so we capture the deficit even when the
+    // top-up call itself throws. The post-top-up `final` count is
+    // logged below so we can tell the two failure modes apart
+    // (initial undercount that recovered vs. persistent undercount).
+    console.warn(
+      `[ideator] undercount before top-up — region=${region} requested=${count} got=${ideas.length} deficit=${deficit}`,
+    );
+    const topUpUser = [
+      `=== CREATOR STYLE PROFILE ===`,
+      profileSummary(profile),
+      "",
+      `=== REGION CONTEXT ===`,
+      compactBundle(bundle),
+      "",
+      `=== TASK ===`,
+      `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
+      `Return strictly:`,
+      `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. Apply the LOW-EFFORT BIAS rule.`,
+    ].join("\n");
+    try {
+      const topUp = await callJsonAgent({
+        ctx: {
+          creatorId: input.ctx?.creatorId ?? null,
+          agentRunId: input.ctx?.agentRunId ?? null,
+          agent: "ideator",
+        },
+        schema: responseSchema,
+        system,
+        user: topUpUser,
+        maxTokens: Math.min(600 + deficit * 450, 8190),
+      });
+      const extra = topUp.ideas.slice(0, deficit).map(clip);
+      ideas.push(...extra);
+    } catch (err) {
+      // Top-up failed (rate limit, schema fail again, etc.) — return
+      // what we already have rather than throw the whole batch away.
+      // Caller will see ideas.length < count, but we never block the
+      // user's home screen on this best-effort retry.
+      const rawText = (err as { rawText?: string } | null)?.rawText;
+      if (rawText) {
+        const recovered = recoverPartialIdeas(rawText)
+          .slice(0, deficit)
+          .map(clip);
+        if (recovered.length > 0) ideas.push(...recovered);
+      }
+    }
+    // Paired follow-up log so we can tell the two failure modes
+    // apart in workflow logs: deficit=2 final=3 (recovered fully)
+    // vs deficit=2 final=1 (top-up itself failed and we shipped
+    // the partial batch).
+    console.warn(
+      `[ideator] undercount after top-up — region=${region} requested=${count} final=${ideas.length}`,
+    );
+  }
+
+  return { ideas: ideas.slice(0, count) };
 }
 
 /**
