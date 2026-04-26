@@ -187,6 +187,32 @@ export async function generateIdeas(
     "  2. TARGET VIDEO LENGTH 15–25 SECONDS — short-form sweet spot for retention; not a TikTok story, not a Reel essay. Declare in `videoLengthSec`.",
     "  3. UNDERSTANDABLE IN <3 SECONDS — the hook must land within 3 seconds of audio AND must be ≤8 WORDS HARD CAP. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words). Examples that FAIL — REWRITE THESE: \"POV: your roommate asks why you're upset\" (8 words counted but 'your' redundant — tighten to \"POV: roommate asks why you're upset\" / 6 words) · \"Have you ever felt invisible at parties?\" (8 but abstract introspective — banned for western anyway). If your hook is 9+ words, REWRITE IT before submitting. NO EXCEPTIONS.",
     "",
+    // QA-driven uplift (target: 70% → 85%+ "would you post this").
+    // The 30% failure mode in real outputs was almost entirely
+    // ideas that were "topics about X" rather than "a specific
+    // moment". This gate is highest-priority — it runs BEFORE the
+    // existing per-batch quality rules (A–E), and applies globally
+    // (not just western).
+    "VISUALIZABILITY GATE (HARD, 100% of ideas — applies BEFORE rules A–E):",
+    "  Every idea MUST be a SPECIFIC MOMENT a viewer can picture instantly from the hook alone — zero interpretation, zero inference, zero 'figure it out'.",
+    "  Apply this test BEFORE submitting each idea: after reading the hook, can you describe in one sentence exactly what is on screen in the first 3 seconds (where the creator is, what they're doing, what's happening)? If the answer requires 'it depends', 'something like…', or 'maybe they…', the idea FAILS the gate. Rewrite or replace it.",
+    "  Every idea must map to a known short-form pattern — POV scenario, reaction/expression, before↔after contrast, expectation vs reality, observational confessional. If you can't name the pattern, it fails.",
+    "",
+    "  HARD BAN — these patterns are PROHIBITED for all regions (they consistently underperform on 'would you post this'):",
+    "    ✗ ADVICE — \"You should…\", \"Try this…\", \"Tips for…\", \"How to…\", \"X things to do when…\", \"Stop doing X, start doing Y\" (instructional framing).",
+    "    ✗ MOTIVATIONAL — \"Reminder that…\", \"You're enough\", \"Trust the process\", \"Show up for yourself\", \"Glow up\", \"Mindset shift\", \"Manifest…\", \"Your sign to…\".",
+    "    ✗ \"TALK ABOUT\" prompts — \"Let's talk about…\", \"We need to discuss…\", \"Can we talk about how…\", \"Storytime about feelings\", or any framing where the entire video is the creator monologuing ABOUT a topic with no concrete observable scene.",
+    "    ✗ ABSTRACT concepts as the subject — Confidence, Authenticity, Self-love, Energy, Boundaries, Healing, Growth, Purpose, Worthiness, Alignment. These words may appear inside a concrete scene (\"POV: setting a boundary with your mom about Sunday dinner\") but NEVER as the standalone topic (\"Why boundaries matter\").",
+    "    ✗ Vague \"things\" lists with no concrete visual — \"Things that matter\", \"Things I wish I knew\", \"Things you should hear\". Every list-style hook needs a CONCRETE TANGIBLE referent (\"Things only oldest siblings actually do\", \"Things in my fridge that have no business being there\").",
+    "  If an idea drifts into any banned pattern, scrap it and pick a different angle — do NOT try to salvage it with a tweak.",
+    "",
+    "  PREFERRED MOMENT TYPES (lean heavily on these — they win on 'would you post this'):",
+    "    ✓ AWKWARD moments — accidentally waving back at someone who wasn't waving at you, talking over a server, holding a door open way too long, forgetting a friend's partner's name mid-conversation, the elevator small-talk that goes on one floor too many, accidentally liking a 2-year-old IG post.",
+    "    ✓ BROKE / TIRED / LAZY scenarios — microwaving the same coffee 3 times, pretending to know which wine to order, eating dinner standing up at the counter, \"I need to do laundry but I'm just gonna re-wear this\", checking your bank app then immediately closing it, the 'I'll just nap for 15 minutes' lie.",
+    "    ✓ SMALL DAILY FRUSTRATIONS — wifi dropping mid-Zoom, the one earbud that's always quieter, cashier calling the next person before you've packed your bag, AirPods dying right when you start working out, the \"reply all\" panic, finding the snack aisle has been rearranged.",
+    "    ✓ SELF-DEPRECATING confessional — \"me lying about how often I cook\", \"my LinkedIn vs my actual work day\", \"how I describe my workout vs what I actually did\", \"the version of me I show on dates\", \"my Spotify Wrapped vs my personality\".",
+    "  These four types are the safest bets — when in doubt, pick one. They map cleanly onto POV / reaction / contrast / 'me when' patterns and require zero setup beyond pointing the phone at yourself.",
+    "",
     "QUALITY RULES (per-batch, mandatory):",
     "  A. EVERY idea must have a clear PAYOFF — declare it in `payoffType` as one of:",
     "     • reveal       — something hidden or unexpected is shown",
@@ -277,6 +303,7 @@ export async function generateIdeas(
     `Produce ${count} ideas for tomorrow. Return strictly:`,
     `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `Remember: every hook ≤8 words HARD; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
+    `VISUALIZABILITY GATE — for EACH idea ask "can I picture exactly what's on screen in the first 3s?". If not, scrap it. NO advice / motivational / "talk about" / abstract-concept hooks. Lean on awkward, broke/tired/lazy, small daily frustrations, and self-deprecating moments — they win.`,
   ].join("\n");
 
   // Output budget: each idea is ~330–420 tokens of structured JSON
@@ -354,7 +381,7 @@ export async function generateIdeas(
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
       `Return strictly:`,
       `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. Apply the LOW-EFFORT BIAS rule.`,
+      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE: each idea must be a specific picturable moment (POV / reaction / contrast / confessional). NO advice, motivational, "talk about", or abstract-concept hooks. Awkward / broke / tired / lazy / small daily frustration / self-deprecating moments win.`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
