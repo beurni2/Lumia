@@ -28,11 +28,29 @@
  *
  * QUALITY — EMOTIONAL SPIKE:
  * Every idea must hit ONE of five emotional spikes — embarrassment,
- * regret, confusion, panic, irony. Declared in `emotionalSpike`.
+ * regret, denial, panic, irony. Declared in `emotionalSpike`.
  * Weak/diffuse emotion = rejected. The five-spike palette is
  * deliberately tight: these are the spikes that consistently land
  * on short-form (vs broader emotions like "joy" / "sadness" which
- * read as generic).
+ * read as generic). NOTE: `denial` (telling-yourself-it's-fine,
+ * refusing-to-acknowledge) replaced the prior `confusion` slot —
+ * denial carries built-in internal contradiction, which is the
+ * tension hook generation now explicitly requires.
+ *
+ * QUALITY — HOOK CRAFT:
+ * For each idea the model internally generates 3–5 hook variations
+ * across five hook formats (Behavior / Thought / Moment / Contrast /
+ * Curiosity), filters them through emotion-clarity + TENSION +
+ * natural-language + 1-second-rule gates, and SELECTS the strongest
+ * one to emit. Only the winner is emitted in `hook`. The selection
+ * rule is "which one would I actually stop scrolling for?".
+ *
+ * SAFETY — SENSITIVE / PRIVATE CONTENT:
+ * Ideas that require exposing the creator's real private data on
+ * screen are banned globally — bank apps / balances / medical info /
+ * real conversation screenshots / addresses / IDs / passwords /
+ * salary. The trigger and reaction must be performable WITHOUT
+ * exposing the creator's actual private information.
  *
  * VARIETY — BATCH-LEVEL DIVERSITY:
  * Within any 3 ideas, no two may share the same `triggerCategory`
@@ -122,14 +140,14 @@ export const ideaSchema = z.object({
    * fail validation and are dropped.
    *   • embarrassment — caught out, exposed, busted, awkward
    *   • regret        — wishing-you-hadn't, "why did I do that"
-   *   • confusion     — what-just-happened, lost, dumb-question
+   *   • denial        — telling-yourself-it's-fine, lying-by-omission
    *   • panic         — small-stakes alarm, quiet freakout
    *   • irony         — said-one-thing-did-another, hypocrisy noticed
    */
   emotionalSpike: z.enum([
     "embarrassment",
     "regret",
-    "confusion",
+    "denial",
     "panic",
     "irony",
   ]),
@@ -330,25 +348,48 @@ export async function generateIdeas(
     "",
     "TRIGGER-REACTION STRUCTURE (HARD, 100% of ideas — apply this BEFORE picking a pattern, BEFORE writing the hook, BEFORE anything else):",
     "  Every idea must be built as Trigger → Reaction. If you can't name BOTH for an idea, DROP IT and pick a different angle. Do NOT try to fudge it.",
-    "    • TRIGGER  = a SPECIFIC ACTION the creator does on screen. Use action verbs: open / check / read / scroll / watch / find / notice / realize / hear / see / do. Concrete and observable.",
-    "      ✓ \"opens the bank app\", \"checks her ex's instagram\", \"reads mom's all-caps text\", \"scrolls past her own old photo\", \"watches the cashier subtotal climb\", \"hears the AirPod die mid-sentence\".",
-    "      ✗ \"thinks about money\" (internal — not visible), \"feels overwhelmed\" (state — not action), \"realizes she's been wrong\" (cognitive — needs voiceover to read).",
+    "    • TRIGGER  = a SPECIFIC ACTION the creator does on screen. Use action verbs: open / check / read / scroll / sip / look / watch / find / notice / realize / hear / see / do. Concrete and observable.",
+    "      ✓ \"opens her camera roll, lands on yesterday's screenshot\", \"checks her ex's instagram\", \"reads mom's all-caps text\", \"scrolls past her own old photo\", \"watches the cashier subtotal climb\", \"hears the AirPod die mid-sentence\", \"sips coffee, realises it's gone cold\", \"looks at the gym bag she packed yesterday\".",
+    "      ✗ \"thinks about money\" (internal — not visible), \"feels overwhelmed\" (state — not action), \"realizes she's been wrong\" (cognitive — needs voiceover to read), \"opens her bank app to check the balance\" (sensitive private data — banned).",
     "    • REACTION = a VISIBLE EMOTIONAL RESPONSE that follows the trigger. Filmable on the creator's own face/body. Specific micro-expression or body beat.",
     "      ✓ \"frozen face, slow blink\", \"eyes widen then dart away\", \"sigh that turns into a laugh\", \"slow head shake, then closes the app\", \"lip-bite, sharp inhale\", \"the 'oh no' face into deadpan stare at camera\".",
     "      ✗ \"feels embarrassed\" (internal), \"realizes the truth\" (cognitive), \"learns a lesson\" (abstract). The reaction must be SHOOTABLE on the creator's face — if you can't direct the actor to do it, it's not a reaction.",
     "    • Articulate both in the `trigger` and `reaction` fields. The schema rejects ideas that omit either.",
-    "    • The hook should signal the trigger (\"POV: opening the bank app\", \"When mom sends THE text\"); the payoff IS the reaction. The viewer reads the trigger in <2s and waits for the reaction.",
+    "    • The hook should signal the trigger (\"POV: the cashier reaches for your snack pile\", \"When mom sends THE text\"); the payoff IS the reaction. The viewer reads the trigger in <2s and waits for the reaction.",
     "  This is the single biggest lever on payoff consistency. Pattern is the shape; trigger+reaction is the structural unit inside it.",
     "",
     "EMOTIONAL SPIKE (HARD, 100% of ideas — apply this AFTER trigger+reaction, BEFORE the hook):",
     "  Every idea must hit ONE of these five spikes — declare it in `emotionalSpike`. If you can't pin the emotion to one of these five (i.e. the emotion is mild, diffuse, or generic feel-good), the idea FAILS — drop it.",
     "    • embarrassment → caught out, exposed, busted, awkward in front of someone. \"POV: cashier scans your snack haul slowly\" → the embarrassed mid-blink + fake-casual smile.",
-    "    • regret        → wishing-you-hadn't, \"why did I do that\". \"Reading my old texts at 2am\" → the slow horror-blink + pulling the phone away from your face.",
-    "    • confusion     → what-just-happened, lost, the dumb-question moment. \"When the barista asks if you want it for here or to-go\" → the 0.5-second freeze + over-explained answer.",
+    "    • regret        → wishing-you-hadn't, \"why did I do that\". \"Reading my own caption from 2019\" → the slow horror-blink + pulling the phone away from your face.",
+    "    • denial        → telling-yourself-it's-fine, refusing to acknowledge what's obvious, the lie-by-omission. \"POV: telling your dentist you floss daily\" → the over-confident smile that immediately falters. \"Me convincing myself this is the last episode\" → the eyes-on-screen + reaching for the remote anyway. Denial carries built-in internal contradiction — perfect for the TENSION the hook needs.",
     "    • panic         → small-stakes alarm, quiet freakout. \"POV: you reply-all by accident\" → the eyes-go-wide + immediate seek-undo-button.",
     "    • irony         → said-one-thing-did-another, hypocrisy you notice on yourself. \"Me explaining my morning routine vs me hitting snooze 5 times\" → the smug-to-defeated cut.",
-    "  These five are deliberately tight. \"Joy\" / \"sadness\" / \"love\" / \"motivation\" are NOT options — they read as generic on short-form. If your idea's emotion is one of those, rebuild around a sharper spike or drop it.",
+    "  These five are deliberately tight. \"Joy\" / \"sadness\" / \"love\" / \"motivation\" / \"confusion\" are NOT options — they read as generic on short-form. If your idea's emotion is one of those, rebuild around a sharper spike or drop it.",
     "  Across a 3-idea batch, vary the spike — don't ship 3 embarrassment ideas in a row.",
+    "",
+    "HOOK CRAFT (HARD, 100% of ideas — apply this AFTER pattern-first, BEFORE emitting the hook):",
+    "  The hook is the single highest-leverage word string in the whole idea. Don't ship the first one that comes to mind. For each idea, INTERNALLY generate 3–5 hook variations, run them through the gates below, and SELECT the strongest. Emit ONLY the winner in the `hook` field — do NOT emit the alternatives.",
+    "  Step A — Brainstorm 3–5 hook variations. Use these five hook formats as the starting templates (use ONE per variation; natural variations are fine if a phrasing feels more real-spoken):",
+    "    • Behavior  → \"the way I…\"           e.g. \"the way I check the time when someone's already telling me\"",
+    "    • Thought   → \"why do I…\"            e.g. \"why do I keep volunteering to host\"",
+    "    • Moment    → \"that moment when…\"    e.g. \"that moment when the hold music ends\"",
+    "    • Contrast  → \"what I say vs what I do\"  e.g. \"what I tell my therapist vs my actual week\"",
+    "    • Curiosity → \"this is where it went wrong\" / \"nobody warned me about…\"  e.g. \"this is where the meal-prep dream died\"",
+    "    Natural variations are fine — \"the second I…\", \"me when I…\", \"POV: the moment…\" — the goal is for the hook to feel like something the creator would actually SAY, not a written-out template.",
+    "  Step B — Each candidate hook must clear ALL of these gates. Reject any candidate that fails any one:",
+    "    1. EMOTION CLEAR — one of the five spikes (embarrassment / regret / denial / panic / irony) is unmistakable in the wording.",
+    "    2. TENSION (critical, this is the scroll-stop) — the hook must IMPLY one of: something went wrong / expectation vs reality / internal contradiction. A flat statement of fact (\"My morning routine\") has no tension and is NOT a hook.",
+    "    3. NATURAL LANGUAGE — sounds like a text message, not a written sentence. Read it aloud — if it doesn't roll off the tongue, rewrite it.",
+    "    4. ONE-SECOND RULE — short and instantly sayable. ≤8 words HARD CAP. Count them.",
+    "    5. NO CLICHÉ TEMPLATE PHRASING — \"It's giving…\", \"the duality of…\", \"in this essay I will…\", \"tell me you're X without telling me\" are out unless the rest of the hook subverts them sharply.",
+    "    If none of your 3–5 candidates can clear ALL the gates, the IDEA itself is the problem — go back to the trigger-reaction step and pick a different angle. Do not ship a weak hook to save the idea.",
+    "  Step C — Select the ONE best candidate. Selection rule: \"Which one would I actually stop scrolling for?\". Pick the hook that:",
+    "    • feels most real (sounds like a friend texting, not a brand)",
+    "    • has the strongest tension (the biggest implied \"wait, what?\")",
+    "    • reads fastest (lands in <2s, ≤8 words)",
+    "    • signals the trigger most clearly",
+    "  Emit ONLY the selected hook. The alternatives stay in your head.",
     "",
     "Each idea must obey THREE HARD CONSTRAINTS:",
     "  1. FILMING TIME ≤30 MINUTES end-to-end — single location, props the creator already owns, no actors beyond the creator and (optionally) one friend, no expensive setups. Declare in `filmingTimeMin`.",
@@ -392,6 +433,7 @@ export async function generateIdeas(
     "    ✗ GENERAL STATEMENTS / vibe-only hooks — \"Adulting is hard\", \"Mondays am I right\", \"Life lately\", \"This is your reminder\", \"It's giving…\", \"The duality of…\". Generalities have no specific trigger — there's no action happening on screen, just commentary. If the hook works as a tweet, it's a general statement, not a trigger-reaction idea.",
     "    ✗ Vague \"things\" lists with no concrete visual — \"Things that matter\", \"Things I wish I knew\", \"Things you should hear\". Every list-style hook needs a CONCRETE TANGIBLE referent (\"Things only oldest siblings actually do\", \"Things in my fridge that have no business being there\") AND a single trigger-reaction beat per item.",
     "    ✗ DIALOGUE-DEPENDENT ideas — anything where the payoff requires multi-line back-and-forth dialogue between two characters that the creator must perform. \"Me arguing with my sister about who's mom's favorite\", \"Explaining to my boss why I missed the deadline\", \"Talking my way out of a parking ticket\". The creator playing both sides of a dialogue is high-effort, often awkward, and the trigger-reaction beat gets buried in scripted exchange. A SINGLE-LINE STIMULUS (\"roommate asks if you're mad\") is FINE — that's the trigger. What's banned is multi-line scripted dialogue as the engine of the idea.",
+    "    ✗ SENSITIVE / PRIVATE CONTENT — anything that requires the creator to expose REAL private data on screen. Banned: bank apps / account balances / transaction history / medical info (test results, diagnoses, prescriptions, weight numbers, body specifics) / real conversation screenshots (real DMs, real texts with real names) / addresses / phone numbers / IDs / license plates / passwords / salary or income details. The trigger and reaction must be performable WITHOUT the creator exposing actual private info. \"Opening the notes app to find a shopping list\" is fine; \"opening your bank app to stare at the balance\" is OUT. Privacy is not a trade-off — drop the idea and pick a different trigger.",
     "    ✗ MULTI-STEP CONCEPTS — anything that requires the viewer to track 3+ distinct ideas, follow numbered points, or hold multiple threads in their head. Short-form rewards single-thread ideas. If you find yourself writing \"first… then… finally…\" or \"step 1 / step 2 / step 3\", you're building a tutorial, not a TikTok.",
     "    ✗ PLANNING-HEAVY ideas — anything that requires the creator to write a detailed script, rehearse dialogue, plan multiple takes, schedule outfits/locations, or block out time. The creator should be able to start filming within 10 seconds of reading the card.",
     "  If an idea drifts into any banned pattern, scrap it and pick a different angle — do NOT try to salvage it with a tweak.",
@@ -399,10 +441,12 @@ export async function generateIdeas(
     "  PREFERRED MOMENT TYPES (lean heavily on these — they win on 'would you post this WITHOUT changing it much'):",
     "    ✓ RELATABLE SITUATIONS — small daily moments most people in the creator's region/age bracket recognise instantly. The ✓ test: a friend reading the hook says \"omg this is me\" within 2 seconds.",
     "    ✓ AWKWARD moments — accidentally waving back at someone who wasn't waving at you, talking over a server, holding a door open way too long, forgetting a friend's partner's name mid-conversation, the elevator small-talk that goes on one floor too many, accidentally liking a 2-year-old IG post.",
-    "    ✓ BROKE / TIRED / LAZY scenarios — microwaving the same coffee 3 times, pretending to know which wine to order, eating dinner standing up at the counter, \"I need to do laundry but I'm just gonna re-wear this\", checking your bank app then immediately closing it, the 'I'll just nap for 15 minutes' lie.",
+    "    ✓ BROKE / TIRED / LAZY scenarios — microwaving the same coffee 3 times, pretending to know which wine to order, eating dinner standing up at the counter, \"I need to do laundry but I'm just gonna re-wear this\", opening the app you swore you deleted, the 'I'll just nap for 15 minutes' lie.",
     "    ✓ SMALL DAILY FRUSTRATIONS — wifi dropping mid-Zoom, the one earbud that's always quieter, cashier calling the next person before you've packed your bag, AirPods dying right when you start working out, the \"reply all\" panic, finding the snack aisle has been rearranged.",
     "    ✓ SELF-DEPRECATING confessional — \"me lying about how often I cook\", \"my LinkedIn vs my actual work day\", \"how I describe my workout vs what I actually did\", \"the version of me I show on dates\", \"my Spotify Wrapped vs my personality\".",
     "  These five types are the safest bets — when in doubt, pick one. They map cleanly onto pov / reaction / mini_story / contrast and require zero setup beyond pointing the phone at yourself.",
+    "",
+    "  DO NOT OVER-FILTER — if an idea is SIMPLE but the trigger is CLEAR and the emotional reaction is STRONG, ship it. Simplicity is not a defect; formulaic-feeling is. A 15-second video of you reading mom's text and slowly closing your phone is a complete idea — don't add complexity to \"elevate\" simple ideas, that usually breaks them.",
     "",
     "  ALLOWED FLEXIBILITY (do NOT over-constrain — the idea must feel like the USER, not a template):",
     "    ✓ Slightly open phrasing — the hook can leave room for the creator's own delivery, slang, and inflection. We're suggesting the BEAT, they bring the VOICE.",
@@ -413,7 +457,7 @@ export async function generateIdeas(
     "BATCH VARIETY (HARD, per-batch, mandatory — this is what produces 'perceived variety'):",
     "  The variety of the batch matters as much as the quality of each idea. Three strong ideas that all hit the same category feel formulaic; three strong ideas across different categories feel like a real menu.",
     "    • TRIGGER CATEGORY (max 1 per category per 3 ideas) — for any 3-idea slice of the batch, no two ideas may share the same `triggerCategory`. The six categories: phone_screen / message / social / environment / self_check / task. For batches of 3 (Home), all 3 must use DIFFERENT categories. For larger batches, no `triggerCategory` may appear more than ⌈count/3⌉ times.",
-    "    • PAIRWISE DIFFERENTIATION (any two ideas) — every pair of ideas in the batch must differ in at least TWO of these three dimensions: `pattern` (pov / reaction / mini_story / contrast), `setting` (bed / couch / desk / bathroom / kitchen / car / outside / other), `emotionalSpike` (embarrassment / regret / confusion / panic / irony). Two ideas that share the same pattern AND setting AND spike are too samey — rebuild one.",
+    "    • PAIRWISE DIFFERENTIATION (any two ideas) — every pair of ideas in the batch must differ in at least TWO of these three dimensions: `pattern` (pov / reaction / mini_story / contrast), `setting` (bed / couch / desk / bathroom / kitchen / car / outside / other), `emotionalSpike` (embarrassment / regret / denial / panic / irony). Two ideas that share the same pattern AND setting AND spike are too samey — rebuild one.",
     "    • Worked example for a 3-idea batch — Idea A (pov · couch · embarrassment · phone_screen), Idea B (reaction · kitchen · panic · message), Idea C (mini_story · outside · irony · social). Three different patterns, three different settings, three different spikes, three different trigger categories. THAT'S the variety bar.",
     "    • Counter-example to AVOID — Idea A (pov · couch · embarrassment · phone_screen), Idea B (pov · couch · embarrassment · phone_screen), Idea C (reaction · couch · embarrassment · phone_screen). All three feel like the same idea repeated.",
     "  Plan the batch BEFORE drafting individual ideas: pick three trigger categories you'll cover, three settings you'll use, three spikes you'll hit, then write the ideas to fit. Don't generate then post-hoc check — the post-hoc fix usually doesn't work.",
@@ -477,12 +521,12 @@ export async function generateIdeas(
     "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — the SHAPE that holds the trigger+reaction),",
     "  hook (≤8 words HARD CAP — count them, rewrite if over; lands in <2 seconds; signals the trigger; sounds like the user's voice not generic TikTok voice),",
     "  hookSeconds (number 0.5–2, your estimate of how long the hook lands — keep ≤2),",
-    "  trigger (string 5–140 chars — the SPECIFIC ACTION the creator does on screen using an action verb: open / check / read / scroll / watch / find / notice / realize / hear / see / do. Example: \"opens the bank app and stares at the balance\". Must be observable, not internal.),",
+    "  trigger (string 5–140 chars — the SPECIFIC ACTION the creator does on screen using an action verb: open / check / read / scroll / sip / look / watch / find / notice / realize / hear / see / do. Example: \"opens her camera roll, scrolls into yesterday's screenshots\". Must be observable, not internal. NEVER expose real private data — no bank apps, real DMs, medical info, addresses.),",
     "  reaction (string 5–140 chars — the VISIBLE EMOTIONAL RESPONSE that follows the trigger. Filmable on the creator's own face/body. Example: \"frozen face, slow blink, then deadpan stare at the camera\". Must be a shootable micro-expression or body beat — not an internal feeling.),",
-    "  emotionalSpike ('embarrassment' | 'regret' | 'confusion' | 'panic' | 'irony' — the ONE spike this idea targets. If the emotion is weak/diffuse/generic, drop the idea.),",
+    "  emotionalSpike ('embarrassment' | 'regret' | 'denial' | 'panic' | 'irony' — the ONE spike this idea targets. If the emotion is weak/diffuse/generic, drop the idea.),",
     "  triggerCategory ('phone_screen' | 'message' | 'social' | 'environment' | 'self_check' | 'task' — coarse class of the trigger; used to enforce per-batch variety),",
     "  setting ('bed' | 'couch' | 'desk' | 'bathroom' | 'kitchen' | 'car' | 'outside' | 'other' — where the video is shot; used to enforce per-batch variety),",
-    "  whatToShow (string 20–500 chars — the simple action that happens on screen, plain English, beat by beat, narrating the trigger → reaction. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
+    "  whatToShow (string 20–500 chars — the simple action that happens on screen, plain English, beat by beat, narrating the trigger → reaction. Example: \"You're sitting on the couch holding your phone. Your face is fake-calm as you read the screen. Cut to over-the-shoulder of mom's text in caps. Cut back to your slow-motion 'oh no' sigh.\"),",
     "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed AND already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
     "  script (LOOSE talking-point cues OR vibe direction — NOT a rigid word-for-word script. The user picks the actual words; we set the beats and energy. Keep it short — 2–4 short phrases is plenty. Example: \"Open with the fake-confused face. Mumble 'oh no… ohhhh no'. Beat. Sigh.\"),",
     "  shotPlan (3–8 short shot descriptions ideal, up to 10 max, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
@@ -515,14 +559,16 @@ export async function generateIdeas(
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
     `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-    `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
-    `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, confusion, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
+    `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
+    `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
+    `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, ≤8 words. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
     `BATCH VARIETY — plan the ${count} ideas BEFORE drafting any one of them. For any 3-idea slice, no two ideas may share the same `+"`triggerCategory`"+` (phone_screen/message/social/environment/self_check/task), AND every pair of ideas must differ in at least TWO of {pattern, setting, emotionalSpike}. This is what makes the batch feel fresh instead of formulaic.`,
     `CONCEPT vs MOMENT — if an idea describes a CONCEPT (\"the weirdness of small talk\") rather than a MOMENT (\"the elevator small-talk that goes one floor too long\"), DROP IT. Real ideas happen at a clock-time in a specific place.`,
+    `DO NOT OVER-FILTER simple ideas — if the trigger is CLEAR and the emotional reaction is STRONG, simplicity is a feature, not a bug. Don't add complexity to \"elevate\" a simple idea.`,
     `Remember: every hook ≤8 words HARD and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
     `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the SHAPE for your trigger+reaction. If the idea won't fit a pattern, scrap it.`,
     `VISUALIZABILITY GATE — for EACH idea ask "can I picture the trigger AND the reaction on screen in the first 2s?". If not, scrap it.`,
-    `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / personality-trait hooks (Sagittarius / introvert / Type A / etc.) / general statements ("adulting is hard") / dialogue-dependent ideas (multi-line back-and-forth) / multi-step concepts / planning-heavy ideas. Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
+    `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / personality-trait hooks (Sagittarius / introvert / Type A / etc.) / general statements ("adulting is hard") / dialogue-dependent ideas (multi-line back-and-forth) / multi-step concepts / planning-heavy ideas / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical info, addresses, IDs, salary). Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
     `script is LOOSE — talking-point cues, NOT a rigid word-for-word script. We set the beat; the user brings the voice.`,
     `MATCH THE USER VOICE — the hook should sound like words the creator would actually say (per the Style Profile above), not generic TikTok voice.`,
     `whatToShow + howToFilm are USER-FACING trust signals — concrete, plain-English, no "something" / "maybe" / "like…".`,
@@ -627,12 +673,13 @@ export async function generateIdeas(
       `VARIETY GAPS — the existing batch already used these dimensions; FILL THE GAPS, don't double up:`,
       `  • triggerCategory already used: [${usedTriggerCategories || "none"}] → prefer NEW categories from {phone_screen, message, social, environment, self_check, task}`,
       `  • setting already used: [${usedSettings || "none"}] → prefer NEW settings from {bed, couch, desk, bathroom, kitchen, car, outside, other}`,
-      `  • emotionalSpike already used: [${usedSpikes || "none"}] → prefer NEW spikes from {embarrassment, regret, confusion, panic, irony}`,
+      `  • emotionalSpike already used: [${usedSpikes || "none"}] → prefer NEW spikes from {embarrassment, regret, denial, panic, irony}`,
       `Return strictly:`,
       `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-      `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
-      `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, confusion, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
-      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. CONCEPT > MOMENT = drop. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy. WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
+      `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
+      `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
+      `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + ≤8 words, then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
+      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. CONCEPT > MOMENT = drop. DO NOT OVER-FILTER simple ideas — clear trigger + strong emotion = ship it. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical, addresses, IDs, salary). WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
