@@ -20,11 +20,23 @@ import { fontFamily, type } from "@/constants/typography";
 // fields and are kept OPTIONAL on the mobile side because cached
 // batches generated before the v2 prompt won't have them. New
 // generations always include all three.
+//
+// Pattern set was synthesised from five → four in the final pass:
+// `before_after` and `expectation_vs_reality` collapsed into
+// `contrast`; `observational_confessional` folded into `mini_story`.
+// We keep the legacy enum values typed here so cached batches from
+// the v2 prompt era still pass type-check; the label map below
+// handles the visual mapping.
 export type IdeaCardData = {
   id?: string;
   pattern?:
     | "pov"
     | "reaction"
+    | "mini_story"
+    | "contrast"
+    // Legacy patterns from the previous v2 prompt — accepted only
+    // so cached batches still render. New generations only use the
+    // four canonical values above.
     | "before_after"
     | "expectation_vs_reality"
     | "observational_confessional";
@@ -40,14 +52,20 @@ export type IdeaCardData = {
   payoffType?: string;
 };
 
-// User-facing labels for the five canonical patterns. Short and
-// recognisable so the small badge on the card doesn't dominate.
+// User-facing labels for the four canonical patterns + transitional
+// labels for the three legacy values still potentially in cache.
+// Short and recognisable so the small badge on the card doesn't
+// dominate. Legacy values map to their nearest new equivalent so
+// the badge stays meaningful instead of disappearing mid-day.
 const PATTERN_LABELS: Record<NonNullable<IdeaCardData["pattern"]>, string> = {
   pov: "POV",
   reaction: "Reaction",
-  before_after: "Before / After",
-  expectation_vs_reality: "Expectation vs Reality",
-  observational_confessional: "Confessional",
+  mini_story: "Mini-story",
+  contrast: "Contrast",
+  // Legacy → new mapping (transitional; cached only).
+  before_after: "Contrast",
+  expectation_vs_reality: "Contrast",
+  observational_confessional: "Mini-story",
 };
 
 export function IdeaCard({

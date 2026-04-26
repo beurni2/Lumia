@@ -33,23 +33,26 @@ export const ideaSchema = z.object({
   /**
    * Pattern-first generation (post-MVP trust gate). The model MUST
    * pick a known short-form pattern BEFORE drafting the rest of the
-   * idea — this is the single biggest lever on "would you post
-   * this" because pattern-anchored ideas are inherently visualizable
-   * and inherently low-interpretation. Five canonical patterns:
-   *   • pov                       — POV scenario ("POV: roommate asks…")
-   *   • reaction                  — visible reaction to a stimulus
-   *   • before_after              — visible transformation / contrast
-   *   • expectation_vs_reality    — split or sequential contrast
-   *   • observational_confessional — "me when…" / self-deprecating to-camera
-   * If an idea doesn't fit one of these five, it shouldn't ship.
+   * idea — this is the single biggest lever on "would you post this
+   * WITHOUT changing it much" because pattern-anchored ideas are
+   * inherently visualizable and inherently low-interpretation.
+   *
+   * Final synthesis: collapsed to four canonical patterns. The
+   * previous five-pattern set folded `before_after` and
+   * `expectation_vs_reality` into a single `contrast` bucket
+   * (they're functionally identical — both are visible
+   * two-state comparisons), and renamed `observational_confessional`
+   * to `mini_story` (broader, includes the to-camera confessional
+   * but also any micro-narrative with a beginning-middle-end beat).
+   *
+   *   • pov        — POV scenario ("POV: roommate asks…", camera as viewer)
+   *   • reaction   — visible reaction to a stimulus (text, sound, photo)
+   *   • mini_story — micro-narrative with setup → moment → payoff (15–25s)
+   *   • contrast   — visible two-state comparison (before/after, plan/reality)
+   *
+   * If an idea doesn't fit one of these four, it shouldn't ship.
    */
-  pattern: z.enum([
-    "pov",
-    "reaction",
-    "before_after",
-    "expectation_vs_reality",
-    "observational_confessional",
-  ]),
+  pattern: z.enum(["pov", "reaction", "mini_story", "contrast"]),
   hook: z
     .string()
     .min(2)
@@ -219,7 +222,7 @@ export async function generateIdeas(
     "Your job: produce ideas a real creator can shoot today. Each idea must obey THREE HARD CONSTRAINTS:",
     "  1. FILMING TIME ≤30 MINUTES end-to-end — single location, props the creator already owns, no actors beyond the creator and (optionally) one friend, no expensive setups. Declare in `filmingTimeMin`.",
     "  2. TARGET VIDEO LENGTH 15–25 SECONDS — short-form sweet spot for retention; not a TikTok story, not a Reel essay. Declare in `videoLengthSec`.",
-    "  3. UNDERSTANDABLE IN <3 SECONDS — the hook must land within 3 seconds of audio AND must be ≤8 WORDS HARD CAP. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words). Examples that FAIL — REWRITE THESE: \"POV: your roommate asks why you're upset\" (8 words counted but 'your' redundant — tighten to \"POV: roommate asks why you're upset\" / 6 words) · \"Have you ever felt invisible at parties?\" (8 but abstract introspective — banned for western anyway). If your hook is 9+ words, REWRITE IT before submitting. NO EXCEPTIONS.",
+    "  3. UNDERSTANDABLE IN <2 SECONDS — the hook must land within 2 seconds of audio AND must be ≤8 WORDS HARD CAP. The viewer should know what kind of video this is and what's about to happen before the third second hits. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words). Examples that FAIL — REWRITE THESE: \"POV: your roommate asks why you're upset\" (8 words counted but 'your' redundant — tighten to \"POV: roommate asks why you're upset\" / 6 words) · \"Have you ever felt invisible at parties?\" (8 but abstract introspective — banned). If your hook is 9+ words OR if the meaning takes 3 seconds to land, REWRITE IT before submitting. NO EXCEPTIONS.",
     "",
     // QA-driven uplift (target: 70% → 85%+ "would you post this").
     // The 30% failure mode in real outputs was almost entirely
@@ -234,35 +237,43 @@ export async function generateIdeas(
     // inherently low-interpretation. This block runs FIRST so the
     // pattern choice frames every other decision.
     "PATTERN-FIRST GENERATION (HARD, 100% of ideas — apply this BEFORE the gate below):",
-    "  Step 1 — PICK ONE of these five canonical short-form patterns. Do this BEFORE you write the hook. Declare your choice in the `pattern` field.",
-    "    • pov                       → POV scenario. Camera is the viewer. Hook starts \"POV:\" or \"When your…\". Specific, observable situation. Examples: \"POV: roommate asks if you're mad\", \"When your barista remembers you\".",
-    "    • reaction                  → A visible reaction to a stimulus (a text, a photo, a memory, a thought, a sound). Hook tees up what triggers it. The payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\", \"Reading old texts at 2am\".",
-    "    • before_after              → Visible transformation between two states (a room, an outfit, a meal, your own face/energy). Hook teases the reveal. Examples: \"My desk before the deadline\", \"Outfit at 8am vs 8pm\".",
-    "    • expectation_vs_reality    → Split-screen or sequential contrast between what was planned/promised and what actually happened. Hook names the expectation. Examples: \"How I described my workout vs the actual workout\", \"My meal-prep plan vs what I ate\".",
-    "    • observational_confessional → To-camera \"me when…\" / self-deprecating confession about a small everyday behaviour. Hook is the confession. Examples: \"Me lying about how often I cook\", \"Me opening my bank app then immediately closing it\".",
-    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the pattern in the first 3 seconds. The viewer must know within 3 seconds what kind of video this is.",
-    "  Step 3 — Fill in `whatToShow` (scene-by-scene of what's literally on screen — talk through it like a friend) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
-    "  If you can't make an idea fit one of the five patterns above, DROP it and pick a different angle. Do NOT invent new patterns or stretch the definitions.",
+    "  Step 1 — PICK ONE of these four canonical short-form patterns. Do this BEFORE you write the hook. Declare your choice in the `pattern` field.",
+    "    • pov        → POV scenario. Camera IS the viewer. Hook starts \"POV:\" or \"When your…\". Specific observable situation. Examples: \"POV: roommate asks if you're mad\", \"When your barista remembers you\", \"POV: you're the office snack person\".",
+    "    • reaction   → A visible reaction to a stimulus (a text, a photo, a memory, a thought, a sound, a screen). Hook tees up what triggers it. The payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\", \"Reading my old texts at 2am\", \"The face I make checking my bank app\".",
+    "    • mini_story → A micro-narrative with setup → moment → payoff inside 15–25s. The hook sets up a relatable situation, the middle shows the moment unfold, the end has a small payoff (laugh, sigh, knowing look). Includes to-camera \"me when…\" confessionals AND third-person micro-stories. Examples: \"Me trying to act normal at the dentist\", \"Trying to sneak out of yoga early\", \"Me lying about how often I cook\".",
+    "    • contrast   → Visible two-state comparison. Either before/after (a room, outfit, meal, energy) OR expectation vs reality (what I planned vs what happened). Hook names the contrast. Examples: \"My desk before the deadline\", \"Outfit at 8am vs 8pm\", \"How I described my workout vs the actual workout\", \"My meal-prep plan vs what I ate\".",
+    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the pattern in the first 2 seconds. The viewer must know within 2 seconds what kind of video this is and what's about to happen.",
+    "  Step 3 — Fill in `whatToShow` (the simple action that happens on screen — talk through it like you're describing it to a friend) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
+    "  If you can't make an idea fit one of the four patterns above, DROP it and pick a different angle. Do NOT invent new patterns or stretch the definitions.",
     "",
     "VISUALIZABILITY GATE (HARD, 100% of ideas — applies BEFORE rules A–E):",
     "  Every idea MUST be a SPECIFIC MOMENT a viewer can picture instantly from the hook alone — zero interpretation, zero inference, zero 'figure it out'.",
-    "  Apply this test BEFORE submitting each idea: after reading the hook, can you describe in one sentence exactly what is on screen in the first 3 seconds (where the creator is, what they're doing, what's happening)? If the answer requires 'it depends', 'something like…', or 'maybe they…', the idea FAILS the gate. Rewrite or replace it.",
-    "  Every idea must map to a known short-form pattern — POV scenario, reaction/expression, before↔after contrast, expectation vs reality, observational confessional. If you can't name the pattern, it fails.",
+    "  Apply this test BEFORE submitting each idea: after reading the hook, can you describe in one sentence exactly what is on screen in the first 2 seconds (where the creator is, what they're doing, what's happening)? If the answer requires 'it depends', 'something like…', or 'maybe they…', the idea FAILS the gate. Rewrite or replace it.",
+    "  Every idea must map to one of the four patterns above (pov, reaction, mini_story, contrast). If you can't name the pattern, it fails.",
     "",
-    "  HARD BAN — these patterns are PROHIBITED for all regions (they consistently underperform on 'would you post this'):",
+    "  HARD BAN — these patterns are PROHIBITED for all regions (they consistently underperform on 'would you post this WITHOUT changing it much'):",
     "    ✗ ADVICE — \"You should…\", \"Try this…\", \"Tips for…\", \"How to…\", \"X things to do when…\", \"Stop doing X, start doing Y\" (instructional framing).",
     "    ✗ MOTIVATIONAL — \"Reminder that…\", \"You're enough\", \"Trust the process\", \"Show up for yourself\", \"Glow up\", \"Mindset shift\", \"Manifest…\", \"Your sign to…\".",
-    "    ✗ \"TALK ABOUT\" prompts — \"Let's talk about…\", \"We need to discuss…\", \"Can we talk about how…\", \"Storytime about feelings\", or any framing where the entire video is the creator monologuing ABOUT a topic with no concrete observable scene.",
-    "    ✗ ABSTRACT concepts as the subject — Confidence, Authenticity, Self-love, Energy, Boundaries, Healing, Growth, Purpose, Worthiness, Alignment. These words may appear inside a concrete scene (\"POV: setting a boundary with your mom about Sunday dinner\") but NEVER as the standalone topic (\"Why boundaries matter\").",
+    "    ✗ \"TALK ABOUT\" / \"SHARE YOUR THOUGHTS\" / \"EXPLAIN WHY\" prompts — \"Let's talk about…\", \"Share your thoughts on…\", \"Tell us about…\", \"We need to discuss…\", \"Can we talk about how…\", \"Explain why X matters\", \"Why X is important\", \"Storytime about feelings\". Any framing where the entire video is the creator monologuing ABOUT a topic with no concrete observable scene is OUT.",
+    "    ✗ ABSTRACT concepts as the subject — Confidence, Authenticity, Self-love, Energy, Boundaries, Healing, Growth, Purpose, Worthiness, Alignment. These words may appear inside a concrete scene (\"POV: setting a boundary with mom about Sunday dinner\") but NEVER as the standalone topic (\"Why boundaries matter\").",
     "    ✗ Vague \"things\" lists with no concrete visual — \"Things that matter\", \"Things I wish I knew\", \"Things you should hear\". Every list-style hook needs a CONCRETE TANGIBLE referent (\"Things only oldest siblings actually do\", \"Things in my fridge that have no business being there\").",
+    "    ✗ MULTI-STEP CONCEPTS — anything that requires the viewer to track 3+ distinct ideas, follow numbered points, or hold multiple threads in their head. Short-form rewards single-thread ideas. If you find yourself writing \"first… then… finally…\" or \"step 1 / step 2 / step 3\", you're building a tutorial, not a TikTok.",
+    "    ✗ PLANNING-HEAVY ideas — anything that requires the creator to write a detailed script, rehearse dialogue, plan multiple takes, schedule outfits/locations, or block out time. The creator should be able to start filming within 10 seconds of reading the card. If the idea needs preparation more than 'pick up phone and go', it's out.",
     "  If an idea drifts into any banned pattern, scrap it and pick a different angle — do NOT try to salvage it with a tweak.",
     "",
-    "  PREFERRED MOMENT TYPES (lean heavily on these — they win on 'would you post this'):",
+    "  PREFERRED MOMENT TYPES (lean heavily on these — they win on 'would you post this WITHOUT changing it much'):",
+    "    ✓ RELATABLE SITUATIONS — small daily moments most people in the creator's region/age bracket recognise instantly. The ✓ test: a friend reading the hook says \"omg this is me\" within 2 seconds.",
     "    ✓ AWKWARD moments — accidentally waving back at someone who wasn't waving at you, talking over a server, holding a door open way too long, forgetting a friend's partner's name mid-conversation, the elevator small-talk that goes on one floor too many, accidentally liking a 2-year-old IG post.",
     "    ✓ BROKE / TIRED / LAZY scenarios — microwaving the same coffee 3 times, pretending to know which wine to order, eating dinner standing up at the counter, \"I need to do laundry but I'm just gonna re-wear this\", checking your bank app then immediately closing it, the 'I'll just nap for 15 minutes' lie.",
     "    ✓ SMALL DAILY FRUSTRATIONS — wifi dropping mid-Zoom, the one earbud that's always quieter, cashier calling the next person before you've packed your bag, AirPods dying right when you start working out, the \"reply all\" panic, finding the snack aisle has been rearranged.",
     "    ✓ SELF-DEPRECATING confessional — \"me lying about how often I cook\", \"my LinkedIn vs my actual work day\", \"how I describe my workout vs what I actually did\", \"the version of me I show on dates\", \"my Spotify Wrapped vs my personality\".",
-    "  These four types are the safest bets — when in doubt, pick one. They map cleanly onto POV / reaction / contrast / 'me when' patterns and require zero setup beyond pointing the phone at yourself.",
+    "  These five types are the safest bets — when in doubt, pick one. They map cleanly onto pov / reaction / mini_story / contrast and require zero setup beyond pointing the phone at yourself.",
+    "",
+    "  ALLOWED FLEXIBILITY (do NOT over-constrain — the idea must feel like the USER, not a template):",
+    "    ✓ Slightly open phrasing — the hook can leave room for the creator's own delivery, slang, and inflection. We're suggesting the BEAT, they bring the VOICE.",
+    "    ✓ User voice flexibility — match the Style Profile's tone, energy, and word choices below. If the creator's voice is dry/deadpan, ideas should be dry/deadpan. If it's warm/playful, ideas should be warm/playful. The same beat sounds different in different voices — that's by design.",
+    "    ✓ The user can tweak a word or two when filming — that's healthy. They should NOT have to rewrite the hook, swap the pattern, or restructure the beat. If the idea would need a real rewrite to feel post-worthy, it FAILS the success metric and shouldn't ship.",
+    "  Success metric (use this as the final mental check on every idea): \"Would the creator post this WITHOUT changing it much?\" If no, scrap and replace.",
     "",
     "QUALITY RULES (per-batch, mandatory):",
     "  A. EVERY idea must have a clear PAYOFF — declare it in `payoffType` as one of:",
@@ -308,7 +319,7 @@ export async function generateIdeas(
     "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Code-switch to the region's natural slang where appropriate (Hinglish for India, Tagalog for Philippines, Pidgin for Nigeria) — but keep the hook itself parseable to a wider English-speaking audience.",
     regionToneGuidance,
     "",
-    `Match the creator's personal style profile — their hook style, caption tone, emoji density, pacing, content type. If their primary hook style is "${profile.hookStyle.primary}", at least half the ideas should use that hook type.`,
+    `Match the creator's personal style profile — their hook style, caption tone, emoji density, pacing, content type. If their primary hook style is "${profile.hookStyle.primary}", at least half the ideas should use that hook type. The hook should sound like words the creator would actually say — not generic "TikTok voice". When in doubt, lean to the creator's energy.`,
     "",
     "Pick the templateHint deterministically from the hook type:",
     "  • question / boldStatement (educational or entertainment) → 'A'",
@@ -320,12 +331,12 @@ export async function generateIdeas(
     TEMPLATE_DESCRIPTIONS,
     "",
     "Each idea is one JSON object with fields:",
-    "  pattern ('pov' | 'reaction' | 'before_after' | 'expectation_vs_reality' | 'observational_confessional' — picked FIRST per Step 1 above),",
-    "  hook (≤8 words HARD CAP — count them, rewrite if over),",
-    "  hookSeconds (number 0.5–3, your estimate of how long the hook lands),",
-    "  whatToShow (string 20–500 chars — scene-by-scene of what's literally on screen, plain English, beat by beat. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
-    "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed and they're already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
-    "  script (talking points OR shot narration as plain prose, sized for a 15–25s final video),",
+    "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — picked FIRST per Step 1 above),",
+    "  hook (≤8 words HARD CAP — count them, rewrite if over; lands in <2 seconds; sounds like the user's voice not generic TikTok voice),",
+    "  hookSeconds (number 0.5–2, your estimate of how long the hook lands — keep ≤2),",
+    "  whatToShow (string 20–500 chars — the simple action that happens on screen, plain English, beat by beat, like you're describing it to a friend. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
+    "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed AND already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
+    "  script (LOOSE talking-point cues OR vibe direction — NOT a rigid word-for-word script. The user picks the actual words; we set the beats and energy. Keep it short — 2–4 short phrases is plenty. Example: \"Open with the fake-confused face. Mumble 'oh no… ohhhh no'. Beat. Sigh.\"),",
     "  shotPlan (3–8 short shot descriptions ideal, up to 10 max, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
     "  caption (a social caption matching the creator's tone, emoji count within their range),",
     "  templateHint ('A' | 'B' | 'C' | 'D'),",
@@ -356,10 +367,14 @@ export async function generateIdeas(
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
     `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-    `Remember: every hook ≤8 words HARD; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
-    `PATTERN-FIRST — pick one of {pov, reaction, before_after, expectation_vs_reality, observational_confessional} BEFORE writing the hook. If the idea won't fit a pattern, scrap it.`,
-    `VISUALIZABILITY GATE — for EACH idea ask "can I picture exactly what's on screen in the first 3s?". If not, scrap it. NO advice / motivational / "talk about" / abstract-concept hooks. Lean on awkward, broke/tired/lazy, small daily frustrations, and self-deprecating moments — they win.`,
-    `whatToShow + howToFilm are USER-FACING trust signals — they go on the card. Be concrete, plain-English, no "something" / "maybe" / "like…".`,
+    `Remember: every hook ≤8 words HARD and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
+    `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} BEFORE writing the hook. If the idea won't fit a pattern, scrap it.`,
+    `VISUALIZABILITY GATE — for EACH idea ask "can I picture exactly what's on screen in the first 2s?". If not, scrap it.`,
+    `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / multi-step concepts / planning-heavy ideas. Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
+    `script is LOOSE — talking-point cues, NOT a rigid word-for-word script. We set the beat; the user brings the voice.`,
+    `MATCH THE USER VOICE — the hook should sound like words the creator would actually say (per the Style Profile above), not generic TikTok voice.`,
+    `whatToShow + howToFilm are USER-FACING trust signals — concrete, plain-English, no "something" / "maybe" / "like…".`,
+    `SUCCESS METRIC — final mental check on every idea: "Would the creator post this WITHOUT changing it much?" If no, scrap and replace.`,
   ].join("\n");
 
   // Output budget: each idea is ~480–600 tokens of structured JSON
@@ -439,7 +454,7 @@ export async function generateIdeas(
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
       `Return strictly:`,
       `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick one of {pov, reaction, before_after, expectation_vs_reality, observational_confessional} before writing the hook. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE: each idea must be a specific picturable moment. NO advice, motivational, "talk about", or abstract-concept hooks. Awkward / broke / tired / lazy / small daily frustration / self-deprecating moments win. whatToShow + howToFilm are user-facing trust signals — be concrete, plain-English, no "something" / "maybe".`,
+      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} before writing the hook. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / multi-step / planning-heavy. WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
