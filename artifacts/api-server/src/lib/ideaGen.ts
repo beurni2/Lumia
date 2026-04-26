@@ -30,6 +30,26 @@ import { callJsonAgent } from "./ai";
 import { DEFAULT_STYLE_PROFILE, type StyleProfile } from "./styleProfile";
 
 export const ideaSchema = z.object({
+  /**
+   * Pattern-first generation (post-MVP trust gate). The model MUST
+   * pick a known short-form pattern BEFORE drafting the rest of the
+   * idea — this is the single biggest lever on "would you post
+   * this" because pattern-anchored ideas are inherently visualizable
+   * and inherently low-interpretation. Five canonical patterns:
+   *   • pov                       — POV scenario ("POV: roommate asks…")
+   *   • reaction                  — visible reaction to a stimulus
+   *   • before_after              — visible transformation / contrast
+   *   • expectation_vs_reality    — split or sequential contrast
+   *   • observational_confessional — "me when…" / self-deprecating to-camera
+   * If an idea doesn't fit one of these five, it shouldn't ship.
+   */
+  pattern: z.enum([
+    "pov",
+    "reaction",
+    "before_after",
+    "expectation_vs_reality",
+    "observational_confessional",
+  ]),
   hook: z
     .string()
     .min(2)
@@ -67,6 +87,20 @@ export const ideaSchema = z.object({
    * pure talking-head educational), can be an empty string.
    */
   visualHook: z.string().max(160),
+  /**
+   * Trust-gate display fields (post-MVP). Surfaced directly on the
+   * idea card so the user sees CONCRETELY what they'd shoot before
+   * tapping in. These are the user-facing trust signals — vague
+   * here = we lose the post-worthiness uplift.
+   *   whatToShow — scene-by-scene of what's literally on screen,
+   *                in plain English, beat by beat.
+   *   howToFilm  — concrete filming instructions: where you sit /
+   *                stand, where the phone goes, single take vs cuts,
+   *                lighting if relevant. Should read like a friend
+   *                walking you through it.
+   */
+  whatToShow: z.string().min(20).max(500),
+  howToFilm: z.string().min(15).max(400),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 
@@ -193,6 +227,23 @@ export async function generateIdeas(
     // moment". This gate is highest-priority — it runs BEFORE the
     // existing per-batch quality rules (A–E), and applies globally
     // (not just western).
+    // QA-driven, post-MVP trust gate. The single biggest lever on
+    // "would you post this" is forcing the model to pick a known,
+    // recognisable pattern BEFORE drafting any other field —
+    // pattern-anchored ideas are inherently visualizable and
+    // inherently low-interpretation. This block runs FIRST so the
+    // pattern choice frames every other decision.
+    "PATTERN-FIRST GENERATION (HARD, 100% of ideas — apply this BEFORE the gate below):",
+    "  Step 1 — PICK ONE of these five canonical short-form patterns. Do this BEFORE you write the hook. Declare your choice in the `pattern` field.",
+    "    • pov                       → POV scenario. Camera is the viewer. Hook starts \"POV:\" or \"When your…\". Specific, observable situation. Examples: \"POV: roommate asks if you're mad\", \"When your barista remembers you\".",
+    "    • reaction                  → A visible reaction to a stimulus (a text, a photo, a memory, a thought, a sound). Hook tees up what triggers it. The payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\", \"Reading old texts at 2am\".",
+    "    • before_after              → Visible transformation between two states (a room, an outfit, a meal, your own face/energy). Hook teases the reveal. Examples: \"My desk before the deadline\", \"Outfit at 8am vs 8pm\".",
+    "    • expectation_vs_reality    → Split-screen or sequential contrast between what was planned/promised and what actually happened. Hook names the expectation. Examples: \"How I described my workout vs the actual workout\", \"My meal-prep plan vs what I ate\".",
+    "    • observational_confessional → To-camera \"me when…\" / self-deprecating confession about a small everyday behaviour. Hook is the confession. Examples: \"Me lying about how often I cook\", \"Me opening my bank app then immediately closing it\".",
+    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the pattern in the first 3 seconds. The viewer must know within 3 seconds what kind of video this is.",
+    "  Step 3 — Fill in `whatToShow` (scene-by-scene of what's literally on screen — talk through it like a friend) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
+    "  If you can't make an idea fit one of the five patterns above, DROP it and pick a different angle. Do NOT invent new patterns or stretch the definitions.",
+    "",
     "VISUALIZABILITY GATE (HARD, 100% of ideas — applies BEFORE rules A–E):",
     "  Every idea MUST be a SPECIFIC MOMENT a viewer can picture instantly from the hook alone — zero interpretation, zero inference, zero 'figure it out'.",
     "  Apply this test BEFORE submitting each idea: after reading the hook, can you describe in one sentence exactly what is on screen in the first 3 seconds (where the creator is, what they're doing, what's happening)? If the answer requires 'it depends', 'something like…', or 'maybe they…', the idea FAILS the gate. Rewrite or replace it.",
@@ -269,8 +320,11 @@ export async function generateIdeas(
     TEMPLATE_DESCRIPTIONS,
     "",
     "Each idea is one JSON object with fields:",
+    "  pattern ('pov' | 'reaction' | 'before_after' | 'expectation_vs_reality' | 'observational_confessional' — picked FIRST per Step 1 above),",
     "  hook (≤8 words HARD CAP — count them, rewrite if over),",
     "  hookSeconds (number 0.5–3, your estimate of how long the hook lands),",
+    "  whatToShow (string 20–500 chars — scene-by-scene of what's literally on screen, plain English, beat by beat. Example: \"You're sitting on the couch holding your phone. Your face shows fake confusion as you look at the screen. Cut to over-the-shoulder of the screen showing mom's text in caps. Cut back to your slow-motion sigh.\"),",
+    "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed and they're already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
     "  script (talking points OR shot narration as plain prose, sized for a 15–25s final video),",
     "  shotPlan (3–8 short shot descriptions ideal, up to 10 max, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
     "  caption (a social caption matching the creator's tone, emoji count within their range),",
@@ -301,18 +355,22 @@ export async function generateIdeas(
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
-    `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `Remember: every hook ≤8 words HARD; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
+    `PATTERN-FIRST — pick one of {pov, reaction, before_after, expectation_vs_reality, observational_confessional} BEFORE writing the hook. If the idea won't fit a pattern, scrap it.`,
     `VISUALIZABILITY GATE — for EACH idea ask "can I picture exactly what's on screen in the first 3s?". If not, scrap it. NO advice / motivational / "talk about" / abstract-concept hooks. Lean on awkward, broke/tired/lazy, small daily frustrations, and self-deprecating moments — they win.`,
+    `whatToShow + howToFilm are USER-FACING trust signals — they go on the card. Be concrete, plain-English, no "something" / "maybe" / "like…".`,
   ].join("\n");
 
-  // Output budget: each idea is ~330–420 tokens of structured JSON
+  // Output budget: each idea is ~480–600 tokens of structured JSON
   // (rich script + 1–6 shot lines + caption + whyItWorks + 4 quality
-  // attribute fields + visualHook + dual time fields). Budget 450 per
-  // idea, plus 600 for the array scaffold. Capped at 8190 — within
-  // Haiku 4.5's 8192 output cap. For count=15 this lands at ~7350,
-  // count=17 hits the cap and the partial-recovery path takes over.
-  const maxTokens = Math.min(600 + count * 450, 8190);
+  // attribute fields + visualHook + dual time fields + the new
+  // pattern + whatToShow + howToFilm trust-gate fields). Budget 620
+  // per idea, plus 600 for the array scaffold. Capped at 8190 —
+  // within Haiku 4.5's 8192 output cap. For count=3 (Home) this is
+  // ~2460 — well under cap; for count=12 it hits ~8040 — recovery
+  // path handles any truncation past that.
+  const maxTokens = Math.min(600 + count * 620, 8190);
 
   let out: { ideas: Idea[] };
   try {
@@ -380,8 +438,8 @@ export async function generateIdeas(
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
       `Return strictly:`,
-      `{ "ideas": [ { hook, hookSeconds, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
-      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE: each idea must be a specific picturable moment (POV / reaction / contrast / confessional). NO advice, motivational, "talk about", or abstract-concept hooks. Awkward / broke / tired / lazy / small daily frustration / self-deprecating moments win.`,
+      `{ "ideas": [ { pattern, hook, hookSeconds, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `Remember: every hook ≤8 words HARD CAP — count words, rewrite if over; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick one of {pov, reaction, before_after, expectation_vs_reality, observational_confessional} before writing the hook. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE: each idea must be a specific picturable moment. NO advice, motivational, "talk about", or abstract-concept hooks. Awkward / broke / tired / lazy / small daily frustration / self-deprecating moments win. whatToShow + howToFilm are user-facing trust signals — be concrete, plain-English, no "something" / "maybe".`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
@@ -393,7 +451,7 @@ export async function generateIdeas(
         schema: responseSchema,
         system,
         user: topUpUser,
-        maxTokens: Math.min(600 + deficit * 450, 8190),
+        maxTokens: Math.min(600 + deficit * 620, 8190),
       });
       const extra = topUp.ideas.slice(0, deficit).map(clip);
       ideas.push(...extra);

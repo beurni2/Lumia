@@ -15,16 +15,39 @@ import { fontFamily, type } from "@/constants/typography";
 // either truly optional in the contract (`visualHook`) or guarded
 // against transient AI provider responses where a field went
 // missing — defensive rendering is cheaper than a crash.
+//
+// `pattern`, `whatToShow`, `howToFilm` are post-MVP trust-gate
+// fields and are kept OPTIONAL on the mobile side because cached
+// batches generated before the v2 prompt won't have them. New
+// generations always include all three.
 export type IdeaCardData = {
   id?: string;
+  pattern?:
+    | "pov"
+    | "reaction"
+    | "before_after"
+    | "expectation_vs_reality"
+    | "observational_confessional";
   hook: string;
   hookSeconds?: number;
   videoLengthSec?: number;
   filmingTimeMin?: number;
+  whatToShow?: string;
+  howToFilm?: string;
   whyItWorks?: string;
   visualHook?: string;
   caption?: string;
   payoffType?: string;
+};
+
+// User-facing labels for the five canonical patterns. Short and
+// recognisable so the small badge on the card doesn't dominate.
+const PATTERN_LABELS: Record<NonNullable<IdeaCardData["pattern"]>, string> = {
+  pov: "POV",
+  reaction: "Reaction",
+  before_after: "Before / After",
+  expectation_vs_reality: "Expectation vs Reality",
+  observational_confessional: "Confessional",
 };
 
 export function IdeaCard({
@@ -39,15 +62,19 @@ export function IdeaCard({
   // Surface contract drift loudly in development. If the ideator
   // ever stops returning the body fields we expect, we want to
   // see it in the Metro logs immediately rather than discover it
-  // by way of a customer-reported "the idea card is empty".
+  // by way of a customer-reported "the idea card is empty". Note
+  // we deliberately don't warn on missing pattern/whatToShow/
+  // howToFilm — cached batches from before the v2 prompt are
+  // expected to lack them and that's not drift, that's history.
   if (
     __DEV__ &&
     !idea.whyItWorks &&
     !idea.visualHook &&
+    !idea.whatToShow &&
     !idea.caption
   ) {
     console.warn(
-      "[IdeaCard] idea has hook only; missing whyItWorks/visualHook/caption — possible API drift",
+      "[IdeaCard] idea has hook only; missing body fields — possible API drift",
       { hook: idea.hook?.slice(0, 60) },
     );
   }
@@ -61,33 +88,66 @@ export function IdeaCard({
       ? `Takes ~${idea.filmingTimeMin} min to shoot`
       : null;
 
+  // Pattern badge — small, recognisable trust signal that this
+  // idea maps to a known short-form format. Only shows when the
+  // model declared a pattern (post-v2-prompt batches).
+  const patternLabel = idea.pattern ? PATTERN_LABELS[idea.pattern] : null;
+
   return (
     <View
       style={[styles.card, highlight ? styles.cardHighlight : null]}
       accessibilityRole="summary"
     >
-      <Text style={styles.cardKicker}>
-        {index ? `idea ${index}` : "first idea"}
-      </Text>
+      <View style={styles.kickerRow}>
+        <Text style={styles.cardKicker}>
+          {index ? `idea ${index}` : "first idea"}
+        </Text>
+        {patternLabel ? (
+          <View style={styles.patternBadge}>
+            <Text style={styles.patternBadgeText}>{patternLabel}</Text>
+          </View>
+        ) : null}
+      </View>
       <Text style={styles.cardHook}>{idea.hook}</Text>
-      {idea.visualHook ? (
+
+      {/* PRIMARY trust block — the user-facing "Hook / What to
+          show / How to film" structure. These three blocks are
+          deliberately the most prominent part of the card. */}
+      {idea.whatToShow ? (
+        <>
+          <Text style={styles.cardLabel}>What to show</Text>
+          <Text style={styles.cardBody}>{idea.whatToShow}</Text>
+        </>
+      ) : idea.visualHook ? (
+        // Back-compat: cached batches from before the v2 prompt
+        // only have `visualHook` (a one-liner). Render it under
+        // the old label so old cards don't lose their context.
         <>
           <Text style={styles.cardLabel}>Open with</Text>
           <Text style={styles.cardBody}>{idea.visualHook}</Text>
         </>
       ) : null}
+      {idea.howToFilm ? (
+        <>
+          <Text style={styles.cardLabel}>How to film</Text>
+          <Text style={styles.cardBody}>{idea.howToFilm}</Text>
+        </>
+      ) : null}
+
+      {/* Supporting context — kept but visually deprioritized. */}
       {idea.whyItWorks ? (
         <>
           <Text style={styles.cardLabel}>Why it works</Text>
-          <Text style={styles.cardBody}>{idea.whyItWorks}</Text>
+          <Text style={styles.cardBodySmall}>{idea.whyItWorks}</Text>
         </>
       ) : null}
       {idea.caption ? (
         <>
           <Text style={styles.cardLabel}>Caption</Text>
-          <Text style={styles.cardBody}>{idea.caption}</Text>
+          <Text style={styles.cardBodySmall}>{idea.caption}</Text>
         </>
       ) : null}
+
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>15–30s video</Text>
         {shootLine ? (
@@ -111,13 +171,37 @@ const styles = StyleSheet.create({
     borderColor: lumina.firefly,
     backgroundColor: "rgba(0,255,204,0.06)",
   },
+  kickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    gap: 8,
+  },
   cardKicker: {
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    marginBottom: 10,
+  },
+  // Small recognisable badge naming the canonical TikTok pattern
+  // this idea maps to ("POV", "Reaction", "Before / After", etc).
+  // The trust signal: this isn't a freeform "topic about X", it
+  // fits a known winning format.
+  patternBadge: {
+    backgroundColor: "rgba(0,255,204,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.3)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  patternBadgeText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 10,
+    letterSpacing: 0.8,
   },
   metaRow: {
     marginTop: 14,
@@ -155,5 +239,14 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 15,
     lineHeight: 21,
+  },
+  // Smaller variant used for the supporting context (Why it works,
+  // Caption) so the primary "What to show / How to film" trust
+  // block dominates the card visually.
+  cardBodySmall: {
+    ...type.body,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
