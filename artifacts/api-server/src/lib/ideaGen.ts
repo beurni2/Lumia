@@ -101,12 +101,23 @@ export const ideaSchema = z.object({
    * If an idea doesn't fit one of these four, it shouldn't ship.
    */
   pattern: z.enum(["pov", "reaction", "mini_story", "contrast"]),
+  /**
+   * HOOK LENGTH POLICY (softened from a flat 8-word cap).
+   * - Target: ≤8 words.
+   * - Hard ceiling: 10 words. Strong hooks at 9–10 words are
+   *   allowed when they still land within the 1-second rule and
+   *   feel natural / spoken (not slow or padded).
+   * - The prompt instructs the model to prefer ≤8 and only stretch
+   *   to 9–10 when trimming would visibly hurt the hook. The
+   *   schema enforces only the absolute ceiling so we never reject
+   *   a strong hook purely on word count.
+   */
   hook: z
     .string()
     .min(2)
-    .max(100)
-    .refine((h) => h.trim().split(/\s+/).length <= 8, {
-      message: "hook must be ≤8 words",
+    .max(120)
+    .refine((h) => h.trim().split(/\s+/).length <= 10, {
+      message: "hook must be ≤10 words (target ≤8)",
     }),
   hookSeconds: z.number().min(0.5).max(3),
   /**
@@ -381,20 +392,20 @@ export async function generateIdeas(
     "    1. EMOTION CLEAR — one of the five spikes (embarrassment / regret / denial / panic / irony) is unmistakable in the wording.",
     "    2. TENSION (critical, this is the scroll-stop) — the hook must IMPLY one of: something went wrong / expectation vs reality / internal contradiction. A flat statement of fact (\"My morning routine\") has no tension and is NOT a hook.",
     "    3. NATURAL LANGUAGE — sounds like a text message, not a written sentence. Read it aloud — if it doesn't roll off the tongue, rewrite it.",
-    "    4. ONE-SECOND RULE — short and instantly sayable. ≤8 words HARD CAP. Count them.",
+    "    4. ONE-SECOND RULE — short and instantly sayable. TARGET ≤8 words; HARD CEILING 10 words. A hook at 9–10 words is allowed ONLY if it still lands within the 1-second rule AND feels natural/spoken (not slow, not padded). If you can trim a word without losing meaning, trim it. But do NOT reject a strong hook purely for being 9–10 words.",
     "    5. NO CLICHÉ TEMPLATE PHRASING — \"It's giving…\", \"the duality of…\", \"in this essay I will…\", \"tell me you're X without telling me\" are out unless the rest of the hook subverts them sharply.",
     "    If none of your 3–5 candidates can clear ALL the gates, the IDEA itself is the problem — go back to the trigger-reaction step and pick a different angle. Do not ship a weak hook to save the idea.",
     "  Step C — Select the ONE best candidate. Selection rule: \"Which one would I actually stop scrolling for?\". Pick the hook that:",
     "    • feels most real (sounds like a friend texting, not a brand)",
     "    • has the strongest tension (the biggest implied \"wait, what?\")",
-    "    • reads fastest (lands in <2s, ≤8 words)",
+    "    • reads fastest (lands in <2s, ≤8 words ideal, 10 max)",
     "    • signals the trigger most clearly",
     "  Emit ONLY the selected hook. The alternatives stay in your head.",
     "",
     "Each idea must obey THREE HARD CONSTRAINTS:",
     "  1. FILMING TIME ≤30 MINUTES end-to-end — single location, props the creator already owns, no actors beyond the creator and (optionally) one friend, no expensive setups. Declare in `filmingTimeMin`.",
     "  2. TARGET VIDEO LENGTH 15–25 SECONDS — short-form sweet spot for retention; not a TikTok story, not a Reel essay. Declare in `videoLengthSec`.",
-    "  3. UNDERSTANDABLE IN <2 SECONDS — the hook must land within 2 seconds of audio AND must be ≤8 WORDS HARD CAP. The viewer should know what kind of video this is and what's about to happen before the third second hits. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words). Examples that FAIL — REWRITE THESE: \"POV: your roommate asks why you're upset\" (8 words counted but 'your' redundant — tighten to \"POV: roommate asks why you're upset\" / 6 words) · \"Have you ever felt invisible at parties?\" (8 but abstract introspective — banned). If your hook is 9+ words OR if the meaning takes 3 seconds to land, REWRITE IT before submitting. NO EXCEPTIONS.",
+    "  3. UNDERSTANDABLE IN <2 SECONDS — the hook must land within 2 seconds of audio. TARGET ≤8 words; HARD CEILING 10 words. The viewer should know what kind of video this is and what's about to happen before the third second hits. Count the words. \"POV:\" is 1 word. \"When your\" is 2 words. Examples that PASS: \"POV: roommate asks if you're mad\" (6 words) · \"When your barista remembers you\" (5 words) · \"Things younger siblings just get\" (5 words) · \"the way I check the time when someone's already telling me\" (10 words — passes because it reads fast and feels natural). Examples that FAIL — REWRITE THESE: \"Have you ever felt invisible at parties?\" (8 words but abstract introspective — banned), any hook past 10 words, any hook whose meaning takes 3 seconds to land. The 1-second rule (does this read fast and feel natural?) trumps raw word count — do NOT reject a strong hook purely because it's 9 or 10 words, but DO trim if you can without losing meaning. Anything past 10 words: REWRITE.",
     "",
     // QA-driven uplift (target: 70% → 85%+ "would you post this").
     // The 30% failure mode in real outputs was almost entirely
@@ -414,7 +425,7 @@ export async function generateIdeas(
     "    • reaction   → A visible reaction to a stimulus (text / photo / memory / sound / screen). Hook tees up the trigger; payoff IS the face/body reaction. Examples: \"When mom sends THE screenshot\" (trigger=phone buzz, screen reveal / reaction=slow horror-blink), \"Reading my old texts at 2am\" (trigger=scroll up / reaction=physical wince).",
     "    • mini_story → A micro-narrative with setup → trigger → reaction → payoff inside 15–25s. Includes to-camera \"me when…\" confessionals AND third-person micro-stories. Examples: \"Me trying to act normal at the dentist\" (trigger=hygienist asks if I floss / reaction=lying-face), \"Me lying about how often I cook\" (trigger=friend asks for recipes / reaction=panicked confidence).",
     "    • contrast   → Visible two-state comparison where the SECOND state is the reaction. Before/after or expectation vs reality, with the reaction LANDING IN THE SECOND HALF. Examples: \"Outfit at 8am vs 8pm\" (trigger=mirror check / reaction=defeated faceplant on bed), \"How I described my workout vs the actual workout\" (trigger=hitting record / reaction=red-faced gasping). Pure visual transformations with NO visible reaction (e.g. just before/after of a clean room) FAIL the trigger-reaction test — drop them.",
-    "  Step 2 — Write the hook (≤8 words) so it CLEARLY signals the trigger in the first 2 seconds. The viewer must know within 2 seconds what action is about to happen and brace for the reaction.",
+    "  Step 2 — Write the hook (target ≤8 words, hard ceiling 10) so it CLEARLY signals the trigger in the first 2 seconds. The viewer must know within 2 seconds what action is about to happen and brace for the reaction.",
     "  Step 3 — Fill in `whatToShow` (the simple action that happens on screen — narrate the trigger → reaction beat by beat) and `howToFilm` (concrete shooting instructions — where you sit, where the phone goes, single take vs cuts, props in arm's reach). These two fields are the trust signals shown on the card. If you can't write `whatToShow` in plain English without using the word \"something\", \"maybe\", or \"like…\", the pattern wasn't specific enough — restart from Step 1.",
     "  If you can't make an idea fit one of the four patterns above, DROP it and pick a different angle. Do NOT invent new patterns or stretch the definitions.",
     "",
@@ -519,7 +530,7 @@ export async function generateIdeas(
     "",
     "Each idea is one JSON object with fields:",
     "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — the SHAPE that holds the trigger+reaction),",
-    "  hook (≤8 words HARD CAP — count them, rewrite if over; lands in <2 seconds; signals the trigger; sounds like the user's voice not generic TikTok voice),",
+    "  hook (TARGET ≤8 words, HARD CEILING 10 — prefer 8 or fewer; allow 9–10 only if it still lands in <2s and feels natural/spoken; never exceed 10. Signals the trigger; sounds like the user's voice not generic TikTok voice),",
     "  hookSeconds (number 0.5–2, your estimate of how long the hook lands — keep ≤2),",
     "  trigger (string 5–140 chars — the SPECIFIC ACTION the creator does on screen using an action verb: open / check / read / scroll / sip / look / watch / find / notice / realize / hear / see / do. Example: \"opens her camera roll, scrolls into yesterday's screenshots\". Must be observable, not internal. NEVER expose real private data — no bank apps, real DMs, medical info, addresses.),",
     "  reaction (string 5–140 chars — the VISIBLE EMOTIONAL RESPONSE that follows the trigger. Filmable on the creator's own face/body. Example: \"frozen face, slow blink, then deadpan stare at the camera\". Must be a shootable micro-expression or body beat — not an internal feeling.),",
@@ -561,11 +572,11 @@ export async function generateIdeas(
     `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
     `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
-    `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, ≤8 words. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
+    `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, target ≤8 words (hard ceiling 10 if it still reads in <1s and feels natural). SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
     `BATCH VARIETY — plan the ${count} ideas BEFORE drafting any one of them. For any 3-idea slice, no two ideas may share the same `+"`triggerCategory`"+` (phone_screen/message/social/environment/self_check/task), AND every pair of ideas must differ in at least TWO of {pattern, setting, emotionalSpike}. This is what makes the batch feel fresh instead of formulaic.`,
     `CONCEPT vs MOMENT — if an idea describes a CONCEPT (\"the weirdness of small talk\") rather than a MOMENT (\"the elevator small-talk that goes one floor too long\"), DROP IT. Real ideas happen at a clock-time in a specific place.`,
     `DO NOT OVER-FILTER simple ideas — if the trigger is CLEAR and the emotional reaction is STRONG, simplicity is a feature, not a bug. Don't add complexity to \"elevate\" a simple idea.`,
-    `Remember: every hook ≤8 words HARD and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
+    `Remember: target hook ≤8 words (hard ceiling 10, allowed only if it still reads in <1s and feels natural — do NOT reject a strong hook purely on word count); every hook lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
     `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the SHAPE for your trigger+reaction. If the idea won't fit a pattern, scrap it.`,
     `VISUALIZABILITY GATE — for EACH idea ask "can I picture the trigger AND the reaction on screen in the first 2s?". If not, scrap it.`,
     `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / personality-trait hooks (Sagittarius / introvert / Type A / etc.) / general statements ("adulting is hard") / dialogue-dependent ideas (multi-line back-and-forth) / multi-step concepts / planning-heavy ideas / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical info, addresses, IDs, salary). Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
@@ -678,8 +689,8 @@ export async function generateIdeas(
       `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
       `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
       `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
-      `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + ≤8 words, then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
-      `Remember: hook ≤8 words HARD CAP and lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. CONCEPT > MOMENT = drop. DO NOT OVER-FILTER simple ideas — clear trigger + strong emotion = ship it. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical, addresses, IDs, salary). WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
+      `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + target ≤8 words (hard ceiling 10, only if still <1s and natural), then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
+      `Remember: target hook ≤8 words (hard ceiling 10, only if still <1s and natural — don't reject strong hooks on word count alone); hook lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. CONCEPT > MOMENT = drop. DO NOT OVER-FILTER simple ideas — clear trigger + strong emotion = ship it. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical, addresses, IDs, salary). WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
     ].join("\n");
     try {
       const topUp = await callJsonAgent({
