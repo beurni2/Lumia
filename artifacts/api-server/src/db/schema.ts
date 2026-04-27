@@ -109,6 +109,23 @@ export const creators = pgTable("creators", {
   // bias-mapping rules. Added in migration id=17.
   tasteCalibrationJson:
     jsonb("taste_calibration_json").$type<unknown>(),
+  // Viral pattern memory — a server-derived, per-creator weights
+  // document of which structural patterns (pattern / hookStyle /
+  // emotionalSpike / payoffType / setting) earn YES / select /
+  // export signals vs NO / skip / abandon. Pure aggregation over
+  // `idea_feedback` + `ideator_signal` events; written by
+  // lib/viralPatternMemory.ts and surfaced into the ideator
+  // system prompt. NULLABLE by design — absence means "no
+  // memory yet, fall back to calibration + format defaults".
+  // Added in migration id=18.
+  //
+  // PATTERN-LEVEL not TOPIC-LEVEL: we store "user likes denial +
+  // mini_story + low-effort kitchen scenes", NOT "user likes
+  // coffee jokes". The ideator uses the memory to bias the next
+  // batch toward the winning STRUCTURE while still demanding fresh
+  // surface scenarios (see VARIATION INJECTION block in ideaGen.ts).
+  viralPatternMemoryJson:
+    jsonb("viral_pattern_memory_json").$type<unknown>(),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.
@@ -448,6 +465,13 @@ export const ideaFeedback = pgTable(
     // null. Mobile clients on the new build send this on every
     // verdict POST.
     ideaPattern: varchar("idea_pattern", { length: 16 }),
+    // The emotional spike the rated idea targeted — one of
+    // 'embarrassment' | 'regret' | 'denial' | 'panic' | 'irony'.
+    // Added in migration id=18 to power viral-pattern-memory
+    // aggregation in lib/viralPatternMemory.ts. NULLABLE because
+    // pre-v18 historical rows have no spike recorded; the
+    // aggregation simply ignores rows where this is null.
+    emotionalSpike: varchar("emotional_spike", { length: 16 }),
     // 'yes' | 'maybe' | 'no'
     verdict: varchar("verdict", { length: 8 }).notNull(),
     // Only populated when verdict='no'. Free-text + the 4 chip
@@ -471,3 +495,45 @@ export const ideaFeedback = pgTable(
 );
 
 export type IdeaFeedback = typeof ideaFeedback.$inferSelect;
+
+// Action signals for the viral-pattern-memory loop. Distinct from
+// `idea_feedback` because feedback is "Yes/Maybe/No verdicts on the
+// CARD itself" while signals are "what did the creator DO with the
+// idea after voting" — selected for production, exported, asked for
+// another version, regenerated the batch instead, abandoned.
+//
+// Added in migration id=18. Append-only table (no upsert / no unique
+// constraint on hook) — the same hook tapped twice is two events,
+// because the memory aggregation cares about FREQUENCY of action,
+// not latest verdict. The signal_type strings are validated at the
+// route layer (POST /api/ideas/signal) against a Zod enum.
+//
+// Indexed on (creator_id, created_at DESC) so the per-creator memory
+// computation pulls the recent window in one b-tree scan.
+export const ideatorSignal = pgTable(
+  "ideator_signal",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creatorId: uuid("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    ideaHook: text("idea_hook").notNull(),
+    ideaPattern: varchar("idea_pattern", { length: 16 }),
+    emotionalSpike: varchar("emotional_spike", { length: 16 }),
+    payoffType: varchar("payoff_type", { length: 32 }),
+    // 'selected' | 'exported' | 'make_another' | 'regenerated_batch'
+    // | 'skipped' | 'abandoned'
+    signalType: varchar("signal_type", { length: 24 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_ideator_signal_creator_created").on(
+      t.creatorId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export type IdeatorSignal = typeof ideatorSignal.$inferSelect;

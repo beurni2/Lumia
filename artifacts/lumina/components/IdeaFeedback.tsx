@@ -104,6 +104,10 @@ export function IdeaFeedback({
       ideaCaption: idea.caption,
       ideaPayoffType: idea.payoffType,
       ideaPattern: idea.pattern,
+      // Powers the per-creator viral-pattern-memory aggregator on the
+      // server. Optional on the body; the server simply ignores rows
+      // where it's null when computing the memory snapshot.
+      emotionalSpike: idea.emotionalSpike,
     });
   }
 

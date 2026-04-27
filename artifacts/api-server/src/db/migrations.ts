@@ -387,6 +387,56 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 18,
+    name: "viral_pattern_memory_and_signals",
+    // Phase 1 MVP — viral pattern memory pipeline.
+    //
+    // Three additive changes in one migration because they ship as a
+    // single feature (the ideator's per-creator pattern memory):
+    //
+    //   1. ADD `viral_pattern_memory_json` jsonb on `creators` —
+    //      stores the server-derived weights document. NULLABLE
+    //      (absence = "no memory yet"). Same precedent as
+    //      migration 17's `taste_calibration_json`.
+    //   2. ADD `emotional_spike` varchar(16) on `idea_feedback` —
+    //      lets the memory aggregation key on spike alongside
+    //      pattern + payoff_type. NULLABLE so pre-v18 historical
+    //      rows aren't broken; the aggregator filters NULL out.
+    //   3. CREATE `ideator_signal` — append-only events table for
+    //      action signals (selected / exported / make_another /
+    //      regenerated_batch / skipped / abandoned). Distinct from
+    //      `idea_feedback` because feedback is a verdict on the
+    //      card while signals are downstream actions. New uuid PK
+    //      (gen_random_uuid) matches the dominant codebase
+    //      convention; FK to creators(id) which is itself uuid.
+    //
+    // All three are pure additive (ADD COLUMN IF NOT EXISTS /
+    // CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS),
+    // so re-running on an environment that already applied them
+    // is a no-op. No existing column type is altered, no PK is
+    // touched.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS viral_pattern_memory_json jsonb;
+
+      ALTER TABLE idea_feedback
+        ADD COLUMN IF NOT EXISTS emotional_spike varchar(16);
+
+      CREATE TABLE IF NOT EXISTS ideator_signal (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        creator_id uuid NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
+        idea_hook text NOT NULL,
+        idea_pattern varchar(16),
+        emotional_spike varchar(16),
+        payoff_type varchar(32),
+        signal_type varchar(24) NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ideator_signal_creator_created
+        ON ideator_signal (creator_id, created_at DESC);
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

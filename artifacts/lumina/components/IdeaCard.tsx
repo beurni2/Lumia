@@ -50,6 +50,11 @@ export type IdeaCardData = {
   visualHook?: string;
   caption?: string;
   payoffType?: string;
+  // One of {embarrassment, regret, denial, panic, irony}. Threaded
+  // through from the ideator response so feedback / selection
+  // signals can attribute to a spike — see lib/viralPatternMemory.ts
+  // on the server. Optional because pre-v18 cached batches lack it.
+  emotionalSpike?: string;
 };
 
 // User-facing labels for the four canonical patterns + transitional

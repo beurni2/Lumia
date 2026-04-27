@@ -124,6 +124,11 @@ router.post("/ideator/generate", async (req, res, next) => {
         // resolveCreator returns the full creator (`.select()`),
         // so this field is always present (may be null).
         tasteCalibrationJson: creator.tasteCalibrationJson,
+        // Memory is left undefined here so generateIdeas runs the
+        // aggregator itself — the SELECT is on the indexed tables
+        // (creator_id, created_at desc), so it's cheap and we don't
+        // want every caller of generateIdeas to need to know about
+        // the helper.
         ctx: { creatorId: creator.id },
       });
     } catch (err) {

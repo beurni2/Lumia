@@ -55,6 +55,7 @@ import {
   type CachedIdea,
 } from "@/lib/dailyIdeasCache";
 import { shouldForceCalibration } from "@/lib/forceCalibration";
+import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 import {
   fetchTasteCalibration,
   isCalibrationGateSuppressed,
@@ -270,8 +271,22 @@ export default function HomeScreen() {
   // its starting point. The whole idea object is JSON-encoded
   // into params because there is no server-side stable id we
   // could fetch by — the ideator's response is transient.
+  //
+  // ALSO fires a fire-and-forget 'selected' signal so the server-
+  // side viral-pattern-memory aggregator can credit this idea's
+  // STRUCTURE (pattern × emotionalSpike × payoffType) — selections
+  // are weighted more heavily than verdicts in the memory snapshot
+  // because tapping into the create flow is a real intent signal,
+  // not just a cheap Yes/Maybe/No tap on the card.
   const openCreate = useCallback(
     (idea: CachedIdea) => {
+      submitIdeatorSignal({
+        ideaHook: idea.hook,
+        signalType: "selected",
+        ideaPattern: idea.pattern,
+        emotionalSpike: idea.emotionalSpike,
+        payoffType: idea.payoffType,
+      });
       router.push({
         pathname: "/create",
         params: { idea: JSON.stringify(idea) },

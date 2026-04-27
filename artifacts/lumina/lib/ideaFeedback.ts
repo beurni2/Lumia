@@ -34,6 +34,15 @@ export type SubmitFeedbackInput = {
   // server validates the enum; sending an unexpected string just
   // gets the row rejected as invalid_body.
   ideaPattern?: string;
+  // One of {embarrassment, regret, denial, panic, irony}. Added so
+  // the server-side viral-pattern-memory aggregator can key on spike
+  // alongside pattern + payoff_type — see api-server/src/lib/
+  // viralPatternMemory.ts. Optional because not every cached idea
+  // has it (pre-v18 cached batches lack the field). The server
+  // validates the enum; sending an unexpected string just gets the
+  // row rejected as invalid_body, and the local optimistic verdict
+  // is unaffected.
+  emotionalSpike?: string;
 };
 
 const KEY_PREFIX = "lumina:idea-feedback:v1:";

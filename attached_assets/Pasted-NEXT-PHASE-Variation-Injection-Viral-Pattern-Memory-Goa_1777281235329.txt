@@ -1,0 +1,142 @@
+NEXT PHASE — Variation Injection + Viral Pattern Memory
+
+Goal:
+Prevent repetitive ideas while helping Lumina remember which patterns get YES/export/make-another-version signals.
+
+Do NOT add dashboards, analytics screens, publishing, scheduling, or monetization.
+
+PART 1 — VARIATION INJECTION
+
+Problem:
+Strong formats can become repetitive.
+
+Add variation rules before output:
+
+For each idea, vary at least 2 of:
+- scenario
+- setting
+- emotional spike
+- hook style
+- payoff type
+- prop/action
+
+Do not show multiple ideas in the same batch that share the same core situation.
+
+Examples:
+Bad:
+- coffee cold
+- coffee order
+- coffee habit
+
+Good:
+- cooking denial
+- awkward texting
+- sleep contradiction
+
+Rule:
+Keep the winning emotional pattern, but change the surface scenario.
+
+---
+
+PART 2 — VIRAL PATTERN MEMORY
+
+Create a lightweight per-user memory object.
+
+Do NOT call it analytics in UI.
+
+Track patterns from user behavior:
+
+Positive signals:
+- YES
+- export
+- make another version
+- idea selected
+
+Negative signals:
+- NO
+- skipped quickly
+- regenerated batch
+- opened then abandoned
+
+Store lightweight pattern weights:
+
+viralPatternMemory: {
+  likedStructures: [],
+  dislikedStructures: [],
+  likedHookStyles: [],
+  dislikedHookStyles: [],
+  likedEmotionalSpikes: [],
+  dislikedEmotionalSpikes: [],
+  likedScenarios: [],
+  dislikedScenarios: [],
+  likedSettings: [],
+  dislikedSettings: [],
+  lastUpdatedAt: timestamp
+}
+
+---
+
+PART 3 — MEMORY INTERPRETATION
+
+Do NOT memorize exact topics only.
+
+Bad:
+User likes coffee → generate more coffee.
+
+Good:
+User likes:
+- denial
+- self-callout
+- mini-story
+- expectation vs reality
+- low-effort kitchen/couch scenes
+
+Then generate fresh scenarios with the same underlying pattern.
+
+Example:
+If user likes “I’ll cook tomorrow vs delivery,” try:
+- “I’ll sleep early vs 3am scrolling”
+- “I’ll save money vs buying coffee”
+- “I’ll answer emails vs closing laptop”
+
+---
+
+PART 4 — IDEATOR USE
+
+Before generating ideas, pass viralPatternMemory into ideator.
+
+The ideator should:
+- increase patterns with positive signals
+- suppress patterns with repeated negative signals
+- preserve variety
+- avoid repeating exact scenarios
+- prioritize patterns that led to exports over simple YES
+
+Priority order:
+1. Export
+2. Make another version
+3. Idea selected
+4. YES
+5. Maybe
+6. NO / skip
+
+---
+
+PART 5 — SAFETY
+
+Continue respecting privacy bans:
+- no real bank data
+- no real messages
+- no medical info
+- no personal documents
+- no sensitive screens
+
+---
+
+SUCCESS CRITERION
+
+Next batches should feel:
+“same taste, fresh situations”
+
+Not:
+“same idea with different wording”

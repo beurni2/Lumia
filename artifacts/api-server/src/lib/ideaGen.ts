@@ -76,6 +76,7 @@ import {
 } from "@workspace/lumina-trends";
 import { callJsonAgent } from "./ai";
 import { db, schema } from "../db/client";
+import { logger } from "./logger";
 import { eq } from "drizzle-orm";
 import {
   computeFormatDistribution,
@@ -89,6 +90,12 @@ import {
   parseTasteCalibration,
   tasteCalibrationPromptBlock,
 } from "./tasteCalibration";
+import {
+  computeViralPatternMemory,
+  EMPTY_MEMORY,
+  renderViralMemoryPromptBlock,
+  type ViralPatternMemory,
+} from "./viralPatternMemory";
 
 export const ideaSchema = z.object({
   /**
@@ -337,6 +344,14 @@ export type GenerateIdeasInput = {
    * `null` means "we know this creator has not filled out the step".
    */
   tasteCalibrationJson?: unknown | null;
+  /**
+   * Optional pre-computed viral-pattern memory snapshot. When omitted,
+   * `generateIdeas` calls `computeViralPatternMemory(ctx.creatorId)`
+   * itself — cheap (capped at 50 rows per table) so it's safe to let
+   * the ideator do its own load. Pass `EMPTY_MEMORY` to opt out (e.g.
+   * for an admin tool that wants to see the un-biased baseline).
+   */
+  viralPatternMemory?: ViralPatternMemory;
   /** Cost-tracking hooks (creatorId for daily $ cap). */
   ctx?: {
     creatorId?: string | null;
@@ -390,6 +405,44 @@ export async function generateIdeas(
   }
   const calibrationBlock = tasteCalibrationPromptBlock(tasteCalibration);
   const distributionFloor = distributionFloorFromCalibration(tasteCalibration);
+
+  // Viral pattern memory — the per-creator "winning structures" bias
+  // that layers on top of calibration. Calibration is INITIAL bias
+  // (from the 5-question onboarding); memory is LEARNED bias (from
+  // recent feedback + action signals). The memory block, when
+  // present, tells the model which patterns/spikes/payoffs/hook-styles
+  // to lean into and which to avoid; the VARIATION INJECTION block
+  // (see system prompt) simultaneously forces the SURFACE scenario
+  // to stay fresh. Together: same winning STRUCTURE, fresh
+  // SCENARIOS — which is the entire point of the loop.
+  //
+  // Like calibration, memory load NEVER throws — the helper itself
+  // returns EMPTY_MEMORY on any error, and an empty snapshot
+  // collapses to no prompt block (renderViralMemoryPromptBlock
+  // returns null when sampleSize < 3).
+  let viralPatternMemory: ViralPatternMemory =
+    input.viralPatternMemory ?? EMPTY_MEMORY;
+  if (input.viralPatternMemory === undefined && input.ctx?.creatorId) {
+    // Defense-in-depth: computeViralPatternMemory() is contractually
+    // never-throw (catches per-source DB errors and returns
+    // EMPTY_MEMORY), but if a future regression breaks that contract
+    // we MUST NOT fail idea generation — memory is an optional bias
+    // signal, not a hard dependency. Fall back to EMPTY_MEMORY on any
+    // unexpected throw so the variation block + calibration block
+    // still steer the batch.
+    try {
+      viralPatternMemory = await computeViralPatternMemory(
+        input.ctx.creatorId,
+      );
+    } catch (err) {
+      logger.warn(
+        { err, creatorId: input.ctx.creatorId },
+        "[ideaGen] viral_pattern_memory_load_failed_using_empty",
+      );
+      viralPatternMemory = EMPTY_MEMORY;
+    }
+  }
+  const memoryBlock = renderViralMemoryPromptBlock(viralPatternMemory);
 
   // Per-creator format (pattern) distribution. Looks up the recent
   // feedback signal for this creator and computes a target mix of
@@ -589,6 +642,14 @@ export async function generateIdeas(
     "    • Counter-example to AVOID — Idea A (pov · couch · embarrassment · phone_screen), Idea B (pov · couch · embarrassment · phone_screen), Idea C (reaction · couch · embarrassment · phone_screen). All three feel like the same idea repeated.",
     "  Plan the batch BEFORE drafting individual ideas: pick three trigger categories you'll cover, three settings you'll use, three spikes you'll hit, then write the ideas to fit. Don't generate then post-hoc check — the post-hoc fix usually doesn't work.",
     "",
+    "VARIATION INJECTION (HARD, per-batch — adds a SCENARIO/SURFACE diversity check ON TOP of the structural variety above):",
+    "  The differentiation rule above stops two ideas from being structurally identical, but a batch can still feel repetitive if the surface SCENARIO is too close — three different patterns about coffee is still 'the coffee batch'. Apply this layer in addition.",
+    "    • SURFACE-SCENARIO RULE — for any 3-idea slice, the three ideas must each be about a DIFFERENT core surface scenario. Two ideas may not share the same prop / object / activity / domain. Examples of \"same scenario, different framing\" that AUTO-FAIL: coffee-cold + coffee-order + coffee-habit · gym-skip + workout-lying + fitness-app · text-from-mom + text-from-ex + text-from-boss.",
+    "    • VARY ≥2 OF — between every pair of ideas, vary at least TWO of: scenario (the prop/object/activity), setting (location), emotionalSpike, hookStyle (\"the way I…\" vs \"why did I…\" vs \"me explaining…\" vs \"POV: …\" vs Contrast \"X vs Y\"), payoffType, prop/action.",
+    "    • WORKED EXAMPLE — Bad batch: \"the way I stare at my cold coffee\" / \"why did I order three coffees\" / \"me explaining my coffee budget\" (all coffee — same scenario, different framing). Good batch: \"the way I just gave up on cooking dinner\" (cooking + denial) / \"why did I send that text at 2am\" (texting + regret) / \"me promising to sleep early vs 3am scroll\" (sleep + irony). Different scenarios, but EACH still hits a strong emotion and a clean reaction.",
+    "    • KEEP THE EMOTIONAL PATTERN, SWAP THE SURFACE — if you have a winning emotional shape (e.g. \"denial + mini_story + low-effort kitchen\"), re-use the SHAPE across multiple ideas, but pick a different prop / activity / domain each time. Same TASTE, fresh SITUATIONS — never the same idea with different wording.",
+    "    • If the candidate batch fails this check, regenerate the offending idea with a fully different scenario before drafting the rest of the fields. Do NOT ship a batch that reads as one topic in three costumes.",
+    "",
     "QUALITY RULES (per-batch, mandatory):",
     "  A. EVERY idea must have a clear PAYOFF — declare it in `payoffType` as one of:",
     "     • reveal       — something hidden or unexpected is shown",
@@ -689,6 +750,11 @@ export async function generateIdeas(
     // .filter(Boolean), so a literal `null` would render as the
     // string "null" in the prompt).
     ...(calibrationBlock ? ["", calibrationBlock] : []),
+    // Optional Viral Pattern Memory block — same spread pattern. Sits
+    // AFTER calibration so the model reads "stated taste" first then
+    // "learned taste" (memory overrides calibration when they
+    // conflict, by being later in the prompt and more concrete).
+    ...(memoryBlock ? ["", memoryBlock] : []),
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
@@ -823,6 +889,9 @@ export async function generateIdeas(
       // .filter(Boolean), so a literal `null` would render as the
       // string "null").
       ...(calibrationBlock ? ["", calibrationBlock] : []),
+      // Same memory block as the main batch — top-up ideas should
+      // honour the same "winning structure, fresh surface" bias.
+      ...(memoryBlock ? ["", memoryBlock] : []),
       "",
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
