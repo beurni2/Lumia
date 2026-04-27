@@ -81,6 +81,7 @@ import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 
 /* ---------- Types ---------- */
 
@@ -236,7 +237,38 @@ export default function ReviewScreen() {
     router.replace("/(tabs)");
   }, [router]);
 
+  // One-shot guard for the "Make another version" CTA — a rapid
+  // double-tap on a small button is realistic on mobile, and we
+  // do NOT want to record the signal twice (would double the +2
+  // weight to +4, polluting the per-tag memory) or fire two
+  // simultaneous router.back() calls (Expo Router's behavior on
+  // double-pop is screen-graph-dependent). One ref + early return
+  // is the smallest fix that closes both holes.
+  const makeAnotherFiredRef = useRef(false);
   const handleMakeAnother = useCallback(() => {
+    if (makeAnotherFiredRef.current) return;
+    makeAnotherFiredRef.current = true;
+    // Record a `make_another_version` action signal BEFORE we
+    // navigate so the next ideator batch picks it up via the
+    // viral-pattern-memory aggregator (weight +2, same as
+    // selected). Per Phase 1 spec we do NOT trigger generation
+    // here — we only store the signal; the next /api/ideator/
+    // generate call naturally inherits the bias. Forward all
+    // four pattern tags so the server can credit the signal to
+    // the right structure / hookStyle / spike / format buckets.
+    // Fire-and-forget — submitIdeatorSignal swallows errors so
+    // a failed signal never blocks navigation.
+    if (idea?.hook) {
+      submitIdeatorSignal({
+        ideaHook: idea.hook,
+        signalType: "make_another_version",
+        ideaPattern: idea.pattern,
+        emotionalSpike: idea.emotionalSpike,
+        payoffType: idea.payoffType,
+        structure: idea.structure,
+        hookStyle: idea.hookStyle,
+      });
+    }
     // "Make another version" pops back to /create so the user
     // can re-record a different take of the same idea — going
     // back through the stack preserves their idea + clip state
@@ -250,7 +282,7 @@ export default function ReviewScreen() {
     } else {
       router.replace("/(tabs)");
     }
-  }, [router]);
+  }, [router, idea]);
 
   /* ---------- Export --------------------------------------- */
 

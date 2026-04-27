@@ -66,7 +66,7 @@ const spikeEnum = z.enum([
 const signalTypeEnum = z.enum([
   "selected",
   "exported",
-  "make_another",
+  "make_another_version",
   "regenerated_batch",
   "skipped",
   "abandoned",

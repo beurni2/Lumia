@@ -10,8 +10,9 @@
  *   • `skipped`            — scrolled past without voting (future)
  *   • `exported`           — exported the script to clipboard / share
  *                            (future)
- *   • `make_another`       — asked for another version of this same
- *                            idea (future)
+ *   • `make_another_version` — tapped "Make another version" on the
+ *                              export-success screen, asking for a
+ *                              variation of the same idea
  *   • `abandoned`          — opened create then bailed (future)
  *
  * The server weights signals more heavily than verdicts because
@@ -29,7 +30,7 @@ import { customFetch } from "@workspace/api-client-react";
 export type IdeatorSignalType =
   | "selected"
   | "exported"
-  | "make_another"
+  | "make_another_version"
   | "regenerated_batch"
   | "skipped"
   | "abandoned";
@@ -46,7 +47,7 @@ export type SubmitIdeatorSignalInput = {
   payoffType?: string;
   // Lumina Evolution Engine tags (Part 1). Lets the server-side
   // memory aggregator credit the action signal (selected / exported
-  // / make_another) to the structure + hookStyle dimensions. Both
+  // / make_another_version) to the structure + hookStyle dimensions. Both
   // optional — server tolerates NULL.
   structure?: string;
   hookStyle?: string;

@@ -403,8 +403,8 @@ export const migrations: Migration[] = [
     //      pattern + payoff_type. NULLABLE so pre-v18 historical
     //      rows aren't broken; the aggregator filters NULL out.
     //   3. CREATE `ideator_signal` — append-only events table for
-    //      action signals (selected / exported / make_another /
-    //      regenerated_batch / skipped / abandoned). Distinct from
+    //      action signals (selected / exported / make_another_version
+    //      / regenerated_batch / skipped / abandoned). Distinct from
     //      `idea_feedback` because feedback is a verdict on the
     //      card while signals are downstream actions. New uuid PK
     //      (gen_random_uuid) matches the dominant codebase

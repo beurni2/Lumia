@@ -34,8 +34,9 @@
  *
  * Two source tables:
  *   1. `idea_feedback` — verdict-weighted: yes=+1, maybe=+0.5, no=-2
- *   2. `ideator_signal` — action-weighted: exported=+3, make_another=+2,
- *      selected=+2, regenerated_batch=-1, skipped=-1, abandoned=-1
+ *   2. `ideator_signal` — action-weighted: exported=+3, selected=+2,
+ *      make_another_version=+2, regenerated_batch=-1, skipped=-1,
+ *      abandoned=-1
  *
  * Action signals outweigh verdicts because actions reveal real intent
  * (the creator went to make the video) while verdicts are cheap taps.
@@ -231,7 +232,7 @@ const VERDICT_WEIGHT: Record<string, number> = {
 
 const SIGNAL_WEIGHT: Record<string, number> = {
   exported: 3,
-  make_another: 2,
+  make_another_version: 2,
   selected: 2,
   regenerated_batch: -1,
   skipped: -1,
@@ -242,7 +243,7 @@ const POSITIVE_VERDICTS = new Set(["yes"]);
 const NEGATIVE_VERDICTS = new Set(["no"]);
 const POSITIVE_SIGNAL_TYPES = new Set([
   "exported",
-  "make_another",
+  "make_another_version",
   "selected",
 ]);
 const NEGATIVE_SIGNAL_TYPES = new Set([

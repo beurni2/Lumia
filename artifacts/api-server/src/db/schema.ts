@@ -539,8 +539,8 @@ export const ideatorSignal = pgTable(
     // semantics. Added in migration id=19. NULLABLE.
     structure: varchar("structure", { length: 32 }),
     hookStyle: varchar("hook_style", { length: 32 }),
-    // 'selected' | 'exported' | 'make_another' | 'regenerated_batch'
-    // | 'skipped' | 'abandoned'
+    // 'selected' | 'exported' | 'make_another_version' |
+    // 'regenerated_batch' | 'skipped' | 'abandoned'
     signalType: varchar("signal_type", { length: 24 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
