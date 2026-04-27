@@ -1,0 +1,184 @@
+QA + REFINEMENT — Taste Calibration System
+
+The Taste Calibration feature has been implemented.
+
+Now focus ONLY on validating behavior and tightening integration.
+Do NOT redesign the system or add new features.
+
+---
+
+GOAL
+
+Ensure calibration improves first-batch idea quality
+without adding friction or breaking the core loop.
+
+---
+
+PART 1 — UX VALIDATION
+
+Verify the calibration flow meets these constraints:
+
+1. Optional
+- User can skip instantly
+- Skip does not re-trigger aggressively
+- No blocking before seeing ideas
+
+2. Fast
+- Completion time < 10 seconds
+- No typing required
+- Tap-only interactions
+
+3. Clear
+- Micro-examples are 1 line only
+- No explanation text walls
+- Feels like preference, not a quiz
+
+If any step feels slow or confusing → simplify.
+
+---
+
+PART 2 — DATA INTEGRITY
+
+Validate stored profile:
+
+tasteCalibration must correctly store:
+- preferredFormats
+- preferredTone
+- effortPreference
+- privacyAvoidances
+- preferredHookStyles
+- completedAt OR skipped flag
+
+Ensure:
+- “Everything is fine” clears other privacy flags
+- Multi-select works correctly
+- Null-safe for skipped users
+
+---
+
+PART 3 — IDEATOR INTEGRATION (CRITICAL)
+
+Confirm calibration affects generation:
+
+1. Format weighting
+- Preferred formats appear more often
+- Avoid repeated scenario types in same batch
+
+2. Tone alignment
+- Hooks match tone (dry, chaotic, bold, etc.)
+
+3. Hook style bias
+- Selected formats (“the way I…”, etc.) appear more often
+
+4. Privacy enforcement
+- No ideas require private/sensitive content
+
+5. Effort constraint
+- Zero/low effort users get simple ideas only
+
+---
+
+PART 4 — OVERRIDE LOGIC
+
+Behavior must override calibration.
+
+If user:
+- rejects a format repeatedly → reduce it
+- exports a format repeatedly → increase it
+
+Calibration is ONLY initial bias.
+
+Add logic:
+
+actual_behavior > calibration_answers
+
+---
+
+PART 5 — OUTPUT QA (MOST IMPORTANT)
+
+Run 3 test scenarios:
+
+---
+
+SCENARIO A — No calibration (skipped)
+
+Expected:
+- balanced batch
+- still high-quality ideas
+- no degradation
+
+---
+
+SCENARIO B — Strong mini-story preference
+
+Expected:
+- 2/3 ideas = mini-story or contrast
+- hooks feel personal + self-callout
+- low POV presence
+
+---
+
+SCENARIO C — High privacy sensitivity
+
+Expected:
+- no bank apps
+- no real messages
+- no personal data exposure
+- ideas use safe substitutes
+
+---
+
+For each batch, validate:
+
+HOOK:
+- has tension
+- feels like a real thought
+- not generic or descriptive
+
+IDEA:
+- instantly visualizable
+- clear trigger → reaction → payoff
+- filmable immediately
+
+SUCCESS TEST:
+“Would I post this without changing much?”
+
+---
+
+PART 6 — FAILURE DETECTION
+
+Flag if any of these happen:
+
+- ideas feel generic despite calibration
+- formats repeat too much
+- POV appears for users who reject it
+- hooks feel flat or descriptive
+- ideas require uncomfortable filming
+
+If detected → adjust ideator weighting logic (NOT prompt rewrite).
+
+---
+
+FINAL RULE
+
+Do NOT add:
+- new UI
+- analytics dashboards
+- additional onboarding steps
+
+Focus ONLY on:
+- correctness
+- alignment
+- output quality
+
+---
+
+GOAL
+
+After calibration, the first batch should feel like:
+
+“These ideas are actually for me.”
+
+Not:
+
+“These are slightly filtered generic ideas.”
