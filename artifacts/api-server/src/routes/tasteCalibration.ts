@@ -52,6 +52,39 @@ router.get("/taste-calibration", async (_req, res, next) => {
   }
 });
 
+/**
+ * DELETE /api/taste-calibration — wipe the row's calibration document
+ * back to NULL. Used by QA / dev-tools to re-test the trigger without
+ * having to manually clear the column. Idempotent — wiping a row
+ * that's already null returns 200 with `{calibration: null}`.
+ *
+ * No auth gate beyond `resolveCreator` — this is a self-targeting
+ * action (the creator can only reset THEIR OWN calibration), so it
+ * doesn't need separate admin guarding. Critically, this is the same
+ * resolver every other taste-calibration route uses, which means in
+ * dev/QA mode it transparently resolves to the seeded demo creator.
+ */
+router.delete("/taste-calibration", async (req, res, next) => {
+  try {
+    const r = await resolveCreator(req);
+    if (r.kind !== "found") {
+      res.status(401).json({ error: "no_creator" });
+      return;
+    }
+    await db
+      .update(schema.creators)
+      .set({ tasteCalibrationJson: null })
+      .where(eq(schema.creators.id, r.creator.id));
+    logger.info(
+      { creatorId: r.creator.id },
+      "[taste-calibration] reset to null",
+    );
+    res.status(200).json({ calibration: null });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post("/taste-calibration", async (req, res, next) => {
   try {
     const parsed = tasteCalibrationSchema.safeParse(req.body ?? {});

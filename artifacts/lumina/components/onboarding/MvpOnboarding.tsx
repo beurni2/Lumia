@@ -57,7 +57,7 @@ import { fontFamily, type } from "@/constants/typography";
 import { useAppState } from "@/hooks/useAppState";
 import { writeDailyIdeas } from "@/lib/dailyIdeasCache";
 import { isWebQaMode } from "@/lib/qaMode";
-import { fetchTasteCalibration } from "@/lib/tasteCalibration";
+import { fetchTasteCalibration, needsCalibration } from "@/lib/tasteCalibration";
 import {
   deriveStyleProfile,
   type DerivedStyleProfile,
@@ -153,9 +153,11 @@ export default function MvpOnboarding() {
     if (isWebQaMode()) {
       // QA-mode users still need a calibration-on-file lookup so we
       // don't accidentally re-prompt them every page reload — the
-      // demo creator is shared across QA sessions.
+      // demo creator is shared across QA sessions. Use the same
+      // `needsCalibration` predicate Home uses so the two paths can
+      // never disagree about who should see the screen.
       fetchTasteCalibration()
-        .then((cal) => setHasCalibration(cal !== null))
+        .then((cal) => setHasCalibration(!needsCalibration(cal)))
         .catch(() => setHasCalibration(false));
       return;
     }
@@ -172,8 +174,9 @@ export default function MvpOnboarding() {
         // it separately so handleEnter can branch correctly even when
         // the user lands on a deep-resume target (e.g. "profile"
         // step for a creator who finished onboarding once but hasn't
-        // calibrated).
-        setHasCalibration(cal !== null);
+        // calibrated). Use the shared `needsCalibration` predicate
+        // so onboarding and Home agree on who should see the prompt.
+        setHasCalibration(!needsCalibration(cal));
 
         const count = list.count;
         const savedRegion = sp.region;

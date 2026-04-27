@@ -141,6 +141,20 @@ function AuthAwareRouter() {
         name="while-you-slept"
         options={{ presentation: "modal" }}
       />
+      <Stack.Screen
+        name="calibration"
+        options={{
+          // Full-screen modal — same treatment as `onboarding` so the
+          // calibration interrupt covers the entire surface (no
+          // ambient nav chrome distracting from the 5 questions).
+          presentation: "fullScreenModal",
+          // Lock the back-swipe gesture so the user can't dismiss
+          // the prompt without explicitly tapping Skip — otherwise
+          // the Home gate would re-fire on the next mount and
+          // trap them in a loop.
+          gestureEnabled: false,
+        }}
+      />
     </Stack>
   );
 }
@@ -201,6 +215,13 @@ function QaAwareRouter() {
       <Stack.Screen
         name="while-you-slept"
         options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="calibration"
+        options={{
+          presentation: "fullScreenModal",
+          gestureEnabled: false,
+        }}
       />
     </Stack>
   );

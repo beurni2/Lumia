@@ -25,7 +25,7 @@
  */
 
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -54,6 +54,12 @@ import {
   writeDailyIdeas,
   type CachedIdea,
 } from "@/lib/dailyIdeasCache";
+import { shouldForceCalibration } from "@/lib/forceCalibration";
+import {
+  fetchTasteCalibration,
+  isCalibrationGateSuppressed,
+  needsCalibration,
+} from "@/lib/tasteCalibration";
 
 type StyleProfileResponse = {
   hasProfile: boolean;
@@ -162,6 +168,66 @@ export default function HomeScreen() {
   useEffect(() => {
     void loadIdeas();
   }, [loadIdeas]);
+
+  /* ---------- Calibration gate ------------------------------- */
+
+  // Trigger condition (matches the spec exactly):
+  //   IF the creator has no calibration document on file (or has one
+  //   that isn't completed AND wasn't skipped) → push to /calibration.
+  //
+  // Why this lives on Home (not just in onboarding):
+  //   • Existing users — anyone who completed onboarding before the
+  //     calibration feature shipped — never re-enter MvpOnboarding,
+  //     so the onboarding-only trigger silently misses them. Home is
+  //     the first surface every user sees post-onboarding, so it's
+  //     the only safe place to catch them.
+  //   • New users still hit the onboarding trigger first; this gate
+  //     only fires for them if they bailed before tapping Save / Skip
+  //     on the in-onboarding screen, which is the right re-prompt
+  //     behaviour for a half-finished session.
+  //
+  // Why useFocusEffect (not useEffect):
+  //   Tabs persist their mount state, so a useEffect with [] deps
+  //   would only fire ONCE — the first time the Home tab is touched.
+  //   That breaks the QA reset flow (Profile → reset → Home tab
+  //   tapped) AND the post-modal flow (calibration screen dismissed
+  //   → focus returns to Home with no re-fetch). useFocusEffect
+  //   re-runs every time Home regains focus, which is exactly the
+  //   contract we need.
+  //
+  // Dev override (`shouldForceCalibration()`) checks for either
+  // `?forceCalibration=1` (web) or `EXPO_PUBLIC_FORCE_CALIBRATION=true`
+  // and bypasses the on-file check so QA can re-test without DB resets.
+  //
+  // Fail-open: a network error treats the user as "calibration on
+  // file" (don't surface the prompt). Calibration is optional — better
+  // to skip the prompt than to block Home for a flaky API call. The
+  // gate will retry on the next focus.
+  useFocusEffect(
+    useCallback(() => {
+      // Suppression short-circuit: <TasteCalibration /> sets a small
+      // window (default 5 s) on Save / Skip so the immediate Home
+      // re-focus can't out-race the fire-and-forget POST and re-push
+      // the modal. The dev-only reset clears this window so the next
+      // focus DOES re-prompt.
+      if (isCalibrationGateSuppressed()) return;
+      let cancelled = false;
+      (async () => {
+        try {
+          const cal = await fetchTasteCalibration();
+          if (cancelled) return;
+          if (needsCalibration(cal) || shouldForceCalibration()) {
+            router.replace("/calibration");
+          }
+        } catch {
+          // Fail-open — swallow the error; next focus will retry.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [router]),
+  );
 
   /* ---------- Regenerate (uses today's 2nd ideator slot) ----- */
 

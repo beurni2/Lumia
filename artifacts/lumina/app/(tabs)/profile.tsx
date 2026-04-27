@@ -37,6 +37,8 @@ import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
 import { flags } from "@/lib/featureFlags";
 import { getImage } from "@/lib/imageRegistry";
+import { isWebQaMode } from "@/lib/qaMode";
+import { resetTasteCalibration } from "@/lib/tasteCalibration";
 import { useGetCurrentCreator } from "@workspace/api-client-react";
 
 export default function ProfileScreen() {
@@ -53,6 +55,40 @@ export default function ProfileScreen() {
     feedback.portal();
     router.push("/style-twin-train");
   };
+
+  // Dev / QA reset for the Taste Calibration prompt — wipes the
+  // server document back to NULL so the next Home mount re-triggers
+  // the calibration interrupt. Only mounted in __DEV__ / web QA mode
+  // (see `showCalibrationReset` below); a production build can never
+  // see this affordance.
+  const onResetCalibration = () => {
+    const run = async () => {
+      try {
+        await resetTasteCalibration();
+        const msg =
+          "Calibration reset. Re-open Home to see the prompt.";
+        if (Platform.OS === "web") {
+          if (typeof window !== "undefined") window.alert(msg);
+        } else {
+          Alert.alert("Calibration reset", msg);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Reset failed";
+        if (Platform.OS === "web") {
+          if (typeof window !== "undefined") window.alert(msg);
+        } else {
+          Alert.alert("Reset failed", msg);
+        }
+      }
+    };
+    void run();
+  };
+
+  // Gate the dev affordance on either:
+  //   • __DEV__ (any dev client / Expo dev server build), OR
+  //   • web QA mode (the EXPO_PUBLIC_WEB_QA_MODE=true smoke-test path).
+  // Production builds (release native bundle, prod web) see neither.
+  const showCalibrationReset = __DEV__ || isWebQaMode();
 
   const onWipe = () => {
     const confirm = async () => {
@@ -165,6 +201,33 @@ export default function ProfileScreen() {
             Will be split — the consent half returns separately if
             v1 ever adds publishing. */}
         {!flags.ARCHIVED_AUTONOMY && <PrivacyAndScheduleCards />}
+
+        {/* Dev / QA-only — reset the Taste Calibration document so the
+            Home-load gate re-triggers on the next mount. Hidden in
+            production. The label is small and ghost-styled to match
+            the existing wipe affordances and clearly signal "this is
+            a tool, not a feature". */}
+        {showCalibrationReset && (
+          <View style={styles.devToolsBlock}>
+            <Text style={[type.label, styles.devToolsLabel]}>
+              dev tools
+            </Text>
+            <Pressable
+              onPress={onResetCalibration}
+              style={({ pressed }) => [
+                styles.devToolsBtn,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              testID="reset-taste-calibration"
+              accessibilityRole="button"
+              accessibilityLabel="Reset taste calibration"
+            >
+              <Text style={[type.body, styles.devToolsBtnText]}>
+                reset taste calibration
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -209,4 +272,29 @@ const styles = StyleSheet.create({
   },
   wipeBtn: { paddingVertical: 14, alignItems: "center", marginTop: 10 },
   wipeText: { color: "rgba(255,90,128,0.85)", fontSize: 13 },
+  // Dev tools block — bottom of profile, ghost-styled so it never
+  // competes with real surfaces but is always reachable for QA.
+  devToolsBlock: {
+    paddingHorizontal: 22,
+    paddingTop: 36,
+    alignItems: "center",
+  },
+  devToolsLabel: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 10,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  devToolsBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  devToolsBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+  },
 });

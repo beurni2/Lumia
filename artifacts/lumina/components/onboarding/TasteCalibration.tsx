@@ -43,6 +43,7 @@ import {
   EMPTY_CALIBRATION,
   saveTasteCalibration,
   skipTasteCalibration,
+  suppressCalibrationGate,
   type EffortPreference,
   type PreferredFormat,
   type PreferredHookStyle,
@@ -172,6 +173,11 @@ export function TasteCalibration({ onComplete }: Props) {
         () => {},
       );
     }
+    // Suppress the Home gate BEFORE the fire-and-forget POST settles.
+    // Otherwise on slow networks the user lands on Home, the focus
+    // gate fetches before our POST has been written, sees the old
+    // (or null) doc, and re-pushes /calibration in a tight loop.
+    suppressCalibrationGate();
     // Detached — never await. swallow error so a transient network
     // hiccup never bubbles up as an unhandled rejection.
     void saveTasteCalibration(doc).catch(() => {});
@@ -182,6 +188,10 @@ export function TasteCalibration({ onComplete }: Props) {
     if (busy) return;
     setBusy(true);
     setErrorMsg(null);
+    // Same race-prevention as handleSave — suppress the gate window
+    // synchronously so the immediate Home re-focus can't out-race
+    // the skip POST.
+    suppressCalibrationGate();
     // Detached — same reasoning as handleSave above.
     void skipTasteCalibration().catch(() => {});
     onComplete();
