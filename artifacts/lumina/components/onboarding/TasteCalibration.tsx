@@ -202,7 +202,7 @@ export function TasteCalibration({ onComplete }: Props) {
       <Text style={styles.stepKicker}>Optional · ~10 seconds</Text>
       <Text style={styles.heroTitle}>Tune your ideas.</Text>
       <Text style={styles.heroSub}>
-        Tap whatever fits — or skip. Your reactions to ideas teach Lumina far
+        Tap what feels like you — or skip. Your reactions to ideas teach Lumina far
         more than this ever will.
       </Text>
 
