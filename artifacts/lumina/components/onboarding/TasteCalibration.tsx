@@ -59,17 +59,17 @@ type Props = {
 type Choice<T extends string> = { value: T; label: string; sub?: string };
 
 const FORMAT_CHOICES: Choice<PreferredFormat>[] = [
-  { value: "mini_story", label: "Mini-stories", sub: "Tiny moments with a payoff" },
-  { value: "reaction", label: "Reactions", sub: "Visible response to something" },
-  { value: "pov", label: "POVs", sub: "First-person scenarios" },
-  { value: "mixed", label: "A mix of everything", sub: "Surprise me" },
+  { value: "mini_story", label: "Mini-stories", sub: "me explaining something vs what I actually do" },
+  { value: "reaction", label: "Reactions", sub: "the way I check something and instantly regret it" },
+  { value: "pov", label: "POVs", sub: "pretending you're paying attention but you're not" },
+  { value: "mixed", label: "A mix of everything", sub: "surprise me" },
 ];
 
 const TONE_CHOICES: Choice<PreferredTone>[] = [
-  { value: "dry_subtle", label: "Dry / subtle" },
-  { value: "chaotic", label: "Chaotic / expressive" },
-  { value: "bold", label: "Confident / bold" },
-  { value: "self_aware", label: "Awkward / self-aware" },
+  { value: "dry_subtle", label: "Dry / subtle", sub: "I'm fine 🙂 (I'm not)" },
+  { value: "chaotic", label: "Chaotic / expressive", sub: "why is everything happening at once 😭" },
+  { value: "bold", label: "Confident / bold", sub: "I already know how this ends" },
+  { value: "self_aware", label: "Awkward / self-aware", sub: "I shouldn't have done that 💀" },
 ];
 
 const EFFORT_CHOICES: Choice<EffortPreference>[] = [
