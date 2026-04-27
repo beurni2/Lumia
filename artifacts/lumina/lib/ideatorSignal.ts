@@ -44,6 +44,12 @@ export type SubmitIdeatorSignalInput = {
   ideaPattern?: string;
   emotionalSpike?: string;
   payoffType?: string;
+  // Lumina Evolution Engine tags (Part 1). Lets the server-side
+  // memory aggregator credit the action signal (selected / exported
+  // / make_another) to the structure + hookStyle dimensions. Both
+  // optional — server tolerates NULL.
+  structure?: string;
+  hookStyle?: string;
 };
 
 /**

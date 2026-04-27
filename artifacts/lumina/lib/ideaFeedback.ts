@@ -43,6 +43,14 @@ export type SubmitFeedbackInput = {
   // row rejected as invalid_body, and the local optimistic verdict
   // is unaffected.
   emotionalSpike?: string;
+  // Lumina Evolution Engine tags (Part 1 of the spec). Threaded
+  // through from the ideator response so the per-creator memory
+  // aggregator can credit the verdict to the structure / hookStyle
+  // dimensions. Optional — older cached ideas (pre-Evolution-Engine)
+  // lack these fields and the server tolerates NULL by skipping
+  // that dimension's tally for the row.
+  structure?: string;
+  hookStyle?: string;
 };
 
 const KEY_PREFIX = "lumina:idea-feedback:v1:";

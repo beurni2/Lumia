@@ -30,6 +30,7 @@
  */
 
 import { Router, type IRouter } from "express";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db, schema } from "../db/client";
@@ -70,6 +71,27 @@ const signalTypeEnum = z.enum([
   "skipped",
   "abandoned",
 ]);
+// Lumina Evolution Engine tags (Part 1). Same canonical taxonomies
+// the model emits in ideaSchema. Optional here so older clients can
+// still record verdicts without the new fields — the memory
+// aggregator tolerates NULL by skipping that dimension's tally for
+// the row.
+const structureEnum = z.enum([
+  "expectation_vs_reality",
+  "self_callout",
+  "denial_loop",
+  "avoidance",
+  "small_panic",
+  "social_awareness",
+  "routine_contradiction",
+]);
+const hookStyleEnum = z.enum([
+  "the_way_i",
+  "why_do_i",
+  "contrast",
+  "curiosity",
+  "internal_thought",
+]);
 
 const feedbackBody = z.object({
   ideaHook: z.string().trim().min(1).max(400),
@@ -80,6 +102,8 @@ const feedbackBody = z.object({
   ideaPayoffType: z.string().trim().max(32).optional(),
   ideaPattern: patternEnum.optional(),
   emotionalSpike: spikeEnum.optional(),
+  structure: structureEnum.optional(),
+  hookStyle: hookStyleEnum.optional(),
 });
 
 const signalBody = z.object({
@@ -88,6 +112,8 @@ const signalBody = z.object({
   ideaPattern: patternEnum.optional(),
   emotionalSpike: spikeEnum.optional(),
   payoffType: z.string().trim().max(32).optional(),
+  structure: structureEnum.optional(),
+  hookStyle: hookStyleEnum.optional(),
 });
 
 // Deterministic short identifier for log lines — gives ops a way to
@@ -133,6 +159,8 @@ router.post("/ideas/feedback", async (req, res, next) => {
       ideaPayoffType,
       ideaPattern,
       emotionalSpike,
+      structure,
+      hookStyle,
     } = parsed.data;
 
     // Reason only makes sense when the verdict is 'no' — for 'yes'
@@ -157,6 +185,8 @@ router.post("/ideas/feedback", async (req, res, next) => {
         ideaPayoffType: ideaPayoffType ?? null,
         ideaPattern: ideaPattern ?? null,
         emotionalSpike: emotionalSpike ?? null,
+        structure: structure ?? null,
+        hookStyle: hookStyle ?? null,
         verdict,
         reason: cleanedReason,
       })
@@ -165,14 +195,28 @@ router.post("/ideas/feedback", async (req, res, next) => {
           schema.ideaFeedback.creatorId,
           schema.ideaFeedback.ideaHook,
         ],
+        // verdict + reason ALWAYS overwrite (the new tap is the
+        // current truth). For all the structural-tag columns
+        // (pattern / spike / structure / hookStyle / payoffType /
+        // caption / region) we PRESERVE the previously-captured
+        // value when the new request omits the field — older
+        // mobile builds (pre-Evolution-Engine) don't send
+        // structure/hookStyle, so a plain `?? null` would silently
+        // null-out tags the v1 client recorded earlier on the
+        // same (creator, hook) row, weakening the per-creator
+        // memory aggregator over time. COALESCE here means
+        // "use the new value if present, else keep the old one".
+        // Architect-flagged on the Evolution-Engine MVP review.
         set: {
           verdict,
           reason: cleanedReason,
-          region: region ?? null,
-          ideaCaption: ideaCaption ?? null,
-          ideaPayoffType: ideaPayoffType ?? null,
-          ideaPattern: ideaPattern ?? null,
-          emotionalSpike: emotionalSpike ?? null,
+          region: sql`COALESCE(EXCLUDED.region, ${schema.ideaFeedback.region})`,
+          ideaCaption: sql`COALESCE(EXCLUDED.idea_caption, ${schema.ideaFeedback.ideaCaption})`,
+          ideaPayoffType: sql`COALESCE(EXCLUDED.idea_payoff_type, ${schema.ideaFeedback.ideaPayoffType})`,
+          ideaPattern: sql`COALESCE(EXCLUDED.idea_pattern, ${schema.ideaFeedback.ideaPattern})`,
+          emotionalSpike: sql`COALESCE(EXCLUDED.emotional_spike, ${schema.ideaFeedback.emotionalSpike})`,
+          structure: sql`COALESCE(EXCLUDED.structure, ${schema.ideaFeedback.structure})`,
+          hookStyle: sql`COALESCE(EXCLUDED.hook_style, ${schema.ideaFeedback.hookStyle})`,
         },
       })
       .returning({ id: schema.ideaFeedback.id });
@@ -248,6 +292,8 @@ router.post("/ideas/signal", async (req, res, next) => {
       ideaPattern,
       emotionalSpike,
       payoffType,
+      structure,
+      hookStyle,
     } = parsed.data;
 
     const [row] = await db
@@ -258,6 +304,8 @@ router.post("/ideas/signal", async (req, res, next) => {
         ideaPattern: ideaPattern ?? null,
         emotionalSpike: emotionalSpike ?? null,
         payoffType: payoffType ?? null,
+        structure: structure ?? null,
+        hookStyle: hookStyle ?? null,
         signalType,
       })
       .returning({ id: schema.ideatorSignal.id });

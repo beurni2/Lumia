@@ -472,6 +472,20 @@ export const ideaFeedback = pgTable(
     // pre-v18 historical rows have no spike recorded; the
     // aggregation simply ignores rows where this is null.
     emotionalSpike: varchar("emotional_spike", { length: 16 }),
+    // Lumina Evolution Engine — `structure` is the SHAPE of the idea
+    // (expectation_vs_reality / self_callout / denial_loop /
+    // avoidance / small_panic / social_awareness /
+    // routine_contradiction). Distinct from `idea_pattern` (= format,
+    // pov / reaction / mini_story / contrast). Added in migration
+    // id=19. NULLABLE because pre-v19 rows have no structure tag.
+    structure: varchar("structure", { length: 32 }),
+    // Lumina Evolution Engine — `hook_style` is the SHAPE of the
+    // hook (the_way_i / why_do_i / contrast / curiosity /
+    // internal_thought). Added in migration id=19. NULLABLE because
+    // pre-v19 rows have no hook style tag — the aggregator falls
+    // back to regex classifyHookStyle() on the raw hook text for
+    // those rows.
+    hookStyle: varchar("hook_style", { length: 32 }),
     // 'yes' | 'maybe' | 'no'
     verdict: varchar("verdict", { length: 8 }).notNull(),
     // Only populated when verdict='no'. Free-text + the 4 chip
@@ -521,6 +535,10 @@ export const ideatorSignal = pgTable(
     ideaPattern: varchar("idea_pattern", { length: 16 }),
     emotionalSpike: varchar("emotional_spike", { length: 16 }),
     payoffType: varchar("payoff_type", { length: 32 }),
+    // Lumina Evolution Engine tags — see ideaFeedback above for
+    // semantics. Added in migration id=19. NULLABLE.
+    structure: varchar("structure", { length: 32 }),
+    hookStyle: varchar("hook_style", { length: 32 }),
     // 'selected' | 'exported' | 'make_another' | 'regenerated_batch'
     // | 'skipped' | 'abandoned'
     signalType: varchar("signal_type", { length: 24 }).notNull(),

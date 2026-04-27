@@ -55,6 +55,15 @@ export type IdeaCardData = {
   // signals can attribute to a spike — see lib/viralPatternMemory.ts
   // on the server. Optional because pre-v18 cached batches lack it.
   emotionalSpike?: string;
+  // Lumina Evolution Engine — see ideaSchema in
+  // api-server/src/lib/ideaGen.ts for the canonical 7+5 enums.
+  // Threaded straight through from the ideator response into the
+  // verdict + signal POSTs (lib/ideaFeedback.ts +
+  // lib/ideatorSignal.ts) so the per-creator memory aggregator can
+  // credit each interaction to the right structure / hookStyle.
+  // Optional because pre-Evolution-Engine cached batches lack them.
+  structure?: string;
+  hookStyle?: string;
 };
 
 // User-facing labels for the four canonical patterns + transitional

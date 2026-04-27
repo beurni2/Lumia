@@ -1,0 +1,336 @@
+BUILD — Lumina Evolution Engine MVP
+
+Goal:
+Add lightweight pattern evolution so Lumina learns user taste, avoids repetition, and keeps ideas fresh.
+
+Do NOT add dashboards, analytics UI, posting, scheduling, monetization, or heavy ML.
+
+This should be hidden ideator logic only.
+
+---
+
+CORE PRINCIPLE
+
+Lumina should behave like:
+
+“I learn what you like, but I still surprise you.”
+
+Use lightweight weighted tags, not complex ML.
+
+---
+
+PART 1 — IDEA TAGS
+
+Every generated idea must carry internal pattern tags:
+
+ideaPatternTags: {
+  structure: string,
+  hookStyle: string,
+  emotionalSpike: string,
+  format: string
+}
+
+Use only these 4 dimensions for now.
+
+Examples:
+
+structure:
+- expectation_vs_reality
+- self_callout
+- denial_loop
+- avoidance
+- small_panic
+- social_awareness
+- routine_contradiction
+
+hookStyle:
+- the_way_i
+- why_do_i
+- contrast
+- curiosity
+- internal_thought
+
+emotionalSpike:
+- denial
+- regret
+- panic
+- embarrassment
+- irony
+
+format:
+- mini_story
+- reaction
+- pov
+- contrast
+
+Do NOT track too many dimensions yet.
+
+---
+
+PART 2 — USER PATTERN MEMORY
+
+Create/update a lightweight per-user memory object:
+
+viralPatternMemory: {
+  structures: Record<string, number>,
+  hookStyles: Record<string, number>,
+  emotionalSpikes: Record<string, number>,
+  formats: Record<string, number>,
+  recentAcceptedPatterns: Array<{
+    structure: string,
+    hookStyle: string,
+    emotionalSpike: string,
+    format: string,
+    timestamp: string
+  }>,
+  recentRejectedPatterns: Array<{
+    structure: string,
+    hookStyle: string,
+    emotionalSpike: string,
+    format: string,
+    timestamp: string
+  }>,
+  lastUpdatedAt: string
+}
+
+---
+
+PART 3 — WEIGHT UPDATES
+
+Update memory after user actions.
+
+Signal weights:
+
+Export:
++3 to structure
++3 to hookStyle
++3 to emotionalSpike
++3 to format
+
+Make another version:
++2 to structure
++2 to hookStyle
++2 to emotionalSpike
++2 to format
+
+Idea selected:
++2 to structure
++2 to hookStyle
++2 to emotionalSpike
++2 to format
+
+YES:
++1 to structure
++1 to hookStyle
++1 to emotionalSpike
++1 to format
+
+MAYBE:
++0.5 to structure
++0.5 to hookStyle
++0.5 to emotionalSpike
++0.5 to format
+
+NO:
+-2 to structure
+-2 to hookStyle
+-2 to emotionalSpike
+-2 to format
+
+Regenerate / skip batch:
+-1 to patterns shown in that batch
+
+Clamp weights:
+- Minimum: -5
+- Maximum: +10
+
+---
+
+PART 4 — MOMENTUM BOOST
+
+Before generation, apply temporary momentum.
+
+If the same tag appears in 2+ positive actions in the current/recent session:
+
+temporary multiplier:
+1.4x
+
+If the same tag appears in 3+ positive actions:
+
+temporary multiplier:
+1.7x
+
+Momentum should not permanently change stored weight.
+It only affects current generation.
+
+Positive actions:
+- export
+- make another
+- selected
+- yes
+
+---
+
+PART 5 — STALE PATTERN PENALTY
+
+Prevent repetition.
+
+If the same structure appears in 3 of the last 5 accepted ideas:
+
+apply temporary penalty:
+-2 to that structure during generation
+
+If the same format appears in 4 of the last 5 accepted ideas:
+
+apply temporary penalty:
+-1.5 to that format during generation
+
+Important:
+This is a penalty, not a hard ban.
+
+If the idea is still excellent, it can pass.
+
+---
+
+PART 6 — EXPLORATION MIX
+
+Generation should use:
+
+70–80% aligned ideas
+20–30% exploratory ideas
+
+For a batch of 3:
+- 2 ideas should align with top user preferences
+- 1 idea should be adjacent exploration
+
+Exploration must be adjacent, not random.
+
+Example:
+If user likes:
+- denial_loop
+- expectation_vs_reality
+- mini_story
+
+Explore:
+- avoidance
+- small_panic
+- routine_contradiction
+
+Do NOT explore into completely unrelated or high-effort formats.
+
+---
+
+PART 7 — TASTE SHIFT DETECTION
+
+If a previously neutral or weak tag gets accepted 3+ times in a short window:
+
+promote it.
+
+Promotion:
++2 bonus to that tag
+
+Short window:
+last 10 positive interactions OR last 3 sessions
+
+This lets user taste evolve quickly.
+
+---
+
+PART 8 — QUALITY OVERRIDE
+
+Memory must NEVER override quality.
+
+Even if an idea matches user preferences:
+
+Reject if:
+- hook is weak
+- payoff is unclear
+- idea is not instantly visual
+- idea feels repetitive
+- idea requires private/sensitive content
+- idea is not filmable immediately
+
+Rule:
+Strong quality > memory match.
+
+---
+
+PART 9 — IDEATOR INPUT SUMMARY
+
+Before calling ideator, generate a compact memory summary:
+
+User tends to like:
+- top 2–3 structures
+- top 2 hook styles
+- top 2 emotional spikes
+- top 1–2 formats
+
+User tends to dislike:
+- tags with negative weights
+
+Also include:
+- any current momentum boosts
+- any stale penalties
+- exploration target for this batch
+
+Example summary:
+
+User likes:
+- mini_story
+- expectation_vs_reality
+- denial_loop
+- why_do_i hooks
+- irony / denial
+
+User dislikes:
+- generic POV
+- descriptive hooks
+
+Current generation mix:
+- 2 aligned ideas
+- 1 adjacent exploratory idea
+
+Avoid:
+- repeating same structure too many times
+- weak hooks
+- private/sensitive content
+
+---
+
+PART 10 — BATCH RULES
+
+For each batch of 3 ideas:
+
+1. At least 2 ideas should match top preferences
+2. 1 idea should explore adjacent pattern
+3. No exact same structure repeated 3 times
+4. No exact same hook style repeated 3 times
+5. Mini-story remains preferred if user history supports it
+6. Quality override applies to all ideas
+
+---
+
+SUCCESS CRITERION
+
+The next batch should feel:
+
+“Same taste, fresh situations.”
+
+Not:
+
+“Same idea with different wording.”
+
+---
+
+DO NOT BUILD
+
+- dashboards
+- performance analytics
+- trend scoring UI
+- publishing
+- scheduling
+- monetization
+- heavy ML
+- complex recommender system
+
+Keep it lightweight, debuggable, and Phase 1 compatible.

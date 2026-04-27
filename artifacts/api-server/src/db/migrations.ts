@@ -455,4 +455,31 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 19,
+    name: "evolution_engine_tags",
+    // Lumina Evolution Engine MVP — adds the `structure` and
+    // `hook_style` dimensions to both the verdict log
+    // (`idea_feedback`) and the action log (`ideator_signal`).
+    // STRICTLY ADDITIVE — four NULLABLE varchar(32) columns, no PK
+    // changes, no existing column types altered. Pre-v19 rows have
+    // NULL in both columns; the viral-pattern-memory aggregator
+    // tolerates NULL by simply not bumping that dimension's tally
+    // for those rows (and falls back to a regex-based hookStyle
+    // classifier when hook_style is null but the hook text is
+    // present). No data migration required.
+    //
+    // Why two columns per table instead of one jsonb tag bundle:
+    // matches the convention already established by migrations
+    // #16 (idea_pattern) and #18 (emotional_spike) — keeps the
+    // aggregator's SELECT shape uniform and lets us index/filter
+    // on a single dimension if a Phase-2 trending surface ever
+    // needs it.
+    sql: `
+      ALTER TABLE idea_feedback ADD COLUMN IF NOT EXISTS structure varchar(32);
+      ALTER TABLE idea_feedback ADD COLUMN IF NOT EXISTS hook_style varchar(32);
+      ALTER TABLE ideator_signal ADD COLUMN IF NOT EXISTS structure varchar(32);
+      ALTER TABLE ideator_signal ADD COLUMN IF NOT EXISTS hook_style varchar(32);
+    `,
+  },
 ];

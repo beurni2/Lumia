@@ -108,6 +108,11 @@ export function IdeaFeedback({
       // server. Optional on the body; the server simply ignores rows
       // where it's null when computing the memory snapshot.
       emotionalSpike: idea.emotionalSpike,
+      // Lumina Evolution Engine tags — same purpose as
+      // emotionalSpike, just two more dimensions the aggregator
+      // tracks (structure + hookStyle).
+      structure: idea.structure,
+      hookStyle: idea.hookStyle,
     });
   }
 

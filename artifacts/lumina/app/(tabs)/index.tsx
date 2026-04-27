@@ -286,6 +286,9 @@ export default function HomeScreen() {
         ideaPattern: idea.pattern,
         emotionalSpike: idea.emotionalSpike,
         payoffType: idea.payoffType,
+        // Lumina Evolution Engine — see lib/ideatorSignal.ts.
+        structure: idea.structure,
+        hookStyle: idea.hookStyle,
       });
       router.push({
         pathname: "/create",

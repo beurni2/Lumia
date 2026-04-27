@@ -183,6 +183,55 @@ export const ideaSchema = z.object({
     "irony",
   ]),
   /**
+   * IDEA STRUCTURE (Lumina Evolution Engine — Part 1). Orthogonal to
+   * `pattern` (= format / production form). Describes the SHAPE of
+   * the trigger-reaction beat, which is what the per-creator memory
+   * aggregator learns and biases toward.
+   *   • expectation_vs_reality — "what I planned" vs "what happened"
+   *   • self_callout           — noticing your own pattern out loud
+   *   • denial_loop            — telling yourself it's fine while doing the thing anyway
+   *   • avoidance              — the moment you put off the obvious next step
+   *   • small_panic            — quiet freakout, low-stakes alarm
+   *   • social_awareness       — noticing how you look to someone else
+   *   • routine_contradiction  — the daily rule you just broke for the Nth time
+   *
+   * Required field. The model labels every idea with one of these
+   * seven so the memory aggregator can build the structure dimension.
+   * Pre-Evolution-Engine rows in `idea_feedback` have NULL — the
+   * aggregator simply doesn't bump the structure tally for those
+   * rows. New rows always carry one of the canonical 7.
+   */
+  structure: z.enum([
+    "expectation_vs_reality",
+    "self_callout",
+    "denial_loop",
+    "avoidance",
+    "small_panic",
+    "social_awareness",
+    "routine_contradiction",
+  ]),
+  /**
+   * HOOK STYLE (Lumina Evolution Engine — Part 1). The SHAPE of the
+   * opening line — separate from `pattern` (format) and `structure`
+   * (idea shape).
+   *   • the_way_i        — "the way I…", "the way you…" (Behavior)
+   *   • why_do_i         — "why do I…", "why did I…", "why does…" (Thought)
+   *   • contrast         — "X vs Y", "what I say vs what I do" (Contrast)
+   *   • curiosity        — "POV:…", "this is where it went wrong", "nobody warned me…", "when your…"
+   *   • internal_thought — "I really just…", "me when…", "I thought this was fine…" (catch-all reaction-voice)
+   *
+   * Required. The model labels its own hook here directly — we no
+   * longer rely on the post-hoc regex classifier (kept only for
+   * pre-Evolution-Engine historical rows where this column is NULL).
+   */
+  hookStyle: z.enum([
+    "the_way_i",
+    "why_do_i",
+    "contrast",
+    "curiosity",
+    "internal_thought",
+  ]),
+  /**
    * TRIGGER CATEGORY (per-batch variety gate). Coarse classification
    * of the trigger so the batch-level variety rule can enforce
    * "max 1 per category per 3 ideas". Six categories chosen to
@@ -442,7 +491,10 @@ export async function generateIdeas(
       viralPatternMemory = EMPTY_MEMORY;
     }
   }
-  const memoryBlock = renderViralMemoryPromptBlock(viralPatternMemory);
+  // Pass `count` so the BATCH MIX block inside the memory snapshot
+  // computes the right ⌈N/2⌉ caps for structure / hookStyle and
+  // sizes the aligned-vs-explore split (~75/25) for THIS batch.
+  const memoryBlock = renderViralMemoryPromptBlock(viralPatternMemory, count);
 
   // Per-creator format (pattern) distribution. Looks up the recent
   // feedback signal for this creator and computes a target mix of
@@ -706,7 +758,9 @@ export async function generateIdeas(
     TEMPLATE_DESCRIPTIONS,
     "",
     "Each idea is one JSON object with fields:",
-    "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — the SHAPE that holds the trigger+reaction),",
+    "  pattern ('pov' | 'reaction' | 'mini_story' | 'contrast' — the production FORMAT / shape that holds the trigger+reaction),",
+    "  structure ('expectation_vs_reality' | 'self_callout' | 'denial_loop' | 'avoidance' | 'small_panic' | 'social_awareness' | 'routine_contradiction' — the IDEA SHAPE / what kind of beat this idea hits. Distinct from `pattern` (= format). Pick the ONE that best describes the trigger→reaction. This is what the per-creator memory loop learns; mislabel it and the loop drifts.),",
+    "  hookStyle ('the_way_i' | 'why_do_i' | 'contrast' | 'curiosity' | 'internal_thought' — the HOOK SHAPE / what kind of opening line. Match the actual `hook` text you write: \"the way I…\" → the_way_i; \"why do I…\" / \"why did I…\" → why_do_i; \"X vs Y\" → contrast; \"POV:…\" / \"this is where…\" / \"nobody warned…\" → curiosity; reaction-voice (\"I really just…\", \"me when…\", \"I thought this was fine…\") → internal_thought. If your hook doesn't fit cleanly, rewrite the hook — don't lie about the style.),",
     "  hook (TARGET ≤8 words, HARD CEILING 10 — prefer 8 or fewer; allow 9–10 only if it still lands in <2s and feels natural/spoken; never exceed 10. Signals the trigger; sounds like the user's voice not generic TikTok voice),",
     "  hookSeconds (number 0.5–2, your estimate of how long the hook lands — keep ≤2),",
     "  trigger (string 5–140 chars — the SPECIFIC ACTION the creator does on screen using an action verb: open / check / read / scroll / sip / look / watch / find / notice / realize / hear / see / do. Example: \"opens her camera roll, scrolls into yesterday's screenshots\". Must be observable, not internal. NEVER expose real private data — no bank apps, real DMs, medical info, addresses.),",
@@ -758,7 +812,7 @@ export async function generateIdeas(
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
-    `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `{ "ideas": [ { pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
     `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
     `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, target ≤8 words (hard ceiling 10 if it still reads in <1s and feels natural). ANTI-NEUTRAL FILTER (final pass) — AUTO-REJECT openings "when you…" / "POV: you…" / "reading…" / "watching…" / "you open…" (they describe the situation; they don't create tension). PREFER thought-/reaction-voice openers: "why did I…" / "the way I…" / "I really just…" / "this just ruined…" / "I thought this was fine…". Every emitted hook must feel like a TEXT MESSAGE the creator would send a friend, not a caption. If after rewrite the hook still feels neutral, DROP THE WHOLE IDEA. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
@@ -900,7 +954,7 @@ export async function generateIdeas(
       `  • setting already used: [${usedSettings || "none"}] → prefer NEW settings from {bed, couch, desk, bathroom, kitchen, car, outside, other}`,
       `  • emotionalSpike already used: [${usedSpikes || "none"}] → prefer NEW spikes from {embarrassment, regret, denial, panic, irony}`,
       `Return strictly:`,
-      `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `{ "ideas": [ { pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
       `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
       `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
       `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + target ≤8 words (hard ceiling 10, only if still <1s and natural), then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
