@@ -119,6 +119,11 @@ router.post("/ideator/generate", async (req, res, next) => {
         styleProfile,
         count: body.count ?? 3,
         regenerate: body.regenerate ?? false,
+        // Thread the already-loaded calibration jsonb through so
+        // generateIdeas does NOT re-SELECT the creator row.
+        // resolveCreator returns the full creator (`.select()`),
+        // so this field is always present (may be null).
+        tasteCalibrationJson: creator.tasteCalibrationJson,
         ctx: { creatorId: creator.id },
       });
     } catch (err) {

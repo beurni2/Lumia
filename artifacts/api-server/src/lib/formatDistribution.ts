@@ -115,14 +115,24 @@ function isPattern(s: string | null): s is Pattern {
 }
 
 /**
- * Pure function — given the per-pattern feedback signal, compute the
- * target distribution. Exported for testing / debugging via the API.
+ * Pure function — given the per-pattern feedback signal and an
+ * optional baseline distribution, compute the target distribution.
+ * Exported for testing / debugging via the API.
+ *
+ * The `baseline` argument lets the optional Taste Calibration seed
+ * the floor (e.g. `mini_story 60 / reaction 30 / pov 10 / contrast 0`
+ * for a creator who picked mini_story on Q1). When omitted we fall
+ * back to the conservative platform default. Feedback ALWAYS layers
+ * on top of whichever baseline is in effect — "behaviour beats
+ * stated preference" is the explicit spec rule.
  */
 export function distributionFromSignal(
   signal: Record<Pattern, { yes: number; maybe: number; no: number }>,
+  baseline?: FormatDistribution,
 ): FormatDistributionResult {
+  const floor: FormatDistribution = baseline ?? DEFAULTS;
   const suppressed: Pattern[] = [];
-  const adjusted: FormatDistribution = { ...DEFAULTS };
+  const adjusted: FormatDistribution = { ...floor };
   let anySignal = false;
 
   for (const p of PATTERNS) {
@@ -137,9 +147,10 @@ export function distributionFromSignal(
       continue;
     }
 
-    // Rule 2: signal score (yes = +step, no = −step).
+    // Rule 2: signal score (yes = +step, no = −step) on top of the
+    // calibrated floor (or default when no calibration on file).
     const delta = (s.yes - s.no) * SIGNAL_STEP;
-    let next = DEFAULTS[p] + delta;
+    let next = floor[p] + delta;
 
     // Rule 3: floor — if the pattern has appeared and isn't suppressed,
     // keep it visible.
@@ -170,13 +181,14 @@ export function distributionFromSignal(
   } else {
     // Pathological: every adjusted target collapsed to zero (e.g.
     // every pattern got suppressed in one batch of feedback). Fall
-    // back to defaults so the prompt block stays coherent — and
-    // CRUCIALLY clear `suppressed` too. Otherwise the prompt would
-    // declare "DO NOT use any of {pov, reaction, mini_story, contrast}"
-    // while still asking for ideas, which is contradictory and would
-    // either crash the model or produce garbage. Treat it as a
-    // signal-reset and let the next round of feedback re-shape.
-    Object.assign(adjusted, DEFAULTS);
+    // back to the floor (calibrated baseline OR the default) so the
+    // prompt block stays coherent — and CRUCIALLY clear `suppressed`
+    // too. Otherwise the prompt would declare "DO NOT use any of
+    // {pov, reaction, mini_story, contrast}" while still asking for
+    // ideas, which is contradictory and would either crash the model
+    // or produce garbage. Treat it as a signal-reset and let the next
+    // round of feedback re-shape.
+    Object.assign(adjusted, floor);
     suppressed.length = 0;
   }
 
@@ -192,15 +204,23 @@ export function distributionFromSignal(
  * Look up the per-creator format distribution from the most recent
  * FEEDBACK_WINDOW feedback rows that have a non-null pattern.
  *
- * Returns the default distribution on any error or when there's no
- * usable signal — the ideator must never block on this lookup.
+ * `baseline` is the optional calibrated floor — when the creator has
+ * filled out the Taste Calibration step, ideaGen passes the result of
+ * `distributionFloorFromCalibration(...)` here so the floor reflects
+ * stated preference. Feedback signal still layers on top.
+ *
+ * Returns the (baseline-or-default) distribution on any error or
+ * when there's no usable signal — the ideator must never block on
+ * this lookup.
  */
 export async function computeFormatDistribution(
   creatorId: string | null | undefined,
+  baseline?: FormatDistribution,
 ): Promise<FormatDistributionResult> {
+  const floor: FormatDistribution = baseline ?? DEFAULTS;
   if (!creatorId) {
     return {
-      targets: { ...DEFAULTS },
+      targets: { ...floor },
       suppressed: [],
       signal: emptySignal(),
       adapted: false,
@@ -231,14 +251,14 @@ export async function computeFormatDistribution(
       else if (r.verdict === "maybe") signal[r.pattern].maybe += 1;
     }
 
-    return distributionFromSignal(signal);
+    return distributionFromSignal(signal, baseline);
   } catch (err) {
     logger.warn(
       { err: String(err), creatorId },
       "[format-distribution] lookup failed — using defaults",
     );
     return {
-      targets: { ...DEFAULTS },
+      targets: { ...floor },
       suppressed: [],
       signal: emptySignal(),
       adapted: false,

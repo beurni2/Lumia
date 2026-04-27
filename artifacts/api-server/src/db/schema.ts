@@ -95,6 +95,20 @@ export const creators = pgTable("creators", {
   // Persisted as a single jsonb document — small enough to round-trip
   // on every ideator request without a join.
   styleProfileJson: jsonb("style_profile_json").$type<unknown>(),
+  // Optional Taste Calibration — 4–5 tap-only preference questions
+  // surfaced AFTER the Style Profile reveal step on first onboarding
+  // (see components/onboarding/TasteCalibration.tsx). Stored as a
+  // single jsonb document, NULLABLE because the step is genuinely
+  // optional (the user can skip it). When `skipped: true`, we keep
+  // the row so we don't keep re-prompting; when populated, it seeds
+  // the per-creator format-distribution and adds tone / effort /
+  // privacy / hook-style bias to the ideator prompt. Behaviour
+  // (Yes/Maybe/No feedback) overrides stated preference over time —
+  // the calibration is treated as INITIAL bias only, not absolute
+  // truth. See lib/tasteCalibration.ts for the full schema and the
+  // bias-mapping rules. Added in migration id=17.
+  tasteCalibrationJson:
+    jsonb("taste_calibration_json").$type<unknown>(),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.

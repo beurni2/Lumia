@@ -75,6 +75,8 @@ import {
   type TrendBundle,
 } from "@workspace/lumina-trends";
 import { callJsonAgent } from "./ai";
+import { db, schema } from "../db/client";
+import { eq } from "drizzle-orm";
 import {
   computeFormatDistribution,
   countProducedByPattern,
@@ -82,6 +84,11 @@ import {
   formatDistributionPromptBlock,
 } from "./formatDistribution";
 import { DEFAULT_STYLE_PROFILE, type StyleProfile } from "./styleProfile";
+import {
+  distributionFloorFromCalibration,
+  parseTasteCalibration,
+  tasteCalibrationPromptBlock,
+} from "./tasteCalibration";
 
 export const ideaSchema = z.object({
   /**
@@ -321,6 +328,15 @@ export type GenerateIdeasInput = {
   count?: number;
   /** When true, force creative variation away from the prior batch. */
   regenerate?: boolean;
+  /**
+   * Optional Taste Calibration document (raw `creators.taste_calibration_json`
+   * jsonb value). When provided, we use it directly and skip the in-function
+   * SELECT — preferred path because the calling route has already loaded
+   * the full creator row via `resolveCreator`. Pass `undefined` (not
+   * `null`!) to opt back into the legacy SELECT-by-creatorId fallback.
+   * `null` means "we know this creator has not filled out the step".
+   */
+  tasteCalibrationJson?: unknown | null;
   /** Cost-tracking hooks (creatorId for daily $ cap). */
   ctx?: {
     creatorId?: string | null;
@@ -336,13 +352,56 @@ export async function generateIdeas(
   const profile = input.styleProfile ?? DEFAULT_STYLE_PROFILE;
   const bundle = loadTrendBundle(region);
 
+  // Optional Taste Calibration (per-creator). The calibration
+  // document is the result of the 5-question onboarding step (see
+  // components/onboarding/TasteCalibration.tsx); creators who
+  // skipped the step persist {skipped: true}, and creators who never
+  // hit the step have a NULL row. Either case falls back to platform
+  // defaults everywhere downstream. Treated as INITIAL bias only —
+  // feedback signals still override over time.
+  //
+  // Preferred path: the calling route (e.g. routes/ideator.ts) has
+  // already loaded the full creator row via resolveCreator, so it
+  // passes the raw jsonb value in `input.tasteCalibrationJson` and
+  // we skip the SELECT entirely. Fallback path (back-compat for
+  // callers that haven't been updated, e.g. internal tools): if the
+  // field is `undefined` AND we have a creatorId, do a single
+  // PK-keyed SELECT. We never throw — the ideator must always ship
+  // ideas even if calibration lookup blows up.
+  let tasteCalibration: ReturnType<typeof parseTasteCalibration> = null;
+  if (input.tasteCalibrationJson !== undefined) {
+    tasteCalibration = parseTasteCalibration(input.tasteCalibrationJson);
+  } else if (input.ctx?.creatorId) {
+    try {
+      const [row] = await db
+        .select({
+          tasteCalibrationJson: schema.creators.tasteCalibrationJson,
+        })
+        .from(schema.creators)
+        .where(eq(schema.creators.id, input.ctx.creatorId))
+        .limit(1);
+      tasteCalibration = parseTasteCalibration(row?.tasteCalibrationJson);
+    } catch {
+      // The ideator must never block on a calibration read — a
+      // missing column or a stale connection should fall back to
+      // "no calibration" so the user still gets ideas.
+      tasteCalibration = null;
+    }
+  }
+  const calibrationBlock = tasteCalibrationPromptBlock(tasteCalibration);
+  const distributionFloor = distributionFloorFromCalibration(tasteCalibration);
+
   // Per-creator format (pattern) distribution. Looks up the recent
   // feedback signal for this creator and computes a target mix of
   // {pov, reaction, mini_story, contrast}. New / no-feedback creators
-  // get the conservative default (mini_story 40 / reaction 40 / pov 20
-  // / contrast 0). See lib/formatDistribution.ts for the rules.
+  // get either the calibration-derived floor (when they filled out
+  // the Taste Calibration step) or the conservative platform default
+  // (`mini_story 40 / reaction 40 / pov 20 / contrast 0`). Feedback
+  // signal layers on top of whichever floor is in effect — see
+  // lib/formatDistribution.ts.
   const distribution = await computeFormatDistribution(
     input.ctx?.creatorId ?? null,
+    distributionFloor,
   );
   const distributionBlock = formatDistributionPromptBlock(
     distribution,
@@ -593,6 +652,11 @@ export async function generateIdeas(
     compactBundle(bundle),
     "",
     distributionBlock,
+    // Optional Taste Calibration block — spread so empty/null is
+    // omitted entirely (the user array is joined with "\n" without a
+    // .filter(Boolean), so a literal `null` would render as the
+    // string "null" in the prompt).
+    ...(calibrationBlock ? ["", calibrationBlock] : []),
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
@@ -722,6 +786,11 @@ export async function generateIdeas(
       compactBundle(bundle),
       "",
       deficitDistributionBlock,
+      // Optional Taste Calibration block — spread so empty/null is
+      // omitted entirely (this array is joined with "\n" without a
+      // .filter(Boolean), so a literal `null` would render as the
+      // string "null").
+      ...(calibrationBlock ? ["", calibrationBlock] : []),
       "",
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,

@@ -366,6 +366,27 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 17,
+    name: "creators_taste_calibration_json",
+    // Adds the optional Taste Calibration document to `creators` so
+    // the new onboarding step (5 tap-only preference questions surfaced
+    // AFTER the Style Profile reveal — see
+    // components/onboarding/TasteCalibration.tsx) has somewhere to
+    // persist. Pure additive: NULLABLE jsonb column, no default —
+    // the absence of this column on old rows simply means "no
+    // calibration on file" (the ideator falls back to defaults +
+    // feedback-only adaptation, exactly as before migration 17).
+    //
+    // No index. The column is read once per ideator call by primary
+    // key on `creators`, which is already covered by the table's PK
+    // index. Adding a separate index would be wasted writes on a
+    // jsonb document we never query by content.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS taste_calibration_json jsonb;
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is

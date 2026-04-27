@@ -17,6 +17,7 @@ import ideatorRouter from "./ideator";
 import styleProfileRouter from "./styleProfile";
 import importedVideosRouter from "./importedVideos";
 import ideaFeedbackRouter from "./ideaFeedback";
+import tasteCalibrationRouter from "./tasteCalibration";
 
 const router: IRouter = Router();
 
@@ -40,6 +41,10 @@ router.use(ideatorRouter);
 router.use(importedVideosRouter);
 //   • idea-feedback  — POST /api/ideas/feedback ("Would you post this?")
 router.use(ideaFeedbackRouter);
+//   • taste-calibration — GET/POST /api/taste-calibration (optional
+//     5-question onboarding bias for the ideator). Pure additive;
+//     skipped state is honoured so we never re-prompt.
+router.use(tasteCalibrationRouter);
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //

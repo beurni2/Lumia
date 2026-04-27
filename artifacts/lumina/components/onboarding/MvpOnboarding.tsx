@@ -50,12 +50,14 @@ import { ApiError, customFetch } from "@workspace/api-client-react";
 
 import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
 import { StyleProfileReveal } from "@/components/onboarding/StyleProfileReveal";
+import { TasteCalibration } from "@/components/onboarding/TasteCalibration";
 import { cosmic, lumina } from "@/constants/colors";
 import { COUNTRIES, type Bundle, type Country } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
 import { useAppState } from "@/hooks/useAppState";
 import { writeDailyIdeas } from "@/lib/dailyIdeasCache";
 import { isWebQaMode } from "@/lib/qaMode";
+import { fetchTasteCalibration } from "@/lib/tasteCalibration";
 import {
   deriveStyleProfile,
   type DerivedStyleProfile,
@@ -100,7 +102,7 @@ type StyleProfileResponse = {
 
 /* ---------- Screen ---------- */
 
-type Step = "region" | "first" | "rest" | "profile";
+type Step = "region" | "first" | "rest" | "profile" | "calibration";
 
 export default function MvpOnboarding() {
   const router = useRouter();
@@ -119,6 +121,13 @@ export default function MvpOnboarding() {
   const [quickWin, setQuickWin] = useState<IdeaCardData | null>(null);
   const [derivedProfile, setDerivedProfile] =
     useState<DerivedStyleProfile | null>(null);
+  // Tracks whether the optional Taste Calibration document is already
+  // on file. null = unknown (resume effect hasn't run yet); true = on
+  // file (skipped or completed) so we route straight into the app on
+  // "Open Lumina"; false = not on file so we show the calibration
+  // step. Best-effort lookup — if it errors we treat it as "not on
+  // file" and let the user see the prompt once.
+  const [hasCalibration, setHasCalibration] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -141,15 +150,30 @@ export default function MvpOnboarding() {
     // (non-QA) users still need the resume logic to recover from
     // mid-onboarding crashes. See replit.md "QA-mode
     // fresh-onboarding rule".
-    if (isWebQaMode()) return;
+    if (isWebQaMode()) {
+      // QA-mode users still need a calibration-on-file lookup so we
+      // don't accidentally re-prompt them every page reload — the
+      // demo creator is shared across QA sessions.
+      fetchTasteCalibration()
+        .then((cal) => setHasCalibration(cal !== null))
+        .catch(() => setHasCalibration(false));
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
-        const [list, sp] = await Promise.all([
+        const [list, sp, cal] = await Promise.all([
           customFetch<ImportedVideosListResponse>("/api/imported-videos"),
           customFetch<StyleProfileResponse>("/api/style-profile"),
+          fetchTasteCalibration().catch(() => null),
         ]);
         if (cancelled) return;
+        // Calibration is independent of the resume hierarchy — track
+        // it separately so handleEnter can branch correctly even when
+        // the user lands on a deep-resume target (e.g. "profile"
+        // step for a creator who finished onboarding once but hasn't
+        // calibrated).
+        setHasCalibration(cal !== null);
 
         const count = list.count;
         const savedRegion = sp.region;
@@ -396,7 +420,28 @@ export default function MvpOnboarding() {
 
   /* --- Final: enter the app ---------------------------------- */
 
+  // Tap on "Open Lumina" from the Style Profile reveal. If the
+  // creator hasn't seen / skipped the optional Taste Calibration yet,
+  // surface it inline before completing onboarding. The resume
+  // effect populates `hasCalibration`; while it's still null
+  // (network in flight) we err on the side of showing calibration —
+  // a re-prompt that gets immediately skipped is cheaper than
+  // accidentally bypassing the step on a slow network.
   const handleEnter = useCallback(async () => {
+    if (hasCalibration === false || hasCalibration === null) {
+      setStep("calibration");
+      return;
+    }
+    await setHasCompletedOnboarding(true);
+    router.replace("/(tabs)");
+  }, [hasCalibration, router, setHasCompletedOnboarding]);
+
+  // Calibration step is terminal — both "Save" and "Skip" land here.
+  // Mark onboarding complete + route into the app. The component
+  // itself has already POSTed the calibration document, so there's
+  // nothing left to persist.
+  const handleCalibrationDone = useCallback(async () => {
+    setHasCalibration(true);
     await setHasCompletedOnboarding(true);
     router.replace("/(tabs)");
   }, [router, setHasCompletedOnboarding]);
@@ -445,6 +490,10 @@ export default function MvpOnboarding() {
             onEnter={handleEnter}
             busy={busy}
           />
+        ) : null}
+
+        {step === "calibration" ? (
+          <TasteCalibration onComplete={handleCalibrationDone} />
         ) : null}
 
         {errorMsg ? (

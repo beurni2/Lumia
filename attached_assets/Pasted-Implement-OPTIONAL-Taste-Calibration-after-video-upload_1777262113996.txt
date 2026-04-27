@@ -1,0 +1,277 @@
+Implement OPTIONAL Taste Calibration after video upload.
+
+Goal:
+Improve first-batch personalization without adding friction.
+
+Do NOT redesign onboarding. Add a lightweight optional step after the 3-video upload / style profile step.
+
+User-facing framing:
+“Want better ideas instantly?”
+Subtext:
+“Answer a few quick taps so Lumina learns your taste faster.”
+CTA:
+“Tune my ideas”
+Secondary:
+“Skip for now”
+
+Important:
+This must feel like preference taps, NOT a quiz/form.
+
+---
+
+SCREEN: Taste Calibration
+
+Use 4–5 short questions.
+Each answer option should include:
+- short label
+- 1-line micro-example
+- internal value saved to taste profile
+
+No full generated ideas.
+No long explanations.
+Examples must be one line max.
+
+---
+
+QUESTION 1 — FORMAT PREFERENCE
+
+Prompt:
+“What feels most like you?”
+
+Options:
+
+1. Mini stories
+Example: “me explaining my routine vs what I actually do”
+value: mini_story
+
+2. Quick reactions
+Example: “the way I check my phone and regret it”
+value: reaction
+
+3. POV / acting
+Example: “POV: you pretend you’re listening but you’re not”
+value: pov
+
+4. Mix of everything
+Example: “surprise me”
+value: mixed
+
+---
+
+QUESTION 2 — TONE / VIBE
+
+Prompt:
+“What’s your vibe?”
+
+Options:
+
+1. Dry / subtle
+Example: “I’m fine 🙂 (I’m not)”
+value: dry_subtle
+
+2. Chaotic / expressive
+Example: “why is everything happening at once 😭”
+value: chaotic
+
+3. Confident / bold
+Example: “I already know how this ends”
+value: bold
+
+4. Awkward / self-aware
+Example: “I shouldn’t have done that 💀”
+value: self_aware
+
+---
+
+QUESTION 3 — EFFORT LEVEL
+
+Prompt:
+“How much effort do you want?”
+
+Options:
+
+1. Zero effort
+Example: “sit → react → done”
+value: zero_effort
+
+2. Low effort
+Example: “1–2 clips, quick cut”
+value: low_effort
+
+3. A little structure
+Example: “simple setup, better payoff”
+value: structured
+
+---
+
+QUESTION 4 — CONTENT COMFORT / PRIVACY
+
+Prompt:
+“Anything you don’t want to show?”
+
+Allow multi-select.
+
+Options:
+
+1. Messages / DMs
+Example: “no real screenshots”
+value: avoid_messages
+
+2. Money / finances
+Example: “no bank apps or balances”
+value: avoid_finance
+
+3. Other people
+Example: “no filming friends/roommates”
+value: avoid_people
+
+4. Personal info
+Example: “no private details”
+value: avoid_private_info
+
+5. Everything is fine
+Example: “no limits”
+value: no_privacy_limits
+
+Important:
+If user selects “Everything is fine,” clear other privacy selections.
+If user selects any avoidance option, deselect “Everything is fine.”
+
+---
+
+QUESTION 5 — HOOK STYLE
+
+Prompt:
+“Which hook feels more like you?”
+
+Options:
+
+1. “the way I…”
+Example: “the way I lie instantly 💀”
+value: behavior_hook
+
+2. “why do I…”
+Example: “why do I keep doing this 😭”
+value: thought_hook
+
+3. “this is where…”
+Example: “this is where it went wrong”
+value: curiosity_hook
+
+4. “what I say vs what I do”
+Example: “what I say vs what I actually do”
+value: contrast_hook
+
+---
+
+SAVE TO PROFILE
+
+Add/update a lightweight tasteCalibration object:
+
+tasteCalibration: {
+  preferredFormats: string[],
+  preferredTone: string | null,
+  effortPreference: string | null,
+  privacyAvoidances: string[],
+  preferredHookStyles: string[],
+  completedAt: timestamp | null,
+  skipped: boolean
+}
+
+Also map answers into ideator weights:
+
+Format:
+- mini_story → increase mini_story
+- reaction → increase reaction
+- pov → increase pov
+- mixed → keep balanced
+
+Tone:
+- dry_subtle → favor understated hooks, irony, deadpan captions
+- chaotic → favor expressive hooks, panic, bigger reactions
+- bold → favor direct statements, confident contrast
+- self_aware → favor embarrassment, regret, self-callout
+
+Effort:
+- zero_effort → one location, one take, no props
+- low_effort → 1–2 clips max
+- structured → allow mini-story / contrast with simple setup
+
+Privacy:
+- avoid_messages → ban real messages/DM screenshots
+- avoid_finance → ban bank apps, balances, transaction history, salary
+- avoid_people → avoid ideas requiring filming others
+- avoid_private_info → avoid private/personal data
+- no_privacy_limits → still keep global safety bans; do not allow sensitive data exposure
+
+Hook styles:
+- behavior_hook → prefer “the way I…”
+- thought_hook → prefer “why do I…”
+- curiosity_hook → prefer “this is where…”
+- contrast_hook → prefer “what I say vs what I do”
+
+---
+
+IMPORTANT PRODUCT RULES
+
+1. Optional only.
+Do not block the user from seeing ideas.
+
+2. Fast.
+User should finish in ~10 seconds.
+
+3. Tap-based only.
+No typing.
+
+4. Behavior beats stated preference.
+If later feedback contradicts calibration, user behavior wins.
+
+Example:
+User selected POV, but repeatedly rejects POV and exports mini-stories.
+Then reduce POV and increase mini_story.
+
+5. Do not hardcode global ratios.
+Use calibration as starting bias only.
+
+Default distribution before calibration:
+mini_story: 40%
+reaction: 40%
+pov: 20%
+
+For my current observed taste, calibration may shift toward:
+mini_story: ~60%
+reaction: ~30%
+pov: ~10%
+
+But this must be per-user, not global.
+
+---
+
+IDEATOR INTEGRATION
+
+Update ideator prompt/input to include tasteCalibration.
+
+The ideator should treat it as:
+- initial taste bias
+- not absolute truth
+- overridden by Yes/No/export/make-another-version behavior
+
+When generating a batch:
+- prefer the user’s selected formats/tone/hooks
+- respect privacy avoidances
+- keep batch diversity
+- do not repeat scenario types
+- do not over-filter simple ideas if clear + emotional
+
+---
+
+SUCCESS CRITERION
+
+The first generated batch after calibration should feel more like:
+
+“These ideas are for me.”
+
+Not:
+“These are generic creator ideas.”
+
+Do not add analytics dashboards, publishing, scheduling, monetization, or new feature surfaces beyond this optional calibration layer.
