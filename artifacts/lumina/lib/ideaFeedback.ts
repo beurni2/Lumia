@@ -28,6 +28,12 @@ export type SubmitFeedbackInput = {
   region?: string;
   ideaCaption?: string;
   ideaPayoffType?: string;
+  // One of {pov, reaction, mini_story, contrast}. Added so the
+  // server-side ideator can adapt its per-creator format distribution
+  // to taste — see api-server/src/lib/formatDistribution.ts. The
+  // server validates the enum; sending an unexpected string just
+  // gets the row rejected as invalid_body.
+  ideaPattern?: string;
 };
 
 const KEY_PREFIX = "lumina:idea-feedback:v1:";

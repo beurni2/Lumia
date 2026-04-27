@@ -425,6 +425,15 @@ export const ideaFeedback = pgTable(
     ideaHook: text("idea_hook").notNull(),
     ideaCaption: text("idea_caption"),
     ideaPayoffType: varchar("idea_payoff_type", { length: 32 }),
+    // The canonical short-form pattern of the rated idea — one of
+    // 'pov' | 'reaction' | 'mini_story' | 'contrast'. Added in
+    // migration id=16 to power per-creator format-distribution
+    // adaptation in lib/formatDistribution.ts. NULLABLE because
+    // pre-v16 historical rows have no pattern recorded; the
+    // distribution computation simply ignores rows where this is
+    // null. Mobile clients on the new build send this on every
+    // verdict POST.
+    ideaPattern: varchar("idea_pattern", { length: 16 }),
     // 'yes' | 'maybe' | 'no'
     verdict: varchar("verdict", { length: 8 }).notNull(),
     // Only populated when verdict='no'. Free-text + the 4 chip

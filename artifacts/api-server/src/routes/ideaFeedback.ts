@@ -43,6 +43,12 @@ const verdictEnum = z.enum(["yes", "maybe", "no"]);
 // Mirrors the IdeaCardData shape the client knows. Everything but
 // `ideaHook` and `verdict` is optional — if the client only sends
 // the hook + verdict we can still attribute and aggregate.
+// `ideaPattern` is one of the four canonical patterns. Optional so
+// older client builds that don't send it can still record a row —
+// they just won't contribute to the per-creator format-distribution
+// adaptation in lib/formatDistribution.ts.
+const patternEnum = z.enum(["pov", "reaction", "mini_story", "contrast"]);
+
 const feedbackBody = z.object({
   ideaHook: z.string().trim().min(1).max(400),
   verdict: verdictEnum,
@@ -50,6 +56,7 @@ const feedbackBody = z.object({
   region: z.string().trim().max(16).optional(),
   ideaCaption: z.string().trim().max(500).optional(),
   ideaPayoffType: z.string().trim().max(32).optional(),
+  ideaPattern: patternEnum.optional(),
 });
 
 // Deterministic short identifier for log lines — gives ops a way to
@@ -93,6 +100,7 @@ router.post("/ideas/feedback", async (req, res, next) => {
       region,
       ideaCaption,
       ideaPayoffType,
+      ideaPattern,
     } = parsed.data;
 
     // Reason only makes sense when the verdict is 'no' — for 'yes'
@@ -115,6 +123,7 @@ router.post("/ideas/feedback", async (req, res, next) => {
         ideaHook,
         ideaCaption: ideaCaption ?? null,
         ideaPayoffType: ideaPayoffType ?? null,
+        ideaPattern: ideaPattern ?? null,
         verdict,
         reason: cleanedReason,
       })
@@ -129,6 +138,7 @@ router.post("/ideas/feedback", async (req, res, next) => {
           region: region ?? null,
           ideaCaption: ideaCaption ?? null,
           ideaPayoffType: ideaPayoffType ?? null,
+          ideaPattern: ideaPattern ?? null,
         },
       })
       .returning({ id: schema.ideaFeedback.id });
@@ -139,6 +149,7 @@ router.post("/ideas/feedback", async (req, res, next) => {
         verdict,
         region: region ?? null,
         payoffType: ideaPayoffType ?? null,
+        pattern: ideaPattern ?? null,
         hookHash: hookHash(ideaHook),
         reasonLen: cleanedReason?.length ?? 0,
       },

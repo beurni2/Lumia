@@ -103,6 +103,7 @@ export function IdeaFeedback({
       region,
       ideaCaption: idea.caption,
       ideaPayoffType: idea.payoffType,
+      ideaPattern: idea.pattern,
     });
   }
 

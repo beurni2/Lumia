@@ -75,6 +75,12 @@ import {
   type TrendBundle,
 } from "@workspace/lumina-trends";
 import { callJsonAgent } from "./ai";
+import {
+  computeFormatDistribution,
+  countProducedByPattern,
+  formatDeficitDistributionPromptBlock,
+  formatDistributionPromptBlock,
+} from "./formatDistribution";
 import { DEFAULT_STYLE_PROFILE, type StyleProfile } from "./styleProfile";
 
 export const ideaSchema = z.object({
@@ -330,6 +336,19 @@ export async function generateIdeas(
   const profile = input.styleProfile ?? DEFAULT_STYLE_PROFILE;
   const bundle = loadTrendBundle(region);
 
+  // Per-creator format (pattern) distribution. Looks up the recent
+  // feedback signal for this creator and computes a target mix of
+  // {pov, reaction, mini_story, contrast}. New / no-feedback creators
+  // get the conservative default (mini_story 40 / reaction 40 / pov 20
+  // / contrast 0). See lib/formatDistribution.ts for the rules.
+  const distribution = await computeFormatDistribution(
+    input.ctx?.creatorId ?? null,
+  );
+  const distributionBlock = formatDistributionPromptBlock(
+    distribution,
+    count,
+  );
+
   // Region-specific tone guidance. Western (US/UK/CA/AU) over-indexes
   // on introspective "self-help / what I learned / mindset" framings
   // when left to its own devices — bias the model HARD toward the
@@ -573,6 +592,8 @@ export async function generateIdeas(
     `=== REGION CONTEXT ===`,
     compactBundle(bundle),
     "",
+    distributionBlock,
+    "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
     `{ "ideas": [ { pattern, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
@@ -678,12 +699,29 @@ export async function generateIdeas(
     console.warn(
       `[ideator] undercount before top-up — region=${region} requested=${count} got=${ideas.length} deficit=${deficit}`,
     );
+    // Re-inject the per-creator distribution as RESIDUAL counts so
+    // the top-up keeps the FINAL batch on the target mix. Without
+    // this, the deficit-fill call would optimise purely for variety
+    // (different triggerCategory / setting / emotionalSpike) and
+    // could quietly redistribute the format mix away from the
+    // creator's preference — violating the "personalisation > variety"
+    // rule on the very ideas that ship to the user.
+    const producedByPattern = countProducedByPattern(ideas);
+    const deficitDistributionBlock = formatDeficitDistributionPromptBlock(
+      distribution,
+      count,
+      producedByPattern,
+      deficit,
+    );
+
     const topUpUser = [
       `=== CREATOR STYLE PROFILE ===`,
       profileSummary(profile),
       "",
       `=== REGION CONTEXT ===`,
       compactBundle(bundle),
+      "",
+      deficitDistributionBlock,
       "",
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,

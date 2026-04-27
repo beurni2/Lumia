@@ -344,6 +344,28 @@ export const migrations: Migration[] = [
     `,
   },
   {
+    id: 16,
+    name: "idea_feedback_pattern_column",
+    // Adds the `idea_pattern` column to `idea_feedback` so the
+    // ideator can adapt its format distribution to per-creator taste
+    // (see lib/formatDistribution.ts). Pure additive: NULLABLE
+    // varchar(16), no default — old client builds that don't send
+    // a pattern still produce valid rows (just without the new
+    // signal). The aggregation query filters on `idea_pattern IS
+    // NOT NULL` so historical rows are simply ignored.
+    //
+    // Index on (creator_id, idea_pattern, created_at DESC) drives
+    // the per-creator-recent-feedback-window aggregation in
+    // computeFormatDistribution(); without it the lookup becomes a
+    // sequential scan on idea_feedback once the table is large.
+    sql: `
+      ALTER TABLE idea_feedback
+        ADD COLUMN IF NOT EXISTS idea_pattern varchar(16);
+      CREATE INDEX IF NOT EXISTS idx_idea_feedback_creator_pattern_created
+        ON idea_feedback (creator_id, idea_pattern, created_at DESC);
+    `,
+  },
+  {
     id: 10,
     name: "webhook_events",
     // Permanent idempotency log for inbound webhooks. Composite PK is
