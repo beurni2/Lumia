@@ -15,15 +15,27 @@
  *
  *   pov · reaction · mini_story · contrast
  *
- * The defaults are deliberately conservative:
+ * The defaults are deliberately mini-story-heavy:
  *
- *   mini_story 40 · reaction 40 · pov 20 · contrast 0
+ *   mini_story 70 · reaction 20 · pov 10 · contrast 0
  *
- * — `mini_story` and `reaction` carry the most consistent retention
- * for the 1K–50K tier; `pov` is the punchy short variant that keeps
- * batches feeling fresh; `contrast` only appears once a creator has
+ * — `mini_story` is the DEFAULT shape for every batch. It carries the
+ * strongest "would you post this" retention for the 1K–50K tier
+ * because the trigger+reaction beat is built into the format itself
+ * (setup → trigger → reaction → payoff inside 15–25s). `reaction` is
+ * the second-line format for moments with a strong emotional spike
+ * (panic / regret / denial) that are instantly visual. `pov` is
+ * gated — only used when the hook is very strong, the tension is
+ * unmistakable, and the angle feels personal (not a generic
+ * "POV: you…" template). `contrast` only appears once a creator has
  * actively asked for it (via positive feedback) since "before/after"
- * setups are easy to do badly and we'd rather not introduce them blind.
+ * setups are easy to do badly and we'd rather not introduce them
+ * blind.
+ *
+ * Weak-mini-story rule (the non-obvious one): if a mini_story idea
+ * isn't landing, the answer is to generate a BETTER mini_story —
+ * never to silently fall back to POV. The format counts in the
+ * prompt block enforce this; the ideator rebuilds inside the slot.
  *
  * Adaptation rules (in order)
  * ---------------------------
@@ -80,9 +92,9 @@ export type FormatDistributionResult = {
 const PATTERNS: Pattern[] = ["pov", "reaction", "mini_story", "contrast"];
 
 const DEFAULTS: FormatDistribution = {
-  mini_story: 40,
-  reaction: 40,
-  pov: 20,
+  mini_story: 70,
+  reaction: 20,
+  pov: 10,
   contrast: 0,
 };
 

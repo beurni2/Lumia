@@ -103,14 +103,22 @@ export function parseTasteCalibration(
 // ---------------------------------------------------------------- //
 // Format → distribution bias.
 //
-// Spec rule: "Default distribution before calibration: 40 / 40 / 20.
-// For a strongly-preferred single format, calibration may shift toward
-// 60 / 30 / 10. But this must be per-user, not global." So a single
-// preferred format shifts the FLOOR distribution (which the per-creator
-// signal then layers on top of); "mixed" or no selection keeps the
-// existing default. POV is capped at 50 because it's a higher-risk
-// format the ideator is more likely to do badly — leave headroom for
-// the safer formats even when the user explicitly asks for POV.
+// Platform default is mini-story-heavy: 70 / 20 / 10 (mini_story /
+// reaction / pov). Mini-story is the DEFAULT shape — the trigger →
+// reaction beat is built into the format itself, which is what makes
+// it the most consistent "would you post this" winner for the
+// 1K–50K tier. Reaction is the second-line format (needs a strong
+// emotional spike + an instantly visual face/body reaction). POV is
+// gated — only used when the hook is very strong, the tension is
+// unmistakable, and the angle feels personal (not a generic
+// "POV: you…" template).
+//
+// Calibration shifts the FLOOR but never abandons the mini-story
+// bias entirely: even when the user explicitly picks `reaction` or
+// `pov`, mini_story keeps a 50% floor so the batch stays anchored in
+// the format with the strongest payoff structure. The per-creator
+// behavioural signal then layers on top — that's the explicit
+// "behaviour beats stated preference" rule.
 //
 // `contrast` is intentionally 0 in every variant — it's only
 // introduced once a creator actively likes one (via positive feedback
@@ -118,9 +126,9 @@ export function parseTasteCalibration(
 // ---------------------------------------------------------------- //
 
 const DEFAULT_DISTRIBUTION: FormatDistribution = {
-  mini_story: 40,
-  reaction: 40,
-  pov: 20,
+  mini_story: 70,
+  reaction: 20,
+  pov: 10,
   contrast: 0,
 };
 
@@ -128,9 +136,19 @@ const SINGLE_FORMAT_BIAS: Record<
   Exclude<PreferredFormat, "mixed">,
   FormatDistribution
 > = {
-  mini_story: { mini_story: 60, reaction: 30, pov: 10, contrast: 0 },
-  reaction: { mini_story: 30, reaction: 60, pov: 10, contrast: 0 },
-  pov: { mini_story: 25, reaction: 25, pov: 50, contrast: 0 },
+  // Picking mini_story doubles down on the platform default — the
+  // creator is telling us their voice fits the trigger → reaction
+  // beat shape; lean even harder on it.
+  mini_story: { mini_story: 80, reaction: 15, pov: 5, contrast: 0 },
+  // Picking reaction shifts toward reaction but mini_story stays
+  // dominant — reaction-only batches over-index on "face on phone"
+  // setups and burn out fast; the mini_story floor keeps variety.
+  reaction: { mini_story: 50, reaction: 40, pov: 10, contrast: 0 },
+  // Picking pov bumps pov but mini_story stays at 50% — POV is the
+  // gated format (strong hook + clear tension + personal feel
+  // required); we never let it past 30% even when explicitly
+  // preferred, to keep the safer mini_story format leading.
+  pov: { mini_story: 50, reaction: 20, pov: 30, contrast: 0 },
 };
 
 /**
@@ -180,6 +198,18 @@ export function distributionFloorFromCalibration(
     mini_story: Math.round(sums.mini_story / n),
     contrast: Math.round(sums.contrast / n),
   };
+  // Per-field rounding can drift the sum to 99 or 101 (e.g. averaging
+  // mini_story+reaction biases yields 65/28/8/0 = 101). Apply the
+  // drift to the largest non-contrast pattern so the floor always
+  // sums to exactly 100 — distributionFromSignal's renormalisation
+  // step assumes that invariant when no feedback signal is present.
+  const sum = avg.pov + avg.reaction + avg.mini_story + avg.contrast;
+  const drift = 100 - sum;
+  if (drift !== 0) {
+    const candidates: Pattern[] = ["mini_story", "reaction", "pov"];
+    const largest = candidates.sort((a, b) => avg[b] - avg[a])[0];
+    avg[largest] += drift;
+  }
   return avg;
 }
 
