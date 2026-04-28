@@ -47,3 +47,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment / secrets — never commit real values.
+# .env.example IS tracked (placeholders only); everything else is ignored.
+.env
+.env.*
+!.env.example
