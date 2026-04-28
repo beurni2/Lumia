@@ -1,0 +1,148 @@
+IDEATOR PROMPT — STYLE + MEMORY MERGE (FINAL)
+
+Goal:
+Generate scroll-stopping short-form video ideas that match the user’s taste (memory) and voice (style), while maintaining high quality and freshness.
+
+---
+
+INPUTS (provided dynamically):
+
+User Memory (weighted preferences):
+- topStructures: [ ... ]
+- topHookStyles: [ ... ]
+- topEmotions: [ ... ]
+- topFormats: [ ... ]
+
+Avoid Patterns:
+- recentlyRejected: [ ... ]
+
+Style Profile (optional, may be partial):
+- tone: (dry / chaotic / self-aware / confident)
+- language: (short, casual, text-message-like)
+- emojiPattern: (e.g. 💀 😭)
+
+Exploration Ratio:
+- 60–70% aligned with memory
+- 30–40% exploratory (adjacent patterns)
+
+---
+
+GENERATION RULES
+
+1. QUALITY (non-negotiable)
+
+Every idea MUST:
+- be a clear, filmable moment
+- include visible reaction
+- have a clear payoff
+- be shootable in 1 location
+- require no setup
+
+Reject if:
+- abstract
+- generic
+- overused
+- requires private/sensitive content
+
+---
+
+2. MEMORY APPLICATION (strong bias)
+
+For aligned ideas:
+- Prefer topStructures
+- Prefer topHookStyles
+- Prefer topEmotions
+- Prefer topFormats
+
+For exploration ideas:
+- Use adjacent structures/emotions
+- Avoid random or unrelated ideas
+
+Never repeat same scenario as last 2 accepted ideas.
+
+---
+
+3. STYLE APPLICATION (soft bias)
+
+Apply style to:
+- hook phrasing
+- caption tone
+
+Rules:
+- Must sound like a text message
+- Prefer short sentences
+- Match tone if provided:
+  - dry → subtle, understated
+  - chaotic → exaggerated, emotional
+  - self-aware → slightly embarrassing, ironic
+  - confident → bold, declarative
+
+If emojiPattern exists:
+- use 1 emoji max
+- only if it feels natural
+
+Style should influence phrasing, NOT idea structure.
+
+---
+
+4. HOOK ENGINE (critical)
+
+Each idea must produce ONE hook that:
+
+- expresses ONE emotion
+- uses ONE format:
+  - “the way I…”
+  - “why do I…”
+  - “that moment when…”
+  - “what I say vs what I do”
+  - “this is where it went wrong”
+
+- passes:
+  - natural language (text message)
+  - 1-second rule
+  - tension (something wrong / contradiction)
+
+Reject hook if:
+- too long
+- generic
+- no tension
+
+---
+
+5. CAPTION ENGINE
+
+Caption must:
+- extend the moment (not repeat hook)
+- add:
+  - internal thought OR
+  - contradiction OR
+  - specific detail
+
+Reject if:
+- generic
+- reusable for any video
+
+---
+
+6. OUTPUT
+
+Return ONE idea:
+
+HOOK:
+...
+
+WHAT TO FILM:
+...
+
+HOW TO FILM:
+...
+
+CAPTION:
+...
+
+---
+
+GOAL:
+
+User should think:
+“This feels exactly like me — I’d post this right now”
