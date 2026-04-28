@@ -77,11 +77,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, customFetch } from "@workspace/api-client-react";
 
 import { Confetti } from "@/components/Confetti";
+import { InlineToast } from "@/components/feedback/InlineToast";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
+import {
+  POST_EXPORT_MESSAGES,
+  rotateRandom,
+} from "@/lib/loopMessages";
 
 /* ---------- Types ---------- */
 
@@ -171,6 +176,12 @@ export default function ReviewScreen() {
     "idle" | "saving" | "success" | "error"
   >("idle");
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
+  // Viral feedback-loop toast — set once when saveState flips to
+  // "success" via the effect below, cleared when the InlineToast
+  // auto-dismisses. Kept as an independent piece of state (rather
+  // than derived from saveState) so the toast lifecycle is its
+  // own thing — closing it doesn't reset the success block.
+  const [exportToast, setExportToast] = useState<string | null>(null);
 
   // Stale-call guard for the same reason as Home — Retry can
   // fire a second `loadMatch` while the first is still in
@@ -250,6 +261,19 @@ export default function ReviewScreen() {
     if (!idea || !clip) return;
     void loadMatch();
   }, [idea, clip, loadMatch]);
+
+  // Viral feedback-loop trigger — fire the export toast the
+  // moment a save lands on "success". Setting once-per-success
+  // is enough; the InlineToast owns its own auto-dismiss timer
+  // and we explicitly DON'T re-fire on every render. A second
+  // save (re-save / multi-clip) will flip back through "saving"
+  // → "success" and naturally re-trigger this effect, which is
+  // the desired behaviour.
+  useEffect(() => {
+    if (saveState === "success") {
+      setExportToast(rotateRandom(POST_EXPORT_MESSAGES));
+    }
+  }, [saveState]);
 
   /* ---------- Navigation ----------------------------------- */
 
@@ -544,6 +568,15 @@ export default function ReviewScreen() {
           unmounted the moment we leave the success state, so
           there's no animation lifecycle to manage. */}
       {saveState === "success" ? <Confetti /> : null}
+      {/* Viral feedback-loop whisper: a single ephemeral line
+          that lands the moment a save succeeds. Reinforces
+          "the app learns from what you ship" without blocking
+          the celebration UI (Confetti + the success block in
+          ExportSection). The toast owns its auto-dismiss. */}
+      <InlineToast
+        message={exportToast}
+        onHide={() => setExportToast(null)}
+      />
     </View>
   );
 }

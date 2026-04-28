@@ -59,6 +59,7 @@ import {
   writeDailyIdeas,
   type CachedIdea,
 } from "@/lib/dailyIdeasCache";
+import { STUDIO_EVOLVING_LINE } from "@/lib/loopMessages";
 
 /* ------------------------------------------------------------------ */
 /* Display helpers — turn snake_case enum tags into friendly labels.   */
@@ -411,6 +412,9 @@ export default function StudioScreen() {
               Pick a few ideas on Home and Lumina will start to learn what works
               for you.
             </Text>
+          ) : null}
+          {memory && memory.sampleSize > 0 ? (
+            <Text style={styles.evolvingLine}>{STUDIO_EVOLVING_LINE}</Text>
           ) : null}
         </SectionCard>
 
@@ -837,6 +841,17 @@ const styles = StyleSheet.create({
     ...type.microDelight,
     color: "rgba(246,243,255,0.6)",
     marginTop: 12,
+  },
+  // "Your style is evolving." — single quiet line beneath the
+  // creator-style snapshot. Italicised + lowered opacity so it
+  // reads as an aside, not a header. Only rendered when the
+  // creator actually has signal (sampleSize > 0); otherwise it
+  // would be a lie.
+  evolvingLine: {
+    ...type.microDelight,
+    color: "rgba(0,255,204,0.72)",
+    marginTop: 12,
+    fontStyle: "italic",
   },
 
   /* Style row (label + value) */

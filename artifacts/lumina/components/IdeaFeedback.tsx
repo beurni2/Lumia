@@ -57,9 +57,17 @@ const REASON_CHIPS = [
 export function IdeaFeedback({
   idea,
   region,
+  onSubmit,
 }: {
   idea: IdeaCardData;
   region?: string;
+  // Optional callback fired the moment a verdict is recorded
+  // (after the optimistic UI flip, before the network write
+  // resolves). The Home feed uses this to drive the
+  // multi-YES feedback-loop toast — IdeaFeedback itself
+  // remains a dumb per-card row that doesn't know about
+  // siblings.
+  onSubmit?: (verdict: IdeaVerdict) => void;
 }) {
   const [submitted, setSubmitted] = useState<IdeaVerdict | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
@@ -96,6 +104,11 @@ export function IdeaFeedback({
     // to AsyncStorage, then fire-and-forget the network write.
     setSubmitted(verdict);
     void setLocalVerdict(idea.hook, verdict);
+    // Notify the parent (Home) that a verdict was recorded so it
+    // can update the YES counter / show the loop-reinforcement
+    // toast. Fire BEFORE the network write so a slow round-trip
+    // doesn't delay the UI feedback.
+    onSubmit?.(verdict);
     submitIdeaFeedback({
       ideaHook: idea.hook,
       verdict,

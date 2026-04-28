@@ -27,7 +27,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -43,6 +43,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, customFetch } from "@workspace/api-client-react";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
+import { InlineToast } from "@/components/feedback/InlineToast";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
 import { IdeaFeedback } from "@/components/IdeaFeedback";
@@ -57,10 +58,21 @@ import {
 import { shouldForceCalibration } from "@/lib/forceCalibration";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 import {
+  HOME_HEADER_TITLES_NEUTRAL,
+  HOME_HEADER_TITLES_PERSONALIZED,
+  POST_YES_MESSAGES,
+  RETURN_SESSION_SIGNAL,
+  rotateDaily,
+  rotateRandom,
+  shouldShowOncePerDay,
+  utcDateKey,
+} from "@/lib/loopMessages";
+import {
   fetchTasteCalibration,
   isCalibrationGateSuppressed,
   needsCalibration,
 } from "@/lib/tasteCalibration";
+import { getYesSwipeCount, recordYesSwipe } from "@/lib/yesSwipeCounter";
 
 type StyleProfileResponse = {
   hasProfile: boolean;
@@ -98,6 +110,92 @@ export default function HomeScreen() {
   // overwrite the fresher result. Cheaper than maintaining a
   // separate AbortController for both code paths.
   const loadCallIdRef = useRef(0);
+
+  // ── Viral feedback-loop UI state ────────────────────────────
+  // Ephemeral toast string shown after multi-YES milestones.
+  // null = hidden. The InlineToast component owns its own
+  // auto-dismiss timer and calls back to clear this.
+  const [loopToast, setLoopToast] = useState<string | null>(null);
+  // "I adjusted your ideas." subtitle shown ONCE per UTC day to
+  // returning users (those with at least one prior YES). Gated
+  // by AsyncStorage via shouldShowOncePerDay so the line doesn't
+  // re-appear on every Home re-render or tab switch.
+  const [returnSignalText, setReturnSignalText] = useState<string | null>(
+    null,
+  );
+  // Has the user ever YES'd an idea? Gates BOTH the personalized
+  // header title pool AND the return-session subtitle. Defaults
+  // to false so the cold-start render never claims learning that
+  // hasn't happened yet — flips to true on mount once we've
+  // checked AsyncStorage. We deliberately do NOT flip this back
+  // mid-session when the user crosses 0→1 — re-rotating the
+  // header title in the middle of a session would feel jarring;
+  // tomorrow's render picks up the personalized pool naturally.
+  const [hasSignal, setHasSignal] = useState(false);
+
+  // Rotating dynamic header title. Deterministic per UTC day so
+  // the title is stable within a session but rotates day to day.
+  // Two pools: NEUTRAL (cold-start safe — describes the day, not
+  // a learned adaptation) and PERSONALIZED (claims adaptation,
+  // gated on hasSignal so it only appears for users with real
+  // YES history).
+  const headerTitle = useMemo(
+    () =>
+      rotateDaily(
+        hasSignal
+          ? HOME_HEADER_TITLES_PERSONALIZED
+          : HOME_HEADER_TITLES_NEUTRAL,
+        utcDateKey(),
+      ),
+    [hasSignal],
+  );
+
+  // Mount-only: check whether the returning-user subtitle and
+  // the personalized title pool should appear today. The shared
+  // `yesCount > 0` gate prevents false-positive "I learned"
+  // claims for first-time visitors — neither line lands until
+  // the underlying signal exists. shouldShowOncePerDay then
+  // gates the subtitle separately so it shows once per UTC day
+  // rather than on every Home re-render.
+  // Failing closed (catch → null/false) is intentional: a
+  // transient AsyncStorage error shouldn't pester the user
+  // with a banner OR over-claim personalization.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const yesCount = await getYesSwipeCount();
+        if (yesCount <= 0) return;
+        if (alive) setHasSignal(true);
+        const allowed = await shouldShowOncePerDay("returnSignal");
+        if (alive && allowed) setReturnSignalText(RETURN_SESSION_SIGNAL);
+      } catch {
+        /* swallow — UX-only surface */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Per-card YES handler. Increments the lifetime YES counter
+  // and, when the new count lands on a milestone (3, 7, 15, 30),
+  // fires the loop-reinforcement toast. We pick a random copy
+  // variant so seeing two milestones doesn't feel repetitive.
+  // Maybe / No verdicts intentionally don't trigger the toast —
+  // we only celebrate the verdict that signals "this batch
+  // worked".
+  const handleIdeaVerdict = useCallback(async (verdict: "yes" | "maybe" | "no") => {
+    if (verdict !== "yes") return;
+    try {
+      const { hitMilestone } = await recordYesSwipe();
+      if (hitMilestone) {
+        setLoopToast(rotateRandom(POST_YES_MESSAGES));
+      }
+    } catch {
+      /* swallow — UX-only surface */
+    }
+  }, []);
   // Ref to snap back to the top after a successful regenerate —
   // otherwise the user's scroll position (often near idea 3 because
   // they just read all three before tapping refresh) sits over the
@@ -336,7 +434,15 @@ export default function HomeScreen() {
       >
         <Animated.View entering={FadeInDown.duration(420)}>
           <Text style={styles.kicker}>today · {greetingTimeOfDay()}</Text>
-          <Text style={styles.title}>Your three ideas.</Text>
+          <Text style={styles.title}>{headerTitle}</Text>
+          {/* Once-per-UTC-day subtitle for returning users with
+              prior YES signal — quiet teal italic line that
+              reinforces "the app remembers". Skipped for
+              first-time visitors so it doesn't read as a
+              false promise. */}
+          {returnSignalText ? (
+            <Text style={styles.returnSignal}>{returnSignalText}</Text>
+          ) : null}
           <Text style={styles.sub}>
             Region-tuned to your style profile. Pick one to film.
           </Text>
@@ -418,7 +524,11 @@ export default function HomeScreen() {
                     voting never accidentally navigates into the
                     create flow. Hidden once the user has voted (the
                     component reads its own AsyncStorage cache). */}
-                <IdeaFeedback idea={idea} region={region ?? undefined} />
+                <IdeaFeedback
+                  idea={idea}
+                  region={region ?? undefined}
+                  onSubmit={handleIdeaVerdict}
+                />
               </View>
             ))}
           </Animated.View>
@@ -509,6 +619,15 @@ export default function HomeScreen() {
           </View>
         ) : null}
       </ScrollView>
+      {/* Viral feedback-loop whisper — fires on the Nth lifetime
+          YES (3rd, 7th, 15th, 30th). Sits as a sibling of the
+          ScrollView so it overlays the entire screen and isn't
+          clipped by the scroll view's content bounds. The toast
+          owns its own auto-dismiss timer. */}
+      <InlineToast
+        message={loopToast}
+        onHide={() => setLoopToast(null)}
+      />
     </View>
   );
 }
@@ -540,6 +659,18 @@ const styles = StyleSheet.create({
     ...type.display,
     color: "#FFFFFF",
     marginBottom: 8,
+  },
+  // Returning-user signal — quiet teal italic line that sits
+  // between the title and the standard region/style sub-line.
+  // Visually subordinate to the title; deliberately not a chip
+  // or banner so it reads as the app speaking, not announcing.
+  returnSignal: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(0,255,204,0.78)",
+    fontSize: 13,
+    fontStyle: "italic",
+    marginTop: -2,
+    marginBottom: 10,
   },
   sub: {
     ...type.body,
