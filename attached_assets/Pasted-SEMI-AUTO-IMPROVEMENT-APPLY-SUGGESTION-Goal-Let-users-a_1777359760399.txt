@@ -1,0 +1,150 @@
+SEMI-AUTO IMPROVEMENT — APPLY SUGGESTION
+
+Goal:
+Let users apply simple enhancement suggestions instantly without building a full editor.
+
+Do NOT add:
+- timeline editor
+- trimming UI
+- filters
+- effects
+- complex video rendering
+- publishing
+
+This is a lightweight “apply improvement” layer.
+
+---
+
+PART 1 — SUGGESTION TYPES
+
+Support only 3 apply-able suggestion types:
+
+1. Caption rewrite
+- Applies new caption text immediately
+
+2. Hook/title rewrite
+- Applies new hook/title text immediately
+
+3. Start timing hint
+- Stores a recommended start offset
+- Example: “Start around 0:01”
+- Do NOT build trimming yet
+
+---
+
+PART 2 — UI
+
+On the enhancement card:
+
+Title:
+"Make it hit harder"
+
+For each suggestion show:
+- suggestion text
+- small button: "Apply"
+
+After apply:
+- button changes to "Applied"
+- update preview state immediately
+
+Example:
+Suggestion:
+"Try this caption: ‘still doing it tomorrow 💀’"
+
+Button:
+"Apply"
+
+---
+
+PART 3 — BEHAVIOR
+
+If suggestion type = caption:
+- replace suggestedCaption with improved caption
+
+If suggestion type = hook:
+- replace displayed hook/title with improved hook
+
+If suggestion type = start_hint:
+- store startHint on preview/session
+- show small note:
+"Start around 0:01"
+
+Do NOT actually trim video yet.
+
+---
+
+PART 4 — DATA MODEL
+
+Add lightweight optional fields to preview/session state:
+
+appliedEnhancements: {
+  caption?: string,
+  hook?: string,
+  startHint?: string,
+  appliedSuggestionIds?: string[]
+}
+
+No DB migration unless already needed.
+Keep local/session-level if possible.
+
+---
+
+PART 5 — SIGNAL
+
+When user taps Apply:
+
+Send ideator_signal:
+
+signal_type: "applied_enhancement"
+
+Include:
+- idea_id
+- suggestion_type
+- pattern tags if available
+
+This is a positive signal, but weaker than export.
+
+Weight:
++1
+
+Do NOT trigger regeneration.
+
+---
+
+PART 6 — CONSTRAINTS
+
+Only show Apply if the suggestion can be applied cleanly.
+
+Apply allowed:
+- caption rewrite
+- hook rewrite
+- start timing hint
+
+Apply NOT allowed:
+- “make reaction bigger”
+- “hold final shot longer”
+- “film closer”
+- any suggestion requiring refilming
+
+For non-apply suggestions, show:
+"Try this"
+
+---
+
+PART 7 — COPY
+
+After applying, show tiny reassurance:
+
+"Nice — that’s sharper."
+
+Do NOT over-celebrate.
+
+---
+
+SUCCESS CRITERION
+
+User should feel:
+“That was easy. My video is better.”
+
+Not:
+“Now I need to edit.”

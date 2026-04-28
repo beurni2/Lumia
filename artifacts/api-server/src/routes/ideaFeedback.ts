@@ -70,6 +70,11 @@ const signalTypeEnum = z.enum([
   "regenerated_batch",
   "skipped",
   "abandoned",
+  // Semi-auto enhancement apply — fired when the user taps Apply on
+  // a caption / hook / start-hint suggestion in the EnhancementCard.
+  // Positive but weaker than `exported` (intent < shipping). Weight
+  // table lives in lib/viralPatternMemory.ts — keep them in lock-step.
+  "applied_enhancement",
 ]);
 // Lumina Evolution Engine tags (Part 1). Same canonical taxonomies
 // the model emits in ideaSchema. Optional here so older clients can
@@ -114,6 +119,15 @@ const signalBody = z.object({
   payoffType: z.string().trim().max(32).optional(),
   structure: structureEnum.optional(),
   hookStyle: hookStyleEnum.optional(),
+  // Suggestion-Apply Part 5: when signalType=applied_enhancement,
+  // the client tells us which kind of suggestion was applied.
+  // Optional + tolerated on any signal so we don't break older
+  // clients. Not persisted as a separate column (spec forbids a
+  // migration this round) — the server-side memory aggregator
+  // already credits via signalType + the existing pattern tags;
+  // suggestionType is kept on the wire for future attribution
+  // and request logging.
+  suggestionType: z.enum(["caption", "hook", "start_hint"]).optional(),
 });
 
 // Deterministic short identifier for log lines — gives ops a way to

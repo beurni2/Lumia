@@ -183,6 +183,30 @@ export default function ReviewScreen() {
   // own thing — closing it doesn't reset the success block.
   const [exportToast, setExportToast] = useState<string | null>(null);
 
+  // Semi-auto enhancement apply state — populated when the user
+  // taps Apply on an EnhancementCard suggestion. Local/session-only
+  // by spec ("No DB migration unless already needed"). Lives at the
+  // screen level (not inside EnhancementCard) so BeforeAfter can
+  // surface the new hook overlay the instant the user taps Apply.
+  //   • caption / hook   — overrides the displayed text on the
+  //                        review screen (caption is shown inside
+  //                        the card itself; hook flows into
+  //                        BeforeAfter's AFTER pane).
+  //   • startHint        — formatted offset like "0:01"; shown as a
+  //                        passive note. We do NOT trim — Phase 1
+  //                        spec is explicit that this is a hint
+  //                        only.
+  //   • appliedSuggestionIds — set of suggestion ids the user has
+  //                        already applied this session, so Apply
+  //                        flips to a sticky "Applied" label and
+  //                        we don't double-fire the signal.
+  const [appliedEnhancements, setAppliedEnhancements] = useState<{
+    caption?: string;
+    hook?: string;
+    startHint?: string;
+    appliedSuggestionIds: string[];
+  }>({ appliedSuggestionIds: [] });
+
   // Stale-call guard for the same reason as Home — Retry can
   // fire a second `loadMatch` while the first is still in
   // flight, and we don't want the slower one to clobber the
@@ -523,6 +547,7 @@ export default function ReviewScreen() {
               extraClips={extraClips}
               idea={idea}
               watermarkOn={watermarkOn}
+              appliedHookOverride={appliedEnhancements.hook}
             />
           ) : null}
 
@@ -538,7 +563,11 @@ export default function ReviewScreen() {
               Mounts in the same conditions as WhyBetter so the two
               cards either both appear or both stay quiet. */}
           {!loading && !errorMsg ? (
-            <EnhancementCard idea={idea} />
+            <EnhancementCard
+              idea={idea}
+              applied={appliedEnhancements}
+              onApplied={setAppliedEnhancements}
+            />
           ) : null}
 
           <ExportSection
@@ -598,6 +627,7 @@ function BeforeAfter({
   extraClips,
   idea,
   watermarkOn,
+  appliedHookOverride,
 }: {
   match: PastMatch;
   clip: FilmedClip;
@@ -608,6 +638,11 @@ function BeforeAfter({
   extraClips: FilmedClip[];
   idea: IdeaCardData;
   watermarkOn: boolean;
+  // Optional hook override fed by EnhancementCard's "Apply" — when
+  // present, the AFTER frame renders this in place of `idea.hook`
+  // so the preview reflects the user's just-applied improvement
+  // without us mutating the underlying idea object.
+  appliedHookOverride?: string;
 }) {
   const past = match.video;
   const extras = extraClips.length;
@@ -650,7 +685,7 @@ function BeforeAfter({
           </View>
           <View style={styles.frameAfterBody}>
             <Text style={styles.frameAfterHook} numberOfLines={4}>
-              {idea.hook}
+              {appliedHookOverride ?? idea.hook}
             </Text>
           </View>
           <View style={styles.frameFooter}>
@@ -960,20 +995,68 @@ function WhyBetterCard({ idea }: { idea: IdeaCardData }) {
  * the no-editing-UI / 1-sentence / max-3 contract server-side, so
  * this component just renders what it gets.
  */
-function EnhancementCard({ idea }: { idea: IdeaCardData }) {
+type SuggestionType = "caption" | "hook" | "start_hint" | "manual";
+type Suggestion = {
+  id: string;
+  type: SuggestionType;
+  text: string;
+  applyValue?: string;
+};
+type AppliedEnhancements = {
+  caption?: string;
+  hook?: string;
+  startHint?: string;
+  appliedSuggestionIds: string[];
+};
+
+function EnhancementCard({
+  idea,
+  applied,
+  onApplied,
+}: {
+  idea: IdeaCardData;
+  applied: AppliedEnhancements;
+  onApplied: React.Dispatch<React.SetStateAction<AppliedEnhancements>>;
+}) {
   type Phase = "idle" | "loading" | "loaded" | "error";
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<{
     title: string;
-    suggestions: string[];
+    suggestions: Suggestion[];
   } | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  // Tiny reassurance line shown right after any successful Apply.
+  // We auto-clear after a short window so it reads as a one-shot
+  // confirmation rather than a permanent banner. Spec copy is
+  // intentionally measured ("Nice — that's sharper.") so it doesn't
+  // over-celebrate a 1-tap action.
+  const [reassurance, setReassurance] = useState<string | null>(null);
+  const reassureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Defensive single-flight — a rapid double-tap on the CTA could
   // otherwise issue two concurrent POSTs and double-bill the
   // creator's AI cost cap. The ref short-circuits the second tap
   // until the in-flight request resolves either way.
   const inFlightRef = useRef(false);
+
+  // Synchronous double-fire guard for Apply. Reading
+  // `applied.appliedSuggestionIds` from props is too late — props
+  // only update after React commits, so two taps in the same frame
+  // both pass that check and both fire the signal. This ref is
+  // updated synchronously inside handleApply so the second tap
+  // sees the id immediately and bails.
+  const appliedIdsRef = useRef<Set<string>>(new Set());
+
+  // Clean up the reassurance timer on unmount so a navigation-away
+  // mid-fade doesn't fire setState on a stale instance.
+  useEffect(() => {
+    return () => {
+      if (reassureTimerRef.current) {
+        clearTimeout(reassureTimerRef.current);
+        reassureTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchEnhancements = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -983,7 +1066,7 @@ function EnhancementCard({ idea }: { idea: IdeaCardData }) {
     try {
       const data = await customFetch<{
         title: string;
-        suggestions: string[];
+        suggestions: unknown;
       }>("/api/enhancements/suggest", {
         method: "POST",
         body: JSON.stringify({
@@ -1004,20 +1087,64 @@ function EnhancementCard({ idea }: { idea: IdeaCardData }) {
         }),
         responseType: "json",
       });
-      // Defensive shape check — the server guarantees this, but a
-      // proxy or mock could in theory return something else.
+      // Normalise the response into our internal Suggestion shape.
+      // The server now returns objects { id, type, text, applyValue? }
+      // (Suggestion-Apply spec); we still defensively accept legacy
+      // string entries from any cached client/proxy and downgrade
+      // them to type=manual so the card never breaks on shape drift.
+      const rawList = Array.isArray(data?.suggestions) ? data!.suggestions : [];
+      const suggestions: Suggestion[] = [];
+      for (let i = 0; i < rawList.length && suggestions.length < 3; i++) {
+        const r = rawList[i];
+        if (typeof r === "string" && r.trim().length > 0) {
+          suggestions.push({
+            id: `s${i + 1}`,
+            type: "manual",
+            text: r.trim(),
+          });
+          continue;
+        }
+        if (r && typeof r === "object") {
+          const o = r as {
+            id?: unknown;
+            type?: unknown;
+            text?: unknown;
+            applyValue?: unknown;
+          };
+          const text = typeof o.text === "string" ? o.text.trim() : "";
+          if (text.length === 0) continue;
+          const t: SuggestionType =
+            o.type === "caption" ||
+            o.type === "hook" ||
+            o.type === "start_hint" ||
+            o.type === "manual"
+              ? o.type
+              : "manual";
+          const id =
+            typeof o.id === "string" && o.id.length > 0 ? o.id : `s${i + 1}`;
+          const applyValue =
+            t !== "manual" &&
+            typeof o.applyValue === "string" &&
+            o.applyValue.trim().length > 0
+              ? o.applyValue.trim()
+              : undefined;
+          // Apply types missing a value can't be applied cleanly —
+          // downgrade to manual so the UI shows "Try this" instead
+          // of an Apply button that would do nothing.
+          suggestions.push({
+            id,
+            type: applyValue || t === "manual" ? t : "manual",
+            text,
+            applyValue,
+          });
+        }
+      }
       if (
         data &&
         typeof data.title === "string" &&
-        Array.isArray(data.suggestions) &&
-        data.suggestions.length > 0
+        suggestions.length > 0
       ) {
-        setResult({
-          title: data.title,
-          suggestions: data.suggestions.filter(
-            (s): s is string => typeof s === "string" && s.length > 0,
-          ),
-        });
+        setResult({ title: data.title, suggestions });
         setPhase("loaded");
       } else {
         setErrMsg("No suggestions came back. Try again in a moment.");
@@ -1036,6 +1163,81 @@ function EnhancementCard({ idea }: { idea: IdeaCardData }) {
       inFlightRef.current = false;
     }
   }, [idea]);
+
+  // Apply handler — local-state mutation + fire-and-forget signal.
+  // Idempotent on suggestion id: a second tap is a no-op (the
+  // button has already flipped to "Applied" but a stale press
+  // event slipping through must not double-fire the signal or
+  // reset the reassurance timer). The synchronous ref-based guard
+  // is what actually makes that hold under double-tap — checking
+  // props/state alone is racy because both taps run before React
+  // re-commits with the updated id list.
+  const handleApply = useCallback(
+    (s: Suggestion) => {
+      if (s.type === "manual" || !s.applyValue) return;
+      // Synchronous guard — must run BEFORE any side effect.
+      if (appliedIdsRef.current.has(s.id)) return;
+      appliedIdsRef.current.add(s.id);
+
+      onApplied((prev) => {
+        // Functional update so concurrent applies (unlikely but
+        // possible if the user double-taps two suggestions back
+        // to back) compose without dropping state.
+        const next: AppliedEnhancements = {
+          ...prev,
+          appliedSuggestionIds: prev.appliedSuggestionIds.includes(s.id)
+            ? prev.appliedSuggestionIds
+            : [...prev.appliedSuggestionIds, s.id],
+        };
+        if (s.type === "caption") next.caption = s.applyValue;
+        else if (s.type === "hook") next.hook = s.applyValue;
+        else if (s.type === "start_hint") next.startHint = s.applyValue;
+        return next;
+      });
+
+      // Positive but lighter-than-export signal. Server enum +
+      // weight live in api-server/src/lib/viralPatternMemory.ts
+      // (`applied_enhancement` = +1). Forward all four pattern
+      // tags so the memory aggregator can credit the right
+      // structure/hookStyle/spike/format buckets, plus the
+      // suggestionType so future attribution can split applies by
+      // caption/hook/start_hint without re-deploying.
+      if (idea?.hook) {
+        submitIdeatorSignal({
+          ideaHook: idea.hook,
+          signalType: "applied_enhancement",
+          ideaPattern: idea.pattern,
+          emotionalSpike: idea.emotionalSpike,
+          payoffType: idea.payoffType,
+          structure: idea.structure,
+          hookStyle: idea.hookStyle,
+          // Narrow to the apply-able subset — TS narrowing on
+          // s.type=manual was already returned-out above.
+          suggestionType: s.type as "caption" | "hook" | "start_hint",
+        });
+      }
+
+      // Show the spec-mandated reassurance line and auto-clear.
+      // Reset any pending timer so back-to-back applies extend
+      // the visible window instead of cutting it short.
+      setReassurance("Nice — that's sharper.");
+      if (reassureTimerRef.current) clearTimeout(reassureTimerRef.current);
+      reassureTimerRef.current = setTimeout(() => {
+        setReassurance(null);
+        reassureTimerRef.current = null;
+      }, 2400);
+    },
+    [idea, onApplied],
+  );
+
+  // Keep the ref in sync with parent-driven state — covers the case
+  // where the parent rehydrates from a higher source (none today,
+  // but cheap insurance). Without this, a navigation that resets
+  // appliedEnhancements wouldn't clear the ref, and the user would
+  // be permanently locked out of re-applying the same id.
+  useEffect(() => {
+    appliedIdsRef.current = new Set(applied.appliedSuggestionIds);
+  }, [applied.appliedSuggestionIds]);
 
   if (phase === "idle") {
     return (
@@ -1096,22 +1298,131 @@ function EnhancementCard({ idea }: { idea: IdeaCardData }) {
   }
 
   // loaded
+  // Spec note (Part 2): the card title is hard-coded to
+  // "Make it hit harder". We deliberately ignore the brain's
+  // returned `result.title` here — the brain's title is still a
+  // useful internal signal for prompt-tuning and may be surfaced
+  // elsewhere in future, but the user-facing copy stays stable so
+  // the surface always reads the same way the spec describes.
+  const suggestions = result?.suggestions ?? [];
+  const appliedIds = new Set(applied.appliedSuggestionIds);
   return (
     <View style={styles.enhanceCard}>
-      <Text style={styles.enhanceKicker}>{result?.title ?? "Make it hit harder"}</Text>
+      <Text style={styles.enhanceKicker}>Make it hit harder</Text>
+
+      {/* Show the user what they've already applied so the change
+          feels real even before they scroll back up to the AFTER
+          frame. Caption + start-hint surface here because they're
+          not visible elsewhere on /review; hook flows into the
+          BeforeAfter overlay so we don't echo it twice. */}
+      {applied.caption || applied.startHint ? (
+        <View style={styles.enhanceAppliedBlock}>
+          {applied.caption ? (
+            <View style={styles.enhanceAppliedRow}>
+              <Text style={styles.enhanceAppliedLabel}>Caption</Text>
+              <Text style={styles.enhanceAppliedValue} numberOfLines={3}>
+                {applied.caption}
+              </Text>
+            </View>
+          ) : null}
+          {applied.startHint ? (
+            <View style={styles.enhanceAppliedRow}>
+              <Feather
+                name="clock"
+                size={12}
+                color={lumina.firefly}
+                style={styles.enhanceAppliedIcon}
+              />
+              <Text style={styles.enhanceAppliedValue}>
+                Start around {applied.startHint}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.enhanceList}>
-        {(result?.suggestions ?? []).map((s) => (
-          <View key={s} style={styles.enhanceRow}>
-            <Feather
-              name="zap"
-              size={14}
-              color={lumina.firefly}
-              style={styles.enhanceRowIcon}
-            />
-            <Text style={styles.enhanceRowText}>{s}</Text>
-          </View>
-        ))}
+        {suggestions.map((s) => {
+          const isApplied = appliedIds.has(s.id);
+          // Apply is gated on type + a clean apply value. Anything
+          // else gets a passive "Try this" pill (no tap target) per
+          // Part 6 of the spec — refilm / hold-shot / make-reaction-
+          // bigger style suggestions can't be auto-applied.
+          const canApply = s.type !== "manual" && Boolean(s.applyValue);
+          return (
+            <View key={s.id} style={styles.enhanceRow}>
+              <Feather
+                name="zap"
+                size={14}
+                color={lumina.firefly}
+                style={styles.enhanceRowIcon}
+              />
+              <View style={styles.enhanceRowBody}>
+                <Text style={styles.enhanceRowText}>{s.text}</Text>
+                <View style={styles.enhanceRowActions}>
+                  {canApply ? (
+                    isApplied ? (
+                      // Sticky "Applied" — non-pressable so a stray
+                      // tap can't double-fire the signal. Visually
+                      // distinct from the live Apply button so the
+                      // state change is obvious without copy alone.
+                      <View
+                        style={[
+                          styles.enhanceApplyBtn,
+                          styles.enhanceApplyBtnDone,
+                        ]}
+                        accessible
+                        accessibilityRole="text"
+                        accessibilityLabel="Applied"
+                      >
+                        <Feather
+                          name="check"
+                          size={12}
+                          color={lumina.firefly}
+                          style={styles.enhanceApplyDoneIcon}
+                        />
+                        <Text
+                          style={[
+                            styles.enhanceApplyLabel,
+                            styles.enhanceApplyLabelDone,
+                          ]}
+                        >
+                          Applied
+                        </Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => handleApply(s)}
+                        style={({ pressed }) => [
+                          styles.enhanceApplyBtn,
+                          pressed ? styles.enhanceApplyBtnPressed : null,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Apply suggestion: ${s.text}`}
+                      >
+                        <Text style={styles.enhanceApplyLabel}>Apply</Text>
+                      </Pressable>
+                    )
+                  ) : (
+                    <View
+                      style={styles.enhanceTryPill}
+                      accessible
+                      accessibilityRole="text"
+                      accessibilityLabel="Try this"
+                    >
+                      <Text style={styles.enhanceTryPillLabel}>Try this</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          );
+        })}
       </View>
+
+      {reassurance ? (
+        <Text style={styles.enhanceReassurance}>{reassurance}</Text>
+      ) : null}
     </View>
   );
 }
@@ -1699,12 +2010,116 @@ const styles = StyleSheet.create({
   enhanceRowIcon: {
     marginTop: 3,
   },
-  enhanceRowText: {
+  enhanceRowBody: {
     flex: 1,
+    gap: 8,
+  },
+  enhanceRowText: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.92)",
     fontSize: 14,
     lineHeight: 20,
+  },
+  enhanceRowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  // Apply button — slightly stronger than the retry pill so the
+  // primary action reads as live; "Applied" reuses the same shell
+  // but goes muted + adds a check so the state change is obvious.
+  enhanceApplyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.34)",
+  },
+  enhanceApplyBtnPressed: {
+    opacity: 0.7,
+  },
+  enhanceApplyBtnDone: {
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderColor: "rgba(0,255,204,0.22)",
+  },
+  enhanceApplyDoneIcon: {
+    marginRight: 5,
+  },
+  enhanceApplyLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  enhanceApplyLabelDone: {
+    opacity: 0.85,
+  },
+  // Passive tag for non-applyable suggestions (refilm / hold shot /
+  // bigger reaction). Same shape as the Apply button so the row
+  // visually balances, but borderless + low contrast so it doesn't
+  // beg for a tap that does nothing.
+  enhanceTryPill: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  enhanceTryPillLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  // Block summarising what the user has already applied (caption
+  // and/or start hint). Sits above the suggestions list so the
+  // user sees the change as they scroll. Hook is intentionally
+  // omitted here because it flows straight into BeforeAfter.
+  enhanceAppliedBlock: {
+    marginBottom: 14,
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.18)",
+  },
+  enhanceAppliedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  enhanceAppliedIcon: {
+    marginTop: 1,
+  },
+  enhanceAppliedLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  enhanceAppliedValue: {
+    flex: 1,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  // Tiny one-line reassurance shown for ~2.4s after Apply.
+  // Deliberately quiet — no icon, no big colour shift — so it
+  // reads as "got it" rather than a celebration banner.
+  enhanceReassurance: {
+    marginTop: 14,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(0,255,204,0.85)",
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
   // Buttons (mirrored from create.tsx — kept local to avoid a
   // cross-screen primitive shuffle until a third caller appears)

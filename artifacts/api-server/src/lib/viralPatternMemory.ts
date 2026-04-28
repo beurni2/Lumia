@@ -249,6 +249,10 @@ const SIGNAL_WEIGHT: Record<string, number> = {
   exported: 3,
   make_another_version: 2,
   selected: 2,
+  // Semi-auto enhancement apply (caption / hook / start hint). A
+  // positive intent signal weaker than `exported` because the user
+  // tweaked something but hasn't actually shipped the result yet.
+  applied_enhancement: 1,
   regenerated_batch: -1,
   skipped: -1,
   abandoned: -1,
@@ -260,6 +264,7 @@ const POSITIVE_SIGNAL_TYPES = new Set([
   "exported",
   "make_another_version",
   "selected",
+  "applied_enhancement",
 ]);
 const NEGATIVE_SIGNAL_TYPES = new Set([
   "regenerated_batch",

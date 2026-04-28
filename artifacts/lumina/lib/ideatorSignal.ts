@@ -33,7 +33,10 @@ export type IdeatorSignalType =
   | "make_another_version"
   | "regenerated_batch"
   | "skipped"
-  | "abandoned";
+  | "abandoned"
+  // Semi-auto enhancement apply — caption/hook/start-hint tap.
+  // Server weights this +1 (positive but lighter than `exported`).
+  | "applied_enhancement";
 
 export type SubmitIdeatorSignalInput = {
   ideaHook: string;
@@ -51,6 +54,12 @@ export type SubmitIdeatorSignalInput = {
   // optional — server tolerates NULL.
   structure?: string;
   hookStyle?: string;
+  // Semi-auto enhancement apply payload (Part 5 of SUGGESTION-APPLY
+  // spec). Only meaningful when signalType=applied_enhancement;
+  // server-side validator tolerates it on any signal. We don't send
+  // an ideaId because the screen-level idea has no canonical id
+  // until export — the server keys off ideaHook for attribution.
+  suggestionType?: "caption" | "hook" | "start_hint";
 };
 
 /**
