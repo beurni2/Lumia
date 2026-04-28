@@ -62,6 +62,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Platform,
   Pressable,
@@ -71,7 +72,15 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ApiError, customFetch } from "@workspace/api-client-react";
@@ -82,6 +91,7 @@ import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import { feedback } from "@/lib/feedback";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 import { POST_EXPORT_MESSAGE } from "@/lib/loopMessages";
 
@@ -1596,7 +1606,11 @@ function MakeItReadyCard({
     if (extraClips.length >= 1) {
       out.push({
         type: "stitch_clips",
-        label: "Combine your two clips",
+        // Note: `label` is now derived per-row from BOOST_COPY in
+        // BoostRow — kept on the action object for backwards compat
+        // with any external consumer that destructures it, but the
+        // UI no longer reads it.
+        label: BOOST_COPY.stitch_clips.label,
         params: { clipCount: extraClips.length + 1 },
       });
     }
@@ -1607,7 +1621,7 @@ function MakeItReadyCard({
       const seconds = clampTrimWindow(hintedSec);
       out.push({
         type: "trim_start",
-        label: `Trim the first ${seconds.toFixed(1)}s so the hook lands faster`,
+        label: BOOST_COPY.trim_start.label,
         params: { seconds },
       });
     }
@@ -1617,18 +1631,6 @@ function MakeItReadyCard({
     appliedEnhancements.startHint,
     idea.hookSeconds,
   ]);
-
-  // Reassurance line ("Nice — that's sharper.") and the same
-  // 2.4s auto-clear behaviour as EnhancementCard. Reusing the
-  // copy keeps the apply experience consistent across both
-  // semi-auto layers.
-  const [reassurance, setReassurance] = useState<string | null>(null);
-  const reassureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (reassureTimerRef.current) clearTimeout(reassureTimerRef.current);
-    };
-  }, []);
 
   // Synchronous double-fire guard (same pattern + rationale as
   // EnhancementCard). Reading `appliedEdits.appliedActionTypes`
@@ -1683,13 +1685,10 @@ function MakeItReadyCard({
           suggestionType: action.type,
         });
       }
-
-      setReassurance("Nice — that's sharper.");
-      if (reassureTimerRef.current) clearTimeout(reassureTimerRef.current);
-      reassureTimerRef.current = setTimeout(() => {
-        setReassurance(null);
-        reassureTimerRef.current = null;
-      }, 2400);
+      // Per-row micro-confirmation is owned by BoostRow now (action-
+      // specific copy + scoped fade timer). The card-level
+      // "Nice — that's sharper." reassurance is gone on purpose —
+      // it competed with the per-row line for attention.
     },
     [idea, onAppliedEdits],
   );
@@ -1701,10 +1700,7 @@ function MakeItReadyCard({
 
   return (
     <View style={styles.readyCard} testID="make-it-ready-card">
-      <Text style={styles.readyTitle}>Make it ready (optional)</Text>
-      <Text style={styles.readySub}>
-        One tap each — your video is still your video.
-      </Text>
+      <Text style={styles.readyTitle}>Quick boost (optional)</Text>
 
       <View style={styles.readyList}>
         {actions.map((action) => {
@@ -1712,44 +1708,202 @@ function MakeItReadyCard({
             action.type,
           );
           return (
-            <View
+            <BoostRow
               key={action.type}
-              style={styles.readyRow}
-              testID={`make-it-ready-row-${action.type}`}
-            >
-              <Feather
-                name={action.type === "stitch_clips" ? "link" : "scissors"}
-                size={14}
-                color={lumina.firefly}
-                style={styles.readyRowIcon}
-              />
-              <View style={styles.readyRowBody}>
-                <Text style={styles.readyRowLabel}>{action.label}</Text>
-              </View>
-              {isApplied ? (
-                <View style={styles.readyAppliedPill}>
-                  <Feather name="check" size={12} color={lumina.firefly} />
-                  <Text style={styles.readyAppliedPillText}>Applied</Text>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={() => handleApply(action)}
-                  style={({ pressed }) => [
-                    styles.readyApplyBtn,
-                    pressed ? styles.readyApplyBtnPressed : null,
-                  ]}
-                  testID={`make-it-ready-apply-${action.type}`}
-                >
-                  <Text style={styles.readyApplyBtnText}>Apply</Text>
-                </Pressable>
-              )}
-            </View>
+              action={action}
+              isApplied={isApplied}
+              onApply={handleApply}
+            />
           );
         })}
       </View>
+    </View>
+  );
+}
 
-      {reassurance ? (
-        <Text style={styles.readyReassurance}>{reassurance}</Text>
+/**
+ * Per-action copy table for the Quick Boost card.
+ *
+ * `label` is the row's primary text (kept short — 2-3 words — so
+ * the user reads it as a single glance, not a sentence).
+ *
+ * `confirm` is the micro-confirmation that fades in under the row
+ * the instant the user taps Fix. Each variant ends with a present-
+ * tense, finished-state verb so the user feels the change *just
+ * happened* — never aspirational ("would feel smoother") or
+ * passive ("smoothing applied").
+ */
+const BOOST_COPY: Record<EditActionType, { label: string; confirm: string }> = {
+  stitch_clips: {
+    label: "Smoother flow",
+    confirm: "Clips feel more natural now",
+  },
+  trim_start: {
+    label: "Faster hook",
+    confirm: "Hook now hits instantly",
+  },
+};
+
+/**
+ * One row in the Quick Boost card. Owns its own micro-interaction
+ * state so the animations (button scale, row glow, micro-confirm
+ * fade) stay scoped to the tapped row and don't ripple into the
+ * sibling row when the user taps both in quick succession.
+ *
+ * Behaviour on press:
+ *   1. Light haptic via the central feedback layer (web-safe).
+ *   2. Button scales 0.95 → 1.0 (~150ms total).
+ *   3. Row gets a brief firefly-tinted glow (120ms in, 200ms out).
+ *   4. Micro-confirmation text fades in under the row, holds
+ *      ~1.5s, fades out.
+ *   5. Button label flips Fix → "Done ✓" and disables further taps.
+ *
+ * Pre-applied state (e.g., user navigated back into review with
+ * the action already applied) renders the "Done ✓" terminal state
+ * without firing animations or the micro-confirmation, so the
+ * screen doesn't look like it's reacting to a tap that didn't
+ * happen.
+ */
+function BoostRow({
+  action,
+  isApplied,
+  onApply,
+}: {
+  action: EditAction;
+  isApplied: boolean;
+  onApply: (action: EditAction) => void;
+}) {
+  const copy = BOOST_COPY[action.type];
+
+  // Local "just tapped" — drives the temporary micro-confirmation
+  // line. Distinct from `isApplied` (props) so the line fades out
+  // even though the row stays in the Done state forever.
+  const [showConfirm, setShowConfirm] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    };
+  }, []);
+
+  // Reanimated shared values for the button scale + row glow.
+  // Driven exclusively by handlePress — never set on prop change —
+  // so a re-render with a stale isApplied=true never plays a stray
+  // animation.
+  const btnScale = useSharedValue(1);
+  const glow = useSharedValue(0);
+
+  const btnAnim = useAnimatedStyle(() => ({
+    transform: [{ scale: btnScale.value }],
+  }));
+  const glowAnim = useAnimatedStyle(() => ({
+    opacity: glow.value,
+  }));
+
+  // Synchronous "already fired" latch. `isApplied` comes from
+  // props and updates async after a parent commit, so a rapid
+  // second tap inside the same frame would re-run haptic + scale
+  // + glow + confirm even though handleApply's idempotency guard
+  // safely no-ops the state change. This ref blocks the *visual*
+  // duplication too. Guards against fast double-tap on Fix.
+  const firedRef = useRef(false);
+  useEffect(() => {
+    // If the row mounts already-applied (deep link), pre-arm the
+    // latch so a programmatic re-tap on the disabled button can't
+    // sneak through.
+    if (isApplied) firedRef.current = true;
+  }, [isApplied]);
+
+  const handlePress = useCallback(() => {
+    if (isApplied || firedRef.current) return;
+    firedRef.current = true;
+    // Light tap haptic per spec ("light haptic on tap"). `feedback.tap`
+    // maps to ImpactFeedbackStyle.Light on native; no-ops on web.
+    feedback.tap();
+    btnScale.value = withSequence(
+      withTiming(0.95, { duration: 80 }),
+      withSpring(1, { damping: 12, stiffness: 240, mass: 0.6 }),
+    );
+    glow.value = withSequence(
+      withTiming(1, { duration: 120 }),
+      withTiming(0, { duration: 200 }),
+    );
+    setShowConfirm(true);
+    // iOS VoiceOver doesn't honour `accessibilityLiveRegion` (that
+    // attr is Android-only). Announce the confirmation through the
+    // imperative API so VoiceOver and TalkBack both speak it.
+    if (Platform.OS === "ios") {
+      AccessibilityInfo.announceForAccessibility(copy.confirm);
+    }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => {
+      setShowConfirm(false);
+      confirmTimer.current = null;
+    }, 1500);
+    // Fire the actual apply *after* kicking off the visual feedback
+    // so the user never sees a one-frame gap between tap and
+    // animation start. handleApply itself is idempotent.
+    onApply(action);
+  }, [action, isApplied, onApply, btnScale, glow, copy.confirm]);
+
+  return (
+    <View
+      style={styles.boostRowWrap}
+      testID={`make-it-ready-row-${action.type}`}
+    >
+      <View style={styles.boostRow}>
+        {/* Glow overlay — first child so later siblings paint on
+            top. Pointer-events disabled so it can never eat a tap
+            on the icon / label / button. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.boostRowGlow, glowAnim]}
+        />
+        <Feather
+          name={action.type === "stitch_clips" ? "link" : "scissors"}
+          size={14}
+          color={lumina.firefly}
+          style={styles.boostRowIcon}
+        />
+        <View style={styles.boostRowBody}>
+          <Text style={styles.boostRowLabel}>{copy.label}</Text>
+        </View>
+        <Animated.View style={btnAnim}>
+          <Pressable
+            onPress={handlePress}
+            disabled={isApplied}
+            style={({ pressed }) => [
+              styles.boostBtn,
+              isApplied ? styles.boostBtnDone : null,
+              pressed && !isApplied ? styles.boostBtnPressed : null,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isApplied ? `${copy.label} applied` : `Fix: ${copy.label}`
+            }
+            accessibilityState={{ disabled: isApplied }}
+            testID={`make-it-ready-apply-${action.type}`}
+          >
+            <Text
+              style={[
+                styles.boostBtnText,
+                isApplied ? styles.boostBtnTextDone : null,
+              ]}
+            >
+              {isApplied ? "Done ✓" : "Fix"}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+      {showConfirm ? (
+        <Animated.Text
+          entering={FadeIn.duration(120)}
+          exiting={FadeOut.duration(200)}
+          style={styles.boostConfirm}
+          accessibilityLiveRegion="polite"
+        >
+          {copy.confirm}
+        </Animated.Text>
       ) : null}
     </View>
   );
@@ -2475,79 +2629,90 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.2,
   },
-  readySub: {
-    marginTop: 6,
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.62)",
-    fontSize: 12,
-    lineHeight: 17,
-  },
   readyList: {
     marginTop: 14,
-    gap: 10,
+    gap: 14,
   },
-  readyRow: {
+  // Quick Boost row — wrapper holds the row + the per-row micro-
+  // confirmation line so they animate in/out together without
+  // pushing siblings around.
+  boostRowWrap: {
+    gap: 6,
+  },
+  boostRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    // `relative` so the absolutely-positioned glow overlay anchors
+    // to the row bounds.
+    position: "relative",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
+    borderRadius: 12,
   },
-  readyRowIcon: {
-    marginTop: 1,
-  },
-  readyRowBody: {
-    flex: 1,
-  },
-  readyRowLabel: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  // Apply / Applied — same metrics as the EnhancementCard pills
-  // so the two semi-auto layers visually rhyme. Kept as a
-  // separate token namespace because the wider shape is the same
-  // but the exact colours were tuned a hair lighter to balance
-  // the smaller text in this card.
-  readyApplyBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 999,
+  // Firefly-tinted glow that pulses behind the row on tap.
+  // Painted as the first child + pointer-events disabled so it
+  // can never intercept a press on the row's interactive children.
+  boostRowGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 12,
     backgroundColor: "rgba(0,255,204,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(0,255,204,0.34)",
+    borderColor: "rgba(0,255,204,0.32)",
   },
-  readyApplyBtnPressed: {
-    opacity: 0.7,
+  boostRowIcon: {
+    marginTop: 1,
   },
-  readyApplyBtnText: {
+  boostRowBody: {
+    flex: 1,
+  },
+  boostRowLabel: {
     fontFamily: fontFamily.bodyMedium,
-    color: lumina.firefly,
-    fontSize: 12,
-    letterSpacing: 0.3,
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 14,
+    lineHeight: 19,
   },
-  readyAppliedPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  // Fix / Done ✓ button — same outer metrics in both states so the
+  // row doesn't reflow when the label flips.
+  boostBtn: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     borderRadius: 999,
-    backgroundColor: "rgba(0,255,204,0.06)",
+    backgroundColor: "rgba(0,255,204,0.16)",
     borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.36)",
+    minWidth: 60,
+    alignItems: "center",
+  },
+  boostBtnPressed: {
+    opacity: 0.75,
+  },
+  boostBtnDone: {
+    backgroundColor: "rgba(0,255,204,0.06)",
     borderColor: "rgba(0,255,204,0.22)",
   },
-  readyAppliedPillText: {
+  boostBtnText: {
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 12,
     letterSpacing: 0.3,
+  },
+  boostBtnTextDone: {
     opacity: 0.85,
   },
-  readyReassurance: {
-    marginTop: 14,
+  // Per-row micro-confirmation. Indents to align with the label
+  // (icon width + gap) so it visually belongs to its row.
+  boostConfirm: {
+    marginLeft: 30,
     fontFamily: fontFamily.bodyMedium,
-    color: "rgba(0,255,204,0.85)",
+    color: "rgba(0,255,204,0.9)",
     fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0.2,
   },
   // Buttons (mirrored from create.tsx — kept local to avoid a
