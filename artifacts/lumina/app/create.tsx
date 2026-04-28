@@ -3,9 +3,12 @@
  *
  * Three stages, each rendered in turn from local state:
  *
- *   1. TIPS    — surface the idea's hook, opening shot, and
- *                "why it works" as filming guidance, plus the
- *                target length / filming time.
+ *   1. TIPS    — show the idea's hook as a large title plus a
+ *                single "What you do" list of ≤4 short physical-
+ *                action lines (derived from `whatToShow`) and a
+ *                one-line confidence micro-line. Designed so the
+ *                user reads once, pictures the scene, and taps —
+ *                no paragraphs, no rationale, no meta pills.
  *   2. IMPORT  — let the user pick the clip they actually filmed
  *                from the device gallery. The picked clip is
  *                kept in local state only — there is no server
@@ -49,7 +52,6 @@ import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
-import { deriveWhyThisWorksLines } from "@/lib/whyThisWorks";
 
 type Stage = "tips" | "import" | "preview";
 
@@ -446,6 +448,64 @@ export default function CreateScreen() {
 
 /* =================== Stage 1 · Tips =================== */
 
+/**
+ * Derive a short, scannable list of physical-action lines for the
+ * "What you do" block from the idea's `whatToShow` field (with
+ * progressively weaker fallbacks).
+ *
+ * The product principle (April 2026 Film polish): the user should
+ * read once, instantly picture the scene, and tap. So we strip the
+ * paragraph-style prose the ideator returns and render it as ≤ 4
+ * short visual steps. No paragraphs, no explanation, only physical
+ * actions.
+ *
+ * Splitting heuristic (`splitToLines`):
+ *   1. Split on sentence-ish delimiters. We require trailing
+ *      whitespace after `. ! ? ;` so abbreviations like
+ *      "e.g.", "i.e.", "U.S." don't shatter into garbage; the
+ *      arrow `→` and newlines split unconditionally because the
+ *      LLM uses them as explicit beat separators.
+ *   2. Trim, drop empties + fragments shorter than 3 chars (one
+ *      stray letter is noise, but "Nod" / "Sip" / "Stare" should
+ *      survive — they're valid one-word physical actions).
+ *   3. Soft-cap each line at ~64 chars so a single long sentence
+ *      that didn't split well doesn't blow out the layout on a
+ *      narrow phone.
+ *   4. Cap at 4 lines (spec: "max 4 lines").
+ *
+ * Fallback chain runs *after* parsing each candidate, not before,
+ * so a `whatToShow` that collapses to zero usable beats still
+ * gracefully degrades to `visualHook` and finally `hook` — instead
+ * of returning empty and letting the consumer render the bare
+ * hook as a single line.
+ */
+function splitToLines(source: string): string[] {
+  if (!source) return [];
+  return source
+    .split(/[.!?;]\s+|[→\n]+/g)
+    .map((s) => s.trim())
+    // Strip a trailing period left from non-whitespace-followed
+    // dots (e.g. last sentence in the source, or a fragment that
+    // ended on `etc.`). Keeps lines visually clean.
+    .map((s) => s.replace(/\.+$/, "").trim())
+    .filter((s) => s.length >= 3)
+    // Soft cap so an unsplittable run-on sentence still renders
+    // legibly. We trim on a word boundary and add an ellipsis so
+    // it's obvious there was more.
+    .map((s) => (s.length <= 64 ? s : `${s.slice(0, 61).trimEnd()}…`))
+    .slice(0, 4);
+}
+
+function deriveActionLines(idea: IdeaCardData): string[] {
+  const candidates = [idea.whatToShow, idea.visualHook, idea.hook];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const lines = splitToLines(candidate);
+    if (lines.length > 0) return lines;
+  }
+  return [];
+}
+
 function TipsStage({
   idea,
   onContinue,
@@ -457,37 +517,54 @@ function TipsStage({
   onUpload: () => void;
   uploadBusy: boolean;
 }) {
-  // Plain-language confidence lines, derived from the idea's own
-  // metadata — not the LLM's `whyItWorks` free-text (which used
-  // to leak system terms like "denial_loop core" / "exploration
-  // target" into the UI right before the user films).
-  // See lib/whyThisWorks.ts for the contract.
-  const whyLines = deriveWhyThisWorksLines(idea);
+  // ≤ 4 short physical-action lines. See deriveActionLines() above
+  // for the contract. We render the section unconditionally — the
+  // function falls back to the hook itself so there's always at
+  // least one line to display.
+  const actionLines = deriveActionLines(idea);
+  // Confidence micro-line under the action list. The filming-time
+  // estimate is per-idea on the server (filmingTimeMin); when the
+  // model omitted it we fall back to ~1 min so the line still
+  // reads correctly. "Just your face" is intentionally fixed copy —
+  // it sets expectation that no props / no setup are required.
+  const minutes =
+    typeof idea.filmingTimeMin === "number" && idea.filmingTimeMin > 0
+      ? idea.filmingTimeMin
+      : 1;
+  const confidenceLine = `Takes ~${minutes} min • Just your face`;
 
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 1 of 3 · Let's film this</Text>
+      {/* The hook IS the title — read once, instantly picture it. */}
       <Text style={styles.title}>{idea.hook}</Text>
 
-      {idea.visualHook ? (
-        <TipBlock title="Open with" body={idea.visualHook} />
-      ) : null}
-
-      <TipBlock
-        title="Hook (first 3 seconds)"
-        body={idea.hook}
-      />
-
-      <WhyThisWorksBlock lines={whyLines} />
-
-      <View style={styles.metaRow}>
-        <Text style={styles.metaText}>15–30s video</Text>
-        {typeof idea.filmingTimeMin === "number" ? (
-          <Text style={styles.metaText}>
-            Takes ~{idea.filmingTimeMin} min to shoot
-          </Text>
-        ) : null}
+      {/* Single "What you do" section — physical actions only. The
+          previous Open with / Hook (first 3s) / Why this works
+          stack was teaching the user; this version triggers them
+          to act. */}
+      <View style={styles.actionSection}>
+        <Text style={styles.actionSectionLabel}>What you do</Text>
+        <View style={styles.actionList}>
+          {actionLines.length > 0 ? (
+            actionLines.map((line, idx) => (
+              <Text key={idx} style={styles.actionLine}>
+                {line}
+              </Text>
+            ))
+          ) : (
+            // Defensive empty state — should never trigger because
+            // deriveActionLines falls back to the hook, but keep
+            // the section non-empty if the model ever ships an
+            // idea with neither whatToShow / visualHook / hook.
+            <Text style={styles.actionLine}>{idea.hook}</Text>
+          )}
+        </View>
       </View>
+
+      {/* Confidence micro-line — single sentence, tight under the
+          action list. Sets expectation: low effort, fast, no setup. */}
+      <Text style={styles.confidenceLine}>{confidenceLine}</Text>
 
       {/* Both CTAs share the busy lock: while the upload picker
           is open we disable the primary too so a tap can't race
@@ -890,38 +967,6 @@ function PreviewStage({
 
 /* =================== Primitives =================== */
 
-function TipBlock({ title, body }: { title: string; body: string }) {
-  return (
-    <View style={styles.tipBlock}>
-      <Text style={styles.tipTitle}>{title}</Text>
-      <Text style={styles.tipBody}>{body}</Text>
-    </View>
-  );
-}
-
-// "Why this works" block — same visual frame as TipBlock so it
-// blends with the rest of the tips, but renders 2–3 short
-// confidence lines stacked instead of a single body paragraph.
-// Lines come from deriveWhyThisWorksLines() — see
-// lib/whyThisWorks.ts for the contract (no system terms,
-// 3–6 words each, max 3 lines).
-function WhyThisWorksBlock({ lines }: { lines: string[] }) {
-  if (lines.length === 0) return null;
-  return (
-    <View style={styles.tipBlock}>
-      <Text style={styles.tipTitle}>Why this works</Text>
-      {lines.map((line, idx) => (
-        <Text
-          key={idx}
-          style={[styles.tipBody, idx > 0 ? styles.whyLineSpacer : null]}
-        >
-          {line}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
 function PrimaryButton({
   label,
   onPress,
@@ -1220,41 +1265,43 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 28,
   },
-  tipBlock: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+  // "What you do" section — single visual block under the hook
+  // title. Subtle frame so the action lines feel like content, not
+  // a tip card. Replaces the previous tipBlock stack.
+  actionSection: {
+    marginTop: 4,
+    marginBottom: 14,
   },
-  tipTitle: {
+  actionSectionLabel: {
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 11,
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     textTransform: "uppercase",
-    marginBottom: 6,
+    marginBottom: 12,
   },
-  tipBody: {
+  actionList: {
+    gap: 8,
+  },
+  actionLine: {
     ...type.body,
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 15,
-    lineHeight: 21,
+    color: "#FFFFFF",
+    fontSize: 17,
+    lineHeight: 24,
   },
-  metaRow: {
-    gap: 4,
+  // Single confidence micro-line under the action list. Tighter
+  // typography than the action lines themselves so it reads as
+  // metadata, not content. Bumped from 0.55 → 0.7 alpha so the
+  // 13px text clears WCAG AA contrast on the cosmic backdrop.
+  confidenceLine: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
     marginTop: 6,
-    marginBottom: 24,
+    marginBottom: 28,
   },
-  metaPill: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
+  // Used by ImportStage's "+N more clips imported" line — kept
+  // even though the Tips screen no longer renders a metaRow.
   metaText: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.85)",
@@ -1389,12 +1436,6 @@ const styles = StyleSheet.create({
     color: lumina.firefly,
     fontSize: 15,
     letterSpacing: 0.3,
-  },
-  // Spacer between successive lines of the "Why this works"
-  // block so each short line gets a little breathing room
-  // without needing a separate Text component per gap.
-  whyLineSpacer: {
-    marginTop: 4,
   },
   // Tertiary text-link button — used as the secondary escape
   // hatch when the primary CTA points forward to the next stage.
