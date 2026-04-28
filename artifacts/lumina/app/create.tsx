@@ -49,6 +49,7 @@ import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import { deriveWhyThisWorksLines } from "@/lib/whyThisWorks";
 
 type Stage = "tips" | "import" | "preview";
 
@@ -116,6 +117,32 @@ export default function CreateScreen() {
       goPreview();
     } catch (err) {
       setErrorMsg(formatError(err, "Couldn't import that clip."));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, goPreview]);
+
+  // "Upload video instead" path from the Tips screen. Skips the
+  // intermediate Import stage entirely — opens the picker right
+  // away, accepts a SINGLE video (per the upload spec — distinct
+  // from the multi-clip filming flow), and jumps straight to
+  // Preview. Treated downstream as if the user had just filmed
+  // it: same FilmedClip shape, same /review hand-off, same
+  // template render. No editor, no trim, no filter.
+  // Engine note: this only attaches a clip to the local
+  // creation session. No ideator signal is fired (filming and
+  // uploading are equivalent capture methods, not feedback).
+  const handleUploadInstead = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    setErrorMsg(null);
+    try {
+      const picked = await pickVideo({ limit: 1 });
+      if (!picked || picked.length === 0) return;
+      setClips([picked[0]]);
+      goPreview();
+    } catch (err) {
+      setErrorMsg(formatError(err, "Couldn't import that video."));
     } finally {
       setBusy(false);
     }
@@ -216,7 +243,12 @@ export default function CreateScreen() {
         </View>
 
         {stage === "tips" ? (
-          <TipsStage idea={idea} onContinue={goImport} />
+          <TipsStage
+            idea={idea}
+            onContinue={goImport}
+            onUpload={handleUploadInstead}
+            uploadBusy={busy}
+          />
         ) : null}
         {stage === "import" ? (
           <ImportStage onPick={handlePickClip} busy={busy} />
@@ -245,10 +277,21 @@ export default function CreateScreen() {
 function TipsStage({
   idea,
   onContinue,
+  onUpload,
+  uploadBusy,
 }: {
   idea: IdeaCardData;
   onContinue: () => void;
+  onUpload: () => void;
+  uploadBusy: boolean;
 }) {
+  // Plain-language confidence lines, derived from the idea's own
+  // metadata — not the LLM's `whyItWorks` free-text (which used
+  // to leak system terms like "denial_loop core" / "exploration
+  // target" into the UI right before the user films).
+  // See lib/whyThisWorks.ts for the contract.
+  const whyLines = deriveWhyThisWorksLines(idea);
+
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 1 of 3 · Let's film this</Text>
@@ -263,9 +306,7 @@ function TipsStage({
         body={idea.hook}
       />
 
-      {idea.whyItWorks ? (
-        <TipBlock title="Why it works" body={idea.whyItWorks} />
-      ) : null}
+      <WhyThisWorksBlock lines={whyLines} />
 
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>15–30s video</Text>
@@ -276,7 +317,22 @@ function TipsStage({
         ) : null}
       </View>
 
-      <PrimaryButton label="I'm ready to film" onPress={onContinue} />
+      {/* Both CTAs share the busy lock: while the upload picker
+          is open we disable the primary too so a tap can't race
+          a stage transition to ImportStage mid-pick. */}
+      <PrimaryButton
+        label="I'm ready to film"
+        onPress={onContinue}
+        disabled={uploadBusy}
+      />
+      {/* Secondary capture path — same downstream as filming.
+          Lower visual emphasis (outline, not filled) so it doesn't
+          compete with the primary "I'm ready to film" CTA. */}
+      <OutlineButton
+        label={uploadBusy ? "Opening…" : "Upload video instead"}
+        onPress={onUpload}
+        disabled={uploadBusy}
+      />
     </Animated.View>
   );
 }
@@ -412,6 +468,29 @@ function TipBlock({ title, body }: { title: string; body: string }) {
   );
 }
 
+// "Why this works" block — same visual frame as TipBlock so it
+// blends with the rest of the tips, but renders 2–3 short
+// confidence lines stacked instead of a single body paragraph.
+// Lines come from deriveWhyThisWorksLines() — see
+// lib/whyThisWorks.ts for the contract (no system terms,
+// 3–6 words each, max 3 lines).
+function WhyThisWorksBlock({ lines }: { lines: string[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <View style={styles.tipBlock}>
+      <Text style={styles.tipTitle}>Why this works</Text>
+      {lines.map((line, idx) => (
+        <Text
+          key={idx}
+          style={[styles.tipBody, idx > 0 ? styles.whyLineSpacer : null]}
+        >
+          {line}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 function PrimaryButton({
   label,
   onPress,
@@ -440,6 +519,38 @@ function PrimaryButton({
       ) : (
         <Text style={styles.primaryLabel}>{label}</Text>
       )}
+    </Pressable>
+  );
+}
+
+// Outline button — secondary affordance with lower visual
+// emphasis than PrimaryButton (transparent fill + bordered)
+// but more discoverable than TextButton. Used on the Tips
+// screen for "Upload video instead" so the filming path stays
+// the unambiguous primary while uploading is still one tap.
+function OutlineButton({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.outline,
+        pressed && !disabled ? styles.outlinePressed : null,
+        disabled ? styles.outlineDisabled : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+    >
+      <Text style={styles.outlineLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -518,7 +629,14 @@ function formatError(err: unknown, fallback: string): string {
 // editing. Downstream the template renders only clips[0]; the
 // extras ride along as data for Phase 2's multi-clip
 // structuring (see replit.md "multi-clip rule").
-async function pickVideo(): Promise<FilmedClip[] | null> {
+async function pickVideo(
+  opts: { limit?: 1 | 2 } = {},
+): Promise<FilmedClip[] | null> {
+  // limit=1 is used by the "Upload video instead" path on the
+  // Tips screen, where the spec is explicitly a single video
+  // pick → straight to preview. limit=2 (default) is the
+  // multi-clip filming path used by ImportStage.
+  const limit = opts.limit ?? 2;
   if (Platform.OS === "web") {
     // Web QA mock — return a single synthetic clip so the
     // browser test path stays identical. Real multi-clip
@@ -536,7 +654,7 @@ async function pickVideo(): Promise<FilmedClip[] | null> {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: false,
-      allowsMultipleSelection: true,
+      allowsMultipleSelection: limit > 1,
       // Phase 1 cap: 2 clips preferred (problem → solution or
       // before → after), 3 absolute max if Phase 1 grows. We use
       // 2 here because templates still render a single short-form
@@ -544,7 +662,7 @@ async function pickVideo(): Promise<FilmedClip[] | null> {
       // the picker accept 8 was overpromising. Bump after Phase 2
       // ships multi-clip structuring. See replit.md "multi-clip
       // rule".
-      selectionLimit: 2,
+      selectionLimit: limit,
       quality: 0.7,
     });
     if (result.canceled) return null;
@@ -561,8 +679,17 @@ async function pickVideo(): Promise<FilmedClip[] | null> {
           : undefined;
       return { filename, durationSec, uri: asset.uri };
     });
-  } catch {
-    return [{ filename: `fallback-${Date.now()}.mp4` }];
+  } catch (err) {
+    // Surface the real picker failure to the caller instead of
+    // synthesising a placeholder clip. The previous behaviour
+    // (returning a `fallback-*.mp4` with no `uri`) faked success
+    // and broke downstream rendering / save in /review. Callers
+    // wrap this in their own try/catch and route the message to
+    // `setErrorMsg`, so the user sees a friendly error toast
+    // instead of a silently-broken clip.
+    throw err instanceof Error
+      ? err
+      : new Error("Couldn't open your gallery. Try again?");
   }
 }
 
@@ -791,6 +918,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",
+    marginTop: 4,
+  },
+  // Outline secondary button — bordered, transparent fill,
+  // sits visually below the filled PrimaryButton without
+  // competing for attention. Used by "Upload video instead".
+  outline: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.45)",
+    marginTop: 10,
+  },
+  outlinePressed: {
+    backgroundColor: "rgba(0,255,204,0.08)",
+  },
+  outlineDisabled: {
+    opacity: 0.5,
+  },
+  outlineLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  // Spacer between successive lines of the "Why this works"
+  // block so each short line gets a little breathing room
+  // without needing a separate Text component per gap.
+  whyLineSpacer: {
     marginTop: 4,
   },
   // Tertiary text-link button — used as the secondary escape

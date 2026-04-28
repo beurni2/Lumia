@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import { deriveWhyThisWorksLines } from "@/lib/whyThisWorks";
 
 // Mirrors the ideator response shape from the server (only the
 // fields the card actually displays). Anything optional here is
@@ -166,13 +167,19 @@ export function IdeaCard({
         </>
       ) : null}
 
-      {/* Supporting context — kept but visually deprioritized. */}
-      {idea.whyItWorks ? (
-        <>
-          <Text style={styles.cardLabel}>Why it works</Text>
-          <Text style={styles.cardBodySmall}>{idea.whyItWorks}</Text>
-        </>
-      ) : null}
+      {/* Supporting context — "Why this works".
+          We derive 2–3 short, plain-language confidence lines
+          from the idea's own metadata rather than rendering the
+          LLM's `whyItWorks` free-text. The model used to leak
+          internal pattern names ("denial_loop core", etc.) into
+          this slot, which read like docs and added friction.
+          See lib/whyThisWorks.ts for the contract. */}
+      <Text style={styles.cardLabel}>Why this works</Text>
+      {deriveWhyThisWorksLines(idea).map((line, idx) => (
+        <Text key={idx} style={styles.cardBodySmall}>
+          {line}
+        </Text>
+      ))}
       {idea.caption ? (
         <>
           <Text style={styles.cardLabel}>Caption</Text>

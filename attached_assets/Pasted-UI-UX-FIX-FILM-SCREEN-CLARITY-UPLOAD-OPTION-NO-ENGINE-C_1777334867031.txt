@@ -1,0 +1,174 @@
+UI + UX FIX — FILM SCREEN CLARITY + UPLOAD OPTION (NO ENGINE CHANGES)
+
+Goal:
+Reduce confusion and remove friction at the “Let’s film this” step.
+
+Do NOT modify ideator engine, memory, or generation logic.
+This is UI + copy + simple action only.
+
+---
+
+PART 1 — REPLACE “WHY IT WORKS”
+
+Problem:
+Current text uses internal/system language (structure, exploration, etc.)
+→ confusing for users
+→ adds friction
+
+---
+
+Change:
+
+Rename section:
+"WHY IT WORKS"
+→
+"WHY THIS WORKS" OR "WHAT MAKES THIS GOOD"
+
+---
+
+Rewrite content to be:
+
+- simple
+- human
+- confidence-building
+- no system terms
+
+---
+
+Rules:
+
+DO NOT include:
+- structure names
+- pattern names
+- AI/system language
+- “denial_loop”, “exploration”, etc.
+
+---
+
+Use format:
+
+Max 3 short lines
+Each line = 3–6 words
+Plain language
+
+---
+
+Example transformation:
+
+Before:
+"Small panic structure (exploration target, adjacent to denial_loop core)..."
+
+After:
+"Super relatable moment  
+Easy reaction — just your face  
+No setup needed"
+
+---
+
+Implementation:
+
+Update wherever this text is rendered:
+- server formatting OR
+- client rendering layer
+
+Ensure ALL future ideas use this format.
+
+---
+
+PART 2 — ADD “UPLOAD VIDEO INSTEAD”
+
+Problem:
+Users asked to upload instead of filming
+→ current flow assumes filming only
+→ creates friction / drop-off
+
+---
+
+UI Change:
+
+On “Let’s film this” screen:
+
+Keep primary button:
+"I'm ready to film"
+
+Add secondary button below:
+
+"Upload video instead"
+
+Style:
+- secondary / outline / lower emphasis than primary
+
+---
+
+PART 3 — UPLOAD BEHAVIOR
+
+On tap:
+
+1. Open device media picker (camera roll)
+2. Allow user to select ONE video
+3. After selection:
+   → continue to next step in flow
+   → treat as if user filmed the video
+
+---
+
+Constraints:
+
+DO NOT:
+- add video editor
+- add trimming
+- add filters
+- add complex upload flow
+
+Just:
+select video → continue
+
+---
+
+PART 4 — DATA HANDLING
+
+When user uploads:
+
+- attach video reference to current idea session
+- no change to ideator signals
+- no change to memory logic
+
+This is purely a capture method.
+
+---
+
+PART 5 — COPY RULES
+
+All text on this screen must feel like:
+
+- something a friend would say
+- not instructional
+- not technical
+
+Reject if:
+- sounds like documentation
+- uses abstract wording
+- requires thinking to understand
+
+---
+
+SUCCESS CRITERIA
+
+After change:
+
+User should:
+- instantly understand what to do
+- feel confident filming OR uploading
+- not question the flow
+
+---
+
+DO NOT BUILD
+
+- analytics
+- new flows
+- backend complexity
+- editing tools
+- posting
+
+Keep it minimal and fast.
