@@ -32,7 +32,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -80,13 +80,27 @@ export default function CreateScreen() {
   const [clips, setClips] = useState<FilmedClip[]>([]);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // "Fast entry" intent: which capture path the user committed to
+  // on the Tips screen. The Import stage consumes this exactly
+  // once on mount to auto-open the matching native modal so the
+  // user feels the choice they just tapped — without us having
+  // to fork the Add Clips UI per intent. null after consumption
+  // (or when entering Import via any other path).
+  type AutoAction = "camera" | "picker";
+  const [pendingAutoAction, setPendingAutoAction] =
+    useState<AutoAction | null>(null);
 
   /* ---------- Stage transitions ------------------------------- */
 
+  // "I'm ready to film" → land on the unified Add Clips screen
+  // and immediately open the device camera for Slot 1. The user
+  // never sees an empty Add Clips screen on this path; the auto-
+  // open closes the perceived gap between intent and action.
   const goImport = useCallback(() => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    setPendingAutoAction("camera");
     setStage("import");
   }, []);
 
@@ -97,13 +111,39 @@ export default function CreateScreen() {
     setStage("preview");
   }, []);
 
-  // Per-slot picker. The Import stage exposes two labeled slots
-  // ("Clip 1" / "Clip 2 (optional)") and each one calls this
-  // helper with its own index. We pick a SINGLE video per call
-  // so each slot maps 1:1 to a file. Order is preserved by
-  // index — slot 0 → clips[0], slot 1 → clips[1]. Re-tapping
-  // a filled slot replaces just that slot without disturbing
-  // the other one.
+  // Slot-indexed write. Both the gallery picker and the camera
+  // capture paths ultimately produce a single FilmedClip and
+  // need to land it in the right slot while preserving the
+  // other slot. Extracted so the picker and camera handlers
+  // share one source of truth for ordering — no duplicated
+  // "rebuild the array" logic between them.
+  const writeClipToSlot = useCallback(
+    (index: 0 | 1, picked: FilmedClip) => {
+      setClips((prev) => {
+        // Build the next array slot-by-slot so order survives
+        // a "replace slot 0 while slot 1 is filled" sequence.
+        const next: FilmedClip[] = [];
+        if (index === 0) {
+          next.push(picked);
+          if (prev[1]) next.push(prev[1]);
+        } else {
+          // index === 1 — guarded by callers (slot 1 is locked
+          // in the UI until slot 0 is filled).
+          next.push(prev[0]);
+          next.push(picked);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Per-slot gallery picker. The Import stage exposes two
+  // labeled slots ("Clip 1" / "Clip 2 (optional)") and each one
+  // calls this helper with its own index. We pick a SINGLE video
+  // per call so each slot maps 1:1 to a file. Re-tapping a
+  // filled slot replaces just that slot without disturbing the
+  // other one.
   const handlePickClipAt = useCallback(
     async (index: 0 | 1) => {
       if (busy) return;
@@ -122,28 +162,51 @@ export default function CreateScreen() {
           // no state change.
           return;
         }
-        setClips((prev) => {
-          // Build the next array slot-by-slot so order survives
-          // a "replace slot 0 while slot 1 is filled" sequence.
-          const next: FilmedClip[] = [];
-          if (index === 0) {
-            next.push(picked[0]);
-            if (prev[1]) next.push(prev[1]);
-          } else {
-            // index === 1 — guard above guarantees prev[0] exists.
-            next.push(prev[0]);
-            next.push(picked[0]);
-          }
-          return next;
-        });
+        writeClipToSlot(index, picked[0]);
       } catch (err) {
         setErrorMsg(formatError(err, "Couldn't import that clip."));
       } finally {
         setBusy(false);
       }
     },
-    [busy, clips.length],
+    [busy, clips.length, writeClipToSlot],
   );
+
+  // Camera capture for a slot. Mirrors handlePickClipAt but
+  // sources the clip from the device camera instead of the
+  // gallery. Currently invoked only by the Import stage's
+  // auto-open useEffect (Slot 0, "I'm ready to film" intent) —
+  // slot taps themselves still use the picker so the screen's
+  // visible behaviour matches the spec ("screen remains the
+  // same"). Kept index-parameterised for symmetry with the
+  // picker handler.
+  const handleCaptureClipAt = useCallback(
+    async (index: 0 | 1) => {
+      if (busy) return;
+      if (index === 1 && clips.length === 0) return;
+      setBusy(true);
+      setErrorMsg(null);
+      try {
+        const captured = await captureVideo();
+        if (!captured || captured.length === 0) return;
+        writeClipToSlot(index, captured[0]);
+      } catch (err) {
+        setErrorMsg(formatError(err, "Couldn't capture that clip."));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, clips.length, writeClipToSlot],
+  );
+
+  // Called by ImportStage exactly once after it consumes the
+  // pending auto-action. Clearing here (not inside the action
+  // handler) keeps the parent state authoritative and prevents
+  // a re-fire if the user backs out and returns without re-
+  // pressing one of the entry buttons.
+  const handleAutoActionConsumed = useCallback(() => {
+    setPendingAutoAction(null);
+  }, []);
 
   // Continue from Import → Preview. Allowed once at least one
   // clip is in the array (Clip 2 is genuinely optional per the
@@ -158,13 +221,17 @@ export default function CreateScreen() {
   // "Upload video instead" path from the Tips screen. Routes to
   // the same Import stage as "I'm ready to film" — both onramps
   // land on the unified two-slot picker so there's exactly one
-  // upload UI in the app. No separate single-shot shortcut: the
-  // spec wants "up to 2 video uploads" everywhere uploads happen.
+  // upload UI in the app. The only difference is the auto-open
+  // intent: this path opens the gallery picker on entry, the
+  // film path opens the camera. No separate single-shot
+  // shortcut: the spec wants "up to 2 video uploads" everywhere
+  // uploads happen.
   const handleUploadInstead = useCallback(() => {
     if (busy) return;
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    setPendingAutoAction("picker");
     setStage("import");
   }, [busy]);
 
@@ -273,7 +340,10 @@ export default function CreateScreen() {
         {stage === "import" ? (
           <ImportStage
             clips={clips}
+            autoAction={pendingAutoAction}
             onPickAt={handlePickClipAt}
+            onCaptureAt={handleCaptureClipAt}
+            onAutoActionConsumed={handleAutoActionConsumed}
             onContinue={handleContinue}
             busy={busy}
           />
@@ -366,12 +436,18 @@ function TipsStage({
 
 function ImportStage({
   clips,
+  autoAction,
   onPickAt,
+  onCaptureAt,
+  onAutoActionConsumed,
   onContinue,
   busy,
 }: {
   clips: FilmedClip[];
+  autoAction: "camera" | "picker" | null;
   onPickAt: (index: 0 | 1) => void;
+  onCaptureAt: (index: 0 | 1) => void;
+  onAutoActionConsumed: () => void;
   onContinue: () => void;
   busy: boolean;
 }) {
@@ -382,6 +458,38 @@ function ImportStage({
   // arrangement that the data model doesn't represent.
   const slot2Disabled = !clip1 || busy;
   const continueDisabled = clips.length === 0 || busy;
+  // Fast-entry: when the user lands here from "I'm ready to
+  // film" or "Upload video instead", auto-open the matching
+  // native modal for Slot 1 exactly once. Two layers of
+  // single-fire defence:
+  //   1. consumedRef — survives React 18 dev StrictMode's
+  //      simulated mount/unmount/mount cycle (refs persist
+  //      across the cycle within one component instance), so
+  //      the effect cannot invoke the camera/picker twice on
+  //      mount in dev. A real unmount-remount (user backs to
+  //      Tips and re-enters) creates a new instance with a
+  //      fresh ref, so the next entry still fires correctly.
+  //   2. We also clear the parent's pendingAutoAction BEFORE
+  //      invoking the action so any unrelated re-render that
+  //      changes the deps (busy flips, callback identity)
+  //      finds autoAction === null and the early return hits
+  //      anyway. Belt-and-braces.
+  // If the user cancels the modal, the slot stays empty and a
+  // tap on Slot 1 falls back to the picker (the screen's
+  // normal behaviour).
+  const consumedRef = useRef(false);
+  useEffect(() => {
+    if (!autoAction) return;
+    if (consumedRef.current) return;
+    consumedRef.current = true;
+    const action = autoAction;
+    onAutoActionConsumed();
+    if (action === "camera") {
+      void onCaptureAt(0);
+    } else {
+      void onPickAt(0);
+    }
+  }, [autoAction, onCaptureAt, onPickAt, onAutoActionConsumed]);
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 2 of 3 · Got your clips?</Text>
@@ -750,21 +858,18 @@ function formatError(err: unknown, fallback: string): string {
 // Local copy of the onboarding picker — same web fallback so the
 // Replit preview iframe stays usable. Kept inline to avoid a
 // cross-package shuffle; when a third caller appears we should
-// promote this to `lib/pickVideo.ts`.
+// promote both helpers to `lib/pickVideo.ts`.
 // Phase 1 picker: returns one or more clips. Multi-select is
 // enabled at the OS level (iOS surfaces it natively when the
-// user taps "Select"). We don't change the button copy — most
-// flows are still single-clip and we don't want to overpromise
-// editing. Downstream the template renders only clips[0]; the
-// extras ride along as data for Phase 2's multi-clip
-// structuring (see replit.md "multi-clip rule").
+// user taps "Select"). Per-slot callers pass limit=1 so each
+// slot maps 1:1 to a file; the slot-write helper is the single
+// source of truth for ordering. See replit.md "multi-clip rule".
 async function pickVideo(
   opts: { limit?: 1 | 2 } = {},
 ): Promise<FilmedClip[] | null> {
-  // limit=1 is used by the "Upload video instead" path on the
-  // Tips screen, where the spec is explicitly a single video
-  // pick → straight to preview. limit=2 (default) is the
-  // multi-clip filming path used by ImportStage.
+  // limit=1 is used by the per-slot picker in ImportStage; each
+  // slot maps to one file. limit=2 is reserved for any future
+  // bulk-select call site.
   const limit = opts.limit ?? 2;
   if (Platform.OS === "web") {
     // Web QA mock — return a single synthetic clip so the
@@ -784,13 +889,10 @@ async function pickVideo(
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: false,
       allowsMultipleSelection: limit > 1,
-      // Phase 1 cap: 2 clips preferred (problem → solution or
-      // before → after), 3 absolute max if Phase 1 grows. We use
-      // 2 here because templates still render a single short-form
-      // output and there's no sequencer/editor UI yet — letting
-      // the picker accept 8 was overpromising. Bump after Phase 2
-      // ships multi-clip structuring. See replit.md "multi-clip
-      // rule".
+      // Phase 1 cap: 2 clips. We use 2 here because templates
+      // still render a single short-form output and there's no
+      // sequencer/editor UI yet — letting the picker accept 8
+      // was overpromising. See replit.md "multi-clip rule".
       selectionLimit: limit,
       quality: 0.7,
     });
@@ -819,6 +921,51 @@ async function pickVideo(
     throw err instanceof Error
       ? err
       : new Error("Couldn't open your gallery. Try again?");
+  }
+}
+
+// Camera capture sibling of pickVideo. Always single-shot —
+// the camera UX is "record one clip, save it" and we want each
+// recorded clip to land in exactly one slot. Used by the Import
+// stage's auto-open useEffect when the user enters via "I'm
+// ready to film". Web QA returns a synthetic clip identical in
+// shape to pickVideo's so the browser e2e path stays uniform
+// (launchCameraAsync isn't available on web in any case).
+async function captureVideo(): Promise<FilmedClip[] | null> {
+  if (Platform.OS === "web") {
+    return [
+      {
+        filename: `web-sim-cap-${Date.now()}.mp4`,
+        durationSec: 22,
+      },
+    ];
+  }
+  try {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (perm.status !== "granted") return null;
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: false,
+      quality: 0.7,
+    });
+    if (result.canceled) return null;
+    const assets = result.assets ?? [];
+    if (assets.length === 0) return null;
+    return assets.map((asset, idx) => {
+      const filename =
+        asset.fileName ??
+        asset.uri.split("/").pop() ??
+        `cap-${Date.now()}-${idx}.mp4`;
+      const durationSec =
+        typeof asset.duration === "number" && asset.duration > 0
+          ? Math.round(asset.duration / 1000)
+          : undefined;
+      return { filename, durationSec, uri: asset.uri };
+    });
+  } catch (err) {
+    throw err instanceof Error
+      ? err
+      : new Error("Couldn't open the camera. Try again?");
   }
 }
 
