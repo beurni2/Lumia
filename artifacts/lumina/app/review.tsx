@@ -207,6 +207,31 @@ export default function ReviewScreen() {
     appliedSuggestionIds: string[];
   }>({ appliedSuggestionIds: [] });
 
+  // Semi-auto EDIT layer (separate from the text-rewrite apply
+  // layer above). Tracks the two preview-state edit intents the
+  // SEMI-AUTO EDIT spec allows:
+  //   • stitched         — user opted to combine clip 1 → clip 2.
+  //                         No actual file mutation; the BeforeAfter
+  //                         "After" frame chip flips from
+  //                         "+1 more clip" to "stitched · 2 → 1".
+  //   • trimStartSec     — number of seconds to lop off the head,
+  //                         clamped to the spec's [0.5, 2] window.
+  //                         Surfaced as a "trimmed first 1.0s" chip.
+  //   • appliedActionTypes — for sticky "Applied" rendering and
+  //                         double-fire signal protection.
+  //
+  // Lumina has no on-device video processing dependency today, so
+  // this is intent-only — the saved gallery file is the original
+  // bytes. The visual confirmation in BeforeAfter is what makes
+  // the user feel the change land. This mirrors the same precedent
+  // as `watermarkOn` (badge shown, file not burned) — see the
+  // BeforeAfter watermark block for the pre-existing comment.
+  const [appliedEdits, setAppliedEdits] = useState<{
+    stitched: boolean;
+    trimStartSec?: number;
+    appliedActionTypes: string[];
+  }>({ stitched: false, appliedActionTypes: [] });
+
   // Stale-call guard for the same reason as Home — Retry can
   // fire a second `loadMatch` while the first is still in
   // flight, and we don't want the slower one to clobber the
@@ -548,6 +573,7 @@ export default function ReviewScreen() {
               idea={idea}
               watermarkOn={watermarkOn}
               appliedHookOverride={appliedEnhancements.hook}
+              appliedEdits={appliedEdits}
             />
           ) : null}
 
@@ -567,6 +593,21 @@ export default function ReviewScreen() {
               idea={idea}
               applied={appliedEnhancements}
               onApplied={setAppliedEnhancements}
+            />
+          ) : null}
+
+          {/* Make-it-ready card — sits below the text-rewrite
+              EnhancementCard and above ExportSection so the flow
+              reads "improve idea → polish video → export". Only
+              renders when at least one of the two actions is
+              applicable; otherwise it stays out of the way. */}
+          {!loading && !errorMsg ? (
+            <MakeItReadyCard
+              idea={idea}
+              extraClips={extraClips}
+              appliedEnhancements={appliedEnhancements}
+              appliedEdits={appliedEdits}
+              onAppliedEdits={setAppliedEdits}
             />
           ) : null}
 
@@ -628,6 +669,7 @@ function BeforeAfter({
   idea,
   watermarkOn,
   appliedHookOverride,
+  appliedEdits,
 }: {
   match: PastMatch;
   clip: FilmedClip;
@@ -643,6 +685,16 @@ function BeforeAfter({
   // so the preview reflects the user's just-applied improvement
   // without us mutating the underlying idea object.
   appliedHookOverride?: string;
+  // Edit-intent overlay fed by MakeItReadyCard's "Apply". When the
+  // user applies stitch_clips, the extras "+1 more clip" chip flips
+  // to "stitched · 2 → 1". When trim_start is applied, an extra
+  // "trimmed first 1.0s" chip renders below the clip footer. No
+  // actual video mutation happens — see comment on appliedEdits in
+  // the parent for why this is intent-only.
+  appliedEdits?: {
+    stitched: boolean;
+    trimStartSec?: number;
+  };
 }) {
   const past = match.video;
   const extras = extraClips.length;
@@ -698,8 +750,27 @@ function BeforeAfter({
             </Text>
           </View>
           {extras > 0 ? (
-            <Text style={styles.frameExtra}>
-              +{extras} more clip{extras > 1 ? "s" : ""}
+            // When the user has applied stitch_clips, the chip
+            // flips from the count-of-extras read ("+1 more clip")
+            // to a confirmation read ("stitched · 2 clips → 1") so
+            // the change is visible the instant they tap Apply.
+            <Text
+              style={[
+                styles.frameExtra,
+                appliedEdits?.stitched ? styles.frameExtraApplied : null,
+              ]}
+            >
+              {appliedEdits?.stitched
+                ? `stitched · ${extras + 1} clips → 1`
+                : `+${extras} more clip${extras > 1 ? "s" : ""}`}
+            </Text>
+          ) : null}
+          {/* Trim chip — only renders when the user has applied
+              trim_start. Sits under the extras row so stitched +
+              trimmed can stack visually without crowding. */}
+          {typeof appliedEdits?.trimStartSec === "number" ? (
+            <Text style={[styles.frameExtra, styles.frameExtraApplied]}>
+              trimmed first {appliedEdits.trimStartSec.toFixed(1)}s
             </Text>
           ) : null}
           {/* Watermark badge — when on, overlays the AFTER pane
@@ -1427,6 +1498,260 @@ function EnhancementCard({
   );
 }
 
+/* =================== Make-it-ready (semi-auto edit) =================== */
+
+// SEMI-AUTO EDIT — STITCH + TRIM ONLY.
+//
+// This card is the ENTIRE surface for the spec's two allowed
+// preview-state edit actions:
+//   1. stitch_clips — combine clip 1 → clip 2. No transitions,
+//                     no effects. Available iff the user uploaded
+//                     a second clip.
+//   2. trim_start   — lop off the first 0.5–2 seconds of the head
+//                     based on a suggested offset. Available iff
+//                     the brain (or the idea metadata) hinted that
+//                     the hook lands ≥0.5s in.
+//
+// Hard guard-rails the card MUST honour (spec "DO NOT" list):
+//   • no timeline editor / scrubber / thumbnails
+//   • no manual trim controls (sliders, time pickers)
+//   • no filters, transitions, effects, colour, lighting
+// Tap target = ONE Apply button per row. Nothing else.
+//
+// Action contract on the wire (also the props.params shape):
+//   { type: "stitch_clips" | "trim_start", label, params }
+// Defined locally — actions are derived deterministically from
+// existing state, no server round-trip needed.
+type EditActionType = "stitch_clips" | "trim_start";
+type EditAction =
+  | {
+      type: "stitch_clips";
+      label: string;
+      params: { clipCount: number };
+    }
+  | {
+      type: "trim_start";
+      label: string;
+      params: { seconds: number };
+    };
+
+// Parse a "M:SS" hint (the shape EnhancementCard's start_hint
+// suggestions emit) into seconds. Returns undefined for anything
+// that doesn't match — callers should fall back to a different
+// signal source rather than guess.
+function parseStartHintSeconds(hint?: string): number | undefined {
+  if (!hint) return undefined;
+  const m = hint.trim().match(/^(\d):([0-5]\d)$/);
+  if (!m) return undefined;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+// Clamp the trim window per spec ("0.5–2 seconds"). One decimal
+// of precision is plenty for a chip read like "trimmed first 1.0s".
+function clampTrimWindow(seconds: number): number {
+  if (!Number.isFinite(seconds)) return 0.5;
+  const clamped = Math.min(2, Math.max(0.5, seconds));
+  return Math.round(clamped * 10) / 10;
+}
+
+function MakeItReadyCard({
+  idea,
+  extraClips,
+  appliedEnhancements,
+  appliedEdits,
+  onAppliedEdits,
+}: {
+  idea: IdeaCardData;
+  extraClips: FilmedClip[];
+  appliedEnhancements: {
+    caption?: string;
+    hook?: string;
+    startHint?: string;
+    appliedSuggestionIds: string[];
+  };
+  appliedEdits: {
+    stitched: boolean;
+    trimStartSec?: number;
+    appliedActionTypes: string[];
+  };
+  onAppliedEdits: (
+    next:
+      | typeof appliedEdits
+      | ((prev: typeof appliedEdits) => typeof appliedEdits),
+  ) => void;
+}) {
+  // Build the available-action list deterministically. Sources:
+  //   • stitch — extras count (the import stage caps at 2 total).
+  //   • trim   — start_hint the user already applied takes
+  //              priority (their explicit pick); otherwise fall
+  //              back to idea.hookSeconds, which the ideator
+  //              produces when the hook lands late and is the
+  //              same number the film-stage "Hook lands in Xs"
+  //              tip reads from.
+  const actions: EditAction[] = useMemo(() => {
+    const out: EditAction[] = [];
+    if (extraClips.length >= 1) {
+      out.push({
+        type: "stitch_clips",
+        label: "Combine your two clips",
+        params: { clipCount: extraClips.length + 1 },
+      });
+    }
+    const hintedSec =
+      parseStartHintSeconds(appliedEnhancements.startHint) ??
+      (typeof idea.hookSeconds === "number" ? idea.hookSeconds : undefined);
+    if (typeof hintedSec === "number" && hintedSec >= 0.5) {
+      const seconds = clampTrimWindow(hintedSec);
+      out.push({
+        type: "trim_start",
+        label: `Trim the first ${seconds.toFixed(1)}s so the hook lands faster`,
+        params: { seconds },
+      });
+    }
+    return out;
+  }, [
+    extraClips.length,
+    appliedEnhancements.startHint,
+    idea.hookSeconds,
+  ]);
+
+  // Reassurance line ("Nice — that's sharper.") and the same
+  // 2.4s auto-clear behaviour as EnhancementCard. Reusing the
+  // copy keeps the apply experience consistent across both
+  // semi-auto layers.
+  const [reassurance, setReassurance] = useState<string | null>(null);
+  const reassureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (reassureTimerRef.current) clearTimeout(reassureTimerRef.current);
+    };
+  }, []);
+
+  // Synchronous double-fire guard (same pattern + rationale as
+  // EnhancementCard). Reading `appliedEdits.appliedActionTypes`
+  // from props is too late — props only refresh after React
+  // commits, so two taps in the same frame would both pass the
+  // "is it already applied?" check and double-fire the signal.
+  const firedTypesRef = useRef<Set<EditActionType>>(
+    new Set(appliedEdits.appliedActionTypes as EditActionType[]),
+  );
+  useEffect(() => {
+    firedTypesRef.current = new Set(
+      appliedEdits.appliedActionTypes as EditActionType[],
+    );
+  }, [appliedEdits.appliedActionTypes]);
+
+  const handleApply = useCallback(
+    (action: EditAction) => {
+      if (firedTypesRef.current.has(action.type)) return;
+      firedTypesRef.current.add(action.type);
+
+      // Mutate edit-intent state. The functional-updater form is
+      // important: a fast double-action (e.g., tap stitch then
+      // immediately tap trim) must compose without dropping the
+      // earlier change.
+      onAppliedEdits((prev) => {
+        const nextTypes = prev.appliedActionTypes.includes(action.type)
+          ? prev.appliedActionTypes
+          : [...prev.appliedActionTypes, action.type];
+        if (action.type === "stitch_clips") {
+          return { ...prev, stitched: true, appliedActionTypes: nextTypes };
+        }
+        return {
+          ...prev,
+          trimStartSec: action.params.seconds,
+          appliedActionTypes: nextTypes,
+        };
+      });
+
+      // Same applied_enhancement signal + +1 weight as the
+      // text-rewrite apply layer. The action.type tag rides on
+      // suggestionType so the server-side aggregator can split
+      // attribution by action flavour without a schema migration.
+      if (idea?.hook) {
+        submitIdeatorSignal({
+          ideaHook: idea.hook,
+          signalType: "applied_enhancement",
+          ideaPattern: idea.pattern,
+          emotionalSpike: idea.emotionalSpike,
+          payoffType: idea.payoffType,
+          structure: idea.structure,
+          hookStyle: idea.hookStyle,
+          suggestionType: action.type,
+        });
+      }
+
+      setReassurance("Nice — that's sharper.");
+      if (reassureTimerRef.current) clearTimeout(reassureTimerRef.current);
+      reassureTimerRef.current = setTimeout(() => {
+        setReassurance(null);
+        reassureTimerRef.current = null;
+      }, 2400);
+    },
+    [idea, onAppliedEdits],
+  );
+
+  // Quiet exit when neither action applies — the spec wants this
+  // section out of the way unless we have something to offer. No
+  // header, no empty-state copy, no "nothing to improve" message.
+  if (actions.length === 0) return null;
+
+  return (
+    <View style={styles.readyCard} testID="make-it-ready-card">
+      <Text style={styles.readyTitle}>Make it ready (optional)</Text>
+      <Text style={styles.readySub}>
+        One tap each — your video is still your video.
+      </Text>
+
+      <View style={styles.readyList}>
+        {actions.map((action) => {
+          const isApplied = appliedEdits.appliedActionTypes.includes(
+            action.type,
+          );
+          return (
+            <View
+              key={action.type}
+              style={styles.readyRow}
+              testID={`make-it-ready-row-${action.type}`}
+            >
+              <Feather
+                name={action.type === "stitch_clips" ? "link" : "scissors"}
+                size={14}
+                color={lumina.firefly}
+                style={styles.readyRowIcon}
+              />
+              <View style={styles.readyRowBody}>
+                <Text style={styles.readyRowLabel}>{action.label}</Text>
+              </View>
+              {isApplied ? (
+                <View style={styles.readyAppliedPill}>
+                  <Feather name="check" size={12} color={lumina.firefly} />
+                  <Text style={styles.readyAppliedPillText}>Applied</Text>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => handleApply(action)}
+                  style={({ pressed }) => [
+                    styles.readyApplyBtn,
+                    pressed ? styles.readyApplyBtnPressed : null,
+                  ]}
+                  testID={`make-it-ready-apply-${action.type}`}
+                >
+                  <Text style={styles.readyApplyBtnText}>Apply</Text>
+                </Pressable>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {reassurance ? (
+        <Text style={styles.readyReassurance}>{reassurance}</Text>
+      ) : null}
+    </View>
+  );
+}
+
 /* =================== Primitives =================== */
 
 function PrimaryButton({
@@ -1858,6 +2183,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
   },
+  // Applied-edit chip variant — same metrics as frameExtra but in
+  // the firefly hue so the user sees the change land instantly
+  // (chip text flips to "stitched · …" / "trimmed first …s" in
+  // the BeforeAfter "After" frame the moment Apply is tapped).
+  frameExtraApplied: {
+    color: "rgba(0,255,204,0.90)",
+  },
   // Why-Better card
   whyCard: {
     backgroundColor: "rgba(0,255,204,0.05)",
@@ -2115,6 +2447,100 @@ const styles = StyleSheet.create({
   // Deliberately quiet — no icon, no big colour shift — so it
   // reads as "got it" rather than a celebration banner.
   enhanceReassurance: {
+    marginTop: 14,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(0,255,204,0.85)",
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  // Make-it-ready (semi-auto edit) card — visually paired with
+  // EnhancementCard above it (same firefly accent, same border
+  // weight) so the two semi-auto layers read as one progressive
+  // polish step. Slightly tighter padding and a smaller list
+  // gap so two rows feel like a checklist rather than a wall.
+  readyCard: {
+    backgroundColor: "rgba(0,255,204,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.22)",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 22,
+  },
+  readyTitle: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "#fff",
+    fontSize: 16,
+    letterSpacing: 0.2,
+  },
+  readySub: {
+    marginTop: 6,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  readyList: {
+    marginTop: 14,
+    gap: 10,
+  },
+  readyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  readyRowIcon: {
+    marginTop: 1,
+  },
+  readyRowBody: {
+    flex: 1,
+  },
+  readyRowLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  // Apply / Applied — same metrics as the EnhancementCard pills
+  // so the two semi-auto layers visually rhyme. Kept as a
+  // separate token namespace because the wider shape is the same
+  // but the exact colours were tuned a hair lighter to balance
+  // the smaller text in this card.
+  readyApplyBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.34)",
+  },
+  readyApplyBtnPressed: {
+    opacity: 0.7,
+  },
+  readyApplyBtnText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  readyAppliedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.22)",
+  },
+  readyAppliedPillText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 12,
+    letterSpacing: 0.3,
+    opacity: 0.85,
+  },
+  readyReassurance: {
     marginTop: 14,
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(0,255,204,0.85)",

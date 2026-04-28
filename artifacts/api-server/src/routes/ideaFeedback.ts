@@ -126,8 +126,11 @@ const signalBody = z.object({
   // migration this round) — the server-side memory aggregator
   // already credits via signalType + the existing pattern tags;
   // suggestionType is kept on the wire for future attribution
-  // and request logging.
-  suggestionType: z.enum(["caption", "hook", "start_hint"]).optional(),
+  // and request logging. Enum extended (SEMI-AUTO EDIT spec) to
+  // cover the stitch/trim preview-state actions on /review.
+  suggestionType: z
+    .enum(["caption", "hook", "start_hint", "stitch_clips", "trim_start"])
+    .optional(),
 });
 
 // Deterministic short identifier for log lines — gives ops a way to

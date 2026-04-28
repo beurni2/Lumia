@@ -31,7 +31,25 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       // AsyncStorage.setItem so navigation logic is correct
       // mid-flow; the next reload resets us to false again.
       // See replit.md "QA-mode fresh-onboarding rule".
+      //
+      // E2E escape hatch — mirrors the existing
+      // `globalThis.__qaDenyCamera` hook used by the create-flow
+      // tests (see create.tsx). When the harness sets
+      // `globalThis.__qaSkipOnboarding = true` BEFORE the page
+      // loads (or via an init script), we boot straight into the
+      // onboarded state so deep-link tests for /review and other
+      // post-onboarding screens don't have to walk the full
+      // region-picker → ideas-generation → calibration sequence
+      // (which is brittle and depends on a healthy LLM response).
+      // Effect is in-memory only — nothing persisted. Native
+      // builds skip this branch entirely because isWebQaMode()
+      // is web-only.
       if (isWebQaMode()) {
+        const skip =
+          typeof globalThis !== "undefined" &&
+          (globalThis as { __qaSkipOnboarding?: boolean })
+            .__qaSkipOnboarding === true;
+        if (skip) setHasCompletedOnboardingState(true);
         setIsLoading(false);
         return;
       }

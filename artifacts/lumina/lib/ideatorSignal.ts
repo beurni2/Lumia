@@ -59,7 +59,21 @@ export type SubmitIdeatorSignalInput = {
   // server-side validator tolerates it on any signal. We don't send
   // an ideaId because the screen-level idea has no canonical id
   // until export — the server keys off ideaHook for attribution.
-  suggestionType?: "caption" | "hook" | "start_hint";
+  // Set extends to cover the SEMI-AUTO EDIT layer too:
+  //   • caption / hook / start_hint  — text rewrites (note-only).
+  //   • stitch_clips / trim_start    — preview-state edit intents
+  //                                     surfaced in the BeforeAfter
+  //                                     "After" frame. Same
+  //                                     applied_enhancement signal,
+  //                                     same +1 weight; the type tag
+  //                                     keeps action-flavour
+  //                                     attribution intact.
+  suggestionType?:
+    | "caption"
+    | "hook"
+    | "start_hint"
+    | "stitch_clips"
+    | "trim_start";
 };
 
 /**
