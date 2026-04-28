@@ -17,13 +17,54 @@ import { eq, sql } from "drizzle-orm";
 import { db, schema } from "../db/client";
 import { resolveCreator } from "../lib/resolveCreator";
 import {
+  deriveStyleHints,
+  deriveTone,
   styleProfileSchema,
+  type DerivedStyleHints,
+  type DerivedTone,
   type StyleProfile,
 } from "../lib/styleProfile";
+import { computeViralPatternMemory } from "../lib/viralPatternMemory";
 import { isRegion, type Region } from "@workspace/lumina-trends";
 import { z } from "zod";
 
 const router: IRouter = Router();
+
+/**
+ * Picks the top-N entries from a Record<tag, weight> map. Returns
+ * `{ name, weight }` pairs ordered descending by weight, dropping
+ * entries with zero/negative weight (they shouldn't be surfaced as
+ * "what's working"). Used by the Studio summary block below.
+ */
+function topEntries(
+  bag: Record<string, number>,
+  n: number,
+): { name: string; weight: number }[] {
+  return Object.entries(bag)
+    .filter(([, w]) => typeof w === "number" && w > 0)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, n)
+    .map(([name, weight]) => ({ name, weight }));
+}
+
+/**
+ * Compact, UI-friendly slice of `ViralPatternMemory` — what the Studio
+ * tab needs to render the "Your Creator Style" + "What's Working"
+ * sections without re-implementing weight aggregation client-side.
+ *
+ * Pure projection of existing fields, no new logic. Top-3 per
+ * dimension, top-1 emotional spike, top-1 pattern format, plus the
+ * existing `sampleSize` so the client can decide how loudly to talk
+ * about the data.
+ */
+type ViralMemorySummary = {
+  topStructures: { name: string; weight: number }[];
+  topHookStyles: { name: string; weight: number }[];
+  topFormats: { name: string; weight: number }[];
+  topEmotionalSpike: string | null;
+  topFormat: string | null;
+  sampleSize: number;
+};
 
 router.get("/style-profile", async (req, res, next) => {
   try {
@@ -43,11 +84,41 @@ router.get("/style-profile", async (req, res, next) => {
       const sp = styleProfileSchema.safeParse(persisted);
       profile = sp.success ? sp.data : null;
     }
+
+    // ADDITIVE — Studio control-centre needs derived tone + style
+    // hints + a small viral-memory summary in the same payload so
+    // the mobile client doesn't need to fan out to 3 endpoints just
+    // to render the top card. All values come from existing pure
+    // helpers; no new aggregation logic lives here.
+    let derivedTone: DerivedTone | null = null;
+    let derivedStyleHints: DerivedStyleHints | null = null;
+    if (profile !== null) {
+      derivedTone = deriveTone(profile);
+      derivedStyleHints = deriveStyleHints(profile);
+    }
+
+    // computeViralPatternMemory NEVER throws — it returns EMPTY_MEMORY
+    // for new creators (sampleSize === 0) so the client can render an
+    // honest "no data yet" state without the route needing a try/catch.
+    const memory = await computeViralPatternMemory(r.creator.id);
+    const topFormats = topEntries(memory.formats, 3);
+    const viralMemory: ViralMemorySummary = {
+      topStructures: topEntries(memory.structures, 3),
+      topHookStyles: topEntries(memory.hookStyles, 3),
+      topFormats,
+      topEmotionalSpike: topEntries(memory.emotionalSpikes, 1)[0]?.name ?? null,
+      topFormat: topFormats[0]?.name ?? null,
+      sampleSize: memory.sampleSize,
+    };
+
     res.json({
       hasProfile: profile !== null,
       profile,
       region: c.region ?? null,
       lastIdeaBatchAt: c.lastIdeaBatchAt ?? null,
+      derivedTone,
+      derivedStyleHints,
+      viralMemory,
     });
   } catch (err) {
     next(err);

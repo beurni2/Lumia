@@ -1,395 +1,333 @@
 /**
- * Swarm Studio Tab — the beating heart of Lumina.
+ * Studio — Creator Control Centre.
  *
- * This is the *tab landing* version of Studio. It shares the cinematic
- * primitives with `app/studio/[id].tsx` (constellation, reasoning bubble,
- * lily-pad input, light-explosion → publisher hand-off) but is composed
- * for an open-ended landing experience rather than a specific video.
+ * Replaces the previous "swarm orchestration" cinematic Studio with
+ * a clear, value-forward control panel that answers four questions
+ * for the creator on a single scroll:
  *
- * Differences from `studio/[id].tsx`:
- *   1. Top Command Deck instead of a back-button header — small Twin orb
- *      on the left, live status pill in the centre, "new idea" portal on
- *      the right. There is no /tabs back-nav by design.
- *   2. The preview theater renders **live swarm output** (top brief →
- *      storyboard → video → deal) as the chain resolves, instead of a
- *      pre-bound video thumbnail. Empty state shows the lily-pad zone.
- *   3. A subtle "Hive Ignition" bloom on first mount: constellation +
- *      preview slide/fade in with a 320 ms spring overshoot.
+ *   1. How does Lumina see my style?               → "Your Creator Style"
+ *   2. Can I make it sound more like me?           → "Style Twin"
+ *   3. What about my taste is actually working?    → "What's Working"
+ *   4. Can I steer the next batch?                 → "Tune Your Ideas"
+ *                                                    + "Give me something different"
  *
- * Data path mirrors `studio/[id].tsx` exactly: a guarded async chain
- * (Ideator → Director → Editor → Monetizer) with seeded fallbacks so
- * the bubble + status pill always have something cinematic to say even
- * before live data resolves.
+ * No new backend logic — every section pulls from existing helpers
+ * already exposed by the api-server (style-profile + viral-memory
+ * summary + imported-videos count + taste-calibration). The data
+ * fan-out lives in `useStudioSummary`; this screen is just layout +
+ * wiring.
  */
 
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Alert,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInUp,
-  ZoomIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+
+import { customFetch } from "@workspace/api-client-react";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
-import { GlassSurface } from "@/components/foundation/GlassSurface";
-import { PortalButton } from "@/components/foundation/PortalButton";
-import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
-import { AgentConstellation } from "@/components/studio/AgentConstellation";
-import { LightExplosion } from "@/components/studio/LightExplosion";
-import { LilyPadInput } from "@/components/studio/LilyPadInput";
-import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
-import { agents, lumina, type AgentKey } from "@/constants/colors";
-import { type } from "@/constants/typography";
-import { useStyleTwin } from "@/hooks/useStyleTwin";
+import { lumina } from "@/constants/colors";
+import { type Bundle } from "@/constants/regions";
+import { fontFamily, type } from "@/constants/typography";
 import {
-  ensureSeededVectors,
-  getOrchestrator,
-  makeContext,
-} from "@/lib/swarmFactory";
-import type {
-  Brief,
-  DealDraft,
-  RenderedVideo,
-  Storyboard,
-} from "@workspace/swarm-studio";
+  useStudioSummary,
+  type DerivedToneValue,
+  type ViralMemorySummary,
+} from "@/hooks/useStudioSummary";
+import {
+  type PreferredFormat,
+  type PreferredHookStyle,
+  type PreferredTone,
+  type TasteCalibration,
+  EMPTY_CALIBRATION,
+  saveTasteCalibration,
+} from "@/lib/tasteCalibration";
+import {
+  writeDailyIdeas,
+  type CachedIdea,
+} from "@/lib/dailyIdeasCache";
 
-type ReasoningMap = Record<AgentKey, string>;
+/* ------------------------------------------------------------------ */
+/* Display helpers — turn snake_case enum tags into friendly labels.   */
+/* ------------------------------------------------------------------ */
 
-/** Where in the chain we currently are. Drives status pill + preview state. */
-type ChainStep =
-  | "warming"
-  | "ideating"
-  | "directing"
-  | "editing"
-  | "monetizing"
-  | "complete"
-  | "error";
-
-const SEED_REASONING: ReasoningMap = {
-  ideator:
-    "Scanning today's regional trend feed for hooks that match your timbre fingerprint…",
-  director:
-    "Sketching a 9:16 storyboard with safe-zone-aware framing…",
-  editor:
-    "Pacing the middle beats against your retention-curve memory…",
-  monetizer:
-    "Matching your audience to brand pools — drafting a respectful DM…",
+const TONE_LABELS: Record<DerivedToneValue, string> = {
+  dry: "Dry / Subtle",
+  chaotic: "Chaotic",
+  "self-aware": "Self-aware",
+  confident: "Confident",
 };
 
-const AGENT_ORDER: AgentKey[] = ["ideator", "director", "editor", "monetizer"];
+const FORMAT_LABELS: Record<string, string> = {
+  mini_story: "Mini-stories",
+  reaction: "Reactions",
+  pov: "POV",
+  contrast: "Contrast",
+  mixed: "Mixed",
+};
 
-const SUGGESTIONS = [
-  "Make the hook punchier",
-  "Add a B-roll sweep",
-  "Caption in PT/BR too",
+const HOOK_STYLE_LABELS: Record<string, string> = {
+  the_way_i: "“the way I…”",
+  why_do_i: "“why do I…”",
+  internal_thought: "Internal thought",
+  curiosity: "Curiosity",
+  contrast: "Contrast",
+};
+
+const EMOTIONAL_SPIKE_LABELS: Record<string, string> = {
+  embarrassment: "Embarrassment",
+  regret: "Regret",
+  denial: "Denial",
+  panic: "Panic",
+  irony: "Irony",
+};
+
+const PREFERRED_FORMATS: { value: PreferredFormat; label: string }[] = [
+  { value: "mini_story", label: "Mini-stories" },
+  { value: "reaction", label: "Reactions" },
+  { value: "pov", label: "POV" },
+  { value: "mixed", label: "Mixed" },
 ];
 
-/** Status pill copy keyed on chain step. */
-const STATUS_COPY: Record<ChainStep, string> = {
-  warming: "Swarm warming up · 4 agents online",
-  ideating: "Ideator scoring trends…",
-  directing: "Director storyboarding…",
-  editing: "Editor cutting + scoring…",
-  monetizing: "Monetizer drafting deals…",
-  complete: "Swarm ready · tap to publish",
-  error: "Swarm hit a snag · retry from the bar",
+const PREFERRED_TONES: { value: PreferredTone; label: string }[] = [
+  { value: "dry_subtle", label: "Dry" },
+  { value: "chaotic", label: "Chaotic" },
+  { value: "bold", label: "Bold" },
+  { value: "self_aware", label: "Self-aware" },
+];
+
+const PREFERRED_HOOK_STYLES: { value: PreferredHookStyle; label: string }[] = [
+  { value: "thought_hook", label: "Thought" },
+  { value: "behavior_hook", label: "Behavior" },
+  { value: "curiosity_hook", label: "Curiosity" },
+  { value: "contrast_hook", label: "Contrast" },
+];
+
+function labelFromTag(map: Record<string, string>, tag: string): string {
+  return map[tag] ?? tag.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+/* ------------------------------------------------------------------ */
+/* Idea-shape used by /api/ideator/generate response.                  */
+/* ------------------------------------------------------------------ */
+
+type IdeatorResponse = {
+  region: Bundle;
+  count: number;
+  ideas: CachedIdea[];
 };
 
-export default function StudioTabScreen() {
+/* ------------------------------------------------------------------ */
+/* Screen                                                              */
+/* ------------------------------------------------------------------ */
+
+export default function StudioScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 24 : insets.top;
-  // Tab bar inset — leave room above the floating glass tab bar.
-  const bottomInset = isWeb ? 108 : insets.bottom + 108;
+  const bottomInset = isWeb ? 120 : insets.bottom + 120;
 
-  const { twin, loading: twinLoading } = useStyleTwin();
+  const { data, loading, error, refresh } = useStudioSummary();
 
-  // ── Live swarm chain state ───────────────────────────────────────────
-  const [reasoning, setReasoning] = useState<ReasoningMap>(SEED_REASONING);
-  const [chainStep, setChainStep] = useState<ChainStep>("warming");
-  const [briefs, setBriefs] = useState<Brief[] | null>(null);
-  const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
-  const [video, setVideo] = useState<RenderedVideo | null>(null);
-  const [deals, setDeals] = useState<DealDraft[] | null>(null);
-  const [chainError, setChainError] = useState<string | null>(null);
-
-  // Cycle through agents *only while idle* so the constellation breathes
-  // without remounting bubbles during an active chain or publish walk.
-  const [idleStep, setIdleStep] = useState(0);
-
-  // Run-id guard + unmount guard so a late chain doesn't overwrite a
-  // fresher one *and* so callbacks resolving after unmount become no-ops.
-  const runIdRef = useRef(0);
-  const mountedRef = useRef(true);
-  useEffect(
-    () => () => {
-      mountedRef.current = false;
-    },
-    [],
-  );
-  const runSwarmChain = useCallback(
-    async (opts?: {
-      preserveIdeatorAck?: boolean;
-      creativeOverride?: string;
-    }) => {
-      if (!twin) return;
-      const myRun = ++runIdRef.current;
-      const isLive = () =>
-        mountedRef.current && runIdRef.current === myRun;
-
-      setReasoning((prev) =>
-        opts?.preserveIdeatorAck
-          ? { ...SEED_REASONING, ideator: prev.ideator }
-          : SEED_REASONING,
-      );
-      setBriefs(null);
-      setStoryboard(null);
-      setVideo(null);
-      setDeals(null);
-      setChainError(null);
-      setChainStep("ideating");
-
-      const { orchestrator } = getOrchestrator();
-      const ctx = makeContext(twin, "us");
-      try {
-        await ensureSeededVectors(twin);
-        if (!isLive()) return;
-
-        const bs = await orchestrator.dailyBriefs(ctx, {
-          creativeOverride: opts?.creativeOverride,
-        });
-        if (!isLive()) return;
-        // Empty briefs is a recoverable terminal state — surface it instead
-        // of leaving the pill stuck on "Ideator scoring trends…".
-        if (bs.length === 0) {
-          setChainError("No briefs surfaced. Try a different prompt.");
-          setChainStep("error");
-          return;
-        }
-        const brief = bs[0]!;
-        setBriefs(bs);
-        const affinity = Math.round(brief.twinAffinity.overall * 100);
-        setReasoning((r) => ({
-          ...r,
-          ideator: `Hook: "${brief.hook}" — ${brief.culturalTag}, ${affinity}% twin affinity.`,
-        }));
-        setChainStep("directing");
-
-        const sb = await orchestrator.storyboard(ctx, brief.id);
-        if (!isLive()) return;
-        setStoryboard(sb);
-        const opener = sb.shots[0]?.description ?? "opening shot";
-        setReasoning((r) => ({
-          ...r,
-          director: `${sb.shots.length}-shot vertical board. Opening on: ${opener}`,
-        }));
-        setChainStep("editing");
-
-        const v = await orchestrator.produce(ctx, sb.id);
-        if (!isLive()) return;
-        setVideo(v);
-        setReasoning((r) => ({ ...r, editor: v.reasoning }));
-        setChainStep("monetizing");
-
-        const drafts = await orchestrator.monetize(ctx, v.id);
-        if (!isLive()) return;
-        // No matched brand pool — still a successful render, just nothing
-        // to monetize today. Mark complete so the user can publish anyway.
-        if (drafts.length === 0) {
-          setReasoning((r) => ({
-            ...r,
-            monetizer:
-              "No brand pool matched today — publishing organically is still a great call.",
-          }));
-          setChainStep("complete");
-          return;
-        }
-        setDeals(drafts);
-        const d = drafts[0]!;
-        setReasoning((r) => ({
-          ...r,
-          monetizer: `Brand fit: ${d.brandHandle} via ${d.channel} — ~$${d.estimatedCreatorTakeUsd.toFixed(0)} creator take. Drafting DM.`,
-        }));
-        setChainStep("complete");
-      } catch (err) {
-        if (!isLive()) return;
-        if (__DEV__) console.warn("[studio-tab] swarm chain failed", err);
-        setChainError((err as Error).message);
-        setChainStep("error");
-      }
-    },
-    [twin],
+  // Refetch when the tab regains focus — covers the case where the
+  // user just came back from /style-twin-train having uploaded more
+  // videos, or from /calibration having tweaked their taste.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
   );
 
-  useEffect(() => {
-    void runSwarmChain();
-  }, [runSwarmChain]);
+  /* ---------- Reset style ----------------------------------------- */
 
-  // ── Prompt + publish state ───────────────────────────────────────────
-  const [prompt, setPrompt] = useState("");
-  const [stickyOverride, setStickyOverride] = useState<string | undefined>(
-    undefined,
-  );
-  const [phase, setPhase] = useState<"idle" | "walking" | "exploding">("idle");
-  const [walkAgent, setWalkAgent] = useState<AgentKey | null>(null);
-  const walkTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const [resetting, setResetting] = useState(false);
 
-  const clearWalkTimers = useCallback(() => {
-    walkTimers.current.forEach(clearTimeout);
-    walkTimers.current = [];
-  }, []);
-  useEffect(() => () => clearWalkTimers(), [clearWalkTimers]);
-
-  const handlePublish = useCallback(() => {
-    if (chainStep !== "complete") return;
-    setPhase("walking");
-    clearWalkTimers();
-    AGENT_ORDER.forEach((agent, i) => {
-      const t = setTimeout(() => setWalkAgent(agent), i * 700);
-      walkTimers.current.push(t);
-    });
-    const ignite = setTimeout(() => {
-      setPhase("exploding");
-    }, AGENT_ORDER.length * 700);
-    walkTimers.current.push(ignite);
-  }, [clearWalkTimers, chainStep]);
-
-  const handleExplosionComplete = useCallback(() => {
-    setPhase("idle");
-    setWalkAgent(null);
-    router.push(
-      stickyOverride
-        ? { pathname: "/publisher", params: { override: stickyOverride } }
-        : "/publisher",
+  const handleResetStyle = useCallback(() => {
+    Alert.alert(
+      "Reset your style?",
+      "This will clear what Lumina has learned about your style. " +
+        "Your uploaded videos stay — re-train any time by adding more.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            setResetting(true);
+            try {
+              // Posting an empty styleProfile object lets the
+              // server's zod schema fill in every default — the
+              // persisted JSON ends up at DEFAULT_STYLE_PROFILE,
+              // which the ideator treats as "untrained".
+              await customFetch("/api/style-profile", {
+                method: "POST",
+                body: JSON.stringify({ styleProfile: {} }),
+              });
+              await refresh();
+            } catch {
+              Alert.alert(
+                "Couldn't reset",
+                "Try again in a moment.",
+              );
+            } finally {
+              setResetting(false);
+            }
+          },
+        },
+      ],
     );
-  }, [router, stickyOverride]);
+  }, [refresh]);
 
-  const handleSubmit = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (trimmed) {
-        setReasoning((r) => ({
-          ...r,
-          ideator: `Heard: "${trimmed}". Re-running the swarm with this in mind…`,
-        }));
-        setStickyOverride(trimmed);
+  /* ---------- Tune your ideas (chips → calibration) ---------------- */
+
+  const [savingTune, setSavingTune] = useState(false);
+
+  const calibration: TasteCalibration =
+    data?.calibration ?? EMPTY_CALIBRATION;
+
+  const updateCalibration = useCallback(
+    async (patch: Partial<TasteCalibration>) => {
+      setSavingTune(true);
+      try {
+        const next: TasteCalibration = {
+          ...calibration,
+          ...patch,
+          // The server treats taste-calibration as a "last value
+          // wins" doc — once the user has touched any chip on this
+          // screen, mark it completed so Home stops re-prompting.
+          completedAt: calibration.completedAt ?? new Date().toISOString(),
+          skipped: false,
+        };
+        await saveTasteCalibration(next);
+        await refresh();
+      } catch {
+        Alert.alert("Couldn't save", "Try again in a moment.");
+      } finally {
+        setSavingTune(false);
       }
-      setPrompt("");
-      setIdleStep(0);
-      void runSwarmChain({
-        preserveIdeatorAck: trimmed.length > 0,
-        creativeOverride: trimmed || undefined,
+    },
+    [calibration, refresh],
+  );
+
+  const toggleFormat = useCallback(
+    (value: PreferredFormat) => {
+      const cur = calibration.preferredFormats;
+      const next = cur.includes(value)
+        ? cur.filter((v) => v !== value)
+        : [...cur, value];
+      void updateCalibration({ preferredFormats: next });
+    },
+    [calibration.preferredFormats, updateCalibration],
+  );
+
+  const toggleHookStyle = useCallback(
+    (value: PreferredHookStyle) => {
+      const cur = calibration.preferredHookStyles;
+      const next = cur.includes(value)
+        ? cur.filter((v) => v !== value)
+        : [...cur, value];
+      void updateCalibration({ preferredHookStyles: next });
+    },
+    [calibration.preferredHookStyles, updateCalibration],
+  );
+
+  const setTone = useCallback(
+    (value: PreferredTone) => {
+      void updateCalibration({
+        preferredTone: calibration.preferredTone === value ? null : value,
       });
     },
-    [runSwarmChain],
+    [calibration.preferredTone, updateCalibration],
   );
 
-  // ── Active agent for constellation surge + bubble ────────────────────
-  // While the chain is actively running, the *running* agent surges. While
-  // walking the publish sequence, walkAgent overrides. Otherwise idle
-  // cycler drives.
-  const runningAgent: AgentKey | null = useMemo(() => {
-    switch (chainStep) {
-      case "ideating":
-        return "ideator";
-      case "directing":
-        return "director";
-      case "editing":
-        return "editor";
-      case "monetizing":
-        return "monetizer";
-      default:
-        return null;
+  /* ---------- Give me something different ------------------------- */
+
+  const [exploring, setExploring] = useState(false);
+
+  const handleGiveMeDifferent = useCallback(async () => {
+    if (exploring) return;
+    const region = data?.styleProfile?.region;
+    if (!region) {
+      Alert.alert(
+        "Add a region first",
+        "Lumina needs to know your region to generate ideas. " +
+          "Open Profile to set one.",
+      );
+      return;
     }
-  }, [chainStep]);
+    setExploring(true);
+    try {
+      const fresh = await customFetch<IdeatorResponse>(
+        "/api/ideator/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({ region, count: 3, regenerate: true }),
+        },
+      );
+      await writeDailyIdeas(region, fresh.ideas);
+      router.push("/");
+    } catch {
+      Alert.alert(
+        "Couldn't refresh",
+        "You may have already used today's refresh slot. " +
+          "Try again tomorrow.",
+      );
+    } finally {
+      setExploring(false);
+    }
+  }, [data?.styleProfile?.region, exploring, router]);
 
-  // Idle = chain is settled AND we're not in the publish walk. We only let
-  // the idle cycler tick (and only let it influence the rendered active
-  // agent / bubble key) in idle, so an active chain has cinematic
-  // continuity instead of remount churn every 3.6 s.
-  const isIdle = phase === "idle" && runningAgent === null;
-  useEffect(() => {
-    if (!isIdle) return;
-    const t = setInterval(
-      () => setIdleStep((s) => (s + 1) % AGENT_ORDER.length),
-      3600,
-    );
-    return () => clearInterval(t);
-  }, [isIdle]);
+  /* ---------- Derived view-models -------------------------------- */
 
-  const activeAgent: AgentKey =
-    phase === "walking" && walkAgent
-      ? walkAgent
-      : (runningAgent ?? AGENT_ORDER[idleStep]!);
+  const tone = data?.styleProfile?.derivedTone ?? null;
+  const memory: ViralMemorySummary | null =
+    data?.styleProfile?.viralMemory ?? null;
 
-  const activeBubbleText = reasoning[activeAgent];
+  const topFormats = useMemo(() => {
+    if (!memory) return [];
+    return memory.topFormats.slice(0, 3);
+  }, [memory]);
 
-  // Only re-key the bubble on idle ticks while idle; otherwise key by the
-  // chain phase + active agent so the bubble persists across cycler ticks.
-  const bubbleKey = isIdle
-    ? `idle-${activeAgent}-${idleStep}`
-    : `${activeAgent}-${chainStep}-${phase}`;
+  const topHookStyles = useMemo(() => {
+    if (!memory) return [];
+    return memory.topHookStyles.slice(0, 3);
+  }, [memory]);
 
-  // ── Empty Twin gate ──────────────────────────────────────────────────
-  if (twinLoading) {
+  const importedCount = data?.importedVideosCount ?? 0;
+  const importedVideosFailed = data?.importedVideosFailed ?? false;
+  const styleProfileFailed = data?.styleProfileFailed ?? false;
+  const calibrationFailed = data?.calibrationFailed ?? false;
+  // We must NOT render the State A "no uploads" empty state when the
+  // imported-videos fetch failed — that would silently lie to a
+  // creator who has actually trained their style twin. We treat
+  // failure as "unknown" and surface a small recoverable error
+  // instead of guessing. Same logic for the other two surfaces:
+  // their inline disclosures sit at the top of each section card.
+  const styleTrained = !importedVideosFailed && importedCount > 0;
+
+  /* ---------- Render --------------------------------------------- */
+
+  if (loading && !data) {
     return (
       <View style={styles.root}>
-        <CosmicBackdrop bloom>
-          <FireflyParticles count={10} ambient />
-        </CosmicBackdrop>
-        <View style={styles.center}>
+        <CosmicBackdrop />
+        <FireflyParticles count={12} />
+        <View style={styles.loadingWrap}>
           <ActivityIndicator color={lumina.firefly} />
-        </View>
-      </View>
-    );
-  }
-  if (!twin) {
-    return (
-      <View style={styles.root}>
-        <CosmicBackdrop bloom>
-          <FireflyParticles count={14} ambient />
-        </CosmicBackdrop>
-        <View style={[styles.center, { paddingHorizontal: 32 }]}>
-          <Feather
-            name="user-x"
-            size={42}
-            color="rgba(255,255,255,0.4)"
-          />
-          <Text style={[styles.emptyTitle, { color: "#FFFFFF" }]}>
-            Train your Style Twin first
-          </Text>
-          <Text style={[styles.emptyBody, { color: "rgba(255,255,255,0.65)" }]}>
-            The hive needs your voice and aesthetic before it can light up.
-            Upload 10–30s videos you've already posted or would post —
-            talking, POV, outfit, reaction, or simple daily clips work best.
-          </Text>
-          <View style={{ marginTop: 22 }}>
-            <PortalButton
-              label="train style twin"
-              onPress={() => router.push("/style-twin-train")}
-              width={240}
-              subtle
-            />
-          </View>
         </View>
       </View>
     );
@@ -397,629 +335,727 @@ export default function StudioTabScreen() {
 
   return (
     <View style={styles.root}>
+      <CosmicBackdrop />
+      <FireflyParticles count={14} />
       <StatusBar style="light" />
 
-      <CosmicBackdrop bloom>
-        <FireflyParticles count={14} ambient />
-      </CosmicBackdrop>
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={topInset}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: topInset + 24, paddingBottom: bottomInset },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        {/* ── Top Command Deck ────────────────────────────────────── */}
-        <Animated.View
-          entering={FadeInDown.duration(320).easing(
-            Easing.out(Easing.cubic),
+        {/* Header */}
+        <Animated.View entering={FadeInDown.duration(280)} style={styles.header}>
+          <Text style={styles.headerKicker}>Studio</Text>
+          <Text style={styles.headerTitle}>Your control centre</Text>
+          <Text style={styles.headerSub}>
+            See how Lumina understands you. Tune what comes next.
+          </Text>
+        </Animated.View>
+
+        {error ? (
+          <View style={styles.errorPill}>
+            <Text style={styles.errorPillText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {/* SECTION 1 — Your Creator Style */}
+        <SectionCard delay={40}>
+          <SectionHeader title="Your Creator Style" />
+          {styleProfileFailed ? (
+            <Text style={styles.styleHint}>
+              Couldn’t load your style right now — try again in a moment.
+            </Text>
+          ) : null}
+          <View style={styles.styleRow}>
+            <Text style={styles.styleRowLabel}>Tone</Text>
+            <View style={styles.tonePill}>
+              <Text style={styles.tonePillText}>
+                {tone ? TONE_LABELS[tone] : "Learning…"}
+              </Text>
+            </View>
+          </View>
+          <Divider />
+          <View style={styles.styleRow}>
+            <Text style={styles.styleRowLabel}>Top formats</Text>
+            <View style={styles.tagRow}>
+              {topFormats.length > 0 ? (
+                topFormats.map((s) => (
+                  <Tag key={s.name} label={labelFromTag(FORMAT_LABELS, s.name)} />
+                ))
+              ) : (
+                <Text style={styles.emptyInline}>No data yet</Text>
+              )}
+            </View>
+          </View>
+          <Divider />
+          <View style={styles.styleRow}>
+            <Text style={styles.styleRowLabel}>Top hook styles</Text>
+            <View style={styles.tagRow}>
+              {topHookStyles.length > 0 ? (
+                topHookStyles.map((s) => (
+                  <Tag
+                    key={s.name}
+                    label={labelFromTag(HOOK_STYLE_LABELS, s.name)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.emptyInline}>No data yet</Text>
+              )}
+            </View>
+          </View>
+          {memory && memory.sampleSize === 0 ? (
+            <Text style={styles.styleHint}>
+              Pick a few ideas on Home and Lumina will start to learn what works
+              for you.
+            </Text>
+          ) : null}
+        </SectionCard>
+
+        {/* SECTION 2 — Style Twin */}
+        <SectionCard delay={80}>
+          <SectionHeader title="Make Lumina sound like you" />
+          {importedVideosFailed ? (
+            <Text style={styles.styleHint}>
+              Couldn’t check your trained videos right now. Pull to refresh in
+              a moment.
+            </Text>
+          ) : null}
+          {!styleTrained ? (
+            <View>
+              <Text style={styles.bodyText}>
+                Upload a few videos — I’ll match your tone, humor, and pacing.
+              </Text>
+              <PrimaryButton
+                label="Add videos (optional)"
+                icon="upload"
+                onPress={() => router.push("/style-twin-train")}
+              />
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.bodyText}>
+                Style trained from {importedCount}{" "}
+                {importedCount === 1 ? "video" : "videos"}.
+              </Text>
+              <View style={styles.actionRow}>
+                <SecondaryButton
+                  label="Add more"
+                  icon="plus"
+                  onPress={() => router.push("/style-twin-train")}
+                />
+                <SecondaryButton
+                  label={resetting ? "Resetting…" : "Reset style"}
+                  icon="rotate-ccw"
+                  destructive
+                  disabled={resetting}
+                  onPress={handleResetStyle}
+                />
+              </View>
+            </View>
           )}
-          style={[styles.commandDeck, { paddingTop: topInset + 8 }]}
-          accessibilityLiveRegion="polite"
-        >
-          {/* Mini Twin orb — left */}
-          <View style={styles.twinOrbSlot}>
-            <StyleTwinOrb
-              size={56}
-              mood={runningAgent ? "excited" : "idle"}
-            />
+        </SectionCard>
+
+        {/* SECTION 3 — What's Working */}
+        <SectionCard delay={120}>
+          <SectionHeader title="What's working for you" />
+          <WhatsWorkingList memory={memory} />
+        </SectionCard>
+
+        {/* SECTION 4 — Tune Your Ideas */}
+        <SectionCard delay={160}>
+          <SectionHeader
+            title="Tune your ideas"
+            kicker={savingTune ? "Saving…" : "Optional"}
+          />
+          {calibrationFailed ? (
+            <Text style={styles.styleHint}>
+              Couldn’t load your current preferences — your selections will
+              still save.
+            </Text>
+          ) : null}
+          <Text style={styles.bodyText}>
+            Tap the formats and tone you want more of. Tap again to remove.
+          </Text>
+
+          <Text style={styles.subLabel}>Formats</Text>
+          <View style={styles.chipRow}>
+            {PREFERRED_FORMATS.map((opt) => (
+              <Chip
+                key={opt.value}
+                label={opt.label}
+                selected={calibration.preferredFormats.includes(opt.value)}
+                onPress={() => toggleFormat(opt.value)}
+                disabled={savingTune}
+              />
+            ))}
           </View>
 
-          {/* Status pill — center */}
-          <View style={styles.statusSlot}>
-            <StatusPill step={chainStep} />
+          <Text style={styles.subLabel}>Hook style</Text>
+          <View style={styles.chipRow}>
+            {PREFERRED_HOOK_STYLES.map((opt) => (
+              <Chip
+                key={opt.value}
+                label={opt.label}
+                selected={calibration.preferredHookStyles.includes(opt.value)}
+                onPress={() => toggleHookStyle(opt.value)}
+                disabled={savingTune}
+              />
+            ))}
           </View>
 
-          {/* New idea — right */}
+          <Text style={styles.subLabel}>Tone</Text>
+          <View style={styles.chipRow}>
+            {PREFERRED_TONES.map((opt) => (
+              <Chip
+                key={opt.value}
+                label={opt.label}
+                selected={calibration.preferredTone === opt.value}
+                onPress={() => setTone(opt.value)}
+                disabled={savingTune}
+              />
+            ))}
+          </View>
+        </SectionCard>
+
+        {/* SECTION 5 — Give me something different */}
+        <View style={styles.exploreWrap}>
           <Pressable
-            onPress={() => {
-              if (phase !== "idle") return;
-              setPrompt("");
-              setStickyOverride(undefined);
-              setIdleStep(0);
-              void runSwarmChain();
-            }}
-            disabled={phase !== "idle"}
-            accessibilityRole="button"
-            accessibilityLabel="Run a fresh swarm idea"
+            onPress={handleGiveMeDifferent}
+            disabled={exploring}
             style={({ pressed }) => [
-              styles.newIdeaBtn,
-              {
-                opacity: phase !== "idle" ? 0.4 : pressed ? 0.7 : 1,
-                shadowColor: lumina.spark,
-              },
+              styles.exploreBtn,
+              pressed && styles.exploreBtnPressed,
+              exploring && styles.exploreBtnDisabled,
             ]}
-            hitSlop={10}
           >
-            <Feather name="plus" size={20} color="#FFFFFF" />
+            {exploring ? (
+              <ActivityIndicator color="#0B0824" />
+            ) : (
+              <>
+                <Feather name="shuffle" size={18} color="#0B0824" />
+                <Text style={styles.exploreBtnText}>
+                  Give me something different
+                </Text>
+              </>
+            )}
           </Pressable>
-        </Animated.View>
-
-        {/* ── Constellation centerpiece — Hive Ignition bloom ─────── */}
-        <Animated.View
-          entering={ZoomIn.duration(360).easing(
-            Easing.out(Easing.cubic),
-          )}
-          style={styles.constellation}
-        >
-          <AgentConstellation
-            size={300}
-            active={activeAgent}
-            agreeing={
-              phase === "walking" && walkAgent === "monetizer"
-                ? AGENT_ORDER
-                : []
-            }
-          />
-        </Animated.View>
-
-        {/* ── Reasoning bubble ────────────────────────────────────── */}
-        <View style={styles.bubbleSlot}>
-          <ReasoningBubble
-            key={bubbleKey}
-            agent={activeAgent}
-            text={activeBubbleText}
-          />
+          <Text style={styles.exploreHint}>
+            Asks Lumina to push outside your usual patterns for the next batch.
+          </Text>
         </View>
-
-        {/* ── Cinematic Preview Theater ───────────────────────────── */}
-        <Animated.View
-          entering={FadeInUp.duration(380)
-            .delay(120)
-            .easing(Easing.out(Easing.cubic))}
-          style={styles.previewWrap}
-        >
-          <GlassSurface radius={20} agent={activeAgent} breathing>
-            <LiveOutputPreview
-              chainStep={chainStep}
-              briefs={briefs}
-              storyboard={storyboard}
-              video={video}
-              deals={deals}
-              chainError={chainError}
-            />
-          </GlassSurface>
-        </Animated.View>
-
-        {/* ── Publish portal ───────────────────────────────────────── */}
-        <View style={styles.publishWrap}>
-          <PortalButton
-            label={
-              phase === "walking"
-                ? "the hive is publishing…"
-                : chainStep === "complete"
-                  ? "approve & publish"
-                  : "the hive is still working…"
-            }
-            onPress={handlePublish}
-            width={260}
-            subtle
-            disabled={phase !== "idle" || chainStep !== "complete"}
-          />
-        </View>
-
-        {/* ── Lily-pad command bar ─────────────────────────────────── */}
-        <View style={{ paddingBottom: bottomInset }}>
-          <LilyPadInput
-            value={prompt}
-            onChangeText={setPrompt}
-            onSubmit={handleSubmit}
-            suggestions={SUGGESTIONS}
-            disabled={phase !== "idle"}
-          />
-        </View>
-      </KeyboardAvoidingView>
-
-      <LightExplosion
-        active={phase === "exploding"}
-        onComplete={handleExplosionComplete}
-      />
+      </ScrollView>
     </View>
   );
 }
 
-/* ────────────────────── Live Output Preview ──────────────────────── */
+/* ------------------------------------------------------------------ */
+/* Sub-components — kept inline so the screen reads top-to-bottom.     */
+/* ------------------------------------------------------------------ */
 
-/**
- * Theater contents — morphs as the chain progresses. Empty state shows
- * the lily-pad zone; each completed step replaces it with a compact
- * cinematic card. Every agent contribution becomes visible *here* the
- * moment it lands.
- */
-function LiveOutputPreview({
-  chainStep,
-  briefs,
-  storyboard,
-  video,
-  deals,
-  chainError,
-}: {
-  chainStep: ChainStep;
-  briefs: Brief[] | null;
-  storyboard: Storyboard | null;
-  video: RenderedVideo | null;
-  deals: DealDraft[] | null;
-  chainError: string | null;
-}) {
-  // Pick the most-advanced piece of data we have.
-  const latest: "deals" | "video" | "storyboard" | "briefs" | "empty" =
-    deals && deals.length > 0
-      ? "deals"
-      : video
-        ? "video"
-        : storyboard
-          ? "storyboard"
-          : briefs && briefs.length > 0
-            ? "briefs"
-            : "empty";
-
-  if (chainStep === "error") {
-    return (
-      <View style={styles.previewInner}>
-        <Feather
-          name="alert-circle"
-          size={28}
-          color={lumina.spark}
-          style={{ alignSelf: "center", marginBottom: 8 }}
-        />
-        <Text
-          style={[type.body, styles.previewBody, { textAlign: "center" }]}
-        >
-          The hive paused.{chainError ? ` ${chainError}` : ""} Tap the bar
-          below to ask the swarm to try again.
-        </Text>
-      </View>
-    );
-  }
-
-  if (latest === "empty") {
-    return <EmptyLilyPadState />;
-  }
-
-  if (latest === "briefs" && briefs) {
-    const brief = briefs[0]!;
-    const aff = Math.round(brief.twinAffinity.overall * 100);
-    return (
-      <View style={styles.previewInner}>
-        <PreviewEyebrow color={agents.ideator.hex}>
-          IDEATOR · BRIEF #1
-        </PreviewEyebrow>
-        <Text style={[type.subheadSm, styles.previewHook]}>
-          “{brief.hook}”
-        </Text>
-        <View style={styles.previewMetaRow}>
-          <PreviewChip
-            label={brief.culturalTag.toUpperCase()}
-            tint={agents.ideator.hex}
-          />
-          <PreviewChip
-            label={`${aff}% on-twin`}
-            tint={
-              brief.twinAffinity.meetsAudioGate
-                ? lumina.firefly
-                : lumina.spark
-            }
-          />
-        </View>
-      </View>
-    );
-  }
-
-  if (latest === "storyboard" && storyboard) {
-    const total = storyboard.shots.reduce((s, x) => s + x.duration, 0);
-    return (
-      <View style={styles.previewInner}>
-        <PreviewEyebrow color={agents.director.hex}>
-          DIRECTOR · {storyboard.shots.length} SHOTS · {total.toFixed(1)}s
-        </PreviewEyebrow>
-        <Text style={[type.body, styles.previewBody]} numberOfLines={3}>
-          Opening on: {storyboard.shots[0]?.description ?? "—"}
-        </Text>
-        <View style={styles.previewMetaRow}>
-          {storyboard.shots.slice(0, 4).map((shot, i) => (
-            <View
-              key={i}
-              style={[
-                styles.shotTick,
-                { backgroundColor: agents.director.hex },
-              ]}
-            />
-          ))}
-        </View>
-      </View>
-    );
-  }
-
-  if (latest === "video" && video) {
-    return (
-      <View style={styles.previewInner}>
-        <PreviewEyebrow color={agents.editor.hex}>
-          EDITOR · CUT ASSEMBLED
-        </PreviewEyebrow>
-        <View style={styles.previewScoreRow}>
-          <ScoreBlock
-            label="VIRAL"
-            value={`${Math.round(video.viralConfidence * 100)}%`}
-          />
-          <ScoreBlock
-            label="TWIN"
-            value={`${Math.round(video.twinMatchScore * 100)}%`}
-          />
-          <ScoreBlock
-            label="DUR"
-            value={`${video.durationSec.toFixed(1)}s`}
-          />
-        </View>
-        <Text style={[type.body, styles.previewBody]} numberOfLines={2}>
-          {video.reasoning}
-        </Text>
-      </View>
-    );
-  }
-
-  // deals (the chain is complete — show the brand match)
-  if (latest === "deals" && deals) {
-    const d = deals[0]!;
-    return (
-      <View style={styles.previewInner}>
-        <PreviewEyebrow color={agents.monetizer.hex}>
-          MONETIZER · DEAL DRAFTED
-        </PreviewEyebrow>
-        <Text style={[type.subheadSm, styles.previewHook]}>
-          {d.brandHandle}
-        </Text>
-        <Text style={[type.body, styles.previewBody]} numberOfLines={2}>
-          {d.dmDraft}
-        </Text>
-        <View style={styles.previewMetaRow}>
-          <PreviewChip
-            label={d.channel.toUpperCase()}
-            tint={agents.monetizer.hex}
-          />
-          <PreviewChip
-            label={`$${d.estimatedCreatorTakeUsd} take`}
-            tint={lumina.firefly}
-          />
-        </View>
-      </View>
-    );
-  }
-
-  return <EmptyLilyPadState />;
-}
-
-function EmptyLilyPadState() {
-  return (
-    <View style={[styles.previewInner, { alignItems: "center" }]}>
-      <View style={styles.lilyDots}>
-        <LilyDot offset={0} />
-        <LilyDot offset={0.33} />
-        <LilyDot offset={0.66} />
-      </View>
-      <Text style={[type.microDelight, styles.lilyHint]}>
-        Drop an idea below — the swarm is listening.
-      </Text>
-    </View>
-  );
-}
-
-/** Single bobbing dot — split out so each instance gets its own hook
- *  call site (Rules of Hooks). They share phase by their `offset` prop. */
-function LilyDot({ offset }: { offset: number }) {
-  const a = useSharedValue(0);
-  useEffect(() => {
-    a.value = withRepeat(
-      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-  }, [a]);
-  const style = useAnimatedStyle(() => {
-    "worklet";
-    const v = (a.value + offset) % 1;
-    return {
-      opacity: 0.35 + 0.5 * Math.sin(v * Math.PI),
-      transform: [{ scale: 0.9 + 0.2 * Math.sin(v * Math.PI) }],
-    };
-  });
-  return <Animated.View style={[styles.lilyDot, style]} />;
-}
-
-/* ────────────────────────── Status pill ──────────────────────────── */
-
-function StatusPill({ step }: { step: ChainStep }) {
-  const live = step !== "complete" && step !== "error" && step !== "warming";
-  const dotColor =
-    step === "error"
-      ? lumina.spark
-      : step === "complete"
-        ? lumina.firefly
-        : live
-          ? lumina.goldTo
-          : lumina.firefly;
-
-  // Subtle heartbeat on the leading dot — faster while live, slower idle.
-  const beat = useSharedValue(0);
-  useEffect(() => {
-    beat.value = withRepeat(
-      withTiming(1, {
-        duration: live ? 800 : 1800,
-        easing: Easing.inOut(Easing.sin),
-      }),
-      -1,
-      true,
-    );
-  }, [beat, live]);
-  const dotStyle = useAnimatedStyle(() => {
-    "worklet";
-    return {
-      opacity: 0.55 + 0.45 * beat.value,
-      transform: [{ scale: 0.85 + 0.25 * beat.value }],
-    };
-  });
-
-  return (
-    <GlassSurface radius={999} intensity={30}>
-      <View
-        style={styles.statusInner}
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={`Swarm status: ${STATUS_COPY[step]}`}
-        accessibilityLiveRegion="polite"
-      >
-        <Animated.View
-          style={[
-            styles.statusDot,
-            { backgroundColor: dotColor, shadowColor: dotColor },
-            dotStyle,
-          ]}
-        />
-        <Text style={styles.statusText} numberOfLines={1}>
-          {STATUS_COPY[step]}
-        </Text>
-      </View>
-    </GlassSurface>
-  );
-}
-
-/* ─────────────────────── Preview primitives ─────────────────────── */
-
-function PreviewEyebrow({
-  color,
+function SectionCard({
   children,
+  delay = 0,
 }: {
-  color: string;
   children: React.ReactNode;
+  delay?: number;
 }) {
   return (
-    <Text
-      style={[
-        type.label,
-        {
-          color,
-          fontSize: 11,
-          letterSpacing: 1.4,
-          marginBottom: 8,
-        },
-      ]}
+    <Animated.View
+      entering={FadeInDown.duration(320).delay(delay)}
+      style={styles.card}
     >
       {children}
-    </Text>
+    </Animated.View>
   );
 }
 
-function PreviewChip({ label, tint }: { label: string; tint: string }) {
+function SectionHeader({
+  title,
+  kicker,
+}: {
+  title: string;
+  kicker?: string;
+}) {
   return (
-    <View
-      style={[
-        styles.previewChip,
-        { borderColor: tint, backgroundColor: `${tint}1A` },
-      ]}
-    >
-      <Text style={[styles.previewChipText, { color: tint }]}>{label}</Text>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {kicker ? <Text style={styles.sectionKicker}>{kicker}</Text> : null}
     </View>
   );
 }
 
-function ScoreBlock({ label, value }: { label: string; value: string }) {
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function Tag({ label }: { label: string }) {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.tag}>
+      <Text style={styles.tagText}>{label}</Text>
+    </View>
+  );
+}
+
+function Chip({
+  label,
+  selected,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.chip,
+        selected && styles.chipSelected,
+        pressed && !disabled && styles.chipPressed,
+        disabled && styles.chipDisabled,
+      ]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function PrimaryButton({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.primaryBtn,
+        pressed && styles.primaryBtnPressed,
+      ]}
+    >
+      <Feather name={icon} size={16} color="#0B0824" />
+      <Text style={styles.primaryBtnText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SecondaryButton({
+  label,
+  icon,
+  onPress,
+  destructive,
+  disabled,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
+  onPress: () => void;
+  destructive?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.secondaryBtn,
+        pressed && !disabled && styles.secondaryBtnPressed,
+        disabled && styles.secondaryBtnDisabled,
+      ]}
+    >
+      <Feather
+        name={icon}
+        size={16}
+        color={destructive ? "#FFB4B4" : "#F6F3FF"}
+      />
       <Text
-        style={{
-          color: "rgba(255,255,255,0.5)",
-          fontSize: 10,
-          letterSpacing: 1.2,
-          fontWeight: "700",
-        }}
+        style={[
+          styles.secondaryBtnText,
+          destructive && styles.secondaryBtnTextDestructive,
+        ]}
       >
         {label}
       </Text>
-      <Text
-        style={{
-          color: "#FFFFFF",
-          fontSize: 22,
-          fontWeight: "700",
-          marginTop: 2,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
-        {value}
+    </Pressable>
+  );
+}
+
+function WhatsWorkingList({ memory }: { memory: ViralMemorySummary | null }) {
+  // We surface up to 3 distinct insights derived from the existing
+  // viral-memory aggregate: top emotional spike, top hook style,
+  // top format. Each is gated on having any signal at all so we
+  // never lie about a creator's data.
+  if (!memory || memory.sampleSize === 0) {
+    return (
+      <Text style={styles.bodyText}>
+        Once you give a few thumbs-ups on Home, Lumina will surface what’s
+        working most for your audience here.
+      </Text>
+    );
+  }
+
+  const items: { label: string; value: string }[] = [];
+  if (memory.topEmotionalSpike) {
+    items.push({
+      label: "Top emotion",
+      value: labelFromTag(EMOTIONAL_SPIKE_LABELS, memory.topEmotionalSpike),
+    });
+  }
+  if (memory.topHookStyles[0]) {
+    items.push({
+      label: "Best hook style",
+      value: labelFromTag(HOOK_STYLE_LABELS, memory.topHookStyles[0].name),
+    });
+  }
+  if (memory.topFormat) {
+    items.push({
+      label: "Top format",
+      value: labelFromTag(FORMAT_LABELS, memory.topFormat),
+    });
+  }
+  if (items.length === 0) {
+    return (
+      <Text style={styles.bodyText}>
+        Lumina is gathering signal — check back after a few more taps.
+      </Text>
+    );
+  }
+
+  return (
+    <View>
+      {items.map((it, i) => (
+        <View key={it.label}>
+          <View style={styles.insightRow}>
+            <Text style={styles.insightLabel}>{it.label}</Text>
+            <Text style={styles.insightValue}>{it.value}</Text>
+          </View>
+          {i < items.length - 1 ? <Divider /> : null}
+        </View>
+      ))}
+      <Text style={styles.styleHint}>
+        Based on your last {memory.sampleSize}{" "}
+        {memory.sampleSize === 1 ? "signal" : "signals"}.
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0824" },
-  flex: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+/* ------------------------------------------------------------------ */
+/* Styles                                                              */
+/* ------------------------------------------------------------------ */
 
-  /* Top command deck */
-  commandDeck: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 4,
-    gap: 12,
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#0A0824",
   },
-  twinOrbSlot: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusSlot: {
+  loadingWrap: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
-  statusInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  scroll: {
+    paddingHorizontal: 20,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
+
+  /* Header */
+  header: {
+    marginBottom: 22,
   },
-  statusText: {
-    color: "rgba(255,255,255,0.85)",
+  headerKicker: {
+    ...type.label,
+    color: lumina.firefly,
+    textTransform: "uppercase",
+    letterSpacing: 1.4,
     fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.2,
-    maxWidth: 220,
+    marginBottom: 6,
   },
-  newIdeaBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,30,158,0.18)",
+  headerTitle: {
+    ...type.display,
+    fontSize: 32,
+    lineHeight: 36,
+    color: "#F6F3FF",
+  },
+  headerSub: {
+    ...type.body,
+    color: "rgba(246,243,255,0.7)",
+    marginTop: 8,
+  },
+
+  /* Card */
+  card: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255,30,158,0.55)",
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
   },
-
-  /* Constellation centrepiece */
-  constellation: {
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    height: 280,
-    marginTop: 4,
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    ...type.subheadSm,
+    color: "#F6F3FF",
+  },
+  sectionKicker: {
+    ...type.microDelight,
+    color: "rgba(246,243,255,0.55)",
+    fontStyle: "normal",
+    opacity: 1,
   },
 
-  /* Reasoning bubble slot */
-  bubbleSlot: {
-    paddingHorizontal: 22,
-    minHeight: 92,
-    justifyContent: "center",
+  /* Body */
+  bodyText: {
+    ...type.body,
+    color: "rgba(246,243,255,0.78)",
+  },
+  subLabel: {
+    ...type.label,
+    color: "rgba(246,243,255,0.55)",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    fontSize: 11,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  styleHint: {
+    ...type.microDelight,
+    color: "rgba(246,243,255,0.6)",
+    marginTop: 12,
   },
 
-  /* Preview theater */
-  previewWrap: {
-    paddingHorizontal: 22,
-    paddingTop: 4,
+  /* Style row (label + value) */
+  styleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    flexWrap: "wrap",
+    gap: 8,
   },
-  previewInner: {
-    minHeight: 132,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    justifyContent: "center",
-  },
-  previewHook: {
-    color: "#FFFFFF",
-    marginBottom: 10,
-  },
-  previewBody: {
-    color: "rgba(255,255,255,0.78)",
+  styleRowLabel: {
+    ...type.label,
+    color: "rgba(246,243,255,0.6)",
     fontSize: 13,
-    lineHeight: 18,
   },
-  previewMetaRow: {
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+
+  /* Tone pill */
+  tonePill: {
+    backgroundColor: "rgba(0,255,204,0.12)",
+    borderColor: "rgba(0,255,204,0.4)",
+    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  tonePillText: {
+    ...type.label,
+    color: lumina.firefly,
+    fontSize: 13,
+  },
+
+  /* Tags */
+  tagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "flex-end",
+    flexShrink: 1,
+  },
+  tag: {
+    backgroundColor: "rgba(107,30,255,0.18)",
+    borderColor: "rgba(139,77,255,0.4)",
+    borderWidth: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  tagText: {
+    ...type.label,
+    color: "#E9E3FF",
+    fontSize: 12,
+  },
+  emptyInline: {
+    ...type.microDelight,
+    color: "rgba(246,243,255,0.45)",
+    fontStyle: "italic",
+  },
+
+  /* Insights row */
+  insightRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  insightLabel: {
+    ...type.label,
+    color: "rgba(246,243,255,0.6)",
+    fontSize: 13,
+  },
+  insightValue: {
+    ...type.bodyEmphasis,
+    color: "#F6F3FF",
+  },
+
+  /* Chips */
+  chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 10,
-    alignItems: "center",
   },
-  previewChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
-  previewChipText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.6,
+  chipSelected: {
+    backgroundColor: "rgba(0,255,204,0.15)",
+    borderColor: lumina.firefly,
   },
-  previewScoreRow: {
-    flexDirection: "row",
-    gap: 14,
-    marginBottom: 8,
+  chipPressed: {
+    opacity: 0.7,
   },
-  shotTick: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    opacity: 0.65,
+  chipDisabled: {
+    opacity: 0.5,
   },
-  lilyDots: {
+  chipText: {
+    ...type.label,
+    color: "rgba(246,243,255,0.85)",
+    fontSize: 13,
+  },
+  chipTextSelected: {
+    color: lumina.firefly,
+  },
+
+  /* Buttons */
+  actionRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 12,
+    marginTop: 14,
   },
-  lilyDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: lumina.firefly,
-    shadowColor: lumina.firefly,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 14,
   },
-  lilyHint: {
-    color: "rgba(255,255,255,0.65)",
+  primaryBtnPressed: {
+    opacity: 0.85,
+  },
+  primaryBtnText: {
+    ...type.label,
+    color: "#0B0824",
+    fontSize: 15,
+  },
+  secondaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    flex: 1,
+  },
+  secondaryBtnPressed: {
+    opacity: 0.7,
+  },
+  secondaryBtnDisabled: {
+    opacity: 0.5,
+  },
+  secondaryBtnText: {
+    ...type.label,
+    color: "#F6F3FF",
+    fontSize: 14,
+  },
+  secondaryBtnTextDestructive: {
+    color: "#FFB4B4",
+  },
+
+  /* Explore (Give me something different) */
+  exploreWrap: {
+    marginTop: 8,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  exploreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: lumina.spark,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 999,
+    width: "100%",
+    shadowColor: lumina.spark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  exploreBtnPressed: {
+    opacity: 0.9,
+  },
+  exploreBtnDisabled: {
+    opacity: 0.6,
+  },
+  exploreBtnText: {
+    ...type.label,
+    color: "#0B0824",
+    fontSize: 15,
+    fontFamily: fontFamily.bodyBold,
+  },
+  exploreHint: {
+    ...type.microDelight,
+    color: "rgba(246,243,255,0.55)",
+    marginTop: 10,
     textAlign: "center",
   },
 
-  /* Publish CTA */
-  publishWrap: {
-    alignItems: "center",
-    paddingTop: 16,
-    paddingBottom: 6,
-    marginTop: "auto",
+  /* Error pill */
+  errorPill: {
+    backgroundColor: "rgba(248,113,113,0.12)",
+    borderColor: "rgba(248,113,113,0.4)",
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    marginBottom: 14,
   },
-
-  /* Twin-gate empty state */
-  emptyTitle: { fontSize: 22, fontWeight: "700", textAlign: "center" },
-  emptyBody: { fontSize: 15, textAlign: "center", lineHeight: 21 },
+  errorPillText: {
+    ...type.body,
+    color: "#F87171",
+    fontSize: 14,
+  },
 });
