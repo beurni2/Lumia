@@ -117,9 +117,9 @@ export default function ReviewScreen() {
     clip?: string;
     clips?: string;
   }>();
-  const { idea, clip } = useMemo(() => {
+  const { idea, clip, extraClips } = useMemo(() => {
     let parsedIdea: IdeaCardData | null = null;
-    let parsedClip: FilmedClip | null = null;
+    let parsedClips: FilmedClip[] = [];
     if (params.idea) {
       try {
         parsedIdea = JSON.parse(params.idea) as IdeaCardData;
@@ -127,29 +127,32 @@ export default function ReviewScreen() {
         parsedIdea = null;
       }
     }
-    // Phase 1: prefer the multi-clip `clips` array and reduce
-    // it to its first element — templates still render a single
-    // short-form output. Fall back to the legacy `clip` param
-    // so deep-link entries from earlier builds keep working.
-    // Multi-clip structuring is Phase 2 — see replit.md.
+    // The Import stage produces 1 or 2 clips in canonical order.
+    // We keep the FIRST as `clip` (drives the comparison/match
+    // and the AFTER preview) and any remainder as `extraClips`
+    // (saved alongside, surfaced as a footer hint). Cap at 2
+    // belt-and-braces so an old/forged param can't smuggle in
+    // a longer array.
     if (params.clips) {
       try {
         const arr = JSON.parse(params.clips) as FilmedClip[];
-        if (Array.isArray(arr) && arr.length > 0) {
-          parsedClip = arr[0];
-        }
+        if (Array.isArray(arr)) parsedClips = arr.slice(0, 2);
       } catch {
-        parsedClip = null;
+        parsedClips = [];
       }
     }
-    if (!parsedClip && params.clip) {
+    if (parsedClips.length === 0 && params.clip) {
       try {
-        parsedClip = JSON.parse(params.clip) as FilmedClip;
+        parsedClips = [JSON.parse(params.clip) as FilmedClip];
       } catch {
-        parsedClip = null;
+        parsedClips = [];
       }
     }
-    return { idea: parsedIdea, clip: parsedClip };
+    return {
+      idea: parsedIdea,
+      clip: parsedClips[0] ?? null,
+      extraClips: parsedClips.slice(1),
+    };
   }, [params.idea, params.clip, params.clips]);
 
   const [match, setMatch] = useState<PastMatch | null>(null);
@@ -174,6 +177,31 @@ export default function ReviewScreen() {
   // flight, and we don't want the slower one to clobber the
   // fresher result.
   const loadCallIdRef = useRef(0);
+
+  // Per-URI dedupe set for multi-clip saves. When the user has
+  // 2 clips and the second one fails partway through, we want
+  // a retry to pick up where it left off — re-saving the first
+  // clip would create a duplicate file in the gallery and
+  // overclaim the count in the success copy. The ref shape
+  // (vs state) is deliberate: we never need to re-render on
+  // change, and we want the latest value inside the async
+  // handleSave closure without it appearing in the dep array.
+  const savedUrisRef = useRef<Set<string>>(new Set());
+
+  // List of clip URIs we'll attempt to save, in canonical order.
+  // Driven by `clip` + `extraClips`; filtered to non-empty
+  // strings so the success/saving copy is honest about how many
+  // videos will actually land in the gallery (a clip with no
+  // `uri` — e.g. a malformed picker payload — is silently
+  // skipped rather than counted toward the total).
+  const saveableUris = useMemo(() => {
+    const out: string[] = [];
+    if (clip?.uri) out.push(clip.uri);
+    for (const c of extraClips) {
+      if (c?.uri) out.push(c.uri);
+    }
+    return out;
+  }, [clip, extraClips]);
 
   /* ---------- Past-video matching --------------------------- */
 
@@ -289,7 +317,7 @@ export default function ReviewScreen() {
   const handleSave = useCallback(async () => {
     // Defensive — the Save button is disabled when canSave is
     // false, but a stale press could still land here.
-    if (!clip?.uri) {
+    if (saveableUris.length === 0) {
       setSaveState("error");
       setSaveErrorMsg(
         Platform.OS === "web"
@@ -317,9 +345,32 @@ export default function ReviewScreen() {
       // before saving. Today we save the original clip and
       // surface the watermark as an in-app preview overlay
       // when the toggle is on (see BeforeAfter).
-      await MediaLibrary.saveToLibraryAsync(clip.uri);
+      // Multi-clip: when the user uploaded 2 clips we save BOTH
+      // originals to the gallery in canonical order. We don't
+      // concatenate — that needs ffmpeg in a custom dev client
+      // — so the user gets two adjacent files they can chain in
+      // their own editor.
+      //
+      // The loop is awaited SEQUENTIALLY so a mid-save failure
+      // surfaces immediately and we don't half-write a corrupt
+      // pair. We track every successful URI in `savedUrisRef`
+      // so a retry after a partial failure picks up where it
+      // left off — re-saving an already-saved clip would create
+      // a duplicate gallery file (Photos doesn't dedupe on
+      // identical content). The ref persists across renders
+      // and across handleSave invocations until the user
+      // navigates away from /review.
+      for (const uri of saveableUris) {
+        if (savedUrisRef.current.has(uri)) continue;
+        await MediaLibrary.saveToLibraryAsync(uri);
+        savedUrisRef.current.add(uri);
+      }
       setSaveState("success");
     } catch (err) {
+      // Note: any URIs added to savedUrisRef BEFORE the throw
+      // remain — we don't roll the set back, because the
+      // gallery-side write already happened. Next attempt
+      // skips them automatically.
       setSaveState("error");
       setSaveErrorMsg(
         err instanceof Error && err.message
@@ -327,7 +378,7 @@ export default function ReviewScreen() {
           : "Couldn't save to your gallery. Try again.",
       );
     }
-  }, [clip]);
+  }, [saveableUris]);
 
   /* ---------- Render --------------------------------------- */
 
@@ -432,6 +483,7 @@ export default function ReviewScreen() {
             <BeforeAfter
               match={match}
               clip={clip}
+              extraClips={extraClips}
               idea={idea}
               watermarkOn={watermarkOn}
             />
@@ -451,7 +503,8 @@ export default function ReviewScreen() {
             onSave={handleSave}
             onMakeAnother={handleMakeAnother}
             onBack={handleHome}
-            canSave={typeof clip.uri === "string" && clip.uri.length > 0}
+            canSave={saveableUris.length > 0}
+            clipCount={saveableUris.length}
           />
 
           {/* Bottom navigation tail — keeps "Make another
@@ -486,15 +539,22 @@ export default function ReviewScreen() {
 function BeforeAfter({
   match,
   clip,
+  extraClips,
   idea,
   watermarkOn,
 }: {
   match: PastMatch;
   clip: FilmedClip;
+  // 0 or 1 entries — Phase 1 caps at 2 total clips. Surfaced as
+  // a small "+1 more clip" hint under the AFTER footer so the
+  // user can see at a glance both clips are along for the ride.
+  // No timeline, no thumbnails, no order labels — just a count.
+  extraClips: FilmedClip[];
   idea: IdeaCardData;
   watermarkOn: boolean;
 }) {
   const past = match.video;
+  const extras = extraClips.length;
   return (
     <View style={styles.compareRow}>
       <View style={styles.compareCol}>
@@ -546,6 +606,11 @@ function BeforeAfter({
                 : ""}
             </Text>
           </View>
+          {extras > 0 ? (
+            <Text style={styles.frameExtra}>
+              +{extras} more clip{extras > 1 ? "s" : ""}
+            </Text>
+          ) : null}
           {/* Watermark badge — when on, overlays the AFTER pane
               so the user sees what "Made with Lumina" looks
               like in context. The saved video file is NOT
@@ -574,6 +639,7 @@ function ExportSection({
   onMakeAnother,
   onBack,
   canSave,
+  clipCount,
 }: {
   saveState: "idle" | "saving" | "success" | "error";
   saveErrorMsg: string | null;
@@ -583,7 +649,13 @@ function ExportSection({
   onMakeAnother: () => void;
   onBack: () => void;
   canSave: boolean;
+  // 1 or 2. Drives the "Video"/"Videos" pluralisation in the
+  // saving + success copy so the user sees the truthful state
+  // ("Saving 2 videos…" / "Videos saved to your gallery") when
+  // both upload slots were filled.
+  clipCount: number;
 }) {
+  const plural = clipCount > 1;
   return (
     <View style={styles.exportCard}>
       {/* Watermark toggle is visible in idle/saving/error and
@@ -657,14 +729,22 @@ function ExportSection({
       {saveState === "saving" ? (
         <View style={styles.savingBox}>
           <ActivityIndicator color={lumina.firefly} />
-          <Text style={styles.savingText}>Saving to your gallery…</Text>
+          <Text style={styles.savingText}>
+            {plural
+              ? `Saving ${clipCount} videos to your gallery…`
+              : "Saving to your gallery…"}
+          </Text>
         </View>
       ) : null}
 
       {saveState === "success" ? (
         <View style={styles.successBox}>
           <Feather name="check-circle" size={32} color={lumina.firefly} />
-          <Text style={styles.successTitle}>Video saved to your gallery</Text>
+          <Text style={styles.successTitle}>
+            {plural
+              ? `${clipCount} videos saved to your gallery`
+              : "Video saved to your gallery"}
+          </Text>
           {watermarkOn ? (
             <Text style={styles.successHint}>
               Watermark is visible in the preview above. File burn-in is
@@ -1210,6 +1290,16 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.55)",
     fontSize: 10,
     flex: 1,
+  },
+  // Tiny "+1 more clip" hint that sits just under the AFTER
+  // footer when the user uploaded both slots. Kept intentionally
+  // small and label-free — no ordering language, no thumbnails,
+  // no timeline. Just enough to confirm both clips made it.
+  frameExtra: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 10,
+    marginTop: 4,
   },
   // Why-Better card
   whyCard: {

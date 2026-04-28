@@ -97,56 +97,76 @@ export default function CreateScreen() {
     setStage("preview");
   }, []);
 
-  const handlePickClip = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    setErrorMsg(null);
-    try {
-      const picked = await pickVideo();
-      if (!picked || picked.length === 0) {
-        // User cancelled the picker (or returned an empty
-        // selection) — release the busy lock and stay on this
-        // stage. No error, no advance.
-        return;
+  // Per-slot picker. The Import stage exposes two labeled slots
+  // ("Clip 1" / "Clip 2 (optional)") and each one calls this
+  // helper with its own index. We pick a SINGLE video per call
+  // so each slot maps 1:1 to a file. Order is preserved by
+  // index — slot 0 → clips[0], slot 1 → clips[1]. Re-tapping
+  // a filled slot replaces just that slot without disturbing
+  // the other one.
+  const handlePickClipAt = useCallback(
+    async (index: 0 | 1) => {
+      if (busy) return;
+      // Belt-and-braces: the UI disables slot 1 until slot 0
+      // is filled, so the only legal write to clips[1] is when
+      // clips[0] already exists. Guard here too in case a stale
+      // press races the disable.
+      if (index === 1 && clips.length === 0) return;
+      setBusy(true);
+      setErrorMsg(null);
+      try {
+        const picked = await pickVideo({ limit: 1 });
+        if (!picked || picked.length === 0) {
+          // User cancelled or empty selection — release the
+          // busy lock and stay on the Import stage. No error,
+          // no state change.
+          return;
+        }
+        setClips((prev) => {
+          // Build the next array slot-by-slot so order survives
+          // a "replace slot 0 while slot 1 is filled" sequence.
+          const next: FilmedClip[] = [];
+          if (index === 0) {
+            next.push(picked[0]);
+            if (prev[1]) next.push(prev[1]);
+          } else {
+            // index === 1 — guard above guarantees prev[0] exists.
+            next.push(prev[0]);
+            next.push(picked[0]);
+          }
+          return next;
+        });
+      } catch (err) {
+        setErrorMsg(formatError(err, "Couldn't import that clip."));
+      } finally {
+        setBusy(false);
       }
-      // Phase 1 accepts multiple clips at import; the template
-      // still renders a single short-form output (clips[0] is
-      // the canonical primary). Multi-clip structuring lands
-      // in Phase 2 — see replit.md "multi-clip rule".
-      setClips(picked);
-      goPreview();
-    } catch (err) {
-      setErrorMsg(formatError(err, "Couldn't import that clip."));
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, goPreview]);
+    },
+    [busy, clips.length],
+  );
 
-  // "Upload video instead" path from the Tips screen. Skips the
-  // intermediate Import stage entirely — opens the picker right
-  // away, accepts a SINGLE video (per the upload spec — distinct
-  // from the multi-clip filming flow), and jumps straight to
-  // Preview. Treated downstream as if the user had just filmed
-  // it: same FilmedClip shape, same /review hand-off, same
-  // template render. No editor, no trim, no filter.
-  // Engine note: this only attaches a clip to the local
-  // creation session. No ideator signal is fired (filming and
-  // uploading are equivalent capture methods, not feedback).
-  const handleUploadInstead = useCallback(async () => {
+  // Continue from Import → Preview. Allowed once at least one
+  // clip is in the array (Clip 2 is genuinely optional per the
+  // spec). The handler is intentionally tiny so the slot buttons
+  // can call it without going through any extra validation —
+  // the disabled state on the button is the source of truth.
+  const handleContinue = useCallback(() => {
+    if (clips.length === 0) return;
+    goPreview();
+  }, [clips.length, goPreview]);
+
+  // "Upload video instead" path from the Tips screen. Routes to
+  // the same Import stage as "I'm ready to film" — both onramps
+  // land on the unified two-slot picker so there's exactly one
+  // upload UI in the app. No separate single-shot shortcut: the
+  // spec wants "up to 2 video uploads" everywhere uploads happen.
+  const handleUploadInstead = useCallback(() => {
     if (busy) return;
-    setBusy(true);
-    setErrorMsg(null);
-    try {
-      const picked = await pickVideo({ limit: 1 });
-      if (!picked || picked.length === 0) return;
-      setClips([picked[0]]);
-      goPreview();
-    } catch (err) {
-      setErrorMsg(formatError(err, "Couldn't import that video."));
-    } finally {
-      setBusy(false);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [busy, goPreview]);
+    setStage("import");
+  }, [busy]);
 
   const handleDone = useCallback(() => {
     router.replace("/(tabs)");
@@ -251,7 +271,12 @@ export default function CreateScreen() {
           />
         ) : null}
         {stage === "import" ? (
-          <ImportStage onPick={handlePickClip} busy={busy} />
+          <ImportStage
+            clips={clips}
+            onPickAt={handlePickClipAt}
+            onContinue={handleContinue}
+            busy={busy}
+          />
         ) : null}
         {stage === "preview" && clips.length > 0 ? (
           <PreviewStage
@@ -340,36 +365,140 @@ function TipsStage({
 /* =================== Stage 2 · Import =================== */
 
 function ImportStage({
-  onPick,
+  clips,
+  onPickAt,
+  onContinue,
   busy,
 }: {
-  onPick: () => void;
+  clips: FilmedClip[];
+  onPickAt: (index: 0 | 1) => void;
+  onContinue: () => void;
   busy: boolean;
 }) {
+  const clip1 = clips[0];
+  const clip2 = clips[1];
+  // Slot 2 is locked until Slot 1 is filled — order is enforced
+  // at the UI so the user can't end up with a "Clip 2 only"
+  // arrangement that the data model doesn't represent.
+  const slot2Disabled = !clip1 || busy;
+  const continueDisabled = clips.length === 0 || busy;
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 2 of 3 · Got your clips?</Text>
-      <Text style={styles.title}>Add 1–2 clips.</Text>
-      <Text style={styles.sub}>
-        First clip is the main video (10–30s works best). Pick from your
-        gallery and we'll show you a quick preview.
-      </Text>
-      <PrimaryButton
-        label={busy ? "Adding…" : "Add clips"}
-        onPress={onPick}
+      <Text style={styles.title}>Add your clips.</Text>
+      <Text style={styles.helper}>Most videos are just 1–2 quick clips</Text>
+
+      <ClipSlot
+        label="Clip 1"
+        clip={clip1}
+        onPress={() => onPickAt(0)}
+        busy={busy}
         disabled={busy}
-        loading={busy}
       />
+      <ClipSlot
+        label="Clip 2 (optional)"
+        clip={clip2}
+        onPress={() => onPickAt(1)}
+        busy={busy}
+        disabled={slot2Disabled}
+      />
+
+      <PrimaryButton
+        label="Continue"
+        onPress={onContinue}
+        disabled={continueDisabled}
+      />
+
       <Text style={styles.privacy}>
         We only record the filename · the file stays on your device.
       </Text>
       {Platform.OS === "web" ? (
         <Text style={styles.privacy}>
-          Web preview: tapping above will use a simulated upload — on the
+          Web preview: tapping a slot uses a simulated upload — on the
           phone app it opens your real gallery.
         </Text>
       ) : null}
     </Animated.View>
+  );
+}
+
+/* ----------- ClipSlot ----------- *
+ * One labeled tap-target per slot. Empty: shows label + "Tap to
+ * choose". Filled: shows label + filename · duration plus a
+ * checkmark glyph. Tapping a filled slot reopens the picker so
+ * the user can replace just that slot — no separate remove
+ * affordance (no editing tools per spec). When `disabled` is
+ * true the slot dims and reads as locked to the screen reader. */
+function ClipSlot({
+  label,
+  clip,
+  onPress,
+  busy,
+  disabled,
+}: {
+  label: string;
+  clip: FilmedClip | undefined;
+  onPress: () => void;
+  busy: boolean;
+  disabled: boolean;
+}) {
+  const filled = !!clip;
+  const valueText = filled
+    ? `${clip!.filename}${
+        typeof clip!.durationSec === "number" ? ` · ${clip!.durationSec}s` : ""
+      }`
+    : busy && !disabled
+      ? "Adding…"
+      : "Tap to choose";
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.slot,
+        filled ? styles.slotFilled : styles.slotEmpty,
+        disabled && !filled ? styles.slotDisabled : null,
+        pressed && !disabled ? styles.slotPressed : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={
+        filled
+          ? `${label} added: ${clip!.filename}. Tap to replace.`
+          : disabled
+            ? `${label}. Locked.`
+            : `${label}. Tap to choose.`
+      }
+      accessibilityState={{ disabled }}
+    >
+      <View style={styles.slotRow}>
+        <Text
+          style={[styles.slotLabel, disabled && !filled && styles.slotLabelMuted]}
+        >
+          {label}
+        </Text>
+        <Feather
+          name={filled ? "check-circle" : "plus-circle"}
+          size={18}
+          color={
+            filled
+              ? lumina.firefly
+              : disabled
+                ? "rgba(255,255,255,0.3)"
+                : "rgba(255,255,255,0.6)"
+          }
+        />
+      </View>
+      <Text
+        style={[
+          styles.slotValue,
+          filled ? styles.slotValueFilled : null,
+          disabled && !filled ? styles.slotValueMuted : null,
+        ]}
+        numberOfLines={1}
+      >
+        {valueText}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -971,5 +1100,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 18,
     textAlign: "center",
+  },
+  // One-line helper directly under the Import stage title.
+  // Lighter weight than `sub` so it reads as a soft hint, not
+  // an instruction the user has to parse.
+  helper: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 22,
+  },
+  // Slot button shared base — sits between two states (empty /
+  // filled) and a disabled variant. Mirrors the visual rhythm
+  // of `tipBlock` so the import stage feels consistent with
+  // tips without introducing a new card style.
+  slot: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  slotEmpty: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(0,255,204,0.35)",
+    borderStyle: "dashed",
+  },
+  slotFilled: {
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderColor: "rgba(0,255,204,0.5)",
+  },
+  slotDisabled: {
+    opacity: 0.55,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderStyle: "solid",
+  },
+  slotPressed: {
+    opacity: 0.85,
+  },
+  slotRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  slotLabel: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#FFFFFF",
+    fontSize: 15,
+    letterSpacing: 0.2,
+  },
+  slotLabelMuted: {
+    color: "rgba(255,255,255,0.55)",
+  },
+  slotValue: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    marginTop: 6,
+  },
+  slotValueFilled: {
+    color: "rgba(255,255,255,0.85)",
+  },
+  slotValueMuted: {
+    color: "rgba(255,255,255,0.4)",
   },
 });
