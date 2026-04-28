@@ -46,6 +46,7 @@ Lumina is a pnpm workspace monorepo built with TypeScript.
 - **Phase 1 Entry Point:** AI-generated ideas are the sole primary entry into the filming/create flow; no custom idea creation.
 - **Phase 1 Multi-clip Rule:** The import stage supports exactly two labeled tap-targets ("Clip 1" and "Clip 2 (optional)"), allowing users to select single clips into fixed slots without editing tools. Fast entry via "camera" or "picker" auto-opens the native modal for Slot 1.
 - **Film-screen UX (Tips stage):** Renders a "Why this works" block derived client-side from idea metadata. Both "I'm ready to film" and "Upload video instead" routes lead to the same unified Import stage.
+- **Camera permission UX:** When camera access is denied, `captureVideo()` throws a typed `CameraPermissionDeniedError` that the create flow surfaces as a soft auto-dismissing notice ("Camera not allowed — you can upload a clip instead") rather than a sticky red error. The user is not blocked, not redirected to system settings, and not shown a modal — Slot 1 stays empty so a tap falls back to the gallery picker. A `globalThis.__qaDenyCamera` hook lets the e2e harness simulate denial on web.
 - Four fixed timing templates are deterministically selected based on the Ideator's `templateHint`.
 - One-tap export to the gallery with an optional "Made with Lumina" watermark.
 

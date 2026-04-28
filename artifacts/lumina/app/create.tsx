@@ -42,7 +42,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
@@ -80,6 +80,14 @@ export default function CreateScreen() {
   const [clips, setClips] = useState<FilmedClip[]>([]);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Transient, non-blocking hint channel — separate from
+  // `errorMsg` because the two have different contracts.
+  // `errorMsg` is sticky (waits for the user to retry, which
+  // resets it) and signals an actual failure the user must
+  // notice. `notice` auto-dismisses and signals soft, non-
+  // critical feedback the flow should keep moving past — e.g.
+  // "Camera not allowed — you can upload a clip instead".
+  const [notice, setNotice] = useState<string | null>(null);
   // "Fast entry" intent: which capture path the user committed to
   // on the Tips screen. The Import stage consumes this exactly
   // once on mount to auto-open the matching native modal so the
@@ -164,6 +172,11 @@ export default function CreateScreen() {
         }
         writeClipToSlot(index, picked[0]);
       } catch (err) {
+        // A hard error supersedes any soft notice that might be
+        // mid-display, so the user doesn't see a stacked
+        // soft-hint + red-banner pair within the notice's
+        // 3.5s auto-dismiss window.
+        setNotice(null);
         setErrorMsg(formatError(err, "Couldn't import that clip."));
       } finally {
         setBusy(false);
@@ -180,6 +193,13 @@ export default function CreateScreen() {
   // visible behaviour matches the spec ("screen remains the
   // same"). Kept index-parameterised for symmetry with the
   // picker handler.
+  //
+  // Permission denial is a known, recoverable case — not an
+  // error. We surface it through the soft `notice` channel
+  // ("Camera not allowed — you can upload a clip instead") so
+  // the user sees the alternative without being blocked, and
+  // we leave Slot 1 empty so a tap falls back to the picker.
+  // Any other failure goes to the sticky `errorMsg` channel.
   const handleCaptureClipAt = useCallback(
     async (index: 0 | 1) => {
       if (busy) return;
@@ -191,13 +211,33 @@ export default function CreateScreen() {
         if (!captured || captured.length === 0) return;
         writeClipToSlot(index, captured[0]);
       } catch (err) {
-        setErrorMsg(formatError(err, "Couldn't capture that clip."));
+        if (err instanceof CameraPermissionDeniedError) {
+          setNotice("Camera not allowed — you can upload a clip instead");
+        } else {
+          // A hard error supersedes any soft notice that might be
+          // mid-display, so the user doesn't see a stacked
+          // soft-hint + red-banner pair within the notice's
+          // 3.5s auto-dismiss window.
+          setNotice(null);
+          setErrorMsg(formatError(err, "Couldn't capture that clip."));
+        }
       } finally {
         setBusy(false);
       }
     },
     [busy, clips.length, writeClipToSlot],
   );
+
+  // Auto-dismiss the soft notice after a few seconds. Long
+  // enough to read the line out loud once, short enough that
+  // it doesn't linger past the user's next interaction. Errors
+  // are NOT auto-dismissed (they reset on the next handler
+  // call instead — that's the existing contract).
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 3500);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Called by ImportStage exactly once after it consumes the
   // pending auto-action. Clearing here (not inside the action
@@ -357,6 +397,17 @@ export default function CreateScreen() {
           />
         ) : null}
 
+        {notice ? (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(220)}
+            style={styles.noticeWrap}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+          >
+            <Text style={styles.notice}>{notice}</Text>
+          </Animated.View>
+        ) : null}
         {errorMsg ? (
           <Animated.View entering={FadeIn}>
             <Text style={styles.error}>{errorMsg}</Text>
@@ -924,15 +975,38 @@ async function pickVideo(
   }
 }
 
+// Typed signal for "the user (or the OS) declined to grant the
+// camera permission". Distinct from generic capture errors so
+// the caller can surface a soft, friendly hint ("Camera not
+// allowed — you can upload a clip instead") instead of the
+// sticky red error banner. We deliberately do NOT redirect to
+// system settings or block the flow — the user can still tap
+// Slot 1 to use the gallery picker.
+class CameraPermissionDeniedError extends Error {
+  constructor() {
+    super("Camera permission denied");
+    this.name = "CameraPermissionDeniedError";
+  }
+}
+
 // Camera capture sibling of pickVideo. Always single-shot —
 // the camera UX is "record one clip, save it" and we want each
 // recorded clip to land in exactly one slot. Used by the Import
 // stage's auto-open useEffect when the user enters via "I'm
 // ready to film". Web QA returns a synthetic clip identical in
 // shape to pickVideo's so the browser e2e path stays uniform
-// (launchCameraAsync isn't available on web in any case).
+// (launchCameraAsync isn't available on web in any case). A
+// `globalThis.__qaDenyCamera` hook lets the e2e harness simulate
+// a permission-denied response on web so the toast path can be
+// exercised end-to-end without touching native code.
 async function captureVideo(): Promise<FilmedClip[] | null> {
   if (Platform.OS === "web") {
+    if (
+      typeof globalThis !== "undefined" &&
+      (globalThis as { __qaDenyCamera?: boolean }).__qaDenyCamera === true
+    ) {
+      throw new CameraPermissionDeniedError();
+    }
     return [
       {
         filename: `web-sim-cap-${Date.now()}.mp4`,
@@ -942,7 +1016,9 @@ async function captureVideo(): Promise<FilmedClip[] | null> {
   }
   try {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm.status !== "granted") return null;
+    if (perm.status !== "granted") {
+      throw new CameraPermissionDeniedError();
+    }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: false,
@@ -963,6 +1039,10 @@ async function captureVideo(): Promise<FilmedClip[] | null> {
       return { filename, durationSec, uri: asset.uri };
     });
   } catch (err) {
+    // Re-throw the typed denial signal as-is so the caller can
+    // route it to the soft notice channel instead of the error
+    // banner. Other failures fall through to the generic wrap.
+    if (err instanceof CameraPermissionDeniedError) throw err;
     throw err instanceof Error
       ? err
       : new Error("Couldn't open the camera. Try again?");
@@ -1246,6 +1326,28 @@ const styles = StyleSheet.create({
     color: "#FF8FA1",
     fontSize: 14,
     marginTop: 18,
+    textAlign: "center",
+  },
+  // Soft transient hint (auto-dismissing). Visually a small
+  // pill-shaped banner — quieter than `error` (no alarm
+  // colour, no all-red), louder than plain helper text. Lives
+  // in the same render slot as `error` so layout doesn't jump
+  // when one or the other appears.
+  noticeWrap: {
+    alignSelf: "center",
+    marginTop: 18,
+    marginHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  notice: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: "center",
   },
   // One-line helper directly under the Import stage title.
