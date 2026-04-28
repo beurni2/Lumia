@@ -37,7 +37,7 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ApiError, customFetch } from "@workspace/api-client-react";
@@ -71,9 +71,13 @@ import {
   markCalibrationPromptedThisProcess,
 } from "@/lib/tasteCalibration";
 import {
+  consumePendingBetterMatchPrompt,
+  consumePendingPostCalibrationRefresh,
   getHasCompletedTasteOnboarding,
   getIdeasViewedCount,
   incrementIdeasViewedCount,
+  markPendingBetterMatchPrompt,
+  markPendingPostCalibrationRefresh,
 } from "@/lib/tasteOnboardingState";
 import { getYesSwipeCount, recordYesSwipe } from "@/lib/yesSwipeCounter";
 
@@ -113,6 +117,34 @@ export default function HomeScreen() {
   // overwrite the fresher result. Cheaper than maintaining a
   // separate AbortController for both code paths.
   const loadCallIdRef = useRef(0);
+
+  // Synchronous mutex for regenerate. The `regenerating` state
+  // closure-bound check inside handleRegenerate lags by a render,
+  // which means a near-simultaneous post-cal silent regenerate
+  // and a manual refresh tap can both clear the guard within the
+  // same frame. This ref is set/cleared synchronously around the
+  // network call so the second caller sees a true value and
+  // bails immediately.
+  const regeneratingRef = useRef(false);
+
+  // ── Visible-adaptation flow (post Quick Tune) ──────────────
+  // `adaptedAt` is set when the user just completed Quick Tune
+  // (TasteCalibration → markPendingPostCalibrationRefresh) and
+  // Home consumed the flag on focus. While non-null:
+  //   • H1 + sub swap to "Updated for you" / "We tuned your three
+  //     ideas to match." so the user can read that the system
+  //     adapted on their behalf.
+  //   • Each <IdeaCard> renders the small "Fits your style" pill.
+  //   • The next idea tap arms the pendingBetterMatchPrompt flag,
+  //     so the next Home focus shows the "Better match?" row.
+  // Cleared on the same engagement gestures (idea tap / manual
+  // refresh) so it doesn't linger past the moment it celebrates.
+  const [adaptedAt, setAdaptedAt] = useState<number | null>(null);
+  // Inline Yes/No row consumed from `pendingBetterMatchPrompt`.
+  // Only ever appears once per save (the consume helper is
+  // atomic). Either tap clears it and shows a tiny reassurance
+  // toast via the existing InlineToast plumbing.
+  const [betterMatchVisible, setBetterMatchVisible] = useState(false);
 
   // ── Viral feedback-loop UI state ────────────────────────────
   // Ephemeral toast string shown after multi-YES milestones.
@@ -368,6 +400,16 @@ export default function HomeScreen() {
     } else {
       dwellCountedRef.current = false;
       scrollCountedRef.current = false;
+      // Clear the post-cal adaptation treatment whenever Home
+      // loses focus. The "Updated for you" / "Fits your style"
+      // surface is a moment, not a mode — once the user navigates
+      // away (to another tab, into Create, etc.) the celebratory
+      // framing has done its job and shouldn't persist when they
+      // come back hours later. The pendingBetterMatchPrompt flag
+      // (which is what carries the "Better match?" follow-up
+      // forward across the blur/refocus cycle) is independent
+      // and untouched here.
+      setAdaptedAt(null);
     }
   }, [isFocused, checkAndMaybeTrigger]);
 
@@ -412,38 +454,160 @@ export default function HomeScreen() {
 
   /* ---------- Regenerate (uses today's 2nd ideator slot) ----- */
 
-  const handleRegenerate = useCallback(async () => {
-    if (!region || regenerating) return;
-    setRegenerating(true);
-    setErrorMsg(null);
-    try {
-      const fresh = await customFetch<IdeatorResponse>(
-        "/api/ideator/generate",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            region,
-            count: 3,
-            regenerate: true,
-          }),
-        },
-      );
-      setIdeas(fresh.ideas);
-      await writeDailyIdeas(region, fresh.ideas);
-      // Snap to the top so the new batch reads from idea 1 — the
-      // user almost certainly tapped refresh while sitting near
-      // idea 3 (where the button lives), and seeing idea 1 first
-      // is what "fresh batch" should feel like. Defer one tick so
-      // the scroll runs after the new feed has rendered.
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      }, 0);
-    } catch (err) {
-      setErrorMsg(formatError(err, "Couldn't refresh ideas."));
-    } finally {
-      setRegenerating(false);
-    }
-  }, [region, regenerating]);
+  // `silent` skips the scroll-to-top jitter when the regenerate is
+  // driven by the post-cal effect rather than a user tap (the user
+  // is just landing on Home; we don't want to animate the scroll
+  // position underneath them while the new ideas are still
+  // sliding in). Default false so the existing user-driven path
+  // is unchanged.
+  const handleRegenerate = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}): Promise<boolean> => {
+      // Synchronous mutex check FIRST — this is the line that
+      // closes the same-frame race window between the post-cal
+      // silent regenerate and a manual refresh tap. The
+      // `regenerating` state below is for rendering; the ref is
+      // for correctness. Returns false to the caller so the
+      // post-cal effect knows the slot was busy and can re-arm
+      // its pending flag for the next focus rather than swallow
+      // the user's "I just calibrated, where are my new ideas?"
+      // expectation.
+      if (!region || regeneratingRef.current) return false;
+      regeneratingRef.current = true;
+      setRegenerating(true);
+      setErrorMsg(null);
+      try {
+        const fresh = await customFetch<IdeatorResponse>(
+          "/api/ideator/generate",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              region,
+              count: 3,
+              regenerate: true,
+            }),
+          },
+        );
+        setIdeas(fresh.ideas);
+        await writeDailyIdeas(region, fresh.ideas);
+        if (!silent) {
+          // Snap to the top so the new batch reads from idea 1 — the
+          // user almost certainly tapped refresh while sitting near
+          // idea 3 (where the button lives), and seeing idea 1 first
+          // is what "fresh batch" should feel like. Defer one tick so
+          // the scroll runs after the new feed has rendered.
+          setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          }, 0);
+        }
+        // Successful network round-trip — caller will see true.
+        return true;
+      } catch (err) {
+        setErrorMsg(formatError(err, "Couldn't refresh ideas."));
+        // We DID acquire the slot and the user saw the loading
+        // state, so from the caller's perspective this still
+        // counts as "started". Returning true here keeps the
+        // post-cal effect from re-arming on a transient API
+        // error (which would loop the user into another silent
+        // regenerate the next time they refocus Home).
+        return true;
+      } finally {
+        // Release the synchronous mutex BEFORE the state setter so
+        // any queued caller waiting on the next tick can proceed.
+        regeneratingRef.current = false;
+        setRegenerating(false);
+      }
+    },
+    // `regenerating` is intentionally NOT a dep — the mutex is the
+    // ref above, and depending on the state would cause this
+    // callback identity to churn mid-flight (which would re-fire
+    // the post-cal effect and other listeners).
+    [region],
+  );
+
+  // Refresh button passes no arg — keep it as a stable () => void
+  // for the Pressable so the JSX below doesn't construct a fresh
+  // arrow on every render. Also clears the adapted-treatment
+  // state because asking for "different ideas" is the user
+  // saying this batch isn't the one we should still be
+  // celebrating.
+  const handleRegeneratePress = useCallback(() => {
+    setAdaptedAt(null);
+    void handleRegenerate();
+  }, [handleRegenerate]);
+
+  /* ---------- Visible-adaptation: consume post-cal flag ------ */
+
+  // Runs every time Home gains focus AND a region is loaded. The
+  // consume helper is atomic-and-clearing inside the same lock,
+  // so even if this effect re-fires (e.g. region identity churns
+  // after a focus blur/regain) the second consume returns false
+  // and the regenerate doesn't double-fire. The `regenerating`
+  // guard inside `handleRegenerate` is a second line of defence
+  // for the same reason.
+  useEffect(() => {
+    if (!isFocused || !region) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const should = await consumePendingPostCalibrationRefresh();
+        if (!alive || !should) return;
+        // Stamp adapted state BEFORE kicking the regenerate so the
+        // skeleton row already shows the "Updated for you" header
+        // — otherwise the user sees the locked daily-habit header
+        // for a beat, then a flicker as the swap happens.
+        setAdaptedAt(Date.now());
+        // `silent` so we don't yank the scroll position while the
+        // user is just landing on Home from the calibration modal.
+        // The await here lets us recover when the regenerate slot
+        // is busy (another regenerate already in flight): the
+        // pending flag has already been atomically consumed, so
+        // we'd otherwise lose the post-cal refresh entirely. By
+        // re-arming the flag and rolling back adaptedAt, the next
+        // focus picks the work back up.
+        const started = await handleRegenerate({ silent: true });
+        if (!alive) return;
+        if (!started) {
+          setAdaptedAt(null);
+          await markPendingPostCalibrationRefresh();
+        }
+      } catch {
+        /* swallow — UX-only surface */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isFocused, region, handleRegenerate]);
+
+  /* ---------- "Better match?" micro-feedback prompt ---------- */
+
+  // Consumed on the focus AFTER an adapted-state idea tap. Same
+  // atomic-and-clearing read pattern as the post-cal flag so it
+  // can never show twice from a single arming.
+  useEffect(() => {
+    if (!isFocused) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const should = await consumePendingBetterMatchPrompt();
+        if (alive && should) setBetterMatchVisible(true);
+      } catch {
+        /* swallow — UX-only surface */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isFocused]);
+
+  const handleBetterMatch = useCallback((verdict: "yes" | "no") => {
+    setBetterMatchVisible(false);
+    setLoopToast(
+      verdict === "yes"
+        ? "Glad it landed."
+        : "Got it — I'll keep tuning.",
+    );
+  }, []);
 
   /* ---------- Idea press → creation flow ---------------------- */
 
@@ -470,12 +634,24 @@ export default function HomeScreen() {
         structure: idea.structure,
         hookStyle: idea.hookStyle,
       });
+      // Visible-adaptation: if the user is engaging with the
+      // freshly-tuned batch (i.e. adaptedAt was set by the post-cal
+      // effect above), arm the "Better match?" micro-feedback for
+      // the next Home focus AND clear the adapted treatment so it
+      // doesn't keep claiming "Updated for you" after the user has
+      // moved past it. The flag is the durable thing here — it
+      // survives the round-trip through the create flow even after
+      // Home unmounts state.
+      if (adaptedAt !== null) {
+        void markPendingBetterMatchPrompt();
+        setAdaptedAt(null);
+      }
       router.push({
         pathname: "/create",
         params: { idea: JSON.stringify(idea) },
       });
     },
-    [router],
+    [router, adaptedAt],
   );
 
   /* ---------- Render ----------------------------------------- */
@@ -522,13 +698,28 @@ export default function HomeScreen() {
         scrollEventThrottle={64}
       >
         <Animated.View entering={FadeInDown.duration(420)}>
-          {/* Daily-habit header — locked copy. The H1 + sub never
-              rotate. The user opens the app and sees the same
-              "3 ideas for today / Made for your style" promise
-              every session, which is the whole point of the
-              daily-habit spec. */}
-          <Text style={styles.title}>{HOME_HEADER_TITLE}</Text>
-          <Text style={styles.sub}>{HOME_HEADER_SUB}</Text>
+          {/* Header copy. Locked daily-habit pair by default
+              (H1 + sub), but swaps to the visible-adaptation pair
+              for the brief window after Quick Tune so the user
+              SEES the system claim it adapted on their behalf —
+              the central UX principle of the visible-adaptation
+              flow ("user must SEE the system adapt, not just be
+              told"). The pair is mutually exclusive: one or the
+              other, never both, so the screen still has exactly
+              one H1 + one sub. */}
+          {adaptedAt !== null ? (
+            <>
+              <Text style={styles.title}>Updated for you</Text>
+              <Text style={styles.sub}>
+                We tuned your three ideas to match.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>{HOME_HEADER_TITLE}</Text>
+              <Text style={styles.sub}>{HOME_HEADER_SUB}</Text>
+            </>
+          )}
           {/* Once-per-UTC-day subtitle for returning users with
               prior YES signal — quiet teal line that reinforces
               "the app remembers". Skipped for first-time visitors
@@ -587,9 +778,30 @@ export default function HomeScreen() {
 
         {!loading && !regenerating && ideas ? (
           <Animated.View
+            // FadeOut on unmount: when this view is replaced by the
+            // skeleton (initial load → regenerate transition, or
+            // post-cal refresh), the old ideas visibly fade out
+            // before the skeleton arrives. Pairs with the new
+            // feed's existing FadeInDown for the slide-in beat
+            // the spec calls for ("old ideas fade out / new ideas
+            // slide in"). Unconditional because the same
+            // transition feels good for the manual-refresh path
+            // too — it doesn't only need to fire post-cal.
             entering={FadeInDown.duration(520).delay(80)}
+            exiting={FadeOut.duration(220)}
             style={styles.feed}
           >
+            {/* Inline "Better match?" micro-feedback row. Sits at
+                the top of the feed, above all three idea cards,
+                because the spec ties the prompt to "after next
+                idea tap" — it should be the first thing the user
+                sees on returning to Home. Mutually exclusive with
+                the visible-adaptation header below; the prompt
+                appears AFTER the user has already engaged once,
+                so adaptedAt is null by then. */}
+            {betterMatchVisible ? (
+              <BetterMatchPrompt onAnswer={handleBetterMatch} />
+            ) : null}
             {ideas.map((idea, i) => (
               // Ideator responses don't carry a stable `id`, so
               // fall back to a positional+hook-prefix key. The
@@ -611,7 +823,14 @@ export default function HomeScreen() {
                     pressed ? styles.cardPressed : null,
                   ]}
                 >
-                  <IdeaCard idea={idea} index={i + 1} />
+                  <IdeaCard
+                    idea={idea}
+                    index={i + 1}
+                    // Visible-adaptation pill — only set during the
+                    // brief window after Quick Tune so the user
+                    // can see this batch was tuned to their answers.
+                    fitsYourStyle={adaptedAt !== null}
+                  />
                 </Pressable>
                 {/* Lightweight per-idea feedback row — sits as a
                     sibling to the card pressable, not a wrapper, so
@@ -656,7 +875,7 @@ export default function HomeScreen() {
             error), so the user always has a way to try again. */}
         {!loading && !regenerating && ideas ? (
           <Pressable
-            onPress={handleRegenerate}
+            onPress={handleRegeneratePress}
             style={({ pressed }) => [
               styles.refreshBtn,
               pressed ? styles.refreshBtnPressed : null,
@@ -731,6 +950,110 @@ function formatError(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) return err.message;
   return fallback;
 }
+
+/**
+ * "Better match?" micro-feedback row — small inline question + two
+ * compact pills that the user can dismiss in one tap. Lives inside
+ * the feed Animated.View so the entering FadeInDown carries it
+ * along with the rest of the new batch. No network call: this is
+ * a read on the user's gut reaction to the freshly-tuned ideas,
+ * the answer drops a tiny reassurance into the existing
+ * loop-toast surface (so we don't duplicate toast infra).
+ */
+function BetterMatchPrompt({
+  onAnswer,
+}: {
+  onAnswer: (verdict: "yes" | "no") => void;
+}) {
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(280)}
+      style={promptStyles.row}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Better match?"
+    >
+      <Text style={promptStyles.label}>Better match?</Text>
+      <View style={promptStyles.pills}>
+        <Pressable
+          onPress={() => onAnswer("yes")}
+          accessibilityRole="button"
+          accessibilityLabel="Yes, better match"
+          style={({ pressed }) => [
+            promptStyles.pill,
+            promptStyles.pillYes,
+            pressed ? promptStyles.pillPressed : null,
+          ]}
+        >
+          <Text style={promptStyles.pillTextYes}>Yes</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onAnswer("no")}
+          accessibilityRole="button"
+          accessibilityLabel="No, not a better match"
+          style={({ pressed }) => [
+            promptStyles.pill,
+            pressed ? promptStyles.pillPressed : null,
+          ]}
+        >
+          <Text style={promptStyles.pillText}>No</Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
+const promptStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.25)",
+    gap: 12,
+  },
+  label: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#FFFFFF",
+    fontSize: 14,
+    flexShrink: 1,
+  },
+  pills: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  pillYes: {
+    backgroundColor: "rgba(0,255,204,0.18)",
+    borderColor: "rgba(0,255,204,0.55)",
+  },
+  pillPressed: {
+    opacity: 0.6,
+  },
+  pillText: {
+    fontFamily: fontFamily.bodyBold,
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    letterSpacing: 0.4,
+  },
+  pillTextYes: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#FFFFFF",
+    fontSize: 13,
+    letterSpacing: 0.4,
+  },
+});
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0A0824" },

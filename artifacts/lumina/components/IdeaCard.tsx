@@ -87,10 +87,20 @@ export function IdeaCard({
   idea,
   index,
   highlight,
+  fitsYourStyle,
 }: {
   idea: IdeaCardData;
   index?: number;
   highlight?: boolean;
+  /**
+   * Visible-adaptation flag: when true, render a small teal
+   * "Fits your style" pill in the kicker row next to the pattern
+   * badge. Set by Home for the brief window after the user just
+   * completed Quick Tune so the user can SEE that the new batch
+   * was generated against their fresh preferences. Off by default
+   * — most renders should never show this pill.
+   */
+  fitsYourStyle?: boolean;
 }) {
   // Surface contract drift loudly in development. If the ideator
   // ever stops returning the body fields we expect, we want to
@@ -138,6 +148,14 @@ export function IdeaCard({
         {patternLabel ? (
           <View style={styles.patternBadge}>
             <Text style={styles.patternBadgeText}>{patternLabel}</Text>
+          </View>
+        ) : null}
+        {fitsYourStyle ? (
+          <View
+            style={styles.fitsBadge}
+            accessibilityLabel="Fits your style"
+          >
+            <Text style={styles.fitsBadgeText}>Fits your style</Text>
           </View>
         ) : null}
       </View>
@@ -239,6 +257,25 @@ const styles = StyleSheet.create({
   patternBadgeText: {
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
+    fontSize: 10,
+    letterSpacing: 0.8,
+  },
+  // Visible-adaptation pill — sits next to the pattern badge in
+  // the kicker row when the user just completed Quick Tune. Same
+  // visual family as the pattern badge (teal pill on dark) but a
+  // touch warmer to read as a small celebration rather than a
+  // metadata label.
+  fitsBadge: {
+    backgroundColor: "rgba(0,255,204,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.45)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  fitsBadgeText: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#FFFFFF",
     fontSize: 10,
     letterSpacing: 0.8,
   },

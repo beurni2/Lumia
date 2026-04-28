@@ -43,6 +43,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY_HAS_COMPLETED = "lumina:hasCompletedTasteOnboarding";
 const KEY_IDEAS_VIEWED = "lumina:ideasViewedCount";
+// Two single-shot coordination flags used by the visible-adaptation
+// flow. Both are "set on save in <TasteCalibration />, consumed on
+// next Home focus" — the consumer reads-and-clears atomically inside
+// the same lock so a focus race can't run the side effect twice.
+//
+//   • pendingPostCalibrationRefresh: tells Home "the user just
+//     completed Quick Tune, immediately regenerate ideas with the
+//     fresh bias and play the 'Updated for you' treatment".
+//   • pendingBetterMatchPrompt: armed by Home when the user taps
+//     into the create flow during the adapted-treatment window.
+//     The next Home focus shows a small Yes/No "Better match?" row.
+const KEY_PENDING_POST_CAL_REFRESH = "lumina:pendingPostCalibrationRefresh";
+const KEY_PENDING_BETTER_MATCH_PROMPT = "lumina:pendingBetterMatchPrompt";
 
 // Cap the persisted counter at a small number — the gate predicate
 // is `>= 2`, so anything beyond ~5 is wasted bytes. Cap also
@@ -51,6 +64,13 @@ const MAX_COUNT = 99;
 
 let memoHasCompleted: boolean | null = null;
 let memoCount: number | null = null;
+// Single-shot coordination flags fronted by AsyncStorage. `null`
+// means "not yet read"; `true`/`false` is the cached value. The
+// consume helpers flip the memo to `false` synchronously inside
+// the lock so re-entrant callers in the same tick see the cleared
+// state without waiting for AsyncStorage to settle.
+let memoPendingPostCalRefresh: boolean | null = null;
+let memoPendingBetterMatchPrompt: boolean | null = null;
 
 // Single-writer queue. Same rationale as `yesSwipeCounter.ts`:
 // JS is single-threaded, so awaiting the lock before each
@@ -79,6 +99,28 @@ async function readHasCompletedUnlocked(): Promise<boolean> {
     memoHasCompleted = false;
   }
   return memoHasCompleted;
+}
+
+async function readPendingPostCalRefreshUnlocked(): Promise<boolean> {
+  if (memoPendingPostCalRefresh !== null) return memoPendingPostCalRefresh;
+  try {
+    const raw = await AsyncStorage.getItem(KEY_PENDING_POST_CAL_REFRESH);
+    memoPendingPostCalRefresh = raw === "1";
+  } catch {
+    memoPendingPostCalRefresh = false;
+  }
+  return memoPendingPostCalRefresh;
+}
+
+async function readPendingBetterMatchPromptUnlocked(): Promise<boolean> {
+  if (memoPendingBetterMatchPrompt !== null) return memoPendingBetterMatchPrompt;
+  try {
+    const raw = await AsyncStorage.getItem(KEY_PENDING_BETTER_MATCH_PROMPT);
+    memoPendingBetterMatchPrompt = raw === "1";
+  } catch {
+    memoPendingBetterMatchPrompt = false;
+  }
+  return memoPendingBetterMatchPrompt;
 }
 
 async function readCountUnlocked(): Promise<number> {
@@ -154,17 +196,100 @@ export async function incrementIdeasViewedCount(): Promise<number> {
 }
 
 /**
- * Dev / QA reset — wipes BOTH the completion flag AND the counter
- * back to a fresh-install state. Wired into the Profile-screen
- * "reset onboarding" affordance and into `resetTasteCalibration()`
- * so a single button gives QA a clean slate.
+ * Mark that Quick Tune just completed and Home should run the
+ * "visible adaptation" path on its next focus: regenerate ideas
+ * with the fresh bias, swap the header to "Updated for you", tag
+ * cards with "Fits your style". Called from <TasteCalibration />
+ * Save (NOT Skip — Skip means "ask me later", we don't claim to
+ * have adapted to anything).
+ */
+export async function markPendingPostCalibrationRefresh(): Promise<void> {
+  await withLock(async () => {
+    memoPendingPostCalRefresh = true;
+    try {
+      await AsyncStorage.setItem(KEY_PENDING_POST_CAL_REFRESH, "1");
+    } catch {
+      /* swallow — UX-only surface */
+    }
+  });
+}
+
+/**
+ * Atomic read-and-clear: returns true if the flag was set, and
+ * also wipes it in the same lock so a second focus event in the
+ * same tick can't re-trigger the regenerate. Returning false on
+ * any AsyncStorage error is the right failure mode — we'd rather
+ * skip the adapted treatment than fire it twice.
+ */
+export async function consumePendingPostCalibrationRefresh(): Promise<boolean> {
+  return withLock(async () => {
+    const wasSet = await readPendingPostCalRefreshUnlocked();
+    if (!wasSet) return false;
+    memoPendingPostCalRefresh = false;
+    try {
+      await AsyncStorage.removeItem(KEY_PENDING_POST_CAL_REFRESH);
+    } catch {
+      /* swallow — UX-only surface */
+    }
+    return true;
+  });
+}
+
+/**
+ * Arm the "Better match?" micro-feedback prompt. Set when the user
+ * taps an idea while the post-cal "Updated for you" treatment is
+ * still on screen, consumed when Home regains focus. Idempotent.
+ */
+export async function markPendingBetterMatchPrompt(): Promise<void> {
+  await withLock(async () => {
+    memoPendingBetterMatchPrompt = true;
+    try {
+      await AsyncStorage.setItem(KEY_PENDING_BETTER_MATCH_PROMPT, "1");
+    } catch {
+      /* swallow — UX-only surface */
+    }
+  });
+}
+
+/**
+ * Atomic read-and-clear, same shape as the post-cal-refresh flag.
+ */
+export async function consumePendingBetterMatchPrompt(): Promise<boolean> {
+  return withLock(async () => {
+    const wasSet = await readPendingBetterMatchPromptUnlocked();
+    if (!wasSet) return false;
+    memoPendingBetterMatchPrompt = false;
+    try {
+      await AsyncStorage.removeItem(KEY_PENDING_BETTER_MATCH_PROMPT);
+    } catch {
+      /* swallow — UX-only surface */
+    }
+    return true;
+  });
+}
+
+/**
+ * Dev / QA reset — wipes the completion flag, counter, AND the two
+ * single-shot coordination flags back to a fresh-install state.
+ * Wired into the Profile-screen "reset onboarding" affordance and
+ * into `resetTasteCalibration()` so a single button gives QA a
+ * clean slate (otherwise a stale pending-refresh flag could fire
+ * an unwanted "Updated for you" treatment on the very next focus
+ * after a reset).
  */
 export async function resetTasteOnboarding(): Promise<void> {
   await withLock(async () => {
     memoHasCompleted = false;
     memoCount = 0;
+    memoPendingPostCalRefresh = false;
+    memoPendingBetterMatchPrompt = false;
     try {
-      await AsyncStorage.multiRemove([KEY_HAS_COMPLETED, KEY_IDEAS_VIEWED]);
+      await AsyncStorage.multiRemove([
+        KEY_HAS_COMPLETED,
+        KEY_IDEAS_VIEWED,
+        KEY_PENDING_POST_CAL_REFRESH,
+        KEY_PENDING_BETTER_MATCH_PROMPT,
+      ]);
     } catch {
       /* swallow */
     }
