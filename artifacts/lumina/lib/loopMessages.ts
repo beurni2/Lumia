@@ -17,33 +17,33 @@
  * actually taken — call sites are responsible for gating.
  */
 
-/** Cold-start-safe header titles for users with no learning
- *  signal yet. Every line here is true on day 1 — it describes
- *  the day's batch, not a learned adaptation. Selecting from
- *  this pool when the user has zero YES history avoids the
- *  false-positive "I learned" claim that would otherwise read
- *  as a lie ("Built from what you liked." with no likes yet). */
-export const HOME_HEADER_TITLES_NEUTRAL: readonly string[] = [
-  "Your three ideas.",
-  "Three ideas for today.",
-  "Today's three.",
-];
+/** Locked daily-habit header title — single, fixed, no rotation.
+ *  Per the daily-habit spec, the H1 on Home is always exactly
+ *  "3 ideas for today." so the user opens the app expecting the
+ *  same predictable promise every session. Rotating the title
+ *  was found to undermine the felt "my ideas are ready" beat,
+ *  so the previous NEUTRAL/PERSONALIZED pools were retired. */
+export const HOME_HEADER_TITLE = "3 ideas for today";
 
-/** Personalized header titles for users with at least one YES
- *  on record — these explicitly claim adaptation, so they MUST
- *  only render once the underlying signal exists. Call sites
- *  are responsible for the gate (Home checks yesSwipeCount > 0). */
-export const HOME_HEADER_TITLES_PERSONALIZED: readonly string[] = [
-  "Sharper ideas for you.",
-  "Built from what you liked.",
-  "Adjusted to your style.",
-  "Tuned for you today.",
-];
+/** Locked daily-habit subtitle — single line, always shown
+ *  directly under HOME_HEADER_TITLE. True on day 1 because
+ *  onboarding (region pick + Style Twin trainer + calibration)
+ *  has already produced a baseline style profile by the time
+ *  this screen renders, so the line is not over-claiming. */
+export const HOME_HEADER_SUB = "Made for your style";
 
-/** Subtitle shown ONCE per UTC day on the first Home view of a
- *  returning user (one who has prior signal — gated by the call
- *  site, not here). Kept calm and matter-of-fact. */
-export const RETURN_SESSION_SIGNAL = "I adjusted your ideas.";
+/** Subtitles shown ONCE per UTC day on the first Home view of a
+ *  returning user (one who has prior YES signal — gated by the
+ *  call site, not here). Both variants are calm and forward-
+ *  looking; they describe today's batch in terms of accumulated
+ *  taste signal. The call site uses rotateDaily so a user who
+ *  reloads Home three times in one day sees the same line, but
+ *  day-to-day they see variety. Both lines require prior YES
+ *  history to be true; first-time visitors see neither. */
+export const RETURN_SESSION_SIGNALS: readonly string[] = [
+  "Today's ideas are sharper",
+  "New ideas that match your style",
+];
 
 /** Small ephemeral message shown after the user accepts (YES'd)
  *  enough ideas to be a meaningful signal — every Nth YES,
@@ -55,12 +55,26 @@ export const POST_YES_MESSAGES: readonly string[] = [
   "Got it — more like that.",
 ];
 
-/** Small ephemeral message after a successful gallery export. */
-export const POST_EXPORT_MESSAGES: readonly string[] = [
-  "Saved. I'll bias toward what you ship.",
-  "Got it — I'll learn from this one.",
-  "Noted. Your next ideas will lean this way.",
-];
+/** Single locked message shown after a successful gallery export.
+ *  Per the daily-habit spec, the post-action confirmation pairs
+ *  a present-tense acknowledgement with a forward-looking promise
+ *  to keep the loop reinforcing without introducing streaks or
+ *  scoring. Rendered as two lines inside one toast bubble — the
+ *  InlineToast's <Text> respects the literal newline. */
+export const POST_EXPORT_MESSAGE =
+  "Nice — that works.\nNext one will be even faster.";
+
+/** Single notification copy line. The daily-habit spec carves
+ *  out exactly ONE notification type — a low-noise "your three
+ *  are ready" ping — and forbids streaks, gamification, or any
+ *  other push surface. The actual local-notification scheduling
+ *  module is intentionally NOT wired today (Lumina has no
+ *  expo-notifications dependency yet, and adding it requires
+ *  native config + a permission UX) — but the copy lives here
+ *  in one place so the eventual wiring is a one-line import,
+ *  not a copy decision. Until then, this constant is referenced
+ *  only by docs and tests. */
+export const NOTIFICATION_DAILY_READY = "Your ideas for today are ready";
 
 /** Studio "Your Creator Style" — single line shown when the
  *  creator has actual signal (sampleSize > 0). Don't show this

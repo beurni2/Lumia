@@ -83,10 +83,7 @@ import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
-import {
-  POST_EXPORT_MESSAGES,
-  rotateRandom,
-} from "@/lib/loopMessages";
+import { POST_EXPORT_MESSAGE } from "@/lib/loopMessages";
 
 /* ---------- Types ---------- */
 
@@ -320,7 +317,13 @@ export default function ReviewScreen() {
   // the desired behaviour.
   useEffect(() => {
     if (saveState === "success") {
-      setExportToast(rotateRandom(POST_EXPORT_MESSAGES));
+      // Locked daily-habit copy (see loopMessages.ts) — a single
+      // two-line message rendered inside the InlineToast bubble.
+      // Was previously a random pick from a 3-string pool; the
+      // daily-habit spec replaced rotation with one canonical
+      // confirmation pair so every successful export feels like
+      // the same satisfying beat.
+      setExportToast(POST_EXPORT_MESSAGE);
     }
   }, [saveState]);
 

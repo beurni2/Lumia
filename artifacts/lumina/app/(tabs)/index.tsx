@@ -27,7 +27,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -58,14 +58,12 @@ import {
 import { shouldForceCalibration } from "@/lib/forceCalibration";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 import {
-  HOME_HEADER_TITLES_NEUTRAL,
-  HOME_HEADER_TITLES_PERSONALIZED,
+  HOME_HEADER_SUB,
+  HOME_HEADER_TITLE,
   POST_YES_MESSAGES,
-  RETURN_SESSION_SIGNAL,
-  rotateDaily,
+  RETURN_SESSION_SIGNALS,
   rotateRandom,
   shouldShowOncePerDay,
-  utcDateKey,
 } from "@/lib/loopMessages";
 import {
   fetchTasteCalibration,
@@ -116,59 +114,47 @@ export default function HomeScreen() {
   // null = hidden. The InlineToast component owns its own
   // auto-dismiss timer and calls back to clear this.
   const [loopToast, setLoopToast] = useState<string | null>(null);
-  // "I adjusted your ideas." subtitle shown ONCE per UTC day to
-  // returning users (those with at least one prior YES). Gated
-  // by AsyncStorage via shouldShowOncePerDay so the line doesn't
-  // re-appear on every Home re-render or tab switch.
+  // Once-per-UTC-day "returning user" subtitle. Per the daily-
+  // habit spec, this is the ONLY line that varies day-to-day on
+  // Home — the H1 + sub are locked. Variants come from
+  // RETURN_SESSION_SIGNALS; the picker is intentionally NOT
+  // rotateDaily because that helper is hash-based and with only
+  // two items consecutive UTC days can collide on the same
+  // index, breaking the "you see the OTHER line tomorrow" beat.
+  // Instead we use the UTC-day count modulo items.length, which
+  // is stable within a day (every reload picks the same line)
+  // and strictly alternates across days regardless of month or
+  // year boundaries. Gated below by BOTH yesSwipeCount > 0 (so
+  // the "sharper" / "match your style" claim isn't a lie on
+  // day 1) AND shouldShowOncePerDay (so it doesn't reappear on
+  // every tab switch).
   const [returnSignalText, setReturnSignalText] = useState<string | null>(
     null,
   );
-  // Has the user ever YES'd an idea? Gates BOTH the personalized
-  // header title pool AND the return-session subtitle. Defaults
-  // to false so the cold-start render never claims learning that
-  // hasn't happened yet — flips to true on mount once we've
-  // checked AsyncStorage. We deliberately do NOT flip this back
-  // mid-session when the user crosses 0→1 — re-rotating the
-  // header title in the middle of a session would feel jarring;
-  // tomorrow's render picks up the personalized pool naturally.
-  const [hasSignal, setHasSignal] = useState(false);
 
-  // Rotating dynamic header title. Deterministic per UTC day so
-  // the title is stable within a session but rotates day to day.
-  // Two pools: NEUTRAL (cold-start safe — describes the day, not
-  // a learned adaptation) and PERSONALIZED (claims adaptation,
-  // gated on hasSignal so it only appears for users with real
-  // YES history).
-  const headerTitle = useMemo(
-    () =>
-      rotateDaily(
-        hasSignal
-          ? HOME_HEADER_TITLES_PERSONALIZED
-          : HOME_HEADER_TITLES_NEUTRAL,
-        utcDateKey(),
-      ),
-    [hasSignal],
-  );
-
-  // Mount-only: check whether the returning-user subtitle and
-  // the personalized title pool should appear today. The shared
-  // `yesCount > 0` gate prevents false-positive "I learned"
-  // claims for first-time visitors — neither line lands until
-  // the underlying signal exists. shouldShowOncePerDay then
-  // gates the subtitle separately so it shows once per UTC day
-  // rather than on every Home re-render.
-  // Failing closed (catch → null/false) is intentional: a
-  // transient AsyncStorage error shouldn't pester the user
-  // with a banner OR over-claim personalization.
+  // Mount-only: check whether the returning-user subtitle should
+  // appear today. The yesCount > 0 gate prevents false-positive
+  // "I learned" claims for first-time visitors — the line only
+  // lands once the underlying signal exists. shouldShowOncePerDay
+  // then guarantees the line shows at most once per UTC day
+  // rather than on every Home re-render or tab switch.
+  // Failing closed (catch → null) is intentional: a transient
+  // AsyncStorage error shouldn't pester the user with a banner
+  // we can't subsequently suppress.
   useEffect(() => {
     let alive = true;
     void (async () => {
       try {
         const yesCount = await getYesSwipeCount();
         if (yesCount <= 0) return;
-        if (alive) setHasSignal(true);
         const allowed = await shouldShowOncePerDay("returnSignal");
-        if (alive && allowed) setReturnSignalText(RETURN_SESSION_SIGNAL);
+        if (alive && allowed) {
+          // UTC-day-count modulo length: stable within a day,
+          // strictly alternates across days. 86400000 = ms/day.
+          const dayCount = Math.floor(Date.now() / 86_400_000);
+          const idx = dayCount % RETURN_SESSION_SIGNALS.length;
+          setReturnSignalText(RETURN_SESSION_SIGNALS[idx] ?? null);
+        }
       } catch {
         /* swallow — UX-only surface */
       }
@@ -433,19 +419,24 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInDown.duration(420)}>
-          <Text style={styles.kicker}>today · {greetingTimeOfDay()}</Text>
-          <Text style={styles.title}>{headerTitle}</Text>
+          {/* Daily-habit header — locked copy. The H1 + sub never
+              rotate. The user opens the app and sees the same
+              "3 ideas for today / Made for your style" promise
+              every session, which is the whole point of the
+              daily-habit spec. */}
+          <Text style={styles.title}>{HOME_HEADER_TITLE}</Text>
+          <Text style={styles.sub}>{HOME_HEADER_SUB}</Text>
           {/* Once-per-UTC-day subtitle for returning users with
-              prior YES signal — quiet teal italic line that
-              reinforces "the app remembers". Skipped for
-              first-time visitors so it doesn't read as a
-              false promise. */}
+              prior YES signal — quiet teal line that reinforces
+              "the app remembers". Skipped for first-time visitors
+              so it doesn't read as a false promise. Sits BELOW
+              the locked sub so the primary header pair always
+              renders identically and the personalization line
+              feels like a layered grace note rather than the
+              header itself. */}
           {returnSignalText ? (
             <Text style={styles.returnSignal}>{returnSignalText}</Text>
           ) : null}
-          <Text style={styles.sub}>
-            Region-tuned to your style profile. Pick one to film.
-          </Text>
         </Animated.View>
 
         {/* Skeleton screen covers BOTH initial load AND regenerate.
@@ -632,13 +623,6 @@ export default function HomeScreen() {
   );
 }
 
-function greetingTimeOfDay(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "good morning";
-  if (h < 18) return "good afternoon";
-  return "good evening";
-}
-
 function formatError(err: unknown, fallback: string): string {
   if (err instanceof ApiError) return err.message ?? fallback;
   if (err instanceof Error && err.message) return err.message;
@@ -647,36 +631,31 @@ function formatError(err: unknown, fallback: string): string {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0A0824" },
-  kicker: {
-    fontFamily: fontFamily.bodyMedium,
-    color: lumina.firefly,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
   title: {
     ...type.display,
     color: "#FFFFFF",
     marginBottom: 8,
   },
-  // Returning-user signal — quiet teal italic line that sits
-  // between the title and the standard region/style sub-line.
-  // Visually subordinate to the title; deliberately not a chip
-  // or banner so it reads as the app speaking, not announcing.
-  returnSignal: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(0,255,204,0.78)",
-    fontSize: 13,
-    fontStyle: "italic",
-    marginTop: -2,
-    marginBottom: 10,
-  },
+  // Locked daily-habit subtitle — sits directly under the H1 and
+  // is part of the daily promise; the once-per-day return-signal
+  // line below is layered on top, not a replacement.
   sub: {
     ...type.body,
     color: "rgba(255,255,255,0.65)",
     fontSize: 15,
     lineHeight: 21,
+    marginBottom: 12,
+  },
+  // Returning-user signal — quiet teal italic grace note shown
+  // ONCE per UTC day after the locked sub. Visually subordinate
+  // to the title pair; deliberately not a chip or banner so it
+  // reads as the app speaking, not announcing.
+  returnSignal: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(0,255,204,0.78)",
+    fontSize: 13,
+    fontStyle: "italic",
+    marginTop: -4,
     marginBottom: 22,
   },
   loadingBox: {
