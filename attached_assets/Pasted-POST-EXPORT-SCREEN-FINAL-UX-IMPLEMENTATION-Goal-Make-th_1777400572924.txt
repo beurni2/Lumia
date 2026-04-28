@@ -1,0 +1,148 @@
+POST-EXPORT SCREEN — FINAL UX IMPLEMENTATION
+
+Goal:
+Make the post-export screen feel like a finish line and push immediate posting,
+while allowing quick 1-tap improvements without friction.
+
+---
+
+1. HEADER
+
+Title:
+"Your video is ready 🎉"
+
+Subtext:
+"Looks good. Now go post it."
+
+---
+
+2. VIDEO PREVIEW
+
+- Show final video (full width)
+- Center play button overlay
+- Show duration (e.g. 00:00 / 00:18)
+- No before/after comparison
+
+---
+
+3. CONFIDENCE STRIP (3 ITEMS MAX)
+
+Display 3 short confidence signals:
+
+- "Hook hits immediately"
+- "Clear reaction moment"
+- "Easy to watch and relatable"
+
+Style:
+- icon + short text
+- horizontal layout
+
+---
+
+4. QUICK BOOST SECTION
+
+Rename section:
+
+"Quick boost (optional)"
+
+Remove all technical explanations.
+
+Subtext:
+"2 taps max — makes this post hit harder"
+
+---
+
+5. BOOST ACTIONS (MAX 2)
+
+Action 1:
+Label: "Smoother flow"
+Button: "Fix"
+
+Action 2:
+Label: "Faster hook"
+Button: "Fix"
+
+---
+
+6. BUTTON INTERACTION (CRITICAL)
+
+On tap "Fix":
+
+- Trigger light haptic feedback
+- Animate button (scale down → up)
+- Change label → "Done ✓"
+- Show micro confirmation text under row:
+
+"Smoother flow" → "Clips feel more natural now"
+"Faster hook" → "Hook now hits instantly"
+
+- Brief row highlight (subtle glow, 200–300ms)
+
+- DO NOT block user
+- DO NOT reload screen
+
+---
+
+7. WATERMARK TOGGLE
+
+Label:
+"Add 'Made with Lumina'"
+
+Subtext:
+"Support Lumina and get inspired ✨"
+
+- simple toggle
+- no technical explanation
+
+---
+
+8. PRIMARY CTA (MOST IMPORTANT)
+
+Button:
+"Save & Post"
+
+Subtext:
+"Save to gallery and post anywhere"
+
+Behavior:
+- saves video locally
+- no delay UI
+- success should feel instant
+
+---
+
+9. SECONDARY ACTIONS
+
+Below CTA:
+
+- "Make another version"
+- "Back to ideas"
+
+Style:
+- low emphasis (secondary buttons)
+
+---
+
+10. REMOVE ALL FRICTION
+
+Do NOT include:
+- "Saving works only on phone..."
+- technical warnings
+- long explanations
+- analysis blocks
+
+---
+
+UX PRINCIPLES
+
+- No thinking required
+- No comparison required
+- No learning required
+
+User should feel:
+
+"This is ready → I’ll post it"
+
+NOT:
+
+"Let me review this more"

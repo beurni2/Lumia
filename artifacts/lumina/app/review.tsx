@@ -313,9 +313,16 @@ export default function ReviewScreen() {
     }
   }, [idea, clip]);
 
+  // Past-video matching is no longer rendered on this screen
+  // (the BEFORE/AFTER comparison was removed in the post-export
+  // finish-line redesign). The loadMatch helper + its state
+  // (match, loading, empty, errorMsg, setMatch, etc.) are kept
+  // intentionally unwired so the surrounding code paths stay
+  // bounded for now and can be deleted in a follow-up cleanup.
+  // Firing the effect here would burn a /api/imported-videos
+  // call on every screen mount for a result nobody consumes.
   useEffect(() => {
-    if (!idea || !clip) return;
-    void loadMatch();
+    return;
   }, [idea, clip, loadMatch]);
 
   // Viral feedback-loop trigger — fire the export toast the
@@ -518,111 +525,47 @@ export default function ReviewScreen() {
           >
             <Feather name="chevron-left" size={26} color="#FFFFFF" />
           </Pressable>
-          <Text style={styles.topBarTitle}>Side-by-side review</Text>
+          {/* No top-bar title — the new H1 below ("Your video is
+              ready 🎉") carries the screen's identity. A second
+              static title up here would compete with the celebration
+              and pull attention away from the finish-line moment. */}
           <View style={{ width: 26 }} />
         </View>
 
         <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
-          <Text style={styles.kicker}>Compare your take</Text>
-          <Text style={styles.title}>Before and after.</Text>
-          <Text style={styles.sub}>
-            Your earlier upload alongside the new take, built on this idea.
-          </Text>
+          {/* Finish-line header — the celebratory pair the user
+              should land on. No comparison framing, no analysis
+              prompt; the purpose of this screen is to push the
+              save+post action, not invite more review. */}
+          <Text style={styles.kicker}>Ready to ship</Text>
+          <Text style={styles.title}>Your video is ready 🎉</Text>
+          <Text style={styles.sub}>Looks good. Now go post it.</Text>
 
-          {loading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color={lumina.firefly} />
-              <Text style={styles.loadingText}>Finding a similar video…</Text>
-            </View>
-          ) : null}
+          {/* Final video preview — single full-width frame with a
+              centered play affordance and the duration. The actual
+              file plays from the user's gallery once saved; this
+              pane is a finish-line placeholder, not a media player
+              (Lumina has no on-device video module — same precedent
+              as the prior AFTER frame). */}
+          <VideoReady clip={clip} watermarkOn={watermarkOn} />
 
-          {!loading && empty ? (
-            <View style={styles.emptyBlock}>
-              <Feather
-                name="film"
-                size={28}
-                color={lumina.firefly}
-                style={{ marginBottom: 12 }}
-              />
-              <Text style={styles.emptyTitle}>
-                No similar past video yet — we'll compare once you import
-                more.
-              </Text>
-            </View>
-          ) : null}
+          {/* Three short confidence signals — flat, glanceable,
+              no scoring. Strings are intentionally generic so this
+              row reads identically across every idea (the spec
+              wants one tone of voice here, not per-idea analysis). */}
+          <ConfidenceStrip />
 
-          {!loading && errorMsg && !empty ? (
-            <View style={styles.emptyBlock}>
-              <Feather
-                name="alert-circle"
-                size={28}
-                color={lumina.firefly}
-                style={{ marginBottom: 12 }}
-              />
-              <Text style={styles.emptyTitle}>{errorMsg}</Text>
-              <Pressable
-                onPress={loadMatch}
-                style={({ pressed }) => [
-                  styles.retryBtn,
-                  pressed ? styles.retryBtnPressed : null,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Retry loading past video"
-              >
-                <Text style={styles.retryLabel}>Retry</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {/* Only render BEFORE/AFTER on a successful match —
-              gating on `match` alone would let stale content
-              from a previous successful load sit underneath an
-              error or empty state on retry. */}
-          {!loading && !errorMsg && !empty && match ? (
-            <BeforeAfter
-              match={match}
-              clip={clip}
-              extraClips={extraClips}
-              idea={idea}
-              watermarkOn={watermarkOn}
-              appliedHookOverride={appliedEnhancements.hook}
-              appliedEdits={appliedEdits}
-            />
-          ) : null}
-
-          {/* WhyBetter renders in success AND empty states, but
-              not while we're showing an error block — the card
-              would feel disconnected if we couldn't even load
-              the comparison data it sits next to. */}
-          {!loading && !errorMsg ? <WhyBetterCard idea={idea} /> : null}
-
-          {/* Enhancement Brain — lazy "make it hit harder" suggestions.
-              Renders a quiet CTA by default; only fires the AI call on
-              tap so we don't burn cost on every review-screen mount.
-              Mounts in the same conditions as WhyBetter so the two
-              cards either both appear or both stay quiet. */}
-          {!loading && !errorMsg ? (
-            <EnhancementCard
-              idea={idea}
-              applied={appliedEnhancements}
-              onApplied={setAppliedEnhancements}
-            />
-          ) : null}
-
-          {/* Make-it-ready card — sits below the text-rewrite
-              EnhancementCard and above ExportSection so the flow
-              reads "improve idea → polish video → export". Only
-              renders when at least one of the two actions is
-              applicable; otherwise it stays out of the way. */}
-          {!loading && !errorMsg ? (
-            <MakeItReadyCard
-              idea={idea}
-              extraClips={extraClips}
-              appliedEnhancements={appliedEnhancements}
-              appliedEdits={appliedEdits}
-              onAppliedEdits={setAppliedEdits}
-            />
-          ) : null}
+          {/* Quick boost — keeps the existing 2-action card
+              (Smoother flow / Faster hook) with its Fix → Done ✓
+              micro-interaction. Renders only when at least one
+              action is actually applicable. */}
+          <MakeItReadyCard
+            idea={idea}
+            extraClips={extraClips}
+            appliedEnhancements={appliedEnhancements}
+            appliedEdits={appliedEdits}
+            onAppliedEdits={setAppliedEdits}
+          />
 
           <ExportSection
             saveState={saveState}
@@ -631,27 +574,20 @@ export default function ReviewScreen() {
             watermarkOn={watermarkOn}
             onToggleWatermark={setWatermarkOn}
             onSave={handleSave}
-            onMakeAnother={handleMakeAnother}
-            onBack={handleHome}
             canSave={saveableUris.length > 0}
             clipCount={saveableUris.length}
           />
 
-          {/* Bottom navigation tail — keeps "Make another
-              version" visible and functional throughout the
-              flow (not gated on a successful save). Hidden in
-              the success state because the success block
-              already promotes both actions as primary CTAs,
-              and showing them twice would clutter the moment. */}
-          {saveState !== "success" ? (
-            <>
-              <TextButton
-                label="Make another version"
-                onPress={handleMakeAnother}
-              />
-              <TextButton label="Back to ideas" onPress={handleHome} />
-            </>
-          ) : null}
+          {/* Secondary actions — always visible (no save-state
+              gate). The spec wants these to read as low-emphasis
+              follow-ups whether or not the user has tapped Save &
+              Post yet, so the next step is one tap away even
+              before they've saved. */}
+          <TextButton
+            label="Make another version"
+            onPress={handleMakeAnother}
+          />
+          <TextButton label="Back to ideas" onPress={handleHome} />
         </Animated.View>
       </ScrollView>
       {/* Confetti is rendered as a sibling of the ScrollView so
@@ -812,97 +748,96 @@ function ExportSection({
   onToggleWatermark,
   onSave,
   onSaveAgain,
-  onMakeAnother,
-  onBack,
   canSave,
-  clipCount,
 }: {
   saveState: "idle" | "saving" | "success" | "error";
   saveErrorMsg: string | null;
   watermarkOn: boolean;
   onToggleWatermark: (next: boolean) => void;
   onSave: () => void;
-  // Re-save handler used by the success-state "Save to gallery"
+  // Re-save handler used by the success-state "Save again"
   // button. Clears the dedupe ref before re-running handleSave
   // so the second tap actually writes a fresh copy (vs the
   // partial-failure retry, which intentionally skips already-
   // saved URIs).
   onSaveAgain: () => void;
-  onMakeAnother: () => void;
-  onBack: () => void;
+  // Still tracked: when the gallery isn't writable (web preview
+  // or a clip with no local URI), the primary button stays
+  // visible but disables the tap path. We deliberately do NOT
+  // surface a "phone only" notice — the spec is firm on no
+  // technical warnings on this screen.
   canSave: boolean;
-  // 1 or 2. Drives the "Video"/"Videos" pluralisation in the
-  // saving copy so the user sees the truthful state
-  // ("Saving 2 videos…") when both upload slots were filled.
+  // Reserved for future analytics hooks; the saving copy is now
+  // singular per the friction-free spec.
   clipCount: number;
 }) {
-  const plural = clipCount > 1;
+  const ctaDisabled = !canSave || saveState === "saving";
   return (
     <View style={styles.exportCard}>
-      {/* Watermark toggle is visible in idle/saving/error and
-          hidden in success — keeps the post-save card clean
-          and avoids inviting the user to flip it after the
-          file is already on disk. */}
-      {saveState !== "success" ? (
-        <View style={styles.watermarkRow}>
-          <View style={styles.watermarkLabelCol}>
-            <Text style={styles.watermarkLabel}>Add "Made with Lumina"</Text>
-            <Text style={styles.watermarkHint}>
-              Shown in the AFTER preview above — the saved file isn't watermarked yet.
-            </Text>
-          </View>
-          <Switch
-            value={watermarkOn}
-            onValueChange={onToggleWatermark}
-            trackColor={{
-              false: "rgba(255,255,255,0.15)",
-              true: lumina.firefly,
-            }}
-            thumbColor="#FFFFFF"
-            ios_backgroundColor="rgba(255,255,255,0.15)"
-            disabled={saveState === "saving"}
-            accessibilityRole="switch"
-            accessibilityLabel="Add Made with Lumina watermark"
-            accessibilityHint="Adds the watermark to the in-app preview. The saved file is not watermarked yet."
-            accessibilityState={{ checked: watermarkOn }}
-          />
-        </View>
-      ) : null}
-
-      {/* When canSave is false (web preview, or a clip with no
-          local URI for any reason), don't bother showing a
-          dead Save button — show the same explanation inline
-          so the user understands the constraint immediately
-          instead of bouncing off a disabled control. */}
-      {!canSave && saveState !== "saving" && saveState !== "success" ? (
-        <View style={styles.exportNotice}>
-          <Feather
-            name="smartphone"
-            size={16}
-            color={lumina.firefly}
-            style={{ marginTop: 1 }}
-          />
-          <Text style={styles.exportNoticeText}>
-            Saving to your gallery works on the phone app — open Lumina on
-            your phone to export.
+      {/* Watermark toggle is always visible (idle / saving /
+          success / error) — the spec wants this as a single,
+          friction-free row that the user can flip at any time.
+          The label + sub copy frame it as support, not a
+          configuration toggle. */}
+      <View style={styles.watermarkRow}>
+        <View style={styles.watermarkLabelCol}>
+          <Text style={styles.watermarkLabel}>Add &ldquo;Made with Lumina&rdquo;</Text>
+          <Text style={styles.watermarkHint}>
+            Support Lumina and get inspired ✨
           </Text>
         </View>
-      ) : null}
+        <Switch
+          value={watermarkOn}
+          onValueChange={onToggleWatermark}
+          trackColor={{
+            false: "rgba(255,255,255,0.15)",
+            true: lumina.firefly,
+          }}
+          thumbColor="#FFFFFF"
+          ios_backgroundColor="rgba(255,255,255,0.15)"
+          disabled={saveState === "saving"}
+          accessibilityRole="switch"
+          accessibilityLabel="Add Made with Lumina watermark"
+          accessibilityState={{ checked: watermarkOn }}
+        />
+      </View>
 
-      {canSave && (saveState === "idle" || saveState === "error") ? (
+      {/* Single primary CTA in idle/error — "Save & Post" with a
+          short subtext underneath. In success state we keep the
+          same button but flip its label to "Save again" so a
+          re-save path still exists without piling up extra UI. */}
+      {saveState !== "saving" ? (
         <Pressable
-          onPress={onSave}
+          onPress={saveState === "success" ? onSaveAgain : onSave}
+          disabled={ctaDisabled && saveState !== "success"}
           style={({ pressed }) => [
             styles.primary,
-            pressed ? styles.primaryPressed : null,
+            pressed && !(ctaDisabled && saveState !== "success")
+              ? styles.primaryPressed
+              : null,
+            ctaDisabled && saveState !== "success"
+              ? styles.primaryDisabled
+              : null,
           ]}
           accessibilityRole="button"
           accessibilityLabel={
-            saveState === "error" ? "Try saving again" : "Save to gallery"
+            saveState === "success"
+              ? "Save again"
+              : saveState === "error"
+                ? "Try saving again"
+                : "Save and post"
           }
+          testID="save-and-post"
         >
           <Text style={styles.primaryLabel}>
-            {saveState === "error" ? "Try again" : "Save to gallery"}
+            {saveState === "success"
+              ? "Save again"
+              : saveState === "error"
+                ? "Try again"
+                : "Save & Post"}
+          </Text>
+          <Text style={styles.primarySub}>
+            Save to gallery and post anywhere
           </Text>
         </Pressable>
       ) : null}
@@ -910,72 +845,119 @@ function ExportSection({
       {saveState === "saving" ? (
         <View style={styles.savingBox}>
           <ActivityIndicator color={lumina.firefly} />
-          <Text style={styles.savingText}>
-            {plural
-              ? `Saving ${clipCount} videos to your gallery…`
-              : "Saving to your gallery…"}
-          </Text>
+          {/* Spec: minimal copy in the in-flight state — the
+              spinner + one short word is the entire signal. */}
+          <Text style={styles.savingText}>Saving…</Text>
         </View>
       ) : null}
 
       {saveState === "success" ? (
-        <View style={styles.successBox}>
-          <Feather name="check-circle" size={32} color={lumina.firefly} />
-          <Text style={styles.successTitle}>Video ready</Text>
-          <Text style={styles.successHint}>
-            Save it, post it manually, or make another version.
+        // Quiet one-line confirmation. The spec wants the
+        // celebration to come from the page-wide Confetti +
+        // toast, not from a chunky success block. Next-step
+        // CTAs live below the card as the secondary actions.
+        <View style={styles.successLine}>
+          <Feather name="check-circle" size={16} color={lumina.firefly} />
+          <Text style={styles.successLineText}>
+            Saved to your gallery — go post it.
           </Text>
-          {/* Three CTAs sit inside the success block so they
-              read as the natural next-actions after the
-              celebration. Save to gallery is primary — tapping
-              it clears the dedupe ref and re-runs handleSave so
-              the user can write a fresh copy on demand. Make
-              another and Back to ideas drop to secondary. The
-              bottom-of-screen navigation tail hides itself in
-              this state to avoid duplicating these controls. */}
-          <View style={styles.successActions}>
-            <Pressable
-              onPress={onSaveAgain}
-              style={({ pressed }) => [
-                styles.primary,
-                pressed ? styles.primaryPressed : null,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Save to gallery"
-            >
-              <Text style={styles.primaryLabel}>Save to gallery</Text>
-            </Pressable>
-            <Pressable
-              onPress={onMakeAnother}
-              style={({ pressed }) => [
-                styles.successSecondary,
-                pressed ? styles.successSecondaryPressed : null,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Make another version"
-            >
-              <Text style={styles.successSecondaryLabel}>
-                Make another version
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onBack}
-              style={({ pressed }) => [
-                styles.successSecondary,
-                pressed ? styles.successSecondaryPressed : null,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Back to ideas"
-            >
-              <Text style={styles.successSecondaryLabel}>Back to ideas</Text>
-            </Pressable>
-          </View>
         </View>
       ) : null}
 
       {saveState === "error" && saveErrorMsg ? (
         <Text style={styles.exportError}>{saveErrorMsg}</Text>
       ) : null}
+    </View>
+  );
+}
+
+/* =================== Video Ready (final preview) =================== */
+
+/**
+ * Final-video preview card. Replaces the old BEFORE/AFTER
+ * comparison with a single full-width frame: filename / duration
+ * footer, a centered play affordance, and an optional watermark
+ * badge that mirrors the user's toggle state.
+ *
+ * No on-device playback — Lumina has no video module wired in
+ * (same precedent as the prior AFTER pane, which was also a
+ * stylized View, not a player). The real playback surface is the
+ * saved gallery file. The play button reads as "your video is
+ * ready" not "tap to play here", and we keep it non-interactive
+ * to avoid a dead tap.
+ */
+function VideoReady({
+  clip,
+  watermarkOn,
+}: {
+  clip: FilmedClip;
+  watermarkOn: boolean;
+}) {
+  const totalLabel =
+    typeof clip.durationSec === "number"
+      ? formatDuration(clip.durationSec)
+      : "00:00";
+  return (
+    <View style={styles.vidReady} testID="video-ready">
+      <View style={styles.vidReadyBody}>
+        <View style={styles.vidPlayCircle} pointerEvents="none">
+          <Feather name="play" size={28} color="#0A0824" />
+        </View>
+        <Text style={styles.vidDuration}>00:00 / {totalLabel}</Text>
+      </View>
+      <View style={styles.vidFooter}>
+        <Feather name="film" size={12} color="rgba(255,255,255,0.55)" />
+        <Text style={styles.vidFooterText} numberOfLines={1}>
+          {clip.filename}
+        </Text>
+      </View>
+      {watermarkOn ? (
+        <View style={styles.watermarkBadge} pointerEvents="none">
+          <Text style={styles.watermarkBadgeText}>Made with Lumina</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Format seconds as MM:SS. Defensive on negative / NaN inputs
+ * (returns "00:00") so a malformed clip durationSec never paints
+ * "NaN:NaN" into the celebration moment.
+ */
+function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/* =================== Confidence Strip =================== */
+
+/**
+ * Three short, generic confidence signals — one row, no scoring,
+ * no per-idea variance. The spec wants this to read identically
+ * across every idea, so the strings are literal here (not derived
+ * from the idea object). Icons stay quiet (firefly tint, small)
+ * so the row reads as a glance, not a checklist to scan.
+ */
+function ConfidenceStrip() {
+  const items: { icon: keyof typeof Feather.glyphMap; label: string }[] = [
+    { icon: "zap", label: "Hook hits immediately" },
+    { icon: "smile", label: "Clear reaction moment" },
+    { icon: "eye", label: "Easy to watch and relatable" },
+  ];
+  return (
+    <View style={styles.confidenceStrip} testID="confidence-strip">
+      {items.map((item) => (
+        <View key={item.label} style={styles.confidenceItem}>
+          <Feather name={item.icon} size={14} color={lumina.firefly} />
+          <Text style={styles.confidenceText} numberOfLines={2}>
+            {item.label}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -1701,6 +1683,12 @@ function MakeItReadyCard({
   return (
     <View style={styles.readyCard} testID="make-it-ready-card">
       <Text style={styles.readyTitle}>Quick boost (optional)</Text>
+      {/* Spec subtext — sets expectations on scope (max 2 actions)
+          and stakes (this is the "make it hit harder" lever, not a
+          required step) before the user reads the rows. */}
+      <Text style={styles.readySubtitle}>
+        2 taps max — makes this post hit harder
+      </Text>
 
       <View style={styles.readyList}>
         {actions.map((action) => {
@@ -2789,12 +2777,127 @@ const styles = StyleSheet.create({
   },
   watermarkHint: {
     fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 11,
-    lineHeight: 15,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    lineHeight: 16,
   },
   primaryDisabled: {
     opacity: 0.4,
+  },
+  // Sub-label rendered under the "Save & Post" primary CTA. Same
+  // dark-on-firefly contrast as the primary label, dropped a step
+  // in weight + size + opacity so it reads as supporting copy and
+  // doesn't compete with the action verb above it.
+  primarySub: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(10,8,36,0.75)",
+    fontSize: 12,
+    letterSpacing: 0.2,
+    marginTop: 4,
+  },
+  // Quiet success line — replaces the previous chunky success
+  // block. Pairs the firefly check with one short line; the
+  // page-wide Confetti + InlineToast carry the celebration so we
+  // don't need a second visual moment inside the export card.
+  successLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingTop: 14,
+  },
+  successLineText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  // Final-video preview card — replaces BeforeAfter on this
+  // screen. 9:16 frame to match the AFTER pane the user has been
+  // looking at all flow long, with a centered play affordance and
+  // a duration line under it.
+  vidReady: {
+    aspectRatio: 9 / 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.45)",
+    overflow: "hidden",
+    padding: 14,
+    justifyContent: "space-between",
+    marginBottom: 18,
+    position: "relative",
+  },
+  vidReadyBody: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+  vidPlayCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: lumina.firefly,
+    alignItems: "center",
+    justifyContent: "center",
+    // Nudge the play glyph optically off-center so it reads as a
+    // play triangle and not an off-balance icon.
+    paddingLeft: 4,
+  },
+  vidDuration: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    letterSpacing: 0.4,
+  },
+  vidFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  vidFooterText: {
+    flex: 1,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+  },
+  // Three-up confidence row. Items wrap their own icon + text in
+  // a column so each signal feels like its own glanceable card,
+  // and the three together still fit without overflow at 360px.
+  confidenceStrip: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 22,
+  },
+  confidenceItem: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,255,204,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.18)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  confidenceText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: "center",
+  },
+  // Subtitle under "Quick boost (optional)" — same family/colour
+  // as readyTitle but smaller + dimmer so it reads as supporting
+  // copy and doesn't fight the title for attention.
+  readySubtitle: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
   },
   exportNotice: {
     flexDirection: "row",

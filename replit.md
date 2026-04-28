@@ -13,7 +13,7 @@ Lumina is a pnpm workspace monorepo built with TypeScript.
 **UI/UX Decisions:**
 - The mobile application is developed using Expo (React Native).
 - The onboarding process is a 3-step flow: region selection, first video import, and two additional imports.
-- The review process includes a side-by-side comparison with a plain-English diff.
+- The post-export review screen reads as a finish line: a single final-video preview, a 3-item confidence strip, an optional 2-action Quick Boost (Smoother flow / Faster hook with Fix → Done ✓ micro-interaction), a friction-free "Made with Lumina" watermark toggle, a primary "Save & Post" CTA, and low-emphasis "Make another version" / "Back to ideas" secondary actions. No before/after comparison, analysis blocks, or technical warnings.
 - A 5-question screen biases format distribution, tone, effort, privacy, and hook style based on user input.
 - One-tap export to the gallery with an optional "Made with Lumina" watermark.
 
