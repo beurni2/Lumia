@@ -99,3 +99,46 @@ export type StyleProfile = z.infer<typeof styleProfileSchema>;
  * idea after the first upload" flow + for curl-based quality testing.
  */
 export const DEFAULT_STYLE_PROFILE: StyleProfile = styleProfileSchema.parse({});
+
+/**
+ * Derived tone bucket — `dry | chaotic | self-aware | confident`.
+ *
+ * The Style Profile we persist describes the creator's writing in
+ * concrete signals (emoji density, punctuation pattern, hook primary,
+ * sentence length). The IDEATOR prompt wants a HIGHER-LEVEL TONE
+ * label so it can colour PHRASING (hook wording + caption tone)
+ * without touching idea structure.
+ *
+ * This helper is the bridge — it derives a single tone label from
+ * the existing fields with NO schema change. Pure function: same
+ * profile → same tone, deterministic, cheap, easy to reason about.
+ *
+ * Heuristic priority order (first match wins):
+ *   1. CHAOTIC    — emoji-heavy OR exclamation-heavy. Loud energy.
+ *   2. SELF-AWARE — question-heavy punctuation OR question hookStyle.
+ *                   Introspective / ironic vibe.
+ *   3. CONFIDENT  — boldStatement hookStyle + sparing emoji (≤1).
+ *                   Declarative, no hedging.
+ *   4. DRY        — fallback. Understated, deadpan, minimal everything.
+ *
+ * The DEFAULT_STYLE_PROFILE (used before the creator has uploaded any
+ * videos) lands in DRY by default — the safest tone for an unknown
+ * voice (no risk of putting words in their mouth).
+ */
+export type DerivedTone = "dry" | "chaotic" | "self-aware" | "confident";
+
+export function deriveTone(profile: StyleProfile): DerivedTone {
+  const cap = profile.captionStyle;
+  const hookPrimary = profile.hookStyle.primary;
+
+  if (cap.avgEmojiCount >= 3 || cap.punctuationPattern === "exclamation-heavy") {
+    return "chaotic";
+  }
+  if (cap.punctuationPattern === "question-heavy" || hookPrimary === "question") {
+    return "self-aware";
+  }
+  if (hookPrimary === "boldStatement" && cap.avgEmojiCount <= 1) {
+    return "confident";
+  }
+  return "dry";
+}

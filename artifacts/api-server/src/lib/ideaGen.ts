@@ -84,7 +84,12 @@ import {
   formatDeficitDistributionPromptBlock,
   formatDistributionPromptBlock,
 } from "./formatDistribution";
-import { DEFAULT_STYLE_PROFILE, type StyleProfile } from "./styleProfile";
+import {
+  DEFAULT_STYLE_PROFILE,
+  deriveTone,
+  type DerivedTone,
+  type StyleProfile,
+} from "./styleProfile";
 import {
   distributionFloorFromCalibration,
   parseTasteCalibration,
@@ -357,7 +362,13 @@ function compactBundle(bundle: TrendBundle): string {
 
 function profileSummary(p: StyleProfile): string {
   const dist = p.hookStyle.distribution;
+  // Derived tone is rendered FIRST so the model reads the
+  // higher-level voice label before drilling into the concrete
+  // signals it was derived from. Pure function (deriveTone) — same
+  // profile → same label, no surprises across calls.
+  const tone = deriveTone(p);
   return [
+    `Derived tone: ${tone} (used to colour hook PHRASING + caption tone — never idea structure).`,
     `Primary hook style: ${p.hookStyle.primary}`,
     `Hook distribution: question=${dist.question} bold=${dist.boldStatement} sceneSetter=${dist.sceneSetter}`,
     p.hookStyle.sampleHooks.length > 0
@@ -376,6 +387,73 @@ function profileSummary(p: StyleProfile): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * STYLE BOUNDARY + TONE MATRIX block.
+ *
+ * Hard guardrail injected near the top of the system prompt, BEFORE
+ * any of the structural rules (HOOK CRAFT / PATTERN-FIRST / etc).
+ * Two creators with the same trigger+reaction should produce
+ * structurally identical ideas — only the WORDS should change to
+ * match their voice.
+ *
+ * The matrix lists all four tones so the model has the full mapping
+ * (and can sanity-check the declared tone against the prose
+ * descriptions); the declared line at the top tells it which one
+ * THIS creator lands in. Pure-string output — no I/O.
+ */
+function styleBoundaryBlock(tone: DerivedTone): string {
+  return [
+    "STYLE BOUNDARY (HARD) — applies to every idea you emit:",
+    "  Style influences ONLY hook PHRASING and caption TONE.",
+    "  Style MUST NOT change:",
+    "    ✗ idea structure (the trigger → reaction beat)",
+    "    ✗ which emotional spike the idea targets",
+    "    ✗ which production pattern (pov / reaction / mini_story / contrast)",
+    "    ✗ which moment / scenario the idea is about",
+    "  The moment comes from the trigger+reaction logic above; the style only changes how it SOUNDS.",
+    "",
+    `TONE MATRIX — the creator's derived tone is "${tone}". Apply to hook wording + caption tone only:`,
+    "    • dry         → subtle, understated, deadpan. Sparing words. No exclamations. Let the reaction do the work.",
+    "    • chaotic     → exaggerated, emotional, run-on energy. \"literally screaming\", \"I CAN'T\", short bursts back-to-back.",
+    "    • self-aware  → slightly embarrassing, ironic, questioning yourself. \"why am I like this\", \"be so for real\".",
+    "    • confident   → bold, declarative, no hedging. State the moment as a flat fact.",
+    "  Two creators with the same trigger+reaction should produce structurally identical ideas — only the WORDS change.",
+  ].join("\n");
+}
+
+/**
+ * ANTI-REPEAT (soft) block.
+ *
+ * Renders only when we have at least 2 recently-accepted hook texts
+ * to anchor against. We surface those hooks and tell the model to
+ * lean AWAY from the same scenario / setup — same STRUCTURE is fine
+ * (the memory loop keeps the winning structure), same SURFACE is
+ * what we discourage. SOFT penalty — explicitly NOT a hard ban
+ * because the user said so: too aggressive a ban here would prevent
+ * legitimate variations on a hot scenario.
+ *
+ * Returns null when fewer than 2 hooks are available (1 hook isn't
+ * enough signal to anti-repeat against, and 0 hooks means a brand
+ * new creator who has nothing to repeat).
+ */
+function antiRepeatHooksBlock(hooks: string[]): string | null {
+  const trimmed = hooks
+    .map((h) => h.trim())
+    .filter((h) => h.length > 0)
+    .slice(0, 2);
+  if (trimmed.length < 2) return null;
+  return [
+    "RECENT-ACCEPTED ANTI-REPEAT (soft penalty — NOT a hard ban):",
+    "  The user's last 2 accepted ideas had these hooks:",
+    `    1. "${trimmed[0]}"`,
+    `    2. "${trimmed[1]}"`,
+    "  Avoid building this batch around the SAME scenario / setup as either of those.",
+    "  If an idea reads like a sequel to one of them, lean toward a different angle:",
+    "  different triggerCategory, different setting, different micro-moment.",
+    "  Same STRUCTURE is fine (the memory loop keeps winning shapes); same SURFACE is what we discourage.",
+  ].join("\n");
 }
 
 export type GenerateIdeasInput = {
@@ -495,6 +573,21 @@ export async function generateIdeas(
   // computes the right ⌈N/2⌉ caps for structure / hookStyle and
   // sizes the aligned-vs-explore split (~75/25) for THIS batch.
   const memoryBlock = renderViralMemoryPromptBlock(viralPatternMemory, count);
+
+  // STYLE BOUNDARY + TONE MATRIX block — always rendered (every
+  // creator has a tone, even if it's the safe `dry` fallback for the
+  // DEFAULT_STYLE_PROFILE). Colours hook PHRASING + caption tone
+  // only; never touches structure/spike/pattern/scenario.
+  const tone = deriveTone(profile);
+  const styleBoundary = styleBoundaryBlock(tone);
+
+  // ANTI-REPEAT (soft) block — only renders when we have ≥2
+  // recently-accepted hook texts to anchor against. Same SURFACE
+  // discouraged, same STRUCTURE allowed (the memory loop keeps the
+  // winning shape — only the scenario gets nudged).
+  const antiRepeatBlock = antiRepeatHooksBlock(
+    viralPatternMemory.recentAcceptedHooks,
+  );
 
   // Per-creator format (pattern) distribution. Looks up the recent
   // feedback signal for this creator and computes a target mix of
@@ -748,6 +841,8 @@ export async function generateIdeas(
     "",
     `Match the creator's personal style profile — their hook style, caption tone, emoji density, pacing, content type. If their primary hook style is "${profile.hookStyle.primary}", at least half the ideas should use that hook type. The hook should sound like words the creator would actually say — not generic "TikTok voice". When in doubt, lean to the creator's energy.`,
     "",
+    styleBoundary,
+    "",
     "Pick the templateHint deterministically from the hook type:",
     "  • question / boldStatement (educational or entertainment) → 'A'",
     "  • storytelling, narrative builds → 'B'",
@@ -772,7 +867,7 @@ export async function generateIdeas(
     "  howToFilm (string 15–400 chars — concrete filming instructions. Where you sit/stand, where the phone goes, single take vs cuts, what props are needed AND already in arm's reach. Example: \"Sit on the couch. Prop phone on a stack of books on the coffee table at chest height. One continuous take — no cuts. Have your actual phone in hand for the screen reaction.\"),",
     "  script (LOOSE talking-point cues OR vibe direction — NOT a rigid word-for-word script. The user picks the actual words; we set the beats and energy. Keep it short — 2–4 short phrases is plenty. Example: \"Open with the fake-confused face. Mumble 'oh no… ohhhh no'. Beat. Sigh.\"),",
     "  shotPlan (3–8 short shot descriptions ideal, up to 10 max, e.g. ['Phone in hand', \"Mom's reaction\", 'You hiding screen']),",
-    "  caption (ONE caption that CONTINUES the moment — not describes it. Target 3–8 words (hard ceiling 12). Must ADD something the `hook` didn't say — pick ONE: internal thought / contradiction / specific concrete detail / escalation of the moment. Reads like a TEXT MESSAGE to a friend. Connects DIRECTLY to THIS idea's hook + trigger+reaction (not generic). Match the creator's emoji range; tone-shape from the profile, but length/craft is governed by these rules even if their past captions ran longer. SHAPE examples (do NOT copy verbatim — these are vibes): \"just one more scroll\" / \"like that would help\" / \"staring at the same yogurt\" / \"still doing it tomorrow\". BANNED: generic emotional fluff (\"this is me\", \"so relatable\", \"who else\", \"mood\", \"literally me\"), repeating the hook in different words, vague filler, hashtag-strings. SELF-CHECK before emitting — \"could this exact caption land UNCHANGED on a totally different video?\" If yes, REWRITE until it can't. Emit only ONE caption.),",
+    "  caption (ONE caption that CONTINUES the moment — not describes it. Target 3–8 words (hard ceiling 12). Must ADD something the `hook` didn't say — pick ONE: internal thought / contradiction / specific concrete detail / escalation of the moment. Reads like a TEXT MESSAGE to a friend. Connects DIRECTLY to THIS idea's hook + trigger+reaction (not generic). EMOJI BUDGET: max 1 emoji per caption, default to ZERO — only include one if it meaningfully sharpens the moment, never as decoration; if the derived tone is `dry`, NO emoji is correct. This OVERRIDES the historical avg-emoji-count from the profile. Tone-shape from the profile, but length/craft is governed by these rules even if their past captions ran longer. SHAPE examples (do NOT copy verbatim — these are vibes): \"just one more scroll\" / \"like that would help\" / \"staring at the same yogurt\" / \"still doing it tomorrow\". BANNED: generic emotional fluff (\"this is me\", \"so relatable\", \"who else\", \"mood\", \"literally me\"), repeating the hook in different words, vague filler, hashtag-strings. SELF-CHECK before emitting — \"could this exact caption land UNCHANGED on a totally different video?\" If yes, REWRITE until it can't. Emit only ONE caption.),",
     "  templateHint ('A' | 'B' | 'C' | 'D'),",
     "  contentType ('entertainment' | 'educational' | 'lifestyle' | 'storytelling'),",
     "  videoLengthSec (integer 15–25, target FINAL video length in seconds),",
@@ -809,6 +904,11 @@ export async function generateIdeas(
     // "learned taste" (memory overrides calibration when they
     // conflict, by being later in the prompt and more concrete).
     ...(memoryBlock ? ["", memoryBlock] : []),
+    // Optional ANTI-REPEAT (soft) block — sits AFTER the memory block
+    // so the model first absorbs "what's working structurally" and
+    // THEN reads "what scenarios to lean away from on the surface".
+    // Same spread guard — no block, no empty section.
+    ...(antiRepeatBlock ? ["", antiRepeatBlock] : []),
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
@@ -816,7 +916,7 @@ export async function generateIdeas(
     `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
     `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
     `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, target ≤8 words (hard ceiling 10 if it still reads in <1s and feels natural). ANTI-NEUTRAL FILTER (final pass) — AUTO-REJECT openings "when you…" / "POV: you…" / "reading…" / "watching…" / "you open…" (they describe the situation; they don't create tension). PREFER thought-/reaction-voice openers: "why did I…" / "the way I…" / "I really just…" / "this just ruined…" / "I thought this was fine…". Every emitted hook must feel like a TEXT MESSAGE the creator would send a friend, not a caption. If after rewrite the hook still feels neutral, DROP THE WHOLE IDEA. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
-    `CAPTION CRAFT — write ONE caption that CONTINUES the moment, not describes it. Target 3–8 words (hard ceiling 12). The caption must ADD something the hook didn't say — pick exactly ONE: (a) internal thought, (b) contradiction, (c) specific concrete detail, (d) escalation of the moment. Read it back as if texting a friend; if it doesn't sound like a text, REWRITE. Must connect DIRECTLY to THIS idea's hook + trigger+reaction (use a noun or verb from them, not abstractions). ALLOWED shape examples (do NOT copy verbatim — borrow the rhythm, not the words): "just one more scroll" / "like that would help" / "staring at the same yogurt" / "still doing it tomorrow". BANNED outright: generic emotional fluff ("this is me", "so relatable", "who else", "mood", "literally me"), repeating the hook in different words, vague filler ("here we go again", "honestly tho"), hashtag-strings. SELF-CHECK before emitting — "could this exact caption land UNCHANGED on a totally different video?". If yes → REWRITE until it can't. Tone-shape from the creator's profile, but length and craft above OVERRIDE the historical avg-sentence-length even if their past captions ran longer. Emit exactly ONE caption.`,
+    `CAPTION CRAFT — write ONE caption that CONTINUES the moment, not describes it. Target 3–8 words (hard ceiling 12). The caption must ADD something the hook didn't say — pick exactly ONE: (a) internal thought, (b) contradiction, (c) specific concrete detail, (d) escalation of the moment. Read it back as if texting a friend; if it doesn't sound like a text, REWRITE. Must connect DIRECTLY to THIS idea's hook + trigger+reaction (use a noun or verb from them, not abstractions). EMOJI BUDGET: max 1 emoji, default to ZERO — only include one if it meaningfully sharpens the moment, never as decoration; if the derived tone is \`dry\`, NO emoji is correct. This OVERRIDES the historical avg-emoji-count from the profile. ALLOWED shape examples (do NOT copy verbatim — borrow the rhythm, not the words): "just one more scroll" / "like that would help" / "staring at the same yogurt" / "still doing it tomorrow". BANNED outright: generic emotional fluff ("this is me", "so relatable", "who else", "mood", "literally me"), repeating the hook in different words, vague filler ("here we go again", "honestly tho"), hashtag-strings. SELF-CHECK before emitting — "could this exact caption land UNCHANGED on a totally different video?". If yes → REWRITE until it can't. Tone-shape from the creator's profile, but length and craft above OVERRIDE the historical avg-sentence-length even if their past captions ran longer. Emit exactly ONE caption.`,
     `BATCH VARIETY — plan the ${count} ideas BEFORE drafting any one of them. For any 3-idea slice, no two ideas may share the same `+"`triggerCategory`"+` (phone_screen/message/social/environment/self_check/task), AND every pair of ideas must differ in at least TWO of {pattern, setting, emotionalSpike}. This is what makes the batch feel fresh instead of formulaic.`,
     `CONCEPT vs MOMENT — if an idea describes a CONCEPT (\"the weirdness of small talk\") rather than a MOMENT (\"the elevator small-talk that goes one floor too long\"), DROP IT. Real ideas happen at a clock-time in a specific place.`,
     `DO NOT OVER-FILTER simple ideas — if the trigger is CLEAR and the emotional reaction is STRONG, simplicity is a feature, not a bug. Don't add complexity to \"elevate\" a simple idea.`,
@@ -947,6 +1047,11 @@ export async function generateIdeas(
       // Same memory block as the main batch — top-up ideas should
       // honour the same "winning structure, fresh surface" bias.
       ...(memoryBlock ? ["", memoryBlock] : []),
+      // Same ANTI-REPEAT (soft) block as the main batch — the deficit
+      // fill should honour the same "lean away from last 2 accepted
+      // scenarios" nudge so we don't accidentally fill the gap with
+      // a sequel to something the user just accepted.
+      ...(antiRepeatBlock ? ["", antiRepeatBlock] : []),
       "",
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
@@ -959,7 +1064,7 @@ export async function generateIdeas(
       `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
       `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
       `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + target ≤8 words (hard ceiling 10, only if still <1s and natural), then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
-      `CAPTION CRAFT — write ONE caption that CONTINUES the moment, not describes it. Target 3–8 words (hard ceiling 12). The caption must ADD something the hook didn't say — pick exactly ONE: (a) internal thought, (b) contradiction, (c) specific concrete detail, (d) escalation of the moment. Reads like a TEXT MESSAGE to a friend. Connects DIRECTLY to THIS idea's hook + trigger+reaction (use a noun/verb from them, not abstractions). Allowed shapes (do NOT copy verbatim — borrow the rhythm, not the words): "just one more scroll" / "like that would help" / "staring at the same yogurt" / "still doing it tomorrow". BANNED: generic emotional fluff ("this is me", "so relatable", "who else", "mood", "literally me"), repeating the hook, vague filler ("here we go again", "honestly tho"), hashtag-strings. SELF-CHECK: "could this exact caption land UNCHANGED on a totally different video?" If yes → REWRITE until it can't. Length/craft override the creator's historical avg-sentence-length. Emit exactly ONE caption.`,
+      `CAPTION CRAFT — write ONE caption that CONTINUES the moment, not describes it. Target 3–8 words (hard ceiling 12). The caption must ADD something the hook didn't say — pick exactly ONE: (a) internal thought, (b) contradiction, (c) specific concrete detail, (d) escalation of the moment. Reads like a TEXT MESSAGE to a friend. Connects DIRECTLY to THIS idea's hook + trigger+reaction (use a noun/verb from them, not abstractions). EMOJI BUDGET: max 1 emoji, default to ZERO — only include one if it meaningfully sharpens the moment, never as decoration; if the derived tone is \`dry\`, NO emoji is correct. This OVERRIDES the historical avg-emoji-count from the profile. Allowed shapes (do NOT copy verbatim — borrow the rhythm, not the words): "just one more scroll" / "like that would help" / "staring at the same yogurt" / "still doing it tomorrow". BANNED: generic emotional fluff ("this is me", "so relatable", "who else", "mood", "literally me"), repeating the hook, vague filler ("here we go again", "honestly tho"), hashtag-strings. SELF-CHECK: "could this exact caption land UNCHANGED on a totally different video?" If yes → REWRITE until it can't. Length/craft override the creator's historical avg-sentence-length. Emit exactly ONE caption.`,
       `Remember: target hook ≤8 words (hard ceiling 10, only if still <1s and natural — don't reject strong hooks on word count alone); hook lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType. PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the shape for your trigger+reaction. Apply the LOW-EFFORT BIAS rule AND the VISUALIZABILITY GATE. CONCEPT > MOMENT = drop. DO NOT OVER-FILTER simple ideas — clear trigger + strong emotion = ship it. BANNED: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract concepts / personality traits / general statements / dialogue-dependent / multi-step / planning-heavy / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical, addresses, IDs, salary). WIN: relatable awkward, broke/tired/lazy, small daily frustration, self-deprecating moments. script is LOOSE talking-point cues, not a rigid word-for-word script. MATCH THE USER VOICE per the Style Profile. whatToShow + howToFilm are user-facing trust signals — concrete, plain-English, no "something" / "maybe". Success metric: "would the creator post this WITHOUT changing it much?" — if no, scrap.`,
     ].join("\n");
     try {

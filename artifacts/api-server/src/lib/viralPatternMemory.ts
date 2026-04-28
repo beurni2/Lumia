@@ -155,6 +155,20 @@ export type ViralPatternMemory = {
   recentAcceptedPatterns: PatternBundle[];
   /** Last ~10 negative-action bundles, most-recent-first. */
   recentRejectedPatterns: PatternBundle[];
+  /**
+   * Last 2 accepted hook TEXTS, most-recent-first. Powers the
+   * ANTI-REPEAT (soft) block in the ideator prompt — we surface
+   * the recent scenarios so the model can lean AWAY from re-running
+   * the same setup. SOFT penalty (nudge), never a hard ban: same
+   * STRUCTURE is fine, same SURFACE is what we discourage.
+   *
+   * Capped at 2 deliberately — the prompt only needs the freshest
+   * couple of moments to anchor the anti-repeat read; longer lists
+   * just bloat tokens without changing the model's behaviour.
+   * Internal to the prompt — never serialized to the API response
+   * and never persisted (recomputed every call from feedback rows).
+   */
+  recentAcceptedHooks: string[];
   /** Computed per-call (NOT stored). Multiplicative session boosts. */
   momentumBoosts: MomentumBoost[];
   /** Computed per-call (NOT stored). Additive penalties for over-use. */
@@ -181,6 +195,7 @@ export const EMPTY_MEMORY: ViralPatternMemory = {
   formats: {},
   recentAcceptedPatterns: [],
   recentRejectedPatterns: [],
+  recentAcceptedHooks: [],
   momentumBoosts: [],
   stalePenalties: [],
   tasteShiftPromotions: [],
@@ -395,11 +410,15 @@ export async function computeViralPatternMemory(
   const formats: Record<string, number> = {};
 
   // Unified bundle stream for downstream window slicing.
+  // `ideaHook` is carried through (alongside the four pattern dims)
+  // so the recent-accepted-hooks list can be derived in the same
+  // pass — used by the ANTI-REPEAT (soft) prompt block.
   type UnifiedRow = {
     structure: string | null;
     hookStyle: string | null;
     emotionalSpike: string | null;
     format: string | null;
+    ideaHook: string;
     isPositive: boolean;
     isNegative: boolean;
     createdAt: Date;
@@ -421,6 +440,7 @@ export async function computeViralPatternMemory(
       hookStyle: hs,
       emotionalSpike: r.emotionalSpike,
       format: r.ideaPattern,
+      ideaHook: r.ideaHook,
       isPositive: POSITIVE_VERDICTS.has(r.verdict),
       isNegative: NEGATIVE_VERDICTS.has(r.verdict),
       createdAt: r.createdAt,
@@ -440,6 +460,7 @@ export async function computeViralPatternMemory(
       hookStyle: hs,
       emotionalSpike: r.emotionalSpike,
       format: r.ideaPattern,
+      ideaHook: r.ideaHook,
       isPositive: POSITIVE_SIGNAL_TYPES.has(r.signalType),
       isNegative: NEGATIVE_SIGNAL_TYPES.has(r.signalType),
       createdAt: r.createdAt,
@@ -484,6 +505,20 @@ export async function computeViralPatternMemory(
 
   const recentAcceptedPatterns = positiveRows.map(toBundle);
   const recentRejectedPatterns = negativeRows.map(toBundle);
+
+  // Top-2 most recently accepted hook TEXTS — feeds the
+  // ANTI-REPEAT (soft) prompt block. We dedupe and trim defensively
+  // (rows with empty hooks shouldn't exist, but if they do we'd
+  // rather render no block than render an empty quoted line).
+  const recentAcceptedHooks: string[] = [];
+  const seenHooks = new Set<string>();
+  for (const r of positiveRows) {
+    const h = r.ideaHook?.trim();
+    if (!h || seenHooks.has(h)) continue;
+    seenHooks.add(h);
+    recentAcceptedHooks.push(h);
+    if (recentAcceptedHooks.length >= 2) break;
+  }
 
   /* -------- MOMENTUM BOOST (Part 4) -------------------------------- */
   // Count tag occurrences across all four dimensions in the last 10
@@ -583,6 +618,7 @@ export async function computeViralPatternMemory(
     formats: formatsClamped,
     recentAcceptedPatterns,
     recentRejectedPatterns,
+    recentAcceptedHooks,
     momentumBoosts,
     stalePenalties,
     tasteShiftPromotions,
@@ -829,6 +865,16 @@ export function parseViralPatternMemory(
         timestamp: typeof b.timestamp === "string" ? b.timestamp : "",
       }));
   };
+  // recentAcceptedHooks is recomputed every call from feedback rows
+  // — never persisted to the cache. The cache rehydration path
+  // returns [] for it; the live computeViralPatternMemory() path
+  // populates it from the row stream.
+  const acceptedHooksRaw = r.recentAcceptedHooks;
+  const recentAcceptedHooks: string[] = Array.isArray(acceptedHooksRaw)
+    ? acceptedHooksRaw
+        .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+        .slice(0, 2)
+    : [];
   return {
     structures: rec("structures"),
     hookStyles: rec("hookStyles"),
@@ -836,6 +882,7 @@ export function parseViralPatternMemory(
     formats: rec("formats"),
     recentAcceptedPatterns: bundles("recentAcceptedPatterns"),
     recentRejectedPatterns: bundles("recentRejectedPatterns"),
+    recentAcceptedHooks,
     momentumBoosts: [],
     stalePenalties: [],
     tasteShiftPromotions: [],
