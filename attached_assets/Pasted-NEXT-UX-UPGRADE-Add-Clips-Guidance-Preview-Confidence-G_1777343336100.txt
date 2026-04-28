@@ -1,0 +1,172 @@
+NEXT UX UPGRADE — Add Clips Guidance + Preview Confidence
+
+Goal:
+Reduce thinking during clip capture/upload and make the preview screen push users toward posting.
+
+Do NOT change ideator engine, memory, or generation logic.
+Do NOT add publishing, scheduling, analytics, or editor complexity.
+
+---
+
+PART 1 — ADD CLIPS SCREEN: GUIDE WITHOUT THINKING
+
+Problem:
+Users may not know what clips to add, especially for 2-clip ideas.
+
+Goal:
+Make the Add Clips screen feel obvious and low-effort.
+
+UI:
+
+Title:
+“Add your clip”
+
+Subtitle:
+“1–2 quick clips is enough.”
+
+Clip slots:
+
+Clip 1
+Helper:
+“Start with the main moment.”
+
+Clip 2 (optional)
+Helper:
+“Add a reaction or second angle.”
+
+Important:
+Keep labels simple:
+- Clip 1
+- Clip 2 (optional)
+
+Do NOT use:
+- setup
+- payoff
+- before
+- after
+- structure language
+
+---
+
+PART 2 — ACTIONS
+
+Each clip slot should offer:
+
+- Film
+- Upload
+
+Behavior:
+- Film opens camera
+- Upload opens picker
+- Max 2 clips
+- Preserve order
+- If user adds only Clip 1, allow continue
+
+CTA:
+“Continue”
+
+Disable only if no clip is added.
+
+---
+
+PART 3 — MICRO-CONFIDENCE COPY
+
+Add tiny reassurance copy near continue:
+
+“Don’t overthink it — quick and messy works.”
+
+Goal:
+Remove perfection pressure.
+
+---
+
+PART 4 — PREVIEW SCREEN: PUSH TO POST
+
+Problem:
+Preview should not feel like a passive mock screen.
+It should make the user feel:
+“This is ready enough to post.”
+
+Rename / adjust screen tone.
+
+Title:
+“Ready to post?”
+
+Subtitle:
+“Your video already has the hook, clip, and caption.”
+
+Primary CTA:
+“Export video”
+
+Secondary CTA:
+“Make another version”
+
+Optional small copy:
+“Post it manually wherever you usually post.”
+
+---
+
+PART 5 — CAPTION CONFIDENCE
+
+Show suggested caption clearly.
+
+Label:
+“Suggested caption”
+
+Under caption, add:
+“Short, casual, and made to match the idea.”
+
+If caption is editable already, keep it.
+If not editable, do NOT add editing now unless trivial.
+
+---
+
+PART 6 — REMOVE MOCK FEEL
+
+Avoid language that makes the preview feel fake:
+- “template preview”
+- “mock”
+- “placeholder”
+- “demo”
+
+Use language like:
+- “preview”
+- “ready”
+- “export”
+
+---
+
+PART 7 — SUCCESS SCREEN COPY
+
+After export:
+
+Title:
+“Video ready”
+
+Subtitle:
+“Save it, post it manually, or make another version.”
+
+Buttons:
+- “Save to gallery”
+- “Make another version”
+- “Back to ideas”
+
+Do NOT add posting integration.
+
+---
+
+SUCCESS CRITERIA
+
+User should feel:
+1. “I know exactly what clip to add.”
+2. “This does not need to be perfect.”
+3. “This is ready enough to post.”
+4. “I can export and post manually.”
+
+Do NOT add:
+- full editor
+- trimming
+- posting
+- scheduling
+- analytics
+- dashboards

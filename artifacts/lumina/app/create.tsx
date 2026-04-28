@@ -279,6 +279,31 @@ export default function CreateScreen() {
     router.replace("/(tabs)");
   }, [router]);
 
+  // PreviewStage "Make another version" — clear the picked clips
+  // and drop the user back at the Add Clips stage so they can
+  // record a different take of the same idea. We intentionally
+  // do NOT emit a `make_another_version` ideator signal here:
+  // that signal is reserved for the post-export /review moment
+  // where the intent is unambiguous ("I exported and still want
+  // another"). Pre-export, this is a re-record of the same take,
+  // not a fresh pattern preference, so emitting would over-
+  // weight the per-tag memory.
+  const handleMakeAnotherTake = useCallback(() => {
+    if (busy) return;
+    setClips([]);
+    // Wipe any stale toast/error from the prior take so the
+    // user lands on a clean Add Clips screen — leftover
+    // "Camera not allowed" or "Couldn't import that clip"
+    // messaging would read as if it applied to the new
+    // attempt.
+    setNotice(null);
+    setErrorMsg(null);
+    setStage("import");
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [busy]);
+
   // Hand-off to the side-by-side review skeleton. We pass the
   // idea + clip JSON-encoded so /review is fully self-contained
   // and can be re-entered (back-nav, deep-link) without needing
@@ -393,7 +418,8 @@ export default function CreateScreen() {
             idea={idea}
             clips={clips}
             onDone={handleDone}
-            onSeeReview={handleSeeReview}
+            onExport={handleSeeReview}
+            onMakeAnother={handleMakeAnotherTake}
           />
         ) : null}
 
@@ -544,20 +570,24 @@ function ImportStage({
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
       <Text style={styles.kicker}>Step 2 of 3 · Got your clips?</Text>
-      <Text style={styles.title}>Add your clips.</Text>
-      <Text style={styles.helper}>Most videos are just 1–2 quick clips</Text>
+      <Text style={styles.title}>Add your clip</Text>
+      <Text style={styles.helper}>1–2 quick clips is enough.</Text>
 
       <ClipSlot
         label="Clip 1"
+        helper="Start with the main moment."
         clip={clip1}
-        onPress={() => onPickAt(0)}
+        onFilm={() => onCaptureAt(0)}
+        onUpload={() => onPickAt(0)}
         busy={busy}
         disabled={busy}
       />
       <ClipSlot
         label="Clip 2 (optional)"
+        helper="Add a reaction or second angle."
         clip={clip2}
-        onPress={() => onPickAt(1)}
+        onFilm={() => onCaptureAt(1)}
+        onUpload={() => onPickAt(1)}
         busy={busy}
         disabled={slot2Disabled}
       />
@@ -568,13 +598,22 @@ function ImportStage({
         disabled={continueDisabled}
       />
 
+      {/* Reassurance copy that sits directly under Continue —
+          fights perfection pressure at the exact moment the
+          user is deciding whether their clips are "good enough"
+          to move forward. Italic + dim so it reads as friendly
+          context, not another instruction. */}
+      <Text style={styles.microConfidence}>
+        Don't overthink it — quick and messy works.
+      </Text>
+
       <Text style={styles.privacy}>
         We only record the filename · the file stays on your device.
       </Text>
       {Platform.OS === "web" ? (
         <Text style={styles.privacy}>
-          Web preview: tapping a slot uses a simulated upload — on the
-          phone app it opens your real gallery.
+          Web preview: tapping a button uses a simulated upload — on the
+          phone app it opens your real gallery or camera.
         </Text>
       ) : null}
     </Animated.View>
@@ -582,22 +621,37 @@ function ImportStage({
 }
 
 /* ----------- ClipSlot ----------- *
- * One labeled tap-target per slot. Empty: shows label + "Tap to
- * choose". Filled: shows label + filename · duration plus a
- * checkmark glyph. Tapping a filled slot reopens the picker so
- * the user can replace just that slot — no separate remove
- * affordance (no editing tools per spec). When `disabled` is
- * true the slot dims and reads as locked to the screen reader. */
+ * One slot card per clip. Renders a label + helper guidance and
+ * two explicit action buttons — Film and Upload — inside the
+ * card. Filled cards keep the same two buttons (Film/Upload now
+ * act as Replace) and additionally surface the picked
+ * filename · duration so the user knows what's been added.
+ *
+ * The card itself is presentational (a View, not a Pressable).
+ * All actions go through the labeled buttons so a screen reader
+ * sees two distinct affordances per slot rather than a single
+ * ambiguous tap-target — this is the intentional shift from the
+ * previous "tap-anywhere-on-the-slot" pattern, in service of
+ * removing thinking from the Add Clips screen.
+ *
+ * When `disabled` is true the card dims and both buttons disable
+ * + read as locked. Slot 2 is locked until Slot 1 is filled —
+ * order is enforced at the UI so the data model never sees a
+ * "Clip 2 only" arrangement. */
 function ClipSlot({
   label,
+  helper,
   clip,
-  onPress,
+  onFilm,
+  onUpload,
   busy,
   disabled,
 }: {
   label: string;
+  helper: string;
   clip: FilmedClip | undefined;
-  onPress: () => void;
+  onFilm: () => void;
+  onUpload: () => void;
   busy: boolean;
   disabled: boolean;
 }) {
@@ -606,28 +660,21 @@ function ClipSlot({
     ? `${clip!.filename}${
         typeof clip!.durationSec === "number" ? ` · ${clip!.durationSec}s` : ""
       }`
-    : busy && !disabled
-      ? "Adding…"
-      : "Tap to choose";
+    : null;
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.slot,
         filled ? styles.slotFilled : styles.slotEmpty,
         disabled && !filled ? styles.slotDisabled : null,
-        pressed && !disabled ? styles.slotPressed : null,
       ]}
-      accessibilityRole="button"
       accessibilityLabel={
         filled
-          ? `${label} added: ${clip!.filename}. Tap to replace.`
+          ? `${label} added: ${clip!.filename}.`
           : disabled
-            ? `${label}. Locked.`
-            : `${label}. Tap to choose.`
+            ? `${label}. Locked until the previous clip is added.`
+            : `${label}.`
       }
-      accessibilityState={{ disabled }}
     >
       <View style={styles.slotRow}>
         <Text
@@ -647,15 +694,94 @@ function ClipSlot({
           }
         />
       </View>
+
       <Text
         style={[
-          styles.slotValue,
-          filled ? styles.slotValueFilled : null,
-          disabled && !filled ? styles.slotValueMuted : null,
+          styles.slotHelper,
+          disabled && !filled ? styles.slotHelperMuted : null,
         ]}
-        numberOfLines={1}
       >
-        {valueText}
+        {helper}
+      </Text>
+
+      {valueText ? (
+        <Text
+          style={[styles.slotValue, styles.slotValueFilled]}
+          numberOfLines={1}
+        >
+          {valueText}
+        </Text>
+      ) : busy && !disabled ? (
+        <Text style={styles.slotValueMuted}>Adding…</Text>
+      ) : null}
+
+      <View style={styles.slotActions}>
+        <SlotActionButton
+          icon="video"
+          label={filled ? "Refilm" : "Film"}
+          onPress={onFilm}
+          disabled={disabled}
+          accessibilityLabel={
+            filled ? `Replace ${label} by filming.` : `Film ${label}.`
+          }
+        />
+        <SlotActionButton
+          icon="upload"
+          label="Upload"
+          onPress={onUpload}
+          disabled={disabled}
+          accessibilityLabel={
+            filled ? `Replace ${label} by uploading.` : `Upload ${label}.`
+          }
+        />
+      </View>
+    </View>
+  );
+}
+
+// Small inline pill button used inside a ClipSlot. Two of them
+// sit side-by-side (Film / Upload) and share visual weight so
+// neither path feels like the "right" answer — the user picks
+// whichever matches their next move. Bordered transparent fill
+// keeps them subordinate to the screen's primary Continue CTA.
+function SlotActionButton({
+  icon,
+  label,
+  onPress,
+  disabled,
+  accessibilityLabel,
+}: {
+  icon: "video" | "upload";
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.slotAction,
+        pressed && !disabled ? styles.slotActionPressed : null,
+        disabled ? styles.slotActionDisabled : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+    >
+      <Feather
+        name={icon}
+        size={14}
+        color={disabled ? "rgba(255,255,255,0.3)" : lumina.firefly}
+      />
+      <Text
+        style={[
+          styles.slotActionLabel,
+          disabled ? styles.slotActionLabelDisabled : null,
+        ]}
+      >
+        {label}
       </Text>
     </Pressable>
   );
@@ -667,7 +793,8 @@ function PreviewStage({
   idea,
   clips,
   onDone,
-  onSeeReview,
+  onExport,
+  onMakeAnother,
 }: {
   idea: IdeaCardData;
   // Phase 1: clips[0] is the canonical primary clip rendered
@@ -676,16 +803,28 @@ function PreviewStage({
   // transition UI in Phase 1.
   clips: FilmedClip[];
   onDone: () => void;
-  onSeeReview: () => void;
+  // Primary action — routes to the export experience (the
+  // /review screen, which owns the gallery save flow). Renamed
+  // from onSeeReview to read as the user-facing action ("Export
+  // video") rather than the screen name it lands on.
+  onExport: () => void;
+  // Secondary action — clear the picked clips and drop the user
+  // back at the Add Clips stage so they can re-record a
+  // different take of the same idea. Replaces the previous
+  // "coming soon" placeholder.
+  onMakeAnother: () => void;
 }) {
   const primary = clips[0];
   const extras = clips.length - 1;
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
-      <Text style={styles.kicker}>Step 3 of 3 · Template preview</Text>
-      <Text style={styles.title}>Here's the rough cut.</Text>
+      <Text style={styles.kicker}>Step 3 of 3 · Preview</Text>
+      <Text style={styles.title}>Ready to post?</Text>
+      <Text style={styles.previewSub}>
+        Your video already has the hook, clip, and caption.
+      </Text>
 
-      {/* Stylised template frame. Real composition (caption
+      {/* Stylised preview frame. Real composition (caption
           overlay timing, transitions, music bed) lands in the
           export PR. This frame just communicates the shape. */}
       <View style={styles.frame}>
@@ -720,25 +859,29 @@ function PreviewStage({
         <View style={styles.captionBlock}>
           <Text style={styles.captionLabel}>Suggested caption</Text>
           <Text style={styles.captionBody}>{idea.caption}</Text>
+          <Text style={styles.captionSub}>
+            Short, casual, and made to match the idea.
+          </Text>
         </View>
       ) : null}
 
-      {/* Primary forward action — show the side-by-side review
-          of this take against a past similar video. This is the
-          new "next beat" after preview; "Back to ideas" stays as
-          the secondary escape hatch. */}
-      <PrimaryButton label="See how this compares" onPress={onSeeReview} />
+      {/* Primary forward action — route to the export
+          experience. The /review screen owns the actual gallery
+          save flow (watermark toggle, MediaLibrary write); this
+          button reads as the user-facing intent rather than the
+          screen name. */}
+      <PrimaryButton label="Export video" onPress={onExport} />
 
-      {/* Iteration-loop placeholder. Disabled on purpose — wiring
-          this to a real "regenerate this preview with a different
-          take" pass lands with the export PR. Keeping it visible
-          (not hidden) so the user can see the loop is the next
-          beat after preview, not a dead end. */}
-      <ComingSoonButton
-        label="Make another version"
-        hint="coming soon"
-        accessibilityLabel="Make another version (coming soon)"
-      />
+      {/* Secondary — re-record a different take of the same
+          idea. Outline button keeps it visually subordinate to
+          Export but clearly tappable (vs the old disabled
+          "coming soon" placeholder, which left the loop feeling
+          like a dead end). */}
+      <OutlineButton label="Make another version" onPress={onMakeAnother} />
+
+      <Text style={styles.postManually}>
+        Post it manually wherever you usually post.
+      </Text>
 
       <TextButton label="Back to ideas" onPress={onDone} />
     </Animated.View>
@@ -863,34 +1006,6 @@ function TextButton({
       accessibilityLabel={label}
     >
       <Text style={styles.textButtonLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
-// Visible-but-disabled affordance for skeleton screens. Renders
-// the label + a small "coming soon" hint, and is wired up as a
-// Pressable with disabled=true so it picks up the right
-// accessibilityState (vs. just a styled View, which screen
-// readers wouldn't recognise as a button at all).
-function ComingSoonButton({
-  label,
-  hint,
-  accessibilityLabel,
-}: {
-  label: string;
-  hint: string;
-  accessibilityLabel?: string;
-}) {
-  return (
-    <Pressable
-      disabled
-      style={styles.secondary}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: true }}
-      accessibilityLabel={accessibilityLabel ?? `${label} (${hint})`}
-    >
-      <Text style={styles.secondaryLabel}>{label}</Text>
-      <Text style={styles.secondaryHint}>{hint}</Text>
     </Pressable>
   );
 }
@@ -1251,31 +1366,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.4,
   },
-  // Disabled "coming soon" placeholder. Reads as a secondary
-  // outlined button with a small hint underneath the label.
-  secondary: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  secondaryLabel: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 15,
-  },
-  secondaryHint: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    marginTop: 4,
-  },
   // Outline secondary button — bordered, transparent fill,
   // sits visually below the filled PrimaryButton without
   // competing for attention. Used by "Upload video instead".
@@ -1413,5 +1503,100 @@ const styles = StyleSheet.create({
   },
   slotValueMuted: {
     color: "rgba(255,255,255,0.4)",
+  },
+  // Helper text under each slot label — guides the user on what
+  // to put in this specific slot ("Start with the main moment",
+  // "Add a reaction or second angle") without using setup/payoff
+  // structure language. Always visible (filled or empty) so the
+  // intent of each slot stays legible during a re-record.
+  slotHelper: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  slotHelperMuted: {
+    color: "rgba(255,255,255,0.4)",
+  },
+  // Inline action row (Film | Upload) inside a slot card. Two
+  // equal-weight pill buttons so neither path feels like the
+  // "right" answer.
+  slotActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  slotAction: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.4)",
+  },
+  slotActionPressed: {
+    opacity: 0.7,
+  },
+  slotActionDisabled: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  slotActionLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 13,
+    letterSpacing: 0.3,
+  },
+  slotActionLabelDisabled: {
+    color: "rgba(255,255,255,0.35)",
+  },
+  // Tiny reassurance line that lives directly under the Continue
+  // button on the Add Clips screen. Italic + dim so it reads as
+  // friendly context rather than another instruction.
+  microConfidence: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    marginTop: 12,
+    fontStyle: "italic",
+  },
+  // Sub line under the Preview screen title — supports the
+  // "Ready to post?" framing by reminding the user what's
+  // already baked in (hook, clip, caption).
+  previewSub: {
+    ...type.body,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 18,
+  },
+  // Sub line under the suggested caption body — reassures the
+  // user that the caption is intentionally short/casual, so they
+  // don't feel they need to rewrite it.
+  captionSub: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 8,
+  },
+  // Footer hint on the Preview screen — sets the expectation
+  // that posting is a manual step the user does in their own
+  // app. We deliberately don't add a publish integration.
+  postManually: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 10,
   },
 });

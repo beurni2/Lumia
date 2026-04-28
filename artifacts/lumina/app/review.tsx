@@ -380,6 +380,19 @@ export default function ReviewScreen() {
     }
   }, [saveableUris]);
 
+  // "Save to gallery" appears as the first action inside the
+  // success block too — so the user can re-save (e.g. they
+  // deleted the gallery file, or they're just re-confirming).
+  // The dedupe set above would otherwise turn the second tap
+  // into a silent no-op; clearing it first makes the re-save
+  // actually write a fresh copy. We do NOT clear it on the
+  // initial call because that path is the partial-failure
+  // retry — there we want the dedupe semantics.
+  const handleSaveAgain = useCallback(() => {
+    savedUrisRef.current.clear();
+    void handleSave();
+  }, [handleSave]);
+
   /* ---------- Render --------------------------------------- */
 
   if (!idea || !clip) {
@@ -497,6 +510,7 @@ export default function ReviewScreen() {
 
           <ExportSection
             saveState={saveState}
+            onSaveAgain={handleSaveAgain}
             saveErrorMsg={saveErrorMsg}
             watermarkOn={watermarkOn}
             onToggleWatermark={setWatermarkOn}
@@ -636,6 +650,7 @@ function ExportSection({
   watermarkOn,
   onToggleWatermark,
   onSave,
+  onSaveAgain,
   onMakeAnother,
   onBack,
   canSave,
@@ -646,13 +661,18 @@ function ExportSection({
   watermarkOn: boolean;
   onToggleWatermark: (next: boolean) => void;
   onSave: () => void;
+  // Re-save handler used by the success-state "Save to gallery"
+  // button. Clears the dedupe ref before re-running handleSave
+  // so the second tap actually writes a fresh copy (vs the
+  // partial-failure retry, which intentionally skips already-
+  // saved URIs).
+  onSaveAgain: () => void;
   onMakeAnother: () => void;
   onBack: () => void;
   canSave: boolean;
   // 1 or 2. Drives the "Video"/"Videos" pluralisation in the
-  // saving + success copy so the user sees the truthful state
-  // ("Saving 2 videos…" / "Videos saved to your gallery") when
-  // both upload slots were filled.
+  // saving copy so the user sees the truthful state
+  // ("Saving 2 videos…") when both upload slots were filled.
   clipCount: number;
 }) {
   const plural = clipCount > 1;
@@ -667,7 +687,7 @@ function ExportSection({
           <View style={styles.watermarkLabelCol}>
             <Text style={styles.watermarkLabel}>Add "Made with Lumina"</Text>
             <Text style={styles.watermarkHint}>
-              Visible in the AFTER preview above. File burn-in coming soon.
+              Shown in the AFTER preview above — the saved file isn't watermarked yet.
             </Text>
           </View>
           <Switch
@@ -682,7 +702,7 @@ function ExportSection({
             disabled={saveState === "saving"}
             accessibilityRole="switch"
             accessibilityLabel="Add Made with Lumina watermark"
-            accessibilityHint="Shows the watermark on the in-app preview. File burn-in is coming with our next build."
+            accessibilityHint="Adds the watermark to the in-app preview. The saved file is not watermarked yet."
             accessibilityState={{ checked: watermarkOn }}
           />
         </View>
@@ -740,37 +760,42 @@ function ExportSection({
       {saveState === "success" ? (
         <View style={styles.successBox}>
           <Feather name="check-circle" size={32} color={lumina.firefly} />
-          <Text style={styles.successTitle}>
-            {plural
-              ? `${clipCount} videos saved to your gallery`
-              : "Video saved to your gallery"}
+          <Text style={styles.successTitle}>Video ready</Text>
+          <Text style={styles.successHint}>
+            Save it, post it manually, or make another version.
           </Text>
-          {watermarkOn ? (
-            <Text style={styles.successHint}>
-              Watermark is visible in the preview above. File burn-in is
-              coming with our next build.
-            </Text>
-          ) : (
-            <Text style={styles.successHint}>
-              Find it in your Photos under recent uploads.
-            </Text>
-          )}
-          {/* Primary + secondary CTAs sit inside the success
-              block so they read as the natural next-actions
-              after the celebration. The bottom-of-screen
-              navigation tail hides itself in this state to
-              avoid duplicating these controls. */}
+          {/* Three CTAs sit inside the success block so they
+              read as the natural next-actions after the
+              celebration. Save to gallery is primary — tapping
+              it clears the dedupe ref and re-runs handleSave so
+              the user can write a fresh copy on demand. Make
+              another and Back to ideas drop to secondary. The
+              bottom-of-screen navigation tail hides itself in
+              this state to avoid duplicating these controls. */}
           <View style={styles.successActions}>
             <Pressable
-              onPress={onMakeAnother}
+              onPress={onSaveAgain}
               style={({ pressed }) => [
                 styles.primary,
                 pressed ? styles.primaryPressed : null,
               ]}
               accessibilityRole="button"
+              accessibilityLabel="Save to gallery"
+            >
+              <Text style={styles.primaryLabel}>Save to gallery</Text>
+            </Pressable>
+            <Pressable
+              onPress={onMakeAnother}
+              style={({ pressed }) => [
+                styles.successSecondary,
+                pressed ? styles.successSecondaryPressed : null,
+              ]}
+              accessibilityRole="button"
               accessibilityLabel="Make another version"
             >
-              <Text style={styles.primaryLabel}>Make another version</Text>
+              <Text style={styles.successSecondaryLabel}>
+                Make another version
+              </Text>
             </Pressable>
             <Pressable
               onPress={onBack}
