@@ -92,6 +92,12 @@ export async function resetTasteCalibration(): Promise<null> {
     method: "DELETE",
   });
   clearCalibrationGateSuppression();
+  // Also clear the once-per-process prompt latch — without this the
+  // dev-only "reset taste calibration" button on Profile would say
+  // "re-open Home to see the prompt" while Home's gate stayed
+  // permanently latched until a cold reload, since the latch and
+  // the suppression window are independent guards.
+  clearCalibrationPromptedThisProcess();
   return null;
 }
 
@@ -134,6 +140,38 @@ export function isCalibrationGateSuppressed(): boolean {
 
 export function clearCalibrationGateSuppression(): void {
   calibrationGateSuppressedUntilMs = 0;
+}
+
+/* ----------------------------------------------------------------- */
+/* Once-per-process prompt latch                                     */
+/* ----------------------------------------------------------------- */
+
+/**
+ * Companion latch to the suppression window. Where the suppression
+ * window is short-lived (5 s) and exists to swallow the immediate
+ * Skip → Home re-focus race, this latch is process-lifetime and
+ * exists to ensure that a user who skips the calibration prompt is
+ * not re-prompted by every subsequent Home focus until the JS
+ * process restarts (cold reload). Cold reload + dev reset are the
+ * only two ways to clear it.
+ *
+ * Lives here (rather than in app/(tabs)/index.tsx) so the dev-only
+ * `resetTasteCalibration` flow can clear it without reaching across
+ * the module boundary into a screen file. Centralising both gate
+ * guards in this module keeps the contract auditable.
+ */
+let calibrationPromptedThisProcess = false;
+
+export function isCalibrationPromptedThisProcess(): boolean {
+  return calibrationPromptedThisProcess;
+}
+
+export function markCalibrationPromptedThisProcess(): void {
+  calibrationPromptedThisProcess = true;
+}
+
+export function clearCalibrationPromptedThisProcess(): void {
+  calibrationPromptedThisProcess = false;
 }
 
 /**

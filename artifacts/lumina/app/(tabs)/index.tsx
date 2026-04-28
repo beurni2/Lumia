@@ -68,6 +68,8 @@ import {
 import {
   fetchTasteCalibration,
   isCalibrationGateSuppressed,
+  isCalibrationPromptedThisProcess,
+  markCalibrationPromptedThisProcess,
   needsCalibration,
 } from "@/lib/tasteCalibration";
 import { getYesSwipeCount, recordYesSwipe } from "@/lib/yesSwipeCounter";
@@ -290,18 +292,54 @@ export default function HomeScreen() {
   // gate will retry on the next focus.
   useFocusEffect(
     useCallback(() => {
+      // Compute the dev / QA force flag FIRST. Force must bypass the
+      // suppression window AND the once-per-process latch so QA can
+      // re-open the calibration screen on demand without having to
+      // cold-restart the JS process — otherwise an architect-flagged
+      // regression (force gated behind suppression / latch checks)
+      // would silently break the QA path.
+      const force = shouldForceCalibration();
       // Suppression short-circuit: <TasteCalibration /> sets a small
       // window (default 5 s) on Save / Skip so the immediate Home
       // re-focus can't out-race the fire-and-forget POST and re-push
       // the modal. The dev-only reset clears this window so the next
-      // focus DOES re-prompt.
-      if (isCalibrationGateSuppressed()) return;
+      // focus DOES re-prompt. Force bypasses.
+      if (!force && isCalibrationGateSuppressed()) return;
+      // Once-per-process latch: even if the user dismisses
+      // /calibration via Skip and bounces between Home and other
+      // tabs, we don't fire it again until the next cold start. The
+      // latch lives in `lib/tasteCalibration.ts` so the dev-only
+      // reset can clear it without reaching across module
+      // boundaries. Force bypasses.
+      if (!force && isCalibrationPromptedThisProcess()) return;
       let cancelled = false;
       (async () => {
         try {
-          const cal = await fetchTasteCalibration();
+          const [cal, yesCount] = await Promise.all([
+            fetchTasteCalibration(),
+            getYesSwipeCount(),
+          ]);
           if (cancelled) return;
-          if (needsCalibration(cal) || shouldForceCalibration()) {
+          // NON-BLOCKING gate (April 2026 daily-habit rework):
+          //   • brand-new users with 0 swipes are NEVER auto-routed
+          //     to /calibration — the prompt only surfaces AFTER the
+          //     user has yes-swiped at least 2 ideas (proxy for
+          //     "viewed 2-3 ideas"), which means they've already
+          //     experienced value before being asked to calibrate.
+          //   • the dev / QA force flag (already evaluated above)
+          //     still wins so the screen is reachable for testing
+          //     without hitting the threshold.
+          //   • once routed, the once-per-process latch suppresses
+          //     re-prompts within the same JS process so a Skip →
+          //     Home → Skip → Home loop is impossible.
+          //   • first-session calibration is now handled inside
+          //     MvpOnboarding's terminal step (after Style Profile
+          //     reveal); this gate only catches users who finished
+          //     onboarding before the prompt existed OR skipped it
+          //     mid-flow.
+          const meetsActivityThreshold = yesCount >= 2;
+          if (force || (needsCalibration(cal) && meetsActivityThreshold)) {
+            markCalibrationPromptedThisProcess();
             router.replace("/calibration");
           }
         } catch {

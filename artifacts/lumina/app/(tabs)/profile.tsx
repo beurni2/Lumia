@@ -1,12 +1,26 @@
 /**
- * Profile — the Style Twin garden.
+ * Profile — the daily-habit creator surface.
  *
- * Bioluminescent redesign:
+ * Bioluminescent layout (April 2026 rework):
  *   • Cosmic backdrop with ambient fireflies
- *   • Style Twin orb hero (the user's twin literally radiates from the page)
- *   • Glass identity card (name, niche, location)
- *   • Glass twin status card with the existing inner StyleTwinPreview
- *   • Portal-flavoured train CTA + ghost wipe button
+ *   • Identity hero — orb + creator name + niche/location
+ *   • "Your Style" card — what Lumina has learned (top format /
+ *     tone / hooks / avoidances) read live from /api/style-profile +
+ *     /api/taste-calibration
+ *   • "Tune your ideas" chips — five tap-only nudges that mutate the
+ *     calibration document on tap (More mini-stories / More
+ *     reactions / Try new styles / More chaotic / More subtle)
+ *   • (gated) Billing & Privacy archived cards
+ *   • "Make ideas even more like you" footer — the optional video
+ *     training entry point, deliberately at the bottom so it never
+ *     reads as a barrier to using the app
+ *   • Dev tools (calibration reset) — bottom-most, gated
+ *
+ * The previous "Style Twin" status block (with "No Style Twin yet"
+ * copy + train CTA above the fold) was removed: the orb in the hero
+ * already carries the visual identity and the training CTA was
+ * pushed below to keep first-paint focused on what's working, not
+ * what's missing.
  */
 
 import { useRouter } from "expo-router";
@@ -29,9 +43,10 @@ import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
 import { PortalButton } from "@/components/foundation/PortalButton";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
-import { StyleTwinPreview } from "@/components/StyleTwinPreview";
 import { BillingAndPayoutsCards } from "@/components/profile/BillingAndPayoutsCards";
 import { PrivacyAndScheduleCards } from "@/components/profile/PrivacyAndScheduleCards";
+import { TuneIdeasButtons } from "@/components/profile/TuneIdeasButtons";
+import { YourStyleSection } from "@/components/profile/YourStyleSection";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
@@ -44,7 +59,10 @@ import { useGetCurrentCreator } from "@workspace/api-client-react";
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { twin, loading, isTrained, remove } = useStyleTwin();
+  // useStyleTwin still drives the orb mood (excited when trained,
+  // idle otherwise) AND the train/retrain CTA label at the bottom of
+  // the screen. The "Wipe twin" affordance moves with it.
+  const { loading, isTrained, remove } = useStyleTwin();
   const { data: creator } = useGetCurrentCreator();
 
   const isWeb = Platform.OS === "web";
@@ -98,15 +116,15 @@ export default function ProfileScreen() {
     if (Platform.OS === "web") {
       if (
         typeof window !== "undefined" &&
-        window.confirm("Wipe your Style Twin? This cannot be undone.")
+        window.confirm("Wipe your training videos? This cannot be undone.")
       ) {
         void confirm();
       }
       return;
     }
     Alert.alert(
-      "Wipe Style Twin?",
-      "Your encrypted Twin will be deleted from this device. This cannot be undone.",
+      "Wipe training data?",
+      "Your encrypted training data will be deleted from this device. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Wipe", style: "destructive", onPress: () => void confirm() },
@@ -128,7 +146,9 @@ export default function ProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Twin orb hero */}
+        {/* Identity hero — orb + name + niche/location. The orb itself
+            is iconic and stays; the explicit "Style Twin" copy that
+            used to live in the card below has been removed. */}
         <View style={styles.hero}>
           <StyleTwinOrb size={180} mood={isTrained ? "excited" : "idle"}>
             <Image source={getImage(creator?.imageKey)} style={styles.avatar} />
@@ -139,54 +159,14 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Twin status */}
-        <View style={styles.section}>
-          <Text style={[type.label, styles.sectionLabel]}>your style twin</Text>
-          <GlassSurface radius={22} agent="monetizer" breathing>
-            <View style={styles.cardInner}>
-              <StyleTwinPreview twin={twin} inferenceMode="mock" />
-            </View>
-          </GlassSurface>
+        {/* Your Style — what Lumina has learned. Reads live from
+            /api/style-profile + /api/taste-calibration. Honest empty
+            state when neither has data yet. */}
+        <YourStyleSection />
 
-          {/* QA-driven: surface upload instructions at the entry
-              point so the user knows what to expect BEFORE tapping
-              into the training flow. Only shown when not trained —
-              once trained, the retrain copy is obvious enough. */}
-          {!isTrained && (
-            <Text style={[type.body, styles.trainHint]}>
-              Upload 10–30s videos you've already posted or would post —
-              talking, POV, outfit, reaction, or simple daily clips work
-              best.
-            </Text>
-          )}
-
-          <View style={{ alignItems: "center", marginTop: 18 }}>
-            <PortalButton
-              label={isTrained ? "retrain style twin" : "train style twin"}
-              onPress={goTrain}
-              width={260}
-              subtle
-              disabled={loading}
-            />
-          </View>
-
-          {isTrained && (
-            <Pressable
-              onPress={onWipe}
-              style={({ pressed }) => [
-                styles.wipeBtn,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
-              testID="wipe-twin"
-              accessibilityRole="button"
-              accessibilityLabel="Wipe Style Twin from this device"
-            >
-              <Text style={[type.label, styles.wipeText]}>
-                wipe twin from this device
-              </Text>
-            </Pressable>
-          )}
-        </View>
+        {/* Tune your ideas — five chips that nudge the calibration
+            doc on tap. Persists immediately (fire-and-forget POST). */}
+        <TuneIdeasButtons />
 
         <View style={{ height: 36 }} />
 
@@ -201,6 +181,48 @@ export default function ProfileScreen() {
             Will be split — the consent half returns separately if
             v1 ever adds publishing. */}
         {!flags.ARCHIVED_AUTONOMY && <PrivacyAndScheduleCards />}
+
+        {/* "Make ideas even more like you" — the OPTIONAL video
+            training entry point, intentionally placed at the bottom
+            so it reads as a "you can sharpen this further" upsell
+            rather than a barrier to first use. */}
+        <View style={styles.section}>
+          <Text style={[type.label, styles.sectionLabel]}>
+            make ideas even more like you
+          </Text>
+          <GlassSurface radius={22} agent="monetizer" breathing>
+            <View style={styles.cardInner}>
+              <Text style={styles.trainBody}>
+                Upload a few videos to sharpen your style (optional).
+              </Text>
+              <View style={{ alignItems: "center", marginTop: 18 }}>
+                <PortalButton
+                  label={isTrained ? "retrain with videos" : "train with videos"}
+                  onPress={goTrain}
+                  width={260}
+                  subtle
+                  disabled={loading}
+                />
+              </View>
+              {isTrained && (
+                <Pressable
+                  onPress={onWipe}
+                  style={({ pressed }) => [
+                    styles.wipeBtn,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  testID="wipe-twin"
+                  accessibilityRole="button"
+                  accessibilityLabel="Wipe training data from this device"
+                >
+                  <Text style={[type.label, styles.wipeText]}>
+                    wipe training data from this device
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </GlassSurface>
+        </View>
 
         {/* Dev / QA-only — reset the Taste Calibration document so the
             Home-load gate re-triggers on the next mount. Hidden in
@@ -250,7 +272,7 @@ const styles = StyleSheet.create({
   },
   name: { color: "#FFFFFF", marginTop: 18 },
   location: { color: "rgba(255,255,255,0.65)", marginTop: 4, fontSize: 13 },
-  section: { paddingHorizontal: 22 },
+  section: { paddingHorizontal: 22, marginTop: 18 },
   sectionLabel: {
     color: "rgba(255,255,255,0.55)",
     fontSize: 11,
@@ -258,19 +280,15 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 12,
   },
-  cardInner: { padding: 16 },
-  // Pre-train upload instruction line — sits between the Twin
-  // preview card and the train CTA so users know what kind of
-  // clips to bring before they tap into the training flow.
-  trainHint: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
-    lineHeight: 19,
+  cardInner: { padding: 18 },
+  trainBody: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: "center",
-    marginTop: 14,
     paddingHorizontal: 6,
   },
-  wipeBtn: { paddingVertical: 14, alignItems: "center", marginTop: 10 },
+  wipeBtn: { paddingVertical: 14, alignItems: "center", marginTop: 6 },
   wipeText: { color: "rgba(255,90,128,0.85)", fontSize: 13 },
   // Dev tools block — bottom of profile, ghost-styled so it never
   // competes with real surfaces but is always reachable for QA.

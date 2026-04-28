@@ -1,26 +1,32 @@
 /**
- * Taste Calibration — the optional 5-question onboarding step that
- * surfaces AFTER the Style Profile reveal. Tap-only, ~10 seconds end
- * to end, no typing. The user can skip the whole thing at any time;
- * answers are persisted to `creators.taste_calibration_json` and
- * become INITIAL bias for the ideator's per-creator format
- * distribution + the prompt's tone / effort / privacy / hook-style
- * fragments.
+ * Taste Calibration — the optional, lightweight 3-question onboarding
+ * step (Format / Tone / Hook) that surfaces AFTER the Style Profile
+ * reveal OR after the user has viewed 2-3 ideas. Tap-only, ~10
+ * seconds end to end, no typing. The user can skip the whole thing at
+ * any time; answers are persisted to `creators.taste_calibration_json`
+ * and become INITIAL bias for the ideator's per-creator format
+ * distribution + the prompt's tone / hook-style fragments.
  *
- * Three of the five questions are SINGLE-select (format, tone,
- * effort) because the spec says one strong preference is what shifts
- * the distribution; two are MULTI-select (privacy avoidances, hook
- * styles) because creators legitimately want to ban multiple
- * categories at once. The "no privacy limits" option is an exclusive
- * toggle within the privacy question — picking it clears the others
- * (and vice versa) so the persisted document is internally
- * consistent.
+ * Format + tone are SINGLE-select (one option moves the
+ * distribution / tone bias); hook styles are MULTI-select because
+ * creators legitimately like multiple opener flavours.
+ *
+ * Effort + privacy questions were removed in the daily-habit rework
+ * (April 2026) — the longer the screen, the lower the completion
+ * rate, and those two dimensions weren't moving generation quality
+ * enough to justify the extra friction. The persisted shape still
+ * carries `effortPreference` / `privacyAvoidances` (the server zod
+ * schema is unchanged) — we just send the EMPTY_CALIBRATION defaults
+ * for those fields so old creators' existing values aren't blown
+ * away by a no-op resave. (The Profile-screen "Tune your ideas"
+ * chips can still nudge format / tone / hook without re-opening
+ * this screen at all.)
  *
  * The submit + skip buttons share the same disabled state during
  * network round-trips so a fast double-tap can't fire two POSTs.
  * Either branch (submit OR skip) calls `onComplete()` on success;
- * the parent (MvpOnboarding) owns the navigation transition into
- * the home tabs so the flow stays linear.
+ * the parent (MvpOnboarding / /calibration route) owns the
+ * navigation transition into the home tabs so the flow stays linear.
  */
 
 import * as Haptics from "expo-haptics";
@@ -44,11 +50,9 @@ import {
   saveTasteCalibration,
   skipTasteCalibration,
   suppressCalibrationGate,
-  type EffortPreference,
   type PreferredFormat,
   type PreferredHookStyle,
   type PreferredTone,
-  type PrivacyAvoidance,
   type TasteCalibration,
 } from "@/lib/tasteCalibration";
 
@@ -72,20 +76,6 @@ const TONE_CHOICES: Choice<PreferredTone>[] = [
   { value: "self_aware", label: "Awkward / self-aware", sub: "I shouldn't have done that 💀" },
 ];
 
-const EFFORT_CHOICES: Choice<EffortPreference>[] = [
-  { value: "zero_effort", label: "Zero effort", sub: "1 take, 1 location" },
-  { value: "low_effort", label: "Low effort", sub: "1–2 quick clips" },
-  { value: "structured", label: "A bit of structure", sub: "Mini-story or contrast setup" },
-];
-
-const PRIVACY_CHOICES: Choice<PrivacyAvoidance>[] = [
-  { value: "avoid_messages", label: "No real messages or DM screenshots" },
-  { value: "avoid_finance", label: "No bank apps, balances or salary numbers" },
-  { value: "avoid_people", label: "Nothing that needs another person on camera" },
-  { value: "avoid_private_info", label: "Nothing personal (address, ID, medical)" },
-  { value: "no_privacy_limits", label: "I'm fine with all of the above" },
-];
-
 const HOOK_CHOICES: Choice<PreferredHookStyle>[] = [
   { value: "behavior_hook", label: '"The way I…"', sub: "Behavior hooks" },
   { value: "thought_hook", label: '"Why do I…"', sub: "Thought hooks" },
@@ -100,34 +90,14 @@ function lightHaptic() {
 }
 
 export function TasteCalibration({ onComplete }: Props) {
-  // Format + tone + effort are single-select (one option moves the
-  // distribution / tone bias). Hook styles and privacy are
-  // multi-select.
+  // Format + tone are single-select; hook styles are multi-select.
+  // Effort + privacy were removed (see file header).
   const [format, setFormat] = useState<PreferredFormat | null>(null);
   const [tone, setTone] = useState<PreferredTone | null>(null);
-  const [effort, setEffort] = useState<EffortPreference | null>(null);
-  const [privacy, setPrivacy] = useState<PrivacyAvoidance[]>([]);
   const [hookStyles, setHookStyles] = useState<PreferredHookStyle[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const togglePrivacy = useCallback((value: PrivacyAvoidance) => {
-    lightHaptic();
-    setPrivacy((prev) => {
-      // "no_privacy_limits" is exclusive — picking it clears the
-      // others, picking any other clears it. Keeps the persisted
-      // doc internally consistent so the server-side prompt block
-      // never has to reason about the contradictory state.
-      if (value === "no_privacy_limits") {
-        return prev.includes("no_privacy_limits") ? [] : ["no_privacy_limits"];
-      }
-      const without = prev.filter(
-        (p) => p !== value && p !== "no_privacy_limits",
-      );
-      return prev.includes(value) ? without : [...without, value];
-    });
-  }, []);
 
   const toggleHookStyle = useCallback((value: PreferredHookStyle) => {
     lightHaptic();
@@ -139,13 +109,8 @@ export function TasteCalibration({ onComplete }: Props) {
   }, []);
 
   const hasAnyAnswer = useMemo(
-    () =>
-      format !== null ||
-      tone !== null ||
-      effort !== null ||
-      privacy.length > 0 ||
-      hookStyles.length > 0,
-    [format, tone, effort, privacy, hookStyles],
+    () => format !== null || tone !== null || hookStyles.length > 0,
+    [format, tone, hookStyles],
   );
 
   // Fire-and-forget: navigation NEVER blocks on the network. Both
@@ -159,12 +124,16 @@ export function TasteCalibration({ onComplete }: Props) {
     if (busy) return;
     setBusy(true);
     setErrorMsg(null);
+    // Effort + privacy fields default to EMPTY_CALIBRATION values
+    // (null / []) — the server zod schema still accepts them, and we
+    // never overwrite a previously-set effortPreference because new
+    // creators have nothing there to begin with. (If we ever
+    // resurrect those questions, layer them on top of the same
+    // shape.)
     const doc: TasteCalibration = {
       ...EMPTY_CALIBRATION,
       preferredFormats: format ? [format] : [],
       preferredTone: tone,
-      effortPreference: effort,
-      privacyAvoidances: privacy,
       preferredHookStyles: hookStyles,
       skipped: false,
     };
@@ -182,7 +151,7 @@ export function TasteCalibration({ onComplete }: Props) {
     // hiccup never bubbles up as an unhandled rejection.
     void saveTasteCalibration(doc).catch(() => {});
     onComplete();
-  }, [busy, format, tone, effort, privacy, hookStyles, onComplete]);
+  }, [busy, format, tone, hookStyles, onComplete]);
 
   const handleSkip = useCallback(() => {
     if (busy) return;
@@ -199,7 +168,7 @@ export function TasteCalibration({ onComplete }: Props) {
 
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.stage}>
-      <Text style={styles.stepKicker}>Optional · ~10 seconds</Text>
+      <Text style={styles.stepKicker}>Optional · 3 questions · ~10 seconds</Text>
       <Text style={styles.heroTitle}>Tune your ideas.</Text>
       <Text style={styles.heroSub}>
         Tap what feels like you — or skip. Your reactions to ideas teach Lumina far
@@ -226,27 +195,6 @@ export function TasteCalibration({ onComplete }: Props) {
             lightHaptic();
             setTone(v);
           }}
-          disabled={busy}
-        />
-      </Question>
-
-      <Question label="How much effort do you want each idea to take?">
-        <SingleSelect
-          choices={EFFORT_CHOICES}
-          value={effort}
-          onChange={(v) => {
-            lightHaptic();
-            setEffort(v);
-          }}
-          disabled={busy}
-        />
-      </Question>
-
-      <Question label="Anything you'd rather not show on camera? (Pick any)">
-        <MultiSelect
-          choices={PRIVACY_CHOICES}
-          values={privacy}
-          onToggle={togglePrivacy}
           disabled={busy}
         />
       </Question>
