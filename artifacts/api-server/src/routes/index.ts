@@ -18,6 +18,7 @@ import styleProfileRouter from "./styleProfile";
 import importedVideosRouter from "./importedVideos";
 import ideaFeedbackRouter from "./ideaFeedback";
 import tasteCalibrationRouter from "./tasteCalibration";
+import enhancementsRouter from "./enhancements";
 
 const router: IRouter = Router();
 
@@ -41,6 +42,11 @@ router.use(ideatorRouter);
 router.use(importedVideosRouter);
 //   • idea-feedback  — POST /api/ideas/feedback ("Would you post this?")
 router.use(ideaFeedbackRouter);
+//   • enhancements   — POST /api/enhancements/suggest, the per-clip
+//     improvement brain. Reuses the ideator's style hints + viral
+//     pattern memory so the suggestions speak in the same logic
+//     stack the ideator ships ideas in.
+router.use(enhancementsRouter);
 //   • taste-calibration — GET/POST /api/taste-calibration (optional
 //     5-question onboarding bias for the ideator). Pure additive;
 //     skipped state is honoured so we never re-prompt.

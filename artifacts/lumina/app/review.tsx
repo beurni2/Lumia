@@ -532,6 +532,15 @@ export default function ReviewScreen() {
               the comparison data it sits next to. */}
           {!loading && !errorMsg ? <WhyBetterCard idea={idea} /> : null}
 
+          {/* Enhancement Brain — lazy "make it hit harder" suggestions.
+              Renders a quiet CTA by default; only fires the AI call on
+              tap so we don't burn cost on every review-screen mount.
+              Mounts in the same conditions as WhyBetter so the two
+              cards either both appear or both stay quiet. */}
+          {!loading && !errorMsg ? (
+            <EnhancementCard idea={idea} />
+          ) : null}
+
           <ExportSection
             saveState={saveState}
             onSaveAgain={handleSaveAgain}
@@ -924,6 +933,185 @@ function WhyBetterCard({ idea }: { idea: IdeaCardData }) {
       {idea.whyItWorks ? (
         <Text style={styles.whyFooter}>{idea.whyItWorks}</Text>
       ) : null}
+    </View>
+  );
+}
+
+/* =================== Enhancement Brain ============ */
+
+/**
+ * EnhancementCard — quiet "make this hit harder" CTA that lazily
+ * asks the server's enhancement brain for 1-3 high-impact, non-
+ * technical suggestions on the user's filmed take.
+ *
+ * Lazy by design: we do NOT fetch on mount. Suggestions cost an
+ * AI call and most users will save-and-go without ever asking. The
+ * card sits in the post-review flow as an opt-in nudge — when the
+ * user taps the CTA, we fire one POST and render the result.
+ *
+ * State machine: idle → loading → loaded | error. Retrying from
+ * the error state rolls back to loading. Result is held in local
+ * state and survives subsequent re-renders of the parent (we don't
+ * re-fetch on prop changes — the card is keyed implicitly by the
+ * parent screen, which is itself keyed by the idea via params).
+ *
+ * The /api/enhancements/suggest endpoint returns
+ * { title: string, suggestions: string[1..3] }. The brain enforces
+ * the no-editing-UI / 1-sentence / max-3 contract server-side, so
+ * this component just renders what it gets.
+ */
+function EnhancementCard({ idea }: { idea: IdeaCardData }) {
+  type Phase = "idle" | "loading" | "loaded" | "error";
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [result, setResult] = useState<{
+    title: string;
+    suggestions: string[];
+  } | null>(null);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  // Defensive single-flight — a rapid double-tap on the CTA could
+  // otherwise issue two concurrent POSTs and double-bill the
+  // creator's AI cost cap. The ref short-circuits the second tap
+  // until the in-flight request resolves either way.
+  const inFlightRef = useRef(false);
+
+  const fetchEnhancements = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setPhase("loading");
+    setErrMsg(null);
+    try {
+      const data = await customFetch<{
+        title: string;
+        suggestions: string[];
+      }>("/api/enhancements/suggest", {
+        method: "POST",
+        body: JSON.stringify({
+          originalIdea: {
+            hook: idea.hook,
+            // Concept is a synthesis of the structured idea fields
+            // we already have on the client — gives the brain
+            // enough to infer intent without us having to type
+            // anything new on the user's behalf.
+            concept: [idea.whatToShow, idea.howToFilm, idea.whyItWorks]
+              .filter((s): s is string => typeof s === "string" && s.length > 0)
+              .join(" — ") || undefined,
+            pattern: idea.pattern,
+            structure: idea.structure,
+            hookStyle: idea.hookStyle,
+            emotionalSpike: idea.emotionalSpike,
+          },
+        }),
+        responseType: "json",
+      });
+      // Defensive shape check — the server guarantees this, but a
+      // proxy or mock could in theory return something else.
+      if (
+        data &&
+        typeof data.title === "string" &&
+        Array.isArray(data.suggestions) &&
+        data.suggestions.length > 0
+      ) {
+        setResult({
+          title: data.title,
+          suggestions: data.suggestions.filter(
+            (s): s is string => typeof s === "string" && s.length > 0,
+          ),
+        });
+        setPhase("loaded");
+      } else {
+        setErrMsg("No suggestions came back. Try again in a moment.");
+        setPhase("error");
+      }
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? (err.message ?? "Couldn't load suggestions.")
+          : err instanceof Error && err.message
+            ? err.message
+            : "Couldn't load suggestions.";
+      setErrMsg(msg);
+      setPhase("error");
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [idea]);
+
+  if (phase === "idle") {
+    return (
+      <Pressable
+        onPress={fetchEnhancements}
+        style={({ pressed }) => [
+          styles.enhanceCta,
+          pressed ? styles.enhanceCtaPressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Show me how to make this hit harder"
+      >
+        <Feather
+          name="zap"
+          size={14}
+          color={lumina.firefly}
+          style={styles.enhanceCtaIcon}
+        />
+        <Text style={styles.enhanceCtaLabel}>
+          Show me how to make this hit harder
+        </Text>
+      </Pressable>
+    );
+  }
+
+  if (phase === "loading") {
+    return (
+      <View style={styles.enhanceCard}>
+        <Text style={styles.enhanceKicker}>Thinking…</Text>
+        <View style={styles.enhanceLoadingRow}>
+          <ActivityIndicator color={lumina.firefly} />
+          <Text style={styles.enhanceLoadingText}>
+            Reading your idea against your style and what tends to land for you.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (phase === "error") {
+    return (
+      <View style={styles.enhanceCard}>
+        <Text style={styles.enhanceKicker}>Couldn't load</Text>
+        <Text style={styles.enhanceErrorText}>{errMsg}</Text>
+        <Pressable
+          onPress={fetchEnhancements}
+          style={({ pressed }) => [
+            styles.enhanceRetryBtn,
+            pressed ? styles.enhanceRetryBtnPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Try loading suggestions again"
+        >
+          <Text style={styles.enhanceRetryLabel}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // loaded
+  return (
+    <View style={styles.enhanceCard}>
+      <Text style={styles.enhanceKicker}>{result?.title ?? "Make it hit harder"}</Text>
+      <View style={styles.enhanceList}>
+        {(result?.suggestions ?? []).map((s) => (
+          <View key={s} style={styles.enhanceRow}>
+            <Feather
+              name="zap"
+              size={14}
+              color={lumina.firefly}
+              style={styles.enhanceRowIcon}
+            />
+            <Text style={styles.enhanceRowText}>{s}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -1416,6 +1604,105 @@ const styles = StyleSheet.create({
   whyFallback: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  // Enhancement Brain card — quieter than whyCard so the
+  // "make it hit harder" nudge reads as a soft offer, not a
+  // claim. Idle CTA is a borderless pill so the user can opt
+  // in without feeling like they have to.
+  enhanceCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.22)",
+    marginBottom: 22,
+  },
+  enhanceCtaPressed: {
+    opacity: 0.7,
+  },
+  enhanceCtaIcon: {
+    marginTop: 1,
+  },
+  enhanceCtaLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  enhanceCard: {
+    backgroundColor: "rgba(0,255,204,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.20)",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 22,
+  },
+  enhanceKicker: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    marginBottom: 12,
+  },
+  enhanceLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  enhanceLoadingText: {
+    flex: 1,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  enhanceErrorText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  enhanceRetryBtn: {
+    alignSelf: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,255,204,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.28)",
+  },
+  enhanceRetryBtnPressed: {
+    opacity: 0.7,
+  },
+  enhanceRetryLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 13,
+  },
+  enhanceList: {
+    gap: 12,
+  },
+  enhanceRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  enhanceRowIcon: {
+    marginTop: 3,
+  },
+  enhanceRowText: {
+    flex: 1,
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.92)",
     fontSize: 14,
     lineHeight: 20,
   },
