@@ -1,0 +1,176 @@
+BUILD — Lightweight Style Hint Extractor
+
+Goal:
+Extract simple style hints from uploaded training videos so Lumina can make hooks/captions sound more like the creator.
+
+Do NOT build heavy ML.
+Do NOT add embeddings.
+Do NOT add model training.
+Do NOT add video transcription unless already available.
+Do NOT change ideator output schema.
+
+This is a lightweight Phase 1 style hint layer.
+
+---
+
+PART 1 — STYLE HINT OBJECT
+
+Add/extend StyleProfile with derivedStyleHints:
+
+derivedStyleHints: {
+  tone: "dry" | "chaotic" | "self_aware" | "confident" | "neutral",
+  hookVoice: string[],
+  captionVoice: string[],
+  emojiPreference: "none" | "low" | "medium",
+  sentenceStyle: "short" | "medium" | "punchy",
+  energyLevel: "low" | "medium" | "high",
+  confidence: number
+}
+
+No required fields.
+Everything nullable/fallback-safe.
+
+---
+
+PART 2 — SIMPLE HEURISTICS
+
+Use existing available signals only.
+
+If captions/text exist:
+- short sentences + few emojis → dry
+- many emojis / exclamation marks → chaotic
+- self-callout phrases → self_aware
+- bold/direct phrasing → confident
+
+Self-aware phrases include:
+- why do I
+- the way I
+- I really just
+- I thought
+- not me
+- I swear
+- I shouldn’t
+
+Caption voice:
+- lowercase tendency
+- emoji usage
+- sentence length
+- common repeated phrases
+
+If no captions/text:
+- fall back to neutral
+- do not guess aggressively
+
+---
+
+PART 3 — VIDEO-LEVEL LIGHT SIGNALS
+
+If already available from existing extraction:
+- pacing / cuts per second
+- duration
+- talking vs non-talking
+- content type
+
+Map to:
+
+energyLevel:
+- low = slow pacing / minimal cuts
+- medium = normal
+- high = frequent cuts / expressive pattern
+
+Do not add expensive video analysis.
+
+---
+
+PART 4 — IDEATOR INTEGRATION
+
+Pass derivedStyleHints into ideator prompt as STYLE HINTS.
+
+Important hierarchy:
+1. Quality rules win
+2. Viral memory wins next
+3. Style hints only shape wording
+
+Style hints should affect:
+- hook phrasing
+- caption tone
+- emoji use
+- sentence length
+
+Style hints should NOT affect:
+- idea structure
+- safety rules
+- memory weighting
+
+---
+
+PART 5 — PROMPT BLOCK
+
+Add to ideator prompt:
+
+STYLE HINTS:
+The creator’s style hints are:
+- tone: <tone>
+- hookVoice: <hookVoice>
+- captionVoice: <captionVoice>
+- emojiPreference: <emojiPreference>
+- sentenceStyle: <sentenceStyle>
+- energyLevel: <energyLevel>
+
+Use these only to make hooks and captions sound more like the creator.
+
+Do not let style override quality.
+Do not make ideas repetitive just to match style.
+
+---
+
+PART 6 — FALLBACKS
+
+If confidence is low:
+- use neutral style
+- rely more on viral memory and calibration
+- do not force style
+
+Confidence scoring:
+- 0.0–0.3 low
+- 0.4–0.7 medium
+- 0.8–1.0 high
+
+---
+
+PART 7 — QA
+
+Test with 3 fake profiles:
+
+A. Dry / low emoji / short captions
+Expected:
+- understated hooks
+- max 0–1 emoji
+- no chaotic phrasing
+
+B. Chaotic / emoji-heavy
+Expected:
+- more expressive hooks
+- still max 1 emoji in caption
+- more panic/regret phrasing
+
+C. Self-aware
+Expected:
+- “why do I…”
+- “the way I…”
+- self-callout hooks
+
+Success:
+Ideas should feel like the same creator voice, not generic Lumina voice.
+
+---
+
+DO NOT BUILD:
+- dashboards
+- new UI
+- ML training
+- embeddings
+- vector DB
+- transcription pipeline unless already present
+
+Keep it small, safe, and debuggable.

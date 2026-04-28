@@ -142,3 +142,128 @@ export function deriveTone(profile: StyleProfile): DerivedTone {
   }
   return "dry";
 }
+
+/**
+ * Derived Style Hints — Phase 1 lightweight style hint extractor.
+ *
+ * The spec ("BUILD — Lightweight Style Hint Extractor") asks for a
+ * small, debuggable hint object that the ideator can read to colour
+ * hook PHRASING + caption TONE without touching idea structure.
+ *
+ *   • Pure function — same profile in → same hints out, deterministic.
+ *   • Uses existing StyleProfile signals only (no embeddings, no ML,
+ *     no transcription, no schema change).
+ *   • Confidence-aware — when the source profile is mostly defaults,
+ *     confidence drops below 0.3 and the ideator is instructed to
+ *     fall back to viral memory + calibration instead of forcing a
+ *     style guess (Part 6 of the spec).
+ *
+ * Note on tone naming: the existing `DerivedTone` type uses
+ * "self-aware" (kebab) for the older deriveTone() callers; the spec
+ * for hints uses "self_aware" (snake). We translate inline to keep
+ * the spec contract verbatim while not breaking the older tone block.
+ */
+export type DerivedStyleHints = {
+  tone: "dry" | "chaotic" | "self_aware" | "confident" | "neutral";
+  hookVoice: string[];
+  captionVoice: string[];
+  emojiPreference: "none" | "low" | "medium";
+  sentenceStyle: "short" | "medium" | "punchy";
+  energyLevel: "low" | "medium" | "high";
+  /** 0.0-0.3 low · 0.4-0.7 medium · 0.8-1.0 high */
+  confidence: number;
+};
+
+export function deriveStyleHints(profile: StyleProfile): DerivedStyleHints {
+  const cap = profile.captionStyle;
+  const pacing = profile.pacing;
+  const hooks = profile.hookStyle.sampleHooks ?? [];
+  const phrases = profile.topics.recurringPhrases ?? [];
+  const keywords = profile.topics.keywords ?? [];
+
+  // CONFIDENCE — how much real signal backs these hints? Each
+  // bucket weights the cumulative score; capped at 1.0. The schema
+  // defaults (avgEmojiCount=2, avgCutsPerSecond=0.5) act as the
+  // "no signal" baseline — when they've been moved we know real
+  // extraction has run. Threshold 0.3 = the "force neutral" floor.
+  let confidence = 0;
+  if (hooks.length >= 3) confidence += 0.3;
+  else if (hooks.length >= 1) confidence += 0.15;
+  if (phrases.length >= 3) confidence += 0.2;
+  else if (phrases.length >= 1) confidence += 0.1;
+  if (keywords.length >= 5) confidence += 0.2;
+  else if (keywords.length >= 1) confidence += 0.1;
+  if (pacing.avgCutsPerSecond !== 0.5) confidence += 0.15;
+  if (cap.avgEmojiCount !== 2) confidence += 0.15;
+  confidence = Math.min(1, confidence);
+
+  // TONE — reuse the existing 4-tone classifier, then downgrade to
+  // "neutral" if confidence is too low (Part 6 — don't force style
+  // when we don't have data).
+  const baseTone = deriveTone(profile);
+  const tone: DerivedStyleHints["tone"] =
+    confidence < 0.3
+      ? "neutral"
+      : baseTone === "self-aware"
+        ? "self_aware"
+        : baseTone;
+
+  // HOOK VOICE — concrete past hook samples the model can echo
+  // (up to 5, trimmed of empties).
+  const hookVoice = hooks
+    .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+    .slice(0, 5);
+
+  // CAPTION VOICE — recurring phrases the creator actually uses
+  // (up to 5, trimmed of empties).
+  const captionVoice = phrases
+    .filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+    .slice(0, 5);
+
+  // EMOJI PREFERENCE — coarse 3-bucket from avg emoji count.
+  // (The ideator's hard EMOJI BUDGET still caps captions at max 1.)
+  const emojiPreference: DerivedStyleHints["emojiPreference"] =
+    cap.avgEmojiCount === 0
+      ? "none"
+      : cap.avgEmojiCount <= 2
+        ? "low"
+        : "medium";
+
+  // SENTENCE STYLE — short (terse), punchy (exclamation-driven), or
+  // medium (everything else). Sentence length alone isn't enough —
+  // a 12-word sentence with an exclamation reads punchier than a
+  // 12-word descriptive one.
+  const avgLen = cap.avgSentenceLengthWords;
+  const sentenceStyle: DerivedStyleHints["sentenceStyle"] =
+    avgLen < 5
+      ? "short"
+      : cap.punctuationPattern === "exclamation-heavy"
+        ? "punchy"
+        : "medium";
+
+  // ENERGY LEVEL — pacing first (cuts/sec), then bumped one notch
+  // by exclamation-heavy punctuation or emoji-heavy captions
+  // (signals enthusiasm / chaotic delivery on top of cut frequency).
+  let energyLevel: DerivedStyleHints["energyLevel"] =
+    pacing.avgCutsPerSecond < 0.3
+      ? "low"
+      : pacing.avgCutsPerSecond > 0.8
+        ? "high"
+        : "medium";
+  if (
+    energyLevel !== "high" &&
+    (cap.punctuationPattern === "exclamation-heavy" || cap.avgEmojiCount >= 3)
+  ) {
+    energyLevel = energyLevel === "low" ? "medium" : "high";
+  }
+
+  return {
+    tone,
+    hookVoice,
+    captionVoice,
+    emojiPreference,
+    sentenceStyle,
+    energyLevel,
+    confidence: Math.round(confidence * 100) / 100,
+  };
+}

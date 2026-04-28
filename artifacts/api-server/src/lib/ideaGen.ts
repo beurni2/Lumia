@@ -86,7 +86,9 @@ import {
 } from "./formatDistribution";
 import {
   DEFAULT_STYLE_PROFILE,
+  deriveStyleHints,
   deriveTone,
+  type DerivedStyleHints,
   type DerivedTone,
   type StyleProfile,
 } from "./styleProfile";
@@ -456,6 +458,44 @@ function antiRepeatHooksBlock(hooks: string[]): string | null {
   ].join("\n");
 }
 
+/**
+ * STYLE HINTS block — Phase 1 lightweight style hint extractor.
+ *
+ * The hints object (from `deriveStyleHints`) carries six small,
+ * concrete signals the model can read to make hooks/captions sound
+ * like THIS creator. The block sits AFTER memory/calibration so the
+ * declared hierarchy reads in order: quality rules > viral memory >
+ * style hints. Style only colours phrasing — it never wins over the
+ * structural rules above it in the prompt.
+ *
+ * Returns null when confidence < 0.3 (Part 6 of the spec — when we
+ * don't have enough signal, don't force a guess; let the existing
+ * memory + calibration + tone defaults carry the batch). Same null
+ * → no block render path used by `antiRepeatHooksBlock`.
+ */
+function styleHintsBlock(hints: DerivedStyleHints): string | null {
+  if (hints.confidence < 0.3) return null;
+  const fmtList = (xs: string[]) =>
+    xs.length > 0
+      ? xs.map((x) => `"${x}"`).join(", ")
+      : "(none — fall back to tone)";
+  return [
+    "STYLE HINTS — derived signals to make hooks + captions sound like THIS creator:",
+    `  • tone:             ${hints.tone}`,
+    `  • hookVoice:        ${fmtList(hints.hookVoice)}`,
+    `  • captionVoice:     ${fmtList(hints.captionVoice)}`,
+    `  • emojiPreference:  ${hints.emojiPreference}`,
+    `  • sentenceStyle:    ${hints.sentenceStyle}`,
+    `  • energyLevel:      ${hints.energyLevel}`,
+    `  • confidence:       ${hints.confidence.toFixed(2)}`,
+    "",
+    "Use these ONLY to shape hook PHRASING + caption tone (echo the rhythm of hookVoice / captionVoice; don't copy them verbatim).",
+    "Hierarchy reminder: quality rules > viral memory > style hints. Style hints LOSE TIES.",
+    "Do NOT let style override structure, safety, or memory weighting.",
+    "Do NOT make ideas repetitive just to match the style.",
+  ].join("\n");
+}
+
 export type GenerateIdeasInput = {
   region: Region;
   styleProfile?: StyleProfile;
@@ -588,6 +628,15 @@ export async function generateIdeas(
   const antiRepeatBlock = antiRepeatHooksBlock(
     viralPatternMemory.recentAcceptedHooks,
   );
+
+  // STYLE HINTS — Phase 1 lightweight extractor. Computed every call
+  // (pure function over the StyleProfile, no I/O). The block only
+  // renders when confidence ≥ 0.3 — for default / mostly-empty
+  // profiles we skip the block entirely and let the existing
+  // memory + calibration + tone defaults carry the batch (Part 6
+  // of the spec: don't force a style guess when we lack signal).
+  const styleHints = deriveStyleHints(profile);
+  const styleHintsRendered = styleHintsBlock(styleHints);
 
   // Per-creator format (pattern) distribution. Looks up the recent
   // feedback signal for this creator and computes a target mix of
@@ -909,6 +958,12 @@ export async function generateIdeas(
     // THEN reads "what scenarios to lean away from on the surface".
     // Same spread guard — no block, no empty section.
     ...(antiRepeatBlock ? ["", antiRepeatBlock] : []),
+    // Optional STYLE HINTS block — sits AFTER memory + anti-repeat so
+    // the declared hierarchy reads top-to-bottom: quality rules
+    // (system) > viral memory > anti-repeat > style hints. The block
+    // self-suppresses (returns null) when confidence < 0.3 so default
+    // / mostly-empty profiles don't get a forced style guess.
+    ...(styleHintsRendered ? ["", styleHintsRendered] : []),
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
@@ -1052,6 +1107,10 @@ export async function generateIdeas(
       // scenarios" nudge so we don't accidentally fill the gap with
       // a sequel to something the user just accepted.
       ...(antiRepeatBlock ? ["", antiRepeatBlock] : []),
+      // Same STYLE HINTS block as the main batch — top-up ideas
+      // should sound like the same creator. Self-suppresses when
+      // confidence < 0.3 (no forced style on default profiles).
+      ...(styleHintsRendered ? ["", styleHintsRendered] : []),
       "",
       `=== TASK ===`,
       `Produce ${deficit} ADDITIONAL ideas. They MUST NOT overlap with these existing ideas: ${existingHooks || "(none)"}. Use clearly different angles, contentTypes, or formats.`,
