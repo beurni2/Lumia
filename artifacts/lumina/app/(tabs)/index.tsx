@@ -66,12 +66,15 @@ import {
   shouldShowOncePerDay,
 } from "@/lib/loopMessages";
 import {
-  fetchTasteCalibration,
   isCalibrationGateSuppressed,
   isCalibrationPromptedThisProcess,
   markCalibrationPromptedThisProcess,
-  needsCalibration,
 } from "@/lib/tasteCalibration";
+import {
+  getHasCompletedTasteOnboarding,
+  getIdeasViewedCount,
+  incrementIdeasViewedCount,
+} from "@/lib/tasteOnboardingState";
 import { getYesSwipeCount, recordYesSwipe } from "@/lib/yesSwipeCounter";
 
 type StyleProfileResponse = {
@@ -256,100 +259,155 @@ export default function HomeScreen() {
     void loadIdeas();
   }, [loadIdeas]);
 
-  /* ---------- Calibration gate ------------------------------- */
+  /* ---------- Quick Tune (taste-onboarding) gate ----------- */
 
-  // Trigger condition (matches the spec exactly):
-  //   IF the creator has no calibration document on file (or has one
-  //   that isn't completed AND wasn't skipped) → push to /calibration.
+  // Behaviour-triggered prompt: ask the user to calibrate ONLY after
+  // they've seen enough of the app to have context for the question.
+  // Fresh-install rule (April 2026 quick-tune rework):
   //
-  // Why this lives on Home (not just in onboarding):
-  //   • Existing users — anyone who completed onboarding before the
-  //     calibration feature shipped — never re-enter MvpOnboarding,
-  //     so the onboarding-only trigger silently misses them. Home is
-  //     the first surface every user sees post-onboarding, so it's
-  //     the only safe place to catch them.
-  //   • New users still hit the onboarding trigger first; this gate
-  //     only fires for them if they bailed before tapping Save / Skip
-  //     on the in-onboarding screen, which is the right re-prompt
-  //     behaviour for a half-finished session.
+  //   trigger ⇔ !hasCompletedTasteOnboarding && ideasViewedCount >= 2
+  //
+  // Both inputs live in AsyncStorage (`lib/tasteOnboardingState.ts`).
+  // The legacy server-doc check (`needsCalibration(cal)`) is gone —
+  // the local flag is now the authoritative gate input, so Skip can
+  // mean "ask me later" without permanently muting the prompt.
+  //
+  // The counter bumps in two places below:
+  //   1. Per-focus dwell timer (~1.5 s with ideas visible) — the user
+  //      actually sat on Home long enough to take in the cards.
+  //   2. First scroll past the first card per focus session — the
+  //      user explored the batch within this visit.
+  // Each is one-shot per focus session (refs cleared in the focus
+  // cleanup), so a re-render or a brief tab swap can't double-count.
   //
   // Why useFocusEffect (not useEffect):
-  //   Tabs persist their mount state, so a useEffect with [] deps
-  //   would only fire ONCE — the first time the Home tab is touched.
-  //   That breaks the QA reset flow (Profile → reset → Home tab
-  //   tapped) AND the post-modal flow (calibration screen dismissed
-  //   → focus returns to Home with no re-fetch). useFocusEffect
-  //   re-runs every time Home regains focus, which is exactly the
-  //   contract we need.
+  //   Tabs persist their mount state, so useEffect with [] deps fires
+  //   only ONCE — the first time the Home tab is touched. That breaks
+  //   QA reset (Profile → reset → tap Home) and the post-modal flow
+  //   (calibration dismissed → focus returns to Home). useFocusEffect
+  //   re-runs every time Home regains focus, which is what we need.
   //
   // Dev override (`shouldForceCalibration()`) checks for either
   // `?forceCalibration=1` (web) or `EXPO_PUBLIC_FORCE_CALIBRATION=true`
-  // and bypasses the on-file check so QA can re-test without DB resets.
+  // and bypasses every guard so QA can re-open the screen on demand.
   //
-  // Fail-open: a network error treats the user as "calibration on
-  // file" (don't surface the prompt). Calibration is optional — better
-  // to skip the prompt than to block Home for a flaky API call. The
-  // gate will retry on the next focus.
+  // Fail-open: AsyncStorage error treats the user as "already
+  // calibrated" (don't surface the prompt). Calibration is optional —
+  // better to skip the prompt than to block Home for a storage
+  // hiccup. The gate retries on the next focus.
+
+  // One-shot per-focus latches for the two increment sources. We
+  // hold them on refs (not state) so flipping them never forces a
+  // re-render. Reset ONLY on focus transitions (see effect below) —
+  // crucially NOT when `ideas` changes mid-focus, otherwise the
+  // initial-load and regenerate paths (each of which mutates
+  // `ideas` while Home is still focused) would clear the latches
+  // and let the same focus session double-count.
+  const dwellCountedRef = useRef(false);
+  const scrollCountedRef = useRef(false);
+
+  // We need a focus boolean (not a callback) so downstream effects
+  // can depend on focus state without picking up `ideas` churn.
+  // Expo Router re-exports useFocusEffect but NOT useIsFocused, and
+  // we don't want to take a new direct dependency on
+  // @react-navigation/native just for this. Instead we promote
+  // focus state to React state via useFocusEffect with stable empty
+  // deps (no `ideas`, no `checkAndMaybeTrigger`), so this hook
+  // only fires on the real focus → blur transition. The useState
+  // setter is stable, so the empty dep array is honest.
+  const [isFocused, setIsFocused] = useState(false);
   useFocusEffect(
     useCallback(() => {
-      // Compute the dev / QA force flag FIRST. Force must bypass the
-      // suppression window AND the once-per-process latch so QA can
-      // re-open the calibration screen on demand without having to
-      // cold-restart the JS process — otherwise an architect-flagged
-      // regression (force gated behind suppression / latch checks)
-      // would silently break the QA path.
-      const force = shouldForceCalibration();
-      // Suppression short-circuit: <TasteCalibration /> sets a small
-      // window (default 5 s) on Save / Skip so the immediate Home
-      // re-focus can't out-race the fire-and-forget POST and re-push
-      // the modal. The dev-only reset clears this window so the next
-      // focus DOES re-prompt. Force bypasses.
-      if (!force && isCalibrationGateSuppressed()) return;
-      // Once-per-process latch: even if the user dismisses
-      // /calibration via Skip and bounces between Home and other
-      // tabs, we don't fire it again until the next cold start. The
-      // latch lives in `lib/tasteCalibration.ts` so the dev-only
-      // reset can clear it without reaching across module
-      // boundaries. Force bypasses.
-      if (!force && isCalibrationPromptedThisProcess()) return;
-      let cancelled = false;
-      (async () => {
-        try {
-          const [cal, yesCount] = await Promise.all([
-            fetchTasteCalibration(),
-            getYesSwipeCount(),
-          ]);
-          if (cancelled) return;
-          // NON-BLOCKING gate (April 2026 daily-habit rework):
-          //   • brand-new users with 0 swipes are NEVER auto-routed
-          //     to /calibration — the prompt only surfaces AFTER the
-          //     user has yes-swiped at least 2 ideas (proxy for
-          //     "viewed 2-3 ideas"), which means they've already
-          //     experienced value before being asked to calibrate.
-          //   • the dev / QA force flag (already evaluated above)
-          //     still wins so the screen is reachable for testing
-          //     without hitting the threshold.
-          //   • once routed, the once-per-process latch suppresses
-          //     re-prompts within the same JS process so a Skip →
-          //     Home → Skip → Home loop is impossible.
-          //   • first-session calibration is now handled inside
-          //     MvpOnboarding's terminal step (after Style Profile
-          //     reveal); this gate only catches users who finished
-          //     onboarding before the prompt existed OR skipped it
-          //     mid-flow.
-          const meetsActivityThreshold = yesCount >= 2;
-          if (force || (needsCalibration(cal) && meetsActivityThreshold)) {
-            markCalibrationPromptedThisProcess();
-            router.replace("/calibration");
-          }
-        } catch {
-          // Fail-open — swallow the error; next focus will retry.
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, [router]),
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+
+  // Stable trigger predicate — runs the gate using the LATEST values
+  // of the local state. Called both on focus gain (cheap recheck)
+  // and immediately after each successful counter bump (so the
+  // bump that crosses the threshold can fire the prompt without
+  // waiting for the next focus).
+  const checkAndMaybeTrigger = useCallback(async () => {
+    const force = shouldForceCalibration();
+    // Suppression short-circuit: <TasteCalibration /> sets a small
+    // window (default 5 s) on Save / Skip so the immediate Home
+    // re-focus can't out-race the navigation back to /(tabs) and
+    // re-push the modal. Force bypasses for the QA flow.
+    if (!force && isCalibrationGateSuppressed()) return;
+    // Once-per-process latch: even if the user dismisses
+    // /calibration via Skip and bounces between Home and other
+    // tabs, we don't fire again until the next cold start. The
+    // latch lives in `lib/tasteCalibration.ts`; <TasteCalibration />
+    // also arms it on Save / Skip so calibrations opened from
+    // MvpOnboarding (not the Home gate) still get the same
+    // same-process suppression. The dev-only reset clears it.
+    // Force bypasses.
+    if (!force && isCalibrationPromptedThisProcess()) return;
+    try {
+      const [hasCompleted, count] = await Promise.all([
+        getHasCompletedTasteOnboarding(),
+        getIdeasViewedCount(),
+      ]);
+      if (force || (!hasCompleted && count >= 2)) {
+        markCalibrationPromptedThisProcess();
+        router.replace("/calibration");
+      }
+    } catch {
+      // Fail-open — swallow the error; next focus will retry.
+    }
+  }, [router]);
+
+  // Focus-transition effect — reset latches when Home loses focus,
+  // run a cheap gate check when Home gains it. Decoupled from
+  // `ideas` deliberately so an in-focus data refresh can't reset
+  // the per-focus latches.
+  useEffect(() => {
+    if (isFocused) {
+      void checkAndMaybeTrigger();
+    } else {
+      dwellCountedRef.current = false;
+      scrollCountedRef.current = false;
+    }
+  }, [isFocused, checkAndMaybeTrigger]);
+
+  // Dwell timer — fires once per focus session (the dwellCountedRef
+  // guard short-circuits subsequent runs even when `ideas` changes
+  // mid-focus and re-runs this effect). 1.5 s is long enough to
+  // exclude tab-bounces but short enough to feel snappy. Without
+  // ideas on screen there's nothing to "view", so we bail until
+  // they're loaded.
+  useEffect(() => {
+    if (!isFocused) return;
+    if (dwellCountedRef.current) return;
+    if (!ideas || ideas.length === 0) return;
+    const t = setTimeout(() => {
+      if (dwellCountedRef.current) return;
+      dwellCountedRef.current = true;
+      void incrementIdeasViewedCount().then(() => {
+        void checkAndMaybeTrigger();
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isFocused, ideas, checkAndMaybeTrigger]);
+
+  // Scroll handler — bumps the counter the first time the user
+  // scrolls a meaningful amount in this focus session. One-shot
+  // per focus via scrollCountedRef so flinging up and down can't
+  // spam increments. Threshold of 24 px is small on purpose: on a
+  // mobile viewport with three idea cards, the entire feed often
+  // fits with only ~50 px of scrollable runway, so anything taller
+  // (say 240 px) would never trip.
+  const handleHomeScroll = useCallback(
+    (offsetY: number) => {
+      if (scrollCountedRef.current) return;
+      if (offsetY < 24) return;
+      scrollCountedRef.current = true;
+      void incrementIdeasViewedCount().then(() => {
+        void checkAndMaybeTrigger();
+      });
+    },
+    [checkAndMaybeTrigger],
   );
 
   /* ---------- Regenerate (uses today's 2nd ideator slot) ----- */
@@ -455,6 +513,13 @@ export default function HomeScreen() {
           paddingHorizontal: 22,
         }}
         showsVerticalScrollIndicator={false}
+        // Scroll-based input to the Quick Tune trigger counter (see
+        // `handleHomeScroll`). Throttled at 64 ms / ~15 fps because the
+        // handler fires once and short-circuits — there's no point
+        // sampling at 60 fps when the post-trip behaviour is a single
+        // ref flip + AsyncStorage write.
+        onScroll={(e) => handleHomeScroll(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={64}
       >
         <Animated.View entering={FadeInDown.duration(420)}>
           {/* Daily-habit header — locked copy. The H1 + sub never

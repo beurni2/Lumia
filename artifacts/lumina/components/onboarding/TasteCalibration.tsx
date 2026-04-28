@@ -47,6 +47,7 @@ import { cosmic, lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
 import {
   EMPTY_CALIBRATION,
+  markCalibrationPromptedThisProcess,
   saveTasteCalibration,
   skipTasteCalibration,
   suppressCalibrationGate,
@@ -55,6 +56,7 @@ import {
   type PreferredTone,
   type TasteCalibration,
 } from "@/lib/tasteCalibration";
+import { markTasteOnboardingCompleted } from "@/lib/tasteOnboardingState";
 
 type Props = {
   onComplete: () => void;
@@ -147,6 +149,22 @@ export function TasteCalibration({ onComplete }: Props) {
     // gate fetches before our POST has been written, sees the old
     // (or null) doc, and re-pushes /calibration in a tight loop.
     suppressCalibrationGate();
+    // Arm the once-per-process latch synchronously so that even if
+    // this screen was opened from MvpOnboarding (the in-onboarding
+    // terminal step, NOT the Home gate), the next Home re-focus
+    // still skips the gate for the rest of this JS process. Without
+    // this, a user who saved during onboarding and then immediately
+    // hit dwell+scroll on Home could see the prompt re-fire after
+    // the 5 s suppression window expired. Belt-and-suspenders with
+    // the AsyncStorage flag, which is what survives across cold
+    // starts.
+    markCalibrationPromptedThisProcess();
+    // Mark the local onboarding flag complete BEFORE navigating.
+    // The Home gate keys off this AsyncStorage flag (not the server
+    // doc), so flipping it here is what guarantees the next focus
+    // doesn't re-prompt. Detached — the AsyncStorage write is fast
+    // but we still don't want to block the navigation.
+    void markTasteOnboardingCompleted();
     // Detached — never await. swallow error so a transient network
     // hiccup never bubbles up as an unhandled rejection.
     void saveTasteCalibration(doc).catch(() => {});
@@ -159,8 +177,19 @@ export function TasteCalibration({ onComplete }: Props) {
     setErrorMsg(null);
     // Same race-prevention as handleSave — suppress the gate window
     // synchronously so the immediate Home re-focus can't out-race
-    // the skip POST.
+    // the navigation. Skip does NOT call markTasteOnboardingCompleted
+    // by design: the spec wants Skip to be retriggerable on a future
+    // session ("don't mark as completed, allow retrigger later"),
+    // and the in-process latch (`isCalibrationPromptedThisProcess`)
+    // is what prevents same-session re-prompt loops.
     suppressCalibrationGate();
+    // Arm the once-per-process latch — same reason as handleSave:
+    // ensures dismissal from MvpOnboarding's terminal step also
+    // suppresses the Home gate for the rest of this JS process,
+    // not just for the 5 s suppression window. The next cold start
+    // re-evaluates from scratch, which is the desired
+    // "ask me later" behaviour.
+    markCalibrationPromptedThisProcess();
     // Detached — same reasoning as handleSave above.
     void skipTasteCalibration().catch(() => {});
     onComplete();

@@ -74,21 +74,23 @@ export default function ProfileScreen() {
     router.push("/style-twin-train");
   };
 
-  // Dev / QA reset for the Taste Calibration prompt — wipes the
-  // server document back to NULL so the next Home mount re-triggers
-  // the calibration interrupt. Only mounted in __DEV__ / web QA mode
-  // (see `showCalibrationReset` below); a production build can never
-  // see this affordance.
-  const onResetCalibration = () => {
+  // Dev / QA reset for the Quick Tune (taste-onboarding) prompt —
+  // wipes the server calibration document AND the local
+  // hasCompletedTasteOnboarding flag + ideasViewedCount counter back
+  // to a fresh-install state, so the next Home focus session can
+  // re-run the trigger from scratch (dwell + scroll). Only mounted in
+  // __DEV__ / web QA mode (see `showOnboardingReset` below); a
+  // production build can never see this affordance.
+  const onResetOnboarding = () => {
     const run = async () => {
       try {
         await resetTasteCalibration();
         const msg =
-          "Calibration reset. Re-open Home to see the prompt.";
+          "Onboarding reset. Re-open Home and dwell / scroll to re-trigger.";
         if (Platform.OS === "web") {
           if (typeof window !== "undefined") window.alert(msg);
         } else {
-          Alert.alert("Calibration reset", msg);
+          Alert.alert("Onboarding reset", msg);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Reset failed";
@@ -106,7 +108,7 @@ export default function ProfileScreen() {
   //   • __DEV__ (any dev client / Expo dev server build), OR
   //   • web QA mode (the EXPO_PUBLIC_WEB_QA_MODE=true smoke-test path).
   // Production builds (release native bundle, prod web) see neither.
-  const showCalibrationReset = __DEV__ || isWebQaMode();
+  const showOnboardingReset = __DEV__ || isWebQaMode();
 
   const onWipe = () => {
     const confirm = async () => {
@@ -224,28 +226,30 @@ export default function ProfileScreen() {
           </GlassSurface>
         </View>
 
-        {/* Dev / QA-only — reset the Taste Calibration document so the
-            Home-load gate re-triggers on the next mount. Hidden in
-            production. The label is small and ghost-styled to match
-            the existing wipe affordances and clearly signal "this is
-            a tool, not a feature". */}
-        {showCalibrationReset && (
+        {/* Dev / QA-only — reset the Quick Tune onboarding state
+            (server calibration doc + local hasCompleted flag +
+            ideasViewedCount counter) so the Home-load gate
+            re-triggers on the next focus. Hidden in production.
+            Label is small and ghost-styled to match the existing
+            wipe affordances and clearly signal "this is a tool,
+            not a feature". */}
+        {showOnboardingReset && (
           <View style={styles.devToolsBlock}>
             <Text style={[type.label, styles.devToolsLabel]}>
               dev tools
             </Text>
             <Pressable
-              onPress={onResetCalibration}
+              onPress={onResetOnboarding}
               style={({ pressed }) => [
                 styles.devToolsBtn,
                 { opacity: pressed ? 0.7 : 1 },
               ]}
-              testID="reset-taste-calibration"
+              testID="reset-onboarding"
               accessibilityRole="button"
-              accessibilityLabel="Reset taste calibration"
+              accessibilityLabel="Reset onboarding"
             >
               <Text style={[type.body, styles.devToolsBtnText]}>
-                reset taste calibration
+                reset onboarding
               </Text>
             </Pressable>
           </View>

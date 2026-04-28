@@ -10,6 +10,8 @@
 
 import { customFetch } from "@workspace/api-client-react";
 
+import { resetTasteOnboarding } from "@/lib/tasteOnboardingState";
+
 export type PreferredFormat = "mini_story" | "reaction" | "pov" | "mixed";
 export type PreferredTone =
   | "dry_subtle"
@@ -76,27 +78,32 @@ export async function skipTasteCalibration(): Promise<TasteCalibration | null> {
 }
 
 /**
- * QA / dev-only — wipe the calibration document on the server back
- * to NULL so the next Home load re-triggers the prompt. Used by the
- * Profile-tab "Reset taste calibration" action (visible only in
- * dev / QA mode). Returns null on success.
+ * QA / dev-only — wipe BOTH the server calibration doc AND the
+ * client-side onboarding state (hasCompletedTasteOnboarding flag +
+ * ideasViewedCount counter) so the next Home focus re-evaluates
+ * from a fresh-install state. Backs the Profile-tab "reset
+ * onboarding" action (visible only in dev / QA mode).
  *
- * Also clears any active suppression window so the very next Home
- * focus is guaranteed to re-prompt — without this, a user who just
- * skipped (which sets a 5s suppression) and then immediately tapped
- * the dev reset would have to wait for the window to elapse before
- * the gate fired again.
+ * Also clears any active suppression window AND the once-per-process
+ * prompt latch — without those clears, a user who just skipped
+ * (which arms both guards) and then immediately tapped the dev
+ * reset would still see the Home gate quietly no-op on the next
+ * focus, leaving the dev affordance feeling broken.
+ *
+ * Returns null on success (kept for backward compat with the few
+ * callers that destructured the old return shape).
  */
 export async function resetTasteCalibration(): Promise<null> {
   await customFetch<CalibrationResponse>("/api/taste-calibration", {
     method: "DELETE",
   });
+  // Local flag + counter are the authoritative gate inputs after
+  // the daily-habit rework — wiping the server doc alone is no
+  // longer sufficient to re-trigger the prompt. Run before the
+  // suppression / latch clears so the next focus sees a fully
+  // fresh state, never a half-reset.
+  await resetTasteOnboarding();
   clearCalibrationGateSuppression();
-  // Also clear the once-per-process prompt latch — without this the
-  // dev-only "reset taste calibration" button on Profile would say
-  // "re-open Home to see the prompt" while Home's gate stayed
-  // permanently latched until a cold reload, since the latch and
-  // the suppression window are independent guards.
   clearCalibrationPromptedThisProcess();
   return null;
 }
