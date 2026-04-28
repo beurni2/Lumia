@@ -1,0 +1,240 @@
+LUMINA POST FLOW — COMPLETE UX IMPLEMENTATION
+
+Goal:
+Turn "export video" into "user actually posts" with minimal friction.
+Flow must feel fast, guided, and action-oriented (no analysis, no thinking).
+
+---
+
+========================
+1. POST-READY SCREEN
+========================
+
+HEADER:
+"Your video is ready 🎉"
+Subtext:
+"Looks good. Now go post it."
+
+---
+
+VIDEO PREVIEW:
+- Full-width video player
+- Center play button
+- Show duration (e.g. 00:00 / 00:18)
+- NO before/after comparison
+
+---
+
+CONFIDENCE STRIP (3 items max):
+- "Hook hits immediately"
+- "Clear reaction moment"
+- "Easy to watch and relatable"
+
+Horizontal layout with icons.
+
+---
+
+========================
+2. QUICK BOOST (OPTIONAL)
+========================
+
+Section title:
+"Quick boost (optional)"
+
+Subtext:
+"2 taps max — makes this post hit harder"
+
+Actions (max 2):
+
+1. "Smoother flow"
+   Button: "Fix"
+
+2. "Faster hook"
+   Button: "Fix"
+
+---
+
+INTERACTION:
+
+On "Fix" tap:
+- Light haptic feedback
+- Button animates (scale down → up)
+- Label → "Done ✓"
+- Show micro text:
+   "Clips feel more natural now"
+   OR
+   "Hook now hits instantly"
+- Brief row glow (200–300ms)
+- No loading state
+- No screen refresh
+
+---
+
+========================
+3. WATERMARK
+========================
+
+Label:
+"Add 'Made with Lumina'"
+
+Subtext:
+"Support Lumina and get inspired ✨"
+
+Toggle only. No technical explanation.
+
+---
+
+========================
+4. PRIMARY CTA
+========================
+
+Button:
+"Save & Post"
+
+Subtext:
+"Save to gallery and post anywhere"
+
+Behavior:
+- Save video locally
+- Immediately transition to share flow
+
+---
+
+SECONDARY OPTION (IMPORTANT):
+
+Below CTA (low emphasis):
+"Just save"
+
+Behavior:
+- Save video only
+- Show:
+  "Saved ✓"
+  "Post it later — it’s ready"
+
+---
+
+SECONDARY ACTIONS:
+- "Make another version"
+- "Back to ideas"
+
+---
+
+========================
+5. SAVE SUCCESS STATE
+========================
+
+After "Save & Post":
+
+Show:
+
+"Saved ✓"
+"Ready to post"
+"Takes ~10 seconds"
+
+Light animation + haptic
+
+Then immediately open platform sheet
+
+---
+
+========================
+6. PLATFORM SHEET
+========================
+
+Title:
+"Post to"
+
+Options:
+- TikTok
+- Instagram
+- Snapchat
+- Copy only
+
+Large tap targets
+
+---
+
+========================
+7. PLATFORM HANDOFF
+========================
+
+After platform selection:
+
+Example (TikTok):
+
+"Almost there!"
+"Just 2 quick steps"
+
+1. Tap "+"
+2. Upload your video
+
+---
+
+========================
+8. CAPTION FLOW (CRITICAL)
+========================
+
+Show:
+
+"Your caption is ready"
+
+Display generated caption
+
+Buttons:
+- "Copy caption"
+- "Copy & open TikTok"
+
+Optional:
+Auto-copy caption on platform tap
+
+---
+
+========================
+9. APP HANDOFF
+========================
+
+Attempt deep link to selected app
+
+Fallback:
+Keep instructions visible
+
+---
+
+========================
+10. RETURN LOOP
+========================
+
+When user comes back to Lumina:
+
+Show:
+
+"Posted?"
+"How did it go?"
+
+Primary:
+"Make another version"
+
+Secondary:
+"Back to ideas"
+
+Optional:
+"View saved videos"
+
+---
+
+========================
+UX PRINCIPLES
+========================
+
+- No thinking required
+- No long explanations
+- No analysis after export
+- Everything is action-driven
+
+User should feel:
+
+"I made something → this is ready → I posted it"
+
+NOT:
+
+"I need to review or figure this out"

@@ -57,13 +57,18 @@
  */
 
 import { Feather } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
+import * as Linking from "expo-linking";
 import * as MediaLibrary from "expo-media-library";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
+  AppState,
+  type AppStateStatus,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -92,6 +97,7 @@ import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
 import { feedback } from "@/lib/feedback";
+import { isWebQaMode } from "@/lib/qaMode";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 import { POST_EXPORT_MESSAGE } from "@/lib/loopMessages";
 
@@ -183,6 +189,44 @@ export default function ReviewScreen() {
     "idle" | "saving" | "success" | "error"
   >("idle");
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
+
+  // Post-flow state machine. Adds the "what happens after a save"
+  // story on top of saveState's idle → saving → success | error
+  // FSM. The two are intentionally orthogonal:
+  //   • saveMode      — which intent the user expressed when they
+  //                     tapped the primary CTA. "share" auto-opens
+  //                     the platform sheet on success; "just-save"
+  //                     stays put with a quieter confirmation.
+  //   • shareStep     — where we are in the post flow.
+  //                       idle             → ExportSection
+  //                       saved            → success block visible
+  //                       platform-select  → PlatformSheet modal
+  //                       platform-handoff → caption + open-app
+  //                       returned         → "Posted? How did it go?"
+  //   • selectedPlatform — null until the user taps a tile in the
+  //                     PlatformSheet. "copy" is treated specially:
+  //                     it triggers a clipboard write + toast and
+  //                     skips the handoff card.
+  //   • copyConfirm   — short-lived ("Caption copied" / "Couldn't
+  //                     open the app") inline confirmation line.
+  type SaveMode = "share" | "just-save";
+  type ShareStep =
+    | "idle"
+    | "saved"
+    | "platform-select"
+    | "platform-handoff"
+    | "returned";
+  type SocialPlatform = "tiktok" | "instagram" | "snapchat" | "copy";
+  const [saveMode, setSaveMode] = useState<SaveMode>("share");
+  const [shareStep, setShareStep] = useState<ShareStep>("idle");
+  const [selectedPlatform, setSelectedPlatform] =
+    useState<SocialPlatform | null>(null);
+  const [copyConfirm, setCopyConfirm] = useState<string | null>(null);
+  // Sticky flag — true once the user has picked any platform in
+  // this session. Read by the AppState/focus listener to know
+  // whether to show the return-loop "Posted?" card when they come
+  // back from a deep link or backgrounded the app.
+  const [hasInitiatedShare, setHasInitiatedShare] = useState(false);
   // Viral feedback-loop toast — set once when saveState flips to
   // "success" via the effect below, cleared when the InlineToast
   // auto-dismisses. Kept as an independent piece of state (rather
@@ -267,6 +311,17 @@ export default function ReviewScreen() {
     for (const c of extraClips) {
       if (c?.uri) out.push(c.uri);
     }
+    // Web QA mode hatch — when running in the browser smoke-test
+    // build (EXPO_PUBLIC_WEB_QA_MODE=true), seed a synthetic stub
+    // URI so the Save & Post / Just save CTAs are enabled even
+    // when the deep-linked fixture clip lacks a real `uri` field
+    // (the picker / camera path supplies one on-device, but the
+    // QA harness deep-links straight into /review with metadata
+    // only). handleSave reads isWebQaMode() and short-circuits
+    // before touching MediaLibrary, so no real file is written.
+    if (out.length === 0 && clip && isWebQaMode()) {
+      out.push("qa-stub://no-op");
+    }
     return out;
   }, [clip, extraClips]);
 
@@ -341,8 +396,58 @@ export default function ReviewScreen() {
       // confirmation pair so every successful export feels like
       // the same satisfying beat.
       setExportToast(POST_EXPORT_MESSAGE);
+      // Drive the post-flow state machine. Both modes flip into
+      // "saved" first so the user sees the success block; then
+      // the "share" mode (which is what "Save & Post" maps to)
+      // auto-opens the platform sheet after a short beat so the
+      // celebration registers before the next decision lands.
+      // "just-save" stays put — the saved confirmation IS the
+      // ending for that branch.
+      setShareStep("saved");
+      if (saveMode === "share") {
+        const t = setTimeout(() => {
+          setShareStep((prev) => (prev === "saved" ? "platform-select" : prev));
+        }, 900);
+        return () => clearTimeout(t);
+      }
     }
-  }, [saveState]);
+  }, [saveState, saveMode]);
+
+  /* ---------- Return-loop detection ----------------------- */
+
+  // Watch the OS AppState. The moment the user comes back to the
+  // app after picking a platform (we deep-link out of Lumina), we
+  // surface the "Posted? How did it go?" card on the next focus
+  // tick. We also listen via useFocusEffect so a navigation back
+  // (e.g. from the platform handoff screen) triggers the same
+  // transition.
+  const lastAppStateRef = useRef<AppStateStatus>(AppState.currentState);
+  useEffect(() => {
+    if (!hasInitiatedShare) return;
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = lastAppStateRef.current;
+      lastAppStateRef.current = next;
+      if (prev !== "active" && next === "active") {
+        setShareStep("returned");
+      }
+    });
+    return () => sub.remove();
+  }, [hasInitiatedShare]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // No-op on first focus; only flip into "returned" if the
+      // user has already picked a platform AND we're not currently
+      // mid-handoff (so re-focusing the screen during normal
+      // navigation doesn't bounce us prematurely).
+      if (hasInitiatedShare && shareStep === "platform-handoff") {
+        // Falling through here would feel like the app gave up on
+        // the deep link. Wait for the AppState change listener
+        // above to handle the actual "they came back" beat.
+      }
+      return undefined;
+    }, [hasInitiatedShare, shareStep]),
+  );
 
   /* ---------- Navigation ----------------------------------- */
 
@@ -421,6 +526,24 @@ export default function ReviewScreen() {
     }
     setSaveState("saving");
     setSaveErrorMsg(null);
+    // Web QA mode short-circuit. The browser smoke-test build
+    // doesn't have access to MediaLibrary (expo-media-library is
+    // a no-op on web), so we simulate a successful save here so
+    // the post-flow state machine (saved → platform-select →
+    // handoff → returned) can be exercised end-to-end in
+    // Playwright. Native builds always go through the real save
+    // path below — isWebQaMode() returns false unless Platform
+    // is "web" AND the EXPO_PUBLIC_WEB_QA_MODE env var is set.
+    if (isWebQaMode()) {
+      // Brief delay so the "Saving…" state is observable for the
+      // test, matching the felt latency of the real save.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      for (const uri of saveableUris) {
+        savedUrisRef.current.add(uri);
+      }
+      setSaveState("success");
+      return;
+    }
     try {
       // Android requires the permission before saveToLibrary;
       // iOS will surface its own modal too, but requesting
@@ -485,6 +608,178 @@ export default function ReviewScreen() {
     savedUrisRef.current.clear();
     void handleSave();
   }, [handleSave]);
+
+  /* ---------- Post-flow handlers --------------------------- */
+
+  // Two top-level CTAs map to two save intents:
+  //   • Save & Post → mode "share". On success, the success effect
+  //     (above) flips shareStep into "platform-select" so the
+  //     platform sheet auto-opens.
+  //   • Just save   → mode "just-save". Same write path, but the
+  //     post-flow stops at the saved confirmation. The user can
+  //     still come back to the platform sheet by tapping the CTA
+  //     again — handleSaveAndPost re-triggers from "just-save".
+  const handleSaveAndPost = useCallback(() => {
+    setSaveMode("share");
+    if (saveState === "success") {
+      // Already saved (e.g. user did "Just save" first and now
+      // wants the platform sheet). Skip re-saving and jump
+      // straight into the post flow.
+      setShareStep("saved");
+      const t = setTimeout(() => {
+        setShareStep((prev) => (prev === "saved" ? "platform-select" : prev));
+      }, 200);
+      return () => clearTimeout(t);
+    }
+    void handleSave();
+    return undefined;
+  }, [handleSave, saveState]);
+
+  const handleJustSave = useCallback(() => {
+    setSaveMode("just-save");
+    if (saveState === "success") {
+      // Already saved — show the just-save success line again
+      // without re-writing the file (would create a gallery dup).
+      setShareStep("saved");
+      return;
+    }
+    void handleSave();
+  }, [handleSave, saveState]);
+
+  // Caption pulled from the idea. Falls back to the hook line if
+  // no caption was generated, then to an empty string so the
+  // copy-buttons remain operable (the user can still post manually).
+  const generatedCaption = useMemo(() => {
+    if (idea?.caption && idea.caption.trim().length > 0) {
+      return idea.caption.trim();
+    }
+    if (idea?.hook && idea.hook.trim().length > 0) {
+      return idea.hook.trim();
+    }
+    return "";
+  }, [idea]);
+
+  const PLATFORM_LABEL: Record<SocialPlatform, string> = {
+    tiktok: "TikTok",
+    instagram: "Instagram",
+    snapchat: "Snapchat",
+    copy: "Copy only",
+  };
+
+  // App scheme + web fallback per platform. Schemes are public
+  // and well-documented; we attempt the app deep-link first and
+  // catch silently because Linking.openURL throws if the scheme
+  // isn't installed on the device. The web fallback is opened
+  // through the browser via Linking.openURL too — on web the
+  // first call already lands there.
+  const PLATFORM_SCHEME: Record<Exclude<SocialPlatform, "copy">, {
+    app: string;
+    web: string;
+  }> = {
+    tiktok: { app: "snssdk1233://", web: "https://www.tiktok.com/upload" },
+    instagram: { app: "instagram://library", web: "https://www.instagram.com" },
+    snapchat: { app: "snapchat://", web: "https://www.snapchat.com" },
+  };
+
+  const flashCopyConfirm = useCallback((msg: string) => {
+    setCopyConfirm(msg);
+    // 1.6s is long enough to read but short enough to fade
+    // before the next interaction lands.
+    setTimeout(() => {
+      setCopyConfirm((cur) => (cur === msg ? null : cur));
+    }, 1600);
+  }, []);
+
+  const copyCaption = useCallback(async () => {
+    if (!generatedCaption) {
+      flashCopyConfirm("No caption to copy yet.");
+      return false;
+    }
+    try {
+      await Clipboard.setStringAsync(generatedCaption);
+      flashCopyConfirm("Caption copied");
+      feedback.tap();
+      return true;
+    } catch {
+      flashCopyConfirm("Couldn't copy — try again.");
+      return false;
+    }
+  }, [generatedCaption, flashCopyConfirm]);
+
+  const handleSelectPlatform = useCallback(
+    async (platform: SocialPlatform) => {
+      setSelectedPlatform(platform);
+      // NOTE: hasInitiatedShare is intentionally NOT set here.
+      // The return-loop "Posted? How did it go?" card must only
+      // surface when the user has actually launched a platform
+      // (deep link or web fallback). Setting the flag on tile
+      // selection — including the "Copy only" path, which never
+      // leaves the app — would cause false-positive return-loop
+      // prompts the next time the user backgrounds the app for
+      // any unrelated reason. The flag is set inside
+      // openPlatform, AFTER a successful Linking.openURL call.
+      // Auto-copy the caption the moment the user picks a target
+      // (per spec). For "Copy only" this IS the action; for the
+      // app platforms it primes the clipboard so the in-app paste
+      // is one tap.
+      await copyCaption();
+      if (platform === "copy") {
+        // No handoff card for copy-only; just confirm and close.
+        setShareStep("saved");
+        return;
+      }
+      setShareStep("platform-handoff");
+    },
+    [copyCaption],
+  );
+
+  const openPlatform = useCallback(
+    async (platform: Exclude<SocialPlatform, "copy">) => {
+      // Always (re)copy first — handoff "Copy & open" implies a
+      // fresh clipboard write, even if the user already tapped
+      // the platform tile (which also auto-copied).
+      const copied = await copyCaption();
+      if (!copied) return;
+      const { app, web } = PLATFORM_SCHEME[platform];
+      try {
+        const supported = await Linking.canOpenURL(app);
+        if (supported) {
+          await Linking.openURL(app);
+          // Only mark as "initiated" once we have actually
+          // launched the user out of the app. The AppState
+          // listener gates the "Posted?" card on this flag, so
+          // setting it any earlier would surface the return-loop
+          // on unrelated foreground/background cycles.
+          setHasInitiatedShare(true);
+          return;
+        }
+      } catch {
+        // Fall through to web.
+      }
+      try {
+        await Linking.openURL(web);
+        setHasInitiatedShare(true);
+      } catch {
+        flashCopyConfirm("Couldn't open the app — open it manually.");
+      }
+    },
+    [copyCaption, flashCopyConfirm],
+  );
+
+  const dismissPlatformSheet = useCallback(() => {
+    // Backdrop tap or close — return to the saved confirmation
+    // without losing the success state.
+    setShareStep((prev) => (prev === "platform-select" ? "saved" : prev));
+  }, []);
+
+  const exitHandoff = useCallback(() => {
+    setShareStep("saved");
+    setSelectedPlatform(null);
+  }, []);
+
+  const handleViewSaved = useCallback(() => {
+    router.replace("/(tabs)");
+  }, [router]);
 
   /* ---------- Render --------------------------------------- */
 
@@ -567,27 +862,65 @@ export default function ReviewScreen() {
             onAppliedEdits={setAppliedEdits}
           />
 
-          <ExportSection
-            saveState={saveState}
-            onSaveAgain={handleSaveAgain}
-            saveErrorMsg={saveErrorMsg}
-            watermarkOn={watermarkOn}
-            onToggleWatermark={setWatermarkOn}
-            onSave={handleSave}
-            canSave={saveableUris.length > 0}
-            clipCount={saveableUris.length}
-          />
+          {/* While the user is in the platform handoff sub-flow,
+              swap ExportSection out for the handoff card so the
+              "Save & Post" affordance doesn't read as redundant
+              with the "Copy & open TikTok" CTA two cards down.
+              The handoff card carries its own back affordance
+              that returns the user to the saved confirmation. */}
+          {shareStep === "platform-handoff" && selectedPlatform &&
+            selectedPlatform !== "copy" ? (
+            <PlatformHandoff
+              platform={selectedPlatform}
+              platformLabel={PLATFORM_LABEL[selectedPlatform]}
+              caption={generatedCaption}
+              onCopyCaption={copyCaption}
+              onCopyAndOpen={() => openPlatform(selectedPlatform)}
+              onBack={exitHandoff}
+              copyConfirm={copyConfirm}
+            />
+          ) : (
+            <ExportSection
+              saveState={saveState}
+              saveMode={saveMode}
+              shareStep={shareStep}
+              onSaveAgain={handleSaveAgain}
+              saveErrorMsg={saveErrorMsg}
+              watermarkOn={watermarkOn}
+              onToggleWatermark={setWatermarkOn}
+              onSavePost={handleSaveAndPost}
+              onJustSave={handleJustSave}
+              canSave={saveableUris.length > 0}
+              clipCount={saveableUris.length}
+              copyConfirm={copyConfirm}
+            />
+          )}
 
-          {/* Secondary actions — always visible (no save-state
-              gate). The spec wants these to read as low-emphasis
-              follow-ups whether or not the user has tapped Save &
-              Post yet, so the next step is one tap away even
-              before they've saved. */}
-          <TextButton
-            label="Make another version"
-            onPress={handleMakeAnother}
-          />
-          <TextButton label="Back to ideas" onPress={handleHome} />
+          {/* Return-loop card — replaces the always-visible
+              secondary text buttons once the user has come back
+              from a platform deep-link. The "Posted? How did
+              it go?" prompt carries its own next-step CTAs so
+              we hide the text buttons to avoid duplication. */}
+          {shareStep === "returned" ? (
+            <ReturnLoop
+              onMakeAnother={handleMakeAnother}
+              onBackToIdeas={handleHome}
+              onViewSaved={handleViewSaved}
+            />
+          ) : (
+            <>
+              {/* Secondary actions — always visible (no save-state
+                  gate). The spec wants these to read as low-emphasis
+                  follow-ups whether or not the user has tapped Save &
+                  Post yet, so the next step is one tap away even
+                  before they've saved. */}
+              <TextButton
+                label="Make another version"
+                onPress={handleMakeAnother}
+              />
+              <TextButton label="Back to ideas" onPress={handleHome} />
+            </>
+          )}
         </Animated.View>
       </ScrollView>
       {/* Confetti is rendered as a sibling of the ScrollView so
@@ -604,6 +937,16 @@ export default function ReviewScreen() {
       <InlineToast
         message={exportToast}
         onHide={() => setExportToast(null)}
+      />
+      {/* Platform sheet — opens automatically the moment a
+          "Save & Post" tap succeeds, dismissable by backdrop
+          tap or close button. Renders nothing when shareStep
+          is not "platform-select". */}
+      <PlatformSheet
+        visible={shareStep === "platform-select"}
+        onSelect={handleSelectPlatform}
+        onDismiss={dismissPlatformSheet}
+        labels={PLATFORM_LABEL}
       />
     </View>
   );
@@ -743,23 +1086,49 @@ function BeforeAfter({
 
 function ExportSection({
   saveState,
+  saveMode,
+  shareStep,
   saveErrorMsg,
   watermarkOn,
   onToggleWatermark,
-  onSave,
+  onSavePost,
+  onJustSave,
   onSaveAgain,
   canSave,
+  copyConfirm,
 }: {
   saveState: "idle" | "saving" | "success" | "error";
+  // Which intent the user expressed on their last primary tap.
+  // "share" → drives the "Saved ✓ / Ready to post" success block
+  // and the auto-opened platform sheet; "just-save" → quieter
+  // "Saved ✓ / Post it later — it's ready" line.
+  saveMode: "share" | "just-save";
+  // Where the post-flow state machine sits. Used here to keep
+  // the success block visible across "saved" → "platform-select"
+  // → "saved" transitions without the card collapsing back to
+  // the idle CTA when the user dismisses the sheet.
+  shareStep:
+    | "idle"
+    | "saved"
+    | "platform-select"
+    | "platform-handoff"
+    | "returned";
   saveErrorMsg: string | null;
   watermarkOn: boolean;
   onToggleWatermark: (next: boolean) => void;
-  onSave: () => void;
-  // Re-save handler used by the success-state "Save again"
-  // button. Clears the dedupe ref before re-running handleSave
-  // so the second tap actually writes a fresh copy (vs the
-  // partial-failure retry, which intentionally skips already-
-  // saved URIs).
+  // Primary CTA — "Save & Post". On success this flips to a
+  // re-trigger of the platform-select sheet rather than a
+  // "Save again" button, because the spec wants the post-flow
+  // CTA to be the dominant one even after a save.
+  onSavePost: () => void;
+  // Secondary CTA — "Just save". Same write path, no platform
+  // sheet auto-open. Renders as a low-emphasis text button below
+  // the primary so it doesn't compete for attention.
+  onJustSave: () => void;
+  // Re-save handler reserved for the error-retry path. Clears
+  // the dedupe ref before re-running handleSave so the second
+  // tap actually writes a fresh copy (vs the partial-failure
+  // retry, which intentionally skips already-saved URIs).
   onSaveAgain: () => void;
   // Still tracked: when the gallery isn't writable (web preview
   // or a clip with no local URI), the primary button stays
@@ -770,8 +1139,19 @@ function ExportSection({
   // Reserved for future analytics hooks; the saving copy is now
   // singular per the friction-free spec.
   clipCount: number;
+  // Short-lived inline confirmation line ("Caption copied" /
+  // "Couldn't open the app — open it manually") shown when the
+  // user picks "Copy only" from the platform sheet and we land
+  // back on the saved confirmation card.
+  copyConfirm: string | null;
 }) {
   const ctaDisabled = !canSave || saveState === "saving";
+  // The success block stays visible across the full post-flow,
+  // not just at the moment of save. Once the user has hit
+  // "Save & Post" successfully, we keep the success card up so
+  // re-opening the platform sheet (via the primary CTA) doesn't
+  // briefly flash the idle state.
+  const showSuccess = saveState === "success";
   return (
     <View style={styles.exportCard}>
       {/* Watermark toggle is always visible (idle / saving /
@@ -802,13 +1182,16 @@ function ExportSection({
         />
       </View>
 
-      {/* Single primary CTA in idle/error — "Save & Post" with a
-          short subtext underneath. In success state we keep the
-          same button but flip its label to "Save again" so a
-          re-save path still exists without piling up extra UI. */}
+      {/* Primary "Save & Post" CTA. In idle/error it triggers a
+          fresh save in share mode (auto-opens platform sheet on
+          success). In success state it re-opens the platform
+          sheet without re-saving — the user already has the
+          file, they just want the share path again. */}
       {saveState !== "saving" ? (
         <Pressable
-          onPress={saveState === "success" ? onSaveAgain : onSave}
+          onPress={
+            saveState === "error" ? onSaveAgain : onSavePost
+          }
           disabled={ctaDisabled && saveState !== "success"}
           style={({ pressed }) => [
             styles.primary,
@@ -821,24 +1204,37 @@ function ExportSection({
           ]}
           accessibilityRole="button"
           accessibilityLabel={
-            saveState === "success"
-              ? "Save again"
-              : saveState === "error"
-                ? "Try saving again"
-                : "Save and post"
+            saveState === "error" ? "Try saving again" : "Save and post"
           }
           testID="save-and-post"
         >
           <Text style={styles.primaryLabel}>
-            {saveState === "success"
-              ? "Save again"
-              : saveState === "error"
-                ? "Try again"
-                : "Save & Post"}
+            {saveState === "error" ? "Try again" : "Save & Post"}
           </Text>
           <Text style={styles.primarySub}>
             Save to gallery and post anywhere
           </Text>
+        </Pressable>
+      ) : null}
+
+      {/* "Just save" secondary — low-emphasis text button
+          directly below the primary CTA. Save-only path; no
+          platform sheet auto-open. Hidden in saving and after
+          a successful share-mode save (the success block plus
+          the platform sheet carry the next step there). */}
+      {saveState !== "saving" && !(showSuccess && saveMode === "share") ? (
+        <Pressable
+          onPress={onJustSave}
+          disabled={ctaDisabled && saveState !== "success"}
+          style={({ pressed }) => [
+            styles.justSave,
+            pressed ? styles.justSavePressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Just save"
+          testID="just-save"
+        >
+          <Text style={styles.justSaveLabel}>Just save</Text>
         </Pressable>
       ) : null}
 
@@ -851,23 +1247,396 @@ function ExportSection({
         </View>
       ) : null}
 
-      {saveState === "success" ? (
-        // Quiet one-line confirmation. The spec wants the
-        // celebration to come from the page-wide Confetti +
-        // toast, not from a chunky success block. Next-step
-        // CTAs live below the card as the secondary actions.
-        <View style={styles.successLine}>
-          <Feather name="check-circle" size={16} color={lumina.firefly} />
-          <Text style={styles.successLineText}>
-            Saved to your gallery — go post it.
-          </Text>
-        </View>
+      {showSuccess && saveMode === "share" ? (
+        // Save & Post success block. Three quick lines + check
+        // mark — the celebratory beat the user lands on between
+        // the save completing and the platform sheet auto-
+        // opening. Renders unconditionally for the share path
+        // (we don't gate on shareStep so the block stays put if
+        // the user dismisses the sheet and comes back).
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          style={styles.savedBlock}
+          testID="saved-block-share"
+        >
+          <View style={styles.savedCheckRow}>
+            <Feather name="check-circle" size={18} color={lumina.firefly} />
+            <Text style={styles.savedTitle}>Saved ✓</Text>
+          </View>
+          <Text style={styles.savedLine}>Ready to post</Text>
+          <Text style={styles.savedSub}>Takes ~10 seconds</Text>
+        </Animated.View>
+      ) : null}
+
+      {showSuccess && saveMode === "just-save" ? (
+        // Just-save success line — quieter; the user explicitly
+        // said "I'll post later", so the page does not auto-
+        // advance and the copy reassures rather than nudges.
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          style={styles.savedBlock}
+          testID="saved-block-just-save"
+        >
+          <View style={styles.savedCheckRow}>
+            <Feather name="check-circle" size={18} color={lumina.firefly} />
+            <Text style={styles.savedTitle}>Saved ✓</Text>
+          </View>
+          <Text style={styles.savedLine}>Post it later — it&rsquo;s ready</Text>
+        </Animated.View>
+      ) : null}
+
+      {/* Inline confirmation slot ("Caption copied" / "Couldn't
+          open the app") — shown briefly when the user picks
+          Copy only or returns from the handoff card. Auto-
+          dismisses via the parent's flashCopyConfirm timer. */}
+      {copyConfirm ? (
+        <Animated.View
+          entering={FadeIn.duration(140)}
+          exiting={FadeOut.duration(140)}
+          style={styles.copyConfirmRow}
+          testID="copy-confirm"
+        >
+          <Feather name="clipboard" size={14} color={lumina.firefly} />
+          <Text style={styles.copyConfirmText}>{copyConfirm}</Text>
+        </Animated.View>
       ) : null}
 
       {saveState === "error" && saveErrorMsg ? (
         <Text style={styles.exportError}>{saveErrorMsg}</Text>
       ) : null}
     </View>
+  );
+}
+
+/* =================== Platform sheet =================== */
+
+/**
+ * Bottom-sheet modal that opens automatically the moment a
+ * "Save & Post" tap succeeds. Title plus four large tap targets
+ * — TikTok, Instagram, Snapchat, Copy only. Backdrop tap or the
+ * close affordance returns the user to the saved confirmation
+ * card without losing the success state.
+ *
+ * Renders as a transparent React Native Modal anchored to the
+ * bottom of the viewport (animationType="slide"). The native
+ * sheet behaviour gives us free swipe-to-dismiss on iOS while
+ * keeping the implementation framework-agnostic enough to work
+ * on web (where it lays out as a centered card).
+ */
+function PlatformSheet({
+  visible,
+  onSelect,
+  onDismiss,
+  labels,
+}: {
+  visible: boolean;
+  onSelect: (platform: "tiktok" | "instagram" | "snapchat" | "copy") => void;
+  onDismiss: () => void;
+  labels: Record<"tiktok" | "instagram" | "snapchat" | "copy", string>;
+}) {
+  type Tile = {
+    key: "tiktok" | "instagram" | "snapchat" | "copy";
+    icon: keyof typeof Feather.glyphMap;
+    accent: string;
+  };
+  const tiles: Tile[] = [
+    { key: "tiktok", icon: "music", accent: "#FE2C55" },
+    { key: "instagram", icon: "camera", accent: "#E1306C" },
+    { key: "snapchat", icon: "send", accent: "#FFFC00" },
+    { key: "copy", icon: "copy", accent: lumina.firefly },
+  ];
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onDismiss}
+    >
+      {/* Outer container is a plain View — NOT a Pressable — so
+          the inner platform tiles and close button (which ARE
+          Pressables with button role) do not nest inside another
+          interactive element on web. React Native Web maps a
+          Pressable with onPress to <div role="button">, and
+          nesting buttons triggers a hydration warning. The
+          backdrop dismiss is handled by the absolute-positioned
+          Pressable below, which sits BEHIND the sheet card and
+          covers only the area outside it. */}
+      <View style={styles.sheetBackdrop}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onDismiss}
+          accessibilityLabel="Close platform sheet"
+          testID="platform-sheet-backdrop"
+        />
+        <View style={styles.sheetCard} testID="platform-sheet">
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Post to</Text>
+            <Pressable
+              onPress={onDismiss}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              testID="platform-sheet-close"
+            >
+              <Feather name="x" size={22} color="rgba(255,255,255,0.7)" />
+            </Pressable>
+          </View>
+          <View style={styles.sheetTiles}>
+            {tiles.map((tile) => (
+              <Pressable
+                key={tile.key}
+                onPress={() => onSelect(tile.key)}
+                style={({ pressed }) => [
+                  styles.sheetTile,
+                  pressed ? styles.sheetTilePressed : null,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Post to ${labels[tile.key]}`}
+                testID={`platform-${tile.key}`}
+              >
+                <View
+                  style={[
+                    styles.sheetTileIconCircle,
+                    { backgroundColor: tile.accent + "1F" },
+                  ]}
+                >
+                  <Feather
+                    name={tile.icon}
+                    size={22}
+                    color={tile.accent}
+                  />
+                </View>
+                <Text style={styles.sheetTileLabel}>{labels[tile.key]}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/* =================== Platform handoff =================== */
+
+/**
+ * Inline handoff card that replaces ExportSection while the user
+ * is mid post-flow for a specific platform. Three regions:
+ *   1. "Almost there!" + 2-step instructions ("Tap +", "Upload
+ *      your video") — orienting copy so the user knows what the
+ *      next two taps inside the platform app will be.
+ *   2. Caption block — surfaces the generated caption verbatim
+ *      with a small "ready" affordance. The text is selectable
+ *      so the user can manually copy a slice if they want.
+ *   3. Two CTAs — Copy caption, and Copy & open {Platform}.
+ *      The latter is the primary; tapping it copies + tries the
+ *      platform's app deep link, falling back to a web URL.
+ */
+function PlatformHandoff({
+  platform,
+  platformLabel,
+  caption,
+  onCopyCaption,
+  onCopyAndOpen,
+  onBack,
+  copyConfirm,
+}: {
+  platform: "tiktok" | "instagram" | "snapchat";
+  platformLabel: string;
+  caption: string;
+  onCopyCaption: () => Promise<boolean> | void;
+  onCopyAndOpen: () => Promise<void> | void;
+  onBack: () => void;
+  copyConfirm: string | null;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(200)}
+      style={styles.handoffCard}
+      testID="platform-handoff"
+    >
+      <View style={styles.handoffHeader}>
+        <Pressable
+          onPress={onBack}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Back to saved confirmation"
+          testID="handoff-back"
+        >
+          <Feather name="chevron-left" size={22} color="#FFFFFF" />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.handoffTitle}>Almost there!</Text>
+          <Text style={styles.handoffSub}>Just 2 quick steps</Text>
+        </View>
+      </View>
+
+      <View style={styles.handoffSteps}>
+        <View style={styles.handoffStepRow}>
+          <View style={styles.handoffStepBadge}>
+            <Text style={styles.handoffStepBadgeText}>1</Text>
+          </View>
+          <Text style={styles.handoffStepText}>
+            Tap &ldquo;+&rdquo;
+          </Text>
+        </View>
+        <View style={styles.handoffStepRow}>
+          <View style={styles.handoffStepBadge}>
+            <Text style={styles.handoffStepBadgeText}>2</Text>
+          </View>
+          <Text style={styles.handoffStepText}>Upload your video</Text>
+        </View>
+      </View>
+
+      <View style={styles.handoffCaptionBlock}>
+        <Text style={styles.handoffCaptionTitle}>Your caption is ready</Text>
+        {caption.length > 0 ? (
+          <Text
+            style={styles.handoffCaptionText}
+            selectable
+            testID="handoff-caption"
+          >
+            {caption}
+          </Text>
+        ) : (
+          <Text style={styles.handoffCaptionEmpty}>
+            No caption was generated for this idea — you can write
+            one once you&rsquo;re inside the app.
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.handoffActions}>
+        <Pressable
+          onPress={() => {
+            void onCopyCaption();
+          }}
+          style={({ pressed }) => [
+            styles.handoffSecondary,
+            pressed ? styles.handoffSecondaryPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Copy caption"
+          testID="copy-caption"
+        >
+          <Feather name="clipboard" size={16} color={lumina.firefly} />
+          <Text style={styles.handoffSecondaryLabel}>Copy caption</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            void onCopyAndOpen();
+          }}
+          style={({ pressed }) => [
+            styles.handoffPrimary,
+            pressed ? styles.handoffPrimaryPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={`Copy and open ${platformLabel}`}
+          testID="copy-and-open"
+        >
+          <Text style={styles.handoffPrimaryLabel}>
+            Copy &amp; open {platformLabel}
+          </Text>
+          <Feather name="external-link" size={16} color="#0F0820" />
+        </Pressable>
+      </View>
+
+      {copyConfirm ? (
+        <Animated.View
+          entering={FadeIn.duration(140)}
+          exiting={FadeOut.duration(140)}
+          style={styles.copyConfirmRow}
+          testID="handoff-copy-confirm"
+        >
+          <Feather name="clipboard" size={14} color={lumina.firefly} />
+          <Text style={styles.copyConfirmText}>{copyConfirm}</Text>
+        </Animated.View>
+      ) : null}
+
+      {/* Tiny platform-stamp footer so the user has a visual
+          reminder of the target while they're walking through
+          the steps. Renders the same Feather icon used in the
+          sheet for consistency. */}
+      <View style={styles.handoffFooter}>
+        <Feather
+          name={
+            platform === "tiktok"
+              ? "music"
+              : platform === "instagram"
+                ? "camera"
+                : "send"
+          }
+          size={12}
+          color="rgba(255,255,255,0.5)"
+        />
+        <Text style={styles.handoffFooterText}>{platformLabel}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+/* =================== Return loop =================== */
+
+/**
+ * "Posted? How did it go?" prompt rendered when the user comes
+ * back to /review after deep-linking out to a platform. Replaces
+ * the always-visible secondary text buttons so the next-step
+ * CTAs read as a coherent set rather than a stack of duplicates.
+ */
+function ReturnLoop({
+  onMakeAnother,
+  onBackToIdeas,
+  onViewSaved,
+}: {
+  onMakeAnother: () => void;
+  onBackToIdeas: () => void;
+  onViewSaved: () => void;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(200)}
+      style={styles.returnCard}
+      testID="return-loop"
+    >
+      <Text style={styles.returnTitle}>Posted?</Text>
+      <Text style={styles.returnSub}>How did it go?</Text>
+      <Pressable
+        onPress={onMakeAnother}
+        style={({ pressed }) => [
+          styles.returnPrimary,
+          pressed ? styles.returnPrimaryPressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Make another version"
+        testID="return-make-another"
+      >
+        <Text style={styles.returnPrimaryLabel}>Make another version</Text>
+      </Pressable>
+      <Pressable
+        onPress={onBackToIdeas}
+        style={({ pressed }) => [
+          styles.returnSecondary,
+          pressed ? styles.returnSecondaryPressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Back to ideas"
+        testID="return-back-to-ideas"
+      >
+        <Text style={styles.returnSecondaryLabel}>Back to ideas</Text>
+      </Pressable>
+      <Pressable
+        onPress={onViewSaved}
+        style={({ pressed }) => [
+          styles.returnTertiary,
+          pressed ? styles.returnTertiaryPressed : null,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="View saved videos"
+        testID="return-view-saved"
+      >
+        <Text style={styles.returnTertiaryLabel}>View saved videos</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -2795,23 +3564,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     marginTop: 4,
   },
-  // Quiet success line — replaces the previous chunky success
-  // block. Pairs the firefly check with one short line; the
-  // page-wide Confetti + InlineToast carry the celebration so we
-  // don't need a second visual moment inside the export card.
-  successLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingTop: 14,
-  },
-  successLineText: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 13,
-    letterSpacing: 0.2,
-  },
   // Final-video preview card — replaces BeforeAfter on this
   // screen. 9:16 frame to match the AFTER pane the user has been
   // looking at all flow long, with a centered play affordance and
@@ -2927,43 +3679,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 14,
   },
-  successBox: {
-    alignItems: "center",
-    paddingVertical: 8,
-    gap: 8,
-  },
-  successTitle: {
-    fontFamily: fontFamily.bodyBold,
-    color: "#FFFFFF",
-    fontSize: 16,
-  },
-  successHint: {
-    fontFamily: fontFamily.bodyMedium,
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: "center",
-    paddingHorizontal: 8,
-  },
-  successActions: {
-    alignSelf: "stretch",
-    marginTop: 10,
-    gap: 6,
-  },
-  successSecondary: {
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  successSecondaryPressed: {
-    opacity: 0.6,
-  },
-  successSecondaryLabel: {
-    fontFamily: fontFamily.bodySemiBold,
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 14,
-    letterSpacing: 0.3,
-  },
   exportError: {
     fontFamily: fontFamily.bodyMedium,
     color: "#FF8A8A",
@@ -2989,5 +3704,363 @@ const styles = StyleSheet.create({
     color: lumina.firefly,
     fontSize: 8,
     letterSpacing: 0.6,
+  },
+
+  /* ---------- Just save secondary ---------- */
+  justSave: {
+    marginTop: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  justSavePressed: {
+    opacity: 0.5,
+  },
+  justSaveLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+
+  /* ---------- Saved success block ---------- */
+  savedBlock: {
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.25)",
+    alignItems: "center",
+  },
+  savedCheckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  savedTitle: {
+    fontFamily: fontFamily.displayHeavy,
+    color: "#FFFFFF",
+    fontSize: 18,
+    letterSpacing: 0.2,
+  },
+  savedLine: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "#FFFFFF",
+    fontSize: 14,
+    marginTop: 6,
+    letterSpacing: 0.2,
+  },
+  savedSub: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 12,
+    marginTop: 2,
+    letterSpacing: 0.1,
+  },
+
+  /* ---------- Inline copy confirmation ---------- */
+  copyConfirmRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  copyConfirmText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+
+  /* ---------- Platform sheet (modal) ---------- */
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  sheetCard: {
+    backgroundColor: "#1A0F35",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 10,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontFamily: fontFamily.displayHeavy,
+    color: "#FFFFFF",
+    fontSize: 20,
+    letterSpacing: 0.2,
+  },
+  sheetTiles: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 12,
+  },
+  sheetTile: {
+    width: "48%",
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    gap: 10,
+  },
+  sheetTilePressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  sheetTileIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetTileLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "#FFFFFF",
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+
+  /* ---------- Platform handoff card ---------- */
+  handoffCard: {
+    marginTop: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  handoffHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
+  handoffTitle: {
+    fontFamily: fontFamily.displayHeavy,
+    color: "#FFFFFF",
+    fontSize: 18,
+    letterSpacing: 0.2,
+  },
+  handoffSub: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    marginTop: 2,
+    letterSpacing: 0.2,
+  },
+  handoffSteps: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  handoffStepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  handoffStepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,255,204,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.35)",
+  },
+  handoffStepBadgeText: {
+    fontFamily: fontFamily.bodyBold,
+    color: lumina.firefly,
+    fontSize: 12,
+  },
+  handoffStepText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "#FFFFFF",
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  handoffCaptionBlock: {
+    marginBottom: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  handoffCaptionTitle: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  handoffCaptionText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  handoffCaptionEmpty: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontStyle: "italic",
+    lineHeight: 18,
+  },
+  handoffActions: {
+    gap: 10,
+  },
+  handoffSecondary: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.25)",
+  },
+  handoffSecondaryPressed: {
+    opacity: 0.7,
+  },
+  handoffSecondaryLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: lumina.firefly,
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+  handoffPrimary: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: lumina.firefly,
+  },
+  handoffPrimaryPressed: {
+    opacity: 0.85,
+  },
+  handoffPrimaryLabel: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#0F0820",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  handoffFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  handoffFooterText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
+
+  /* ---------- Return loop card ---------- */
+  returnCard: {
+    marginTop: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    alignItems: "stretch",
+  },
+  returnTitle: {
+    fontFamily: fontFamily.displayHeavy,
+    color: "#FFFFFF",
+    fontSize: 20,
+    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+  returnSub: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 16,
+    letterSpacing: 0.2,
+  },
+  returnPrimary: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: lumina.firefly,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  returnPrimaryPressed: {
+    opacity: 0.85,
+  },
+  returnPrimaryLabel: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#0F0820",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  returnSecondary: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  returnSecondaryPressed: {
+    opacity: 0.7,
+  },
+  returnSecondaryLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: "#FFFFFF",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+  returnTertiary: {
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  returnTertiaryPressed: {
+    opacity: 0.5,
+  },
+  returnTertiaryLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
 });
