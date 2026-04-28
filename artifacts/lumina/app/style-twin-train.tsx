@@ -1,11 +1,28 @@
 /**
- * Style Twin Training — the sacred origin ritual.
+ * Style Twin Training — low-friction style capture.
  *
- * A four-stage cinematic flow that turns the previously-pragmatic
- * "upload 10 videos and tap train" screen into the spiritual on-boarding
- * the brief calls for. Stages are local UI state; the backend wiring
+ * A four-stage flow whose heavy "upload 10 then ignite a ritual"
+ * shape has been deliberately softened: the user only needs ONE clip
+ * to get value (an immediate idea via the ideator) and full training
+ * (10 clips) is optional. The cinematic visuals are preserved but
+ * the ritual / hive / memory-garden / "twin" wording is gone from
+ * user-facing copy. Stages are local UI state; the backend wiring
  * (`train` / `retrain` / `grantConsent`, ImagePicker, the inference
  * adapter, the `useStyleTwin` refresh) is preserved end-to-end.
+ *
+ * Low-friction onboarding rule
+ * ----------------------------
+ *  • Headers/CTAs read like a friend, not a wizard. No "twin",
+ *    "swarm", "hive", "ignite", "memory garden", "ritual".
+ *  • The only required action to see value is uploading ONE clip.
+ *    After it lands we surface "Got it — I see your style." + a
+ *    "Try one idea →" CTA that generates a single idea (count=1
+ *    against `/api/ideator/generate`) and routes the user into the
+ *    create flow. Training (10 clips → `train()`) is offered as an
+ *    optional polish step once they've added that many.
+ *  • Progress is framed as "X / 10 videos added" — never as work
+ *    remaining ("X more"). "You can add more anytime." footnote is
+ *    always visible during invitation/garden.
  *
  *   1. Invitation  — TwinOrb sleeps in a private cosmic greenhouse.
  *                    Lily-pad memory orbs bob below. "Begin Training"
@@ -71,6 +88,7 @@ import {
   train,
   type VideoSample,
 } from "@workspace/style-twin";
+import { customFetch } from "@workspace/api-client-react";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
@@ -79,11 +97,20 @@ import { PortalButton } from "@/components/foundation/PortalButton";
 import { StyleTwinOrb } from "@/components/foundation/StyleTwinOrb";
 import { LightExplosion } from "@/components/studio/LightExplosion";
 import { ReasoningBubble } from "@/components/studio/ReasoningBubble";
+import { type IdeaCardData } from "@/components/IdeaCard";
 import { agents, lumina, type AgentKey } from "@/constants/colors";
 import { spring } from "@/constants/motion";
 import { type } from "@/constants/typography";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
 import { getInferenceAdapter } from "@/lib/inferenceFactory";
+
+/** Shape of POST /api/ideator/generate. We only consume `ideas[0]`
+ *  for the "Try one idea →" path; region/count are echoed for debug. */
+type IdeatorResponse = {
+  region: string;
+  count: number;
+  ideas: IdeaCardData[];
+};
 
 type Phase = "invitation" | "garden" | "ritual" | "welcome";
 
@@ -139,9 +166,12 @@ export default function StyleTwinTrainScreen() {
     nonce: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True while the "Try one idea →" CTA is awaiting the ideator. Kept
+  // separate from `busy`-style locks so the orb taps and the optional
+  // "Save my style" path remain interactive while the ideator works.
+  const [tryingIdea, setTryingIdea] = useState(false);
 
   const ready = samples.length >= required;
-  const remaining = Math.max(0, required - samples.length);
 
   // ── Upload ─────────────────────────────────────────────────────────
   const pickVideos = useCallback(
@@ -316,6 +346,54 @@ export default function StyleTwinTrainScreen() {
     router.replace("/(tabs)");
   }, []);
 
+  // "Try one idea →" — the low-friction unlock. Kicks the ideator
+  // for a single idea (count=1) using the creator's persisted
+  // region + style profile (the server falls back to those when
+  // the body omits them — see ideator.ts), then routes the user
+  // straight into the create flow with that idea preloaded. Lets
+  // someone get value from a single uploaded clip without having
+  // to grind to the 10-clip training threshold.
+  const tryOneIdea = useCallback(async () => {
+    // Defensive callback contract: even though the UI only renders
+    // the "Try one idea →" CTA in branches where samples.length≥1,
+    // the explicit guard keeps the contract honest if a future
+    // refactor wires the callback into a different code path.
+    if (tryingIdea || samples.length === 0) return;
+    setTryingIdea(true);
+    setError(null);
+    try {
+      const res = await customFetch<IdeatorResponse>(
+        "/api/ideator/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({ count: 1 }),
+        },
+      );
+      const idea = res.ideas?.[0];
+      if (!idea) throw new Error("No idea came back — try again in a sec.");
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        ).catch(() => {});
+      }
+      router.push({
+        pathname: "/create",
+        params: { idea: JSON.stringify(idea) },
+      });
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Couldn't generate an idea.";
+      setError(msg);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Error,
+        ).catch(() => {});
+      }
+    } finally {
+      setTryingIdea(false);
+    }
+  }, [tryingIdea]);
+
   // ── Layout maths for the flower ────────────────────────────────────
   // Memory orbs sit on a ring around the central TwinOrb. We compute
   // ring radius from the screen width with safe horizontal padding so
@@ -350,51 +428,66 @@ export default function StyleTwinTrainScreen() {
 
   const interactive = phase === "invitation" || phase === "garden";
 
-  const headerCopy = useMemo(() => {
+  // Header copy — friend-of-the-creator tone. Three optional lines:
+  //   title    — the headline
+  //   body     — the practical "what / how" line
+  //   support  — the soft promise ("I'll match your tone…")
+  // The eyebrow is intentionally a single short label per phase
+  // (no all-caps incantations like "AWAKEN YOUR STYLE TWIN").
+  const headerCopy = useMemo<{
+    eyebrow: string;
+    title: string;
+    body: string;
+    support?: string;
+  }>(() => {
     switch (phase) {
       case "invitation":
         return {
-          eyebrow: isRetrain ? "EVOLVE YOUR TWIN" : "AWAKEN YOUR STYLE TWIN",
-          title: isRetrain
-            ? "Welcome back."
-            : "Let's awaken your Style Twin.",
-          // QA-driven: be explicit about what to upload. Short
-          // (10–30s), real (already-posted or post-able), and
-          // varied (talking, POV, outfit, reaction, daily clips).
-          // The cinematic tone is preserved; the practical
-          // instructions are folded into a single sentence.
+          eyebrow: "STYLE",
+          title: isRetrain ? "Welcome back." : "Make ideas sound like you",
           body: isRetrain
-            ? "Drop in a few new 10–30s clips you've already posted or would post — talking, POV, outfit, reaction, or simple daily moments. I'll level up."
-            : "Upload 10 short videos (10–30s each) you've already posted or would post — talking, POV, outfit, reaction, or simple daily clips work best. I'll learn your humour, pacing, and look.",
+            ? "Add a few new 10–30s clips you've posted (or would post) — talking, POV, reaction, daily moments. All great."
+            : "Upload 1–2 videos you've posted (or would post).",
+          support: isRetrain
+            ? "I'll sharpen the read on your tone, hooks, and style."
+            : "I'll match your tone, hooks, and style.",
         };
       case "garden":
+        if (samples.length === 0) {
+          return {
+            eyebrow: "STYLE",
+            title: "Pick your first video",
+            body: "A 10–30s clip works best — talking, POV, reaction, or a daily moment. Anything you'd post.",
+          };
+        }
+        if (ready) {
+          return {
+            eyebrow: "STYLE",
+            title: "Locked in.",
+            body: "Save my style now to bake this into every idea — or keep going with one for now.",
+          };
+        }
         return {
-          eyebrow: "SACRED UPLOAD GARDEN",
-          title: ready
-            ? "Beautiful. I'm ready."
-            : `${remaining} more memor${remaining === 1 ? "y" : "ies"} to go.`,
-          body: ready
-            ? "When you're ready, ignite the swarm. The transformation takes about 3 seconds."
-            : "Tap a memory orb to feed me a 10–30s video. Use clips you've already posted or would post — talking, POV, outfit, reaction, or simple daily moments work best.",
+          eyebrow: "STYLE",
+          title: "Got it — I see your style.",
+          body: "Try an idea now, or add more clips to sharpen the read.",
         };
       case "ritual":
         return {
-          eyebrow: "THE TRANSFORMATION",
-          title: "Becoming…",
-          body: "Hold for a beat. The agents are weaving every clip into your Twin.",
+          eyebrow: "STYLE",
+          title: "Saving your style…",
+          body: "Locking in your tone, pacing, and look. Just a few seconds.",
         };
       case "welcome":
         return {
-          eyebrow: "MEET YOUR TWIN",
-          title: isRetrain
-            ? "Sharper than ever."
-            : "Hi. I'm you — but with superpowers.",
+          eyebrow: "STYLE",
+          title: isRetrain ? "Style sharpened." : "Style saved.",
           body: isRetrain
-            ? "I've absorbed the new clips. Your timing instincts just got an upgrade."
-            : "I already know your humour, your pacing, your lighting magic. Ready to create empires together?",
+            ? "I've absorbed the new clips. Every idea will sound more like you."
+            : "I've got your tone, pacing, and look. Every idea will sound like you.",
         };
     }
-  }, [phase, isRetrain, ready, remaining]);
+  }, [phase, isRetrain, ready, samples.length]);
 
   return (
     <View style={styles.root}>
@@ -439,6 +532,9 @@ export default function StyleTwinTrainScreen() {
         <Text style={styles.eyebrow}>{headerCopy.eyebrow}</Text>
         <Text style={styles.title}>{headerCopy.title}</Text>
         <Text style={styles.body}>{headerCopy.body}</Text>
+        {headerCopy.support ? (
+          <Text style={styles.support}>{headerCopy.support}</Text>
+        ) : null}
       </Animated.View>
 
       {/* ── The Garden — TwinOrb + memory-orb flower ─────────────── */}
@@ -504,39 +600,102 @@ export default function StyleTwinTrainScreen() {
             <ConsentRow />
             {error ? (
               <Text style={styles.errorText}>
-                {error} — let's try igniting again.
+                {error} — let's try again.
               </Text>
             ) : null}
             <View style={styles.ctaWrap}>
               {phase === "invitation" ? (
+                // "Add your first video" jumps straight into the
+                // picker — no extra "begin training" speed-bump
+                // step. pickVideos auto-transitions invitation →
+                // garden so the orbs become tappable on return.
                 <PortalButton
-                  label={isRetrain ? "evolve my twin" : "begin training"}
-                  onPress={() => setPhase("garden")}
+                  label={isRetrain ? "Add a clip" : "Add your first video"}
+                  onPress={() => void pickVideos(true)}
+                  width={260}
+                  subtle
+                />
+              ) : samples.length === 0 ? (
+                // Garden, no clips yet — same "Add a video" CTA as
+                // the orb taps; gives users a second affordance below
+                // the flower.
+                <PortalButton
+                  label="Add a video"
+                  onPress={() => void pickVideos(true)}
+                  width={260}
+                  subtle
+                />
+              ) : ready ? (
+                // 10+ clips — full training is unlocked. Optional;
+                // the secondary "Try one idea →" link below stays
+                // available so they don't have to commit to training
+                // to keep using the app.
+                <PortalButton
+                  label="Save my style"
+                  onPress={igniteRitual}
                   width={260}
                   subtle
                 />
               ) : (
+                // 1+ clip but below the training threshold — primary
+                // CTA is "Try one idea →" so the user can see real
+                // value immediately.
                 <PortalButton
                   label={
-                    ready
-                      ? isRetrain
-                        ? "evolve my twin"
-                        : "ignite my twin"
-                      : `add ${remaining} more`
+                    tryingIdea ? "Generating an idea…" : "Try one idea →"
                   }
-                  onPress={igniteRitual}
+                  onPress={() => void tryOneIdea()}
                   width={260}
                   subtle
-                  disabled={!ready}
+                  disabled={tryingIdea}
                 />
               )}
             </View>
+            {/* Secondary affordance row. Two cases:
+                  • 1+ clips, not yet ready → let them keep adding
+                    without leaving the screen.
+                  • Ready → let them try an idea right now instead of
+                    committing to the full save flow. */}
+            {phase === "garden" && samples.length >= 1 && !ready ? (
+              <Pressable
+                onPress={() => void pickVideos(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Add another video"
+                hitSlop={8}
+                style={styles.linkBtn}
+              >
+                <Text style={styles.linkText}>Add another video</Text>
+              </Pressable>
+            ) : null}
+            {phase === "garden" && ready ? (
+              <Pressable
+                onPress={() => void tryOneIdea()}
+                disabled={tryingIdea}
+                accessibilityRole="button"
+                accessibilityLabel="Try one idea"
+                hitSlop={8}
+                style={styles.linkBtn}
+              >
+                <Text style={styles.linkText}>
+                  {tryingIdea ? "Generating an idea…" : "Try one idea →"}
+                </Text>
+              </Pressable>
+            ) : null}
             <Text style={styles.counter}>
-              {samples.length} / {required} memories ·{" "}
+              {/* First-time framing per spec: "X / 10 videos added".
+                  Retrain has its own required=1 gate (incremental
+                  evolution of an already-saved style) so we drop the
+                  denominator and just say "X new video(s) added"
+                  there, otherwise the counter would read "1 / 1"
+                  which feels like a checklist instead of an update. */}
+              {isRetrain
+                ? `${samples.length} new video${samples.length === 1 ? "" : "s"} added`
+                : `${samples.length} / ${MIN_SAMPLES} videos added`}
               {adapter.mode === "executorch"
-                ? "on-device quantized swarm"
-                : "mock inference (Expo Go)"}
+                ? " · on-device"
+                : " · mock (Expo Go)"}
             </Text>
+            <Text style={styles.footnote}>You can add more anytime.</Text>
           </Animated.View>
         ) : null}
 
@@ -545,7 +704,7 @@ export default function StyleTwinTrainScreen() {
             entering={FadeIn.duration(320)}
             style={styles.ritualHint}
           >
-            ✦ weaving your DNA ✦
+            ✦ saving your style ✦
           </Animated.Text>
         ) : null}
 
@@ -556,13 +715,13 @@ export default function StyleTwinTrainScreen() {
           >
             <View style={styles.ctaWrap}>
               <PortalButton
-                label="meet the swarm"
+                label="Open Lumina"
                 onPress={onMeetTheSwarm}
                 width={260}
               />
             </View>
             <Text style={styles.counter}>
-              Trained on {samples.length || required} videos · ready to create
+              Saved {samples.length || required} videos · ready to create
             </Text>
           </Animated.View>
         ) : null}
@@ -677,8 +836,8 @@ function MemoryOrb({
         accessibilityRole="button"
         accessibilityLabel={
           filled
-            ? `Memory ${index + 1} filled. Tap to remove.`
-            : `Memory orb ${index + 1} of ${total}. Tap to upload a video.`
+            ? `Video ${index + 1} added. Tap to remove.`
+            : `Slot ${index + 1} of ${total}. Tap to add a video.`
         }
         style={({ pressed }) => [
           styles.orb,
@@ -753,6 +912,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
     maxWidth: 360,
   },
+  // Soft "I'll match your tone…" line under body. Slightly dimmer
+  // and indented in spirit (no actual indent, just visual hierarchy
+  // via colour) so the title→body→support cascade reads top-down.
+  support: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: 360,
+    fontStyle: "italic",
+  },
 
   /* Garden centerpiece — Twin + memory orb flower */
   gardenWrap: {
@@ -814,6 +984,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.6,
     textAlign: "center",
+  },
+  // Soft "You can add more anytime." reassurance under the counter.
+  // Even smaller / dimmer than the counter so it feels like an
+  // afterthought rather than another instruction.
+  footnote: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  // Tertiary text-link affordance ("Add another video", "Try one
+  // idea →") — sits between the primary PortalButton and the
+  // counter, deliberately low-key so the primary CTA stays the eye.
+  linkBtn: {
+    alignSelf: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  linkText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   ritualHint: {
     color: lumina.firefly,
