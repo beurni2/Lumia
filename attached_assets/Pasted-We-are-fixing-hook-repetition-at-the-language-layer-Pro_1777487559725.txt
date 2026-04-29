@@ -1,0 +1,176 @@
+We are fixing hook repetition at the language layer.
+
+Problem:
+Even with diverse archetypes and scenarios, hooks collapse into ~5 patterns:
+- "the way I..."
+- "why did I..."
+- "I really thought I'd..."
+- "me, ..."
+- "what I said vs what I did..."
+
+This creates perceived repetition even when ideas differ.
+
+--------------------------------------------------
+PART 1 — HOOK STYLE SYSTEM (NEW AXIS)
+--------------------------------------------------
+
+Introduce a new axis: HookStyle
+
+type HookStyle =
+  | "confession"
+  | "observation"
+  | "absurd_claim"
+  | "matter_of_fact"
+  | "question"
+  | "instruction"
+  | "micro_story"
+  | "comparison"
+  | "object_pov"
+  | "time_stamp"
+  | "anti_hook"
+  | "escalation_hook"
+
+Each idea MUST be generated with a hookStyle.
+
+--------------------------------------------------
+PART 2 — STYLE DEFINITIONS (STRICT)
+--------------------------------------------------
+
+confession:
+- raw, personal, slightly embarrassing
+- example: "I keep pretending this doesn't exist"
+
+observation:
+- detached, universal
+- example: "there's always one unread message you never open"
+
+absurd_claim:
+- exaggerated but relatable
+- example: "my fridge and I are in a long-term standoff"
+
+matter_of_fact:
+- flat, deadpan statement
+- example: "the laundry lost"
+
+question:
+- rhetorical, no "why did I..."
+- example: "at what point do we admit this isn't happening"
+
+instruction:
+- sounds like advice/tutorial
+- example: "how to avoid your responsibilities in 3 easy steps"
+
+micro_story:
+- already mid-action
+- example: "I open it, stare, close it, pretend that counted"
+
+comparison:
+- X vs Y format
+- example: "what I planned vs what actually happened"
+
+object_pov:
+- object is subject
+- example: "the unread text is watching me again"
+
+time_stamp:
+- specific moment framing
+- example: "11:48pm and I'm negotiating with myself again"
+
+anti_hook:
+- intentionally minimal / anti-performative
+- example: "anyway"
+
+escalation_hook:
+- implies something spirals
+- example: "this got worse faster than expected"
+
+--------------------------------------------------
+PART 3 — HARD RULES
+--------------------------------------------------
+
+BATCH (3 ideas):
+
+- 3 DIFFERENT hookStyles (HARD REJECT if duplicate)
+
+CROSS-BATCH:
+
+- same hookStyle as last batch → -3 penalty
+- unused hookStyle → +2 boost
+
+--------------------------------------------------
+PART 4 — BANNED / DEGRADED PATTERNS
+--------------------------------------------------
+
+These are now penalized heavily (-5) unless explicitly required:
+
+- "the way I..."
+- "why did I..."
+- "I really thought I'd..."
+- "me, ..."
+- "what I said vs what I did..."
+
+Also:
+- no reuse of exact first 5 words from recent hooks
+- no structural clones (same syntax, different nouns)
+
+--------------------------------------------------
+PART 5 — GENERATION FLOW UPDATE
+--------------------------------------------------
+
+OLD:
+archetype → scenario → hook (loose)
+
+NEW:
+1. pick archetype
+2. pick scenario
+3. pick hookStyle
+4. generate hook USING style constraints
+
+Hook must be:
+- consistent with archetype
+- expressed through hookStyle
+
+--------------------------------------------------
+PART 6 — VALIDATOR (CRITICAL)
+--------------------------------------------------
+
+Reject hook if:
+
+1. Starts with banned patterns
+2. Same syntax as recent hooks
+3. Generic filler language
+   ("this is so me", "we've all been there", etc.)
+4. Could apply to ANY scenario (must be specific)
+
+--------------------------------------------------
+PART 7 — LIGHTWEIGHT REWRITE (OPTIONAL LLAMA 3.1)
+--------------------------------------------------
+
+Use ONLY if:
+- hookSimilarityScore > threshold
+OR
+- regenerateCount >= 2
+
+Prompt:
+
+"Rewrite this hook to feel more human and less templated.
+Keep it short. Change structure completely.
+Avoid common social media phrasing.
+Do not add explanation.
+
+Hook: {hook}"
+
+Then:
+- re-validate
+- re-score
+- only replace if better
+
+--------------------------------------------------
+PART 8 — GOAL
+--------------------------------------------------
+
+Hooks should feel like:
+"this is a different type of thought"
+
+NOT:
+"same joke, different object"
