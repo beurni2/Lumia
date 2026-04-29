@@ -1,0 +1,293 @@
+We need to fix idea repetition at the root level.
+
+Current issue:
+Even with narrative-shape diversity, ideas still feel identical because they are generated from the same underlying “idea DNA” (avoidance / low-energy contradiction).
+
+We are adding TWO new generation axes:
+
+1) IDEA ARCHETYPE (120 total)
+2) SCENARIO EXPANSION (80–100 total)
+
+These must be FIRST-CLASS inputs to generation (not post-labels).
+
+--------------------------------------------------
+PART 1 — IDEA ARCHETYPE SYSTEM (CRITICAL)
+--------------------------------------------------
+
+Implement a hierarchical archetype system:
+
+- 12 archetype families
+- 10 archetypes per family
+- Total: 120 archetypes
+
+Structure:
+
+type Archetype = {
+  id: string
+  family: ArchetypeFamily
+  label: string
+}
+
+type ArchetypeFamily =
+  | "self_deception"
+  | "micro_rituals"
+  | "social_observation"
+  | "object_personality"
+  | "time_distortion"
+  | "inner_monologue"
+  | "escalation"
+  | "weird_habits"
+  | "petty_logic"
+  | "identity"
+  | "low_energy_realism"
+  | "unexpected_competence"
+
+Populate each family with 10 archetypes exactly as follows:
+
+[PASTE LIST]
+
+SELF_DECEPTION:
+- ill_do_it_later
+- fake_productivity
+- this_counts
+- future_me_lie
+- selective_memory
+- moving_goalpost
+- redefining_success
+- almost_did_it
+- moral_licensing
+- tiny_excuse_big_avoidance
+
+MICRO_RITUALS:
+- unnecessary_routine
+- repeated_check
+- pre_action_ritual
+- fake_preparation
+- over_setup
+- comfort_loop
+- idle_habit
+- reset_behavior
+- one_more_time
+- ritual_no_purpose
+
+SOCIAL_OBSERVATION:
+- unspoken_rules
+- silent_judgment
+- shared_awkwardness
+- fake_politeness
+- group_behavior
+- pretending_not_to_see
+- social_timing_mismatch
+- mutual_avoidance
+- performative_behavior
+- invisible_norms
+
+OBJECT_PERSONALITY:
+- object_judging_you
+- object_knows_truth
+- object_betrays_you
+- object_wins
+- object_waits
+- object_exposes_you
+- object_vs_you
+- object_disappointment
+- object_memory
+- object_as_witness
+
+TIME_DISTORTION:
+- two_minutes_forty
+- just_a_second
+- time_freeze
+- lost_time
+- delay_illusion
+- sudden_rush
+- waiting_stretch
+- before_after_collapse
+- time_skip
+- infinite_loop_feeling
+
+INNER_MONOLOGUE:
+- internal_debate
+- fake_confidence
+- overthinking_spiral
+- silent_argument
+- contradictory_thoughts
+- rehearsed_conversation
+- intrusive_thought
+- mental_negotiation
+- instant_regret
+- say_nothing_decision
+
+ESCALATION:
+- small_to_chaos
+- one_step_too_far
+- overcommit
+- domino_effect
+- mistake_spiral
+- doubling_down
+- refusal_to_stop
+- unnecessary_complexity
+- now_its_worse
+- self_created_chaos
+
+WEIRD_HABITS:
+- irrational_rule
+- specific_preference
+- tiny_obsession
+- unnecessary_constraint
+- always_do_this
+- pattern_behavior
+- personal_logic
+- comfort_quirk
+- repeated_mistake
+- harmless_compulsion
+
+PETTY_LOGIC:
+- loophole_thinking
+- technicality_win
+- bending_rules
+- self_justification
+- doesnt_count_logic
+- flawed_reasoning
+- convenient_logic
+- selective_interpretation
+- fake_rule_system
+- over_literal
+
+IDENTITY:
+- not_that_person
+- temporary_identity
+- aspirational_self
+- identity_mismatch
+- role_switching
+- fake_self
+- momentary_confidence
+- identity_collapse
+- self_vs_reality
+- identity_drift
+
+LOW_ENERGY_REALISM:
+- quiet_failure
+- soft_disappointment
+- minimal_reaction
+- deadpan_acceptance
+- low_stakes_loss
+- no_big_moment
+- anticlimax
+- it_is_what_it_is
+- subtle_contradiction
+- silent_giving_up
+
+UNEXPECTED_COMPETENCE:
+- sudden_skill
+- accidental_success
+- overperform_randomly
+- effortless_win
+- surprising_clarity
+- wait_i_can_do_this
+- one_time_excellence
+- skill_out_of_nowhere
+- brief_mastery
+- confidence_spike
+
+--------------------------------------------------
+PART 2 — SCENARIO EXPANSION (CRITICAL)
+--------------------------------------------------
+
+Expand scenario pool to 80–100.
+
+Structure:
+
+type Scenario = {
+  id: string
+  label: string
+}
+
+Include a wide spread across:
+- home
+- digital
+- social
+- public spaces
+- objects
+
+Seed list (expand further):
+
+fridge, sink, laundry, gym_bag, bed, mirror, desk, couch,
+water_bottle, phone, charger, laptop, notes_app, calendar,
+email, group_chat, unread_text, notifications, alarm,
+playlist, headphones, tv_remote, grocery_store,
+parking_lot, car, elevator, hallway, doorway,
+closet, shoes, outfit, skincare, coffee_setup,
+trash_can, dishes, keys, backpack, wallet,
+whiteboard, to_do_list, sticky_notes, timer,
+microwave, freezer, leftovers, delivery_app,
+bathroom_light, shower, towel, pillow,
+window, balcony, stairs, front_door,
+ride_share, waiting_line, checkout,
+meeting_room, zoom_call, mute_button,
+camera, tripod, ring_light
+
+Target: 80–100 total.
+
+--------------------------------------------------
+PART 3 — GENERATION FLOW (MANDATORY)
+--------------------------------------------------
+
+REWRITE generator pipeline:
+
+OLD:
+scenario → template → hook
+
+NEW:
+1. pick archetype_family
+2. pick archetype
+3. pick scenario
+4. pick narrative_shape
+5. generate idea FROM archetype
+
+Important:
+- archetype must drive the idea
+- not retrofitted after generation
+
+--------------------------------------------------
+PART 4 — HARD CONSTRAINTS
+--------------------------------------------------
+
+Batch of 3:
+
+- 3 DIFFERENT archetypes (hard)
+- 3 DIFFERENT families (hard)
+- 3 DIFFERENT scenarios (already enforced)
+
+Cross-batch memory:
+
+- same archetype → -4 penalty
+- same family → -2 penalty
+- unseen archetype → +3 boost
+
+Regenerate:
+
+- must include ≥1 archetype from a family NOT in previous batch
+
+--------------------------------------------------
+PART 5 — INTEGRATION RULE
+--------------------------------------------------
+
+Archetype influences:
+
+- hook opener
+- sceneBeat
+- whatToShow
+- emotional tone
+
+It MUST NOT:
+- override safety filters
+- override quality scoring
+- break existing validator logic
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Make ideas feel like completely different TYPES of videos,
+not the same joke in different settings.
