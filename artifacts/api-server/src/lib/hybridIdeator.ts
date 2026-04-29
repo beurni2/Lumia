@@ -53,6 +53,7 @@ import {
   EMPTY_MEMORY,
   type ViralPatternMemory,
 } from "./viralPatternMemory";
+import { maybeMutateBatch } from "./llamaHookMutator";
 import {
   DEFAULT_STYLE_PROFILE,
   type StyleProfile,
@@ -905,6 +906,47 @@ export async function runHybridIdeator(
     }
   }
 
+  // -------- Step 4c: Layer 3 — Llama hook mutation ---------------
+  // Pattern engine + scorer + selector have produced the best batch
+  // they can structurally. Llama 3.1 8B (via OpenRouter) gets one
+  // shot to humanize hooks (and optionally captions) on a small
+  // subset of candidates. Triggered ONLY by:
+  //   - regenerate=true
+  //   - templated/repeated openers or families in-batch
+  //   - cross-batch similarity vs recent history
+  //   - all-pattern batch (give one a human voice)
+  //   - borderline novelty (weak hookImpact even though total passed)
+  // Mutated candidates replace originals ONLY when re-scoring shows
+  // a strict improvement on hookImpact / personalFit / total. On any
+  // Llama failure the original batch ships unchanged. Telemetry is
+  // logged either way so we can tune the trigger thresholds.
+  let usedLlamaMutation = false;
+  const mutationResult = await maybeMutateBatch(selection.batch, {
+    profile,
+    memory,
+    recentScenarios: input.recentScenarios ?? [],
+    novelty: noveltyContext,
+    regenerate,
+  });
+  if (mutationResult.telemetry.used) {
+    usedLlamaMutation = mutationResult.telemetry.mutationsSelected > 0;
+    logger.info(
+      {
+        creatorId: input.creator?.id,
+        regenerate,
+        reason: mutationResult.telemetry.reason,
+        candidatesSent: mutationResult.telemetry.candidatesSent,
+        optionsReturned: mutationResult.telemetry.optionsReturned,
+        mutationsSelected: mutationResult.telemetry.mutationsSelected,
+        rejected: mutationResult.telemetry.rejectedReasonCounts,
+        costEstimateTokens: mutationResult.telemetry.costEstimateTokens,
+        errored: mutationResult.telemetry.errored,
+      },
+      "hybrid_ideator.llama_mutation",
+    );
+  }
+  selection = { ...selection, batch: mutationResult.batch };
+
   // -------- Step 5: ship final batch, persist --------------------
   const final = selection.batch;
   if (final.length >= desiredCount && !selection.guardsPassed) {
@@ -1007,18 +1049,24 @@ export async function runHybridIdeator(
   const entriesToCache = toCacheEntries(final).slice(0, ideas.length);
   await persistCache(input.creator, entriesToCache);
 
-  // Source label: "fallback" only if EVERY shipped idea came from
-  // Claude; "mixed" if we used fallback but kept at least one local
-  // idea; "pattern" when fallback wasn't used at all.
-  const localShipped = final.filter(
-    (c) => c.meta.source === "pattern_variation",
+  // Source label:
+  //   "pattern"  — pure deterministic, no Claude fallback, no Llama mutation
+  //   "fallback" — Claude fallback used AND every shipped idea came from Claude
+  //   "mixed"    — at least one Claude idea + at least one non-Claude, OR
+  //                Llama mutation produced at least one accepted rewrite
+  //                (mutated ideas live on top of pattern seeds, but their
+  //                hooks are now Llama-authored — surface that to the caller)
+  const claudeShipped = final.filter(
+    (c) => c.meta.source === "claude_fallback",
   ).length;
-  const fallbackShipped = final.length - localShipped;
-  const source: HybridIdeatorSource = !usedFallback
-    ? "pattern"
-    : fallbackShipped === final.length
+  const localShipped = final.length - claudeShipped;
+  const source: HybridIdeatorSource = usedFallback
+    ? claudeShipped === final.length
       ? "fallback"
-      : "mixed";
+      : "mixed"
+    : usedLlamaMutation
+      ? "mixed"
+      : "pattern";
 
   logger.info(
     {
@@ -1042,7 +1090,7 @@ export async function runHybridIdeator(
     usedFallback,
     counts: {
       localKept: localShipped,
-      fallbackKept: fallbackShipped,
+      fallbackKept: claudeShipped,
     },
   };
 }

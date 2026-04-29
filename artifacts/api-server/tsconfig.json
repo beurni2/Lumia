@@ -12,6 +12,9 @@
     },
     {
       "path": "../../packages/lumina-trends"
+    },
+    {
+      "path": "../../packages/integrations/openrouter-ai"
     }
   ]
 }

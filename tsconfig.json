@@ -20,6 +20,9 @@
     },
     {
       "path": "./packages/edge-cloud"
+    },
+    {
+      "path": "./packages/integrations/openrouter-ai"
     }
   ]
 }

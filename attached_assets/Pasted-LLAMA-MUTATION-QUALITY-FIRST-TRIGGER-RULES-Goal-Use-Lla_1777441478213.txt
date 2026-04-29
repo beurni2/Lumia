@@ -1,0 +1,131 @@
+LLAMA MUTATION — QUALITY-FIRST TRIGGER RULES
+
+Goal:
+Use Llama 3.1 to improve perceived originality and human phrasing while keeping cost controlled.
+
+Priority:
+Maximum visible quality > minimum cost.
+
+But still avoid wasteful calls.
+
+---
+
+WHEN TO RUN LLAMA
+
+Run Llama mutation if ANY of these are true:
+
+1. regenerate=true
+- user asked for new ideas
+- output must feel noticeably fresher
+
+2. local batch has templated feel
+- repeated hook openers
+- repeated phrase skeletons
+- too many “the way I…”
+- too many “I really…”
+- too many “why did I…”
+
+3. similarity to recent history is high
+- same scenarioFamily
+- same topicLane
+- same visualActionPattern
+- same structure cluster
+
+4. batch is pattern-engine only
+- if all 3 ideas come from deterministic templates
+- mutate at least 1–2 hooks to make them feel more human
+
+5. confidence is borderline
+- qualityScore is good but noveltyScore is weak
+- hook impact < 2 even if total score passes
+
+---
+
+WHEN NOT TO RUN LLAMA
+
+Do NOT run if:
+- batch already has 3 strong, distinct, human-feeling hooks
+- no regenerate request
+- no repeated phrasing
+- no recent similarity
+- user is on cached same-day batch
+
+---
+
+MUTATION AMOUNT
+
+For normal fresh batch:
+- mutate top 1–2 candidates
+
+For regenerate=true:
+- mutate top 3–5 candidates
+
+For repeated/templated batch:
+- mutate all selected candidates before final output
+
+Max:
+- 1 Llama call per request
+- no retry loop unless call fails malformed
+
+---
+
+LLAMA OUTPUT REQUIREMENTS
+
+Ask for:
+- 3 hook options per candidate
+- 2 caption options per candidate
+
+Use short prompt only.
+
+---
+
+SELECTION RULE
+
+After Llama returns:
+1. Validate every rewrite
+2. Score every rewrite
+3. Compare against original
+4. Use mutated version only if:
+   - hookImpact improves OR
+   - novelty improves OR
+   - personalFit improves
+5. Never replace a strong original with weaker mutation
+
+---
+
+QUALITY-FIRST RULE
+
+If Llama produces a clearly better hook, use it even if original passed.
+
+Goal is not just passing.
+Goal is best visible output.
+
+---
+
+FALLBACK
+
+If Llama fails:
+- return original pattern candidates
+- do not block user
+
+---
+
+LOGGING
+
+Log:
+- llama_mutation_used
+- reason_for_trigger
+- candidates_sent
+- mutations_returned
+- mutations_selected
+- cost_estimate_tokens
+
+---
+
+SUCCESS CRITERION
+
+User should feel:
+“These sound human and fresh.”
+
+Not:
+“These are templates.”
