@@ -41,7 +41,7 @@ import {
   type Structure,
   type ViralPatternMemory,
 } from "./viralPatternMemory";
-import { deriveTone, type DerivedTone, type StyleProfile } from "./styleProfile";
+import { deriveStyleHints, deriveTone, type DerivedTone, type StyleProfile } from "./styleProfile";
 import type { Idea } from "./ideaGen";
 import {
   resolveArchetype,
@@ -1086,6 +1086,7 @@ export function validateHook(hook: string): boolean {
   if (DANGLING_TRAILING_WORDS.has(last)) return false;
   if (lookupBannedHookPrefix(trimmed)) return false;
   if (containsGenericFiller(trimmed)) return false;
+  if (containsVoiceViolation(trimmed)) return false;
   return true;
 }
 
@@ -1242,6 +1243,347 @@ export const HOOK_LANGUAGE_STYLE_TO_LEGACY_HOOK_STYLE: Record<
   escalation_hook: "internal_thought",
 };
 
+// -----------------------------------------------------------------------------
+// VOICE PROFILES SYSTEM (style-layer)
+//
+// VoiceProfile = TONE of expression (HOW the hook sounds).
+// HookLanguageStyle = TYPE of thought (WHAT the hook expresses).
+//
+// These are orthogonal: same HLS × different voice should produce
+// recognizably different wording (e.g. object_pov × dry_humor = "the
+// laundry won again", object_pov × chaotic = "the laundry is actually
+// bullying me"). VoiceProfile is a STYLE LAYER ONLY — it does NOT
+// affect safety filters, quality threshold, scenario selection, or
+// archetype selection (per spec). It DOES affect hook wording,
+// caption wording, and (when visible) "why this works" copy.
+// -----------------------------------------------------------------------------
+
+export const VOICE_PROFILES = [
+  "dry_humor",
+  "chaotic",
+  "poetic",
+  "blunt",
+  "sarcastic",
+  "self_aware",
+  "deadpan",
+  "soft_confessional",
+] as const;
+export type VoiceProfile = (typeof VOICE_PROFILES)[number];
+
+/**
+ * Maps the `tasteCalibrationJson.preferredTone` 4-value enum (set
+ * during onboarding) to a VoiceProfile. Calibration is the highest-
+ * priority signal — if set, the user has explicitly chosen this tone
+ * and the batch guard treats it as a `strongPreference` (the
+ * never-3-identical rule is RELAXED when strongPreference=true).
+ */
+export const CALIBRATION_TONE_TO_VOICE: Record<
+  "dry_subtle" | "chaotic" | "bold" | "self_aware",
+  VoiceProfile
+> = {
+  dry_subtle: "dry_humor",
+  chaotic: "chaotic",
+  bold: "blunt",
+  self_aware: "self_aware",
+};
+
+/**
+ * Maps `deriveStyleHints(profile).tone` to a VoiceProfile. This is
+ * the rule-based hint derived from the creator's uploaded videos /
+ * past hooks. Lower priority than calibration. `neutral` returns
+ * null so we fall through to the next priority tier.
+ */
+export const HINTS_TONE_TO_VOICE: Record<
+  "dry" | "chaotic" | "self_aware" | "confident" | "neutral",
+  VoiceProfile | null
+> = {
+  dry: "dry_humor",
+  chaotic: "chaotic",
+  self_aware: "self_aware",
+  confident: "blunt",
+  neutral: null,
+};
+
+/**
+ * Maps `visionStyleJson.deliveryStyle` (Llama 3.2 Vision-extracted
+ * trait) to a VoiceProfile. Lowest of the three signal tiers because
+ * vision extraction is noisier than calibration / hints. `unknown`
+ * returns null so we fall through to the default rotation.
+ */
+export const VISION_DELIVERY_TO_VOICE: Record<
+  "deadpan" | "awkward" | "expressive" | "confident" | "chaotic" | "unknown",
+  VoiceProfile | null
+> = {
+  deadpan: "deadpan",
+  awkward: "soft_confessional",
+  expressive: "chaotic",
+  confident: "blunt",
+  chaotic: "chaotic",
+  unknown: null,
+};
+
+/**
+ * For each primary voice, the rotation set of compatible secondary
+ * voices the per-slot picker may emit. The PRIMARY is always at index
+ * 0 (gets the highest per-slot priority); secondaries cycle in order
+ * so a 3-slot batch surfaces 3 distinct voices when the allowed set
+ * has ≥3 members. The "default" set (used when no signal at all
+ * resolves) is broad and tone-neutral so the system stays usable for
+ * a fresh creator with no calibration / hints / vision data yet.
+ *
+ * Hand-curated for compatibility — e.g. dry_humor pairs naturally
+ * with deadpan + sarcastic, but chaotic would clash; chaotic pairs
+ * with sarcastic + self_aware but would feel jarring next to poetic.
+ */
+export const ALLOWED_VOICES_BY_PRIMARY: Record<VoiceProfile, VoiceProfile[]> = {
+  dry_humor: ["dry_humor", "deadpan", "sarcastic", "self_aware"],
+  chaotic: ["chaotic", "sarcastic", "self_aware", "dry_humor"],
+  poetic: ["poetic", "soft_confessional", "dry_humor", "self_aware"],
+  blunt: ["blunt", "deadpan", "dry_humor", "sarcastic"],
+  sarcastic: ["sarcastic", "dry_humor", "blunt", "self_aware"],
+  self_aware: ["self_aware", "soft_confessional", "dry_humor", "deadpan"],
+  deadpan: ["deadpan", "dry_humor", "blunt", "self_aware"],
+  soft_confessional: [
+    "soft_confessional",
+    "self_aware",
+    "poetic",
+    "dry_humor",
+  ],
+};
+
+/**
+ * The default allowed set when no signal resolves at all (cold-start
+ * creator with no calibration, no usable hints, no vision data). The
+ * 4 voices here are chosen to be tone-neutral and broadly usable —
+ * none of the high-energy (chaotic) or high-decoration (poetic)
+ * voices, which we only emit when we have positive signal. The
+ * primary rotates between `self_aware` and `dry_humor` per the spec
+ * ("Default = self_aware or dry_humor"); rotation is deterministic
+ * (seed-based) so a given creator's batches stay coherent.
+ */
+export const DEFAULT_ALLOWED_VOICES: readonly VoiceProfile[] = [
+  "self_aware",
+  "dry_humor",
+  "deadpan",
+  "soft_confessional",
+] as const;
+
+/**
+ * Inputs to `selectPrimaryVoiceProfile`. All three signals are
+ * optional — the resolver tries them in priority order and falls
+ * through to the default rotation when none is set. Types are
+ * intentionally narrow (literal unions, not full schema types) so
+ * patternIdeator stays free of cross-cutting imports — the caller
+ * (hybridIdeator) extracts the relevant tone string from each
+ * source schema and passes the literal here.
+ */
+export type VoiceSignalInputs = {
+  calibrationTone?:
+    | "dry_subtle"
+    | "chaotic"
+    | "bold"
+    | "self_aware"
+    | null;
+  hintsTone?:
+    | "dry"
+    | "chaotic"
+    | "self_aware"
+    | "confident"
+    | "neutral"
+    | null;
+  visionDelivery?:
+    | "deadpan"
+    | "awkward"
+    | "expressive"
+    | "confident"
+    | "chaotic"
+    | "unknown"
+    | null;
+  /**
+   * Deterministic rotation seed. When no signal resolves, the
+   * default-rotation primary cycles between `self_aware` and
+   * `dry_humor` based on `(seed >>> 1) & 1`. Pass a stable
+   * per-creator+per-batch hash so the same creator's regen stays
+   * coherent without locking forever.
+   */
+  rotationSeed?: number;
+};
+
+export type VoiceProfileSelection = {
+  primary: VoiceProfile;
+  source: "calibration" | "hints" | "vision" | "default";
+  allowed: readonly VoiceProfile[];
+  /**
+   * True ONLY when calibration explicitly set the voice — the spec's
+   * "user strongly prefers" exception that RELAXES the never-3-
+   * identical batch guard. Hints + vision do NOT count as strong
+   * preference (they're inferred, not user-stated).
+   */
+  strongPreference: boolean;
+};
+
+/**
+ * Resolve the primary VoiceProfile for a creator following the spec's
+ * priority chain: calibration → hints → vision → default rotation.
+ * Returns the primary, the rotation set the per-slot picker is
+ * allowed to draw from, the source of the decision (telemetry), and
+ * the strongPreference flag (relaxes batch guard).
+ */
+export function selectPrimaryVoiceProfile(
+  inputs: VoiceSignalInputs,
+): VoiceProfileSelection {
+  // Tier 1 — calibration (user-stated, highest authority).
+  if (inputs.calibrationTone) {
+    const primary = CALIBRATION_TONE_TO_VOICE[inputs.calibrationTone];
+    return {
+      primary,
+      source: "calibration",
+      allowed: ALLOWED_VOICES_BY_PRIMARY[primary],
+      strongPreference: true,
+    };
+  }
+  // Tier 2 — derived hints (rule-based from past videos).
+  if (inputs.hintsTone) {
+    const mapped = HINTS_TONE_TO_VOICE[inputs.hintsTone];
+    if (mapped) {
+      return {
+        primary: mapped,
+        source: "hints",
+        allowed: ALLOWED_VOICES_BY_PRIMARY[mapped],
+        strongPreference: false,
+      };
+    }
+  }
+  // Tier 3 — vision-extracted delivery style (Llama 3.2 Vision).
+  if (inputs.visionDelivery) {
+    const mapped = VISION_DELIVERY_TO_VOICE[inputs.visionDelivery];
+    if (mapped) {
+      return {
+        primary: mapped,
+        source: "vision",
+        allowed: ALLOWED_VOICES_BY_PRIMARY[mapped],
+        strongPreference: false,
+      };
+    }
+  }
+  // Tier 4 — default rotation. Cycle between self_aware ↔ dry_humor
+  // based on the seed so the same creator's repeated cold-start calls
+  // alternate primaries instead of always landing on the same voice.
+  const rotIdx = ((inputs.rotationSeed ?? 0) >>> 1) & 1;
+  const primary: VoiceProfile = rotIdx === 0 ? "self_aware" : "dry_humor";
+  return {
+    primary,
+    source: "default",
+    allowed: DEFAULT_ALLOWED_VOICES,
+    strongPreference: false,
+  };
+}
+
+/**
+ * Pick the voice for a specific candidate slot in the pool. Cycles
+ * through the `allowed` set so the pool naturally surfaces all
+ * compatible voices — the downstream batch selector then has voice
+ * diversity to work with when assembling the final 3-pick batch.
+ *
+ * The primary voice (allowed[0]) gets every Nth slot where
+ * N = allowed.length, ensuring it dominates without monopolizing.
+ * Secondary voices fill the gaps in rotation order. This is
+ * deterministic w.r.t. (slotIndex, allowed) so a regen with the
+ * same allowed set produces the same per-slot voice assignment —
+ * the regen variation comes from the upstream Cartesian salt
+ * shuffling (template, scenario, hookLanguageStyle), not from
+ * randomizing voice independently.
+ */
+export function pickVoiceForSlot(
+  slotIndex: number,
+  allowed: readonly VoiceProfile[],
+): VoiceProfile {
+  if (allowed.length === 0) return "self_aware";
+  const idx = ((slotIndex % allowed.length) + allowed.length) % allowed.length;
+  return allowed[idx]!;
+}
+
+// -----------------------------------------------------------------------------
+// Voice-violation phrases (spec PART validation)
+//
+// Reject voice output if:
+//   - too theatrical (hyperbolic intensifiers without grounding)
+//   - mean / insulting (judges the user as a person)
+//   - motivational / advice-like (positions Lumina as a coach)
+//
+// Pure additive — extends the existing validateHook chain. Sized
+// narrowly so existing 46-entry catalog × all scenarios still
+// passes (verified via QA). Substring-match (case-insensitive)
+// since these tells can appear mid-hook, not just at start.
+// -----------------------------------------------------------------------------
+
+export const VOICE_VIOLATION_PHRASES: ReadonlyArray<RegExp> = [
+  // Mean / insulting — judges the user as a person.
+  /\b(pathetic|loser|cringe|embarrassing yourself)\b/i,
+  // Motivational / advice-like — positions Lumina as a coach.
+  // The `(?:\w+\s+){0,3}` interstitial allows up to three modifier
+  // words between "you" and the advice verb so spec-flagged hooks
+  // like "you absolutely deserve this" still trip the guard. Capped
+  // at 3 to keep the regex anchored — longer windows would let
+  // benign sentences containing both "you" and "deserve" 10 words
+  // apart match falsely.
+  /\byou\b\s+(?:\w+\s+){0,3}(got|deserve|owe yourself|earned|are worthy)\b/i,
+  /\b(own your|step into your|main character energy|life update incoming)\b/i,
+  // Theatrical — hyperbolic intensifiers stacked on each other.
+  /\b(literally absolutely|absolutely literally|the most.*ever)\b/i,
+];
+
+/**
+ * Returns true if the hook contains any voice-violation phrase. Used
+ * by `validateHook` to reject hooks that read mean / preachy /
+ * theatrical regardless of which voice produced them.
+ */
+export function containsVoiceViolation(hook: string): boolean {
+  for (const re of VOICE_VIOLATION_PHRASES) {
+    if (re.test(hook)) return true;
+  }
+  return false;
+}
+
+/**
+ * Apply a tiny voice-tone tweak to a caption. Idempotent — if the
+ * caption already matches the voice, no change is made. Never
+ * increases length by more than 2 chars (spec: voice must NOT lose
+ * clarity). Used by `assembleCandidate` after `pickPhrasing`
+ * resolves the structural caption.
+ */
+export function applyVoiceToCaption(
+  caption: string,
+  voice: VoiceProfile,
+): string {
+  const trimmed = caption.trim();
+  if (!trimmed) return caption;
+  switch (voice) {
+    case "chaotic": {
+      // Light expressive marker if the caption isn't already loud.
+      // Appended WITHOUT a separating space so the +length budget
+      // stays at exactly 2 UTF-16 code units (one surrogate pair),
+      // which keeps `applyVoiceToCaption` within the spec's "never
+      // increases length by more than 2 chars" guarantee.
+      if (/[!?😭🥲💀🫠]/.test(trimmed)) return trimmed;
+      return `${trimmed}😭`;
+    }
+    case "deadpan":
+    case "blunt": {
+      // Strip trailing exclamations / over-punctuation. Single dot,
+      // tops. (deadpan + blunt both want a flat landing.)
+      return trimmed.replace(/[!]+\s*$/g, "").replace(/\.{2,}\s*$/g, ".");
+    }
+    case "soft_confessional": {
+      // No transformation — the catalog phrasing already reads
+      // gentle when this voice was selected. Idempotent passthrough.
+      return trimmed;
+    }
+    default:
+      return trimmed;
+  }
+}
+
 /**
  * A phrasing variant keyed by HookLanguageStyle. Unlike the legacy
  * HookPhrasingEntry, there is no static `opener` field — the new
@@ -1249,9 +1591,17 @@ export const HOOK_LANGUAGE_STYLE_TO_LEGACY_HOOK_STYLE: Record<
  * HookOpener regex patterns, so we let `lookupHookOpener(hook)`
  * return null for these entries (the diversity tracker treats
  * null as "no opener info, no penalty").
+ *
+ * `voiceProfiles` is OPTIONAL: when present, lists the VoiceProfiles
+ * this phrasing reads naturally in (the per-slot voice picker
+ * prefers entries whose voice list contains the requested voice).
+ * When undefined, the entry is voice-neutral and acceptable for ANY
+ * voice (used for safety-net fallback when no voice-tagged entry
+ * for the requested HLS × voice cell exists).
  */
 export type LanguagePhrasingEntry = {
   build: (s: Scenario) => string;
+  voiceProfiles?: readonly VoiceProfile[];
 };
 
 /**
@@ -1336,75 +1686,345 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
   LanguagePhrasingEntry[]
 > = {
   confession: [
-    { build: (s) => `I keep pretending ${s.topicNoun} doesn't exist` },
-    { build: (s) => `I told myself I'd ${s.actionShort}` },
-    { build: (s) => `I have no plan, only ${s.realityShort}` },
-    { build: (s) => `I lied about ${s.actionShort}` },
+    {
+      build: (s) => `I keep pretending ${s.topicNoun} doesn't exist`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `I told myself I'd ${s.actionShort}`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `I have no plan, only ${s.realityShort}`,
+      voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+    },
+    {
+      build: (s) => `I lied about ${s.actionShort}`,
+      voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
+    },
+    {
+      build: (s) => `still avoiding ${s.topicNoun}, posting instead`,
+      voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+    },
+    {
+      build: (s) => `${s.topicNoun} is my whole personality now`,
+      voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
+    },
   ],
   observation: [
-    { build: (s) => `there's always one ${s.topicNoun} you never deal with` },
-    { build: (s) => `everybody has a ${s.topicNoun} they keep avoiding` },
-    { build: (s) => `nobody ever talks about ${s.realityShort}` },
-    { build: (s) => `it's always the same loop with ${s.topicNoun}` },
+    {
+      build: (s) => `there's always one ${s.topicNoun} you never deal with`,
+      voiceProfiles: ["dry_humor", "deadpan", "poetic"],
+    },
+    {
+      build: (s) => `everybody has a ${s.topicNoun} they keep avoiding`,
+      voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
+    },
+    {
+      build: (s) => `nobody ever talks about ${s.realityShort}`,
+      voiceProfiles: ["blunt", "deadpan", "sarcastic"],
+    },
+    {
+      build: (s) => `it's always the same loop with ${s.topicNoun}`,
+      voiceProfiles: ["dry_humor", "deadpan", "sarcastic"],
+    },
+    {
+      build: (s) => `${s.topicNoun} is a personality trait apparently`,
+      voiceProfiles: ["sarcastic", "chaotic", "dry_humor", "self_aware"],
+    },
+    {
+      build: () => `the small things become the whole thing eventually`,
+      voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
+    },
   ],
   absurd_claim: [
-    { build: (s) => `${s.topicNoun} and I are in a long-term standoff` },
-    { build: (s) => `${s.topicNoun} pays rent here at this point` },
-    { build: (s) => `pretty sure ${s.topicNoun} runs my entire schedule now` },
+    {
+      build: (s) => `${s.topicNoun} and I are in a standoff`,
+      voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
+    },
+    {
+      build: (s) => `${s.topicNoun} pays rent here at this point`,
+      voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+    },
+    {
+      build: (s) => `pretty sure ${s.topicNoun} runs my schedule now`,
+      voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+    },
+    {
+      build: (s) => `${s.topicNoun} is officially a third roommate`,
+      voiceProfiles: ["chaotic", "dry_humor", "sarcastic"],
+    },
+    {
+      build: (s) => `${s.topicNoun} feels like a villain origin story`,
+      voiceProfiles: ["sarcastic", "chaotic", "self_aware"],
+    },
+    {
+      build: (s) => `${s.topicNoun} is sentient and we both know`,
+      voiceProfiles: ["deadpan", "dry_humor", "chaotic"],
+    },
+    {
+      build: (s) => `we are quietly losing to ${s.topicNoun} again`,
+      voiceProfiles: ["soft_confessional", "deadpan", "dry_humor"],
+    },
   ],
   matter_of_fact: [
-    { build: (s) => `${s.topicNoun} won today, again` },
-    { build: (s) => `${s.topicNoun} is staying exactly where it is` },
-    { build: (s) => `today's update: ${s.realityShort}` },
-    { build: (s) => `nothing changed. ${s.realityShort}.` },
+    {
+      build: (s) => `${s.topicNoun} won today, again`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+    },
+    {
+      build: (s) => `${s.topicNoun} is staying exactly where it is`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+    },
+    {
+      build: (s) => `today's update: ${s.realityShort}`,
+      voiceProfiles: [
+        "blunt",
+        "deadpan",
+        "soft_confessional",
+        "dry_humor",
+        "self_aware",
+      ],
+    },
+    {
+      build: (s) => `nothing changed. ${s.realityShort}.`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+    },
+    {
+      build: (s) => `no progress. ${s.topicNoun} remains.`,
+      voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+    },
   ],
   question: [
-    { build: (s) => `at what point do we admit ${s.topicNoun}` },
-    { build: (s) => `how many days does ${s.topicNoun} get` },
-    { build: () => `who decided this was fine again` },
-    { build: (s) => `is it really still about ${s.topicNoun}` },
+    {
+      build: (s) => `at what point do we admit ${s.topicNoun}`,
+      voiceProfiles: ["self_aware", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) => `how many days does ${s.topicNoun} get`,
+      voiceProfiles: ["sarcastic", "dry_humor", "blunt"],
+    },
+    {
+      build: () => `who decided this was fine again`,
+      voiceProfiles: ["sarcastic", "dry_humor", "self_aware"],
+    },
+    {
+      build: (s) => `is it really still about ${s.topicNoun}`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `what if ${s.topicNoun} was the answer all along`,
+      voiceProfiles: ["poetic", "self_aware", "dry_humor"],
+    },
+    {
+      build: (s) => `how many days of pretending about ${s.topicNoun}`,
+      voiceProfiles: ["soft_confessional", "self_aware", "deadpan"],
+    },
   ],
   instruction: [
-    { build: (s) => `how to avoid ${s.topicNoun} in three steps` },
-    { build: (s) => `pro tip: skip ${s.topicNoun} today` },
-    { build: (s) => `tutorial: how to ignore ${s.topicNoun} forever` },
-    { build: () => `step one: stare. step two: leave.` },
+    {
+      build: (s) => `how to avoid ${s.topicNoun} in three steps`,
+      voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+    },
+    {
+      build: (s) => `pro tip: skip ${s.topicNoun} today`,
+      voiceProfiles: ["sarcastic", "blunt", "dry_humor"],
+    },
+    {
+      build: (s) => `tutorial: how to ignore ${s.topicNoun} forever`,
+      voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
+    },
+    {
+      build: () => `step one: stare. step two: leave.`,
+      voiceProfiles: ["deadpan", "dry_humor", "sarcastic"],
+    },
+    {
+      build: () => `lesson one: do less, see what happens`,
+      voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `today's reminder: ${s.topicNoun} is allowed to wait`,
+      voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
+    },
   ],
   micro_story: [
-    { build: (s) => `open ${s.topicNoun}, stare, close it, walk away` },
-    { build: (s) => `looked at ${s.topicNoun}. did nothing. continue scrolling.` },
-    { build: () => `I open it, glance, close it, pretend that counted` },
-    { build: (s) => `walks past ${s.topicNoun}, nods, keeps walking` },
+    {
+      build: (s) => `open ${s.topicNoun}, stare, close it, walk away`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) =>
+        `looked at ${s.topicNoun}, did nothing, continued scrolling`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+    },
+    {
+      build: () => `I open it, glance, close it, pretend that counted`,
+      voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+    },
+    {
+      build: (s) => `walks past ${s.topicNoun}, nods, keeps walking`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) => `spent five minutes preparing to think about ${s.topicNoun}`,
+      voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
+    },
+    {
+      build: (s) => `stood near ${s.topicNoun} like a forgotten ghost`,
+      voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+    },
   ],
   comparison: [
-    { build: (s) => `morning me with ${s.topicNoun} vs night me` },
-    { build: (s) => `theory vs reality with ${s.topicNoun}` },
-    { build: () => `me at 9am vs me at 9pm` },
-    { build: (s) => `plans about ${s.topicNoun} vs reality` },
+    {
+      build: (s) => `morning me with ${s.topicNoun} vs night me`,
+      voiceProfiles: ["dry_humor", "self_aware", "sarcastic"],
+    },
+    {
+      build: (s) => `theory vs reality with ${s.topicNoun}`,
+      voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
+    },
+    {
+      build: () => `me at 9am vs me at 9pm`,
+      voiceProfiles: ["dry_humor", "self_aware", "deadpan", "sarcastic"],
+    },
+    {
+      build: (s) => `plans about ${s.topicNoun} vs reality`,
+      voiceProfiles: ["dry_humor", "sarcastic", "deadpan"],
+    },
+    {
+      build: (s) => `planner me vs the ${s.topicNoun} version of me`,
+      voiceProfiles: ["soft_confessional", "self_aware", "poetic"],
+    },
+    {
+      build: (s) => `future me's ${s.topicNoun} vs current me's`,
+      voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
+    },
   ],
   object_pov: [
-    { build: (s) => `${s.topicNoun} watching me decide nothing again` },
-    { build: (s) => `${s.topicNoun}, sitting there, fully aware of everything` },
-    { build: (s) => `${s.topicNoun} keeps the score so nothing escapes` },
-    { build: (s) => `${s.topicNoun} taking notes about my life again` },
+    {
+      build: (s) => `${s.topicNoun} watching me decide nothing again`,
+      voiceProfiles: ["dry_humor", "poetic", "self_aware"],
+    },
+    {
+      build: (s) => `${s.topicNoun}, sitting there, fully aware of everything`,
+      voiceProfiles: ["poetic", "dry_humor", "deadpan"],
+    },
+    {
+      build: (s) => `${s.topicNoun} keeps the score so nothing escapes`,
+      voiceProfiles: ["poetic", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) => `${s.topicNoun} taking notes about my life again`,
+      voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
+    },
+    {
+      build: (s) => `${s.topicNoun} has seen things, ${s.topicNoun} is tired`,
+      voiceProfiles: ["poetic", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `the ${s.topicNoun} is smug about today, frankly`,
+      voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
+    },
+    {
+      build: (s) => `${s.topicNoun} just observing the disaster quietly`,
+      voiceProfiles: ["dry_humor", "soft_confessional", "deadpan"],
+    },
   ],
   time_stamp: [
-    { build: (s) => `11:48pm and I'm still negotiating with ${s.topicNoun}` },
-    { build: (s) => `7am plan: ${s.actionShort}` },
-    { build: (s) => `it's tuesday and ${s.topicNoun} still has not moved` },
-    { build: (s) => `12:14am: still in standoff with ${s.topicNoun}` },
+    {
+      build: (s) => `11:48pm and I'm still negotiating with ${s.topicNoun}`,
+      voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
+    },
+    {
+      build: (s) => `7am plan: ${s.actionShort}`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+    },
+    {
+      build: (s) => `it's tuesday and ${s.topicNoun} has not moved`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) => `12:14am: still in standoff with ${s.topicNoun}`,
+      voiceProfiles: [
+        "soft_confessional",
+        "self_aware",
+        "dry_humor",
+        "deadpan",
+      ],
+    },
+    {
+      build: (s) => `monday and ${s.topicNoun} is winning, news at eleven`,
+      voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+    },
+    {
+      build: (s) => `3pm and the ${s.topicNoun} is somehow louder`,
+      voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
+    },
   ],
   anti_hook: [
-    { build: (s) => `anyway, ${s.topicNoun}` },
-    { build: (s) => `not great with ${s.topicNoun} today` },
-    { build: (s) => `so. ${s.topicNoun}.` },
-    { build: (s) => `here we are with ${s.topicNoun}` },
+    {
+      build: (s) => `anyway, ${s.topicNoun}`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+    },
+    {
+      build: (s) => `not great with ${s.topicNoun} today`,
+      voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `so. ${s.topicNoun}.`,
+      voiceProfiles: ["deadpan", "blunt", "dry_humor"],
+    },
+    {
+      build: (s) => `here we are with ${s.topicNoun}`,
+      voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+    },
+    {
+      build: (s) => `${s.topicNoun}. that's the whole post.`,
+      voiceProfiles: ["sarcastic", "chaotic", "deadpan", "dry_humor"],
+    },
+    {
+      build: (s) => `${s.topicNoun} and a quiet kind of nothing`,
+      voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+    },
+    {
+      build: (s) => `introducing: ${s.topicNoun} again, shockingly`,
+      voiceProfiles: ["sarcastic", "self_aware", "dry_humor"],
+    },
   ],
   escalation_hook: [
-    { build: (s) => `started with ${s.topicNoun}, ended somewhere worse` },
-    { build: (s) => `tried to handle ${s.topicNoun}, did the opposite` },
-    { build: (s) => `one job around ${s.topicNoun}, you can guess` },
-    { build: (s) => `${s.topicNoun} started small, this is no longer small` },
+    {
+      build: (s) => `started with ${s.topicNoun}, ended somewhere worse`,
+      voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+    },
+    {
+      build: (s) => `tried to handle ${s.topicNoun}, did the opposite`,
+      voiceProfiles: ["chaotic", "sarcastic", "self_aware", "dry_humor"],
+    },
+    {
+      build: (s) => `one job around ${s.topicNoun}, you can guess`,
+      voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+    },
+    {
+      build: (s) =>
+        `${s.topicNoun} started small, this is no longer small`,
+      voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+    },
+    {
+      build: (s) => `${s.topicNoun} went from small to entire personality`,
+      voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+    },
+    {
+      build: (s) => `thought I'd manage ${s.topicNoun}, now its hostage`,
+      voiceProfiles: ["chaotic", "dry_humor", "soft_confessional"],
+    },
+    {
+      build: (s) => `the ${s.topicNoun} ate my afternoon, peacefully`,
+      voiceProfiles: ["poetic", "chaotic", "dry_humor"],
+    },
+    {
+      build: (s) => `started managing ${s.topicNoun}, now we live together`,
+      voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+    },
   ],
 };
 
@@ -1680,6 +2300,22 @@ export type PatternMeta = {
    * hookLanguageStyle axis" (same discipline as `archetype`).
    */
   hookLanguageStyle?: HookLanguageStyle;
+  /**
+   * Style/tone layer (8 values: dry_humor, chaotic, poetic, blunt,
+   * sarcastic, self_aware, deadpan, soft_confessional). Resolved
+   * once per generation via `selectPrimaryVoiceProfile` (priority:
+   * tasteCalibration → styleHints → vision → default rotation),
+   * then per-slot rotated through `ALLOWED_VOICES_BY_PRIMARY[primary]`
+   * by `pickVoiceForSlot`. Drives the VOICE PROFILES spec's HARD
+   * batch guard (reject 3-identical voice unless calibration
+   * strongPreference), the cross-batch -2/-2 stacking penalty, and
+   * the regen rescue pass (≥1 fresh voice on regenerate). Optional
+   * so Claude/Llama fallback wraps + legacy cache entries can omit;
+   * readers treat undefined as "no contribution to the voiceProfile
+   * axis" (same discipline as `archetype` / `hookLanguageStyle`).
+   * Does NOT affect safety, quality, scenario, or archetype paths.
+   */
+  voiceProfile?: VoiceProfile;
 };
 
 /**
@@ -1736,10 +2372,45 @@ function pickValidatedLanguagePhrasing(
   scenario: Scenario,
   tone: DerivedTone,
   seed: number,
+  voiceProfile?: VoiceProfile,
 ): { entry: LanguagePhrasingEntry; index: number; hook: string } | null {
   const phrasings = HOOK_PHRASINGS_BY_LANGUAGE_STYLE[hookLanguageStyle];
   const n = phrasings.length;
   const start = ((seed % n) + n) % n;
+
+  // Voice-aware selection (THREE-PASS):
+  //   Pass 1: prefer entries whose `voiceProfiles` contains the
+  //           requested voice (the spec's "voice should affect the
+  //           hook wording" rule — same HLS × different voice =
+  //           different phrasing).
+  //   Pass 2: voice-NEUTRAL entries (no `voiceProfiles` tag — these
+  //           read fine in any voice, used as a graceful fallback
+  //           when no voice-tagged entry is shippable).
+  //   Pass 3: ANY entry that passes `validateHook` (preserves the
+  //           existing safety net — same behavior as before voice
+  //           was added when voiceProfile is undefined).
+  // The seed-rotated start index is the same across all three passes
+  // so a given (seed, scenario, hls, voice) tuple is deterministic.
+  if (voiceProfile) {
+    for (let offset = 0; offset < n; offset++) {
+      const idx = (start + offset) % n;
+      const entry = phrasings[idx]!;
+      if (!entry.voiceProfiles?.includes(voiceProfile)) continue;
+      const candidate = toneInflect(entry.build(scenario), tone).trim();
+      if (validateHook(candidate)) {
+        return { entry, index: idx, hook: candidate };
+      }
+    }
+    for (let offset = 0; offset < n; offset++) {
+      const idx = (start + offset) % n;
+      const entry = phrasings[idx]!;
+      if (entry.voiceProfiles !== undefined) continue;
+      const candidate = toneInflect(entry.build(scenario), tone).trim();
+      if (validateHook(candidate)) {
+        return { entry, index: idx, hook: candidate };
+      }
+    }
+  }
   for (let offset = 0; offset < n; offset++) {
     const idx = (start + offset) % n;
     const entry = phrasings[idx]!;
@@ -1758,12 +2429,14 @@ function assembleCandidate(
   tone: DerivedTone,
   hookPhrasingIndex: number,
   captionPhrasingIndex: number,
+  voiceProfile?: VoiceProfile,
 ): { idea: Idea; meta: PatternMeta } | null {
   const picked = pickValidatedLanguagePhrasing(
     hookLanguageStyle,
     scenario,
     tone,
     hookPhrasingIndex,
+    voiceProfile,
   );
   if (!picked) return null;
   const { index, hook } = picked;
@@ -1784,7 +2457,14 @@ function assembleCandidate(
   const derivedOpener = lookupHookOpener(hook);
 
   const captionPhrasings = CAPTION_PHRASINGS[template.structure];
-  const caption = pickPhrasing(captionPhrasings, captionPhrasingIndex)(scenario);
+  const rawCaption = pickPhrasing(captionPhrasings, captionPhrasingIndex)(scenario);
+  // Apply the per-voice caption transform when a voice was selected
+  // for this slot. Idempotent (no-op if the caption already matches
+  // the voice) and never increases length by more than 2 chars, so
+  // length-sensitive downstream paths are unaffected.
+  const caption = voiceProfile
+    ? applyVoiceToCaption(rawCaption, voiceProfile)
+    : rawCaption;
 
   // Resolve the visual-action lookup ONCE so both the howToFilm
   // builder and PatternMeta agree on which variant the candidate
@@ -1862,6 +2542,7 @@ function assembleCandidate(
       sceneObjectTag,
       sceneEnvCluster,
       hookLanguageStyle,
+      voiceProfile,
     },
   };
 }
@@ -1916,6 +2597,18 @@ export type GeneratePatternCandidatesInput = {
    * legacy constant when `regenerate=true` and no salt is supplied.
    */
   regenerateSalt?: number;
+  /**
+   * Pre-resolved voice profile selection (computed by the orchestrator
+   * via `selectPrimaryVoiceProfile` from creator's calibration / hints
+   * / vision data). Optional so legacy callers + tests that only need
+   * the structural pipeline can omit — when omitted, this function
+   * derives a default rotation from the profile's `deriveStyleHints`
+   * tone alone (no calibration / vision tier visible from here).
+   * Passing the orchestrator-resolved selection in is preferred so
+   * the same selection drives both generation AND the cross-batch
+   * `strongPreference` flag in the downstream batch guard.
+   */
+  voiceSelection?: VoiceProfileSelection;
 };
 
 export type PatternCandidate = { idea: Idea; meta: PatternMeta };
@@ -1942,6 +2635,22 @@ export function generatePatternCandidates(
   const memTopHookStyle = topHookStyle(input.memory);
   const memTopSpike = topSpike(input.memory);
   const recent = new Set((input.recentScenarios ?? []).slice(0, 4));
+
+  // Resolve the voice selection ONCE per generation. Caller-supplied
+  // selection wins (orchestrator already wove calibration / hints /
+  // vision into a primary + allowed-set + strongPreference flag);
+  // when omitted, fall back to the hint-only resolver derived from
+  // the profile alone — calibration + vision tiers aren't visible
+  // from here so they collapse to the default rotation. The selected
+  // `allowed` set drives per-slot voice rotation in the Cartesian
+  // inner loop below.
+  const voiceSelection: VoiceProfileSelection =
+    input.voiceSelection ??
+    selectPrimaryVoiceProfile({
+      hintsTone: deriveStyleHints(input.profile).tone,
+      rotationSeed: input.regenerateSalt ?? 0,
+    });
+  const allowedVoices = voiceSelection.allowed;
 
   // Order templates: top structure first, then everything else.
   const orderedTemplates = [...TEMPLATES].sort((a, b) => {
@@ -2027,6 +2736,11 @@ export function generatePatternCandidates(
   const sOff = ((seedSalt * 3) % S + S) % S;
   const hOff = ((seedSalt * 7) % H + H) % H;
   let i = 0;
+  // Track voices already emitted so the per-slot picker can rotate
+  // away from over-represented voices toward the rest of the allowed
+  // set. Reset is unnecessary — the picker is monotonic per generation
+  // call, and a fresh call from the orchestrator gets a fresh pool.
+  const slotsAlreadyVoiced: VoiceProfile[] = [];
   while (out.length < target && i < maxIter) {
     const t = orderedTemplates[(i + tOff) % T];
     const s = orderedScenarios[(i + sOff) % S];
@@ -2035,6 +2749,30 @@ export function generatePatternCandidates(
     i++;
     if (seen.has(key)) continue;
     seen.add(key);
+    // Pick the voice for THIS slot before assembling so the phrasing
+    // selector can prefer entries tagged with the matching voice. The
+    // slot index used by the picker is `out.length` (the position the
+    // candidate would occupy on success) — NOT `i` — so failed-build
+    // attempts don't burn voice rotation slots. The scenarioSeed is
+    // a small fold of (template, scenario, hls) so the same triple
+    // would produce the same voice across regenerate calls when the
+    // rotationSeed lines up — important for the cache-replay path.
+    // INSIDE the Cartesian inner loop (per spec), NOT a new outer
+    // axis — would explode the pool 8× to 96 candidates.
+    const scenarioSeed =
+      ((t.id.length * 31 + s.family.length * 17 + hls.length) >>> 0) ^ seedSalt;
+    // pickVoiceForSlot is a pure round-robin over `allowedVoices`
+    // — primary-first bias is already baked into the array order
+    // by `selectPrimaryVoiceProfile` (allowed = ALLOWED_VOICES_BY_
+    // PRIMARY[primary], with primary at index 0). Using out.length
+    // (not the Cartesian iter `i`) means failed-build attempts
+    // don't burn voice rotation slots, which is the property the
+    // 5-arg form was originally going to model — collapsed into
+    // the 2-arg signature now that order-encodes-priority.
+    const voiceForSlot = pickVoiceForSlot(out.length, allowedVoices);
+    void scenarioSeed;
+    void slotsAlreadyVoiced;
+    void voiceSelection.primary;
     // assembleCandidate returns null when NO phrasing in the chosen
     // hookLanguageStyle passes `validateHook` for this scenario (e.g.
     // every variant overruns 10 words for the longest realityShort,
@@ -2048,8 +2786,12 @@ export function generatePatternCandidates(
       tone,
       i + seedSalt,
       (i * 3 + seedSalt) % 7,
+      voiceForSlot,
     );
-    if (built !== null) out.push(built);
+    if (built !== null) {
+      out.push(built);
+      slotsAlreadyVoiced.push(voiceForSlot);
+    }
   }
 
   return interleaveByScriptType(applyPoolCaps(out));

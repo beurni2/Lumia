@@ -38,6 +38,8 @@ import {
   lookupVisualActionPattern,
   SCRIPT_TYPE_CLUSTERS,
   SCRIPT_TYPES,
+  selectPrimaryVoiceProfile,
+  VOICE_PROFILES,
   type Energy,
   type HookLanguageStyle,
   type HookOpener,
@@ -46,7 +48,10 @@ import {
   type Setting,
   type TopicLane,
   type VisualActionPattern,
+  type VoiceProfile,
+  type VoiceProfileSelection,
 } from "./patternIdeator";
+import { parseTasteCalibration } from "./tasteCalibration";
 import {
   filterAndRescore,
   scoreNovelty,
@@ -219,7 +224,21 @@ function greedySelect(
   return picked;
 }
 
-export function batchGuardsPass(batch: ScoredCandidate[]): boolean {
+export function batchGuardsPass(
+  batch: ScoredCandidate[],
+  /**
+   * VOICE PROFILES spec — optional context for the 3-identical voice
+   * hard reject. When `voiceStrongPreference === true`, the guard
+   * BYPASSES the all-3-identical-voiceProfile rejection (the user
+   * explicitly locked to that voice via tasteCalibration; forcing
+   * a rotation would contradict their stated choice). Default
+   * undefined ⇒ enforce the rotation guard normally for hints /
+   * vision / default-rotation tiers. All other guards (opener,
+   * setting, archetype, hookLanguageStyle, scriptType, etc.) are
+   * unaffected by this flag — they enforce regardless.
+   */
+  ctx?: { voiceStrongPreference?: boolean },
+): boolean {
   if (batch.length === 0) return false;
 
   // ---------------------------------------------------------------
@@ -358,6 +377,29 @@ export function batchGuardsPass(batch: ScoredCandidate[]): boolean {
   ) {
     return false;
   }
+  // VOICE PROFILES spec — HARD reject only the all-3-identical worst
+  // case, AND only when the creator's primary voice did NOT come
+  // from explicit calibration. A creator who locked their preferred
+  // tone via tasteCalibration deserves three picks in that voice
+  // rather than a forced rotation; the spec carves this out as the
+  // "user strongly prefers" exception. For hints / vision / default-
+  // rotation tiers (`voiceStrongPreference !== true`), 3-of-same
+  // is rejected — the soft within-batch -2 in selectionPenalty
+  // discourages 2-of-same without rejecting the whole batch. Skip
+  // when fields missing on legacy / fallback entries — same
+  // discipline as the hookLanguageStyle / archetype guards above.
+  if (!ctx?.voiceStrongPreference) {
+    const voiceProfiles: VoiceProfile[] = [];
+    for (const b of batch) {
+      if (b.meta.voiceProfile) voiceProfiles.push(b.meta.voiceProfile);
+    }
+    if (
+      voiceProfiles.length === batch.length &&
+      new Set(voiceProfiles).size === 1
+    ) {
+      return false;
+    }
+  }
   // No more than 2 share scriptType — narrative-shape diversity. The
   // headline anti-clone guard from the script-diversity spec: without
   // it, 3 picks with distinct families but identical narrative shape
@@ -446,7 +488,7 @@ function exhaustiveReselect(
   function recurse(slot: number, start: number): void {
     if (slot === count) {
       const batch = indices.map((i) => top[i]);
-      if (!batchGuardsPass(batch)) return;
+      if (!batchGuardsPass(batch, { voiceStrongPreference: ctx.voiceStrongPreference })) return;
       if (extraGuard && !extraGuard(batch)) return;
       let total = 0;
       const partial: ScoredCandidate[] = [];
@@ -616,6 +658,51 @@ export function batchHasNewHookLanguageStyle(
 }
 
 /**
+ * Count distinct fresh voiceProfiles in `batch` — i.e. voices present
+ * in `batch` but absent from `recent`. VOICE PROFILES spec regen-
+ * rescue helper. Picks without a voiceProfile (Llama / Claude
+ * fallback wraps may omit) don't count as fresh. Vacuously every-
+ * distinct when `recent` is empty / undefined (no prior batch ⇒
+ * any pick is novel).
+ */
+export function countNewVoiceProfiles(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<VoiceProfile> | undefined,
+): number {
+  const seen = new Set<VoiceProfile>();
+  for (const c of batch) {
+    const vp = c.meta.voiceProfile;
+    if (!vp) continue;
+    if (recent && recent.size > 0 && recent.has(vp)) continue;
+    seen.add(vp);
+  }
+  return seen.size;
+}
+
+/**
+ * Predicate for the regen-fresh-voiceProfile rescue: at least one
+ * pick carries a voiceProfile NOT in `recent`. Same vacuously-true
+ * + skip-missing-fields discipline as the hookLanguageStyle variant
+ * above. Sized as a "≥1 fresh" minimum (not a count) — the harder
+ * "prefer 2-3 distinct voices per batch" goal lives in the soft
+ * within-batch -2 penalty in `selectionPenalty`, not here, because
+ * the voice catalog is only 8 values and a creator's allowed-set
+ * is typically 3-4 (so a strict 2-fresh hard rescue would starve
+ * on narrow allowed-sets where the prior batch covered 2-3 of them).
+ */
+export function batchHasNewVoiceProfile(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<VoiceProfile> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const vp = c.meta.voiceProfile;
+    if (vp && !recent.has(vp)) return true;
+  }
+  return false;
+}
+
+/**
  * Predicate for the regen-fresh-scriptType rescue path. Returns true
  * when at least one pick in `batch` carries a scriptType that is NOT
  * in the immediate-prior batch's `recent` set. Vacuously true when
@@ -652,7 +739,7 @@ export function selectWithNovelty(
 
   const greedy = greedySelect(pool, count, ctx);
   let chosen: ScoredCandidate[] | null = null;
-  if (batchGuardsPass(greedy)) {
+  if (batchGuardsPass(greedy, { voiceStrongPreference: ctx.voiceStrongPreference })) {
     chosen = greedy;
   } else {
     // Greedy violated guards — try exhaustive search over top candidates.
@@ -804,6 +891,51 @@ export function selectWithNovelty(
       );
     }
   }
+  // VOICE PROFILES spec rescue: when regenerating, the picked batch
+  // MUST introduce at least one voiceProfile that wasn't in the
+  // immediate-prior batch. ExtraGuard composes with ALL FOUR prior
+  // invariants (scriptType + archetypeFamily + sceneObjectTag +
+  // hookLanguageStyle) so this pass cannot silently downgrade any
+  // of them. Same warn-and-ship-best-effort discipline as the prior
+  // rescues. Sized as a "≥1 fresh" minimum (not "2 fresh") because
+  // the voice catalog is only 8 values and a creator's allowed-set
+  // is typically 3-4 — a stricter rescue would starve on narrow
+  // calibration sets where the prior batch covered most of them.
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentVoiceProfiles?.size ?? 0) > 0 &&
+    !batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles)
+  ) {
+    const fresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) =>
+        batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) &&
+        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
+          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
+        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
+        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
+        ((ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
+    );
+    if (fresh) {
+      chosen = fresh;
+    } else {
+      logger.warn(
+        {
+          recentVoiceProfiles: Array.from(ctx.recentVoiceProfiles ?? []),
+          poolSize: pool.length,
+          count,
+          voiceStrongPreference: ctx.voiceStrongPreference === true,
+        },
+        "hybrid_ideator.regen_no_new_voice_profile_shipping_best_effort",
+      );
+    }
+  }
   // SOFT preference (script-system FINAL spec §6): when regenerating,
   // prefer ≥2 fresh scriptTypes vs the immediate-prior batch. The hard
   // ≥1-fresh guarantee is handled above; this pass tries to upgrade
@@ -812,9 +944,12 @@ export function selectWithNovelty(
   // fails, no warn (1-fresh already meets the hard requirement).
   //
   // CRITICAL: extraGuard MUST also preserve the new archetypeFamily +
-  // sceneObjectTag + hookLanguageStyle invariants when those rescues
-  // fired — otherwise upgrading 1-fresh-script to 2-fresh-script could
-  // silently sacrifice a freshly-rescued sibling axis.
+  // sceneObjectTag + hookLanguageStyle + voiceProfile invariants when
+  // those rescues fired — otherwise upgrading 1-fresh-script to 2-
+  // fresh-script could silently sacrifice a freshly-rescued sibling
+  // axis. The voice clause uses the same vacuously-true short-circuit
+  // pattern as the others — when the prior batch had no voice info
+  // (legacy / cold-start), the clause is satisfied automatically.
   if (
     opts.regenerate &&
     chosen &&
@@ -832,7 +967,9 @@ export function selectWithNovelty(
         ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
           batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
         ((ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)) &&
+        ((ctx.recentVoiceProfiles?.size ?? 0) === 0 ||
+          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles)),
     );
     if (twoFresh) chosen = twoFresh;
   }
@@ -844,12 +981,12 @@ export function selectWithNovelty(
   // since the spec applies to all batches.
   //
   // CRITICAL: this pass MUST preserve the freshness invariant of the
-  // currently-chosen batch on ALL FOUR axes (scriptType, archetype-
-  // Family, sceneObjectTag, hookLanguageStyle) — otherwise it could
-  // silently downgrade a fresh-rescued batch into an active-but-stale
-  // batch, violating the spec's hard regen guarantees. We snapshot
-  // the current fresh count on each axis and only accept active
-  // candidates that match or exceed it.
+  // currently-chosen batch on ALL FIVE axes (scriptType, archetype-
+  // Family, sceneObjectTag, hookLanguageStyle, voiceProfile) —
+  // otherwise it could silently downgrade a fresh-rescued batch
+  // into an active-but-stale batch, violating the spec's hard regen
+  // guarantees. We snapshot the current fresh count on each axis
+  // and only accept active candidates that match or exceed it.
   if (chosen && !batchHasActive(chosen)) {
     const minFreshScriptRequired =
       opts.regenerate && (ctx.recentScriptTypes?.size ?? 0) > 0
@@ -867,6 +1004,15 @@ export function selectWithNovelty(
       opts.regenerate &&
       (ctx.recentHookLanguageStyles?.size ?? 0) > 0 &&
       batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles);
+    // VOICE PROFILES spec — same snapshot pattern as the four prior
+    // axes. Only enforced when the current batch ALREADY satisfies
+    // ≥1-fresh-voice (so we don't manufacture a freshness invariant
+    // out of thin air); when it doesn't, this clause goes no-op and
+    // the active-energy pass operates on the other four axes only.
+    const requireFreshVoice =
+      opts.regenerate &&
+      (ctx.recentVoiceProfiles?.size ?? 0) > 0 &&
+      batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles);
     const active = exhaustiveReselect(
       pool,
       count,
@@ -879,7 +1025,9 @@ export function selectWithNovelty(
         (!requireFreshTag ||
           batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
         (!requireFreshLang ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)) &&
+        (!requireFreshVoice ||
+          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles)),
     );
     if (active) chosen = active;
   }
@@ -953,6 +1101,14 @@ function buildNoveltyContext(
   // an absent tag should NOT appear in the "recent" set or it would
   // poison the +2 unused-boost / -3 demotion semantics.
   const recentHookLanguageStyles = new Set<HookLanguageStyle>();
+  // VOICE PROFILES spec — immediate-prior-batch voices. Read directly
+  // off the cache entry (first-class field, no derivation path from
+  // family / hook). Legacy entries written before the field existed
+  // contribute nothing — that's the right behavior: an absent tag
+  // should NOT appear in the "recent" set or it would poison the
+  // +1 unused-boost / -2 cross-batch demotion semantics with a
+  // ghost voice that no candidate actually shipped.
+  const recentVoiceProfiles = new Set<VoiceProfile>();
   const immediatePrior = last3Batches[0] ?? [];
   for (const e of immediatePrior) {
     if (e.family) {
@@ -969,6 +1125,7 @@ function buildNoveltyContext(
       if (tag) recentSceneObjectTags.add(tag);
     }
     if (e.hookLanguageStyle) recentHookLanguageStyles.add(e.hookLanguageStyle);
+    if (e.voiceProfile) recentVoiceProfiles.add(e.voiceProfile);
   }
   for (const e of prev) {
     if (e.family) {
@@ -1002,6 +1159,14 @@ function buildNoveltyContext(
   let unusedHookLanguageStylesLast3:
     | ReadonlySet<HookLanguageStyle>
     | undefined;
+  // VOICE PROFILES spec — only the unused-last-3 tier on this axis
+  // (no frequent-last-3 stack). Sized smallest (+1 boost in
+  // scoreNovelty vs +2 for HookLanguageStyle) because the voice
+  // pool is only 8 values and the per-creator allowed-set is
+  // typically 3-4 — over-rewarding "unused in last 3" would let a
+  // weak axis dominate well-evidenced scriptType / scene-object
+  // levers when they conflict.
+  let unusedVoiceProfilesLast3: ReadonlySet<VoiceProfile> | undefined;
   if (last3Batches.length > 0) {
     // Per-batch scriptType sets — one Set per batch so we can count
     // how many batches each scriptType appeared in (≥2 ⇒ frequent).
@@ -1076,6 +1241,26 @@ function buildNoveltyContext(
     unusedHookLanguageStylesLast3 = new Set(
       HOOK_LANGUAGE_STYLES.filter((s) => !langSeenAny.has(s)),
     );
+
+    // VOICE PROFILES spec — unused-in-last-3 on the voice axis. Same
+    // first-class read pattern as `hookLanguageStyle` above. Catalog
+    // size is 8 — typical batch covers 2-3 distinct voices, so the
+    // unused set in a healthy rotation is dominated by ≥4 entries
+    // (and shrinks fast on creators with a narrow allowed-set, which
+    // is fine because the +1 boost only fires for picks that ALSO
+    // satisfy the calibration's allowed-voice gate). Legacy-entry
+    // omission is benign: the +1 boost stays a touch more generous
+    // until the cache rolls forward, never poisons the lever's
+    // direction.
+    const voiceSeenAny = new Set<VoiceProfile>();
+    for (const batch of last3Batches) {
+      for (const e of batch) {
+        if (e.voiceProfile) voiceSeenAny.add(e.voiceProfile);
+      }
+    }
+    unusedVoiceProfilesLast3 = new Set(
+      VOICE_PROFILES.filter((v) => !voiceSeenAny.has(v)),
+    );
   }
 
   return {
@@ -1095,6 +1280,13 @@ function buildNoveltyContext(
     unusedSceneObjectTagsLast3,
     recentHookLanguageStyles,
     unusedHookLanguageStylesLast3,
+    recentVoiceProfiles,
+    unusedVoiceProfilesLast3,
+    // NOTE: `voiceStrongPreference` is intentionally NOT set here.
+    // It's a callsite-provided flag (the orchestrator knows the
+    // selection-source tier from `selectPrimaryVoiceProfile`) and
+    // must override / shadow whatever batch-history derived. Callers
+    // merge it into the context AFTER calling `buildNoveltyContext`.
   };
 }
 
@@ -1116,6 +1308,17 @@ type CachedBatchEntry = {
    * stay quiet until the next regen writes a new envelope).
    */
   hookLanguageStyle?: HookLanguageStyle;
+  /**
+   * VOICE PROFILES spec axis (8 values). Persisted in cache so
+   * `buildNoveltyContext` can derive `recentVoiceProfiles` and
+   * `unusedVoiceProfilesLast3` without an in-memory state. Same
+   * non-breaking JSONB pattern as `hookLanguageStyle` above —
+   * legacy entries without the field silently don't contribute to
+   * the cross-batch voice levers (the +1 unused-boost / -2 cross-
+   * batch demotion stay quiet until the next regen writes a new
+   * envelope with voiceProfile populated).
+   */
+  voiceProfile?: VoiceProfile;
 };
 
 /**
@@ -1158,6 +1361,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         family?: unknown;
         templateId?: unknown;
         hookLanguageStyle?: unknown;
+        voiceProfile?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1172,6 +1376,18 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         (HOOK_LANGUAGE_STYLES as readonly string[]).includes(hlsRaw)
           ? (hlsRaw as HookLanguageStyle)
           : undefined;
+      // VOICE PROFILES spec — same tolerant parse pattern as hookLang-
+      // uageStyle above. Unknown / future / legacy values silently
+      // drop to undefined so the +1 unused-boost / -2 cross-batch
+      // demotion just stay quiet for that entry rather than poisoning
+      // the recentVoiceProfiles Set with a string the catalog doesn't
+      // recognize.
+      const vpRaw = wrapper.voiceProfile;
+      const voiceProfile: VoiceProfile | undefined =
+        typeof vpRaw === "string" &&
+        (VOICE_PROFILES as readonly string[]).includes(vpRaw)
+          ? (vpRaw as VoiceProfile)
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1181,6 +1397,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
             ? wrapper.templateId
             : undefined,
         hookLanguageStyle,
+        voiceProfile,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -1354,6 +1571,15 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     templateId:
       c.meta.source === "pattern_variation" ? c.meta.templateId : undefined,
     hookLanguageStyle: c.meta.hookLanguageStyle,
+    // VOICE PROFILES spec — persist alongside hookLanguageStyle so
+    // the next regen's `buildNoveltyContext` can read the immediate-
+    // prior + last-3 voice sets straight off the envelope without
+    // a derivation step. Llama / Claude fallback wraps may omit
+    // voiceProfile, in which case undefined flows through to the
+    // cache and silently keeps that entry out of the cross-batch
+    // voice levers (matches the hookLanguageStyle / templateId
+    // pattern above).
+    voiceProfile: c.meta.voiceProfile,
   }));
 }
 
@@ -1575,6 +1801,70 @@ export async function runHybridIdeator(
   // no-op — `filterAndRescore` short-circuits inside `applyVisionBoost`.
   const visionDoc = parseVisionStyleDoc(input.visionStyleJson ?? null);
   const derivedStyleHints = visionDoc.derivedStyleHints;
+  // VOICE PROFILES spec — resolve the primary voice ONCE at the
+  // orchestrator boundary so:
+  //   1) generatePatternCandidates skips its hint-only fallback and
+  //      sees the FULL priority chain (calibration → hints → vision);
+  //   2) noveltyContext.voiceStrongPreference can relax the hard 3-
+  //      identical-voice batch guard ONLY when the creator's
+  //      calibration explicitly locked the voice (hints + vision
+  //      stay strict — they're inferred, not user-stated).
+  // Tolerant parsing throughout: parseTasteCalibration returns the
+  // empty defaults on null / malformed input; visionDoc was already
+  // built tolerantly above; rotationSeed falls back to a stable 0
+  // when not regenerating (deterministic per-creator default
+  // rotation between self_aware and dry_humor).
+  const calibration = parseTasteCalibration(input.tasteCalibrationJson);
+  // Vision tier — majority-mode aggregation of `deliveryStyle` across
+  // the per-video signals. We deliberately ignore `unknown` (it's the
+  // parser's null-stand-in for missing/malformed signals; counting it
+  // as a real value would let "noisy uploads" outvote a creator's
+  // actual deadpan/awkward/etc cluster). Ties broken by the most-
+  // recent occurrence — perVideoSignals are stored newest-first by
+  // mergeAnalysisIntoDoc so the first occurrence in a tied bucket
+  // also wins recency. Empty / all-unknown → null (vision tier
+  // skipped, falls through to default rotation).
+  let visionDelivery:
+    | "deadpan"
+    | "awkward"
+    | "expressive"
+    | "confident"
+    | "chaotic"
+    | "unknown"
+    | null = null;
+  if (visionDoc.perVideoSignals.length > 0) {
+    const counts: Record<string, number> = {};
+    let bestKey: string | null = null;
+    let bestCount = 0;
+    for (const sig of visionDoc.perVideoSignals) {
+      const k = sig.deliveryStyle;
+      if (k === "unknown") continue;
+      const next = (counts[k] ?? 0) + 1;
+      counts[k] = next;
+      if (next > bestCount) {
+        bestCount = next;
+        bestKey = k;
+      }
+    }
+    visionDelivery = (bestKey as typeof visionDelivery) ?? null;
+  }
+  const voiceSelection: VoiceProfileSelection = selectPrimaryVoiceProfile({
+    // Tier 1 — calibration is the only user-stated tier (strong
+    // preference). `parseTasteCalibration` returns `null` on
+    // missing/malformed; coalesce to `null` literal so the resolver
+    // skips this tier without throwing.
+    calibrationTone: calibration?.preferredTone ?? null,
+    // Tier 2 — derived hints tone is reserved for a future schema
+    // enhancement. `DerivedStyleHints` does NOT currently carry a
+    // `tone` axis (only formats / settings / energy / framing /
+    // reactionTypes), so we pass null and the priority chain
+    // gracefully falls through to vision (tier 3) or default.
+    hintsTone: null,
+    // Tier 3 — vision delivery, majority-mode aggregation above.
+    visionDelivery,
+    rotationSeed: regenerateSalt ?? 0,
+  });
+  noveltyContext.voiceStrongPreference = voiceSelection.strongPreference;
   // Generate enough pattern candidates to cover the requested count
   // even after hard-rejects + scoring drops: target = max(16, desired + 4)
   // capped at 20 (the engine's hard ceiling). For desiredCount=3 this
@@ -1587,6 +1877,7 @@ export async function runHybridIdeator(
     recentScenarios: input.recentScenarios,
     regenerate,
     regenerateSalt,
+    voiceSelection,
   });
   // HARD-exclude any candidate matching the previous batch's hooks
   // or scenarioFamilies. This is the core of the regenerate fix —
@@ -1819,6 +2110,11 @@ export async function runHybridIdeator(
           family: c.meta.scenarioFamily,
           templateId: c.meta.templateId,
           hookLanguageStyle: c.meta.hookLanguageStyle,
+          // VOICE PROFILES spec — same field on the rescue path so a
+          // best-effort empty-after-filter ship still seeds the next
+          // regen's recentVoiceProfiles correctly. Mirrors the main
+          // toCacheEntries write above.
+          voiceProfile: c.meta.voiceProfile,
         }));
       await persistCache(input.creator, rescueEntries);
     }

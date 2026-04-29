@@ -32,6 +32,7 @@ import {
   type Setting,
   type TopicLane,
   type VisualActionPattern,
+  type VoiceProfile,
 } from "./patternIdeator";
 import type { DerivedStyleHints } from "./visionProfileAggregator";
 import type {
@@ -156,6 +157,16 @@ export type CandidateMeta = PatternMeta | {
    * as "no contribution to hookLanguageStyle axis".
    */
   hookLanguageStyle?: HookLanguageStyle;
+  /**
+   * VOICE PROFILES spec axis (8 values). Pattern-variation
+   * candidates set this on every emit (selectPrimaryVoiceProfile +
+   * pickVoiceForSlot in `generatePatternCandidates`). Llama / Claude
+   * fallback wraps may omit — there's no derivation path from raw
+   * hook text (the voice is a STYLE/TONE generation-time choice,
+   * not a lookup). Selector treats absent as "no contribution to
+   * voiceProfile axis" (same discipline as `hookLanguageStyle`).
+   */
+  voiceProfile?: VoiceProfile;
 };
 
 // -----------------------------------------------------------------------------
@@ -733,6 +744,46 @@ export type NoveltyContext = {
    * evidence.
    */
   unusedHookLanguageStylesLast3?: ReadonlySet<HookLanguageStyle>;
+  /**
+   * VOICE PROFILES spec axis — immediate-prior-batch voices. Used by
+   * `scoreNovelty` (binary fresh dim) and `selectionPenalty` (-2
+   * cross-batch demotion). Drives the regen-fresh-voiceProfile rescue
+   * path in `selectWithNovelty`. Sized smaller than the scriptType /
+   * sceneObjectTag cross-batch lever (-3) because the voice pool is
+   * only 8 values and the allowed-set is typically 3-4 — a -3
+   * stacked with the within-batch -2 would over-penalize creators
+   * whose calibration intentionally locks them to a narrow set.
+   */
+  recentVoiceProfiles?: ReadonlySet<VoiceProfile>;
+  /**
+   * VOICE PROFILES spec axis — voices that have NOT appeared in any
+   * of the last 3 batches. Computed as `VOICE_PROFILES − union(last
+   * 3 batches' voiceProfiles)`. Used by `scoreNovelty` for the +1
+   * catalog-rotate boost — sized smaller (+1 not +2) than the
+   * HookLanguageStyle boost because the voice pool is only 8 values
+   * (vs 12 for HLS) and a creator's allowed-set is typically 3-4
+   * voices, so "unused in last 3" is statistically MORE common per
+   * batch and we want to keep the boost from outweighing well-
+   * evidenced scriptType / scene-object levers.
+   */
+  unusedVoiceProfilesLast3?: ReadonlySet<VoiceProfile>;
+  /**
+   * VOICE PROFILES spec — set when the creator's primary voice came
+   * from `tasteCalibration.preferredTone` (the "user explicitly picked
+   * it" priority tier). When true, `batchGuardsPass` BYPASSES the
+   * "no 3-identical voiceProfile" hard reject — a creator who locked
+   * to `blunt` deserves three blunt picks rather than a forced
+   * rotation that contradicts their stated preference.
+   *
+   * False / undefined for hints / vision / default-rotation tiers
+   * (the rotation pressure should win there because the source
+   * signal isn't an explicit user choice — just an inferred default).
+   * Within-batch and cross-batch SOFT penalties in `selectionPenalty`
+   * still fire under strongPreference: even when 3-of-same is
+   * tolerated, the selector should still prefer rotation when a
+   * shippable alternative exists.
+   */
+  voiceStrongPreference?: boolean;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -784,6 +835,10 @@ function metaHookLanguageStyle(
   return m.hookLanguageStyle;
 }
 
+function metaVoiceProfile(m: CandidateMeta): VoiceProfile | undefined {
+  return m.voiceProfile;
+}
+
 function metaSceneEnvCluster(m: CandidateMeta): SceneEnvCluster | undefined {
   return m.sceneEnvCluster;
 }
@@ -819,6 +874,7 @@ export function scoreNovelty(
   const archetypes = new Set<Archetype>();
   const sceneTags = new Set<SceneObjectTag>();
   const langStyles = new Set<HookLanguageStyle>();
+  const voices = new Set<VoiceProfile>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -838,6 +894,8 @@ export function scoreNovelty(
     if (sot) sceneTags.add(sot);
     const hls = metaHookLanguageStyle(b.meta);
     if (hls) langStyles.add(hls);
+    const vp = metaVoiceProfile(b.meta);
+    if (vp) voices.add(vp);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -926,6 +984,19 @@ export function scoreNovelty(
     !!hls &&
     !langStyles.has(hls) &&
     !(ctx.recentHookLanguageStyles?.has(hls) ?? false);
+  // K2. VoiceProfile novelty — VOICE PROFILES spec axis. Fresh on
+  //     BOTH within-batch and immediate-prior-batch. Binary fresh
+  //     dim only (no per-axis +X boost beyond the unused-in-last-3
+  //     boost below). Sized parallel to hlsFresh — the soft selector
+  //     nudges toward 2-3 distinct voices per batch; the HARD reject
+  //     in `batchGuardsPass` only blocks the all-3-identical case
+  //     (and even that is bypassed when calibration strongPreference
+  //     is set, per the spec's "user explicitly picked it" exception).
+  const vp = metaVoiceProfile(c.meta);
+  const vpFresh =
+    !!vp &&
+    !voices.has(vp) &&
+    !(ctx.recentVoiceProfiles?.has(vp) ?? false);
 
   // L. Unused-in-last-3-batches "rotate the catalog" boost — large
   //    +3 when this scriptType has not appeared in any of the last
@@ -950,6 +1021,15 @@ export function scoreNovelty(
   //    object levers when forced to choose.
   const unusedLangBoost =
     hls && (ctx.unusedHookLanguageStylesLast3?.has(hls) ?? false) ? 2 : 0;
+  // O. Unused-voice boost — parallel +1 lever on the new VoiceProfile
+  //    axis. Sized smallest of the three "unused-in-last-3" boosts
+  //    because the voice pool is only 8 values and the allowed-set
+  //    is typically 3-4, so an unused voice is statistically the
+  //    most common kind of "fresh" — overweighting it would let it
+  //    fight the well-evidenced scriptType / scene-object levers
+  //    when those have stronger signal.
+  const unusedVoiceBoost =
+    vp && (ctx.unusedVoiceProfilesLast3?.has(vp) ?? false) ? 1 : 0;
 
   return (
     (hookFresh ? 1 : 0) +
@@ -963,9 +1043,11 @@ export function scoreNovelty(
     (arcFresh ? 1 : 0) +
     (sotFresh ? 1 : 0) +
     (hlsFresh ? 1 : 0) +
+    (vpFresh ? 1 : 0) +
     unusedBoost +
     unusedTagBoost +
-    unusedLangBoost
+    unusedLangBoost +
+    unusedVoiceBoost
   );
 }
 
@@ -1025,6 +1107,12 @@ export function selectionPenalty(
     const archetypeFamilies = new Set<ArchetypeFamily>();
     const sceneClusters = new Set<SceneEnvCluster>();
     const langStyles = new Set<HookLanguageStyle>();
+    // VOICE PROFILES spec — within-batch voice set, mirrors the
+    // hookLanguageStyle pattern. Populated from `metaVoiceProfile`
+    // (pattern_variation always sets; Llama / Claude wraps may
+    // omit, in which case the value is silently undefined and
+    // contributes nothing to the demotion).
+    const voices = new Set<VoiceProfile>();
     for (const b of batchSoFar) {
       styles.add(b.idea.hookStyle);
       if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -1046,6 +1134,8 @@ export function selectionPenalty(
       if (sec) sceneClusters.add(sec);
       const hls = metaHookLanguageStyle(b.meta);
       if (hls) langStyles.add(hls);
+      const vp = metaVoiceProfile(b.meta);
+      if (vp) voices.add(vp);
     }
     if (styles.has(c.idea.hookStyle)) p -= 2;
     if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -1086,6 +1176,20 @@ export function selectionPenalty(
     // discourage the third clone.
     const chls = metaHookLanguageStyle(c.meta);
     if (chls && langStyles.has(chls)) p -= 2;
+    // VOICE PROFILES spec — within-batch voice demotion. -2 for a
+    // collision (one already-picked candidate has same voiceProfile).
+    // Soft nudge toward 2-3 distinct voices per batch; the HARD
+    // reject in `batchGuardsPass` blocks only the all-3-identical
+    // case (and bypasses even that when calibration strongPreference
+    // is set). This penalty STILL fires under strongPreference —
+    // intentional: the soft selector should still prefer rotation
+    // when shippable, even if the hard guard tolerates 3-of-same.
+    // Voices not in batchSoFar (pattern_variation always sets, but
+    // Llama / Claude wraps may omit) silently skip — the meta read
+    // returns undefined which `voices.has(undefined as any)` would
+    // false-match, so we guard explicitly.
+    const cvp = metaVoiceProfile(c.meta);
+    if (cvp && voices.has(cvp)) p -= 2;
   }
   // Cross-batch tiered scriptType demotion (in addition to the
   // within-batch -2). The two tiers stack: a scriptType that's
@@ -1117,6 +1221,22 @@ export function selectionPenalty(
   const chlsCross = metaHookLanguageStyle(c.meta);
   if (chlsCross) {
     if (ctx.recentHookLanguageStyles?.has(chlsCross) ?? false) p -= 3;
+  }
+  // VOICE PROFILES spec — cross-batch voice demotion. -2 when this
+  // candidate's voice appeared in the immediate-prior batch. Single-
+  // tier (no frequent-last-3 stack) and sized smaller than the
+  // hookLanguageStyle cross-batch (-3) because the voice pool is
+  // only 8 values and the allowed-set is typically 3-4 — over-
+  // penalizing would push selection toward the rare un-allowed
+  // voices that the calibration explicitly steers away from.
+  // Stacks with the within-batch -2 on distinct sets (intentional
+  // double-charge for a clone that ALSO repeats yesterday's voice).
+  // Skips when the candidate has no voiceProfile (Llama / Claude
+  // fallback wraps may omit) — same discipline as every other
+  // optional-axis penalty above.
+  const cvpCross = metaVoiceProfile(c.meta);
+  if (cvpCross) {
+    if (ctx.recentVoiceProfiles?.has(cvpCross) ?? false) p -= 2;
   }
   // PART 4 — banned-phrasing penalty. -5 when the rendered hook
   // matches any banned-prefix regex (the catalog never produces

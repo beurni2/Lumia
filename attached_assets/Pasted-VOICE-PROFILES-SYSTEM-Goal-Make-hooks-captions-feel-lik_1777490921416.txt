@@ -1,0 +1,165 @@
+VOICE PROFILES SYSTEM
+
+Goal:
+Make hooks/captions feel like different creator voices instead of one generic Lumina voice.
+
+This is a style layer only.
+It must NOT replace archetypes, scenarios, hook language styles, or quality scoring.
+
+---
+
+ADD VoiceProfile enum:
+
+type VoiceProfile =
+  | "dry_humor"
+  | "chaotic"
+  | "poetic"
+  | "blunt"
+  | "sarcastic"
+  | "self_aware"
+  | "deadpan"
+  | "soft_confessional"
+
+---
+
+VOICE DEFINITIONS
+
+dry_humor:
+- understated
+- low emotion
+- subtle irony
+Example: "the laundry won again"
+
+chaotic:
+- expressive
+- dramatic
+- fast emotional energy
+Example: "why is my life doing side quests 😭"
+
+poetic:
+- slightly lyrical
+- visual, metaphor-like
+- still short
+Example: "my coffee went cold before I became a person"
+
+blunt:
+- direct
+- simple
+- no decoration
+Example: "I am not doing that today"
+
+sarcastic:
+- ironic
+- lightly judgmental
+- sharp but not mean
+Example: "great, another task I’ll spiritually ignore"
+
+self_aware:
+- admits the behavior
+- slightly embarrassing
+Example: "I know exactly what I’m doing and I’m still doing it"
+
+deadpan:
+- flat delivery
+- anti-emotional
+Example: "this was my attempt"
+
+soft_confessional:
+- personal
+- gentle
+- honest
+Example: "I really thought I had more energy than this"
+
+---
+
+HOW TO SELECT VOICE
+
+Use priority:
+
+1. User calibration if available
+2. Style hints from uploaded videos
+3. Viral memory / accepted hooks
+4. Default = self_aware or dry_humor
+
+Do NOT lock user into one voice forever.
+Allow light rotation.
+
+---
+
+BATCH RULES
+
+Within 3 ideas:
+- prefer 2 different VoiceProfiles
+- never use 3 identical voices unless user strongly prefers one
+- if regenerate=true, include at least 1 different voice from previous batch
+
+---
+
+VOICE APPLICATION
+
+VoiceProfile affects:
+- hook wording
+- caption wording
+- “why this works” copy if visible
+
+VoiceProfile must NOT affect:
+- safety filters
+- quality threshold
+- scenario selection by itself
+- archetype selection by itself
+
+---
+
+VALIDATION
+
+Reject voice output if:
+- too long
+- too theatrical
+- loses clarity
+- becomes mean/insulting
+- becomes motivational/advice-like
+- does not match the actual scene
+
+---
+
+INTEGRATION WITH HOOK LANGUAGE STYLE
+
+HookLanguageStyle = type of thought
+VoiceProfile = tone of expression
+
+Example:
+
+HookLanguageStyle: object_pov
+VoiceProfile: dry_humor
+→ "the laundry won again"
+
+HookLanguageStyle: object_pov
+VoiceProfile: chaotic
+→ "the laundry is actually bullying me"
+
+HookLanguageStyle: object_pov
+VoiceProfile: poetic
+→ "the laundry has become part of the room"
+
+Same idea, different voice.
+
+---
+
+QA
+
+Generate 5 batches for same creator.
+
+Verify:
+- hooks do not all sound like same narrator
+- captions match hook tone
+- no voice makes ideas less clear
+- no voice creates cringe or over-written hooks
+- user preference still wins over random voice rotation
+
+SUCCESS
+
+User should feel:
+"These sound like different creator styles"
+
+Not:
+"Every idea sounds like Lumina wrote it."
