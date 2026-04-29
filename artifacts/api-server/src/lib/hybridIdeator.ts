@@ -31,11 +31,18 @@ import {
 } from "./ideaGen";
 import {
   generatePatternCandidates,
+  lookupTopicLane,
+  lookupVisualActionPattern,
   type PatternCandidate,
+  type TopicLane,
+  type VisualActionPattern,
 } from "./patternIdeator";
 import {
   filterAndRescore,
+  scoreNovelty,
+  selectionPenalty,
   type CandidateMeta,
+  type NoveltyContext,
   type ScoredCandidate,
 } from "./ideaScorer";
 import {
@@ -84,93 +91,254 @@ function utcToday(): string {
 }
 
 /**
- * HARD diversity-first selector for the final batch.
+ * Novelty-aware selector for the final batch.
  *
- * Spec (per product owner): perceived creativity collapses when a
- * batch ships with the same `structure`, `hookStyle`, or
- * `scenarioFamily` repeated. After the scorer's >=8 quality gate,
- * diversity beats raw score. Walks the sorted pool in four
- * progressively-relaxed passes:
+ * Replaces the prior 4-pass HARD diversifier with a greedy selector
+ * that picks by `qualityScore + noveltyBonus + penalty`, then
+ * validates HARD batch guards. The novelty bonus (0–5) only applies
+ * to candidates with quality >= HIGH_QUALITY_SCORE (8) so a weak
+ * idea cannot be rescued by being "different".
  *
- *   Pass A (strict)   : new structure AND new hookStyle AND new family
- *   Pass B (structure): new structure only (allow repeat style/family)
- *   Pass C (axes)     : new hookStyle OR new family (allow structure repeat)
- *   Pass D (rescue)   : anything left, by score, to fill `count`
+ * Selection algorithm:
  *
- * The score gate uses `>= 8` only when the high-tier pool already
- * has at least `count` candidates; otherwise it falls back to the
- * full scored pool so we never under-deliver. Sort order from
- * `filterAndRescore` (score desc → personalFit → hookImpact →
- * pattern_variation) is preserved across all passes.
+ *   Step 1: Filter to high-tier (quality >= 8); fall back to the
+ *           full scored pool when high-tier can't fill `count`.
+ *   Step 2: Greedy — for each slot, score every remaining candidate
+ *           with current penalties + novelty against already-picked,
+ *           pick the highest adjustedScore.
+ *   Step 3: Run hard batch guards on the result. If they fail AND
+ *           count <= 5, exhaustively search top-(count*4) combinations
+ *           for the best guard-passing batch (capped at C(20,5) work).
+ *   Step 4: Return { batch, guardsPassed }. The orchestrator decides
+ *           whether a guard failure should trigger Claude fallback.
+ *
+ * Hard batch guards (any failure → reselect, then signal fallback):
+ *   - all 3 share hookStyle  →  fail
+ *   - all 3 share structure  →  fail
+ *   - more than 2 share scenarioFamily / visualAction / topicLane → fail
+ *
+ * For batches of size 1 or 2, the guards trivially pass (you can't
+ * have "3 share X" with fewer than 3 picks).
  */
 const HIGH_QUALITY_SCORE = 8;
+const RESELECT_MAX_COUNT = 5;
+const RESELECT_TOP_MULTIPLIER = 4;
 
-function diversifiedSelect(
+type SelectionResult = {
+  batch: ScoredCandidate[];
+  guardsPassed: boolean;
+};
+
+function adjustedScore(
+  c: ScoredCandidate,
+  batchSoFar: ScoredCandidate[],
+  ctx: NoveltyContext,
+): number {
+  const novelty =
+    c.score.total >= HIGH_QUALITY_SCORE
+      ? scoreNovelty(c, batchSoFar, ctx)
+      : 0;
+  const penalty = selectionPenalty(c, batchSoFar);
+  return c.score.total + novelty + penalty;
+}
+
+function greedySelect(
+  pool: ScoredCandidate[],
+  count: number,
+  ctx: NoveltyContext,
+): ScoredCandidate[] {
+  const picked: ScoredCandidate[] = [];
+  const pickedSet = new Set<ScoredCandidate>();
+  while (picked.length < count) {
+    let best: { c: ScoredCandidate; adj: number; baseIdx: number } | null = null;
+    for (let i = 0; i < pool.length; i++) {
+      const c = pool[i];
+      if (pickedSet.has(c)) continue;
+      const adj = adjustedScore(c, picked, ctx);
+      // Tie-break: prefer earlier sorted position (preserves the
+      // filterAndRescore ordering: score → personalFit → hookImpact →
+      // pattern_variation). Important so deterministic input → same output.
+      if (
+        best === null ||
+        adj > best.adj ||
+        (adj === best.adj && i < best.baseIdx)
+      ) {
+        best = { c, adj, baseIdx: i };
+      }
+    }
+    if (!best) break;
+    picked.push(best.c);
+    pickedSet.add(best.c);
+  }
+  return picked;
+}
+
+function batchGuardsPass(batch: ScoredCandidate[]): boolean {
+  if (batch.length === 0) return false;
+  // Guards only meaningful at >=3 picks — at 1 or 2 every "max 2
+  // per group" condition is vacuously satisfied.
+  if (batch.length < 3) return true;
+  // Spec: "never 3× same hookStyle/format/structure, never >2
+  // share family/visualAction/topic" — both clauses collapse to
+  // a uniform "max 2 per group" rule for any batch size, so use
+  // `> 2` everywhere. (Earlier draft used `>= batch.length` for
+  // hookStyle/structure which let 3-of-a-kind through any
+  // batch larger than 3.)
+  const MAX_GROUP_SHARE = 2;
+  // No 3-same hookStyle.
+  if (countMax(batch.map((b) => b.idea.hookStyle)) > MAX_GROUP_SHARE) return false;
+  // No 3-same format/pattern. Spec called this out explicitly
+  // alongside hookStyle and structure; without it a batch of
+  // three "stitch_redo" or three "voiceover" formats could ship.
+  if (countMax(batch.map((b) => b.idea.pattern)) > MAX_GROUP_SHARE) return false;
+  // No 3-same structure.
+  if (countMax(batch.map((b) => b.idea.structure)) > MAX_GROUP_SHARE) return false;
+  // No more than 2 share family.
+  if (
+    countMax(
+      batch
+        .map((b) => b.meta.scenarioFamily)
+        .filter((x): x is string => !!x),
+    ) > MAX_GROUP_SHARE
+  ) {
+    return false;
+  }
+  // No more than 2 share visualActionPattern.
+  if (
+    countMax(
+      batch
+        .map((b) => b.meta.visualActionPattern)
+        .filter((x): x is VisualActionPattern => !!x),
+    ) > MAX_GROUP_SHARE
+  ) {
+    return false;
+  }
+  // No more than 2 share topicLane.
+  if (
+    countMax(
+      batch
+        .map((b) => b.meta.topicLane)
+        .filter((x): x is TopicLane => !!x),
+    ) > MAX_GROUP_SHARE
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function countMax<T>(arr: T[]): number {
+  if (arr.length === 0) return 0;
+  const m = new Map<T, number>();
+  let max = 0;
+  for (const x of arr) {
+    const v = (m.get(x) ?? 0) + 1;
+    m.set(x, v);
+    if (v > max) max = v;
+  }
+  return max;
+}
+
+/**
+ * Exhaustive guard-passing search over the top-(count*4) candidates.
+ * Returns the highest-adjustedScore-sum batch that passes guards, or
+ * `null` if no combination passes. Capped at count <= 5 because
+ * C(20,5) = 15,504 is an acceptable worst case but C(40,10) is not.
+ */
+function exhaustiveReselect(
+  pool: ScoredCandidate[],
+  count: number,
+  ctx: NoveltyContext,
+): ScoredCandidate[] | null {
+  if (count > RESELECT_MAX_COUNT) return null;
+  const top = pool.slice(
+    0,
+    Math.min(pool.length, count * RESELECT_TOP_MULTIPLIER),
+  );
+  if (top.length < count) return null;
+
+  // Wrap in an object so the recursive closure mutates a property
+  // rather than reassigning a `let` (which trips TypeScript's
+  // control-flow narrowing into `never` at the post-recursion read).
+  const bestRef: { value: { batch: ScoredCandidate[]; total: number } | null } = {
+    value: null,
+  };
+
+  const indices: number[] = new Array(count).fill(0);
+  function recurse(slot: number, start: number): void {
+    if (slot === count) {
+      const batch = indices.map((i) => top[i]);
+      if (!batchGuardsPass(batch)) return;
+      let total = 0;
+      const partial: ScoredCandidate[] = [];
+      for (const c of batch) {
+        total += adjustedScore(c, partial, ctx);
+        partial.push(c);
+      }
+      if (bestRef.value === null || total > bestRef.value.total) {
+        bestRef.value = { batch: batch.slice(), total };
+      }
+      return;
+    }
+    for (let i = start; i <= top.length - (count - slot); i++) {
+      indices[slot] = i;
+      recurse(slot + 1, i + 1);
+    }
+  }
+  recurse(0, 0);
+
+  return bestRef.value ? bestRef.value.batch : null;
+}
+
+function selectWithNovelty(
   scored: ScoredCandidate[],
   count: number,
-): ScoredCandidate[] {
-  if (scored.length === 0 || count <= 0) return [];
-
+  ctx: NoveltyContext,
+): SelectionResult {
+  if (scored.length === 0 || count <= 0) {
+    return { batch: [], guardsPassed: false };
+  }
   const highTier = scored.filter((c) => c.score.total >= HIGH_QUALITY_SCORE);
   const pool = highTier.length >= count ? highTier : scored;
 
-  const picked: ScoredCandidate[] = [];
-  const pickedSet = new Set<ScoredCandidate>();
-  const usedStructures = new Set<string>();
-  const usedHookStyles = new Set<string>();
-  const usedFamilies = new Set<string>();
-
-  const accept = (c: ScoredCandidate) => {
-    picked.push(c);
-    pickedSet.add(c);
-    usedStructures.add(c.idea.structure);
-    usedHookStyles.add(c.idea.hookStyle);
-    const fam = familyOf(c.meta);
-    if (fam) usedFamilies.add(fam);
-  };
-
-  const sweep = (filter: (c: ScoredCandidate) => boolean) => {
-    if (picked.length >= count) return;
-    for (const c of pool) {
-      if (picked.length >= count) return;
-      if (pickedSet.has(c)) continue;
-      if (!filter(c)) continue;
-      accept(c);
-    }
-  };
-
-  // Pass A — strict diversity on all three axes.
-  sweep((c) => {
-    const fam = familyOf(c.meta);
-    return (
-      !usedStructures.has(c.idea.structure) &&
-      !usedHookStyles.has(c.idea.hookStyle) &&
-      (!fam || !usedFamilies.has(fam))
-    );
-  });
-
-  // Pass B — HARD structure uniqueness, relax style/family.
-  sweep((c) => !usedStructures.has(c.idea.structure));
-
-  // Pass C — at least one fresh axis when we must reuse structure.
-  sweep((c) => {
-    const fam = familyOf(c.meta);
-    return (
-      !usedHookStyles.has(c.idea.hookStyle) ||
-      (!!fam && !usedFamilies.has(fam))
-    );
-  });
-
-  // Pass D — rescue fill so we always return `count` ideas if the
-  // pool has enough candidates at all.
-  sweep(() => true);
-
-  return picked.slice(0, count);
+  const greedy = greedySelect(pool, count, ctx);
+  if (batchGuardsPass(greedy)) {
+    return { batch: greedy, guardsPassed: true };
+  }
+  // Greedy violated guards — try exhaustive search over top candidates.
+  const reselected = exhaustiveReselect(pool, count, ctx);
+  if (reselected) {
+    return { batch: reselected, guardsPassed: true };
+  }
+  // No guard-passing combination exists in the top-N. Return the
+  // greedy result so the orchestrator can decide to call fallback
+  // and re-select on a wider merged pool.
+  return { batch: greedy, guardsPassed: false };
 }
 
-function familyOf(meta: CandidateMeta): string | null {
-  if (meta.source === "pattern_variation") return meta.scenarioFamily;
-  return meta.scenarioFamily ?? null;
+/**
+ * Build cross-batch novelty context from the previous cached batch.
+ * `recentFamilies` and `recentStyles` come straight from the cache;
+ * `recentTopics` and `recentVisualActions` are derived via the
+ * pattern-ideator's family→category lookup tables (so we don't need
+ * to migrate the cache shape every time we add a new dimension).
+ */
+function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
+  if (prev.length === 0) return { };
+  const recentFamilies = new Set<string>();
+  const recentStyles = new Set<string>();
+  const recentTopics = new Set<TopicLane>();
+  const recentVisualActions = new Set<VisualActionPattern>();
+  for (const e of prev) {
+    if (e.family) {
+      recentFamilies.add(e.family);
+      const tl = lookupTopicLane(e.family);
+      if (tl) recentTopics.add(tl);
+      const va = lookupVisualActionPattern(e.family);
+      if (va) recentVisualActions.add(va);
+    }
+    recentStyles.add(e.idea.hookStyle);
+  }
+  return { recentFamilies, recentStyles, recentTopics, recentVisualActions };
 }
 
 /**
@@ -433,19 +601,19 @@ export async function runHybridIdeator(
     };
   }
 
-  // -------- Step 2: regenerate exclusion + salt ------------------
-  // On regenerate, read the previously-cached batch (any date) and
-  // build a HARD exclusion set so this batch can't repeat the last
-  // batch's hooks or scenarioFamilies. Salt the pattern weave with
-  // a hash of the previous batch XOR'd with a millisecond cursor so
-  // the candidate ordering shifts every call — even for back-to-back
-  // regenerates by the same creator.
-  const previousEntries = regenerate
-    ? readPreviousBatch(input.creator)
-    : [];
+  // -------- Step 2: regenerate exclusion + salt + novelty ctx ----
+  // Always read the previously-cached batch (any date) so the
+  // novelty scorer can see "what did the creator just look at" and
+  // demote repeats of those families/topics/styles. The HARD
+  // exclusion gate (`buildExclusion`) is still regenerate-only —
+  // non-regen requests should be free to ship the same family if
+  // the scorer thinks it's the best fit, just with a small novelty
+  // penalty for repeating it.
+  const previousEntries = readPreviousBatch(input.creator);
   const exclude = regenerate
     ? buildExclusion(previousEntries)
     : EMPTY_EXCLUSION;
+  const noveltyContext: NoveltyContext = buildNoveltyContext(previousEntries);
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
   // subsequent `% 997` is always non-negative (JS keeps the sign of
   // the dividend, so a negative seedSalt would produce negative
@@ -484,13 +652,34 @@ export async function runHybridIdeator(
   let fallbackKeptCount = 0;
   let merged: ScoredCandidate[] = localResult.kept;
 
-  // -------- Step 4: Claude fallback (only if needed) -------------
-  // Spec: fall back to Claude when fewer than 3 local candidates
-  // pass the scorer (or pass the post-exclusion scorer on regenerate).
-  // For count=1|2 this still triggers when local kept is 0/1/2 —
-  // preserving idea quality is worth the rare fallback for small
-  // batches.
-  if (merged.length < 3) {
+  // -------- Step 4a: first selection on local pool ----------------
+  // Run the novelty-aware selector on the local pool. If batch
+  // guards pass AND we have at least `desiredCount` picks, we're
+  // done — no Claude needed. If guards fail OR we're short, we'll
+  // top up with fallback below and re-select on the merged pool.
+  let selection = selectWithNovelty(merged, desiredCount, noveltyContext);
+
+  // -------- Step 4b: Claude fallback (when needed) ---------------
+  // Three triggers, in spec order:
+  //   1. Fewer than 3 local candidates passed the scorer — same as
+  //      pre-novelty rule: we just don't have enough raw material.
+  //      Threshold is the literal `3`, NOT `desiredCount`, so for
+  //      count=1|2 we still demand a healthy pool (which gives the
+  //      novelty selector real choice).
+  //   2. The selector couldn't fill `desiredCount` picks even
+  //      against the local pool (e.g. all candidates clustered on
+  //      one family).
+  //   3. Hard batch guards failed on the local pool — adding
+  //      Claude variety may unlock a guard-passing combination
+  //      (different family / topic / visual).
+  // For count=1|2 trigger 3 is vacuous (guards short-circuit at
+  // batch.length<3), so the effective rule there is "fewer than 3
+  // local candidates passed."
+  const needFallback =
+    merged.length < 3 ||
+    selection.batch.length < desiredCount ||
+    !selection.guardsPassed;
+  if (needFallback) {
     usedFallback = true;
     try {
       const claudeResult = await generateIdeas({
@@ -521,10 +710,13 @@ export async function runHybridIdeator(
       merged = [...merged, ...fallbackResult.kept].sort(
         (a, b) => b.score.total - a.score.total,
       );
+      // Re-select on the merged pool — Claude may have unlocked
+      // axis variety the local pool lacked.
+      selection = selectWithNovelty(merged, desiredCount, noveltyContext);
     } catch (err) {
       // Fallback failure is non-fatal — we still ship whatever local
       // candidates we have. If we ALSO have zero local, the catch
-      // below the diversify call will surface the empty state.
+      // below the rescue path will surface the empty state.
       logger.error(
         { err, creatorId: input.creator?.id },
         "hybrid_ideator.fallback_failed",
@@ -532,8 +724,27 @@ export async function runHybridIdeator(
     }
   }
 
-  // -------- Step 5: diversify, take top N, persist ---------------
-  const final = diversifiedSelect(merged, desiredCount);
+  // -------- Step 5: ship final batch, persist --------------------
+  const final = selection.batch;
+  if (final.length >= desiredCount && !selection.guardsPassed) {
+    // Best-effort ship — neither local nor merged pools could yield
+    // a guard-passing combination. Surface in logs so we can grep
+    // for cohorts that need richer scenario coverage.
+    logger.warn(
+      {
+        creatorId: input.creator?.id,
+        regenerate,
+        localKept: localResult.kept.length,
+        fallbackKept: fallbackKeptCount,
+        usedFallback,
+        styles: final.map((c) => c.idea.hookStyle),
+        families: final.map((c) => c.meta.scenarioFamily),
+        topics: final.map((c) => c.meta.topicLane),
+        visuals: final.map((c) => c.meta.visualActionPattern),
+      },
+      "hybrid_ideator.guards_failed_shipping_best_effort",
+    );
+  }
 
   // Final schema gate — every Idea returned (including the rescue
   // path below) MUST validate against ideaSchema. This is paranoia,

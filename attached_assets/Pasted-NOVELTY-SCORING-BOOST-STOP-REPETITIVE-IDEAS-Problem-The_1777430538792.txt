@@ -1,0 +1,180 @@
+NOVELTY SCORING BOOST — STOP REPETITIVE IDEAS
+
+Problem:
+The pattern path is technically working, but the output feels repetitive.
+It keeps returning the same safe idea shape:
+- “the way I…”
+- mini-story
+- self-failure loop
+- deadpan reaction
+- coffee/gym/productivity variants
+
+We need novelty scoring on top of quality scoring.
+
+Goal:
+Keep quality high, but prevent batches from feeling like clones.
+
+---
+
+1. ADD NOVELTY SCORE
+
+For every candidate, compute noveltyScore from 0–5.
+
+Dimensions:
+
+A. Hook phrase novelty: 0–1
+- 0 if same hookStyle as another selected candidate
+- 1 if hookStyle is unused in current batch
+
+B. Scenario novelty: 0–1
+- 0 if same scenarioFamily as recent accepted/viewed ideas
+- 1 if fresh scenarioFamily
+
+C. Structure novelty: 0–1
+- 0 if same structure dominates recent batch/history
+- 1 if structure is underused
+
+D. Visual action novelty: 0–1
+- 0 if same visual execution appears repeatedly
+  e.g. look → react → deadpan
+- 1 if it uses a different physical action/scene
+
+E. Topic novelty: 0–1
+- 0 if topic repeats recent topic
+- 1 if topic is new
+
+---
+
+2. FINAL SCORE
+
+Keep existing quality score 0–10.
+
+Add adjusted score:
+
+adjustedScore = qualityScore + noveltyScore
+
+But only apply novelty boost if:
+qualityScore >= 8
+
+Do NOT let novelty rescue weak ideas.
+
+---
+
+3. PENALIZE REPETITION
+
+Add penalties:
+
+- same hookStyle as already selected: -2
+- same scenarioFamily as already selected: -3
+- same structure as already selected: -1
+- same topic as already selected: -2
+- same visual action pattern as already selected: -2
+
+---
+
+4. SELECTION RULE
+
+Selection should be:
+
+Step 1:
+Filter candidates with qualityScore >= 8
+
+Step 2:
+Pick first highest adjustedScore
+
+Step 3:
+For each next pick, recalculate repetition penalties against already selected ideas
+
+Step 4:
+Pick next highest adjustedScore after penalties
+
+Step 5:
+Return 3
+
+This prevents the first good pattern from dominating the whole batch.
+
+---
+
+5. HARD BATCH GUARDS
+
+Never return a batch where:
+
+- all 3 hooks use same hookStyle
+- all 3 ideas use same format
+- all 3 ideas use same structure
+- more than 2 ideas share same scenarioFamily
+- more than 2 ideas share same visual action pattern
+- more than 2 ideas share same topic
+
+If guards fail:
+- reselect from remaining candidates
+- if still fail, call fallback path
+
+---
+
+6. VISUAL ACTION TAG
+
+Add/derive visualActionPattern for each candidate.
+
+Examples:
+- face_reaction_deadpan
+- phone_scroll_freeze
+- fridge_open_stare
+- outfit_check_cut
+- couch_avoidance
+- kitchen_contradiction
+- text_message_panic
+- work_fake_smile
+
+Use this for diversity.
+
+---
+
+7. HOOK STYLE ROTATION
+
+Within a batch of 3, prefer:
+
+- one internal thought / “the way I…”
+- one question / “why do I…”
+- one contrast or curiosity hook
+
+Do NOT let all 3 start with:
+“the way I…”
+
+---
+
+8. TOPIC ROTATION
+
+Within a batch, prefer different lanes:
+
+- food/home
+- work/productivity
+- social/texting
+- body/fitness
+- daily routine
+
+Do not return:
+coffee + coffee + coffee
+or
+gym + productivity + chores if all feel like the same self-failure lane.
+
+---
+
+9. QA
+
+Run 5 regenerations for same creator.
+
+Check:
+- no repeated 3x “the way I…”
+- no 3x mini-story only
+- no 3x deadpan self-failure
+- at least 2 clearly different visual scenes per batch
+- at least 2 different hook styles per batch
+- captions still strong
+- no weak filler
+
+Success:
+User should feel:
+“These are different options”
+not:
+“This is the same idea wearing different clothes.”

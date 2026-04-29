@@ -22,6 +22,8 @@ import type { ViralPatternMemory } from "./viralPatternMemory";
 import {
   HOOK_PHRASINGS_BY_STYLE,
   type PatternMeta,
+  type TopicLane,
+  type VisualActionPattern,
 } from "./patternIdeator";
 
 /**
@@ -29,13 +31,18 @@ import {
  * Today only `pattern_variation` is produced (Layer 1); future Layer
  * 3 (Llama) candidates would extend this union with their own
  * source tag, but the scoring pipeline only relies on the common
- * fields below + `source` for tie-breaks and the optional `scenario`
- * for the rewriter.
+ * fields below + `source` for tie-breaks, the optional `scenario`
+ * for the rewriter, and the optional `topicLane` /
+ * `visualActionPattern` for novelty scoring (only set when the
+ * fallback's family resolves to a registered taxonomy entry; usually
+ * absent on Claude output).
  */
 export type CandidateMeta = PatternMeta | {
   source: "llama_3_1" | "claude_fallback";
   scenarioFamily?: string;
   scenario?: PatternMeta["scenario"];
+  visualActionPattern?: VisualActionPattern;
+  topicLane?: TopicLane;
 };
 
 // -----------------------------------------------------------------------------
@@ -415,4 +422,163 @@ export function filterAndRescore(
   });
 
   return { kept, rejected, hardRejected, rewriteSucceeded };
+}
+
+// -----------------------------------------------------------------------------
+// Novelty scoring (0–5) + selection penalties
+// -----------------------------------------------------------------------------
+// Layered ON TOP of qualityScore (`IdeaScore.total`, 0–10) by the
+// hybrid orchestrator's selector. Two ideas with the same quality
+// score now get separated by:
+//
+//   1. Novelty bonus (0–5) — per-axis 0/1 across hookStyle, scenario,
+//      structure, visualAction, topic. Computed against BOTH the
+//      already-picked batch AND the recent context (previous batch).
+//      ONLY applied when qualityScore >= HIGH_QUALITY_SCORE (8) so
+//      novelty cannot rescue weak ideas.
+//
+//   2. Selection penalty (negative) — applied at pick time against
+//      the already-picked batch only:
+//         -2 same hookStyle
+//         -3 same scenarioFamily
+//         -1 same structure
+//         -2 same topicLane
+//         -2 same visualActionPattern
+//      Penalties stack across axes but DO NOT stack across multiple
+//      already-picked candidates with the same axis value (a single
+//      match is enough — the dimension is already saturated).
+//
+// adjustedScore at pick time = qualityScore + noveltyBonus + penalty.
+// The selector picks greedily by adjustedScore, recomputing per pick.
+
+/**
+ * Recent / cross-batch context used by `scoreNovelty`. The current
+ * batch's already-picked candidates are passed separately so the
+ * caller can build context once per request and re-use it across
+ * picks.
+ */
+export type NoveltyContext = {
+  recentFamilies?: ReadonlySet<string>;
+  recentStyles?: ReadonlySet<string>;
+  recentTopics?: ReadonlySet<TopicLane>;
+  recentVisualActions?: ReadonlySet<VisualActionPattern>;
+};
+
+/** Empty context — pass to `scoreNovelty` when no prior batch info. */
+export const EMPTY_NOVELTY_CONTEXT: NoveltyContext = {};
+
+function metaTopicLane(m: CandidateMeta): TopicLane | undefined {
+  return m.topicLane;
+}
+
+function metaVisualAction(m: CandidateMeta): VisualActionPattern | undefined {
+  return m.visualActionPattern;
+}
+
+/**
+ * 0–5 novelty score across hookStyle / scenario / structure /
+ * visualAction / topic. Each dimension contributes 0 or 1 — 0 if
+ * the candidate's value matches anything in the already-picked
+ * batch OR in the recent context, 1 if fresh on both fronts.
+ *
+ * Caller is responsible for the `qualityScore >= 8` gate; this
+ * function does not enforce it.
+ */
+export function scoreNovelty(
+  c: { idea: Idea; meta: CandidateMeta },
+  batchSoFar: ReadonlyArray<{ idea: Idea; meta: CandidateMeta }>,
+  ctx: NoveltyContext = EMPTY_NOVELTY_CONTEXT,
+): number {
+  const styles = new Set<string>();
+  const families = new Set<string>();
+  const structures = new Set<string>();
+  const visuals = new Set<VisualActionPattern>();
+  const topics = new Set<TopicLane>();
+  for (const b of batchSoFar) {
+    styles.add(b.idea.hookStyle);
+    if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
+    structures.add(b.idea.structure);
+    const v = metaVisualAction(b.meta);
+    if (v) visuals.add(v);
+    const t = metaTopicLane(b.meta);
+    if (t) topics.add(t);
+  }
+
+  // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
+  const hookFresh =
+    !styles.has(c.idea.hookStyle) &&
+    !(ctx.recentStyles?.has(c.idea.hookStyle) ?? false);
+  // B. Scenario novelty — fresh scenarioFamily on BOTH axes.
+  const fam = c.meta.scenarioFamily;
+  const scenFresh =
+    !!fam &&
+    !families.has(fam) &&
+    !(ctx.recentFamilies?.has(fam) ?? false);
+  // C. Structure novelty — within batch only ("underused" interpreted
+  //    as not yet picked in this batch; cross-batch structure history
+  //    is not tracked because we only persist hook + family on cache).
+  const structFresh = !structures.has(c.idea.structure);
+  // D. Visual action novelty — fresh visualActionPattern on BOTH axes.
+  const va = metaVisualAction(c.meta);
+  const vaFresh =
+    !!va &&
+    !visuals.has(va) &&
+    !(ctx.recentVisualActions?.has(va) ?? false);
+  // E. Topic novelty — fresh topicLane on BOTH axes.
+  const tl = metaTopicLane(c.meta);
+  const tlFresh =
+    !!tl &&
+    !topics.has(tl) &&
+    !(ctx.recentTopics?.has(tl) ?? false);
+
+  return (
+    (hookFresh ? 1 : 0) +
+    (scenFresh ? 1 : 0) +
+    (structFresh ? 1 : 0) +
+    (vaFresh ? 1 : 0) +
+    (tlFresh ? 1 : 0)
+  );
+}
+
+/**
+ * Negative penalty applied to a candidate at pick time, against the
+ * already-picked batch. Penalties saturate per-axis (one match is
+ * enough — multiple picks sharing the same axis don't compound).
+ *
+ *   same hookStyle              → -2
+ *   same scenarioFamily         → -3
+ *   same structure              → -1
+ *   same topicLane              → -2
+ *   same visualActionPattern    → -2
+ *
+ * Returns 0 when batch is empty.
+ */
+export function selectionPenalty(
+  c: { idea: Idea; meta: CandidateMeta },
+  batchSoFar: ReadonlyArray<{ idea: Idea; meta: CandidateMeta }>,
+): number {
+  if (batchSoFar.length === 0) return 0;
+  let p = 0;
+  const styles = new Set<string>();
+  const families = new Set<string>();
+  const structures = new Set<string>();
+  const visuals = new Set<VisualActionPattern>();
+  const topics = new Set<TopicLane>();
+  for (const b of batchSoFar) {
+    styles.add(b.idea.hookStyle);
+    if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
+    structures.add(b.idea.structure);
+    const v = metaVisualAction(b.meta);
+    if (v) visuals.add(v);
+    const t = metaTopicLane(b.meta);
+    if (t) topics.add(t);
+  }
+  if (styles.has(c.idea.hookStyle)) p -= 2;
+  if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
+  if (structures.has(c.idea.structure)) p -= 1;
+  const cv = metaVisualAction(c.meta);
+  if (cv && visuals.has(cv)) p -= 2;
+  const ct = metaTopicLane(c.meta);
+  if (ct && topics.has(ct)) p -= 2;
+  return p;
 }

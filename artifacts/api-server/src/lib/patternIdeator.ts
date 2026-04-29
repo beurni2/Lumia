@@ -409,6 +409,110 @@ const SCENARIOS: Scenario[] = [
 ];
 
 // -----------------------------------------------------------------------------
+// Visual-action + topic-lane taxonomies
+// -----------------------------------------------------------------------------
+// Two SOFT-diversity dimensions on top of the existing {structure,
+// hookStyle, scenarioFamily} HARD axes. Novelty scoring uses these to
+// prevent a batch from feeling like clones even when the structure /
+// style / family axes are technically distinct (e.g. "coffee + snack +
+// fridge" all live in the food_home lane and would feel like the same
+// idea wearing different clothes).
+//
+// Stored as side-maps keyed by `scenario.family` so the 20 SCENARIOS
+// rows above stay readable, and so cached batches (which only persist
+// `family`) can derive both dimensions on read for cross-batch
+// novelty context.
+
+export type VisualActionPattern =
+  | "phone_scroll_freeze"
+  | "text_message_panic"
+  | "kitchen_contradiction"
+  | "fridge_open_stare"
+  | "bedroom_avoidance"
+  | "outfit_check_cut"
+  | "couch_avoidance"
+  | "car_avoidance"
+  | "desk_avoidance"
+  | "social_awkward_walkaway"
+  | "face_reaction_deadpan";
+
+export type TopicLane =
+  | "food_home"
+  | "work_productivity"
+  | "social_texting"
+  | "body_fitness"
+  | "daily_routine";
+
+const VISUAL_ACTION_BY_FAMILY: Record<string, VisualActionPattern> = {
+  sleep: "phone_scroll_freeze",
+  coffee: "kitchen_contradiction",
+  gym: "bedroom_avoidance",
+  laundry: "outfit_check_cut",
+  texting: "text_message_panic",
+  emails: "desk_avoidance",
+  fridge: "fridge_open_stare",
+  outfit: "outfit_check_cut",
+  errands: "car_avoidance",
+  weekend_plans: "text_message_panic",
+  productivity: "phone_scroll_freeze",
+  cleaning: "bedroom_avoidance",
+  social_call: "social_awkward_walkaway",
+  snack: "kitchen_contradiction",
+  hydration: "desk_avoidance",
+  morning: "bedroom_avoidance",
+  shopping: "phone_scroll_freeze",
+  social_post: "phone_scroll_freeze",
+  dishes: "kitchen_contradiction",
+  podcast: "car_avoidance",
+};
+
+const TOPIC_LANE_BY_FAMILY: Record<string, TopicLane> = {
+  sleep: "daily_routine",
+  coffee: "food_home",
+  gym: "body_fitness",
+  laundry: "daily_routine",
+  texting: "social_texting",
+  emails: "work_productivity",
+  fridge: "food_home",
+  outfit: "daily_routine",
+  errands: "work_productivity",
+  weekend_plans: "social_texting",
+  productivity: "work_productivity",
+  cleaning: "daily_routine",
+  social_call: "social_texting",
+  snack: "food_home",
+  hydration: "body_fitness",
+  morning: "daily_routine",
+  shopping: "daily_routine",
+  social_post: "social_texting",
+  dishes: "food_home",
+  podcast: "daily_routine",
+};
+
+/**
+ * Resolve the visual-action pattern for a scenario family. Returns
+ * `null` for unknown families (e.g. Claude-fallback ideas whose
+ * "scenarioFamily" is a free-form string we never registered).
+ */
+export function lookupVisualActionPattern(
+  family: string | undefined,
+): VisualActionPattern | null {
+  if (!family) return null;
+  return VISUAL_ACTION_BY_FAMILY[family] ?? null;
+}
+
+/**
+ * Resolve the topic lane for a scenario family. Returns `null` for
+ * unknown families (same caveat as `lookupVisualActionPattern`).
+ */
+export function lookupTopicLane(
+  family: string | undefined,
+): TopicLane | null {
+  if (!family) return null;
+  return TOPIC_LANE_BY_FAMILY[family] ?? null;
+}
+
+// -----------------------------------------------------------------------------
 // Hook-style phrasing pools
 // -----------------------------------------------------------------------------
 
@@ -591,6 +695,16 @@ export type PatternMeta = {
    * can omit it.
    */
   scenario?: Scenario;
+  /**
+   * SOFT-diversity dimensions derived from `scenarioFamily`. Used by
+   * the novelty scorer + selector to prevent batches that are
+   * structurally distinct but feel like clones (same physical scene
+   * or same topic lane). Always set on pattern_variation candidates;
+   * Claude/Llama fallback may omit when the family isn't in our
+   * registered taxonomy.
+   */
+  visualActionPattern: VisualActionPattern;
+  topicLane: TopicLane;
 };
 
 function assembleCandidate(
@@ -644,6 +758,14 @@ function assembleCandidate(
       hookStyle,
       hookPhrasingIndex,
       scenario,
+      // Default to a generic-but-valid value when the family isn't
+      // registered in the taxonomy (shouldn't happen for hard-coded
+      // SCENARIOS, but the fallback keeps PatternMeta non-null and
+      // prevents downstream `.has(undefined)` set bugs).
+      visualActionPattern:
+        VISUAL_ACTION_BY_FAMILY[scenario.family] ?? "face_reaction_deadpan",
+      topicLane:
+        TOPIC_LANE_BY_FAMILY[scenario.family] ?? "daily_routine",
     },
   };
 }
