@@ -54,6 +54,18 @@ import {
   type ScoredCandidate,
 } from "./ideaScorer";
 import {
+  resolveArchetypeLoose,
+  type Archetype,
+  type ArchetypeFamily,
+} from "./archetypeTaxonomy";
+import {
+  lookupSceneObjectTag,
+  ENV_CLUSTER_BY_TAG,
+  SCENE_OBJECT_TAGS,
+  type SceneObjectTag,
+  type SceneEnvCluster,
+} from "./sceneObjectTaxonomy";
+import {
   computeViralPatternMemory,
   EMPTY_MEMORY,
   type ViralPatternMemory,
@@ -236,6 +248,48 @@ export function batchGuardsPass(batch: ScoredCandidate[]): boolean {
     // below), they MUST have non-identical filming language.
     const filmStrs = batch.map((b) => b.idea.howToFilm.trim());
     if (new Set(filmStrs).size !== filmStrs.length) return false;
+
+    // (d) IDEA ARCHETYPE spec — max 1 archetype per batch. Blocks
+    // two `ill_do_it_later` picks even when scenarioFamily / hook /
+    // scriptType differ (e.g. "I'll clean tomorrow" + "I'll text
+    // them tomorrow" = two distinct families but one archetype).
+    // Skip when fields missing (legacy / fallback safety — counts
+    // toward batch but doesn't trip the guard).
+    const archetypes: Archetype[] = [];
+    for (const b of batch) {
+      if (b.meta.archetype) archetypes.push(b.meta.archetype);
+    }
+    if (countMax(archetypes) > 1) return false;
+
+    // (e) IDEA ARCHETYPE spec — max 1 archetypeFamily per batch.
+    // Stricter than (d): two distinct archetypes from the SAME
+    // family (e.g. `ill_do_it_later` + `fake_productivity`, both
+    // self_deception) still read as the same kind of idea. The
+    // family guard catches that even when (d) lets them through.
+    const archetypeFamilies: ArchetypeFamily[] = [];
+    for (const b of batch) {
+      if (b.meta.archetypeFamily) archetypeFamilies.push(b.meta.archetypeFamily);
+    }
+    if (countMax(archetypeFamilies) > 1) return false;
+
+    // (f) SCENE-OBJECT TAG spec — max 1 sceneObjectTag per batch.
+    // Two `coffee` or two `unread_messages` picks read as the same
+    // physical scene shot twice even when the narrative differs.
+    const sceneTags: SceneObjectTag[] = [];
+    for (const b of batch) {
+      if (b.meta.sceneObjectTag) sceneTags.push(b.meta.sceneObjectTag);
+    }
+    if (countMax(sceneTags) > 1) return false;
+
+    // (g) SCENE-OBJECT TAG spec — max 1 sceneEnvCluster per batch.
+    // Catches cluster collisions across distinct tags (e.g. `coffee`
+    // + `fridge` are both kitchen-cluster — feels like one kitchen
+    // morning split into two videos).
+    const sceneClusters: SceneEnvCluster[] = [];
+    for (const b of batch) {
+      if (b.meta.sceneEnvCluster) sceneClusters.push(b.meta.sceneEnvCluster);
+    }
+    if (countMax(sceneClusters) > 1) return false;
   }
 
   // Guards below only meaningful at >=3 picks — at 1 or 2 every
@@ -429,6 +483,82 @@ export function batchHasActive(batch: ScoredCandidate[]): boolean {
 }
 
 /**
+ * Count distinct fresh archetypeFamilies in `batch` — i.e. families
+ * present in `batch` but absent from `recent`. IDEA ARCHETYPE spec
+ * regen-rescue helper. Picks without an archetypeFamily (legacy /
+ * fallback) don't count as fresh. Vacuously every-distinct when
+ * `recent` is empty / undefined.
+ */
+export function countNewArchetypeFamilies(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<ArchetypeFamily> | undefined,
+): number {
+  const seen = new Set<ArchetypeFamily>();
+  for (const c of batch) {
+    const f = c.meta.archetypeFamily;
+    if (!f) continue;
+    if (recent && recent.size > 0 && recent.has(f)) continue;
+    seen.add(f);
+  }
+  return seen.size;
+}
+
+/**
+ * Predicate for the regen-fresh-archetypeFamily rescue: at least one
+ * pick carries an archetypeFamily NOT in `recent`. Vacuously true
+ * when `recent` is empty / undefined. Picks without a family are
+ * skipped (neither prove freshness nor block the predicate firing
+ * for some other pick).
+ */
+export function batchHasNewArchetypeFamily(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<ArchetypeFamily> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const f = c.meta.archetypeFamily;
+    if (f && !recent.has(f)) return true;
+  }
+  return false;
+}
+
+/**
+ * Count distinct fresh sceneObjectTags in `batch` — i.e. tags present
+ * in `batch` but absent from `recent`. SCENE-OBJECT TAG spec regen-
+ * rescue helper.
+ */
+export function countNewSceneObjectTags(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<SceneObjectTag> | undefined,
+): number {
+  const seen = new Set<SceneObjectTag>();
+  for (const c of batch) {
+    const t = c.meta.sceneObjectTag;
+    if (!t) continue;
+    if (recent && recent.size > 0 && recent.has(t)) continue;
+    seen.add(t);
+  }
+  return seen.size;
+}
+
+/**
+ * Predicate for the regen-fresh-sceneObjectTag rescue: at least one
+ * pick carries a sceneObjectTag NOT in `recent`. Same vacuously-true
+ * + skip-missing-fields discipline as the archetype variant above.
+ */
+export function batchHasNewSceneObjectTag(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<SceneObjectTag> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const t = c.meta.sceneObjectTag;
+    if (t && !recent.has(t)) return true;
+  }
+  return false;
+}
+
+/**
  * Predicate for the regen-fresh-scriptType rescue path. Returns true
  * when at least one pick in `batch` carries a scriptType that is NOT
  * in the immediate-prior batch's `recent` set. Vacuously true when
@@ -506,12 +636,88 @@ export function selectWithNovelty(
       );
     }
   }
+  // IDEA ARCHETYPE spec rescue: when regenerating, the picked batch
+  // MUST introduce at least one archetypeFamily that wasn't in the
+  // immediate-prior batch. Same warn-and-ship-best-effort discipline
+  // as the scriptType rescue above. Composes with the scriptType
+  // invariant via the extraGuard so this pass can't silently
+  // downgrade a freshly-rescued scriptType batch.
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentArchetypeFamilies?.size ?? 0) > 0 &&
+    !batchHasNewArchetypeFamily(chosen, ctx.recentArchetypeFamilies)
+  ) {
+    const fresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) =>
+        batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) &&
+        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
+          batchHasNewScriptType(b, ctx.recentScriptTypes)),
+    );
+    if (fresh) {
+      chosen = fresh;
+    } else {
+      logger.warn(
+        {
+          recentArchetypeFamilies: Array.from(
+            ctx.recentArchetypeFamilies ?? [],
+          ),
+          poolSize: pool.length,
+          count,
+        },
+        "hybrid_ideator.regen_no_new_archetype_family_shipping_best_effort",
+      );
+    }
+  }
+  // SCENE-OBJECT TAG spec rescue: when regenerating, the picked batch
+  // MUST introduce at least one sceneObjectTag that wasn't in the
+  // immediate-prior batch. ExtraGuard composes with BOTH prior
+  // invariants (scriptType AND archetypeFamily) so this pass cannot
+  // silently downgrade either of them.
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentSceneObjectTags?.size ?? 0) > 0 &&
+    !batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags)
+  ) {
+    const fresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) =>
+        batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) &&
+        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
+          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
+        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)),
+    );
+    if (fresh) {
+      chosen = fresh;
+    } else {
+      logger.warn(
+        {
+          recentSceneObjectTags: Array.from(ctx.recentSceneObjectTags ?? []),
+          poolSize: pool.length,
+          count,
+        },
+        "hybrid_ideator.regen_no_new_scene_object_tag_shipping_best_effort",
+      );
+    }
+  }
   // SOFT preference (script-system FINAL spec §6): when regenerating,
   // prefer ≥2 fresh scriptTypes vs the immediate-prior batch. The hard
   // ≥1-fresh guarantee is handled above; this pass tries to upgrade
   // 1-fresh batches to 2-fresh when the pool supports it. Quietly keeps
   // the existing pick if no such combination exists — best-effort, never
   // fails, no warn (1-fresh already meets the hard requirement).
+  //
+  // CRITICAL: extraGuard MUST also preserve the new archetypeFamily +
+  // sceneObjectTag invariants when those rescues fired — otherwise
+  // upgrading 1-fresh-script to 2-fresh-script could silently sacrifice
+  // a freshly-rescued archetypeFamily / sceneObjectTag.
   if (
     opts.regenerate &&
     chosen &&
@@ -522,7 +728,12 @@ export function selectWithNovelty(
       pool,
       count,
       ctx,
-      (b) => countNewScriptTypes(b, ctx.recentScriptTypes) >= 2,
+      (b) =>
+        countNewScriptTypes(b, ctx.recentScriptTypes) >= 2 &&
+        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
+        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
     );
     if (twoFresh) chosen = twoFresh;
   }
@@ -534,24 +745,36 @@ export function selectWithNovelty(
   // since the spec applies to all batches.
   //
   // CRITICAL: this pass MUST preserve the freshness invariant of the
-  // currently-chosen batch — otherwise it could silently downgrade a
-  // fresh-scriptType batch produced by the hard ≥1-fresh rescue or
-  // the soft ≥2-fresh upgrade into an active-but-0-fresh batch,
-  // violating the spec §6 hard regen guarantee. We snapshot the
-  // current fresh count and only accept active candidates that match
+  // currently-chosen batch on ALL THREE axes (scriptType, archetype-
+  // Family, sceneObjectTag) — otherwise it could silently downgrade
+  // a fresh-rescued batch into an active-but-stale batch, violating
+  // the spec's hard regen guarantees. We snapshot the current fresh
+  // count on each axis and only accept active candidates that match
   // or exceed it.
   if (chosen && !batchHasActive(chosen)) {
-    const minFreshRequired =
+    const minFreshScriptRequired =
       opts.regenerate && (ctx.recentScriptTypes?.size ?? 0) > 0
         ? countNewScriptTypes(chosen, ctx.recentScriptTypes)
         : 0;
+    const requireFreshFamily =
+      opts.regenerate &&
+      (ctx.recentArchetypeFamilies?.size ?? 0) > 0 &&
+      batchHasNewArchetypeFamily(chosen, ctx.recentArchetypeFamilies);
+    const requireFreshTag =
+      opts.regenerate &&
+      (ctx.recentSceneObjectTags?.size ?? 0) > 0 &&
+      batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags);
     const active = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
         batchHasActive(b) &&
-        countNewScriptTypes(b, ctx.recentScriptTypes) >= minFreshRequired,
+        countNewScriptTypes(b, ctx.recentScriptTypes) >= minFreshScriptRequired &&
+        (!requireFreshFamily ||
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
+        (!requireFreshTag ||
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
     );
     if (active) chosen = active;
   }
@@ -610,11 +833,28 @@ function buildNoveltyContext(
   // entries lacking templateId fall back to scenario-default scriptType
   // so the axis still functions on pre-taxonomy cached batches.
   const recentScriptTypes = new Set<ScriptType>();
+  // IDEA ARCHETYPE + SCENE-OBJECT TAG spec axes — derived in the same
+  // immediate-prior-batch scope so the rescue invariants and per-pick
+  // -3 / -2 demotions are scoped consistently with the scriptType
+  // axis. Archetype + family fall out of scriptType via the resolver;
+  // sceneObjectTag falls out of family via the lookup.
+  const recentArchetypes = new Set<Archetype>();
+  const recentArchetypeFamilies = new Set<ArchetypeFamily>();
+  const recentSceneObjectTags = new Set<SceneObjectTag>();
   const immediatePrior = last3Batches[0] ?? [];
   for (const e of immediatePrior) {
     if (!e.family) continue;
     const st = lookupScriptType(e.family, e.templateId);
-    if (st) recentScriptTypes.add(st);
+    if (st) {
+      recentScriptTypes.add(st);
+      const arc = resolveArchetypeLoose(st);
+      if (arc) {
+        recentArchetypes.add(arc.archetype);
+        recentArchetypeFamilies.add(arc.family);
+      }
+    }
+    const tag = lookupSceneObjectTag(e.family);
+    if (tag) recentSceneObjectTags.add(tag);
   }
   for (const e of prev) {
     if (e.family) {
@@ -636,6 +876,11 @@ function buildNoveltyContext(
   // reduction in scoreNovelty's freshness check.
   let frequentScriptTypesLast3: ReadonlySet<ScriptType> | undefined;
   let unusedScriptTypesLast3: ReadonlySet<ScriptType> | undefined;
+  // SCENE-OBJECT TAG spec — parallel tiered history on the tag axis.
+  // Same compute pattern as scriptType (per-batch sets → count → ≥2
+  // = frequent; catalog minus union = unused).
+  let frequentSceneObjectTagsLast3: ReadonlySet<SceneObjectTag> | undefined;
+  let unusedSceneObjectTagsLast3: ReadonlySet<SceneObjectTag> | undefined;
   if (last3Batches.length > 0) {
     // Per-batch scriptType sets — one Set per batch so we can count
     // how many batches each scriptType appeared in (≥2 ⇒ frequent).
@@ -666,6 +911,31 @@ function buildNoveltyContext(
     unusedScriptTypesLast3 = new Set(
       SCRIPT_TYPES.filter((sct) => !seenAny.has(sct)),
     );
+
+    // Same compute on the sceneObjectTag axis.
+    const tagSeenInBatch: Set<SceneObjectTag>[] = last3Batches.map((batch) => {
+      const s = new Set<SceneObjectTag>();
+      for (const e of batch) {
+        if (!e.family) continue;
+        const tag = lookupSceneObjectTag(e.family);
+        if (tag) s.add(tag);
+      }
+      return s;
+    });
+    const tagCounts = new Map<SceneObjectTag, number>();
+    for (const s of tagSeenInBatch) {
+      for (const t of s) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+    }
+    const freqTags = new Set<SceneObjectTag>();
+    for (const [t, c] of tagCounts) {
+      if (c >= 2) freqTags.add(t);
+    }
+    frequentSceneObjectTagsLast3 = freqTags;
+    const tagSeenAny = new Set<SceneObjectTag>();
+    for (const s of tagSeenInBatch) for (const t of s) tagSeenAny.add(t);
+    unusedSceneObjectTagsLast3 = new Set(
+      SCENE_OBJECT_TAGS.filter((t) => !tagSeenAny.has(t)),
+    );
   }
 
   return {
@@ -678,6 +948,11 @@ function buildNoveltyContext(
     recentScriptTypes,
     frequentScriptTypesLast3,
     unusedScriptTypesLast3,
+    recentArchetypes,
+    recentArchetypeFamilies,
+    recentSceneObjectTags,
+    frequentSceneObjectTagsLast3,
+    unusedSceneObjectTagsLast3,
   };
 }
 

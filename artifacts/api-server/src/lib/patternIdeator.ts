@@ -43,6 +43,17 @@ import {
 } from "./viralPatternMemory";
 import { deriveTone, type DerivedTone, type StyleProfile } from "./styleProfile";
 import type { Idea } from "./ideaGen";
+import {
+  resolveArchetype,
+  type Archetype,
+  type ArchetypeFamily,
+} from "./archetypeTaxonomy";
+import {
+  lookupSceneObjectTag,
+  ENV_CLUSTER_BY_TAG,
+  type SceneObjectTag,
+  type SceneEnvCluster,
+} from "./sceneObjectTaxonomy";
 
 // -----------------------------------------------------------------------------
 // Templates — reusable viral idea SHAPES
@@ -1383,6 +1394,29 @@ export type PatternMeta = {
    * Claude/Llama fallback wraps may not set visualActionPattern.
    */
   energy?: Energy;
+  /**
+   * Archetype + family — derived from `scriptType` via
+   * `resolveArchetype`. Drives the IDEA ARCHETYPE spec's HARD batch
+   * guards (max 1 archetype + max 1 family per batch) and the cross-
+   * batch penalties (-4 same archetype, -2 same family in immediate-
+   * prior batch). Optional so Claude/Llama fallback wraps can omit
+   * when scriptType isn't set; readers fall back to
+   * `resolveArchetypeLoose(lookupScriptType(family, templateId))` and
+   * treat unresolvable as "no contribution to archetype axis".
+   */
+  archetype?: Archetype;
+  archetypeFamily?: ArchetypeFamily;
+  /**
+   * Scene-object tag + environment cluster — derived from
+   * `scenarioFamily` via `lookupSceneObjectTag`. Drives the SCENE-
+   * OBJECT TAG spec's HARD batch guards (max 1 tag + max 1 cluster
+   * per batch) and the cross-batch tiered history (-3 last batch /
+   * -2 frequent in last 3 / +3 unused in last 3 — analogous to the
+   * scriptType axis). Optional with the same fallback discipline as
+   * `archetype` above.
+   */
+  sceneObjectTag?: SceneObjectTag;
+  sceneEnvCluster?: SceneEnvCluster;
 };
 
 /**
@@ -1476,6 +1510,22 @@ function assembleCandidate(
     howToFilm: buildHowToFilm(scenario, visualActionPattern),
   };
 
+  // Resolve scriptType ONCE so the archetype derivation and the
+  // PatternMeta tag agree on which value drives both axes. The
+  // archetype + archetypeFamily fall out deterministically from
+  // scriptType via the IDEA ARCHETYPE spec's resolver; sceneObjectTag
+  // + cluster fall out from scenarioFamily via the SCENE-OBJECT TAG
+  // spec's lookup. All four are best-effort — an unresolved scriptType
+  // (legacy taxonomy gap) leaves archetype undefined, which the
+  // selector treats as "no contribution to archetype axis" (same
+  // discipline as the existing optional fields above).
+  const scriptType = resolveScriptType(template.id, scenario.family);
+  const archetypeResolved = resolveArchetype(scriptType);
+  const sceneObjectTag = lookupSceneObjectTag(scenario.family) ?? undefined;
+  const sceneEnvCluster: SceneEnvCluster | undefined = sceneObjectTag
+    ? ENV_CLUSTER_BY_TAG[sceneObjectTag]
+    : undefined;
+
   return {
     idea,
     meta: {
@@ -1489,8 +1539,12 @@ function assembleCandidate(
       topicLane:
         TOPIC_LANE_BY_FAMILY[scenario.family] ?? "daily_routine",
       hookOpener: entry.opener,
-      scriptType: resolveScriptType(template.id, scenario.family),
+      scriptType,
       energy: ENERGY_BY_VISUAL_ACTION[visualActionPattern],
+      archetype: archetypeResolved?.archetype,
+      archetypeFamily: archetypeResolved?.family,
+      sceneObjectTag,
+      sceneEnvCluster,
     },
   };
 }

@@ -32,6 +32,14 @@ import {
   type VisualActionPattern,
 } from "./patternIdeator";
 import type { DerivedStyleHints } from "./visionProfileAggregator";
+import type {
+  Archetype,
+  ArchetypeFamily,
+} from "./archetypeTaxonomy";
+import type {
+  SceneObjectTag,
+  SceneEnvCluster,
+} from "./sceneObjectTaxonomy";
 
 // Map the pattern engine's `Setting` enum (8 values, scenario-centric)
 // to the Llama 3.2 Vision `setting` enum (7 values, frame-centric).
@@ -122,6 +130,22 @@ export type CandidateMeta = PatternMeta | {
   hookOpener?: HookOpener;
   scriptType?: ScriptType;
   energy?: Energy;
+  /**
+   * Archetype + family — IDEA ARCHETYPE spec axes. Llama / Claude
+   * fallback wraps may set these via `resolveArchetypeLoose(scriptType)`
+   * at wrap time; absent when scriptType isn't in the registered
+   * taxonomy. Selector treats absent as "no contribution to archetype
+   * axis" (same discipline as the existing optional fields).
+   */
+  archetype?: Archetype;
+  archetypeFamily?: ArchetypeFamily;
+  /**
+   * Scene-object tag + environment cluster — SCENE-OBJECT TAG spec
+   * axes. Fallback wraps may set via `lookupSceneObjectTag(family)`
+   * when the family is in the registered taxonomy.
+   */
+  sceneObjectTag?: SceneObjectTag;
+  sceneEnvCluster?: SceneEnvCluster;
 };
 
 // -----------------------------------------------------------------------------
@@ -644,6 +668,43 @@ export type NoveltyContext = {
    * catalog" `+3` boost. Empty when no last-3 history is supplied.
    */
   unusedScriptTypesLast3?: ReadonlySet<ScriptType>;
+  /**
+   * Cross-batch demotion for archetype — IDEA ARCHETYPE spec.
+   * Derived from cached entries via `resolveArchetypeLoose(scriptType)`
+   * (where scriptType is itself derived via `lookupScriptType`).
+   * Used by `scoreNovelty` (binary fresh dim) — the +3 catalog-rotate
+   * boost rides on `unusedScriptTypesLast3` since archetype is 1:1
+   * derived from scriptType for our 37 active values.
+   */
+  recentArchetypes?: ReadonlySet<Archetype>;
+  /**
+   * Cross-batch demotion for archetypeFamily — IDEA ARCHETYPE spec.
+   * Used by `selectionPenalty` (-2 demotion) and the regen-fresh-
+   * archetypeFamily rescue path (selectWithNovelty requires ≥1 pick
+   * with a family NOT in this set when regenerating).
+   */
+  recentArchetypeFamilies?: ReadonlySet<ArchetypeFamily>;
+  /**
+   * Cross-batch demotion for sceneObjectTag — SCENE-OBJECT TAG spec.
+   * Immediate-prior-batch only (analogous to recentScriptTypes).
+   * Used by `scoreNovelty` (binary fresh dim) and `selectionPenalty`
+   * (-3 demotion). Drives the regen-fresh-sceneObjectTag rescue.
+   */
+  recentSceneObjectTags?: ReadonlySet<SceneObjectTag>;
+  /**
+   * SceneObjectTags appearing in ≥2 of the last 3 batches. Stacks
+   * with `recentSceneObjectTags` so a tag that's both immediate-
+   * prior AND frequent across last 3 takes -3 + -2 = -5 cross-batch.
+   */
+  frequentSceneObjectTagsLast3?: ReadonlySet<SceneObjectTag>;
+  /**
+   * SceneObjectTags that have NOT appeared in any of the last 3
+   * batches. Computed as `SCENE_OBJECT_TAGS − union(last 3 batches'
+   * sceneObjectTags)`. Used by `scoreNovelty` for the +3 catalog-
+   * rotate boost on the scene-object axis (parallel to the
+   * `unusedScriptTypesLast3` lever).
+   */
+  unusedSceneObjectTagsLast3?: ReadonlySet<SceneObjectTag>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -677,6 +738,22 @@ function metaScriptType(m: CandidateMeta): ScriptType | undefined {
   return m.scriptType;
 }
 
+function metaArchetype(m: CandidateMeta): Archetype | undefined {
+  return m.archetype;
+}
+
+function metaArchetypeFamily(m: CandidateMeta): ArchetypeFamily | undefined {
+  return m.archetypeFamily;
+}
+
+function metaSceneObjectTag(m: CandidateMeta): SceneObjectTag | undefined {
+  return m.sceneObjectTag;
+}
+
+function metaSceneEnvCluster(m: CandidateMeta): SceneEnvCluster | undefined {
+  return m.sceneEnvCluster;
+}
+
 /**
  * Novelty score: 0-8 across hookStyle / scenario / structure /
  * visualAction / topic / hookOpener / setting / scriptType (each
@@ -705,6 +782,8 @@ export function scoreNovelty(
   const openers = new Set<HookOpener>();
   const settings = new Set<Setting>();
   const scripts = new Set<ScriptType>();
+  const archetypes = new Set<Archetype>();
+  const sceneTags = new Set<SceneObjectTag>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -718,6 +797,10 @@ export function scoreNovelty(
     settings.add(b.idea.setting as Setting);
     const sct = metaScriptType(b.meta);
     if (sct) scripts.add(sct);
+    const arc = metaArchetype(b.meta);
+    if (arc) archetypes.add(arc);
+    const sot = metaSceneObjectTag(b.meta);
+    if (sot) sceneTags.add(sot);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -771,15 +854,47 @@ export function scoreNovelty(
     !scripts.has(sct) &&
     !(ctx.recentScriptTypes?.has(sct) ?? false);
 
-  // I. Unused-in-last-3-batches "rotate the catalog" boost — large
+  // I. Archetype novelty — fresh archetype on BOTH axes (within batch
+  //    + immediate-prior batch). IDEA ARCHETYPE spec axis: prevents
+  //    two `ill_do_it_later` picks landing in the same batch even
+  //    when scenarioFamily / scriptType / etc all rotate. Binary
+  //    fresh dim only — the +3 catalog-rotate boost rides on the
+  //    scriptType axis since archetype is 1:1 derived from scriptType
+  //    for our 37 active values (a fresh scriptType is always a
+  //    fresh archetype, so a separate +3 archetype boost would
+  //    double-count the same lever).
+  const arc = metaArchetype(c.meta);
+  const arcFresh =
+    !!arc &&
+    !archetypes.has(arc) &&
+    !(ctx.recentArchetypes?.has(arc) ?? false);
+  // J. SceneObjectTag novelty — fresh tag on BOTH axes. SCENE-OBJECT
+  //    TAG spec axis: prevents two coffee / two unread_messages picks
+  //    in one batch. The +3 catalog-rotate boost on this axis IS its
+  //    own lever (decoupled from scriptType), since tag↔scriptType
+  //    is many-to-many across the 25 family / 53 tag space.
+  const sot = metaSceneObjectTag(c.meta);
+  const sotFresh =
+    !!sot &&
+    !sceneTags.has(sot) &&
+    !(ctx.recentSceneObjectTags?.has(sot) ?? false);
+
+  // K. Unused-in-last-3-batches "rotate the catalog" boost — large
   //    +3 when this scriptType has not appeared in any of the last
   //    3 batches. Spec's headline lever for breaking the "same
   //    mental loop" failure mode: makes catalog rotation a real,
   //    not theoretical, force at pick time. Stacks on top of the
   //    per-axis fresh signals so a fresh-on-every-axis pick of a
-  //    catalog-cold scriptType gets +8 + 3 = +11 over a clone pick.
+  //    catalog-cold scriptType gets +10 + 3 + 3 = +16 over a clone pick.
   const unusedBoost =
     sct && (ctx.unusedScriptTypesLast3?.has(sct) ?? false) ? 3 : 0;
+  // L. Unused-tag boost — parallel +3 lever on the scene-object axis.
+  //    A catalog-cold sceneObjectTag (no appearance in the last 3
+  //    batches) gets the same +3 nudge. Stacks with the scriptType
+  //    boost so a pick that's fresh-cold on BOTH axes can score
+  //    up to +10 + 6 = +16 over a clone.
+  const unusedTagBoost =
+    sot && (ctx.unusedSceneObjectTagsLast3?.has(sot) ?? false) ? 3 : 0;
 
   return (
     (hookFresh ? 1 : 0) +
@@ -790,7 +905,10 @@ export function scoreNovelty(
     (opFresh ? 1 : 0) +
     (stFresh ? 1 : 0) +
     (sctFresh ? 1 : 0) +
-    unusedBoost
+    (arcFresh ? 1 : 0) +
+    (sotFresh ? 1 : 0) +
+    unusedBoost +
+    unusedTagBoost
   );
 }
 
@@ -810,11 +928,20 @@ export function scoreNovelty(
  *   same hookOpener             → -2  (opener feels like the same hook)
  *   same setting                → -2  (same physical location)
  *   same scriptType             → -2  (same narrative shape)
+ *   same archetype              → -4  (same idea archetype — strongest
+ *                                       within-batch lever; the headline
+ *                                       IDEA ARCHETYPE spec demotion)
+ *   same archetypeFamily        → -2  (same family of archetype, even
+ *                                       if the specific archetype differs)
+ *   same sceneEnvCluster        → -1  (same env cluster — light demotion;
+ *                                       cluster is broad so a single
+ *                                       collision shouldn't be punitive)
  *
  * Cross-batch (vs `ctx`):
- *   scriptType ∈ recentScriptTypes        → -3  (immediate-prior batch)
- *   scriptType ∈ frequentScriptTypesLast3 → -2  (≥2 of last 3 batches;
- *                                                stacks with the -3)
+ *   scriptType ∈ recentScriptTypes              → -3  (immediate-prior batch)
+ *   scriptType ∈ frequentScriptTypesLast3       → -2  (≥2 of last 3; stacks)
+ *   sceneObjectTag ∈ recentSceneObjectTags      → -3  (immediate-prior batch)
+ *   sceneObjectTag ∈ frequentSceneObjectTagsLast3 → -2  (≥2 of last 3; stacks)
  *
  * Returns 0 when batch is empty AND ctx contributes no penalty.
  */
@@ -837,6 +964,9 @@ export function selectionPenalty(
     const openers = new Set<HookOpener>();
     const settings = new Set<Setting>();
     const scripts = new Set<ScriptType>();
+    const archetypes = new Set<Archetype>();
+    const archetypeFamilies = new Set<ArchetypeFamily>();
+    const sceneClusters = new Set<SceneEnvCluster>();
     for (const b of batchSoFar) {
       styles.add(b.idea.hookStyle);
       if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -850,6 +980,12 @@ export function selectionPenalty(
       settings.add(b.idea.setting as Setting);
       const sct = metaScriptType(b.meta);
       if (sct) scripts.add(sct);
+      const arc = metaArchetype(b.meta);
+      if (arc) archetypes.add(arc);
+      const arcFam = metaArchetypeFamily(b.meta);
+      if (arcFam) archetypeFamilies.add(arcFam);
+      const sec = metaSceneEnvCluster(b.meta);
+      if (sec) sceneClusters.add(sec);
     }
     if (styles.has(c.idea.hookStyle)) p -= 2;
     if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -864,6 +1000,24 @@ export function selectionPenalty(
     if (settings.has(cst)) p -= 2;
     const csct = metaScriptType(c.meta);
     if (csct && scripts.has(csct)) p -= 2;
+    // IDEA ARCHETYPE spec — within-batch demotions. -4 for same
+    // archetype (the strongest within-batch lever, sized to outrank
+    // a typical fresh-on-3-axes novelty bonus); -2 for same family
+    // (so a batch with two distinct archetypes-in-same-family is
+    // softer than two-same-archetype but still discouraged).
+    const carc = metaArchetype(c.meta);
+    if (carc && archetypes.has(carc)) p -= 4;
+    const carcFam = metaArchetypeFamily(c.meta);
+    if (carcFam && archetypeFamilies.has(carcFam)) p -= 2;
+    // SCENE-OBJECT TAG spec — within-batch cluster demotion. Lighter
+    // (-1) than family because cluster is a broader bucket — five
+    // clusters cover all 53 tags so collisions are statistically
+    // common, but two-from-same-cluster still feels like one scene
+    // shot twice. The HARD per-batch guard in batchGuardsPass
+    // (max 1 cluster) is what actually prevents the worst case;
+    // this nudges the soft selector toward the same outcome.
+    const csec = metaSceneEnvCluster(c.meta);
+    if (csec && sceneClusters.has(csec)) p -= 1;
   }
   // Cross-batch tiered scriptType demotion (in addition to the
   // within-batch -2). The two tiers stack: a scriptType that's
@@ -873,6 +1027,18 @@ export function selectionPenalty(
   if (csctCross) {
     if (ctx.recentScriptTypes?.has(csctCross) ?? false) p -= 3;
     if (ctx.frequentScriptTypesLast3?.has(csctCross) ?? false) p -= 2;
+  }
+  // Cross-batch tiered sceneObjectTag demotion — parallel to the
+  // scriptType lever. A tag that's both immediate-prior AND frequent
+  // across last 3 batches takes -3 + -2 = -5. Independent of the
+  // scriptType axis (a "fresh archetype on a stale tag" pick still
+  // gets the tag penalty, which is the correct behavior — same
+  // physical scene shot back-to-back is the perceptual problem the
+  // spec calls out, regardless of internal narrative shape).
+  const csotCross = metaSceneObjectTag(c.meta);
+  if (csotCross) {
+    if (ctx.recentSceneObjectTags?.has(csotCross) ?? false) p -= 3;
+    if (ctx.frequentSceneObjectTagsLast3?.has(csotCross) ?? false) p -= 2;
   }
   return p;
 }
