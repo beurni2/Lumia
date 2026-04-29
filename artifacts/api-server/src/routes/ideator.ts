@@ -17,11 +17,9 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "../db/client";
 import { resolveCreator } from "../lib/resolveCreator";
-import { generateIdeas } from "../lib/ideaGen";
+import { runHybridIdeator } from "../lib/hybridIdeator";
 import { isRegion, type Region } from "@workspace/lumina-trends";
 import { styleProfileSchema, type StyleProfile } from "../lib/styleProfile";
 import { consumeQuota, refundQuota } from "../lib/quota";
@@ -114,22 +112,26 @@ router.post("/ideator/generate", async (req, res, next) => {
 
     let result;
     try {
-      result = await generateIdeas({
+      // Hybrid Ideator Pipeline — pattern engine first ($0), Claude
+      // fallback only if <3 local candidates pass the scorer. The
+      // orchestrator owns cache hit/miss + persistence; the route
+      // just threads `creator` through and keeps the response
+      // shape identical (`{ region, count, regenerate, ideas }`).
+      result = await runHybridIdeator({
         region,
         styleProfile,
         count: body.count ?? 3,
         regenerate: body.regenerate ?? false,
         // Thread the already-loaded calibration jsonb through so
-        // generateIdeas does NOT re-SELECT the creator row.
-        // resolveCreator returns the full creator (`.select()`),
-        // so this field is always present (may be null).
+        // the orchestrator (and any Claude fallback) does NOT
+        // re-SELECT the creator row. resolveCreator returns the
+        // full creator (`.select()`), so this field is always
+        // present (may be null).
         tasteCalibrationJson: creator.tasteCalibrationJson,
-        // Memory is left undefined here so generateIdeas runs the
-        // aggregator itself — the SELECT is on the indexed tables
-        // (creator_id, created_at desc), so it's cheap and we don't
-        // want every caller of generateIdeas to need to know about
-        // the helper.
+        // Memory is left undefined so the orchestrator computes
+        // it once and shares it with the fallback path.
         ctx: { creatorId: creator.id },
+        creator,
       });
     } catch (err) {
       // Refund quota if the call failed before producing ideas, so a
@@ -145,14 +147,11 @@ router.post("/ideator/generate", async (req, res, next) => {
       throw err;
     }
 
-    // Stamp the batch timestamp so we can reason about freshness later
-    // (e.g. "show today's ideas if last_idea_batch_at is today").
-    if (!creator.isDemo) {
-      await db
-        .update(schema.creators)
-        .set({ lastIdeaBatchAt: sql`now()` } as Record<string, unknown>)
-        .where(eq(schema.creators.id, creator.id));
-    }
+    // The orchestrator persists `lastIdeaBatchJson` + `lastIdeaBatchDate`
+    // + `lastIdeaBatchAt` together for non-demo creators (skipped on
+    // cache hits since the row is already current). Demo creators
+    // intentionally never persist — that's how the curl-driven QA
+    // path stays cache-free.
 
     res.json({
       region,

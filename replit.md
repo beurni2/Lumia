@@ -43,6 +43,7 @@ Lumina is a pnpm workspace monorepo built with TypeScript.
 
 **Feature Specifications:**
 - The Ideator generates video ideas with hard constraints: hook ≤ 3 seconds/8 words, shoot ≤ 30 minutes, and ≥50% low-effort ideas per batch.
+- **Hybrid Ideator Pipeline (Layers 1/2/4 shipped):** Cost-reduction pipeline routing requests through a deterministic local pattern engine first (`lib/patternIdeator.ts` — 6 templates × ~20 safe scenarios × 5 hook-style phrasings, fully memory-biased), filtering candidates through a 6-axis 0–10 scorer with one rewrite attempt (`lib/ideaScorer.ts`), and only falling back to Claude `generateIdeas` when fewer than 3 local candidates pass the gate. Daily per-creator cache on `creators.last_idea_batch_json` + `last_idea_batch_date` (migration #20) serves same-day repeat requests for free; demo creators bypass cache writes. The orchestrator (`lib/hybridIdeator.ts`) exposes `{ ideas, source: cache|pattern|fallback|mixed, usedFallback, counts }` and the `/api/ideator/generate` route shape is unchanged. Llama 3.1 fallback and Llama 3.2 Vision are deferred to follow-up sessions.
 - Users provide "Yes / Maybe / No" feedback on ideas, influencing future generation and trending boards.
 - AI-generated ideas are the sole primary entry into the filming/create flow.
 - The import stage supports adding 1-2 clips with "Film" or "Upload" options.

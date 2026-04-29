@@ -482,4 +482,20 @@ export const migrations: Migration[] = [
       ALTER TABLE ideator_signal ADD COLUMN IF NOT EXISTS hook_style varchar(32);
     `,
   },
+  {
+    id: 20,
+    name: "idea_batch_cache_columns",
+    // Hybrid Ideator Pipeline (Layer 4) — adds a per-creator daily
+    // cache for the last successful idea batch so a same-day repeat
+    // request without `regenerate=true` can serve the cached batch
+    // and skip the pattern engine + scorer entirely. Two columns,
+    // both NULLABLE, both ADD COLUMN IF NOT EXISTS — strictly
+    // additive. Pre-v20 rows have NULL in both; the orchestrator
+    // falls through to the normal pipeline whenever the cache is
+    // empty or stale (`last_idea_batch_date` ≠ utcToday).
+    sql: `
+      ALTER TABLE creators ADD COLUMN IF NOT EXISTS last_idea_batch_json jsonb;
+      ALTER TABLE creators ADD COLUMN IF NOT EXISTS last_idea_batch_date date;
+    `,
+  },
 ];

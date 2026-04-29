@@ -130,6 +130,17 @@ export const creators = pgTable("creators", {
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.
   lastIdeaBatchAt: timestamp("last_idea_batch_at", { withTimezone: true }),
+  // Hybrid Ideator Pipeline (Layer 4) daily cache. When a creator
+  // requests ideas a second time on the same UTC day without
+  // `regenerate=true`, we serve `lastIdeaBatchJson` instead of
+  // re-running the pattern engine + scorer. Both columns are
+  // strictly additive (migration #20) and NULLABLE — pre-v20 rows,
+  // demo creators, and any creator who hasn't generated yet all
+  // have NULL here, in which case the orchestrator falls through
+  // to the normal pipeline. Cache is invalidated automatically
+  // when `lastIdeaBatchDate !== utcToday`.
+  lastIdeaBatchJson: jsonb("last_idea_batch_json").$type<unknown>(),
+  lastIdeaBatchDate: date("last_idea_batch_date"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
