@@ -498,4 +498,31 @@ export const migrations: Migration[] = [
       ALTER TABLE creators ADD COLUMN IF NOT EXISTS last_idea_batch_date date;
     `,
   },
+  {
+    id: 21,
+    name: "vision_style_extraction",
+    // Llama 3.2 Vision style-extraction layer — adds a single
+    // NULLABLE jsonb column on `creators` to store aggregated
+    // vision-derived style hints + per-video enum signals. Strictly
+    // additive (`ADD COLUMN IF NOT EXISTS`); no PK touched, no
+    // existing column type altered. Pre-v21 rows + every creator
+    // who hasn't uploaded any analyzable video have NULL here, in
+    // which case the orchestrator's vision-bias hookup is a no-op
+    // (the pattern engine's existing personalFit signal is
+    // unchanged). One column, one table — see migrations #17
+    // (taste_calibration_json) and #20 (last_idea_batch_json) for
+    // the same pattern.
+    //
+    // Why a column on `creators` instead of a per-video table:
+    // we deliberately DON'T store per-video raw analyses long-term
+    // (privacy-first, see lib/visionProfileAggregator.ts), and the
+    // aggregated document is small (≤10 capped per-video enum
+    // signals + the derivedStyleHints rollup). A side table would
+    // be over-engineering and force a join on every ideator
+    // request, where the existing JSONB pattern lets us round-trip
+    // the document inline with the rest of the creator record.
+    sql: `
+      ALTER TABLE creators ADD COLUMN IF NOT EXISTS vision_style_json jsonb;
+    `,
+  },
 ];

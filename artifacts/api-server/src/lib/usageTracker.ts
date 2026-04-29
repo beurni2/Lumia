@@ -28,12 +28,19 @@ import { logger } from "./logger";
 export type UsageKind =
   | "idea_request"
   | "regenerate_request"
-  | "llama_call";
+  | "llama_call"
+  // Llama 3.2 Vision style-extraction calls. Same DB pattern as the
+  // other kinds — `varchar(32)` on the column means any string fits
+  // and no schema migration is required to add a new kind. Capped
+  // daily by the vision-frames route handler (default 20/creator/day,
+  // see VISION_DAILY_CAP). Demo creators bypass.
+  | "vision_call";
 
 const ALL_KINDS: ReadonlyArray<UsageKind> = [
   "idea_request",
   "regenerate_request",
   "llama_call",
+  "vision_call",
 ];
 
 // -----------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import payoutsRouter from "./payouts";
 import ideatorRouter from "./ideator";
 import styleProfileRouter from "./styleProfile";
 import importedVideosRouter from "./importedVideos";
+import visionStyleRouter from "./visionStyle";
 import ideaFeedbackRouter from "./ideaFeedback";
 import tasteCalibrationRouter from "./tasteCalibration";
 import enhancementsRouter from "./enhancements";
@@ -40,6 +41,12 @@ router.use(meRouter);
 router.use(styleProfileRouter);
 router.use(ideatorRouter);
 router.use(importedVideosRouter);
+//   • vision-style   — POST /api/imported-videos/:id/vision-frames
+//     receives on-device-sampled thumbnail frames, runs Llama 3.2
+//     Vision via OpenRouter, aggregates per-creator vision-derived
+//     style hints. Mounted AFTER importedVideosRouter so the same
+//     `/imported-videos/...` prefix is shared cleanly by both.
+router.use(visionStyleRouter);
 //   • idea-feedback  — POST /api/ideas/feedback ("Would you post this?")
 router.use(ideaFeedbackRouter);
 //   • enhancements   — POST /api/enhancements/suggest, the per-clip

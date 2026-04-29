@@ -48,6 +48,8 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { ApiError, customFetch } from "@workspace/api-client-react";
 
+import { uploadVisionFrames } from "../../lib/uploadVisionFrames";
+
 import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
 import { StyleProfileReveal } from "@/components/onboarding/StyleProfileReveal";
 import { TasteCalibration } from "@/components/onboarding/TasteCalibration";
@@ -293,6 +295,14 @@ export default function MvpOnboarding() {
       });
       setImportedCount(imp.count);
       setFirstImportSaved(true);
+      // Fire-and-forget on-device frame sample → vision endpoint.
+      // Skipped on dedup so a network retry doesn't burn a daily
+      // vision-call slot for the same clip; the aggregator is
+      // idempotent on importedVideoId anyway, but skipping the
+      // wasted thumbnail extraction is the friendly default.
+      if (!imp.dedup) {
+        uploadVisionFrames(imp.id, picked.uri, picked.durationSec);
+      }
       const first = await generateFirstIdea(bundle);
       setQuickWin(first);
       if (Platform.OS !== "web") {
@@ -389,6 +399,11 @@ export default function MvpOnboarding() {
         body: JSON.stringify(picked.payload),
       });
       setImportedCount(imp.count);
+      // Fire-and-forget on-device frame sample → vision endpoint.
+      // Same dedup-skip rationale as the first-import handler.
+      if (!imp.dedup) {
+        uploadVisionFrames(imp.id, picked.uri, picked.durationSec);
+      }
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -748,6 +763,23 @@ function PrimaryButton({
 
 type PickedClip = {
   payload: { filename?: string; durationSec?: number };
+  /**
+   * Local `file://` URI of the picked asset, used by the on-device
+   * Llama-Vision frame sampler (`uploadVisionFrames`). Kept off the
+   * `payload` because `payload` is exactly what we POST to
+   * `/api/imported-videos` — the server doesn't want or need the
+   * URI, and we never want it to accidentally leak server-side.
+   * Empty string on the web sim path or when the picker can't give
+   * us one; the uploader treats `""` as a no-op.
+   */
+  uri: string;
+  /**
+   * Duration in seconds (rounded), or `null` when the picker
+   * doesn't surface it. Surfaced separately for the same reason
+   * `uri` is — vision sampling needs it but the import POST already
+   * has its own `durationSec` field nested under `payload`.
+   */
+  durationSec: number | null;
 };
 
 async function pickVideo(): Promise<PickedClip | null> {
@@ -759,6 +791,11 @@ async function pickVideo(): Promise<PickedClip | null> {
         filename: `web-sim-${Date.now()}.mp4`,
         durationSec: 18,
       },
+      // Web sim has no real asset; the uploader short-circuits on
+      // `Platform.OS === "web"` AND on empty uri, so this is doubly
+      // safe.
+      uri: "",
+      durationSec: 18,
     };
   }
   try {
@@ -782,12 +819,18 @@ async function pickVideo(): Promise<PickedClip | null> {
       typeof asset.duration === "number" && asset.duration > 0
         ? Math.round(asset.duration / 1000)
         : undefined;
-    return { payload: { filename, durationSec } };
+    return {
+      payload: { filename, durationSec },
+      uri: asset.uri,
+      durationSec: durationSec ?? null,
+    };
   } catch {
     // Picker is unreliable on some emulators — fall through with a
     // simulated payload so the user can still progress.
     return {
       payload: { filename: `fallback-${Date.now()}.mp4` },
+      uri: "",
+      durationSec: null,
     };
   }
 }

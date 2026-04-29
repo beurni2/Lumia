@@ -203,6 +203,12 @@ router.post("/ideator/generate", async (req, res, next) => {
         // full creator (`.select()`), so this field is always
         // present (may be null).
         tasteCalibrationJson: creator.tasteCalibrationJson,
+        // Same pattern for the Llama 3.2 Vision style-extraction
+        // document. NULL for new creators / pre-v21 rows / anyone
+        // who hasn't uploaded any analyzable video — the
+        // orchestrator parses it once and the bias is a strict
+        // no-op when hints are empty.
+        visionStyleJson: creator.visionStyleJson,
         // Memory is left undefined so the orchestrator computes
         // it once and shares it with the fallback path.
         ctx: { creatorId: creator.id },

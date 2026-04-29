@@ -141,6 +141,23 @@ export const creators = pgTable("creators", {
   // when `lastIdeaBatchDate !== utcToday`.
   lastIdeaBatchJson: jsonb("last_idea_batch_json").$type<unknown>(),
   lastIdeaBatchDate: date("last_idea_batch_date"),
+  // Llama 3.2 Vision style-extraction document (migration #21).
+  // Strict-additive jsonb, NULLABLE — absence means "no vision
+  // analyses yet, fall through to the existing styleProfile +
+  // taste calibration + viral pattern memory chain unchanged."
+  // Shape (see lib/visionProfileAggregator.ts for the canonical
+  // type): { version, perVideoSignals[], derivedStyleHints,
+  // totalAnalyzed, lastUpdatedAt }. Per-video signals are
+  // capped at 10 most-recent (FIFO) and STORE ONLY ENUM FIELDS
+  // — the free-text `visibleAction` from the model response is
+  // dropped before persistence (per spec: "Do not store raw
+  // video analysis as public text"). When the model flags a
+  // frame batch as `privacyRisk=true` the analysis is dropped
+  // entirely (totalAnalyzed still bumps for transparency).
+  // Vision-derived hints SOFT-bias the pattern engine's
+  // `personalFit` axis at scoring time only — never override
+  // user explicit answers, yes/no feedback, or quality filters.
+  visionStyleJson: jsonb("vision_style_json").$type<unknown>(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

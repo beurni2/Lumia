@@ -29,6 +29,76 @@ import {
   type TopicLane,
   type VisualActionPattern,
 } from "./patternIdeator";
+import type { DerivedStyleHints } from "./visionProfileAggregator";
+
+// Map the pattern engine's `Setting` enum (8 values, scenario-centric)
+// to the Llama 3.2 Vision `setting` enum (7 values, frame-centric).
+// Returns `null` for values that don't have a clean vision-side
+// counterpart ("couch", "other") — those just don't get a vision
+// boost, which is the safest default. Kept here (not in the
+// aggregator) because the mapping is scoring-side concern: the
+// aggregator never sees pattern-engine settings.
+function mapPatternSettingToVisionSetting(s: Setting): string | null {
+  switch (s) {
+    case "bed":
+      return "bedroom";
+    case "kitchen":
+      return "kitchen";
+    case "car":
+      return "car";
+    case "bathroom":
+      return "bathroom_mirror";
+    case "desk":
+      return "desk";
+    case "outside":
+      return "outside";
+    case "couch":
+    case "other":
+      return null;
+  }
+}
+
+/**
+ * Apply the Llama 3.2 Vision style-extraction soft bias to a
+ * pre-computed `personalFit` score. This is the ONE point at which
+ * vision-derived hints touch the scoring stack — keeping it here
+ * (not at generation time) means we can roll back the bias without
+ * disturbing the candidate pool, and quality / safety filters
+ * (which run BEFORE personalFit) are structurally unreachable
+ * from this code path.
+ *
+ * Rule (per spec — "lightly bias future ideas, never override"):
+ *   - Vision can push 1 → 2. NEVER 0 → anything (a candidate that
+ *     looked like a poor personal fit before vision is still a
+ *     poor fit — vision shouldn't drag it up to "great fit").
+ *   - Vision NEVER subtracts. A candidate that didn't match the
+ *     creator's vision-derived style stays at its original
+ *     personalFit (no penalty for novelty).
+ *   - Match condition: the candidate's `meta.scenario.setting`
+ *     maps to a vision setting that appears in the creator's
+ *     `preferredSettings`. (`preferredFormats` is intentionally
+ *     unused here — the pattern engine doesn't carry contentType
+ *     metadata, so any join would be a guess.)
+ */
+function applyVisionBoost(
+  personalFit: 0 | 1 | 2,
+  meta: CandidateMeta | undefined,
+  hints: DerivedStyleHints | undefined,
+): 0 | 1 | 2 {
+  if (personalFit !== 1) return personalFit;
+  if (!hints) return personalFit;
+  if (hints.preferredSettings.length === 0) return personalFit;
+  const candidateSetting = meta?.scenario?.setting;
+  if (!candidateSetting) return personalFit;
+  const visionSetting = mapPatternSettingToVisionSetting(candidateSetting);
+  if (!visionSetting) return personalFit;
+  if (
+    (hints.preferredSettings as string[]).includes(visionSetting)
+  ) {
+    return 2;
+  }
+  return personalFit;
+}
 
 /**
  * Common metadata wrapper for candidates flowing through the scorer.
@@ -260,6 +330,7 @@ export function scoreIdea(
   memory: ViralPatternMemory,
   recentScenarios: string[] = [],
   meta?: CandidateMeta,
+  derivedStyleHints?: DerivedStyleHints,
 ): IdeaScore {
   // profile is reserved for future per-creator phrasing fit signals
   // (e.g. tone match between hook + their derived tone). For Layer 2
@@ -269,7 +340,14 @@ export function scoreIdea(
   const hookImpact = scoreHookImpact(idea.hook);
   const tension = scoreTension(idea);
   const filmability = scoreFilmability(idea);
-  const personalFit = scorePersonalFit(idea, memory);
+  const personalFitBase = scorePersonalFit(idea, memory);
+  // Vision-derived soft bias — additive only, capped at 2, gated to
+  // 1→2 transitions. Safe to call with `undefined` hints (no-op).
+  const personalFit = applyVisionBoost(
+    personalFitBase,
+    meta,
+    derivedStyleHints,
+  );
   const captionStrength = scoreCaptionStrength(idea);
   const freshness = scoreFreshness(idea, recentScenarios, meta);
   const total =
@@ -353,6 +431,14 @@ export type FilterAndRescoreInput = {
   profile: StyleProfile;
   memory: ViralPatternMemory;
   recentScenarios?: string[];
+  /**
+   * Llama 3.2 Vision-derived style hints. Optional — when absent
+   * (the common case for new creators / pre-v21 rows) the scoring
+   * pipeline is identical to its pre-vision behavior. When present,
+   * applied via `applyVisionBoost` at the personalFit step only.
+   * See `lib/visionProfileAggregator.ts` for the doc shape.
+   */
+  derivedStyleHints?: DerivedStyleHints;
 };
 
 export type FilterAndRescoreResult = {
@@ -377,7 +463,14 @@ export function filterAndRescore(
       hardRejected++;
       continue;
     }
-    let score = scoreIdea(c.idea, input.profile, input.memory, recent, c.meta);
+    let score = scoreIdea(
+      c.idea,
+      input.profile,
+      input.memory,
+      recent,
+      c.meta,
+      input.derivedStyleHints,
+    );
     let idea = c.idea;
     let meta = c.meta;
     let rewriteAttempted = false;
@@ -394,7 +487,14 @@ export function filterAndRescore(
       rewriteAttempted = true;
       idea = rewritten.idea;
       meta = rewritten.meta;
-      score = scoreIdea(idea, input.profile, input.memory, recent, meta);
+      score = scoreIdea(
+        idea,
+        input.profile,
+        input.memory,
+        recent,
+        meta,
+        input.derivedStyleHints,
+      );
       if (score.hookImpact === 0 || score.tension === 0 || score.filmability === 0) {
         rejected++;
         continue;
@@ -412,6 +512,7 @@ export function filterAndRescore(
           input.memory,
           recent,
           rewritten.meta,
+          input.derivedStyleHints,
         );
         if (rewrittenScore.total > score.total) {
           idea = rewritten.idea;

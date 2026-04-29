@@ -61,6 +61,7 @@ import {
   DEFAULT_STYLE_PROFILE,
   type StyleProfile,
 } from "./styleProfile";
+import { parseVisionStyleDoc } from "./visionProfileAggregator";
 import type { Creator } from "../db/schema";
 
 // -----------------------------------------------------------------------------
@@ -80,6 +81,17 @@ export type HybridIdeatorInput = GenerateIdeasInput & {
    * snapshot.
    */
   usageContext?: MutationUsageContext;
+  /**
+   * Llama 3.2 Vision style-extraction document
+   * (`creators.vision_style_json`). Optional — when absent or under
+   * the per-video threshold the scoring stack behaves identically to
+   * the pre-vision pipeline. When present and at-threshold, the
+   * orchestrator parses it into `derivedStyleHints` once and threads
+   * them into `filterAndRescore` (both local + fallback paths) so a
+   * single soft +1 personalFit boost can fire when a candidate
+   * matches the creator's vision-derived setting preference.
+   */
+  visionStyleJson?: unknown | null;
 };
 
 export type HybridIdeatorSource = "cache" | "pattern" | "fallback" | "mixed";
@@ -817,6 +829,15 @@ export async function runHybridIdeator(
 
   // -------- Step 3: Layer 1 + Layer 2 ----------------------------
   const memory = await loadMemory(input);
+  // Parse the persisted vision-style doc once at the orchestrator
+  // boundary so both the local and fallback rescore paths see the
+  // same `derivedStyleHints` snapshot. `parseVisionStyleDoc` is
+  // tolerant of NULL / malformed shapes (returns the empty doc),
+  // and `derivedStyleHints` is itself empty under the per-video
+  // threshold, so for new creators / pre-v21 rows this is a strict
+  // no-op — `filterAndRescore` short-circuits inside `applyVisionBoost`.
+  const visionDoc = parseVisionStyleDoc(input.visionStyleJson ?? null);
+  const derivedStyleHints = visionDoc.derivedStyleHints;
   // Generate enough pattern candidates to cover the requested count
   // even after hard-rejects + scoring drops: target = max(16, desired + 4)
   // capped at 20 (the engine's hard ceiling). For desiredCount=3 this
@@ -839,6 +860,7 @@ export async function runHybridIdeator(
     profile,
     memory,
     recentScenarios: input.recentScenarios,
+    derivedStyleHints,
   });
 
   let usedFallback = false;
@@ -898,6 +920,7 @@ export async function runHybridIdeator(
         profile,
         memory,
         recentScenarios: input.recentScenarios,
+        derivedStyleHints,
       });
       fallbackKeptCount = fallbackResult.kept.length;
       merged = [...merged, ...fallbackResult.kept].sort(
