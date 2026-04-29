@@ -740,13 +740,25 @@ export function generatePatternCandidates(
   // 12 candidates twice in a row.
   const seedSalt = input.regenerate ? 7 : 0;
 
-  // First pass — bias toward memory: 75% of candidates use memory's
-  // top structure / hookStyle when available.
+  // Cartesian-diagonal weave: each axis (template, scenario, style)
+  // advances every iteration at its own rate. With T=6, S=20, H=5 and
+  // target=16 this guarantees all 5 hookStyles, all 6 structures, and
+  // 16 distinct scenarios in the candidate pool — giving the Layer 4
+  // diversifier real material to enforce hard structure/style/family
+  // uniqueness on. The previous nested weave divided style by T*S=120,
+  // which meant every batch <=120 candidates was single-style.
+  // Memory bias is preserved because orderedTemplates is already
+  // sorted top-structure-first, so the first iteration still surfaces
+  // the creator's strongest pattern.
+  const T = orderedTemplates.length;
+  const S = orderedScenarios.length;
+  const H = styleOrder.length;
+  const maxIter = T * S * H;
   let i = 0;
-  while (out.length < target && i < orderedTemplates.length * orderedScenarios.length * styleOrder.length) {
-    const t = orderedTemplates[i % orderedTemplates.length];
-    const s = orderedScenarios[Math.floor(i / orderedTemplates.length) % orderedScenarios.length];
-    const hs = styleOrder[Math.floor(i / (orderedTemplates.length * orderedScenarios.length)) % styleOrder.length];
+  while (out.length < target && i < maxIter) {
+    const t = orderedTemplates[(i + seedSalt) % T];
+    const s = orderedScenarios[i % S];
+    const hs = styleOrder[i % H];
     const key = `${t.id}|${s.family}|${hs}`;
     i++;
     if (seen.has(key)) continue;

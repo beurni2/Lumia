@@ -84,44 +84,87 @@ function utcToday(): string {
 }
 
 /**
- * Diversity-aware top-N picker.
+ * HARD diversity-first selector for the final batch.
  *
- * Sort is already done by the scorer (score desc, then personalFit,
- * then hookImpact, then pattern_variation tie-break). We then walk
- * the sorted list and prefer NOT to repeat scenarioFamily or
- * hookStyle until the cap is hit. If the diversified pass produces
- * fewer than `count`, we top up from the rest.
+ * Spec (per product owner): perceived creativity collapses when a
+ * batch ships with the same `structure`, `hookStyle`, or
+ * `scenarioFamily` repeated. After the scorer's >=8 quality gate,
+ * diversity beats raw score. Walks the sorted pool in four
+ * progressively-relaxed passes:
+ *
+ *   Pass A (strict)   : new structure AND new hookStyle AND new family
+ *   Pass B (structure): new structure only (allow repeat style/family)
+ *   Pass C (axes)     : new hookStyle OR new family (allow structure repeat)
+ *   Pass D (rescue)   : anything left, by score, to fill `count`
+ *
+ * The score gate uses `>= 8` only when the high-tier pool already
+ * has at least `count` candidates; otherwise it falls back to the
+ * full scored pool so we never under-deliver. Sort order from
+ * `filterAndRescore` (score desc → personalFit → hookImpact →
+ * pattern_variation) is preserved across all passes.
  */
-function diversifyAndTake(
+const HIGH_QUALITY_SCORE = 8;
+
+function diversifiedSelect(
   scored: ScoredCandidate[],
   count: number,
 ): ScoredCandidate[] {
-  const seenScenarios = new Set<string>();
-  const seenHookStyles = new Set<string>();
-  const picked: ScoredCandidate[] = [];
-  const remainder: ScoredCandidate[] = [];
+  if (scored.length === 0 || count <= 0) return [];
 
-  for (const c of scored) {
-    const family = familyOf(c.meta);
-    const hookStyle = c.idea.hookStyle;
-    if (
-      (family && seenScenarios.has(family)) ||
-      seenHookStyles.has(hookStyle)
-    ) {
-      remainder.push(c);
-      continue;
-    }
+  const highTier = scored.filter((c) => c.score.total >= HIGH_QUALITY_SCORE);
+  const pool = highTier.length >= count ? highTier : scored;
+
+  const picked: ScoredCandidate[] = [];
+  const pickedSet = new Set<ScoredCandidate>();
+  const usedStructures = new Set<string>();
+  const usedHookStyles = new Set<string>();
+  const usedFamilies = new Set<string>();
+
+  const accept = (c: ScoredCandidate) => {
     picked.push(c);
-    if (family) seenScenarios.add(family);
-    seenHookStyles.add(hookStyle);
-    if (picked.length >= count) break;
-  }
-  if (picked.length < count) {
-    for (const c of remainder) {
-      picked.push(c);
-      if (picked.length >= count) break;
+    pickedSet.add(c);
+    usedStructures.add(c.idea.structure);
+    usedHookStyles.add(c.idea.hookStyle);
+    const fam = familyOf(c.meta);
+    if (fam) usedFamilies.add(fam);
+  };
+
+  const sweep = (filter: (c: ScoredCandidate) => boolean) => {
+    if (picked.length >= count) return;
+    for (const c of pool) {
+      if (picked.length >= count) return;
+      if (pickedSet.has(c)) continue;
+      if (!filter(c)) continue;
+      accept(c);
     }
-  }
+  };
+
+  // Pass A — strict diversity on all three axes.
+  sweep((c) => {
+    const fam = familyOf(c.meta);
+    return (
+      !usedStructures.has(c.idea.structure) &&
+      !usedHookStyles.has(c.idea.hookStyle) &&
+      (!fam || !usedFamilies.has(fam))
+    );
+  });
+
+  // Pass B — HARD structure uniqueness, relax style/family.
+  sweep((c) => !usedStructures.has(c.idea.structure));
+
+  // Pass C — at least one fresh axis when we must reuse structure.
+  sweep((c) => {
+    const fam = familyOf(c.meta);
+    return (
+      !usedHookStyles.has(c.idea.hookStyle) ||
+      (!!fam && !usedFamilies.has(fam))
+    );
+  });
+
+  // Pass D — rescue fill so we always return `count` ideas if the
+  // pool has enough candidates at all.
+  sweep(() => true);
+
   return picked.slice(0, count);
 }
 
@@ -317,7 +360,7 @@ export async function runHybridIdeator(
   }
 
   // -------- Step 4: diversify, take top N, persist ---------------
-  const final = diversifyAndTake(merged, desiredCount);
+  const final = diversifiedSelect(merged, desiredCount);
 
   // Final schema gate — every Idea returned (including the rescue
   // path below) MUST validate against ideaSchema. This is paranoia,
