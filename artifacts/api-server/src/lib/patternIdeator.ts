@@ -135,7 +135,7 @@ type TriggerCategory =
   | "self_check"
   | "task";
 
-type Setting =
+export type Setting =
   | "bed"
   | "couch"
   | "desk"
@@ -149,6 +149,23 @@ export type Scenario = {
   family: string;
   triggerCategory: TriggerCategory;
   setting: Setting;
+  /**
+   * Free-form fine-grained location string used in user-facing prose
+   * (whatToShow / howToFilm). Lets us say "bathroom mirror" or
+   * "kitchen counter" or "front door" while the schema-bound `setting`
+   * field stays in its 8-value enum. Picks within a batch are guarded
+   * on `setting` (HARD: max 1 per batch) and `settingDetail` provides
+   * the visible variety in copy.
+   */
+  settingDetail: string;
+  /**
+   * The specific physical moment that defines this scenario — a
+   * 1–2 sentence beat-by-beat description used as the spine of
+   * `whatToShow`. Replaces the old generic "Open on you in the
+   * {setting}. Beat. Then the reaction lands…" template that made
+   * every idea feel identical regardless of family.
+   */
+  sceneBeat: string;
   /** SHORT verb phrase used in hooks ("sleep early", "go to the gym"). */
   actionShort: string;
   /** SHORT contradiction the reality lands on ("it's 3am scrolling"). */
@@ -170,6 +187,9 @@ const SCENARIOS: Scenario[] = [
     family: "sleep",
     triggerCategory: "phone_screen",
     setting: "bed",
+    settingDetail: "in bed in the dark with phone glow on your face",
+    sceneBeat:
+      "You glance at the clock thinking it's still 11pm, do a slow double-take when it reads 3am, then go right back to scrolling like nothing happened.",
     actionShort: "sleep early",
     realityShort: "it's 3am scrolling",
     trigger: "checks the clock thinking it's still 11pm",
@@ -182,6 +202,9 @@ const SCENARIOS: Scenario[] = [
     family: "coffee",
     triggerCategory: "task",
     setting: "kitchen",
+    settingDetail: "at the kitchen counter beside the coffee gear",
+    sceneBeat:
+      "You stare at the untouched French press for two beats, sigh, then grab your keys and head out the door for the $7 latte.",
     actionShort: "make coffee at home today",
     realityShort: "ordering a $7 latte anyway",
     trigger: "stares at the empty French press, then grabs car keys",
@@ -194,6 +217,9 @@ const SCENARIOS: Scenario[] = [
     family: "gym",
     triggerCategory: "self_check",
     setting: "bed",
+    settingDetail: "in bed with the packed gym bag visible by the door",
+    sceneBeat:
+      "You glance at the packed gym bag by the door, slowly pull the blanket higher, and look away like you never saw it.",
     actionShort: "go to the gym",
     realityShort: "the gym bag never moves",
     trigger: "looks at the gym bag packed three days ago",
@@ -206,6 +232,9 @@ const SCENARIOS: Scenario[] = [
     family: "laundry",
     triggerCategory: "environment",
     setting: "bed",
+    settingDetail: "next to the laundry pile on the bedroom chair",
+    sceneBeat:
+      "You pull a shirt from the top of the laundry mountain, hold it up to the light, squint at the wrinkles, and put it on anyway.",
     actionShort: "fold the laundry today",
     realityShort: "wearing the wrinkled shirt",
     trigger: "pulls a shirt from the laundry mountain and shrugs",
@@ -218,6 +247,9 @@ const SCENARIOS: Scenario[] = [
     family: "texting",
     triggerCategory: "message",
     setting: "couch",
+    settingDetail: "on the couch with the phone in your hand",
+    sceneBeat:
+      "You open the unread thread, thumb hovers over the keyboard for a beat, you type nothing, then lock the screen and set the phone face-down.",
     actionShort: "reply to that text",
     realityShort: "letting it sit for 4 days",
     trigger: "opens the unread thread, types nothing, closes it",
@@ -230,8 +262,11 @@ const SCENARIOS: Scenario[] = [
     family: "emails",
     triggerCategory: "phone_screen",
     setting: "desk",
+    settingDetail: "at the desk in front of the open laptop",
+    sceneBeat:
+      "You scroll past 47 unread emails, dead inside, then tap select-all and 'mark as read' with the satisfied-then-immediately-panicked face.",
     actionShort: "clear my inbox",
-    realityShort: "marking everything read instead",
+    realityShort: "marking everything read",
     trigger: "scrolls past 47 unread emails and taps select-all",
     reaction: "the 'mark all as read' satisfied face, then panic",
     visualHook: "thumb sweeps across the inbox, the unread count drops to zero",
@@ -242,6 +277,9 @@ const SCENARIOS: Scenario[] = [
     family: "fridge",
     triggerCategory: "environment",
     setting: "kitchen",
+    settingDetail: "at the open fridge with the door light on your face",
+    sceneBeat:
+      "You open the fridge, stare at the same leftovers for two beats, close it slowly, then immediately unlock DoorDash on your phone.",
     actionShort: "cook tonight",
     realityShort: "opening DoorDash again",
     trigger: "stares into the fridge, closes it slowly",
@@ -253,12 +291,15 @@ const SCENARIOS: Scenario[] = [
   {
     family: "outfit",
     triggerCategory: "self_check",
-    setting: "bed",
+    setting: "bathroom",
+    settingDetail: "at the bathroom mirror with the closet visible behind you",
+    sceneBeat:
+      "You step in front of the mirror in the new outfit, hold the look for one beat, then turn around and walk out wearing the same hoodie as always.",
     actionShort: "wear something new today",
     realityShort: "the same hoodie again",
-    trigger: "stands in front of the closet, grabs the hoodie",
+    trigger: "stands in front of the mirror, grabs the hoodie instead",
     reaction: "the resigned shrug into the mirror",
-    visualHook: "closet open, hand goes straight past everything to the hoodie",
+    visualHook: "closet open behind you, hand goes straight to the hoodie",
     filmingMin: 4,
     topicNoun: "the closet",
   },
@@ -266,6 +307,9 @@ const SCENARIOS: Scenario[] = [
     family: "errands",
     triggerCategory: "task",
     setting: "car",
+    settingDetail: "in the driver's seat, errand list on the dashboard",
+    sceneBeat:
+      "You start the car, look at the six-item errand list on the dash, cross off one thing, then drive home and deadpan straight into the camera.",
     actionShort: "knock out all my errands",
     realityShort: "doing one and going home",
     trigger: "starts the car, looks at the errand list, sighs",
@@ -278,6 +322,9 @@ const SCENARIOS: Scenario[] = [
     family: "weekend_plans",
     triggerCategory: "message",
     setting: "couch",
+    settingDetail: "wrapped in a blanket on the couch",
+    sceneBeat:
+      "You reread the group chat plans, type 'so sorry rain check', hit send, and let the relief wash over your face as you sink deeper into the blanket.",
     actionShort: "go out this weekend",
     realityShort: "cancelling Friday afternoon",
     trigger: "rereads the group chat plans, types 'so sorry rain check'",
@@ -290,6 +337,9 @@ const SCENARIOS: Scenario[] = [
     family: "productivity",
     triggerCategory: "phone_screen",
     setting: "desk",
+    settingDetail: "at the desk in front of the laptop with the phone in hand",
+    sceneBeat:
+      "You open the to-do app, look at the list for one second, swipe over to TikTok, then catch your own reflection in the screen and keep scrolling anyway.",
     actionShort: "actually focus today",
     realityShort: "two hours of TikTok",
     trigger: "opens the to-do app, immediately swipes to TikTok",
@@ -301,10 +351,13 @@ const SCENARIOS: Scenario[] = [
   {
     family: "cleaning",
     triggerCategory: "environment",
-    setting: "bed",
+    setting: "other",
+    settingDetail: "in the doorway of the closet looking in at the chaos",
+    sceneBeat:
+      "You pick up the pile from the chair, walk it across the room, set it on the dresser, and call the entire afternoon productive.",
     actionShort: "deep clean the room",
-    realityShort: "moving one pile to a different chair",
-    trigger: "picks up the pile from the chair, sets it on the bed",
+    realityShort: "moving one pile to a different surface",
+    trigger: "picks up the pile from the chair, sets it on the dresser",
     reaction: "stares at the new pile, calls it productive",
     visualHook: "same pile, different surface — wide shot of the room",
     filmingMin: 5,
@@ -313,7 +366,10 @@ const SCENARIOS: Scenario[] = [
   {
     family: "social_call",
     triggerCategory: "social",
-    setting: "kitchen",
+    setting: "outside",
+    settingDetail: "in the apartment hallway by the front door",
+    sceneBeat:
+      "Neighbour says hi in the hallway, your autopilot kicks in with the too-loud laugh, then you do the slow cringe-walk back to your door and exhale.",
     actionShort: "answer like a normal person",
     realityShort: "the awkward over-laugh",
     trigger: "neighbour says hi in the hallway, autopilot kicks in",
@@ -326,6 +382,9 @@ const SCENARIOS: Scenario[] = [
     family: "snack",
     triggerCategory: "task",
     setting: "kitchen",
+    settingDetail: "in front of the open pantry door",
+    sceneBeat:
+      "You open the pantry, scan the shelves with the 'I'm just checking' face, and your hand emerges holding the chips you said you wouldn't touch.",
     actionShort: "stop snacking after dinner",
     realityShort: "back in the pantry by 9pm",
     trigger: "opens the pantry, pretends to look for something specific",
@@ -338,9 +397,12 @@ const SCENARIOS: Scenario[] = [
     family: "hydration",
     triggerCategory: "self_check",
     setting: "desk",
+    settingDetail: "at the desk with the same water bottle from yesterday",
+    sceneBeat:
+      "You pick up the water bottle, feel that it's still full from yesterday, give it the slow guilty look, and set it back down without drinking.",
     actionShort: "drink more water",
-    realityShort: "the water bottle is full from yesterday",
-    trigger: "picks up the water bottle from this morning, still full",
+    realityShort: "yesterday's bottle is still full",
+    trigger: "picks up the water bottle from yesterday, still full",
     reaction: "the slow guilty look at the bottle, sets it back down",
     visualHook: "water bottle from yesterday, condensation gone",
     filmingMin: 3,
@@ -350,6 +412,9 @@ const SCENARIOS: Scenario[] = [
     family: "morning",
     triggerCategory: "phone_screen",
     setting: "bed",
+    settingDetail: "in bed, alarm screen lighting up the pillow",
+    sceneBeat:
+      "The alarm rings at 6am, your hand reaches out without your eyes opening, you swipe-to-snooze on muscle memory, and the screen goes dark.",
     actionShort: "wake up at 6am",
     realityShort: "snoozing until 9:47",
     trigger: "the alarm rings, hand reaches out without looking",
@@ -362,6 +427,9 @@ const SCENARIOS: Scenario[] = [
     family: "shopping",
     triggerCategory: "phone_screen",
     setting: "couch",
+    settingDetail: "on the couch with the phone in your lap",
+    sceneBeat:
+      "You close the shopping cart, breathe out like the temptation is over, then 90 seconds later you open it back up and tap add to cart twice more.",
     actionShort: "stop online shopping",
     realityShort: "three new tabs open",
     trigger: "closes the cart, opens it again 90 seconds later",
@@ -373,9 +441,12 @@ const SCENARIOS: Scenario[] = [
   {
     family: "social_post",
     triggerCategory: "phone_screen",
-    setting: "couch",
+    setting: "bathroom",
+    settingDetail: "at the bathroom sink, scrolling instead of brushing teeth",
+    sceneBeat:
+      "You drag down to refresh the post for the fifth time, the like count hasn't moved, you do the small disappointed nose-exhale, then lock the screen.",
     actionShort: "stop checking my likes",
-    realityShort: "refreshing the post every 4 minutes",
+    realityShort: "refreshing every 4 minutes",
     trigger: "drags down to refresh the feed for the fifth time",
     reaction: "the small disappointed nose-exhale, locks the screen",
     visualHook: "pull-to-refresh animation loops, like count unchanged",
@@ -386,6 +457,9 @@ const SCENARIOS: Scenario[] = [
     family: "dishes",
     triggerCategory: "environment",
     setting: "kitchen",
+    settingDetail: "at the sink in front of the dishes pile",
+    sceneBeat:
+      "You look at the sink full of dishes, decide 'morning me will handle it', do the slow turn away, and click the kitchen light off as you exit.",
     actionShort: "do the dishes tonight",
     realityShort: "pushing them aside for tomorrow",
     trigger: "looks at the sink, decides 'morning me will handle it'",
@@ -398,6 +472,9 @@ const SCENARIOS: Scenario[] = [
     family: "podcast",
     triggerCategory: "task",
     setting: "car",
+    settingDetail: "in the driver's seat with the dashboard screen lit up",
+    sceneBeat:
+      "You open the podcast app, hover over the queue for a beat, switch over to Spotify, do the 'next time' nod, and press play on the same playlist as always.",
     actionShort: "learn something on my commute",
     realityShort: "same playlist for the 40th time",
     trigger: "opens the podcast app, immediately switches to Spotify",
@@ -405,6 +482,81 @@ const SCENARIOS: Scenario[] = [
     visualHook: "podcast app closes, Spotify opens, familiar cover art",
     filmingMin: 3,
     topicNoun: "the podcast app",
+  },
+  {
+    family: "skincare",
+    triggerCategory: "self_check",
+    setting: "bathroom",
+    settingDetail: "at the bathroom sink in front of the mirror",
+    sceneBeat:
+      "You line up the full skincare routine on the counter, take one beat staring at the mirror, then grab a face wipe and walk straight to bed.",
+    actionShort: "do my full skincare routine",
+    realityShort: "one face wipe and bed",
+    trigger: "lines up six bottles, picks up the face wipe instead",
+    reaction: "the resigned look at the mirror, then exits the bathroom",
+    visualHook: "skincare bottles untouched, single face wipe in hand",
+    filmingMin: 3,
+    topicNoun: "the skincare shelf",
+  },
+  {
+    family: "mirror_pep_talk",
+    triggerCategory: "self_check",
+    setting: "bathroom",
+    settingDetail: "at the bathroom mirror, hands on the sink",
+    sceneBeat:
+      "You plant both hands on the sink, look yourself dead in the eye for a long beat for the pep talk, then quietly say 'maybe tomorrow' and turn off the light.",
+    actionShort: "give myself a real pep talk",
+    realityShort: "deadpan stare for 30 seconds",
+    trigger: "leans on the sink, locks eyes with the mirror, says nothing",
+    reaction: "the long deadpan stare, then 'maybe tomorrow', light off",
+    visualHook: "tight on the mirror, your reflection holding its own gaze",
+    filmingMin: 3,
+    topicNoun: "the mirror",
+  },
+  {
+    family: "walk",
+    triggerCategory: "self_check",
+    setting: "outside",
+    settingDetail: "on the front step with the door still open behind you",
+    sceneBeat:
+      "You make it as far as the front step in your walking shoes, look at the sidewalk, decide that counts, and turn straight back inside.",
+    actionShort: "go for the morning walk",
+    realityShort: "made it as far as the front step",
+    trigger: "steps onto the front step, looks at the sidewalk, turns back",
+    reaction: "the 'that counts' nod to camera, retreats inside",
+    visualHook: "walking shoes on, door still open behind you",
+    filmingMin: 4,
+    topicNoun: "the front step",
+  },
+  {
+    family: "doom_scroll_car",
+    triggerCategory: "phone_screen",
+    setting: "car",
+    settingDetail: "in the parked car, key still in the ignition",
+    sceneBeat:
+      "You arrive home, kill the engine, then sit in the parked car scrolling for 20 minutes before you can face going inside.",
+    actionShort: "go straight inside after work",
+    realityShort: "20 minutes scrolling in the car",
+    trigger: "kills the engine, immediately picks up the phone and scrolls",
+    reaction: "the long blank scroll-stare, then a slow look at the front door",
+    visualHook: "key still in the ignition, phone glow on your face",
+    filmingMin: 3,
+    topicNoun: "the parked car",
+  },
+  {
+    family: "closet_pile",
+    triggerCategory: "environment",
+    setting: "other",
+    settingDetail: "on the bedroom floor surrounded by the try-on pile",
+    sceneBeat:
+      "You sit on the bedroom floor surrounded by every outfit you tried on, stare at the chaos, then put the original hoodie back on and call it done.",
+    actionShort: "find something nice to wear",
+    realityShort: "back in the original hoodie",
+    trigger: "tries on six outfits, surveys the floor pile",
+    reaction: "the long defeated exhale, hoodie back on, exits frame",
+    visualHook: "wide shot of the outfit pile on the bedroom floor",
+    filmingMin: 5,
+    topicNoun: "the try-on pile",
   },
 ];
 
@@ -434,7 +586,9 @@ export type VisualActionPattern =
   | "car_avoidance"
   | "desk_avoidance"
   | "social_awkward_walkaway"
-  | "face_reaction_deadpan";
+  | "face_reaction_deadpan"
+  | "mirror_self_call_out"
+  | "doorway_retreat";
 
 export type TopicLane =
   | "food_home"
@@ -451,19 +605,25 @@ const VISUAL_ACTION_BY_FAMILY: Record<string, VisualActionPattern> = {
   texting: "text_message_panic",
   emails: "desk_avoidance",
   fridge: "fridge_open_stare",
-  outfit: "outfit_check_cut",
+  outfit: "mirror_self_call_out",
   errands: "car_avoidance",
   weekend_plans: "text_message_panic",
-  productivity: "phone_scroll_freeze",
-  cleaning: "bedroom_avoidance",
+  productivity: "desk_avoidance",
+  cleaning: "doorway_retreat",
   social_call: "social_awkward_walkaway",
   snack: "kitchen_contradiction",
   hydration: "desk_avoidance",
   morning: "bedroom_avoidance",
-  shopping: "phone_scroll_freeze",
-  social_post: "phone_scroll_freeze",
+  shopping: "couch_avoidance",
+  social_post: "mirror_self_call_out",
   dishes: "kitchen_contradiction",
   podcast: "car_avoidance",
+  // New families
+  skincare: "mirror_self_call_out",
+  mirror_pep_talk: "face_reaction_deadpan",
+  walk: "doorway_retreat",
+  doom_scroll_car: "car_avoidance",
+  closet_pile: "outfit_check_cut",
 };
 
 const TOPIC_LANE_BY_FAMILY: Record<string, TopicLane> = {
@@ -487,6 +647,12 @@ const TOPIC_LANE_BY_FAMILY: Record<string, TopicLane> = {
   social_post: "social_texting",
   dishes: "food_home",
   podcast: "daily_routine",
+  // New families
+  skincare: "body_fitness",
+  mirror_pep_talk: "body_fitness",
+  walk: "body_fitness",
+  doom_scroll_car: "work_productivity",
+  closet_pile: "daily_routine",
 };
 
 /**
@@ -515,34 +681,221 @@ export function lookupTopicLane(
 // -----------------------------------------------------------------------------
 // Hook-style phrasing pools
 // -----------------------------------------------------------------------------
+//
+// REWRITE NOTE (Apr 2026): The original phrasings ended several variants
+// on `${realityShort}` (a multi-word fragment like "letting it sit for
+// 4 days"). When `actionShort` was also long, the assembled hook ran
+// past 10 words and the (now-removed) `clampHookWords` truncator chopped
+// it mid-clause — producing dangling endings like "and marking" or
+// "vs me the". The new pool obeys two rules:
+//
+//   1. NO phrasing ends on `${realityShort}`. Slots are limited to
+//      `actionShort` (verb phrase) and `topicNoun` (short noun phrase).
+//   2. Every phrasing is hand-budgeted to ≤10 words across all
+//      scenarios in the SCENARIOS array. The longest `actionShort`
+//      ("give myself a real pep talk", 6w) is the ceiling that drove
+//      the prefix-length budget.
+//
+// Hooks that still slip past 10 words (defensive — should never happen
+// with the current scenarios) are REJECTED by `validateHook` and the
+// assembler tries the next phrasing instead of truncating.
 
-export type HookPhraseFn = (s: Scenario) => string;
+/**
+ * Coarse-grained classification of hook OPENERS for cross-batch and
+ * within-batch diversity. Independent of `HookStyle` (which the user
+ * picks for tonal preference) — two hooks with style="contrast" but
+ * openers="me_saying" vs "what_i_planned_vs" feel like different
+ * videos. Two hooks with different styles but the same opener
+ * ("me saying I'll X" / "me, refusing to deal with Y") feel like
+ * the same video with a wallpaper swap.
+ *
+ * Derived in-memory from hook text via `lookupHookOpener` — no
+ * schema change, no cache change. Pattern-source hooks always
+ * resolve; Claude/Llama-fallback hooks may return null (which the
+ * scorer treats as "unknown opener, no penalty").
+ */
+export type HookOpener =
+  | "the_way_i"
+  | "me_saying"
+  | "i_really"
+  | "why_did_i"
+  | "what_i_planned_vs"
+  | "this_is_where"
+  | "silent_panic"
+  | "realization"
+  | "denial_statement";
 
-export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhraseFn[]> = {
+export const HOOK_OPENERS: readonly HookOpener[] = [
+  "the_way_i",
+  "me_saying",
+  "i_really",
+  "why_did_i",
+  "what_i_planned_vs",
+  "this_is_where",
+  "silent_panic",
+  "realization",
+  "denial_statement",
+] as const;
+
+/**
+ * Prefix-anchored regexes — order matters only when two patterns
+ * could match the same prefix (none currently). All patterns
+ * lowercase-anchor and tolerate leading whitespace.
+ */
+const HOOK_OPENER_PATTERNS: ReadonlyArray<{
+  opener: HookOpener;
+  re: RegExp;
+}> = [
+  { opener: "the_way_i", re: /^\s*the way i\b/i },
+  { opener: "i_really", re: /^\s*i really\b/i },
+  { opener: "why_did_i", re: /^\s*why (did|do) i\b/i },
+  { opener: "what_i_planned_vs", re: /^\s*what (i|morning|today)\b/i },
+  { opener: "this_is_where", re: /^\s*this is\b/i },
+  { opener: "silent_panic", re: /^\s*(silent panic|internal scream)/i },
+  { opener: "realization", re: /^\s*(realizing|the moment i)\b/i },
+  { opener: "denial_statement", re: /^\s*i (am|have) (totally|very|a great)\b/i },
+  // me_saying must come AFTER "me, lying" / "me at" wouldn't conflict,
+  // but the broad `^\s*me\b` would swallow anything starting with "me"
+  // — so we anchor it last and only after the more-specific patterns
+  // have had their shot.
+  { opener: "me_saying", re: /^\s*me\b/i },
+];
+
+/**
+ * Classify a hook by its opening clause. Returns null when no
+ * pattern matches (Claude/Llama fallback hooks, mostly). Callers
+ * MUST handle null — the novelty scorer treats null as "no opener
+ * info, no diversity bonus or penalty."
+ */
+export function lookupHookOpener(hook: string): HookOpener | null {
+  for (const { opener, re } of HOOK_OPENER_PATTERNS) {
+    if (re.test(hook)) return opener;
+  }
+  return null;
+}
+
+/**
+ * Words that, if a hook ends on them, signal a truncated/dangling
+ * fragment. Includes coordinating conjunctions, prepositions, and
+ * bare determiners — anything that demands a noun/clause to follow.
+ * Used by `validateHook` to reject candidates that would have read
+ * as broken English ("the way I said I'd reply to that text and").
+ */
+const DANGLING_TRAILING_WORDS = new Set([
+  "and", "or", "but", "vs", "with", "to", "the", "a", "an",
+  "my", "me", "of", "on", "in", "at", "for", "by", "from",
+  "into", "onto", "than", "so", "as", "if", "is", "are",
+]);
+
+/**
+ * Hard validation gate for assembled hooks. A hook passes only if:
+ *   • word count ∈ [3, 10] (schema enforces ≤10; we add ≥3 to
+ *     reject pathologically short results from over-aggressive
+ *     phrasing tweaks);
+ *   • does NOT end on a word in DANGLING_TRAILING_WORDS;
+ *   • does NOT contain a literal `${` (template interpolation leak);
+ *   • does NOT end on `…` or `...` (truncation marker).
+ * Returns true iff the hook is shippable.
+ */
+export function validateHook(hook: string): boolean {
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return false;
+  if (trimmed.includes("${")) return false;
+  if (/(\.{3}|…)\s*$/.test(trimmed)) return false;
+  const words = trimmed.split(/\s+/);
+  if (words.length < 3 || words.length > 10) return false;
+  const last = words[words.length - 1]!
+    .toLowerCase()
+    .replace(/[.,!?;:]+$/g, "");
+  if (DANGLING_TRAILING_WORDS.has(last)) return false;
+  return true;
+}
+
+/**
+ * A single phrasing variant — `build` takes a scenario and returns
+ * the assembled hook string. `opener` is the HookOpener it produces
+ * (declared statically so we don't have to re-derive it per call).
+ *
+ * Phrasings within a HookStyle are tried in order; the assembler
+ * picks the first that passes `validateHook`, falling back to the
+ * next on failure. If none pass, the assembler returns null and the
+ * generator skips this (template, scenario, style) triple.
+ */
+export type HookPhrasingEntry = {
+  opener: HookOpener;
+  build: (s: Scenario) => string;
+};
+
+export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
   the_way_i: [
-    (s) => `the way I said I'd ${s.actionShort} and ${s.realityShort}`,
-    (s) => `the way I act like ${s.topicNoun} doesn't exist`,
-    (s) => `the way I keep promising to ${s.actionShort}`,
+    {
+      opener: "the_way_i",
+      build: (s) => `the way I avoid ${s.topicNoun} like a sport`,
+    },
+    {
+      opener: "the_way_i",
+      build: (s) => `the way I gaslight myself about ${s.topicNoun}`,
+    },
+    {
+      opener: "me_saying",
+      build: (s) => `me, refusing to deal with ${s.topicNoun}`,
+    },
   ],
   why_do_i: [
-    (s) => `why do I say I'll ${s.actionShort} like I don't know myself`,
-    (s) => `why did I think I'd ${s.actionShort} this time`,
-    (s) => `why do I keep lying to myself about ${s.topicNoun}`,
+    {
+      opener: "why_did_i",
+      build: (s) => `why did I lie to myself about ${s.topicNoun}`,
+    },
+    {
+      opener: "why_did_i",
+      build: (s) => `why did I expect anything from ${s.topicNoun}`,
+    },
+    {
+      opener: "denial_statement",
+      build: (s) => `I am totally fine about ${s.topicNoun}`,
+    },
   ],
   internal_thought: [
-    (s) => `I really said I'd ${s.actionShort} and ${s.realityShort}`,
-    (s) => `I really just ignored ${s.topicNoun} like it would disappear`,
-    (s) => `me saying I'm done with this — ${s.realityShort}`,
+    {
+      opener: "i_really",
+      build: (s) => `I really thought I'd ${s.actionShort}`,
+    },
+    {
+      opener: "i_really",
+      build: (s) => `I really planned to handle ${s.topicNoun}`,
+    },
+    {
+      opener: "me_saying",
+      build: (s) => `me, lying about ${s.topicNoun} again`,
+    },
   ],
   contrast: [
-    (s) => `me saying I'll ${s.actionShort} vs me ${s.realityShort}`,
-    (s) => `what I planned vs ${s.realityShort}`,
-    (s) => `how I thought today would go vs ${s.realityShort}`,
+    {
+      opener: "what_i_planned_vs",
+      build: () => `what I planned vs how it actually went`,
+    },
+    {
+      opener: "what_i_planned_vs",
+      build: () => `what morning me promised vs night me delivered`,
+    },
+    {
+      opener: "me_saying",
+      build: () => `me at 9am vs me at 9pm`,
+    },
   ],
   curiosity: [
-    (s) => `this is where my plan to ${s.actionShort} fell apart`,
-    (s) => `nobody warned me ${s.actionShort} would go like this`,
-    (s) => `POV: you said you'd ${s.actionShort} this morning`,
+    {
+      opener: "this_is_where",
+      build: () => `this is where the plan officially fell apart`,
+    },
+    {
+      opener: "silent_panic",
+      build: () => `silent panic, zero words, full body`,
+    },
+    {
+      opener: "realization",
+      build: () => `the moment I knew I was never going`,
+    },
   ],
 };
 
@@ -640,25 +993,81 @@ function buildShotPlan(template: Template, scenario: Scenario): string[] {
   return base;
 }
 
+/**
+ * `whatToShow` is now driven by the scenario's `sceneBeat` — a hand-
+ * written 1–2 sentence physical moment that's specific to the family
+ * (the gym bag stays in bed, the closet pile gets sat in, the
+ * neighbour gets the over-laugh). Replaces the previous generic
+ * "Open on you in the {setting}. Beat. Then the reaction lands…"
+ * template that produced near-identical copy across families.
+ *
+ * The template-shape tail still varies (contrast vs hold-the-beat)
+ * so contrast-pattern ideas read as cuts and non-contrast read as
+ * single-take holds. Char budget: ~280–420 (well inside the 20–500
+ * schema window).
+ */
 function buildWhatToShow(scenario: Scenario, template: Template): string {
-  // 20–500 chars — beat-by-beat, plain English.
-  return (
-    `Open on you in the ${scenario.setting}. ${scenario.trigger}. ` +
-    `Beat. Then the reaction lands: ${scenario.reaction}. ` +
-    (template.hasContrast
-      ? `Cut between what you said you'd do and what you actually did. End on the deadpan. `
-      : `Hold the reaction beat — let it breathe before cutting. `) +
-    `Total runtime feels like a single thought, not a story.`
-  );
+  const tail = template.hasContrast
+    ? ` Cut between what you said you'd do and the contradiction — end on the deadpan, no music sting.`
+    : ` Hold the final beat for a full second before cutting — let the silence do the work.`;
+  return `${scenario.sceneBeat}${tail}`;
 }
 
-function buildHowToFilm(scenario: Scenario): string {
-  // 15–400 chars — concrete filming instructions.
-  return (
-    `Phone propped at chest height in the ${scenario.setting} — single take, ` +
-    `no edits. Natural light. Don't perform the reaction; just react to the ` +
-    `trigger as if no one's filming. One re-take if the timing feels off.`
-  );
+/**
+ * Per-visualActionPattern filming directions. Replaces the previous
+ * generic "Phone propped at chest height in the {setting}" boilerplate
+ * that read identically across every batch regardless of the actual
+ * physical scene. Each variant gives a CONCRETE camera placement
+ * tied to the visual action (mirror straight-on, fridge low-side,
+ * dashboard mount, hallway two-shot, etc.) so two ideas with
+ * different `visualActionPattern` values produce visibly different
+ * filming language. Within a batch, `batchGuardsPass` enforces no
+ * two ideas with byte-identical `howToFilm` strings.
+ *
+ * Char budget: each variant 200–350 chars (inside the 15–400 schema
+ * window). Some templates substitute `topicNoun` (kitchen, desk) for
+ * specificity; others are scenario-agnostic (face_reaction_deadpan).
+ */
+const HOW_TO_FILM_BY_VISUAL_ACTION: Record<
+  VisualActionPattern,
+  (s: Scenario) => string
+> = {
+  phone_scroll_freeze: (s) =>
+    `Hold the phone vertically right at face level so the screen glow lights you. Single static shot, ${s.settingDetail}. Let the scroll itself be the action — no cutaways, no music. Brightness all the way up so the glow reads on camera.`,
+  text_message_panic: () =>
+    `Tight overhead on the phone — keyboard and unread thread fill the whole frame. Don't show your face; the thumb hesitation IS the shot. Hold for a beat after the screen locks before cutting.`,
+  kitchen_contradiction: (s) =>
+    `Camera at counter height, framing you and ${s.topicNoun} in the same shot. Single take, ${s.settingDetail}. Walk in, look, decide, walk out — let the geography of the kitchen tell the contradiction.`,
+  fridge_open_stare: () =>
+    `Camera low and to the side so the fridge light hits your face when the door opens. Hold the open-fridge stare for a full two seconds before you close it. Single take, no edits.`,
+  bedroom_avoidance: (s) =>
+    `Hand-held from inside the bed, low angle looking out at ${s.topicNoun}. The blanket and pillow stay in the bottom of the frame to anchor the avoidance. One shot, no cuts.`,
+  outfit_check_cut: () =>
+    `Two shots, hard cut: first you in the new look (mirror or wide), then the same exact frame in the hoodie. Match the framing precisely so the cut hits — no music, no transition.`,
+  couch_avoidance: () =>
+    `Camera at couch level, far enough back that the blanket and the phone are both in frame. Single take. Stay seated through the whole beat — the not-getting-up is the joke.`,
+  car_avoidance: () =>
+    `Phone mounted on the dashboard pointing at the driver's seat. Hands stay on the wheel except for the one specific gesture (key, phone, list). Single take, engine sound on.`,
+  desk_avoidance: (s) =>
+    `Camera looking down at the desk from your seated POV — laptop, phone, and ${s.topicNoun} all in frame. Don't show your face; the desk surface does the work. One take.`,
+  social_awkward_walkaway: () =>
+    `Two angles: wide of the hallway for the encounter (8 sec), hard cut to tight on your face for the cringe walk back (4 sec). Cut on the wave, not after.`,
+  face_reaction_deadpan: () =>
+    `Phone at eye level, your face fills two-thirds of the frame. Single locked-off shot. Let the silence run — no music, no cuts, no movement. The deadpan IS the entire video.`,
+  mirror_self_call_out: () =>
+    `Film straight into the bathroom mirror with the phone at chest height in your other hand. The reflection IS the shot — your eyes lock on yours for the whole beat. Bathroom light only, no overhead.`,
+  doorway_retreat: () =>
+    `Camera placed behind you in the doorway, looking out at what you were supposed to do. Take one beat at the threshold, then turn back into frame and walk away. The retreat is the punchline.`,
+};
+
+function buildHowToFilm(
+  scenario: Scenario,
+  visualActionPattern: VisualActionPattern,
+): string {
+  const fn =
+    HOW_TO_FILM_BY_VISUAL_ACTION[visualActionPattern] ??
+    HOW_TO_FILM_BY_VISUAL_ACTION.face_reaction_deadpan;
+  return fn(scenario);
 }
 
 function buildWhyItWorks(template: Template, scenario: Scenario): string {
@@ -672,14 +1081,6 @@ function buildWhyItWorks(template: Template, scenario: Scenario): string {
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
-}
-
-function clampHookWords(hook: string): string {
-  // Schema enforces ≤10 words. Trim hard if a phrasing variant slips
-  // past 10 (rare but possible with longer scenarios).
-  const words = hook.trim().split(/\s+/);
-  if (words.length <= 10) return hook.trim();
-  return words.slice(0, 10).join(" ");
 }
 
 export type PatternMeta = {
@@ -705,7 +1106,53 @@ export type PatternMeta = {
    */
   visualActionPattern: VisualActionPattern;
   topicLane: TopicLane;
+  /**
+   * The opener classification of the assembled hook. Used by the
+   * batch guards (HARD: max 1 per batch) and the novelty scorer
+   * (cross-batch demotion). Always set on pattern_variation
+   * candidates because the assembler picks an entry whose `opener`
+   * is known. Claude/Llama fallback wraps may omit (the fallback
+   * wrap layer derives via `lookupHookOpener`).
+   */
+  hookOpener: HookOpener;
 };
+
+/**
+ * Try each phrasing of the chosen hookStyle in seed-rotated order,
+ * returning the first that passes `validateHook`. Returns null if
+ * NO phrasing in the style produces a shippable hook for this
+ * scenario — caller skips the (template, scenario, style) triple
+ * rather than ship a broken hook.
+ *
+ * This replaces the old "pick one + clampHookWords + ship" flow,
+ * which produced dangling-fragment hooks when the chosen phrasing
+ * ran past 10 words for the chosen scenario.
+ *
+ * Returns the entry + its index so PatternMeta can record which
+ * phrasing variant actually shipped (rewriter uses this).
+ */
+function pickValidatedPhrasing(
+  hookStyle: HookStyle,
+  scenario: Scenario,
+  tone: DerivedTone,
+  seed: number,
+): { entry: HookPhrasingEntry; index: number; hook: string } | null {
+  const phrasings = HOOK_PHRASINGS_BY_STYLE[hookStyle];
+  const n = phrasings.length;
+  // Rotate the start index by the seed so different (template,
+  // scenario, style) triples don't all pick phrasings[0]. Defensive
+  // double-modulo collapses any sign.
+  const start = ((seed % n) + n) % n;
+  for (let offset = 0; offset < n; offset++) {
+    const idx = (start + offset) % n;
+    const entry = phrasings[idx]!;
+    const candidate = toneInflect(entry.build(scenario), tone).trim();
+    if (validateHook(candidate)) {
+      return { entry, index: idx, hook: candidate };
+    }
+  }
+  return null;
+}
 
 function assembleCandidate(
   template: Template,
@@ -714,13 +1161,25 @@ function assembleCandidate(
   tone: DerivedTone,
   hookPhrasingIndex: number,
   captionPhrasingIndex: number,
-): { idea: Idea; meta: PatternMeta } {
-  const phrasings = HOOK_PHRASINGS_BY_STYLE[hookStyle];
-  const phrasingFn = pickPhrasing(phrasings, hookPhrasingIndex);
-  const hook = clampHookWords(toneInflect(phrasingFn(scenario), tone));
+): { idea: Idea; meta: PatternMeta } | null {
+  const picked = pickValidatedPhrasing(
+    hookStyle,
+    scenario,
+    tone,
+    hookPhrasingIndex,
+  );
+  if (!picked) return null;
+  const { entry, index, hook } = picked;
 
   const captionPhrasings = CAPTION_PHRASINGS[template.structure];
   const caption = pickPhrasing(captionPhrasings, captionPhrasingIndex)(scenario);
+
+  // Resolve the visual-action lookup ONCE so both the howToFilm
+  // builder and PatternMeta agree on which variant the candidate
+  // belongs to. Family-not-registered fallback keeps PatternMeta
+  // non-null (paranoia — every hard-coded family is in the table).
+  const visualActionPattern: VisualActionPattern =
+    VISUAL_ACTION_BY_FAMILY[scenario.family] ?? "face_reaction_deadpan";
 
   const idea: Idea = {
     pattern: template.pattern,
@@ -746,7 +1205,7 @@ function assembleCandidate(
     hasVisualAction: true,
     visualHook: scenario.visualHook,
     whatToShow: buildWhatToShow(scenario, template),
-    howToFilm: buildHowToFilm(scenario),
+    howToFilm: buildHowToFilm(scenario, visualActionPattern),
   };
 
   return {
@@ -756,16 +1215,12 @@ function assembleCandidate(
       templateId: template.id,
       scenarioFamily: scenario.family,
       hookStyle,
-      hookPhrasingIndex,
+      hookPhrasingIndex: index,
       scenario,
-      // Default to a generic-but-valid value when the family isn't
-      // registered in the taxonomy (shouldn't happen for hard-coded
-      // SCENARIOS, but the fallback keeps PatternMeta non-null and
-      // prevents downstream `.has(undefined)` set bugs).
-      visualActionPattern:
-        VISUAL_ACTION_BY_FAMILY[scenario.family] ?? "face_reaction_deadpan",
+      visualActionPattern,
       topicLane:
         TOPIC_LANE_BY_FAMILY[scenario.family] ?? "daily_routine",
+      hookOpener: entry.opener,
     },
   };
 }
@@ -920,9 +1375,20 @@ export function generatePatternCandidates(
     i++;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(
-      assembleCandidate(t, s, hs, tone, i + seedSalt, (i * 3 + seedSalt) % 7),
+    // assembleCandidate returns null when NO phrasing in the chosen
+    // hookStyle passes `validateHook` for this scenario (e.g. every
+    // variant overruns 10 words for the longest actionShort). Skip
+    // the triple silently — the weave will offer many more before
+    // hitting maxIter.
+    const built = assembleCandidate(
+      t,
+      s,
+      hs,
+      tone,
+      i + seedSalt,
+      (i * 3 + seedSalt) % 7,
     );
+    if (built !== null) out.push(built);
   }
 
   return out;

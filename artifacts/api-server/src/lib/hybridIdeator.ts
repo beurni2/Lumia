@@ -31,9 +31,12 @@ import {
 } from "./ideaGen";
 import {
   generatePatternCandidates,
+  lookupHookOpener,
   lookupTopicLane,
   lookupVisualActionPattern,
+  type HookOpener,
   type PatternCandidate,
+  type Setting,
   type TopicLane,
   type VisualActionPattern,
 } from "./patternIdeator";
@@ -175,8 +178,39 @@ function greedySelect(
 
 function batchGuardsPass(batch: ScoredCandidate[]): boolean {
   if (batch.length === 0) return false;
-  // Guards only meaningful at >=3 picks — at 1 or 2 every "max 2
-  // per group" condition is vacuously satisfied.
+
+  // ---------------------------------------------------------------
+  // HARD anti-clone guards — apply at every batch size >= 2. These
+  // catch the QA failure modes that survived the soft-novelty
+  // scorer (three picks that share opener/setting/filming language
+  // and read like the same video filmed three times).
+  // ---------------------------------------------------------------
+  if (batch.length >= 2) {
+    // (a) Hook opener — max 1 per batch. Without this, a batch can
+    // pick three "I just realized…" / "I just realized…" / "I
+    // just…" hooks even when hookStyle differs.
+    const openers: HookOpener[] = [];
+    for (const b of batch) {
+      const op = b.meta.hookOpener ?? lookupHookOpener(b.idea.hook);
+      if (op) openers.push(op);
+    }
+    if (countMax(openers) > 1) return false;
+
+    // (b) Physical setting — max 1 per batch. Three kitchen scenes
+    // read as one video filmed three ways.
+    const settings = batch.map((b) => b.idea.setting as Setting);
+    if (countMax(settings) > 1) return false;
+
+    // (c) `howToFilm` byte-identical pairs — defense in depth for
+    // the per-visualAction lookup. If two picks happen to share a
+    // visualActionPattern (allowed up to 2 by the soft-2 guard
+    // below), they MUST have non-identical filming language.
+    const filmStrs = batch.map((b) => b.idea.howToFilm.trim());
+    if (new Set(filmStrs).size !== filmStrs.length) return false;
+  }
+
+  // Guards below only meaningful at >=3 picks — at 1 or 2 every
+  // "max 2 per group" condition is vacuously satisfied.
   if (batch.length < 3) return true;
   // Spec: "never 3× same hookStyle/format/structure, never >2
   // share family/visualAction/topic" — both clauses collapse to
@@ -328,6 +362,12 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
   const recentStyles = new Set<string>();
   const recentTopics = new Set<TopicLane>();
   const recentVisualActions = new Set<VisualActionPattern>();
+  // Both new dimensions are derived from the cached `idea` payload —
+  // hookOpener via prefix lookup over `idea.hook`, setting straight
+  // off `idea.setting`. Zero cache-shape change: any envelope written
+  // by older code already has these fields on its embedded ideas.
+  const recentHookOpeners = new Set<HookOpener>();
+  const recentSettings = new Set<Setting>();
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -337,8 +377,18 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
       if (va) recentVisualActions.add(va);
     }
     recentStyles.add(e.idea.hookStyle);
+    const op = lookupHookOpener(e.idea.hook);
+    if (op) recentHookOpeners.add(op);
+    recentSettings.add(e.idea.setting as Setting);
   }
-  return { recentFamilies, recentStyles, recentTopics, recentVisualActions };
+  return {
+    recentFamilies,
+    recentStyles,
+    recentTopics,
+    recentVisualActions,
+    recentHookOpeners,
+    recentSettings,
+  };
 }
 
 /**

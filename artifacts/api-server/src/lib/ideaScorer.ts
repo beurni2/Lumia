@@ -21,7 +21,11 @@ import type { StyleProfile } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
 import {
   HOOK_PHRASINGS_BY_STYLE,
+  lookupHookOpener,
+  validateHook,
+  type HookOpener,
   type PatternMeta,
+  type Setting,
   type TopicLane,
   type VisualActionPattern,
 } from "./patternIdeator";
@@ -33,9 +37,9 @@ import {
  * source tag, but the scoring pipeline only relies on the common
  * fields below + `source` for tie-breaks, the optional `scenario`
  * for the rewriter, and the optional `topicLane` /
- * `visualActionPattern` for novelty scoring (only set when the
- * fallback's family resolves to a registered taxonomy entry; usually
- * absent on Claude output).
+ * `visualActionPattern` / `hookOpener` for novelty scoring (only
+ * set when the fallback's family/hook resolves to a registered
+ * taxonomy entry; usually absent on Claude output).
  */
 export type CandidateMeta = PatternMeta | {
   source: "llama_3_1" | "claude_fallback";
@@ -43,6 +47,7 @@ export type CandidateMeta = PatternMeta | {
   scenario?: PatternMeta["scenario"];
   visualActionPattern?: VisualActionPattern;
   topicLane?: TopicLane;
+  hookOpener?: HookOpener;
 };
 
 // -----------------------------------------------------------------------------
@@ -302,21 +307,41 @@ function tryRewrite(
 ): { idea: Idea; meta: CandidateMeta } | null {
   if (meta.source !== "pattern_variation") return null;
   if (!meta.scenario) return null;
-  // Pick the next hook style we haven't tried yet for this candidate.
+  const scenario = meta.scenario;
+  // Try each *other* hook style; for each, walk its phrasing list
+  // and return the first variant that passes `validateHook`. We
+  // deliberately do NOT slice to 10 words — the validator already
+  // bounds length AND completeness, so a too-long variant is
+  // skipped (not truncated into a dangling fragment, which was
+  // the v1 rewriter's signature failure mode).
   const allStyles = Object.keys(HOOK_PHRASINGS_BY_STYLE) as Array<
     keyof typeof HOOK_PHRASINGS_BY_STYLE
   >;
   const otherStyles = allStyles.filter((s) => s !== idea.hookStyle);
-  if (otherStyles.length === 0) return null;
-  const nextStyle = otherStyles[0];
-  const phrasings = HOOK_PHRASINGS_BY_STYLE[nextStyle];
-  if (!phrasings || phrasings.length === 0) return null;
-  const newHook = phrasings[0](meta.scenario);
-  const trimmed = newHook.trim().split(/\s+/).slice(0, 10).join(" ");
-  return {
-    idea: { ...idea, hook: trimmed, hookStyle: nextStyle },
-    meta: { ...meta, hookStyle: nextStyle, hookPhrasingIndex: 0 },
-  };
+  for (const nextStyle of otherStyles) {
+    const phrasings = HOOK_PHRASINGS_BY_STYLE[nextStyle];
+    if (!phrasings || phrasings.length === 0) continue;
+    for (let i = 0; i < phrasings.length; i++) {
+      const entry = phrasings[i]!;
+      const candidate = entry.build(scenario).trim();
+      if (!validateHook(candidate)) continue;
+      // Found a shippable rewrite. Update hookOpener too so the
+      // batch guards / novelty scorer see the new opener (the
+      // chosen entry's tag is authoritative; falling back to
+      // `lookupHookOpener` only if the tag is somehow absent).
+      const newOpener = entry.opener ?? lookupHookOpener(candidate);
+      return {
+        idea: { ...idea, hook: candidate, hookStyle: nextStyle },
+        meta: {
+          ...meta,
+          hookStyle: nextStyle,
+          hookPhrasingIndex: i,
+          hookOpener: newOpener,
+        },
+      };
+    }
+  }
+  return null;
 }
 
 // -----------------------------------------------------------------------------
@@ -462,6 +487,19 @@ export type NoveltyContext = {
   recentStyles?: ReadonlySet<string>;
   recentTopics?: ReadonlySet<TopicLane>;
   recentVisualActions?: ReadonlySet<VisualActionPattern>;
+  /**
+   * Cross-batch demotion for hook openers — derived from the cached
+   * hooks via `lookupHookOpener`. Without this dimension we'd ship
+   * "I just realized…" three batches in a row even though every
+   * other axis (family, style, structure) rotated.
+   */
+  recentHookOpeners?: ReadonlySet<HookOpener>;
+  /**
+   * Cross-batch demotion for physical setting — derived from each
+   * cached idea's `setting` field. Stops three batches in a row
+   * from all being in the kitchen.
+   */
+  recentSettings?: ReadonlySet<Setting>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -476,10 +514,27 @@ function metaVisualAction(m: CandidateMeta): VisualActionPattern | undefined {
 }
 
 /**
- * 0–5 novelty score across hookStyle / scenario / structure /
- * visualAction / topic. Each dimension contributes 0 or 1 — 0 if
- * the candidate's value matches anything in the already-picked
- * batch OR in the recent context, 1 if fresh on both fronts.
+ * Resolve the candidate's hookOpener — prefer the meta tag (set by
+ * the assembler / rewriter), fall back to the prefix lookup so
+ * Claude/Llama fallback candidates (which don't set the tag) still
+ * participate in opener-novelty scoring.
+ */
+function metaHookOpener(c: {
+  idea: Idea;
+  meta: CandidateMeta;
+}): HookOpener | undefined {
+  // `lookupHookOpener` returns `HookOpener | null` (no match → null);
+  // coalesce to undefined so the return type matches the optional
+  // field on NoveltyContext / CandidateMeta consumers.
+  return c.meta.hookOpener ?? lookupHookOpener(c.idea.hook) ?? undefined;
+}
+
+/**
+ * 0–7 novelty score across hookStyle / scenario / structure /
+ * visualAction / topic / hookOpener / setting. Each dimension
+ * contributes 0 or 1 — 0 if the candidate's value matches anything
+ * in the already-picked batch OR in the recent context, 1 if fresh
+ * on both fronts.
  *
  * Caller is responsible for the `qualityScore >= 8` gate; this
  * function does not enforce it.
@@ -494,6 +549,8 @@ export function scoreNovelty(
   const structures = new Set<string>();
   const visuals = new Set<VisualActionPattern>();
   const topics = new Set<TopicLane>();
+  const openers = new Set<HookOpener>();
+  const settings = new Set<Setting>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -502,6 +559,9 @@ export function scoreNovelty(
     if (v) visuals.add(v);
     const t = metaTopicLane(b.meta);
     if (t) topics.add(t);
+    const op = metaHookOpener(b);
+    if (op) openers.add(op);
+    settings.add(b.idea.setting as Setting);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -530,13 +590,30 @@ export function scoreNovelty(
     !!tl &&
     !topics.has(tl) &&
     !(ctx.recentTopics?.has(tl) ?? false);
+  // F. Hook opener novelty — fresh on BOTH axes. This is the big
+  //    perceptual lever: hookStyle is an internal taxonomy but
+  //    hookOpener is what the viewer actually hears (the first
+  //    2-3 words). Worth as much as scenario novelty.
+  const op = metaHookOpener(c);
+  const opFresh =
+    !!op &&
+    !openers.has(op) &&
+    !(ctx.recentHookOpeners?.has(op) ?? false);
+  // G. Setting novelty — fresh physical location on BOTH axes.
+  //    Three "in the kitchen" picks read as one video filmed
+  //    three ways even when family/topic differ.
+  const st = c.idea.setting as Setting;
+  const stFresh =
+    !settings.has(st) && !(ctx.recentSettings?.has(st) ?? false);
 
   return (
     (hookFresh ? 1 : 0) +
     (scenFresh ? 1 : 0) +
     (structFresh ? 1 : 0) +
     (vaFresh ? 1 : 0) +
-    (tlFresh ? 1 : 0)
+    (tlFresh ? 1 : 0) +
+    (opFresh ? 1 : 0) +
+    (stFresh ? 1 : 0)
   );
 }
 
@@ -550,6 +627,8 @@ export function scoreNovelty(
  *   same structure              → -1
  *   same topicLane              → -2
  *   same visualActionPattern    → -2
+ *   same hookOpener             → -2  (new — opener feels like the same hook)
+ *   same setting                → -2  (new — same physical location)
  *
  * Returns 0 when batch is empty.
  */
@@ -564,6 +643,8 @@ export function selectionPenalty(
   const structures = new Set<string>();
   const visuals = new Set<VisualActionPattern>();
   const topics = new Set<TopicLane>();
+  const openers = new Set<HookOpener>();
+  const settings = new Set<Setting>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -572,6 +653,9 @@ export function selectionPenalty(
     if (v) visuals.add(v);
     const t = metaTopicLane(b.meta);
     if (t) topics.add(t);
+    const op = metaHookOpener(b);
+    if (op) openers.add(op);
+    settings.add(b.idea.setting as Setting);
   }
   if (styles.has(c.idea.hookStyle)) p -= 2;
   if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -580,5 +664,9 @@ export function selectionPenalty(
   if (cv && visuals.has(cv)) p -= 2;
   const ct = metaTopicLane(c.meta);
   if (ct && topics.has(ct)) p -= 2;
+  const cop = metaHookOpener(c);
+  if (cop && openers.has(cop)) p -= 2;
+  const cst = c.idea.setting as Setting;
+  if (settings.has(cst)) p -= 2;
   return p;
 }

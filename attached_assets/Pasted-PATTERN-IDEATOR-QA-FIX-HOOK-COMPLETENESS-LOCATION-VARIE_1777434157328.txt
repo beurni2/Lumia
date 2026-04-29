@@ -1,0 +1,206 @@
+PATTERN IDEATOR QA FIX — HOOK COMPLETENESS + LOCATION VARIETY
+
+The latest output is better than before, but there are still three visible issues:
+
+1. Too many hooks start the same:
+- “the way I…”
+- “me saying…”
+- “I really…”
+
+2. Some hook titles are unfinished / grammatically broken:
+- “me saying I’ll go to the gym vs me the”
+- “I really said I’d fold the laundry today and wearing”
+- “the way I said I’d clear my inbox and marking”
+
+3. Scenes/settings repeat too much:
+- kitchen
+- couch/bed
+- same deadpan setup
+- same “phone propped at chest height”
+- same “single take, no edits” language
+
+This makes the system feel templated even when topics differ.
+
+---
+
+FIX 1 — ADD HOOK COMPLETENESS VALIDATOR
+
+Before any idea can ship, validate hook text.
+
+Reject hook if:
+- ends with “and”, “vs”, “but”, “with”, “to”, “the”, “my”, “me”
+- contains broken phrase like “vs me the”
+- has unresolved template fragments
+- has mismatched grammar
+- is missing the payoff half of a contrast
+- feels like a clause, not a complete hook
+
+Examples to reject:
+- “me saying I’ll go to the gym vs me the”
+- “I really said I’d fold the laundry today and wearing”
+- “the way I said I’d clear my inbox and marking”
+
+Examples to allow:
+- “me saying I’ll go to the gym vs me still in bed”
+- “I really said I’d fold laundry and wore the wrinkled shirt”
+- “the way I said I’d clear my inbox and marked everything read”
+
+If a hook fails:
+- attempt deterministic repair once
+- if repair fails, reject candidate
+
+---
+
+FIX 2 — REDUCE STARTER REPETITION
+
+Within a batch:
+- max 1 hook may start with “the way I”
+- max 1 hook may start with “me saying”
+- max 1 hook may start with “I really”
+- max 1 hook may use “why did I”
+- max 1 hook may use contrast syntax
+
+Across regenerate history:
+- penalize same hook opener heavily if used in previous batch
+
+Add hookOpener field:
+- the_way_i
+- me_saying
+- i_really
+- why_did_i
+- what_i_planned_vs
+- this_is_where
+- silent_panic
+- realization
+- denial_statement
+
+Selection must diversify hookOpener, not just hookStyle.
+
+---
+
+FIX 3 — EXPAND LOCATION / SETTING POOL
+
+Current outputs overuse:
+- kitchen
+- couch
+- bed
+
+Add and rotate settings:
+- bathroom mirror
+- hallway
+- car seat / parked car
+- desk
+- office chair
+- closet
+- laundry area
+- front door
+- elevator / hallway
+- grocery aisle
+- coffee counter
+- outside sidewalk
+- bedroom floor
+- closet mirror
+- bathroom sink
+- kitchen counter
+- couch
+- bed
+
+Within a batch:
+- no more than 1 idea per setting
+
+Across regenerate:
+- heavily penalize same setting from previous batch
+
+---
+
+FIX 4 — DIVERSIFY HOW TO FILM LANGUAGE
+
+Current howToFilm repeats:
+“Phone propped at chest height… single take, no edits. Natural light…”
+
+This makes every idea feel identical.
+
+Create filming instruction variants by visualActionPattern.
+
+Examples:
+
+fridge_open_stare:
+“Set the phone on the counter. Open the fridge, pause, close it slowly, then look at camera.”
+
+phone_scroll_freeze:
+“Hold the phone in frame. Scroll once, freeze, then let the reaction sit.”
+
+outfit_check_cut:
+“Film in mirror. Look at the outfit, pause, then do the tiny ‘this is fine’ nod.”
+
+work_fake_smile:
+“Set phone near laptop. Read the message, fake-smile, then look back at screen.”
+
+laundry_avoidance:
+“Film near the laundry pile. Pick one item, inspect it, decide it’s wearable.”
+
+social_cancel_relief:
+“Film from the couch. Type the message, hit send, then relax like a weight left your body.”
+
+No generic universal how-to unless needed.
+
+---
+
+FIX 5 — SCENE-SPECIFIC WHAT TO SHOW
+
+Avoid generic blocks like:
+“Open on you in the kitchen... Beat. Then the reaction lands...”
+
+Each scenario should have a specific physical moment.
+
+Bad:
+“Open on you in the bed. Beat. Then the reaction lands...”
+
+Good:
+“You glance at the packed gym bag by the door, slowly pull the blanket higher, and look away like you never saw it.”
+
+Bad:
+“Open on you in the kitchen. stares into the fridge...”
+
+Good:
+“You open the fridge, stare at the same leftovers, close it, then immediately unlock DoorDash.”
+
+---
+
+FIX 6 — FINAL QA GATE
+
+Before returning ideas, assert:
+
+Per batch:
+- no unfinished hook strings
+- no duplicate hook opener
+- no duplicate setting
+- no duplicate visualActionPattern
+- at least 2 different formats if possible
+- howToFilm instructions are not identical templates
+- whatToFilm has scenario-specific physical action
+
+If gate fails:
+- reselect or fallback
+- do not ship broken hooks
+
+---
+
+QA TEST
+
+Run 5 regenerate batches.
+
+Check:
+1. No broken/unfinished hooks
+2. No batch has 2+ hooks starting the same way
+3. No batch has 2+ same settings
+4. No repeated “phone propped at chest height…” language across all ideas
+5. Scenes are physically different
+6. Captions still feel natural
+7. AI usage remains 0 unless fallback required
+
+Success:
+The user should feel:
+“These are different video moments,”
+not:
+“These are template swaps.”
