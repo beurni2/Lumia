@@ -179,6 +179,22 @@ export type CandidateMeta = PatternMeta | {
    * `selectionPenalty` (immediate-prior batch only).
    */
   trendId?: string;
+  /**
+   * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
+   * captured by `assembleCandidate` ONLY when a trend was injected
+   * (paired 1-to-1 with `trendId`). Read by `enforceTrendCap` in
+   * `hybridIdeator` to revert the caption when the within-batch
+   * HARD CAP fires (≤ N-1 trend-injected per N-pick batch — the
+   * lowest-scoring trended candidate gets its caption reverted +
+   * `trendId` cleared, the candidate STILL ships, no batch-level
+   * rejection). Always paired with `trendId` — both are set
+   * together at injection time, both are cleared together on
+   * revert. Llama / Claude fallback wraps NEVER set this (no
+   * trends apply to fallback paths). Not persisted to the cache —
+   * runtime-only meta for the cap pass; cache envelope just
+   * carries `trendId`.
+   */
+  originalCaption?: string;
 };
 
 // -----------------------------------------------------------------------------

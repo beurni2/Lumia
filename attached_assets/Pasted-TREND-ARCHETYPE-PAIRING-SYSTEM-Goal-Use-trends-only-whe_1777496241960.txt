@@ -1,0 +1,165 @@
+TREND + ARCHETYPE PAIRING SYSTEM
+
+Goal:
+Use trends only when they naturally strengthen an idea.
+
+Trends should feel like fresh context, not forced decorations.
+
+---
+
+CORE PRINCIPLE
+
+Trend = context
+Archetype = idea DNA
+
+Never let trends drive the idea alone.
+
+---
+
+1. ADD TREND ITEM STRUCTURE
+
+type TrendItem = {
+  id: string
+  type: "object" | "behavior" | "phrase" | "format"
+  label: string
+  freshnessScore: number
+  fitArchetypes: string[]
+  avoidArchetypes?: string[]
+  region?: string
+}
+
+---
+
+2. PAIRING RULE
+
+Only inject a trend if:
+
+- trend.fitArchetypes includes selected archetype
+- freshnessScore is high enough
+- trend does not make idea less clear
+- trend does not require niche knowledge
+
+---
+
+3. EXAMPLES
+
+Good pairings:
+
+doomscrolling
+→ time_distortion
+→ “2 minutes became 40”
+
+girl dinner
+→ petty_logic / self_deception
+→ “this counts as dinner”
+
+quiet luxury
+→ identity / fake_self
+→ “me pretending I’m that person”
+
+soft quitting
+→ low_energy_realism / avoidance
+→ “emotionally clocked out”
+
+matcha
+→ micro_rituals / identity
+→ “my personality depends on this drink”
+
+---
+
+Bad pairings:
+
+matcha + social_micro_fail
+→ forced
+
+Stanley cup + delayed_consequence
+→ weak unless context supports it
+
+TikTok dance trend + low_energy_realism
+→ wrong energy
+
+---
+
+4. USAGE RATE
+
+Trend injection rate:
+- 20–30% of generated ideas
+- never all 3 ideas in a batch
+- max 1 trend per idea
+
+---
+
+5. BATCH RULE
+
+For 3 ideas:
+- 0–1 trend-injected idea by default
+- 2 max only if both feel natural
+
+---
+
+6. DECAY
+
+Each trend has freshnessScore.
+
+Daily:
+- reduce freshnessScore
+- remove or deprioritize below threshold
+
+---
+
+7. REGION
+
+Use region if available.
+
+Example:
+- US trend bundle
+- UK trend bundle
+- Nigeria trend bundle
+- Philippines trend bundle
+- India trend bundle
+
+If no region match:
+use global/common trends only.
+
+---
+
+8. VALIDATOR
+
+Reject trend-injected idea if:
+- trend feels forced
+- hook depends on knowing a niche meme
+- trend makes the idea less relatable
+- trend replaces the human moment
+- trend creates private/sensitive filming need
+
+---
+
+9. PROMPT / GENERATION RULE
+
+When trend is injected:
+
+Do not mention the trend just to mention it.
+
+It must change:
+- object
+- behavior
+- setting
+- or phrasing
+
+Example:
+
+Bad:
+“the way I drink matcha and avoid laundry”
+
+Good:
+“me buying matcha like it counts as emotional regulation”
+
+---
+
+10. SUCCESS
+
+Ideas should feel:
+“current and specific”
+
+Not:
+“trend stuffed”

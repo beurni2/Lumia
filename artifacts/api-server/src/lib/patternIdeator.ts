@@ -2345,6 +2345,20 @@ export type PatternMeta = {
    * Resolves to a `TrendItem` via `TREND_BY_ID[trendId]`.
    */
   trendId?: string;
+  /**
+   * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
+   * captured by `assembleCandidate` ONLY when a trend was injected
+   * (paired 1-to-1 with `trendId`). Read by `enforceTrendCap` in
+   * `hybridIdeator` to revert the caption when the within-batch
+   * HARD CAP fires (≤ N-1 trend-injected per N-pick batch — the
+   * lowest-scoring trended candidate gets its caption reverted +
+   * `trendId` cleared, the candidate STILL ships, no batch-level
+   * rejection). Always paired with `trendId` — both set together
+   * at injection, both cleared together on revert. Not persisted
+   * to the cache — runtime-only meta for the cap pass; cache
+   * envelope just carries `trendId`.
+   */
+  originalCaption?: string;
 };
 
 /**
@@ -2565,6 +2579,7 @@ function assembleCandidate(
     return true;
   };
   let trendId: string | undefined;
+  let originalCaption: string | undefined;
   let captionAfterTrend = caption;
   if (selectedTrend) {
     const transformed = applyTrendToCaption(
@@ -2575,6 +2590,17 @@ function assembleCandidate(
     if (validateTrendInjection(caption, transformed, isCleanCaption)) {
       captionAfterTrend = transformed;
       trendId = selectedTrend.id;
+      // TREND + ARCHETYPE PAIRING spec — snapshot the pre-trend
+      // caption so `enforceTrendCap` (hybridIdeator finalization
+      // pass) can revert deterministically when the within-batch
+      // HARD CAP fires. Object substitution + behavior/format/
+      // phrase appends aren't trivially reversible from the
+      // transformed string alone (parenthetical positions vary
+      // with idempotency normalization, object swaps need the
+      // original noun lookup), so we capture the source string
+      // here at injection time. Always paired with `trendId` —
+      // both set together, both cleared together on revert.
+      originalCaption = caption;
     }
     // else: validator rejected (no-op substitution OR clean check
     // failed) → soft skip: keep original caption, leave trendId
@@ -2643,6 +2669,14 @@ function assembleCandidate(
       // MUST treat absent as "no contribution to the trend axis"
       // (same discipline as `voiceProfile`).
       trendId,
+      // TREND + ARCHETYPE PAIRING spec — `originalCaption` is the
+      // pre-trend snapshot, set ONLY when `trendId` is set (paired
+      // 1-to-1 above). Used by `enforceTrendCap` to revert the
+      // caption when the within-batch HARD CAP fires. Undefined
+      // when no trend was applied — readers MUST treat absent as
+      // "no revert source available" (skip the candidate, never
+      // attempt synthesis).
+      originalCaption,
     },
   };
 }

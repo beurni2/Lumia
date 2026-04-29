@@ -27,7 +27,7 @@
 
 import type { ArchetypeFamily } from "./archetypeTaxonomy";
 
-export type TrendType = "object" | "behavior" | "phrase";
+export type TrendType = "object" | "behavior" | "phrase" | "format";
 
 /**
  * A scenario-family identifier. Mirrors the untyped `string` used
@@ -58,6 +58,23 @@ export interface TrendItem {
   /** Strict archetype-family fit list. The trend selector rejects
    *  any candidate whose `archetypeFamily` is not in this list. */
   readonly compatibleArchetypeFamilies: ReadonlyArray<ArchetypeFamily>;
+  /** Optional negative-compat list. When the candidate's archetype
+   *  family appears here the trend is HARD-rejected by
+   *  `trendFitsCandidate` BEFORE the positive-fit check. Per spec:
+   *  encodes "bad pairings" (matcha + social_micro_fail, stanley_cup
+   *  + delayed_consequence, tiktok_dance_format + low_energy_realism).
+   *  An item MUST NOT list the same family in both
+   *  `compatibleArchetypeFamilies` and `avoidArchetypeFamilies` —
+   *  that overlap is caught by the QA harness as catalog drift. */
+  readonly avoidArchetypeFamilies?: ReadonlyArray<ArchetypeFamily>;
+  /** Optional region tag. When set, the trend only matches callers
+   *  that ALSO supply the same region. When unset (or when the
+   *  caller doesn't supply a region) the trend acts as global —
+   *  this is the default for the entire current catalog since the
+   *  creator-region data flow has not yet landed. Future creator
+   *  metadata can begin populating this field per spec
+   *  (US/UK/Nigeria/Philippines/India bundles). */
+  readonly region?: string;
 }
 
 /**
@@ -80,8 +97,14 @@ export const TREND_INJECTION_RATE_PCT = 30 as const;
 /**
  * The hand-curated trend catalog. Edit directly to add / remove /
  * decay items. Per spec: "small JSON file, manually updated daily
- * or every few days". 27 items split across the 3 types — well
- * inside the 20–50 active band.
+ * or every few days". 31 items split across the 4 types (objects,
+ * behaviors, phrases, formats) — well inside the 20–50 active band.
+ *
+ * Per the TREND + ARCHETYPE PAIRING spec, items may also tag
+ * `avoidArchetypeFamilies` (negative-compat hard reject) and
+ * `region` (creator-region routing). Both are optional — most items
+ * intentionally stay region-less (= global) until the creator-region
+ * data flow lands upstream.
  */
 export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
   // ─── OBJECTS (12) — substituted into scenario topicNoun ──────────
@@ -96,6 +119,9 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "identity",
       "weird_habits",
     ],
+    // Spec: matcha + social_micro_fail = forced (wrong vibe — the
+    // matcha ritual is internal/identity, not social-friction).
+    avoidArchetypeFamilies: ["social_observation"],
   },
   {
     id: "stanley_cup",
@@ -108,6 +134,11 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "identity",
       "object_personality",
     ],
+    // Spec: stanley_cup + delayed_consequence = weak unless context
+    // supports it. `escalation` family covers delayed-consequence
+    // archetypes (domino_effect, now_its_worse, mistake_spiral) so
+    // we hard-reject that pairing rather than rely on luck.
+    avoidArchetypeFamilies: ["escalation"],
   },
   {
     id: "owala",
@@ -349,7 +380,7 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
     ],
   },
 
-  // ─── PHRASES (5) — appended as " — label" to caption ─────────────
+  // ─── PHRASES (6) — appended as " — label" to caption ─────────────
   // PHRASES intentionally fewer + higher fit-bar than objects /
   // behaviors. They're the most meme-prone of the 3 types and the
   // QA validator (`validateTrendInjection`) will silently drop any
@@ -426,10 +457,95 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
     label: "girl dinner",
     freshnessScore: 0.45,
     compatibleFamilies: ["snack", "fridge"],
+    // Spec: girl dinner → petty_logic / self_deception → "this
+    // counts as dinner". Existing low_energy_realism / weird_habits
+    // / identity tags are kept (still valid alternative pairings)
+    // and the spec families are added so the pairing fires.
     compatibleArchetypeFamilies: [
       "low_energy_realism",
       "weird_habits",
       "identity",
+      "petty_logic",
+      "self_deception",
+    ],
+  },
+  {
+    // Spec: quiet luxury → identity / fake_self → "me pretending
+    // I'm that person". `fake_self` maps to the identity family
+    // (granular archetypes self_vs_reality, fake_competence,
+    // aspirational_self, contrasting_self all live there).
+    id: "quiet_luxury",
+    type: "phrase",
+    label: "quiet luxury era",
+    freshnessScore: 0.62,
+    compatibleFamilies: [
+      "outfit",
+      "shopping",
+      "mirror_pep_talk",
+      "social_post",
+    ],
+    compatibleArchetypeFamilies: ["identity", "low_energy_realism"],
+  },
+
+  // ─── FORMATS (3) — appended as " (label)" to caption ─────────────
+  // FORMATS describe the VIDEO format/style hint rather than an
+  // object substitution or behavior beat. Same parenthetical shape
+  // as `behavior` (see `applyTrendToCaption`) — distinguished only
+  // at the catalog/curation layer so the label reads as a format
+  // instruction (e.g. "voice memo style") not an extra action.
+  {
+    // Spec: TikTok dance trend + low_energy_realism = wrong energy.
+    // The format demands performative kinetic energy, which clashes
+    // with low-energy realism's deadpan acceptance / quiet failure.
+    id: "tiktok_dance_format",
+    type: "format",
+    label: "tiktok dance format",
+    freshnessScore: 0.55,
+    compatibleFamilies: [
+      "outfit",
+      "mirror_pep_talk",
+      "social_post",
+      "weekend_plans",
+    ],
+    compatibleArchetypeFamilies: [
+      "identity",
+      "social_observation",
+      "escalation",
+    ],
+    avoidArchetypeFamilies: ["low_energy_realism"],
+  },
+  {
+    id: "voice_memo_format",
+    type: "format",
+    label: "voice memo style",
+    freshnessScore: 0.68,
+    compatibleFamilies: [
+      "texting",
+      "social_call",
+      "mirror_pep_talk",
+      "podcast",
+    ],
+    compatibleArchetypeFamilies: [
+      "inner_monologue",
+      "low_energy_realism",
+      "self_deception",
+    ],
+  },
+  {
+    id: "lazy_grwm_format",
+    type: "format",
+    label: "lazy GRWM",
+    freshnessScore: 0.6,
+    compatibleFamilies: [
+      "outfit",
+      "morning",
+      "mirror_pep_talk",
+      "skincare",
+    ],
+    compatibleArchetypeFamilies: [
+      "low_energy_realism",
+      "self_deception",
+      "micro_rituals",
     ],
   },
 ];
@@ -467,16 +583,40 @@ export function getActiveTrends(_now?: Date): ReadonlyArray<TrendItem> {
  * — keeps cold-start / fallback candidates from accidentally
  * receiving a trend graft when their derivation pipeline didn't
  * fully resolve).
+ *
+ * Negative-compat (avoidArchetypeFamilies) is checked BEFORE the
+ * positive-fit lists — a hard reject wins over any other signal.
+ * This encodes the spec's "bad pairings" (matcha + social_micro_fail
+ * → forced; stanley_cup + delayed_consequence → weak; tiktok_dance
+ * + low_energy_realism → wrong energy).
+ *
+ * Region predicate (4th optional param) is a global-by-default
+ * wildcard: when EITHER side is unset the check passes. A trend
+ * with `region` set only matches callers that supply the same
+ * region string (case-sensitive, exact match — region taxonomy is
+ * a curator-controlled controlled vocabulary, not user input).
  */
 export function trendFitsCandidate(
   trend: TrendItem,
   scenarioFamily: ScenarioFamilyId | null | undefined,
   archetypeFamily: ArchetypeFamily | null | undefined,
+  region?: string | null,
 ): boolean {
   if (!scenarioFamily || !archetypeFamily) return false;
+  // Negative compat first — hard reject wins.
+  if (
+    trend.avoidArchetypeFamilies &&
+    trend.avoidArchetypeFamilies.includes(archetypeFamily)
+  ) {
+    return false;
+  }
   if (!trend.compatibleFamilies.includes(scenarioFamily)) return false;
   if (!trend.compatibleArchetypeFamilies.includes(archetypeFamily))
     return false;
+  // Region: only enforced when BOTH sides supply a value. Trend
+  // without `region` acts as global; caller without `region` accepts
+  // all trends regardless of their tag.
+  if (trend.region && region && trend.region !== region) return false;
   return true;
 }
 
@@ -501,6 +641,13 @@ export interface TrendSelectionInput {
   readonly scenarioFamily: ScenarioFamilyId | null | undefined;
   readonly archetypeFamily: ArchetypeFamily | null | undefined;
   readonly salt: number;
+  /** Optional creator-region passthrough. When supplied, the
+   *  selector enforces region match against each trend's `region`
+   *  tag (with global-default semantics — see `trendFitsCandidate`).
+   *  When omitted, all trends are eligible regardless of their
+   *  region tag. Currently no upstream caller supplies this — the
+   *  field is wired for the future creator.region data flow. */
+  readonly region?: string;
 }
 
 /**
@@ -520,13 +667,13 @@ export interface TrendSelectionInput {
 export function selectTrendForCandidate(
   input: TrendSelectionInput,
 ): TrendItem | null {
-  const { slotIndex, scenarioFamily, archetypeFamily, salt } = input;
+  const { slotIndex, scenarioFamily, archetypeFamily, salt, region } = input;
   if (!scenarioFamily || !archetypeFamily) return null;
   const h = hashTriple(slotIndex, scenarioFamily, salt);
   const bucket = h % 100;
   if (bucket >= TREND_INJECTION_RATE_PCT) return null;
   const eligible = getActiveTrends().filter((t) =>
-    trendFitsCandidate(t, scenarioFamily, archetypeFamily),
+    trendFitsCandidate(t, scenarioFamily, archetypeFamily, region),
   );
   if (eligible.length === 0) return null;
   // Freshness-weighted pick: cumulative weight sum, then h-modulo
@@ -558,6 +705,14 @@ export function selectTrendForCandidate(
  *                  within the 80-char budget. No-op otherwise.
  *   - `phrase`   → append ` — ${trend.label}` if the result fits
  *                  within the 80-char budget. No-op otherwise.
+ *   - `format`   → append ` (${trend.label})` — same parenthetical
+ *                  shape as `behavior` so the per-trend length
+ *                  ceiling and idempotency rules apply identically.
+ *                  Distinguished from `behavior` only at the
+ *                  catalog/curation layer: the LABEL should describe
+ *                  a video FORMAT (e.g. "voice memo style", "lazy
+ *                  GRWM format") so the parenthetical reads as a
+ *                  format hint rather than an extra behavior beat.
  *
  * The 80-char ceiling is tighter than the upstream caption length
  * cap (which varies by template) — keeps the trend graft from
@@ -593,7 +748,11 @@ export function applyTrendToCaption(
       if (!re.test(trimmed)) return caption;
       return trimmed.replace(re, trend.label);
     }
-    case "behavior": {
+    case "behavior":
+    case "format": {
+      // `format` shares the parenthetical-append shape with
+      // `behavior` — see the doc block above for the curation-time
+      // distinction. Identical idempotency + length-ceiling rules.
       const addition = ` (${trend.label})`;
       if (trimmed.toLowerCase().includes(trend.label.toLowerCase())) {
         return trimmed;

@@ -1630,6 +1630,84 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
 }
 
 /**
+ * TREND + ARCHETYPE PAIRING spec — within-batch HARD CAP enforcing
+ * ≤ N-1 trend-injected candidates per N-pick batch (so a 3-pick
+ * batch ships with at most 2 candidates carrying `meta.trendId`).
+ * The cap exists to prevent a "trend takeover" where every idea in
+ * a single response feels like the same algorithmic flavor — the
+ * spec calls out 3-of-3 trend injection as a hard ship-blocker
+ * even when each individual injection is locally well-fit.
+ *
+ * Soft-skip semantics (mirrors `validateTrendInjection`): when the
+ * cap is exceeded, we DON'T drop the candidate — instead we revert
+ * its caption to the pre-trend snapshot stashed in
+ * `meta.originalCaption` AND clear `meta.trendId`. The candidate
+ * STILL ships, just untagged. The transformation isn't trivially
+ * reversible from the transformed string alone (object swaps need
+ * the original noun lookup, behavior/format/phrase appends shift
+ * with idempotency normalization), so `assembleCandidate` snapshots
+ * the source caption at injection time alongside `trendId` — the
+ * two fields are paired 1-to-1 (both set together, both cleared
+ * together).
+ *
+ * Selection priority — when more than (N-1) trend-injected
+ * candidates exist, drop the LOWEST-priority ones first. Caller
+ * supplies a `priorityOf` function so the helper stays
+ * polymorphic across the main path (priority = score.total) and
+ * the rescue path (priority = -index, since rescue candidates
+ * aren't scored — earlier in the slice = higher priority by
+ * convention). Ties broken by index ascending for determinism.
+ *
+ * Cap formula — `Math.max(1, n - 1)`: keeps the rule "≤ N-1" for
+ * batches of 2+, but allows a single-idea batch to carry 1 trend
+ * (the spec's "0-1 default" prose extends naturally; capping a
+ * 1-pick batch at 0 trends would forbid the feature entirely on
+ * single-idea responses, which the spec doesn't intend).
+ *
+ * Returns a NEW array — original picks are not mutated. Reverted
+ * candidates are shallow-cloned (new `idea` + new `meta` objects);
+ * unchanged candidates pass through by reference. Cache writes
+ * downstream see the reverted state.
+ */
+export function enforceTrendCap<
+  T extends { idea: Idea; meta: CandidateMeta },
+>(picks: readonly T[], priorityOf: (c: T, i: number) => number): T[] {
+  const n = picks.length;
+  if (n === 0) return picks.slice();
+  const maxAllowed = Math.max(1, n - 1);
+  const trended: { i: number; p: number }[] = [];
+  picks.forEach((c, i) => {
+    if (c.meta.trendId !== undefined) {
+      trended.push({ i, p: priorityOf(c, i) });
+    }
+  });
+  if (trended.length <= maxAllowed) return picks.slice();
+  // Sort ASCENDING by priority — lowest-priority entries land at
+  // the front and become revert targets. Index tiebreak keeps the
+  // pass deterministic across runs with identical scores.
+  trended.sort((a, b) => a.p - b.p || a.i - b.i);
+  const dropCount = trended.length - maxAllowed;
+  const dropIndices = new Set(trended.slice(0, dropCount).map((t) => t.i));
+  return picks.map((c, i) => {
+    if (!dropIndices.has(i)) return c;
+    const orig = c.meta.originalCaption;
+    // Revert caption only when the snapshot exists. In practice
+    // `originalCaption` is always present when `trendId` is — they
+    // are written together by `assembleCandidate` — but the
+    // optional-field discipline matches `voiceProfile` / `archetype`
+    // (no runtime throws on missing optional meta fields).
+    const newIdea: Idea =
+      orig !== undefined ? { ...c.idea, caption: orig } : c.idea;
+    const newMeta = {
+      ...c.meta,
+      trendId: undefined,
+      originalCaption: undefined,
+    } as CandidateMeta;
+    return { ...c, idea: newIdea, meta: newMeta } as T;
+  });
+}
+
+/**
  * Wrap a Claude `Idea` as a scorer candidate. The fallback loses the
  * `scenarioFamily` we'd get from pattern_variation, so the scorer
  * tie-breakers naturally prefer pattern_variation when scores match.
@@ -2071,7 +2149,7 @@ export async function runHybridIdeator(
   selection = { ...selection, batch: mutationResult.batch };
 
   // -------- Step 5: ship final batch, persist --------------------
-  const final = selection.batch;
+  let final = selection.batch;
   if (final.length >= desiredCount && !selection.guardsPassed) {
     // Best-effort ship — neither local nor merged pools could yield
     // a guard-passing combination. Surface in logs so we can grep
@@ -2126,7 +2204,23 @@ export async function runHybridIdeator(
         : regenerate
           ? []
           : rawCandidates;
-    const rescueSlice = rescueSource.slice(0, desiredCount);
+    // TREND + ARCHETYPE PAIRING spec — apply the within-batch HARD
+    // CAP on the rescue slice before computing ideasOnly + cache
+    // entries. Rescue candidates aren't scored (they're top-of-pool
+    // by ranking, not by scorer.total), so we use `(_c, i) => -i`
+    // for priority — earlier in the slice = higher priority by
+    // convention, so the LAST trend-injected entries become revert
+    // targets. The rescue path almost never carries trends in
+    // practice (the 30%-bucket gate skips ~70% of candidates and
+    // soft-skip drops most of the rest), but the cap is wired here
+    // for symmetry — a degenerate request that lands all-3 trends
+    // in rescue MUST honor the same ≤ N-1 ceiling as the main
+    // path, otherwise the cap leaks under exactly the failure mode
+    // it exists to guard against.
+    const rescueSlice = enforceTrendCap(
+      rescueSource.slice(0, desiredCount),
+      (_c, i) => -i,
+    );
     const ideasOnly = gate(rescueSlice.map((c) => c.idea));
     logger.warn(
       {
@@ -2180,6 +2274,21 @@ export async function runHybridIdeator(
     };
   }
 
+  // TREND + ARCHETYPE PAIRING spec — apply the within-batch HARD
+  // CAP just before computing the shipped `ideas` + the persisted
+  // cache entries, so BOTH consumers (the response payload AND the
+  // next regen's `recentTrendIds`) see the capped state. Reverted
+  // candidates have their pre-trend caption restored from
+  // `meta.originalCaption` and `meta.trendId` cleared — they STILL
+  // ship in the response (just untagged), and the cache entry's
+  // `trendId` becomes undefined for those slots (matches the
+  // soft-skip discipline of `validateTrendInjection`). Priority
+  // uses `score.total` so the lowest-scoring trend-injected
+  // candidate is the one that loses its trend tag when the cap
+  // fires. Reassigning `final` (declared `let` above) keeps every
+  // downstream reference (cache write, source label counters)
+  // consistent with the post-cap state.
+  final = enforceTrendCap(final, (c) => c.score.total);
   const ideas = gate(final.map((c) => c.idea));
   // Persist as entries so the next regenerate has family +
   // templateId for HARD exclusion, not just hook strings.
