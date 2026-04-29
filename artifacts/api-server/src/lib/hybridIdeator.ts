@@ -343,9 +343,7 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
 
 /**
  * Cached-batch entry shape — `idea` plus the metadata we need to
- * exclude / penalize on regenerate. The legacy cache wrote raw
- * `Idea[]`; new writes use `CachedBatchEntry[]`. Reader accepts both
- * to keep yesterday's cache rows usable.
+ * exclude / penalize on regenerate.
  */
 type CachedBatchEntry = {
   idea: Idea;
@@ -354,17 +352,45 @@ type CachedBatchEntry = {
 };
 
 /**
- * Validate a cached batch. Accepts either:
- *   - new shape: `[{ idea, family?, templateId? }, ...]`
- *   - legacy shape: `[Idea, ...]`
- * Returns the entries on success, `null` on any shape failure.
+ * Cache envelope: the most recent batch (`current`, used for the
+ * same-day non-regen cache hit) plus a rolling history of the
+ * previous batches. History is the cross-batch novelty memory: a
+ * regen reads `current + history` so it can avoid re-shipping any
+ * combination from the last `1 + MAX_HISTORY_BATCHES` batches.
+ *
+ * Without this, regenerate=true bounces between two states (after
+ * regen #1 overwrites the cache, the seed's hooks/families look
+ * "fresh" again and regen #2 happily re-ships them).
  */
-function tryParseCachedBatch(raw: unknown): CachedBatchEntry[] | null {
+type CachedEnvelope = {
+  current: CachedBatchEntry[];
+  history: CachedBatchEntry[][]; // newest first
+};
+
+/**
+ * How many *prior* batches we keep beyond the current one. With
+ * count=3 picks per batch and ~20 scenario families, retaining the
+ * last 5 batches (current + 4 history) excludes at most ~15 unique
+ * families from a regen — well under the 20-family pool, so the
+ * pattern engine still has plenty of room to fill the 3 picks.
+ */
+const MAX_HISTORY_BATCHES = 4;
+
+/**
+ * Parse the entries inside a single batch. Accepts either the
+ * wrapper shape `{ idea, family?, templateId? }` or the oldest legacy
+ * raw `Idea` shape. Returns null on any structural mismatch.
+ */
+function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const out: CachedBatchEntry[] = [];
   for (const item of raw) {
     if (item && typeof item === "object" && "idea" in item) {
-      const wrapper = item as { idea: unknown; family?: unknown; templateId?: unknown };
+      const wrapper = item as {
+        idea: unknown;
+        family?: unknown;
+        templateId?: unknown;
+      };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
       out.push({
@@ -383,6 +409,48 @@ function tryParseCachedBatch(raw: unknown): CachedBatchEntry[] | null {
     }
   }
   return out;
+}
+
+/**
+ * Read the persisted JSONB into the canonical envelope shape.
+ * Accepts THREE on-disk shapes (newest → oldest):
+ *
+ *   1. `{ version: 2, current: [...], history: [[...], ...] }`
+ *      — current writes (rolling-history aware).
+ *   2. `[{ idea, family?, templateId? }, ...]`
+ *      — pre-history writes; treated as `current`, history empty.
+ *   3. `[Idea, ...]`
+ *      — original legacy writes; treated as `current`, history empty.
+ *
+ * Returns null only when nothing parses; callers default to an
+ * empty envelope.
+ */
+function tryParseCachedEnvelope(raw: unknown): CachedEnvelope | null {
+  // Shape 1: versioned envelope.
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const env = raw as {
+      version?: unknown;
+      current?: unknown;
+      history?: unknown;
+    };
+    if (env.version === 2) {
+      const current = tryParseEntries(env.current) ?? [];
+      const history: CachedBatchEntry[][] = [];
+      if (Array.isArray(env.history)) {
+        for (const h of env.history) {
+          const parsed = tryParseEntries(h);
+          if (parsed) history.push(parsed);
+        }
+      }
+      // Empty current + empty history is treated as no cache.
+      if (current.length === 0 && history.length === 0) return null;
+      return { current, history };
+    }
+  }
+  // Shape 2/3: legacy array — entire array is the current batch.
+  const legacy = tryParseEntries(raw);
+  if (legacy === null) return null;
+  return { current: legacy, history: [] };
 }
 
 /**
@@ -422,12 +490,37 @@ type ExclusionSet = {
   styles: Set<string>;
 };
 
-function buildExclusion(prev: CachedBatchEntry[]): ExclusionSet {
+/**
+ * HARD exclusion is split across two windows so we can guarantee
+ * "no identical 3-hook batch in the last N batches" without
+ * exhausting the family pool:
+ *
+ *   - `allHistory` (depth N=5) → contributes excluded HOOK texts.
+ *     Every hook the creator has been shown in the last 5 batches
+ *     becomes off-limits, which mathematically prevents an
+ *     identical 3-hook batch from re-appearing.
+ *
+ *   - `immediatePrior` (depth 1) → contributes excluded FAMILIES
+ *     and styles. Family exclusion only spans the immediately
+ *     previous batch — extending it to depth 5 would shrink the
+ *     pattern engine's candidate pool below the 3-pick threshold
+ *     after a few regens (the pattern engine has ~20 families;
+ *     5 batches × ~3 unique families each = ~12 excluded → only
+ *     ~8 left, often not enough to satisfy the per-batch axis
+ *     guards). Older-batch family repetition is handled SOFTLY by
+ *     the novelty-context penalties below.
+ */
+function buildExclusion(
+  allHistory: CachedBatchEntry[],
+  immediatePrior: CachedBatchEntry[],
+): ExclusionSet {
   const hooks = new Set<string>();
+  for (const e of allHistory) {
+    hooks.add(normalizeHook(e.idea.hook));
+  }
   const families = new Set<string>();
   const styles = new Set<string>();
-  for (const e of prev) {
-    hooks.add(normalizeHook(e.idea.hook));
+  for (const e of immediatePrior) {
     if (e.family) families.add(e.family);
     styles.add(e.idea.hookStyle);
   }
@@ -511,19 +604,32 @@ async function tryCache(
   // (no `mode: "date"`), so direct string compare is correct.
   const cachedDate = creator.lastIdeaBatchDate;
   if (!cachedDate || cachedDate !== today) return null;
-  const entries = tryParseCachedBatch(creator.lastIdeaBatchJson);
-  return entries ? entries.map((e) => e.idea) : null;
+  const env = tryParseCachedEnvelope(creator.lastIdeaBatchJson);
+  if (!env || env.current.length === 0) return null;
+  return env.current.map((e) => e.idea);
 }
 
 /**
- * Read the previous batch (regardless of date) for exclusion
- * purposes during regenerate. Stale-day batches are still valuable
- * input — they tell us what the creator just saw.
+ * Read the rolling batch history (regardless of date) for exclusion
+ * + novelty purposes during regenerate. Returns:
+ *   - `current`: the most recently shipped batch (used for HARD
+ *     family/style exclusion, depth 1).
+ *   - `flat`: `current` + up to `MAX_HISTORY_BATCHES` prior batches,
+ *     flattened newest-first (used for HARD hook exclusion + novelty
+ *     context, depth up to 5).
+ * Stale-day batches are still valuable input — they tell us what
+ * the creator has seen recently.
  */
-function readPreviousBatch(creator: Creator | undefined): CachedBatchEntry[] {
-  if (!creator) return [];
-  const entries = tryParseCachedBatch(creator.lastIdeaBatchJson);
-  return entries ?? [];
+function readBatchHistory(
+  creator: Creator | undefined,
+): { flat: CachedBatchEntry[]; current: CachedBatchEntry[] } {
+  if (!creator) return { flat: [], current: [] };
+  const env = tryParseCachedEnvelope(creator.lastIdeaBatchJson);
+  if (!env) return { flat: [], current: [] };
+  const flat: CachedBatchEntry[] = [];
+  flat.push(...env.current);
+  for (const h of env.history) flat.push(...h);
+  return { flat, current: env.current };
 }
 
 async function persistCache(
@@ -532,11 +638,32 @@ async function persistCache(
 ): Promise<void> {
   if (!creator || creator.isDemo) return;
   if (entries.length === 0) return;
+  // Read existing envelope, archive its `current` to the head of
+  // history, cap history at MAX_HISTORY_BATCHES, then write the new
+  // envelope with the just-shipped entries as the new `current`.
+  const existing =
+    tryParseCachedEnvelope(creator.lastIdeaBatchJson) ?? {
+      current: [],
+      history: [],
+    };
+  const newHistory: CachedBatchEntry[][] = [];
+  if (existing.current.length > 0) {
+    newHistory.push(existing.current);
+  }
+  for (const h of existing.history) {
+    if (newHistory.length >= MAX_HISTORY_BATCHES) break;
+    newHistory.push(h);
+  }
+  const envelope: { version: 2; current: CachedBatchEntry[]; history: CachedBatchEntry[][] } = {
+    version: 2,
+    current: entries,
+    history: newHistory,
+  };
   try {
     await db
       .update(schema.creators)
       .set({
-        lastIdeaBatchJson: entries,
+        lastIdeaBatchJson: envelope,
         lastIdeaBatchDate: utcToday(),
         lastIdeaBatchAt: sql`now()` as unknown as Date,
       })
@@ -602,16 +729,20 @@ export async function runHybridIdeator(
   }
 
   // -------- Step 2: regenerate exclusion + salt + novelty ctx ----
-  // Always read the previously-cached batch (any date) so the
-  // novelty scorer can see "what did the creator just look at" and
-  // demote repeats of those families/topics/styles. The HARD
-  // exclusion gate (`buildExclusion`) is still regenerate-only —
-  // non-regen requests should be free to ship the same family if
-  // the scorer thinks it's the best fit, just with a small novelty
-  // penalty for repeating it.
-  const previousEntries = readPreviousBatch(input.creator);
+  // Read the rolling batch history (current + up to MAX_HISTORY_BATCHES
+  // prior batches) so the novelty scorer + HARD exclusion gate see
+  // not just the immediately-previous batch but everything the
+  // creator has been shown recently. Without this, regen #2 happily
+  // re-ships seed's combo (regen #1 overwrites the cache → seed
+  // looks "fresh" again on the next call). The HARD exclusion gate
+  // (`buildExclusion`) is still regenerate-only — non-regen
+  // requests should be free to ship the same family if the scorer
+  // thinks it's the best fit, just with a small novelty penalty for
+  // repeating it.
+  const { flat: previousEntries, current: immediatePriorEntries } =
+    readBatchHistory(input.creator);
   const exclude = regenerate
-    ? buildExclusion(previousEntries)
+    ? buildExclusion(previousEntries, immediatePriorEntries)
     : EMPTY_EXCLUSION;
   const noveltyContext: NoveltyContext = buildNoveltyContext(previousEntries);
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
