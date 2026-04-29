@@ -502,7 +502,18 @@ export default function HomeScreen() {
         // Successful network round-trip — caller will see true.
         return true;
       } catch (err) {
-        setErrorMsg(formatError(err, "Couldn't refresh ideas."));
+        // Cost-control hard limit returns a structured 429 — surface
+        // the server's `message` verbatim (no "HTTP 429: …" prefix
+        // that buildErrorMessage would otherwise add).
+        const body =
+          err instanceof ApiError && err.status === 429
+            ? (err.data as { error?: string; message?: string } | null)
+            : null;
+        if (body?.error === "rate_limit_take_a_break" && body.message) {
+          setErrorMsg(body.message);
+        } else {
+          setErrorMsg(formatError(err, "Couldn't refresh ideas."));
+        }
         // We DID acquire the slot and the user saw the loading
         // state, so from the caller's perspective this still
         // counts as "started". Returning true here keeps the

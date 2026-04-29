@@ -24,6 +24,19 @@ import { isRegion, type Region } from "@workspace/lumina-trends";
 import { styleProfileSchema, type StyleProfile } from "../lib/styleProfile";
 import { consumeQuota, refundQuota } from "../lib/quota";
 import { DailyCapExceededError } from "../lib/aiCost";
+import {
+  getUsageToday,
+  getLlamaCallsLast2Min,
+  acquireRegenSlot,
+  incrementUsage,
+} from "../lib/usageTracker";
+import { logger } from "../lib/logger";
+
+const HARD_REGEN_LIMIT = 100;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const router: IRouter = Router();
 
@@ -92,6 +105,60 @@ router.post("/ideator/generate", async (req, res, next) => {
       }
     }
 
+    const regenerate = body.regenerate ?? false;
+
+    // -------- Cost-control / anti-abuse pre-flight ----------------
+    // Real creators only — demo creator (curl) bypasses every gate
+    // so quality testing isn't blocked. Same isDemo check the cache
+    // and quota paths use.
+    let usageToday = { idea_request: 0, regenerate_request: 0, llama_call: 0 };
+    let cooldownAppliedMs = 0;
+    if (!creator.isDemo) {
+      usageToday = await getUsageToday(creator.id, [
+        "idea_request",
+        "regenerate_request",
+        "llama_call",
+      ]);
+
+      // Hard limit: regenerate is the abusive vector (cheap re-roll).
+      // Initial generation always works. Surface a friendly take-a-
+      // break message rather than exposing the raw count.
+      if (
+        regenerate &&
+        usageToday.idea_request > HARD_REGEN_LIMIT
+      ) {
+        logger.info(
+          {
+            creatorId: creator.id,
+            ideaRequestCountToday: usageToday.idea_request,
+            limit: HARD_REGEN_LIMIT,
+          },
+          "ideator.hard_limit_blocked",
+        );
+        res.status(429).json({
+          error: "rate_limit_take_a_break",
+          message: "Take a break — come back later for fresh ideas",
+        });
+        return;
+      }
+
+      // Rapid-regen cooldown (3-5s jitter). `acquireRegenSlot` is the
+      // atomic check-and-record primitive — two parallel taps from the
+      // same creator can't both read "no prior" before either records,
+      // so the second one always sees the first's just-stored
+      // timestamp and gets the cooldown.
+      if (regenerate) {
+        cooldownAppliedMs = acquireRegenSlot(creator.id);
+        if (cooldownAppliedMs > 0) {
+          logger.info(
+            { creatorId: creator.id, cooldownMs: cooldownAppliedMs },
+            "ideator.cooldown_applied",
+          );
+          await sleep(cooldownAppliedMs);
+        }
+      }
+    }
+
     // Daily quota: 2 batches per creator per UTC day (1 normal + 1
     // regenerate). Real creators only — demo creator (curl) bypasses
     // so quality testing isn't blocked at idea 21.
@@ -110,6 +177,14 @@ router.post("/ideator/generate", async (req, res, next) => {
       consumed = true;
     }
 
+    // Snapshot the in-memory 2-min Llama-call window for this creator
+    // so the mutator's gate sees the same value the route logs. Demo
+    // creators get an empty usageContext (their flag flips off every
+    // gate inside the mutator anyway).
+    const llamaCallsLast2Min = creator.isDemo
+      ? 0
+      : getLlamaCallsLast2Min(creator.id);
+
     let result;
     try {
       // Hybrid Ideator Pipeline — pattern engine first ($0), Claude
@@ -121,7 +196,7 @@ router.post("/ideator/generate", async (req, res, next) => {
         region,
         styleProfile,
         count: body.count ?? 3,
-        regenerate: body.regenerate ?? false,
+        regenerate,
         // Thread the already-loaded calibration jsonb through so
         // the orchestrator (and any Claude fallback) does NOT
         // re-SELECT the creator row. resolveCreator returns the
@@ -132,6 +207,12 @@ router.post("/ideator/generate", async (req, res, next) => {
         // it once and shares it with the fallback path.
         ctx: { creatorId: creator.id },
         creator,
+        usageContext: {
+          creatorId: creator.id,
+          creatorIsDemo: creator.isDemo,
+          ideaRequestCountToday: usageToday.idea_request,
+          llamaCallsLast2Min,
+        },
       });
     } catch (err) {
       // Refund quota if the call failed before producing ideas, so a
@@ -153,10 +234,65 @@ router.post("/ideator/generate", async (req, res, next) => {
     // intentionally never persist — that's how the curl-driven QA
     // path stays cache-free.
 
+    // Post-flight: increment per-day counters by the ideas actually
+    // shipped (so a partial response doesn't burn the same budget as
+    // a full one). Demo creators are skipped to keep the curl-driven
+    // QA path counter-free. Increments are best-effort inside the
+    // tracker — failures only fuzz observability.
+    let ideaRequestCountAfter = usageToday.idea_request;
+    let regenerateRequestCountAfter = usageToday.regenerate_request;
+    if (!creator.isDemo) {
+      // Idea counter tracks ideas SERVED, so a zero-result response
+      // costs the user nothing. Only increment when we shipped at
+      // least one idea.
+      if (result.ideas.length > 0) {
+        const updated = await incrementUsage(
+          creator.id,
+          "idea_request",
+          result.ideas.length,
+        );
+        if (typeof updated === "number") ideaRequestCountAfter = updated;
+      }
+      // Regenerate counter tracks ATTEMPTS, not successes — even an
+      // empty regen burned the slot from the user's intent perspective
+      // and should count toward their daily regenerate budget. (No
+      // double-count: this branch only runs when `regenerate=true`.)
+      if (regenerate) {
+        const updatedRegen = await incrementUsage(
+          creator.id,
+          "regenerate_request",
+          1,
+        );
+        if (typeof updatedRegen === "number") {
+          regenerateRequestCountAfter = updatedRegen;
+        }
+      }
+    }
+
+    logger.info(
+      {
+        creatorId: creator.id,
+        creatorIsDemo: creator.isDemo,
+        count: result.ideas.length,
+        regenerate,
+        cooldownAppliedMs,
+        ideaRequestCountAfter,
+        regenerateRequestCountAfter,
+        // Pre-mutator snapshot — the mutator's per-call DB increment
+        // is fire-and-forget (so the post-await value isn't reliably
+        // available without another roundtrip), and the live 2-min
+        // ring-buffer count below is what ops actually need for
+        // throttle-tuning anyway.
+        llamaCallCountBefore: usageToday.llama_call,
+        llamaCallsLast2Min,
+      },
+      "ideator.usage",
+    );
+
     res.json({
       region,
       count: result.ideas.length,
-      regenerate: body.regenerate ?? false,
+      regenerate,
       ideas: result.ideas,
     });
   } catch (err) {

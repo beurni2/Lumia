@@ -53,7 +53,10 @@ import {
   EMPTY_MEMORY,
   type ViralPatternMemory,
 } from "./viralPatternMemory";
-import { maybeMutateBatch } from "./llamaHookMutator";
+import {
+  maybeMutateBatch,
+  type MutationUsageContext,
+} from "./llamaHookMutator";
 import {
   DEFAULT_STYLE_PROFILE,
   type StyleProfile,
@@ -69,6 +72,14 @@ export type HybridIdeatorInput = GenerateIdeasInput & {
   creator?: Creator;
   /** Soft-penalty list of recently-used scenario families. */
   recentScenarios?: string[];
+  /**
+   * Per-creator usage snapshot for the Llama cost-control / anti-abuse
+   * gates inside `maybeMutateBatch`. Optional — when absent, no gate
+   * fires (matches demo bypass). Counters are read by the route layer
+   * BEFORE this call so the mutator and route logs share the same
+   * snapshot.
+   */
+  usageContext?: MutationUsageContext;
 };
 
 export type HybridIdeatorSource = "cache" | "pattern" | "fallback" | "mixed";
@@ -927,8 +938,14 @@ export async function runHybridIdeator(
     recentScenarios: input.recentScenarios ?? [],
     novelty: noveltyContext,
     regenerate,
+    usage: input.usageContext,
   });
-  if (mutationResult.telemetry.used) {
+  // Log on EITHER a real mutation attempt OR a cost-control skip so
+  // the skip rate is observable (not silently dropped).
+  if (
+    mutationResult.telemetry.used ||
+    mutationResult.telemetry.costControlSkipped
+  ) {
     usedLlamaMutation = mutationResult.telemetry.mutationsSelected > 0;
     logger.info(
       {
@@ -941,6 +958,11 @@ export async function runHybridIdeator(
         rejected: mutationResult.telemetry.rejectedReasonCounts,
         costEstimateTokens: mutationResult.telemetry.costEstimateTokens,
         errored: mutationResult.telemetry.errored,
+        costControlSkipped: mutationResult.telemetry.costControlSkipped,
+        skipReason: mutationResult.telemetry.skipReason,
+        ideaRequestCountToday:
+          mutationResult.telemetry.ideaRequestCountToday,
+        llamaCallsLast2Min: mutationResult.telemetry.llamaCallsLast2Min,
       },
       "hybrid_ideator.llama_mutation",
     );

@@ -44,6 +44,11 @@ import {
 import type { StyleProfile, DerivedTone } from "./styleProfile";
 import { deriveTone } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
+import {
+  recordLlamaCall,
+  getLlamaCallsLast2Min,
+  incrementUsage,
+} from "./usageTracker";
 import { logger } from "./logger";
 
 // -----------------------------------------------------------------------------
@@ -57,13 +62,34 @@ export type MutationTrigger =
   | "all_pattern_batch"
   | "borderline_novelty";
 
+/**
+ * Subset of usage data the cost-control gates need. Optional on
+ * MutationContext so callers without a creator context (QA scripts,
+ * one-offs) still work — when absent, no cost-control skip ever
+ * fires, matching the demo-creator bypass.
+ */
+export type MutationUsageContext = {
+  creatorId?: string;
+  creatorIsDemo?: boolean;
+  /** Today's count of /api/ideator/generate ideas served (NOT batches). */
+  ideaRequestCountToday: number;
+  /** Llama mutator calls for this creator in the last 2 minutes. */
+  llamaCallsLast2Min: number;
+};
+
 export type MutationContext = {
   profile: StyleProfile;
   memory: ViralPatternMemory;
   recentScenarios: string[];
   novelty: NoveltyContext;
   regenerate: boolean;
+  usage?: MutationUsageContext;
 };
+
+export type CostControlSkipReason =
+  | "throttle_2min"
+  | "adaptation_25"
+  | "adaptation_40";
 
 export type MutationTelemetry = {
   used: boolean;
@@ -74,6 +100,12 @@ export type MutationTelemetry = {
   costEstimateTokens: number;
   rejectedReasonCounts: Record<string, number>;
   errored: boolean;
+  /** Set when the layer was skipped by a cost-control gate. */
+  costControlSkipped?: boolean;
+  skipReason?: CostControlSkipReason;
+  /** Snapshot of the inputs that drove the gate decision (for logs). */
+  ideaRequestCountToday?: number;
+  llamaCallsLast2Min?: number;
 };
 
 export type MutationResult = {
@@ -190,6 +222,49 @@ export function pickMutationTargets(
   }
   // Universal hard cap — spec ≤5 candidates per Llama call.
   return picked.slice(0, MAX_TARGETS_PER_CALL);
+}
+
+// -----------------------------------------------------------------------------
+// Cost-control gates (anti-abuse layer)
+// -----------------------------------------------------------------------------
+
+/**
+ * Pure decision: should the mutation layer be skipped for this
+ * request based on per-creator usage signals? Returns the skip
+ * reason string when one applies, otherwise null. Always allows
+ * mutation when no usage context is present (e.g. internal calls
+ * with no creator) or when the creator is a demo account — matches
+ * the existing demo-bypass pattern in cache + quota paths.
+ *
+ * Gate priority (per spec):
+ *   1. throttle_2min     — llamaCallsLast2Min > 3
+ *   2. adaptation_40     — ideaRequestCountToday > 40 with 75% prob
+ *   3. adaptation_25     — ideaRequestCountToday > 25 with 50% prob
+ *
+ * The probabilistic gates use Math.random so test paths can stub it
+ * if they need deterministic behavior. We deliberately favour the
+ * tighter (40) gate over the looser (25) gate when both apply, so a
+ * power user past 40 ideas always sees the 75% suppression.
+ *
+ * @param rng - injectable randomness for deterministic tests; defaults to Math.random
+ */
+export function applyCostControlGates(
+  ctx: MutationContext,
+  rng: () => number = Math.random,
+): { skip: boolean; reason?: CostControlSkipReason } {
+  const usage = ctx.usage;
+  if (!usage) return { skip: false };
+  if (usage.creatorIsDemo) return { skip: false };
+  if (usage.llamaCallsLast2Min > 3) {
+    return { skip: true, reason: "throttle_2min" };
+  }
+  if (usage.ideaRequestCountToday > 40 && rng() < 0.75) {
+    return { skip: true, reason: "adaptation_40" };
+  }
+  if (usage.ideaRequestCountToday > 25 && rng() < 0.5) {
+    return { skip: true, reason: "adaptation_25" };
+  }
+  return { skip: false };
 }
 
 // -----------------------------------------------------------------------------
@@ -640,14 +715,58 @@ export async function maybeMutateBatch(
   batch: ScoredCandidate[],
   ctx: MutationContext,
 ): Promise<MutationResult> {
+  // Refresh the throttle snapshot from the in-memory ring buffer so
+  // parallel calls can't all pass the gate against a stale value the
+  // route handed us pre-await. Sync read; safe in the single-threaded
+  // event-loop model — the gate-check + recordLlamaCall pair below
+  // runs in one task slot, so the second of two parallel calls sees
+  // the first's just-recorded count.
+  if (
+    ctx.usage?.creatorId !== undefined &&
+    ctx.usage.creatorIsDemo !== true
+  ) {
+    ctx.usage.llamaCallsLast2Min = getLlamaCallsLast2Min(ctx.usage.creatorId);
+  }
+
+  const usageSnapshot: Pick<
+    MutationTelemetry,
+    "ideaRequestCountToday" | "llamaCallsLast2Min"
+  > = ctx.usage
+    ? {
+        ideaRequestCountToday: ctx.usage.ideaRequestCountToday,
+        llamaCallsLast2Min: ctx.usage.llamaCallsLast2Min,
+      }
+    : {};
+
+  // (1) Cost-control gates run BEFORE trigger detection. A throttled
+  // or daily-adapted skip means the layer never runs at all — pattern
+  // engine output ships unchanged (the existing graceful path).
+  const gate = applyCostControlGates(ctx);
+  if (gate.skip) {
+    return {
+      batch,
+      telemetry: {
+        ...NO_OP_TELEMETRY,
+        costControlSkipped: true,
+        skipReason: gate.reason,
+        ...usageSnapshot,
+      },
+    };
+  }
+
   const trigger = shouldMutateBatch(batch, ctx);
-  if (!trigger) return { batch, telemetry: NO_OP_TELEMETRY };
+  if (!trigger) {
+    return {
+      batch,
+      telemetry: { ...NO_OP_TELEMETRY, ...usageSnapshot },
+    };
+  }
 
   const targets = pickMutationTargets(batch, trigger);
   if (targets.length === 0) {
     return {
       batch,
-      telemetry: { ...NO_OP_TELEMETRY, reason: trigger },
+      telemetry: { ...NO_OP_TELEMETRY, reason: trigger, ...usageSnapshot },
     };
   }
 
@@ -670,6 +789,18 @@ export async function maybeMutateBatch(
   });
 
   const creatorTone = tonePhrase(ctx.profile);
+
+  // Record the call attempt in the in-memory 2-min sliding window
+  // BEFORE awaiting the response, so a long-running call still
+  // counts toward the throttle. Skip for demo creators / no creator
+  // (matches the gate's bypass). Also fire a best-effort DB
+  // increment for the per-day llama_call counter; awaited writes
+  // would widen the gate→call race window, so we let it settle in
+  // the background. `incrementUsage` swallows DB errors internally.
+  if (ctx.usage?.creatorId && !ctx.usage.creatorIsDemo) {
+    recordLlamaCall(ctx.usage.creatorId);
+    void incrementUsage(ctx.usage.creatorId, "llama_call", 1).catch(() => {});
+  }
 
   let llamaResult: LlamaCallResult;
   try {
@@ -694,6 +825,7 @@ export async function maybeMutateBatch(
         costEstimateTokens: 0,
         rejectedReasonCounts: {},
         errored: true,
+        ...usageSnapshot,
       },
     };
   }
@@ -763,6 +895,7 @@ export async function maybeMutateBatch(
       costEstimateTokens: llamaResult.tokensUsed,
       rejectedReasonCounts: rejectedCounts,
       errored: false,
+      ...usageSnapshot,
     },
   };
 }

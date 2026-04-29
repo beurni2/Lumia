@@ -35,7 +35,7 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, ApiError } from "@workspace/api-client-react";
 
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
@@ -281,12 +281,24 @@ export default function StudioScreen() {
       );
       await writeDailyIdeas(region, fresh.ideas);
       router.push("/");
-    } catch {
-      Alert.alert(
-        "Couldn't refresh",
-        "You may have already used today's refresh slot. " +
-          "Try again tomorrow.",
-      );
+    } catch (err) {
+      // Server returns a structured 429 for the cost-control hard
+      // limit. Surface its `message` verbatim so the take-a-break
+      // copy stays the source of truth (and any future tweaks land
+      // here without an app release).
+      const body =
+        err instanceof ApiError && err.status === 429
+          ? (err.data as { error?: string; message?: string } | null)
+          : null;
+      if (body?.error === "rate_limit_take_a_break" && body.message) {
+        Alert.alert("Take a break", body.message);
+      } else {
+        Alert.alert(
+          "Couldn't refresh",
+          "You may have already used today's refresh slot. " +
+            "Try again tomorrow.",
+        );
+      }
     } finally {
       setExploring(false);
     }
