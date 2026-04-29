@@ -1661,7 +1661,67 @@ export function generatePatternCandidates(
     if (built !== null) out.push(built);
   }
 
-  return interleaveByScriptType(out);
+  return interleaveByScriptType(applyPoolCaps(out));
+}
+
+/**
+ * Hard distribution caps applied to the candidate pool BEFORE interleave
+ * (per script-system FINAL spec §3). Ensures no single scriptType — and
+ * neither the avoidance nor the internal_contradiction cluster — can
+ * dominate the downstream selector's pool:
+ *   - Per-scriptType cap:  ceil(N * 0.20)  (≤20% any single scriptType)
+ *   - Per-cluster   cap:   ceil(N * 0.40)  (≤40% avoidance OR
+ *                                           internal_contradiction)
+ *
+ * Tail-drop preserves the upstream Cartesian-weave + memory-bias
+ * ordering for the entries that survive (we drop OVERFLOW entries
+ * encountered after the cap, never reorder kept entries). For pools
+ * with ≤5 entries the caps are no-ops — the pool is already small
+ * enough that any single dominant scriptType is structural rather
+ * than fixable by pruning. Candidates without a scriptType (legacy
+ * / fallback paths) bypass the per-scriptType cap but still count
+ * toward total N for cap calculation; cluster caps don't apply to
+ * them.
+ */
+export function applyPoolCaps(
+  candidates: PatternCandidate[],
+): PatternCandidate[] {
+  if (candidates.length <= 5) return candidates;
+  const N = candidates.length;
+  const perTypeCap = Math.max(1, Math.ceil(N * 0.20));
+  const perClusterCap = Math.max(1, Math.ceil(N * 0.40));
+  const typeCounts = new Map<ScriptType, number>();
+  let avoidanceCount = 0;
+  let internalContradictionCount = 0;
+  const out: PatternCandidate[] = [];
+  for (const c of candidates) {
+    const sct = c.meta.scriptType;
+    if (!sct) {
+      out.push(c);
+      continue;
+    }
+    const tc = typeCounts.get(sct) ?? 0;
+    if (tc >= perTypeCap) continue;
+    if (
+      SCRIPT_TYPE_CLUSTERS.avoidance.has(sct) &&
+      avoidanceCount >= perClusterCap
+    ) {
+      continue;
+    }
+    if (
+      SCRIPT_TYPE_CLUSTERS.internal_contradiction.has(sct) &&
+      internalContradictionCount >= perClusterCap
+    ) {
+      continue;
+    }
+    typeCounts.set(sct, tc + 1);
+    if (SCRIPT_TYPE_CLUSTERS.avoidance.has(sct)) avoidanceCount++;
+    if (SCRIPT_TYPE_CLUSTERS.internal_contradiction.has(sct)) {
+      internalContradictionCount++;
+    }
+    out.push(c);
+  }
+  return out;
 }
 
 /**

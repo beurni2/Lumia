@@ -398,6 +398,37 @@ function exhaustiveReselect(
 }
 
 /**
+ * Count distinct fresh scriptTypes in `batch` — i.e. scriptTypes
+ * present in `batch` but absent from `recent`. Used by the script-
+ * system FINAL spec §6 ≥2-fresh soft preference. Picks without a
+ * scriptType (legacy / fallback) don't count as fresh. When `recent`
+ * is empty / undefined, every distinct scriptType in the batch is
+ * treated as fresh (no prior batch → any pick is novel).
+ */
+export function countNewScriptTypes(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<ScriptType> | undefined,
+): number {
+  const seen = new Set<ScriptType>();
+  for (const c of batch) {
+    const st = c.meta.scriptType;
+    if (!st) continue;
+    if (recent && recent.size > 0 && recent.has(st)) continue;
+    seen.add(st);
+  }
+  return seen.size;
+}
+
+/**
+ * True when at least one pick in `batch` carries `meta.energy ===
+ * "active"`. Used by the script-system FINAL spec §7 soft "≥1 active"
+ * preference. Picks without an energy field don't count as active.
+ */
+export function batchHasActive(batch: ScoredCandidate[]): boolean {
+  return batch.some((c) => c.meta.energy === "active");
+}
+
+/**
  * Predicate for the regen-fresh-scriptType rescue path. Returns true
  * when at least one pick in `batch` carries a scriptType that is NOT
  * in the immediate-prior batch's `recent` set. Vacuously true when
@@ -474,6 +505,55 @@ export function selectWithNovelty(
         "hybrid_ideator.regen_no_new_scripttype_shipping_best_effort",
       );
     }
+  }
+  // SOFT preference (script-system FINAL spec §6): when regenerating,
+  // prefer ≥2 fresh scriptTypes vs the immediate-prior batch. The hard
+  // ≥1-fresh guarantee is handled above; this pass tries to upgrade
+  // 1-fresh batches to 2-fresh when the pool supports it. Quietly keeps
+  // the existing pick if no such combination exists — best-effort, never
+  // fails, no warn (1-fresh already meets the hard requirement).
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentScriptTypes?.size ?? 0) > 0 &&
+    countNewScriptTypes(chosen, ctx.recentScriptTypes) < 2
+  ) {
+    const twoFresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) => countNewScriptTypes(b, ctx.recentScriptTypes) >= 2,
+    );
+    if (twoFresh) chosen = twoFresh;
+  }
+  // SOFT preference (script-system FINAL spec §7): prefer batches that
+  // contain ≥1 "active" energy idea. The hard `allLowEnergy` reject in
+  // batchGuardsPass already prevents the all-3-low worst case; this
+  // additionally nudges toward an active-energy anchor when the pool
+  // has one available. Best-effort, runs for both regen and non-regen
+  // since the spec applies to all batches.
+  //
+  // CRITICAL: this pass MUST preserve the freshness invariant of the
+  // currently-chosen batch — otherwise it could silently downgrade a
+  // fresh-scriptType batch produced by the hard ≥1-fresh rescue or
+  // the soft ≥2-fresh upgrade into an active-but-0-fresh batch,
+  // violating the spec §6 hard regen guarantee. We snapshot the
+  // current fresh count and only accept active candidates that match
+  // or exceed it.
+  if (chosen && !batchHasActive(chosen)) {
+    const minFreshRequired =
+      opts.regenerate && (ctx.recentScriptTypes?.size ?? 0) > 0
+        ? countNewScriptTypes(chosen, ctx.recentScriptTypes)
+        : 0;
+    const active = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) =>
+        batchHasActive(b) &&
+        countNewScriptTypes(b, ctx.recentScriptTypes) >= minFreshRequired,
+    );
+    if (active) chosen = active;
   }
   if (chosen) return { batch: chosen, guardsPassed: true };
   // No guard-passing combination exists in the top-N. Return the

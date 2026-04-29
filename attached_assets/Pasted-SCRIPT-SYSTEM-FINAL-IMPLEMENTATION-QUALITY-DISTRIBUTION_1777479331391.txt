@@ -1,0 +1,122 @@
+SCRIPT SYSTEM — FINAL IMPLEMENTATION (QUALITY + DISTRIBUTION)
+
+Goal:
+Expand idea diversity by introducing a large script system and enforcing it during generation and selection.
+
+---
+
+1. ADD scriptType FIELD
+
+Every candidate must include:
+
+scriptType: string
+
+---
+
+2. IMPLEMENT FULL SCRIPT LIBRARY
+
+Use the expanded list (20+ types already defined).
+
+Each template MUST map to a scriptType.
+
+No template without a scriptType.
+
+---
+
+3. GENERATION DISTRIBUTION (CRITICAL)
+
+During candidate generation:
+
+- Ensure at least 6–10 distinct scriptTypes are sampled
+- Cap any single scriptType at max 20% of candidate pool
+- Specifically limit:
+  - avoidance
+  - procrastination
+  - quiet contradiction
+
+These must NOT dominate.
+
+---
+
+4. SELECTION LOGIC (MOST IMPORTANT)
+
+When selecting final 3 ideas:
+
+A. HARD RULES:
+- must have ≥2 different scriptTypes
+- strongly prefer 3 different scriptTypes
+- never allow 3 same scriptType
+
+B. PRIORITY ORDER:
+1. qualityScore ≥ 8
+2. script diversity
+3. novelty
+4. personal fit
+
+Script diversity must come BEFORE picking highest scores.
+
+---
+
+5. HISTORY-AWARE ROTATION
+
+Track last 5 batches:
+
+Apply:
+- -3 penalty if scriptType used in last batch
+- -2 penalty if scriptType appears frequently in last 3 batches
+- +3 boost if scriptType unused in last 3 batches
+
+---
+
+6. REGENERATE BEHAVIOR
+
+If regenerate=true:
+
+- MUST include at least 1 scriptType not seen in previous batch
+- Prefer at least 2 new scriptTypes
+
+---
+
+7. ENERGY MIX
+
+Ensure batch is not all:
+- low-energy
+- passive reaction
+
+Prefer:
+- at least 1 active / physical action idea
+- at least 1 different emotional tone
+
+---
+
+8. FAILSAFE
+
+If after filtering:
+- diversity rules fail
+
+Then:
+- reselect from remaining candidates
+- if still failing → fallback path
+
+Do NOT ship low-diversity batch.
+
+---
+
+9. QA
+
+Run 10 batches:
+
+Verify:
+- at least 10+ different scriptTypes appear
+- no single scriptType dominates
+- batches feel like different *kinds of videos*
+
+---
+
+SUCCESS
+
+User should feel:
+“I have different directions to choose from”
+
+Not:
+“These are variations of the same idea”
