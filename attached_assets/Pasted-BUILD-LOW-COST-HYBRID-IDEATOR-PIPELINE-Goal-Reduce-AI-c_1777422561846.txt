@@ -1,0 +1,586 @@
+BUILD — LOW-COST HYBRID IDEATOR PIPELINE
+
+Goal:
+Reduce AI cost while preserving premium idea quality.
+
+New generation flow:
+
+User requests ideas
+→ Step 1: Try pattern + variation engine (NO AI)
+→ Step 2: Score/filter results
+→ Step 3: If not enough good ideas → call Llama 3.1 ideator
+→ Step 4: Filter Llama output
+→ Step 5: Merge + return best 3
+
+Also add Llama 3.2 Vision as a video understanding layer for uploaded videos, NOT as the main ideator.
+
+Do NOT add new UI.
+Do NOT add dashboards.
+Do NOT add auto-posting.
+Do NOT add social features.
+Do NOT add heavy ML training.
+Keep Phase 1 scope.
+
+---
+
+==================================================
+LAYER 1 — PATTERN + VARIATION ENGINE (NO AI)
+==================================================
+
+Goal:
+Generate candidate ideas cheaply from reusable viral structures before calling any model.
+
+This layer should run first.
+
+Core principle:
+Reuse strong idea shapes, but vary:
+- topic
+- scenario
+- hook wording
+- caption
+- emotional spike
+
+Do NOT repeat the exact same phrase structure too often.
+
+---
+
+1. Pattern templates
+
+Create a small library of reusable templates.
+
+Examples:
+
+A. Denial loop
+- "the way I said I’d [ACTION] and then [REALITY]"
+- "why do I say I’ll [ACTION] like I don’t know myself"
+- "I really said I’d [ACTION] and then [REALITY]"
+
+B. Expectation vs reality
+- "what I say vs what I do when I [GOAL]"
+- "me pretending I’m [IDEAL] vs me actually [REALITY]"
+
+C. Small panic
+- "why did I just remember [PROBLEM] now"
+- "this is where I realized [PROBLEM]"
+
+D. Avoidance
+- "the way I act like [TASK] doesn’t exist"
+- "I really just ignored [TASK] like it would disappear"
+
+E. Social awkwardness
+- "the way I answered [SOCIAL_MOMENT] like a normal person"
+- "why did I respond like that"
+
+F. Routine contradiction
+- "me saying I’m done with [HABIT] vs me doing it again"
+- "I said no more [HABIT] and immediately [REALITY]"
+
+---
+
+2. Topic / scenario pools
+
+Create safe topic pools.
+
+Examples:
+- sleep
+- cooking
+- coffee
+- food delivery
+- gym
+- laundry
+- texting
+- emails
+- work
+- errands
+- cleaning
+- fridge
+- outfit
+- weekend plans
+- social calls
+- productivity
+- procrastination
+
+Avoid sensitive/private topics:
+- bank apps
+- balances
+- real DMs/screenshots
+- medical data
+- salary
+- IDs
+- addresses
+- passwords
+
+---
+
+3. Hook style rotation
+
+For each generated candidate, vary hook style.
+
+Supported hook styles:
+- the_way_i
+- why_do_i
+- i_really_just
+- contrast
+- curiosity
+- internal_thought
+
+Important:
+Do NOT make every variation start with “the way I…”.
+
+Example same structure, different hooks:
+
+Base:
+“I said I’d sleep early but it’s 3am”
+
+Variations:
+- "the way I said I’d sleep early and it’s 3am"
+- "why do I say I’ll sleep early like I don’t know myself"
+- "I really just said I’d sleep early and it’s 3am"
+- "me saying I’ll sleep early vs me at 3am"
+- "this is where my sleep early plan failed"
+
+---
+
+4. Generate no-AI candidates
+
+For each request:
+- Generate 12–20 candidates locally
+- Bias toward user memory:
+  - top structures
+  - top hook styles
+  - top emotions
+  - top formats
+- Include 20–30% adjacent exploration
+- Avoid repeating last 2 accepted scenario families if possible
+- Penalize repetition, do not hard-ban it
+
+---
+
+5. Output candidate shape
+
+Each candidate must include:
+
+{
+  source: "pattern_variation",
+  hook,
+  whatToFilm,
+  howToFilm,
+  caption,
+  whyThisWorks,
+  patternTags: {
+    structure,
+    hookStyle,
+    emotionalSpike,
+    format
+  },
+  scenarioFamily
+}
+
+---
+
+==================================================
+LAYER 2 — DETERMINISTIC SCORE / FILTER
+==================================================
+
+Goal:
+Never show weak ideas, whether they came from variation engine or Llama.
+
+Run this on all candidates.
+
+---
+
+1. Hard reject filters
+
+Reject if:
+
+- hook is neutral/descriptive
+- hook lacks tension
+- idea is abstract
+- idea is advice/motivational
+- idea says “talk about” or “share your thoughts”
+- no visible action
+- unclear payoff
+- requires private/sensitive content
+- requires setup, props, location change, or other people
+- caption is generic or repeats the hook
+
+Weak hook starts:
+- "POV: you..."
+- "when you..."
+- "watching..."
+- "reading..."
+- "talk about..."
+- "share your thoughts..."
+
+Exception:
+Only allow if rewritten into something personal and tense.
+
+---
+
+2. Score each candidate 0–10
+
+Hook impact: 0–2
+- 0 plain/descriptive
+- 1 decent
+- 2 scroll-stopping
+
+Tension: 0–2
+- 0 no conflict
+- 1 mild conflict
+- 2 clear contradiction / regret / denial / panic / embarrassment / irony
+
+Filmability: 0–2
+- 0 too much effort
+- 1 doable
+- 2 one location, can film immediately
+
+Personal fit: 0–2
+- 0 generic / not user style
+- 1 somewhat fits
+- 2 feels like this creator would say it
+
+Caption strength: 0–1
+- 0 generic/repeats hook
+- 1 extends moment with thought, contradiction, or specific detail
+
+Freshness: 0–1
+- 0 stale
+- 1 familiar but fresh angle
+
+Total = 10
+
+---
+
+3. Pass thresholds
+
+- 8–10: keep
+- 6–7: rewrite hook/caption once if possible, then rescore
+- <6: reject
+
+Hard rule:
+If hook score = 0 → reject.
+If tension score = 0 → reject.
+If filmability score = 0 → reject.
+
+---
+
+4. Rewrite weak-but-promising candidates
+
+For 6–7 candidates:
+- rewrite hook
+- rewrite caption
+- keep the idea structure
+
+Hook rewrite must:
+- sound like a real thought/text
+- include tension
+- avoid neutral phrasing
+- be short
+- feel personal
+
+Caption rewrite must:
+- add internal thought OR contradiction OR specific detail
+- not repeat hook
+- max 1 emoji
+
+If rescore <8 → reject.
+
+---
+
+==================================================
+LAYER 3 — LLAMA 3.1 IDEATOR FALLBACK
+==================================================
+
+Goal:
+Use Llama 3.1 only when local pattern variations cannot produce enough good ideas.
+
+Llama 3.1 is the low-cost candidate generator, not the final judge.
+
+---
+
+1. When to call Llama
+
+Only call Llama if:
+- fewer than 3 candidates pass filtering
+- diversity is too low
+- user explicitly requests fresh ideas
+- memory changed significantly and local patterns are stale
+
+Default:
+Try no-AI variation first.
+
+---
+
+2. Llama generation
+
+Ask Llama 3.1 to generate 7–10 candidates.
+
+Each candidate must include:
+{
+  source: "llama_3_1",
+  hook,
+  whatToFilm,
+  howToFilm,
+  caption,
+  whyThisWorks,
+  patternTags: {
+    structure,
+    hookStyle,
+    emotionalSpike,
+    format
+  },
+  scenarioFamily
+}
+
+---
+
+3. Llama prompt requirements
+
+Llama candidates must follow same rules:
+- specific moment
+- visible reaction
+- clear payoff
+- low effort
+- no private data
+- no advice
+- no abstract ideas
+- no generic POV
+- caption extends moment
+- max 1 emoji
+
+Generate more candidates than needed because many will be filtered.
+
+---
+
+4. Filter Llama outputs
+
+Run ALL Llama candidates through Layer 2.
+
+Do NOT trust Llama scoring.
+
+Do NOT show Llama output directly.
+
+Only show candidates that pass deterministic filtering.
+
+---
+
+==================================================
+LAYER 4 — MERGE + RANK
+==================================================
+
+Goal:
+Combine local pattern candidates and Llama candidates, then return best 3.
+
+---
+
+1. Candidate priority
+
+Rank by:
+1. score
+2. personal fit
+3. hook impact
+4. diversity
+5. source preference
+
+Prefer pattern_variation if score is tied, because it costs nothing.
+
+---
+
+2. Batch rules
+
+Return 3 ideas.
+
+Rules:
+- At least 2 should align with user memory if possible
+- 1 can be adjacent exploration
+- Avoid duplicate scenarioFamily
+- Avoid duplicate hookStyle if possible
+- Avoid all 3 having same structure
+- Quality beats diversity
+
+If fewer than 3 excellent ideas exist:
+- return fewer with explanation in UI if existing UX supports it
+- do NOT show weak filler
+
+---
+
+3. Cache
+
+Cache returned batch per user/day.
+
+If user requests again same day:
+- serve cached batch unless user explicitly regenerates
+- regeneration should be rate-limited/tracked
+
+---
+
+==================================================
+LAYER 5 — LLAMA 3.2 VISION VIDEO UNDERSTANDING
+==================================================
+
+Goal:
+Use Llama 3.2 Vision as a video understanding/style extraction helper for uploaded videos.
+
+Do NOT use Llama 3.2 Vision as the main ideator.
+
+Principle:
+Llama 3.2 Vision = eyes.
+Llama 3.1 / pattern engine = ideator.
+
+---
+
+1. When to use
+
+Run on uploaded training videos or uploaded clips when available.
+
+Use it to extract lightweight visual/style hints.
+
+---
+
+2. Output shape
+
+Return structured JSON:
+
+{
+  contentType: "talking_head" | "reaction" | "pov" | "mini_story" | "lifestyle" | "unknown",
+  setting: "bedroom" | "kitchen" | "car" | "office" | "outside" | "unknown",
+  energyLevel: "low" | "medium" | "high",
+  visibleAction: string,
+  reactionVisible: boolean,
+  privacyRisk: boolean,
+  privacyRiskReason?: string,
+  suggestedFormat: "mini_story" | "reaction" | "pov" | "contrast",
+  visualNotes: string[]
+}
+
+---
+
+3. What it should detect
+
+- setting
+- content type
+- whether creator is visible
+- whether reaction is visible
+- whether clip feels low/medium/high energy
+- obvious privacy risks
+- whether it supports reaction / mini-story / POV format
+
+---
+
+4. Privacy safety
+
+If Llama 3.2 Vision sees:
+- bank app
+- visible messages
+- IDs
+- addresses
+- license plates
+- medical docs
+- salary/paystub
+- passwords
+- private documents
+
+Set:
+privacyRisk = true
+
+Do not generate ideas requiring this content.
+
+---
+
+5. Style profile integration
+
+Use extracted hints to update derivedStyleHints.
+
+Examples:
+- frequent low-energy bedroom clips → energyLevel low, setting bedroom
+- frequent face reactions → reactionVisible true, suggestedFormat reaction
+- talking-head videos → contentType talking_head
+- casual home scenes → low-effort home setting preference
+
+---
+
+6. Ideator integration
+
+Pass style hints into generation summary:
+
+Style hints:
+- common settings
+- visual energy
+- preferred visual format
+- privacy risks
+- visible reaction tendency
+
+Use these to shape:
+- whatToFilm
+- howToFilm
+- caption tone
+- hook style lightly
+
+Do NOT let vision hints override:
+- quality rules
+- memory
+- safety
+- user feedback
+
+---
+
+==================================================
+COST CONTROL RULES
+==================================================
+
+1. Pattern + variation first
+2. Llama 3.1 only if needed
+3. Llama 3.2 Vision only when analyzing uploaded video
+4. Cache daily batches
+5. Rate-limit regeneration
+6. Never run old swarm for Phase 1
+
+Runtime path must NOT call:
+- director agent
+- editor agent
+- monetizer agent
+- swarm orchestration
+- trend riff loops
+- multi-pass revisions
+
+---
+
+==================================================
+QA CHECKLIST
+==================================================
+
+Test 1: Existing user with strong memory
+Expected:
+- mostly pattern_variation ideas
+- 0–1 Llama calls
+- ideas still feel personal
+
+Test 2: New user with no memory
+Expected:
+- pattern engine produces safe default ideas
+- Llama only used if quality/diversity is low
+
+Test 3: User requests regeneration
+Expected:
+- cached ideas not repeated too aggressively
+- Llama call only if local candidates fail
+
+Test 4: Uploaded video analyzed by Llama 3.2 Vision
+Expected:
+- structured style hints
+- no idea generation from vision model
+- privacy risks flagged
+
+Test 5: Cost audit
+Expected:
+- most idea requests use zero external generation calls
+- when Llama 3.1 is called, it is one call only
+- no swarm calls
+
+---
+
+SUCCESS CRITERION
+
+User-visible quality stays premium.
+AI cost drops dramatically.
+System remains Phase 1 scoped.
