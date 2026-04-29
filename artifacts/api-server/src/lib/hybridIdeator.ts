@@ -1109,6 +1109,14 @@ function buildNoveltyContext(
   // +1 unused-boost / -2 cross-batch demotion semantics with a
   // ghost voice that no candidate actually shipped.
   const recentVoiceProfiles = new Set<VoiceProfile>();
+  // TREND CONTEXT LAYER spec — immediate-prior-batch trend ids. Read
+  // directly off the cache entry (first-class JSONB field). Legacy
+  // entries (and Llama / Claude fallback wraps) without the field
+  // contribute nothing — that's the right behavior: an absent tag
+  // should NOT appear in the "recent" set or it would poison the -2
+  // cross-batch demotion semantics with a ghost trend that no
+  // candidate actually shipped.
+  const recentTrendIds = new Set<string>();
   const immediatePrior = last3Batches[0] ?? [];
   for (const e of immediatePrior) {
     if (e.family) {
@@ -1126,6 +1134,7 @@ function buildNoveltyContext(
     }
     if (e.hookLanguageStyle) recentHookLanguageStyles.add(e.hookLanguageStyle);
     if (e.voiceProfile) recentVoiceProfiles.add(e.voiceProfile);
+    if (e.trendId) recentTrendIds.add(e.trendId);
   }
   for (const e of prev) {
     if (e.family) {
@@ -1282,6 +1291,7 @@ function buildNoveltyContext(
     unusedHookLanguageStylesLast3,
     recentVoiceProfiles,
     unusedVoiceProfilesLast3,
+    recentTrendIds,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -1319,6 +1329,19 @@ type CachedBatchEntry = {
    * envelope with voiceProfile populated).
    */
   voiceProfile?: VoiceProfile;
+  /**
+   * TREND CONTEXT LAYER spec — id of the curated trend item that
+   * was injected into this candidate's caption (when one fired).
+   * Persisted in cache so `buildNoveltyContext` can derive
+   * `recentTrendIds` directly off the envelope without a derivation
+   * step. Same non-breaking JSONB pattern as `voiceProfile` above —
+   * legacy entries written before the trend layer shipped contribute
+   * nothing to the cross-batch -2 trend lever (the penalty stays
+   * quiet until the next regen writes a new envelope with trendId
+   * populated). Tolerantly parsed — unknown / removed / typo'd
+   * trend ids drop to undefined.
+   */
+  trendId?: string;
 };
 
 /**
@@ -1362,6 +1385,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         templateId?: unknown;
         hookLanguageStyle?: unknown;
         voiceProfile?: unknown;
+        trendId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1388,6 +1412,18 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         (VOICE_PROFILES as readonly string[]).includes(vpRaw)
           ? (vpRaw as VoiceProfile)
           : undefined;
+      // TREND CONTEXT LAYER — tolerant parse: any string passes
+      // through (the curator-managed catalog set is open-ended and
+      // can grow / decay between batches without a code deploy, so
+      // we don't whitelist against an enum here). The cross-batch
+      // -2 lever in `selectionPenalty` simply checks Set membership
+      // — an unknown id can never accidentally match a fresh trend
+      // because the live `meta.trendId` writes go through
+      // `TREND_BY_ID`'s known set. Empty strings drop to undefined
+      // so the recentTrendIds Set never holds a "" sentinel.
+      const tidRaw = wrapper.trendId;
+      const trendId: string | undefined =
+        typeof tidRaw === "string" && tidRaw.length > 0 ? tidRaw : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1398,6 +1434,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
             : undefined,
         hookLanguageStyle,
         voiceProfile,
+        trendId,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -1580,6 +1617,15 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // voice levers (matches the hookLanguageStyle / templateId
     // pattern above).
     voiceProfile: c.meta.voiceProfile,
+    // TREND CONTEXT LAYER spec — persist the injected trend id (when
+    // one fired). Same non-breaking pattern as voiceProfile above —
+    // most candidates ship with `trendId === undefined` (the gate
+    // skips ~70% of candidates by design + soft-skip drops any that
+    // failed validateTrendInjection), and undefined flows through to
+    // the cache cleanly. The next regen's `buildNoveltyContext` reads
+    // this field directly off the envelope to populate
+    // `recentTrendIds` for the -2 cross-batch demotion lever.
+    trendId: c.meta.trendId,
   }));
 }
 
@@ -2115,6 +2161,14 @@ export async function runHybridIdeator(
           // regen's recentVoiceProfiles correctly. Mirrors the main
           // toCacheEntries write above.
           voiceProfile: c.meta.voiceProfile,
+          // TREND CONTEXT LAYER spec — same field on the rescue path
+          // so a best-effort empty-after-filter ship still seeds the
+          // next regen's recentTrendIds correctly. Most rescue
+          // entries ship with `trendId === undefined` (the gate
+          // skips ~70% by design + soft-skip drops any that failed
+          // validateTrendInjection); undefined flows through cleanly.
+          // Mirrors the main toCacheEntries write above.
+          trendId: c.meta.trendId,
         }));
       await persistCache(input.creator, rescueEntries);
     }

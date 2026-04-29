@@ -1,0 +1,126 @@
+TREND CONTEXT LAYER (LIGHTWEIGHT)
+
+Goal:
+Prevent ideas from feeling stale by injecting fresh, current context into the existing generator.
+
+This is NOT a new idea generator.
+This is a context enrichment layer.
+
+---
+
+1. TREND DATA SOURCES
+
+Start simple:
+
+A. curated dataset (primary)
+- small JSON file
+- manually updated daily or every few days
+- contains:
+  - trending objects (e.g. matcha, stanley cup, air fryer)
+  - trending behaviors (doomscrolling, “just one episode”, soft quitting)
+  - trending phrases (very short, not full memes)
+
+B. optional scraped keywords (later)
+- TikTok captions
+- Twitter/X trending terms
+- Reddit / Shorts patterns
+
+Do NOT scrape full content yet.
+
+---
+
+2. DATA STRUCTURE
+
+type TrendItem = {
+  id: string
+  type: "object" | "behavior" | "phrase"
+  label: string
+  freshnessScore: number
+}
+
+Keep list small:
+- 20–50 active items max
+
+---
+
+3. INJECTION POINT
+
+During generation:
+
+1. pick archetype
+2. pick scenario
+3. optionally inject trend context
+
+Rules:
+- max 1 trend per idea
+- do not force trend if it doesn’t fit
+- prefer trend only if it improves specificity
+
+---
+
+4. FIT RULE
+
+Only inject trend if:
+
+- it matches the scenario naturally
+- it matches archetype behavior
+
+Example:
+
+BAD:
+“avoiding the sink” → “avoiding the Stanley cup”
+
+GOOD:
+“doomscrolling at night” → fits behavior trend
+
+---
+
+5. WEIGHTING
+
+Trend usage:
+- 20–40% of ideas
+- not all ideas should include trends
+
+---
+
+6. FRESHNESS DECAY
+
+Each trend has freshnessScore:
+
+- decay daily
+- remove when below threshold
+- replace with new items
+
+---
+
+7. QA RULE
+
+Reject if:
+- trend feels forced
+- trend breaks clarity
+- idea becomes meme-dependent
+- idea becomes unrelatable if trend is unknown
+
+---
+
+8. GOAL
+
+Trends should make ideas feel:
+- current
+- specific
+- slightly fresher
+
+NOT:
+- meme-heavy
+- forced
+- niche-dependent
+
+---
+
+SUCCESS
+
+User should feel:
+"This feels current"
+
+Not:
+"This is a TikTok trend generator"

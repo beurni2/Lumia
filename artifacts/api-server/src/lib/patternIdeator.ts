@@ -54,6 +54,12 @@ import {
   type SceneObjectTag,
   type SceneEnvCluster,
 } from "./sceneObjectTaxonomy";
+import {
+  selectTrendForCandidate,
+  applyTrendToCaption,
+  validateTrendInjection,
+  type TrendItem,
+} from "./trendCatalog";
 
 // -----------------------------------------------------------------------------
 // Templates — reusable viral idea SHAPES
@@ -2316,6 +2322,29 @@ export type PatternMeta = {
    * Does NOT affect safety, quality, scenario, or archetype paths.
    */
   voiceProfile?: VoiceProfile;
+  /**
+   * TREND CONTEXT LAYER (lightweight) — id of the curated trend item
+   * injected into this candidate's caption, when one fired. Set ONLY
+   * when (a) the deterministic 30%-bucket gate passed, (b) a trend
+   * exists whose `compatibleFamilies` + `compatibleArchetypeFamilies`
+   * include this candidate's `(scenarioFamily, archetypeFamily)`, and
+   * (c) `applyTrendToCaption` produced a string that survives the
+   * substring validator chain (banned-prefix / generic-filler /
+   * voice-violation). Soft skip otherwise — the candidate STILL
+   * ships, just without the trend tag (no whole-batch rejection).
+   *
+   * Drives the cross-batch -2 novelty penalty in `selectionPenalty`
+   * (immediate-prior batch only) so the same trend doesn't dominate
+   * back-to-back batches. Read by `buildNoveltyContext` directly from
+   * the JSONB cache envelope (first-class field — no derivation).
+   *
+   * Optional EVERYWHERE — legacy entries written before the trend
+   * layer shipped will have `trendId === undefined`, and selectors
+   * MUST treat that as "no contribution to the trend axis" (same
+   * discipline as `archetype` / `voiceProfile` fallback paths).
+   * Resolves to a `TrendItem` via `TREND_BY_ID[trendId]`.
+   */
+  trendId?: string;
 };
 
 /**
@@ -2430,6 +2459,18 @@ function assembleCandidate(
   hookPhrasingIndex: number,
   captionPhrasingIndex: number,
   voiceProfile?: VoiceProfile,
+  // TREND CONTEXT LAYER inputs — both optional so callers that
+  // pre-date the layer (none in-tree, but the signature is exported
+  // surface-area for the QA harness + future fallback wraps) get the
+  // safe default of "no trend selection attempted, no trendId set".
+  // `slotIndex` is the 0-indexed position the candidate would occupy
+  // on success (`out.length`, NOT the Cartesian iter index — keeps
+  // failed-build attempts from burning trend rotation slots, mirrors
+  // the voiceForSlot discipline). `slotSalt` is folded into the
+  // hash so different scenarioSeeds produce different trend
+  // assignments for the same slotIndex.
+  slotIndex: number = 0,
+  slotSalt: number = 0,
 ): { idea: Idea; meta: PatternMeta } | null {
   const picked = pickValidatedLanguagePhrasing(
     hookLanguageStyle,
@@ -2473,6 +2514,75 @@ function assembleCandidate(
   const visualActionPattern: VisualActionPattern =
     VISUAL_ACTION_BY_FAMILY[scenario.family] ?? "face_reaction_deadpan";
 
+  // Resolve scriptType ONCE so the archetype derivation and the
+  // PatternMeta tag agree on which value drives both axes. The
+  // archetype + archetypeFamily fall out deterministically from
+  // scriptType via the IDEA ARCHETYPE spec's resolver; sceneObjectTag
+  // + cluster fall out from scenarioFamily via the SCENE-OBJECT TAG
+  // spec's lookup. All four are best-effort — an unresolved scriptType
+  // (legacy taxonomy gap) leaves archetype undefined, which the
+  // selector treats as "no contribution to archetype axis" (same
+  // discipline as the existing optional fields below).
+  //
+  // HOISTED above the `idea` literal (was below in the pre-trend
+  // shape) so the TREND CONTEXT LAYER selector has access to
+  // `archetypeResolved.family` BEFORE the caption is frozen into the
+  // idea object. Pure refactor — same lookups, same return shape.
+  const scriptType = resolveScriptType(template.id, scenario.family);
+  const archetypeResolved = resolveArchetype(scriptType);
+  const sceneObjectTag = lookupSceneObjectTag(scenario.family) ?? undefined;
+  const sceneEnvCluster: SceneEnvCluster | undefined = sceneObjectTag
+    ? ENV_CLUSTER_BY_TAG[sceneObjectTag]
+    : undefined;
+
+  // TREND CONTEXT LAYER (lightweight overlay, NOT a new generator).
+  // The selector returns null for ~70% of candidates by design (the
+  // 30%-bucket gate inside `selectTrendForCandidate`), and for the
+  // remaining ~30% it returns null again whenever NO catalog item
+  // passes the strict `(scenarioFamily, archetypeFamily)` fit
+  // predicate. So the actual emission rate is ≤30% by construction.
+  // Soft-skip discipline: when the transform fails the validator
+  // chain, we drop `meta.trendId` AND revert to the un-transformed
+  // caption — the candidate STILL ships, just without the trend tag
+  // (no whole-batch rejection — trends are an OPTIONAL overlay per
+  // the spec).
+  const selectedTrend: TrendItem | null = selectTrendForCandidate({
+    slotIndex,
+    scenarioFamily: scenario.family,
+    archetypeFamily: archetypeResolved?.family,
+    salt: slotSalt,
+  });
+  // `isCleanCaption` = the substring half of `validateHook`. We DON'T
+  // call `validateHook` directly because it requires a 3-10 word
+  // count which most captions exceed by design. The substring checks
+  // (banned-prefix / generic-filler / voice-violation) catch the
+  // realistic catalog-drift failure modes — e.g. a phrase trend
+  // whose label composes into a banned hook prefix.
+  const isCleanCaption = (s: string): boolean => {
+    if (lookupBannedHookPrefix(s)) return false;
+    if (containsGenericFiller(s)) return false;
+    if (containsVoiceViolation(s)) return false;
+    return true;
+  };
+  let trendId: string | undefined;
+  let captionAfterTrend = caption;
+  if (selectedTrend) {
+    const transformed = applyTrendToCaption(
+      caption,
+      selectedTrend,
+      scenario.topicNoun,
+    );
+    if (validateTrendInjection(caption, transformed, isCleanCaption)) {
+      captionAfterTrend = transformed;
+      trendId = selectedTrend.id;
+    }
+    // else: validator rejected (no-op substitution OR clean check
+    // failed) → soft skip: keep original caption, leave trendId
+    // undefined. No telemetry emit here — the harness covers the
+    // skip rate, and per-candidate trend skips are intentionally
+    // silent (NOT a defect to surface to logs at request scale).
+  }
+
   const idea: Idea = {
     pattern: template.pattern,
     hook,
@@ -2486,7 +2596,7 @@ function assembleCandidate(
     setting: scenario.setting,
     script: buildScript(template, scenario, hook),
     shotPlan: buildShotPlan(template, scenario),
-    caption,
+    caption: captionAfterTrend,
     templateHint: template.templateHint,
     contentType: "lifestyle",
     videoLengthSec: template.hasContrast ? 18 : 16,
@@ -2499,22 +2609,6 @@ function assembleCandidate(
     whatToShow: buildWhatToShow(scenario, template),
     howToFilm: buildHowToFilm(scenario, visualActionPattern),
   };
-
-  // Resolve scriptType ONCE so the archetype derivation and the
-  // PatternMeta tag agree on which value drives both axes. The
-  // archetype + archetypeFamily fall out deterministically from
-  // scriptType via the IDEA ARCHETYPE spec's resolver; sceneObjectTag
-  // + cluster fall out from scenarioFamily via the SCENE-OBJECT TAG
-  // spec's lookup. All four are best-effort — an unresolved scriptType
-  // (legacy taxonomy gap) leaves archetype undefined, which the
-  // selector treats as "no contribution to archetype axis" (same
-  // discipline as the existing optional fields above).
-  const scriptType = resolveScriptType(template.id, scenario.family);
-  const archetypeResolved = resolveArchetype(scriptType);
-  const sceneObjectTag = lookupSceneObjectTag(scenario.family) ?? undefined;
-  const sceneEnvCluster: SceneEnvCluster | undefined = sceneObjectTag
-    ? ENV_CLUSTER_BY_TAG[sceneObjectTag]
-    : undefined;
 
   return {
     idea,
@@ -2543,6 +2637,12 @@ function assembleCandidate(
       sceneEnvCluster,
       hookLanguageStyle,
       voiceProfile,
+      // `trendId` is undefined when no trend was selected (~70% of
+      // candidates by gate design + the strict-fit rejections), AND
+      // when the validator soft-skipped a transformation. Readers
+      // MUST treat absent as "no contribution to the trend axis"
+      // (same discipline as `voiceProfile`).
+      trendId,
     },
   };
 }
@@ -2770,7 +2870,6 @@ export function generatePatternCandidates(
     // 5-arg form was originally going to model — collapsed into
     // the 2-arg signature now that order-encodes-priority.
     const voiceForSlot = pickVoiceForSlot(out.length, allowedVoices);
-    void scenarioSeed;
     void slotsAlreadyVoiced;
     void voiceSelection.primary;
     // assembleCandidate returns null when NO phrasing in the chosen
@@ -2779,6 +2878,13 @@ export function generatePatternCandidates(
     // or every variant matches a banned-prefix). Skip the triple
     // silently — the weave will offer many more before hitting
     // maxIter (T·S·H = 6·25·12 = 1800 triples).
+    //
+    // TREND CONTEXT LAYER inputs: `slotIndex = out.length` (the slot
+    // the candidate would occupy on success — same discipline as
+    // `voiceForSlot` so failed-build attempts don't burn trend
+    // rotation slots) and `slotSalt = scenarioSeed` (a stable fold
+    // of the (template, scenario, hls) triple, so cache replays
+    // produce the same trend assignment for the same input).
     const built = assembleCandidate(
       t,
       s,
@@ -2787,6 +2893,8 @@ export function generatePatternCandidates(
       i + seedSalt,
       (i * 3 + seedSalt) % 7,
       voiceForSlot,
+      out.length,
+      scenarioSeed,
     );
     if (built !== null) {
       out.push(built);

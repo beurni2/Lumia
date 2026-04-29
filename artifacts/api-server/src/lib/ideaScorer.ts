@@ -167,6 +167,18 @@ export type CandidateMeta = PatternMeta | {
    * voiceProfile axis" (same discipline as `hookLanguageStyle`).
    */
   voiceProfile?: VoiceProfile;
+  /**
+   * TREND CONTEXT LAYER axis. Pattern-variation candidates set this
+   * when the deterministic 30%-bucket gate fires, a trend exists
+   * whose compatibility tags include the candidate's
+   * `(scenarioFamily, archetypeFamily)`, AND the transformed caption
+   * survives the substring validator chain. Llama / Claude fallback
+   * wraps + legacy cache entries omit — selector treats absent as
+   * "no contribution to the trend axis" (same discipline as
+   * `voiceProfile`). Drives the cross-batch -2 penalty in
+   * `selectionPenalty` (immediate-prior batch only).
+   */
+  trendId?: string;
 };
 
 // -----------------------------------------------------------------------------
@@ -784,6 +796,28 @@ export type NoveltyContext = {
    * shippable alternative exists.
    */
   voiceStrongPreference?: boolean;
+  /**
+   * TREND CONTEXT LAYER spec — immediate-prior-batch trend ids
+   * (curator-managed string identifiers from `TREND_CATALOG`). Used
+   * by `selectionPenalty` for the -2 cross-batch demotion when this
+   * candidate's `meta.trendId` matches one shipped in the previous
+   * batch (keeps the same trend from dominating back-to-back
+   * batches).
+   *
+   * Single-tier ONLY (no frequent-last-3 stack and no unused-last-3
+   * boost) because trends are an OPTIONAL overlay, NOT a forced
+   * rotation axis — emission rate is ≤30% by gate design and we
+   * never penalize the absence of a trend (legacy / Llama / Claude
+   * fallback entries with `trendId === undefined` skip the penalty
+   * silently, same discipline as `voiceProfile`).
+   *
+   * Read directly off the cache entry (first-class JSONB field) by
+   * `buildNoveltyContext`. Legacy entries written before the trend
+   * layer shipped contribute nothing to this set, which is the
+   * right behavior — an absent tag should NOT show up here or the
+   * -2 penalty would fire against innocent fresh trends.
+   */
+  recentTrendIds?: ReadonlySet<string>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -1237,6 +1271,26 @@ export function selectionPenalty(
   const cvpCross = metaVoiceProfile(c.meta);
   if (cvpCross) {
     if (ctx.recentVoiceProfiles?.has(cvpCross) ?? false) p -= 2;
+  }
+  // TREND CONTEXT LAYER spec — cross-batch trend demotion. -2 when
+  // this candidate's trendId appeared in the immediate-prior batch.
+  // Single-tier ONLY (no frequent-last-3 stack and no unused-last-3
+  // boost) because trends are an OPTIONAL overlay, not a forced
+  // rotation axis: the ~30% gate already keeps emission low and the
+  // catalog is intentionally small (~30 items) — over-penalizing
+  // would push the curated set toward exhaustion. Sized at -2 to
+  // mirror the voice-profile cross-batch lever (also -2, also
+  // single-tier) — strong enough to break ties when an alternative
+  // with a fresh trend exists, soft enough that a high-quality
+  // pattern with a repeated trend can still win when nothing else
+  // shippable carries a different one. Skips when the candidate has
+  // no trendId — same discipline as voiceProfile and templateId,
+  // and the right behavior since absence is the ~70%-by-design norm
+  // (gate skip + soft-skip on failed validation both leave trendId
+  // undefined). The penalty NEVER fires against an absent tag.
+  const ctidCross = c.meta.trendId;
+  if (ctidCross) {
+    if (ctx.recentTrendIds?.has(ctidCross) ?? false) p -= 2;
   }
   // PART 4 — banned-phrasing penalty. -5 when the rendered hook
   // matches any banned-prefix regex (the catalog never produces
