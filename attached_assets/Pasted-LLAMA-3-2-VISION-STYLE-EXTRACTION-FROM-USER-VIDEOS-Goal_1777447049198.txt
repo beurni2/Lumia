@@ -1,0 +1,109 @@
+LLAMA 3.2 VISION — STYLE EXTRACTION FROM USER VIDEOS
+
+Goal:
+Use uploaded user videos to strengthen personalization.
+
+Do NOT use Llama 3.2 Vision to generate ideas.
+Do NOT use it to write hooks.
+Do NOT use it to replace the ideator.
+
+Use it only to extract visual/style signals from uploaded videos.
+
+---
+
+INPUT:
+User-uploaded video or sampled frames from video.
+
+OUTPUT JSON:
+
+{
+  "contentType": "talking_head" | "reaction" | "pov" | "mini_story" | "lifestyle" | "unknown",
+  "setting": "bedroom" | "kitchen" | "car" | "bathroom_mirror" | "desk" | "outside" | "unknown",
+  "energyLevel": "low" | "medium" | "high",
+  "deliveryStyle": "deadpan" | "awkward" | "expressive" | "confident" | "chaotic" | "unknown",
+  "framing": "close_up_face" | "mirror" | "desk_pov" | "handheld" | "wide_static" | "unknown",
+  "reactionType": "freeze" | "slow_blink" | "smile" | "panic" | "eye_contact" | "none" | "unknown",
+  "talking": true | false,
+  "visibleAction": string,
+  "privacyRisk": true | false,
+  "privacyRiskReason": string | null,
+  "styleHints": {
+    "preferredFormats": [],
+    "preferredSettings": [],
+    "preferredEnergy": [],
+    "preferredFraming": [],
+    "preferredReactionTypes": []
+  }
+}
+
+---
+
+RULES:
+
+1. Be conservative.
+If unsure, return "unknown".
+
+2. Do not infer private identity traits.
+
+3. Flag privacy risks:
+- visible messages
+- bank apps
+- medical info
+- IDs
+- addresses
+- license plates
+- salary/paystub
+- passwords
+- private documents
+
+4. Do not store raw video analysis as public text.
+Use it only to update style/taste signals.
+
+5. Aggregate across videos.
+Do not overreact to one upload.
+
+---
+
+PROFILE UPDATE LOGIC:
+
+After 3+ uploaded videos:
+- count repeated style signals
+- update derivedStyleHints
+- lightly bias future ideas
+
+Example:
+If 2/3 videos are close-up face reactions:
+→ increase reaction format weight
+
+If 2/3 videos are bedroom/couch:
+→ increase home/bedroom setting preference
+
+If 2/3 videos are low-energy deadpan:
+→ increase dry/subtle tone
+
+If 2/3 videos avoid talking:
+→ prefer visual-only ideas
+
+---
+
+IMPORTANT:
+
+Vision-derived style should guide:
+- whatToFilm
+- howToFilm
+- setting preference
+- delivery style
+- idea format
+
+Vision-derived style should NOT override:
+- user explicit answers
+- yes/no feedback
+- export behavior
+- quality filters
+- safety rules
+
+---
+
+SUCCESS:
+
+After uploads, generated ideas should feel more aligned with how the user actually films.
