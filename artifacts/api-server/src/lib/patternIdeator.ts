@@ -499,7 +499,12 @@ function toneInflect(hook: string, tone: DerivedTone): string {
 // -----------------------------------------------------------------------------
 
 function pickPhrasing<T>(arr: T[], seed: number): T {
-  return arr[seed % arr.length];
+  // Defensive double-modulo: collapse any (possibly negative) seed into
+  // a valid array index. Pairs with the unsigned-coerced seedSalt in
+  // generatePatternCandidates so `arr[idx]` can never be undefined.
+  const n = arr.length;
+  const idx = ((seed % n) + n) % n;
+  return arr[idx]!;
 }
 
 function buildScript(template: Template, scenario: Scenario, hook: string): string {
@@ -685,6 +690,14 @@ export type GeneratePatternCandidatesInput = {
   recentScenarios?: string[];
   /** When true, shift the deterministic seed so we don't repeat yesterday. */
   regenerate?: boolean;
+  /**
+   * Caller-supplied cursor that varies the (template, scenario, style)
+   * weave starting offsets. When `regenerate=true` the orchestrator
+   * passes a hash of the previous batch so each regenerate produces
+   * a structurally different candidate ordering. Falls back to the
+   * legacy constant when `regenerate=true` and no salt is supplied.
+   */
+  regenerateSalt?: number;
 };
 
 export type PatternCandidate = { idea: Idea; meta: PatternMeta };
@@ -737,8 +750,20 @@ export function generatePatternCandidates(
   const out: PatternCandidate[] = [];
   // Salt the seed when regenerating so the (template, scenario, style)
   // weave shifts deterministically — same inputs never produce the same
-  // 12 candidates twice in a row.
-  const seedSalt = input.regenerate ? 7 : 0;
+  // 12 candidates twice in a row. Caller-supplied salt (typically a
+  // hash of the previous batch + a millisecond cursor) gives every
+  // regenerate call a different starting offset.
+  // Unsigned-coerce the salt up-front so every downstream modulo /
+  // index expression — including `pickPhrasing(arr, i + seedSalt)` and
+  // `(i * 3 + seedSalt) % 7` — is guaranteed non-negative even if a
+  // future caller hands us a signed-int salt. `>>> 0` collapses any
+  // bit pattern into a uint32 in [0, 2^32-1].
+  const rawSalt = input.regenerate
+    ? typeof input.regenerateSalt === "number"
+      ? input.regenerateSalt
+      : 7
+    : 0;
+  const seedSalt = (rawSalt >>> 0);
 
   // Cartesian-diagonal weave: each axis (template, scenario, style)
   // advances every iteration at its own rate. With T=6, S=20, H=5 and
@@ -754,11 +779,21 @@ export function generatePatternCandidates(
   const S = orderedScenarios.length;
   const H = styleOrder.length;
   const maxIter = T * S * H;
+  // Decorrelated per-axis offsets: each axis advances every iteration
+  // AND starts from a different rotation derived from the salt. This
+  // is what gives regenerate calls a structurally different pool, not
+  // just a "same set, shifted by N" pool.
+  // `(x % N + N) % N` guarantees a non-negative offset even if the
+  // caller-supplied salt is negative — defensive against any future
+  // signed-int regression in the salt computation.
+  const tOff = ((seedSalt % T) + T) % T;
+  const sOff = ((seedSalt * 3) % S + S) % S;
+  const hOff = ((seedSalt * 7) % H + H) % H;
   let i = 0;
   while (out.length < target && i < maxIter) {
-    const t = orderedTemplates[(i + seedSalt) % T];
-    const s = orderedScenarios[i % S];
-    const hs = styleOrder[i % H];
+    const t = orderedTemplates[(i + tOff) % T];
+    const s = orderedScenarios[(i + sOff) % S];
+    const hs = styleOrder[(i + hOff) % H];
     const key = `${t.id}|${s.family}|${hs}`;
     i++;
     if (seen.has(key)) continue;
