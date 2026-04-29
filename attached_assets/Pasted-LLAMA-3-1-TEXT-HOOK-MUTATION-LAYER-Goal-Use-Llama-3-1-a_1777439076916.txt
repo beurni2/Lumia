@@ -1,0 +1,334 @@
+LLAMA 3.1 TEXT — HOOK MUTATION LAYER
+
+Goal:
+Use Llama 3.1 as a cheap text mutation layer to make strong pattern ideas feel more human, less templated, and less repetitive.
+
+Do NOT use Llama as the main ideator yet.
+Do NOT let Llama generate whole new idea batches.
+Do NOT replace the pattern engine.
+
+Pattern engine = structure + safety
+Scorer = quality control
+Llama = human phrasing / originality
+
+---
+
+WHEN TO TRIGGER LLAMA
+
+Only run Llama when one of these is true:
+
+1. Batch feels templated:
+- 2+ hooks share similar opener style
+- repeated “the way I…”
+- repeated “why did I…”
+- repeated “I really…”
+
+2. Candidate similarity is high:
+- same structure + similar scenario family appears in recent 5-batch history
+
+3. Regeneration count > 1:
+- user keeps asking for new ideas
+
+4. Local pattern pool has good ideas but weak phrasing:
+- qualityScore >= 8
+- but hook feels predictable / template-like
+
+Do NOT call Llama for every request by default.
+
+---
+
+INPUT TO LLAMA
+
+Send only 3–5 high-quality candidate ideas.
+
+Do NOT send full memory tables.
+Do NOT send long prompts.
+Do NOT send private user data.
+
+Input shape:
+
+{
+  "creatorTone": "dry/subtle/self-aware",
+  "avoidOpeners": ["the way I", "why did I"],
+  "candidates": [
+    {
+      "id": "candidate_1",
+      "hook": "the way I avoid the sink like a sport",
+      "scene": "kitchen sink full of dishes",
+      "action": "looks at dishes, turns off light, leaves",
+      "emotion": "denial",
+      "format": "mini_story",
+      "caption": "the gap between morning me and night me is unwell"
+    }
+  ]
+}
+
+---
+
+LLAMA PROMPT — SHORT + CHEAP
+
+Use this prompt:
+
+You rewrite short-form video idea hooks.
+
+Rewrite each hook so it feels more human, specific, and less templated.
+
+Rules:
+- Keep the same scene.
+- Keep the same action.
+- Keep the same emotion.
+- Do not invent new props, people, locations, private data, or story events.
+- Do not make it motivational or advice-like.
+- Do not use generic POV phrasing.
+- Avoid these openers: {{avoidOpeners}}.
+- Make it sound like a real creator texted it to themselves.
+- Keep it under 10 words if possible.
+- Return JSON only.
+
+For each candidate, return:
+{
+  "id": "...",
+  "hookOptions": ["...", "...", "..."],
+  "captionOptions": ["...", "..."]
+}
+
+Creator tone:
+{{creatorTone}}
+
+Candidates:
+{{candidatesJson}}
+
+---
+
+REWRITE CONSTRAINTS
+
+Reject any Llama output if:
+
+1. It changes the scene
+Example:
+sink → office meeting
+gym bag → party invite
+
+2. It adds private/sensitive content
+- DMs
+- bank apps
+- medical
+- salary
+- addresses
+- IDs
+- passwords
+
+3. It becomes abstract
+Bad:
+“learning to accept my flaws”
+
+4. It becomes advice
+Bad:
+“stop avoiding your responsibilities”
+
+5. It becomes too long
+Hard max:
+- hook <= 12 words
+Preferred:
+- hook <= 10 words
+
+6. It uses banned weak openers:
+- “POV: you…”
+- “when you…”
+- “watching…”
+- “reading…”
+
+7. It loses tension
+Every hook must imply:
+- contradiction
+- denial
+- regret
+- awkwardness
+- panic
+- embarrassment
+- avoidance
+
+8. It repeats the original opener too closely
+
+9. It outputs incomplete grammar or dangling fragments.
+
+---
+
+EXAMPLES
+
+Input:
+"the way I avoid the sink like a sport"
+
+Good outputs:
+- "my sink and I are not speaking"
+- "the dishes started looking back at me"
+- "I turned the light off like that helped"
+
+Bad outputs:
+- "POV: you hate dishes"
+- "how to clean your kitchen"
+- "the way I avoid the sink"
+
+---
+
+Input:
+"why did I expect anything from the parked car"
+
+Good outputs:
+- "the car did not fix my life"
+- "sitting there like the car has answers"
+- "my parked car era is getting serious"
+
+Bad outputs:
+- "when you sit in your car"
+- "use your car time wisely"
+- "I went for a drive with friends"
+
+---
+
+Input:
+"I really planned to handle the coffee"
+
+Good outputs:
+- "the coffee machine watched me give up"
+- "I betrayed the French press again"
+- "my homemade coffee era lasted one morning"
+
+Bad outputs:
+- "how to make coffee at home"
+- "POV: you like coffee"
+- "I planned to drink coffee"
+
+---
+
+INTEGRATION PATTERN
+
+Existing flow should become:
+
+1. Pattern engine generates candidates
+2. Scorer filters qualityScore >= 8
+3. Diversity selector builds tentative batch
+4. If tentative batch feels templated:
+   - call Llama mutation on top 3–5 candidates
+5. Validate Llama outputs with rewrite constraints
+6. Replace hook/caption only if mutated version scores higher
+7. Re-run scorer
+8. Merge mutated + original candidates
+9. Return best 3
+
+Important:
+Never replace a good original with a worse Llama rewrite.
+
+---
+
+PSEUDOCODE
+
+async function maybeMutateWithLlama(candidates, context) {
+  const shouldMutate =
+    context.regenerateCount > 1 ||
+    hasRepeatedHookOpeners(candidates) ||
+    hasHighSimilarityToRecentHistory(candidates) ||
+    hasTemplatedPhrasing(candidates);
+
+  if (!shouldMutate) return candidates;
+
+  const topCandidates = candidates
+    .filter(c => c.qualityScore >= 8)
+    .slice(0, 5);
+
+  const llamaResult = await callLlamaHookMutator({
+    creatorTone: context.creatorTone,
+    avoidOpeners: context.recentHookOpeners,
+    candidates: topCandidates.map(toMinimalMutationInput)
+  });
+
+  const mutated = [];
+
+  for (const option of llamaResult) {
+    const original = topCandidates.find(c => c.id === option.id);
+    if (!original) continue;
+
+    for (const hook of option.hookOptions) {
+      if (!passesHookMutationRules(hook, original)) continue;
+
+      const candidate = {
+        ...original,
+        hook,
+        caption: bestValidCaption(option.captionOptions, original.caption),
+        source: "llama_hook_mutation"
+      };
+
+      const rescored = scoreIdea(candidate);
+
+      if (rescored.qualityScore > original.qualityScore ||
+          rescored.noveltyScore > original.noveltyScore) {
+        mutated.push(rescored);
+      }
+    }
+  }
+
+  return mergeDedupedCandidates(candidates, mutated);
+}
+
+---
+
+VALIDATION FUNCTIONS
+
+Add:
+
+passesHookMutationRules(hook, original)
+- hook is complete sentence/phrase
+- word count <= 12
+- no banned opener
+- no sensitive/private words
+- does not introduce new setting
+- preserves core object/topic
+- has tension
+
+hasTemplatedPhrasing(candidates)
+- repeated opener
+- repeated phrase skeleton
+- repeated “the way I… like a sport”
+- repeated “I really planned to…”
+- repeated “why did I expect…”
+
+hasHighSimilarityToRecentHistory(candidates)
+- compare hook opener
+- scenarioFamily
+- topicLane
+- key object
+- structure
+
+---
+
+COST CONTROL
+
+1. Llama call max once per generation request.
+2. Only send 3–5 candidates.
+3. Max 3 hook options per candidate.
+4. Max 2 caption options per candidate.
+5. Timeout quickly.
+6. If Llama fails, return original pattern candidates.
+7. Log mutation usage.
+
+Log:
+- llama_mutation_used
+- candidates_sent
+- valid_mutations
+- mutations_selected
+- rejected_reason_counts
+
+---
+
+SUCCESS CRITERION
+
+After mutation, outputs should feel less like:
+"same template with swapped nouns"
+
+And more like:
+"a human creator phrased this."
+
+Cost remains low because:
+- pattern engine still does most work
+- Llama only mutates strong candidates
+- Claude remains rare emergency fallback
