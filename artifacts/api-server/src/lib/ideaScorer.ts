@@ -23,8 +23,10 @@ import {
   HOOK_PHRASINGS_BY_STYLE,
   lookupHookOpener,
   validateHook,
+  type Energy,
   type HookOpener,
   type PatternMeta,
+  type ScriptType,
   type Setting,
   type TopicLane,
   type VisualActionPattern,
@@ -118,6 +120,8 @@ export type CandidateMeta = PatternMeta | {
   visualActionPattern?: VisualActionPattern;
   topicLane?: TopicLane;
   hookOpener?: HookOpener;
+  scriptType?: ScriptType;
+  energy?: Energy;
 };
 
 // -----------------------------------------------------------------------------
@@ -557,19 +561,34 @@ export function filterAndRescore(
 // hybrid orchestrator's selector. Two ideas with the same quality
 // score now get separated by:
 //
-//   1. Novelty bonus (0–5) — per-axis 0/1 across hookStyle, scenario,
-//      structure, visualAction, topic. Computed against BOTH the
-//      already-picked batch AND the recent context (previous batch).
-//      ONLY applied when qualityScore >= HIGH_QUALITY_SCORE (8) so
-//      novelty cannot rescue weak ideas.
+//   1. Novelty bonus (0–8 plus a cross-batch +3 boost) — per-axis
+//      0/1 across hookStyle, scenario, structure, visualAction,
+//      topic, hookOpener, setting, scriptType (each fresh against
+//      BOTH the already-picked batch AND the recent context). ON
+//      TOP of that, an additional +3 fires when scriptType is in
+//      `ctx.unusedScriptTypesLast3` — the spec's headline "rotate
+//      the catalog" lever. Maximum bonus is 11 (fresh on all 8
+//      axes plus catalog-cold scriptType). ONLY applied when
+//      qualityScore >= HIGH_QUALITY_SCORE (8) so novelty cannot
+//      rescue weak ideas.
 //
-//   2. Selection penalty (negative) — applied at pick time against
-//      the already-picked batch only:
+//   2. Selection penalty (negative) — applied at pick time. The
+//      already-picked batch contributes within-batch demotions;
+//      the optional `ctx` adds cross-batch tiered demotions on
+//      the scriptType axis (immediate-prior + frequent-in-3).
+//      Within-batch:
 //         -2 same hookStyle
 //         -3 same scenarioFamily
 //         -1 same structure
 //         -2 same topicLane
 //         -2 same visualActionPattern
+//         -2 same hookOpener
+//         -2 same setting
+//         -2 same scriptType
+//      Cross-batch (vs ctx):
+//         -3 scriptType ∈ recentScriptTypes        (immediate-prior batch)
+//         -2 scriptType ∈ frequentScriptTypesLast3 (≥2 of last 3, stacks
+//                                                   on top of the -3)
 //      Penalties stack across axes but DO NOT stack across multiple
 //      already-picked candidates with the same axis value (a single
 //      match is enough — the dimension is already saturated).
@@ -601,6 +620,30 @@ export type NoveltyContext = {
    * from all being in the kitchen.
    */
   recentSettings?: ReadonlySet<Setting>;
+  /**
+   * Cross-batch demotion for scriptType — derived from cached entries
+   * via `lookupScriptType(family, templateId)`. Captures every script
+   * type the orchestrator hands in via `prev` (currently the flattened
+   * recent-history window). Used by `scoreNovelty` (binary fresh dim)
+   * and `selectionPenalty` (-3 demotion at pick time).
+   */
+  recentScriptTypes?: ReadonlySet<ScriptType>;
+  /**
+   * ScriptTypes appearing in ≥2 of the last 3 batches. Computed
+   * separately from `recentScriptTypes` so the cross-batch tiered
+   * history can layer an additional `-2` on top of the per-batch
+   * `-3` (a scriptType that's frequent across 3 batches gets both
+   * penalties stacked = -5 total). Empty / undefined when the
+   * orchestrator passes fewer than the window's worth of batches.
+   */
+  frequentScriptTypesLast3?: ReadonlySet<ScriptType>;
+  /**
+   * ScriptTypes that have NOT appeared in any of the last 3 batches.
+   * Computed as `SCRIPT_TYPES − union(last 3 batches' scriptTypes)`.
+   * Used by `scoreNovelty` for the spec's headline "rotate the
+   * catalog" `+3` boost. Empty when no last-3 history is supplied.
+   */
+  unusedScriptTypesLast3?: ReadonlySet<ScriptType>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -630,12 +673,21 @@ function metaHookOpener(c: {
   return c.meta.hookOpener ?? lookupHookOpener(c.idea.hook) ?? undefined;
 }
 
+function metaScriptType(m: CandidateMeta): ScriptType | undefined {
+  return m.scriptType;
+}
+
 /**
- * 0–7 novelty score across hookStyle / scenario / structure /
- * visualAction / topic / hookOpener / setting. Each dimension
- * contributes 0 or 1 — 0 if the candidate's value matches anything
- * in the already-picked batch OR in the recent context, 1 if fresh
- * on both fronts.
+ * Novelty score: 0-8 across hookStyle / scenario / structure /
+ * visualAction / topic / hookOpener / setting / scriptType (each
+ * 0/1, fresh on BOTH already-picked batch AND recent context),
+ * PLUS an additional +3 cross-batch "rotate the catalog" boost
+ * when `scriptType` is in `ctx.unusedScriptTypesLast3`. Maximum
+ * return value is 11 (fresh on every axis + catalog-cold
+ * scriptType). The +3 is the spec's primary lever for breaking
+ * the "same mental loop" failure mode — ordinary per-axis fresh
+ * signals are weak enough that the qualityScore tie-break can
+ * easily pick three same-shape narratives.
  *
  * Caller is responsible for the `qualityScore >= 8` gate; this
  * function does not enforce it.
@@ -652,6 +704,7 @@ export function scoreNovelty(
   const topics = new Set<TopicLane>();
   const openers = new Set<HookOpener>();
   const settings = new Set<Setting>();
+  const scripts = new Set<ScriptType>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -663,6 +716,8 @@ export function scoreNovelty(
     const op = metaHookOpener(b);
     if (op) openers.add(op);
     settings.add(b.idea.setting as Setting);
+    const sct = metaScriptType(b.meta);
+    if (sct) scripts.add(sct);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -706,6 +761,25 @@ export function scoreNovelty(
   const st = c.idea.setting as Setting;
   const stFresh =
     !settings.has(st) && !(ctx.recentSettings?.has(st) ?? false);
+  // H. ScriptType novelty — fresh narrative shape on BOTH axes. The
+  //    spec's headline lever: prevents 3 ideas from reading as the
+  //    same mental loop even when family/setting/style/topic differ
+  //    (e.g. 3 distinct loop_behavior picks: sleep + fridge + post).
+  const sct = metaScriptType(c.meta);
+  const sctFresh =
+    !!sct &&
+    !scripts.has(sct) &&
+    !(ctx.recentScriptTypes?.has(sct) ?? false);
+
+  // I. Unused-in-last-3-batches "rotate the catalog" boost — large
+  //    +3 when this scriptType has not appeared in any of the last
+  //    3 batches. Spec's headline lever for breaking the "same
+  //    mental loop" failure mode: makes catalog rotation a real,
+  //    not theoretical, force at pick time. Stacks on top of the
+  //    per-axis fresh signals so a fresh-on-every-axis pick of a
+  //    catalog-cold scriptType gets +8 + 3 = +11 over a clone pick.
+  const unusedBoost =
+    sct && (ctx.unusedScriptTypesLast3?.has(sct) ?? false) ? 3 : 0;
 
   return (
     (hookFresh ? 1 : 0) +
@@ -714,60 +788,91 @@ export function scoreNovelty(
     (vaFresh ? 1 : 0) +
     (tlFresh ? 1 : 0) +
     (opFresh ? 1 : 0) +
-    (stFresh ? 1 : 0)
+    (stFresh ? 1 : 0) +
+    (sctFresh ? 1 : 0) +
+    unusedBoost
   );
 }
 
 /**
- * Negative penalty applied to a candidate at pick time, against the
- * already-picked batch. Penalties saturate per-axis (one match is
- * enough — multiple picks sharing the same axis don't compound).
+ * Negative penalty applied to a candidate at pick time. The
+ * already-picked batch contributes within-batch demotions; the
+ * optional `ctx` adds cross-batch tiered demotions on the scriptType
+ * axis. Penalties saturate per-axis (one match is enough — multiple
+ * picks sharing the same axis don't compound).
  *
+ * Within-batch (vs `batchSoFar`):
  *   same hookStyle              → -2
  *   same scenarioFamily         → -3
  *   same structure              → -1
  *   same topicLane              → -2
  *   same visualActionPattern    → -2
- *   same hookOpener             → -2  (new — opener feels like the same hook)
- *   same setting                → -2  (new — same physical location)
+ *   same hookOpener             → -2  (opener feels like the same hook)
+ *   same setting                → -2  (same physical location)
+ *   same scriptType             → -2  (same narrative shape)
  *
- * Returns 0 when batch is empty.
+ * Cross-batch (vs `ctx`):
+ *   scriptType ∈ recentScriptTypes        → -3  (immediate-prior batch)
+ *   scriptType ∈ frequentScriptTypesLast3 → -2  (≥2 of last 3 batches;
+ *                                                stacks with the -3)
+ *
+ * Returns 0 when batch is empty AND ctx contributes no penalty.
  */
 export function selectionPenalty(
   c: { idea: Idea; meta: CandidateMeta },
   batchSoFar: ReadonlyArray<{ idea: Idea; meta: CandidateMeta }>,
+  ctx: NoveltyContext = EMPTY_NOVELTY_CONTEXT,
 ): number {
-  if (batchSoFar.length === 0) return 0;
   let p = 0;
-  const styles = new Set<string>();
-  const families = new Set<string>();
-  const structures = new Set<string>();
-  const visuals = new Set<VisualActionPattern>();
-  const topics = new Set<TopicLane>();
-  const openers = new Set<HookOpener>();
-  const settings = new Set<Setting>();
-  for (const b of batchSoFar) {
-    styles.add(b.idea.hookStyle);
-    if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
-    structures.add(b.idea.structure);
-    const v = metaVisualAction(b.meta);
-    if (v) visuals.add(v);
-    const t = metaTopicLane(b.meta);
-    if (t) topics.add(t);
-    const op = metaHookOpener(b);
-    if (op) openers.add(op);
-    settings.add(b.idea.setting as Setting);
+  // Within-batch demotion: build per-axis sets from batchSoFar and
+  // saturate per-axis (one match is enough). Skipping this whole
+  // block when batchSoFar is empty preserves the previous
+  // early-return-zero behavior for that path.
+  if (batchSoFar.length > 0) {
+    const styles = new Set<string>();
+    const families = new Set<string>();
+    const structures = new Set<string>();
+    const visuals = new Set<VisualActionPattern>();
+    const topics = new Set<TopicLane>();
+    const openers = new Set<HookOpener>();
+    const settings = new Set<Setting>();
+    const scripts = new Set<ScriptType>();
+    for (const b of batchSoFar) {
+      styles.add(b.idea.hookStyle);
+      if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
+      structures.add(b.idea.structure);
+      const v = metaVisualAction(b.meta);
+      if (v) visuals.add(v);
+      const t = metaTopicLane(b.meta);
+      if (t) topics.add(t);
+      const op = metaHookOpener(b);
+      if (op) openers.add(op);
+      settings.add(b.idea.setting as Setting);
+      const sct = metaScriptType(b.meta);
+      if (sct) scripts.add(sct);
+    }
+    if (styles.has(c.idea.hookStyle)) p -= 2;
+    if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
+    if (structures.has(c.idea.structure)) p -= 1;
+    const cv = metaVisualAction(c.meta);
+    if (cv && visuals.has(cv)) p -= 2;
+    const ct = metaTopicLane(c.meta);
+    if (ct && topics.has(ct)) p -= 2;
+    const cop = metaHookOpener(c);
+    if (cop && openers.has(cop)) p -= 2;
+    const cst = c.idea.setting as Setting;
+    if (settings.has(cst)) p -= 2;
+    const csct = metaScriptType(c.meta);
+    if (csct && scripts.has(csct)) p -= 2;
   }
-  if (styles.has(c.idea.hookStyle)) p -= 2;
-  if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
-  if (structures.has(c.idea.structure)) p -= 1;
-  const cv = metaVisualAction(c.meta);
-  if (cv && visuals.has(cv)) p -= 2;
-  const ct = metaTopicLane(c.meta);
-  if (ct && topics.has(ct)) p -= 2;
-  const cop = metaHookOpener(c);
-  if (cop && openers.has(cop)) p -= 2;
-  const cst = c.idea.setting as Setting;
-  if (settings.has(cst)) p -= 2;
+  // Cross-batch tiered scriptType demotion (in addition to the
+  // within-batch -2). The two tiers stack: a scriptType that's
+  // both in the immediate-prior batch AND frequent across the last
+  // 3 takes -3 + -2 = -5 in addition to any within-batch hit.
+  const csctCross = metaScriptType(c.meta);
+  if (csctCross) {
+    if (ctx.recentScriptTypes?.has(csctCross) ?? false) p -= 3;
+    if (ctx.frequentScriptTypesLast3?.has(csctCross) ?? false) p -= 2;
+  }
   return p;
 }

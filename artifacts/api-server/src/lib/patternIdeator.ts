@@ -679,6 +679,254 @@ export function lookupTopicLane(
 }
 
 // -----------------------------------------------------------------------------
+// ScriptType taxonomy — narrative-shape diversity axis
+// -----------------------------------------------------------------------------
+// 37-value enum capturing the NARRATIVE PSYCHOLOGY of the moment (what
+// the video is "about" emotionally / behaviorally), distinct from the
+// physical setting, visual action, or hook style. Two ideas can share
+// scenarioFamily but differ in scriptType when the template reshapes
+// the beat (e.g. `gym` scenario assembled with `expectation_vs_reality`
+// template reads as `realization`, with `avoidance` template reads as
+// `avoidance`). Used by batch guards (max 2 same per batch, reject all
+// in same cluster) and novelty scorer (within-batch + cross-batch
+// history, with tiered penalties + boosts).
+
+export type ScriptType =
+  // CORE INTERNAL (8)
+  | "avoidance"
+  | "realization"
+  | "false_start"
+  | "overcommit"
+  | "internal_vs_external"
+  | "delayed_consequence"
+  | "denial"
+  | "rationalization"
+  // SOCIAL (7)
+  | "social_micro_fail"
+  | "social_overthinking"
+  | "late_reply_regret"
+  | "conversation_replay"
+  | "fake_confidence"
+  | "polite_lie"
+  | "unexpected_response"
+  // ACTION-BASED (5)
+  | "interrupted_action"
+  | "loop_behavior"
+  | "decision_flip"
+  | "slow_escalation"
+  | "small_mistake_big_reaction"
+  // EMOTIONAL (5)
+  | "quiet_panic"
+  | "suppressed_reaction"
+  | "delayed_emotion"
+  | "overreaction"
+  | "emotional_disconnect"
+  // BEHAVIORAL (5)
+  | "habit_break_fail"
+  | "just_one_more_spiral"
+  | "self_negotiation"
+  | "productivity_illusion"
+  | "time_blindness"
+  // ABSURD / CREATIVE (7)
+  | "object_personification"
+  | "dramatic_narration"
+  | "fake_documentary"
+  | "internal_monologue"
+  | "alternate_reality"
+  | "exaggeration"
+  | "silent_story";
+
+export const SCRIPT_TYPES: readonly ScriptType[] = [
+  "avoidance", "realization", "false_start", "overcommit",
+  "internal_vs_external", "delayed_consequence", "denial", "rationalization",
+  "social_micro_fail", "social_overthinking", "late_reply_regret",
+  "conversation_replay", "fake_confidence", "polite_lie", "unexpected_response",
+  "interrupted_action", "loop_behavior", "decision_flip", "slow_escalation",
+  "small_mistake_big_reaction",
+  "quiet_panic", "suppressed_reaction", "delayed_emotion", "overreaction",
+  "emotional_disconnect",
+  "habit_break_fail", "just_one_more_spiral", "self_negotiation",
+  "productivity_illusion", "time_blindness",
+  "object_personification", "dramatic_narration", "fake_documentary",
+  "internal_monologue", "alternate_reality", "exaggeration", "silent_story",
+] as const;
+
+/**
+ * Narrative clusters used by `batchGuardsPass`'s "reject all in same
+ * cluster" rule. The spec calls out three explicit failure modes:
+ *
+ *   1. "all are avoidance"           → AVOIDANCE_CLUSTER
+ *   2. "all are internal contradiction" → INTERNAL_CONTRADICTION_CLUSTER
+ *   3. "all are low-energy reaction loops" — handled by the energy
+ *      axis check (not here), since scriptType doesn't carry energy.
+ *
+ * Clusters are a SOFT semantic grouping — most scriptTypes don't
+ * belong to any cluster (so they never trigger the guard). The two
+ * clusters here only fire when the entire batch falls inside one,
+ * preserving the existing "max 2 same scriptType" rule as the
+ * primary guard.
+ */
+export const SCRIPT_TYPE_CLUSTERS = {
+  avoidance: new Set<ScriptType>([
+    "avoidance",
+    "false_start",
+    "habit_break_fail",
+    "time_blindness",
+  ]),
+  internal_contradiction: new Set<ScriptType>([
+    "realization",
+    "internal_vs_external",
+    "denial",
+    "rationalization",
+    "self_negotiation",
+  ]),
+} as const;
+
+/**
+ * Default scriptType per scenario family. Used by `resolveScriptType`
+ * as the fallback when no (template, family) override matches, and by
+ * `lookupScriptType` for legacy cache entries that lack templateId.
+ *
+ * 25 scenarios → 14 distinct scriptTypes in active rotation:
+ *   loop_behavior (3), habit_break_fail (4), false_start (3),
+ *   self_negotiation (2), just_one_more_spiral (2),
+ *   delayed_consequence (2), decision_flip (2),
+ *   late_reply_regret/avoidance/small_mistake_big_reaction/
+ *   time_blindness/polite_lie/productivity_illusion/social_micro_fail (1 each)
+ */
+const SCRIPT_TYPE_BY_FAMILY: Record<string, ScriptType> = {
+  sleep: "loop_behavior",
+  coffee: "habit_break_fail",
+  gym: "avoidance",
+  laundry: "habit_break_fail",
+  texting: "late_reply_regret",
+  emails: "small_mistake_big_reaction",
+  fridge: "loop_behavior",
+  outfit: "decision_flip",
+  errands: "time_blindness",
+  weekend_plans: "polite_lie",
+  productivity: "productivity_illusion",
+  cleaning: "self_negotiation",
+  social_call: "social_micro_fail",
+  snack: "just_one_more_spiral",
+  hydration: "habit_break_fail",
+  morning: "false_start",
+  shopping: "just_one_more_spiral",
+  social_post: "loop_behavior",
+  dishes: "delayed_consequence",
+  podcast: "false_start",
+  skincare: "habit_break_fail",
+  mirror_pep_talk: "self_negotiation",
+  walk: "false_start",
+  doom_scroll_car: "delayed_consequence",
+  closet_pile: "decision_flip",
+};
+
+/**
+ * (template, scenario) overrides where the template's structural
+ * shape fundamentally reshapes the narrative away from the scenario
+ * default. Sparse — only ~17 entries — most (template, family) pairs
+ * inherit the scenario default.
+ */
+const SCRIPT_TYPE_OVERRIDES: Partial<
+  Record<TemplateId, Partial<Record<string, ScriptType>>>
+> = {
+  expectation_vs_reality: {
+    gym: "realization",
+    weekend_plans: "realization",
+    productivity: "realization",
+    morning: "realization",
+    walk: "realization",
+  },
+  small_panic: {
+    texting: "quiet_panic",
+    emails: "quiet_panic",
+    social_post: "quiet_panic",
+    social_call: "quiet_panic",
+  },
+  avoidance: {
+    dishes: "avoidance",
+    hydration: "avoidance",
+    productivity: "avoidance",
+    skincare: "avoidance",
+  },
+  social_awareness: {
+    mirror_pep_talk: "fake_confidence",
+    weekend_plans: "polite_lie",
+  },
+  routine_contradiction: {
+    productivity: "internal_vs_external",
+    coffee: "internal_vs_external",
+    dishes: "internal_vs_external",
+    skincare: "internal_vs_external",
+  },
+};
+
+/**
+ * Resolve the scriptType for a (template, scenario) pair. Used by
+ * `assembleCandidate` at generation time. Override → scenario default.
+ */
+export function resolveScriptType(
+  templateId: TemplateId,
+  family: string,
+): ScriptType {
+  const override = SCRIPT_TYPE_OVERRIDES[templateId]?.[family];
+  if (override) return override;
+  return SCRIPT_TYPE_BY_FAMILY[family] ?? "avoidance";
+}
+
+/**
+ * Resolve the scriptType for a cached batch entry. Falls back to the
+ * scenario-default when templateId is absent (legacy cache entries
+ * pre-dating this taxonomy). Returns null when family itself is
+ * missing or unknown — caller skips the candidate's contribution to
+ * cross-batch sets.
+ */
+export function lookupScriptType(
+  family: string | undefined,
+  templateId?: string,
+): ScriptType | null {
+  if (!family) return null;
+  if (templateId !== undefined) {
+    const override =
+      SCRIPT_TYPE_OVERRIDES[templateId as TemplateId]?.[family];
+    if (override) return override;
+  }
+  return SCRIPT_TYPE_BY_FAMILY[family] ?? null;
+}
+
+// -----------------------------------------------------------------------------
+// Energy taxonomy — derived from VisualActionPattern
+// -----------------------------------------------------------------------------
+// Per-batch "all-low-energy" rejection rule (spec section 5).
+// `active` = physical motion / outfit changes / mirror beats that
+// require visible body movement. `low` = static/passive (sitting,
+// scrolling, deadpan reaction). `medium` = everything in between.
+
+export type Energy = "active" | "low" | "medium";
+
+const ENERGY_BY_VISUAL_ACTION: Record<VisualActionPattern, Energy> = {
+  phone_scroll_freeze: "low",
+  text_message_panic: "low",
+  face_reaction_deadpan: "low",
+  kitchen_contradiction: "medium",
+  fridge_open_stare: "medium",
+  bedroom_avoidance: "medium",
+  couch_avoidance: "medium",
+  car_avoidance: "medium",
+  desk_avoidance: "medium",
+  social_awkward_walkaway: "medium",
+  doorway_retreat: "medium",
+  outfit_check_cut: "active",
+  mirror_self_call_out: "active",
+};
+
+export function lookupEnergy(va: VisualActionPattern | undefined): Energy | null {
+  if (!va) return null;
+  return ENERGY_BY_VISUAL_ACTION[va] ?? null;
+}
+
+// -----------------------------------------------------------------------------
 // Hook-style phrasing pools
 // -----------------------------------------------------------------------------
 //
@@ -1115,6 +1363,26 @@ export type PatternMeta = {
    * wrap layer derives via `lookupHookOpener`).
    */
   hookOpener: HookOpener;
+  /**
+   * Narrative-shape diversity axis. Resolved at assembly time from
+   * `(template.id, scenario.family)` via `resolveScriptType` —
+   * SCRIPT_TYPE_OVERRIDES first, then SCRIPT_TYPE_BY_FAMILY default.
+   * Drives the spec's HARD batch guards (max 2 per batch, reject
+   * all-in-cluster) and the cross-batch tiered history rule
+   * (-3 last batch / -2 frequent in last 3 / +3 unused in last 3).
+   * Optional on the type so Claude/Llama fallback wraps can omit
+   * when the family/templateId aren't in our taxonomy; readers
+   * fall back to `lookupScriptType(family, templateId)` and treat
+   * unresolvable as "no contribution to scriptType axis".
+   */
+  scriptType?: ScriptType;
+  /**
+   * Energy classification (active / low / medium) derived from
+   * `visualActionPattern` via ENERGY_BY_VISUAL_ACTION. Used by the
+   * "reject all-low-energy" batch guard. Optional only because
+   * Claude/Llama fallback wraps may not set visualActionPattern.
+   */
+  energy?: Energy;
 };
 
 /**
@@ -1221,6 +1489,8 @@ function assembleCandidate(
       topicLane:
         TOPIC_LANE_BY_FAMILY[scenario.family] ?? "daily_routine",
       hookOpener: entry.opener,
+      scriptType: resolveScriptType(template.id, scenario.family),
+      energy: ENERGY_BY_VISUAL_ACTION[visualActionPattern],
     },
   };
 }
@@ -1391,5 +1661,53 @@ export function generatePatternCandidates(
     if (built !== null) out.push(built);
   }
 
+  return interleaveByScriptType(out);
+}
+
+/**
+ * Round-robin interleave the candidate pool by `meta.scriptType`.
+ * Buckets candidates by scriptType, then emits one from each bucket
+ * per pass until empty. Guarantees that the FIRST 6+ candidates span
+ * ≥6 distinct scriptTypes when the natural pool supports it (i.e.
+ * at least 6 buckets exist), making the downstream selector's job
+ * dramatically easier — the highest-quality picks no longer all
+ * cluster on the same narrative shape just because that scriptType's
+ * scenarios sorted to the front of the Cartesian weave.
+ *
+ * Soft, NOT hard: never drops candidates. Candidates with no
+ * scriptType (legacy / fallback paths that may not resolve a
+ * taxonomy entry) bucket under "_unknown" and are interleaved
+ * alongside the typed buckets so they still ship.
+ *
+ * Bucket order = first-appearance order in the input, which preserves
+ * the upstream memory bias (the creator's top-structure scenarios
+ * surface their scriptType buckets first in the rotation).
+ */
+function interleaveByScriptType(
+  candidates: PatternCandidate[],
+): PatternCandidate[] {
+  if (candidates.length <= 1) return candidates;
+  const buckets = new Map<string, PatternCandidate[]>();
+  const order: string[] = [];
+  for (const c of candidates) {
+    const key = c.meta.scriptType ?? "_unknown";
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(key, bucket);
+      order.push(key);
+    }
+    bucket.push(c);
+  }
+  // Single bucket → no reordering needed (preserves input order
+  // exactly, which is what the diagonal-weave produces).
+  if (order.length === 1) return candidates;
+  const out: PatternCandidate[] = [];
+  while (out.length < candidates.length) {
+    for (const k of order) {
+      const arr = buckets.get(k)!;
+      if (arr.length > 0) out.push(arr.shift()!);
+    }
+  }
   return out;
 }

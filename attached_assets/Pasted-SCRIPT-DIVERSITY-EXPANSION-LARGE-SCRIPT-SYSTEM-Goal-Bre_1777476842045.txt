@@ -1,0 +1,176 @@
+SCRIPT DIVERSITY EXPANSION — LARGE SCRIPT SYSTEM
+
+Goal:
+Break out of the “same mental loop” problem by introducing a wide set of fundamentally different script types.
+
+This is not pattern variation.
+This is expanding the types of moments we generate.
+
+---
+
+1. ADD SCRIPT TYPE FIELD
+
+Each candidate must include:
+
+scriptType: string
+
+---
+
+2. EXPAND SCRIPT LIBRARY (20+ TYPES)
+
+Replace small list with a large, expressive set:
+
+CORE INTERNAL:
+
+- avoidance
+- realization
+- false_start
+- overcommit
+- internal_vs_external
+- delayed_consequence
+- denial
+- rationalization
+
+SOCIAL:
+
+- social_micro_fail
+- social_overthinking
+- late_reply_regret
+- conversation_replay
+- fake_confidence
+- polite_lie
+- unexpected_response
+
+ACTION-BASED:
+
+- interrupted_action
+- loop_behavior (repeat same action 2–3 times)
+- decision_flip (decide → undo immediately)
+- slow_escalation
+- small_mistake_big_reaction
+
+EMOTIONAL:
+
+- quiet_panic
+- suppressed_reaction
+- delayed_emotion
+- overreaction
+- emotional_disconnect
+
+BEHAVIORAL:
+
+- habit_break_fail
+- “just one more” spiral
+- self_negotiation
+- productivity_illusion
+- time_blindness
+
+ABSURD / CREATIVE:
+
+- object_personification
+- dramatic_narration
+- fake_documentary
+- internal_monologue
+- alternate_reality
+- exaggeration
+- silent_story
+
+---
+
+3. TEMPLATE MAPPING
+
+Each pattern template must map to a scriptType.
+
+Example:
+
+- “the way I avoid…” → avoidance
+- “why did I just…” → realization
+- “me saying yes…” → overcommit
+- “this is where…” → delayed_consequence
+- “I told myself…” → self_negotiation
+- “me pretending…” → fake_confidence
+- “I opened the app again…” → loop_behavior
+
+---
+
+4. GENERATION DISTRIBUTION
+
+When generating candidates:
+
+- pull from at least 6–10 different scriptTypes
+- avoid over-producing avoidance/procrastination scripts
+
+---
+
+5. HARD BATCH RULES
+
+Final 3 ideas must:
+
+- include at least 2 different scriptTypes
+- strongly prefer 3 different scriptTypes
+- never allow 3 of same scriptType
+
+Reject batch if:
+- all are avoidance
+- all are internal contradiction
+- all are low-energy reaction loops
+
+---
+
+6. REGEN RULE
+
+On regenerate=true:
+
+- MUST include at least 1 scriptType not present in previous batch
+- strongly prefer 2 new scriptTypes
+
+---
+
+7. HISTORY TRACKING
+
+Track recent scriptTypes (last 5 batches).
+
+Add penalties:
+
+- -3 if scriptType used in last batch
+- -2 if scriptType appears frequently in last 3 batches
+
+Add boost:
+
+- +3 if scriptType unused in last 3 batches
+- +2 if scriptType rare overall for this user
+
+---
+
+8. BALANCE ENERGY + STYLE
+
+Do not let all scripts be:
+
+- low-energy
+- deadpan
+- passive
+
+Ensure mix:
+- at least 1 active/physical script when possible
+- at least 1 different emotional tone
+
+---
+
+9. QA
+
+Run 10 batches:
+
+Verify:
+- at least 8–12 different scriptTypes appear across runs
+- no single scriptType dominates
+- batches feel like different *types of videos*, not variations
+
+---
+
+10. SUCCESS CRITERION
+
+User reaction should shift from:
+“These are similar ideas”
+
+to:
+“These are completely different directions”

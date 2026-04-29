@@ -32,10 +32,15 @@ import {
 import {
   generatePatternCandidates,
   lookupHookOpener,
+  lookupScriptType,
   lookupTopicLane,
   lookupVisualActionPattern,
+  SCRIPT_TYPE_CLUSTERS,
+  SCRIPT_TYPES,
+  type Energy,
   type HookOpener,
   type PatternCandidate,
+  type ScriptType,
   type Setting,
   type TopicLane,
   type VisualActionPattern,
@@ -165,7 +170,7 @@ function adjustedScore(
     c.score.total >= HIGH_QUALITY_SCORE
       ? scoreNovelty(c, batchSoFar, ctx)
       : 0;
-  const penalty = selectionPenalty(c, batchSoFar);
+  const penalty = selectionPenalty(c, batchSoFar, ctx);
   return c.score.total + novelty + penalty;
 }
 
@@ -200,7 +205,7 @@ function greedySelect(
   return picked;
 }
 
-function batchGuardsPass(batch: ScoredCandidate[]): boolean {
+export function batchGuardsPass(batch: ScoredCandidate[]): boolean {
   if (batch.length === 0) return false;
 
   // ---------------------------------------------------------------
@@ -281,6 +286,43 @@ function batchGuardsPass(batch: ScoredCandidate[]): boolean {
   ) {
     return false;
   }
+  // No more than 2 share scriptType — narrative-shape diversity. The
+  // headline anti-clone guard from the script-diversity spec: without
+  // it, 3 picks with distinct families but identical narrative shape
+  // (e.g. sleep + fridge + social_post all map to `loop_behavior`)
+  // read as one mental loop filmed three ways.
+  const scriptTypes = batch
+    .map((b) => b.meta.scriptType)
+    .filter((x): x is ScriptType => !!x);
+  if (scriptTypes.length > 0 && countMax(scriptTypes) > MAX_GROUP_SHARE) {
+    return false;
+  }
+  // Reject batch where ALL picks fall in the same NARRATIVE CLUSTER
+  // (avoidance / internal_contradiction). Spec calls these out as
+  // explicit failure modes even when the scriptTypes are distinct
+  // values within the cluster — e.g. {avoidance, false_start,
+  // habit_break_fail} are 3 different scriptTypes but all 3 are
+  // "I planned X, didn't do X" beats. Only fires when every pick
+  // contributes a scriptType (preserves graceful behavior on legacy
+  // / fallback candidates that may omit scriptType).
+  if (scriptTypes.length === batch.length) {
+    for (const cluster of Object.values(SCRIPT_TYPE_CLUSTERS)) {
+      if (scriptTypes.every((s) => cluster.has(s))) return false;
+    }
+  }
+  // Reject batch where ALL picks are low-energy (passive sit-and-stare
+  // beats — phone_scroll_freeze, text_message_panic, face_reaction_-
+  // deadpan). Spec: "all are low-energy reaction loops". Same omit-
+  // safe gate as the cluster check above.
+  const energies = batch
+    .map((b) => b.meta.energy)
+    .filter((x): x is Energy => !!x);
+  if (
+    energies.length === batch.length &&
+    energies.every((e) => e === "low")
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -306,6 +348,13 @@ function exhaustiveReselect(
   pool: ScoredCandidate[],
   count: number,
   ctx: NoveltyContext,
+  /**
+   * Optional additional acceptance predicate, applied after the
+   * standard `batchGuardsPass` gate. Used by the regen-fresh-
+   * scriptType rescue path to require ≥1 fresh scriptType vs the
+   * immediate-prior batch on top of normal guards. Default is no-op.
+   */
+  extraGuard?: (batch: ScoredCandidate[]) => boolean,
 ): ScoredCandidate[] | null {
   if (count > RESELECT_MAX_COUNT) return null;
   const top = pool.slice(
@@ -326,6 +375,7 @@ function exhaustiveReselect(
     if (slot === count) {
       const batch = indices.map((i) => top[i]);
       if (!batchGuardsPass(batch)) return;
+      if (extraGuard && !extraGuard(batch)) return;
       let total = 0;
       const partial: ScoredCandidate[] = [];
       for (const c of batch) {
@@ -347,10 +397,34 @@ function exhaustiveReselect(
   return bestRef.value ? bestRef.value.batch : null;
 }
 
-function selectWithNovelty(
+/**
+ * Predicate for the regen-fresh-scriptType rescue path. Returns true
+ * when at least one pick in `batch` carries a scriptType that is NOT
+ * in the immediate-prior batch's `recent` set. Vacuously true when
+ * `recent` is empty / undefined (no prior batch → any pick is fresh).
+ *
+ * Picks without a scriptType (legacy / fallback candidates that
+ * couldn't resolve a taxonomy entry) are skipped by the inner loop —
+ * they neither prove freshness nor block the predicate from firing
+ * when SOME other pick in the batch contributes a fresh scriptType.
+ */
+function batchHasNewScriptType(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<ScriptType> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const st = c.meta.scriptType;
+    if (st && !recent.has(st)) return true;
+  }
+  return false;
+}
+
+export function selectWithNovelty(
   scored: ScoredCandidate[],
   count: number,
   ctx: NoveltyContext,
+  opts: { regenerate?: boolean } = {},
 ): SelectionResult {
   if (scored.length === 0 || count <= 0) {
     return { batch: [], guardsPassed: false };
@@ -359,14 +433,49 @@ function selectWithNovelty(
   const pool = highTier.length >= count ? highTier : scored;
 
   const greedy = greedySelect(pool, count, ctx);
+  let chosen: ScoredCandidate[] | null = null;
   if (batchGuardsPass(greedy)) {
-    return { batch: greedy, guardsPassed: true };
+    chosen = greedy;
+  } else {
+    // Greedy violated guards — try exhaustive search over top candidates.
+    const reselected = exhaustiveReselect(pool, count, ctx);
+    if (reselected) chosen = reselected;
   }
-  // Greedy violated guards — try exhaustive search over top candidates.
-  const reselected = exhaustiveReselect(pool, count, ctx);
-  if (reselected) {
-    return { batch: reselected, guardsPassed: true };
+  // Spec rescue: when regenerating, the picked batch MUST introduce
+  // at least one scriptType that wasn't in the immediate-prior batch.
+  // The standard guards already cap per-axis sharing and reject all-
+  // cluster batches, but they DON'T require cross-batch novelty —
+  // a perfectly guard-clean pick can still be 100% recent scriptTypes
+  // if the pool is dominated by them. Run one more exhaustive pass
+  // with a hard fresh-scriptType predicate; if even that's impossible
+  // (the pool genuinely lacks an unused scriptType), ship best-effort
+  // with a warn log so the rut is visible in production telemetry.
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentScriptTypes?.size ?? 0) > 0 &&
+    !batchHasNewScriptType(chosen, ctx.recentScriptTypes)
+  ) {
+    const fresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) => batchHasNewScriptType(b, ctx.recentScriptTypes),
+    );
+    if (fresh) {
+      chosen = fresh;
+    } else {
+      logger.warn(
+        {
+          recentScriptTypes: Array.from(ctx.recentScriptTypes ?? []),
+          poolSize: pool.length,
+          count,
+        },
+        "hybrid_ideator.regen_no_new_scripttype_shipping_best_effort",
+      );
+    }
   }
+  if (chosen) return { batch: chosen, guardsPassed: true };
   // No guard-passing combination exists in the top-N. Return the
   // greedy result so the orchestrator can decide to call fallback
   // and re-select on a wider merged pool.
@@ -380,8 +489,23 @@ function selectWithNovelty(
  * pattern-ideator's family→category lookup tables (so we don't need
  * to migrate the cache shape every time we add a new dimension).
  */
-function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
-  if (prev.length === 0) return { };
+function buildNoveltyContext(
+  prev: CachedBatchEntry[],
+  /**
+   * Per-batch breakdown of the last (up to) 3 shipped batches, newest-
+   * first. Used to compute the tiered scriptType history fields
+   * (`frequentScriptTypesLast3` / `unusedScriptTypesLast3`). Pass an
+   * empty array (default) on cold-start / no-cache paths — both
+   * tiered fields then stay undefined and the scoreNovelty/penalty
+   * code paths short-circuit on the optional-set pattern.
+   *
+   * Existing per-axis sets (recentFamilies / styles / topics / etc.)
+   * still derive from `prev` to preserve their established cross-
+   * batch behavior — strict scope discipline.
+   */
+  last3Batches: CachedBatchEntry[][] = [],
+): NoveltyContext {
+  if (prev.length === 0 && last3Batches.length === 0) return { };
   const recentFamilies = new Set<string>();
   const recentStyles = new Set<string>();
   const recentTopics = new Set<TopicLane>();
@@ -392,6 +516,26 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
   // by older code already has these fields on its embedded ideas.
   const recentHookOpeners = new Set<HookOpener>();
   const recentSettings = new Set<Setting>();
+  // Immediate-prior-batch scriptType demotion — SCOPED to the LAST
+  // batch only (not the flat 5-batch window the other per-axis sets
+  // use). This is required by spec so that:
+  //   * `selectionPenalty -3 if ∈ recentScriptTypes` only demotes
+  //     scriptTypes from the last shipped batch (older repeats are
+  //     handled by the softer `-2 if ∈ frequentScriptTypesLast3` tier).
+  //   * The regen rescue's `batchHasNewScriptType(batch, recent)`
+  //     check only requires freshness vs. the last batch, not vs. the
+  //     entire history window — otherwise the rescue starves on a
+  //     small pool with naturally-recurring scriptTypes.
+  // Derived via `lookupScriptType(family, templateId)` — legacy cache
+  // entries lacking templateId fall back to scenario-default scriptType
+  // so the axis still functions on pre-taxonomy cached batches.
+  const recentScriptTypes = new Set<ScriptType>();
+  const immediatePrior = last3Batches[0] ?? [];
+  for (const e of immediatePrior) {
+    if (!e.family) continue;
+    const st = lookupScriptType(e.family, e.templateId);
+    if (st) recentScriptTypes.add(st);
+  }
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -405,6 +549,45 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
     if (op) recentHookOpeners.add(op);
     recentSettings.add(e.idea.setting as Setting);
   }
+
+  // Cross-batch tiered scriptType history. Computed separately from
+  // `recentScriptTypes` (which is a flat union) so the two pieces of
+  // information stack in selectionPenalty without a double-count
+  // reduction in scoreNovelty's freshness check.
+  let frequentScriptTypesLast3: ReadonlySet<ScriptType> | undefined;
+  let unusedScriptTypesLast3: ReadonlySet<ScriptType> | undefined;
+  if (last3Batches.length > 0) {
+    // Per-batch scriptType sets — one Set per batch so we can count
+    // how many batches each scriptType appeared in (≥2 ⇒ frequent).
+    const seenInBatch: Set<ScriptType>[] = last3Batches.map((batch) => {
+      const s = new Set<ScriptType>();
+      for (const e of batch) {
+        if (!e.family) continue;
+        const sct = lookupScriptType(e.family, e.templateId);
+        if (sct) s.add(sct);
+      }
+      return s;
+    });
+    const counts = new Map<ScriptType, number>();
+    for (const s of seenInBatch) {
+      for (const sct of s) counts.set(sct, (counts.get(sct) ?? 0) + 1);
+    }
+    const freq = new Set<ScriptType>();
+    for (const [sct, c] of counts) {
+      if (c >= 2) freq.add(sct);
+    }
+    frequentScriptTypesLast3 = freq;
+    // Unused-in-3 = catalog minus union of all batches' scriptTypes.
+    // Catalog is the full SCRIPT_TYPES list (37 values); a batch
+    // typically covers 2-3 distinct scriptTypes, so the unused set
+    // is dominated by ≥30 entries on a healthy rotation.
+    const seenAny = new Set<ScriptType>();
+    for (const s of seenInBatch) for (const sct of s) seenAny.add(sct);
+    unusedScriptTypesLast3 = new Set(
+      SCRIPT_TYPES.filter((sct) => !seenAny.has(sct)),
+    );
+  }
+
   return {
     recentFamilies,
     recentStyles,
@@ -412,6 +595,9 @@ function buildNoveltyContext(prev: CachedBatchEntry[]): NoveltyContext {
     recentVisualActions,
     recentHookOpeners,
     recentSettings,
+    recentScriptTypes,
+    frequentScriptTypesLast3,
+    unusedScriptTypesLast3,
   };
 }
 
@@ -696,14 +882,33 @@ async function tryCache(
  */
 function readBatchHistory(
   creator: Creator | undefined,
-): { flat: CachedBatchEntry[]; current: CachedBatchEntry[] } {
-  if (!creator) return { flat: [], current: [] };
+): {
+  flat: CachedBatchEntry[];
+  current: CachedBatchEntry[];
+  /**
+   * Per-batch breakdown — index 0 = current (newest), indices 1+
+   * are prior batches from `envelope.history`, newest-first. Same
+   * depth as `flat` (capped at MAX_HISTORY_BATCHES + 1). Used by
+   * the cross-batch tiered scriptType history (frequent-in-3 /
+   * unused-in-3) which needs per-batch composition, not just the
+   * flat union.
+   */
+  perBatch: CachedBatchEntry[][];
+} {
+  if (!creator) return { flat: [], current: [], perBatch: [] };
   const env = tryParseCachedEnvelope(creator.lastIdeaBatchJson);
-  if (!env) return { flat: [], current: [] };
+  if (!env) return { flat: [], current: [], perBatch: [] };
   const flat: CachedBatchEntry[] = [];
-  flat.push(...env.current);
-  for (const h of env.history) flat.push(...h);
-  return { flat, current: env.current };
+  const perBatch: CachedBatchEntry[][] = [];
+  if (env.current.length > 0) {
+    flat.push(...env.current);
+    perBatch.push(env.current);
+  }
+  for (const h of env.history) {
+    flat.push(...h);
+    perBatch.push(h);
+  }
+  return { flat, current: env.current, perBatch };
 }
 
 async function persistCache(
@@ -813,12 +1018,23 @@ export async function runHybridIdeator(
   // requests should be free to ship the same family if the scorer
   // thinks it's the best fit, just with a small novelty penalty for
   // repeating it.
-  const { flat: previousEntries, current: immediatePriorEntries } =
-    readBatchHistory(input.creator);
+  const {
+    flat: previousEntries,
+    current: immediatePriorEntries,
+    perBatch: priorBatches,
+  } = readBatchHistory(input.creator);
   const exclude = regenerate
     ? buildExclusion(previousEntries, immediatePriorEntries)
     : EMPTY_EXCLUSION;
-  const noveltyContext: NoveltyContext = buildNoveltyContext(previousEntries);
+  // Cross-batch tiered scriptType history needs per-batch breakdown
+  // (not the flat union). Slice to the last 3 batches per spec —
+  // beyond that, the rotate-the-catalog signal becomes too diffuse
+  // to reliably steer pick selection.
+  const last3Batches = priorBatches.slice(0, 3);
+  const noveltyContext: NoveltyContext = buildNoveltyContext(
+    previousEntries,
+    last3Batches,
+  );
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
   // subsequent `% 997` is always non-negative (JS keeps the sign of
   // the dividend, so a negative seedSalt would produce negative
@@ -872,7 +1088,9 @@ export async function runHybridIdeator(
   // guards pass AND we have at least `desiredCount` picks, we're
   // done — no Claude needed. If guards fail OR we're short, we'll
   // top up with fallback below and re-select on the merged pool.
-  let selection = selectWithNovelty(merged, desiredCount, noveltyContext);
+  let selection = selectWithNovelty(merged, desiredCount, noveltyContext, {
+    regenerate,
+  });
 
   // -------- Step 4b: Claude fallback (when needed) ---------------
   // Three triggers, in spec order:
@@ -928,7 +1146,9 @@ export async function runHybridIdeator(
       );
       // Re-select on the merged pool — Claude may have unlocked
       // axis variety the local pool lacked.
-      selection = selectWithNovelty(merged, desiredCount, noveltyContext);
+      selection = selectWithNovelty(merged, desiredCount, noveltyContext, {
+        regenerate,
+      });
     } catch (err) {
       // Fallback failure is non-fatal — we still ship whatever local
       // candidates we have. If we ALSO have zero local, the catch
