@@ -1053,8 +1053,25 @@ const DANGLING_TRAILING_WORDS = new Set([
  *     phrasing tweaks);
  *   • does NOT end on a word in DANGLING_TRAILING_WORDS;
  *   • does NOT contain a literal `${` (template interpolation leak);
- *   • does NOT end on `…` or `...` (truncation marker).
+ *   • does NOT end on `…` or `...` (truncation marker);
+ *   • does NOT start with any pattern in BANNED_HOOK_PREFIXES
+ *     (PART 4 of the HOOK STYLE spec — these phrasings collapse
+ *     into "same joke, different noun" and are rejected outright);
+ *   • does NOT contain any phrase in GENERIC_FILLER_PHRASES
+ *     (PART 6 — "this is so me", "we've all been there", etc.
+ *     read as social-media boilerplate rather than a specific
+ *     thought).
  * Returns true iff the hook is shippable.
+ *
+ * The banned-prefix + generic-filler checks are pure-additive
+ * extensions — every hook that passed before still passes UNLESS
+ * it matches one of these patterns (which is the desired
+ * behavior). The legacy HOOK_PHRASINGS_BY_STYLE catalog contains
+ * a few entries that DO match banned prefixes ("the way I…",
+ * "why did I…"); those entries no longer ship through the new
+ * generation path (which iterates HOOK_LANGUAGE_STYLES via the
+ * fresh HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog), and tryRewrite
+ * in the scorer now skips them too — exactly the spec's intent.
  */
 export function validateHook(hook: string): boolean {
   const trimmed = hook.trim();
@@ -1067,6 +1084,8 @@ export function validateHook(hook: string): boolean {
     .toLowerCase()
     .replace(/[.,!?;:]+$/g, "");
   if (DANGLING_TRAILING_WORDS.has(last)) return false;
+  if (lookupBannedHookPrefix(trimmed)) return false;
+  if (containsGenericFiller(trimmed)) return false;
   return true;
 }
 
@@ -1155,6 +1174,237 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "realization",
       build: () => `the moment I knew I was never going`,
     },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* HOOK LANGUAGE STYLE — the "type of thought" axis (12 values).       */
+/*                                                                     */
+/* The legacy 5-value HookStyle catalog above describes phrasing-       */
+/* PATTERNS (the_way_i / why_do_i / contrast / curiosity /              */
+/* internal_thought) and is kept for backward-compat reads of cached    */
+/* candidate metadata. HookLanguageStyle is the NEW primary axis        */
+/* layered on top: it describes the LANGUAGE MODE the hook expresses    */
+/* (confession / observation / instruction / time_stamp / …).           */
+/*                                                                      */
+/* Generation now iterates HOOK_LANGUAGE_STYLES (12) instead of         */
+/* HOOK_STYLES (5) for the H axis of the Cartesian, picks a phrasing    */
+/* from HOOK_PHRASINGS_BY_LANGUAGE_STYLE, and DERIVES the legacy        */
+/* `hookStyle` field for each candidate via                              */
+/* HOOK_LANGUAGE_STYLE_TO_LEGACY_HOOK_STYLE so the JSONB cache /        */
+/* memory module / quality scorer paths that still read `hookStyle`     */
+/* keep working unchanged.                                              */
+/* ------------------------------------------------------------------ */
+
+/** The 12 language modes a hook can express ("type of thought"). */
+export const HOOK_LANGUAGE_STYLES = [
+  "confession",
+  "observation",
+  "absurd_claim",
+  "matter_of_fact",
+  "question",
+  "instruction",
+  "micro_story",
+  "comparison",
+  "object_pov",
+  "time_stamp",
+  "anti_hook",
+  "escalation_hook",
+] as const;
+export type HookLanguageStyle = (typeof HOOK_LANGUAGE_STYLES)[number];
+
+/**
+ * Lossy backward-compat mapping: HookLanguageStyle → legacy HookStyle.
+ *
+ * Generation now drives off HookLanguageStyle, but the legacy
+ * `hookStyle` field stays populated on every candidate so the
+ * JSONB cache reader, viralPatternMemory module, and quality
+ * scorer continue to see a valid value (no schema change, no
+ * cache invalidation). The mapping deliberately leans away from
+ * the two banned legacy patterns ("the_way_i", "why_do_i") since
+ * the new catalog never produces those phrasings.
+ */
+export const HOOK_LANGUAGE_STYLE_TO_LEGACY_HOOK_STYLE: Record<
+  HookLanguageStyle,
+  HookStyle
+> = {
+  confession: "internal_thought",
+  observation: "curiosity",
+  absurd_claim: "curiosity",
+  matter_of_fact: "curiosity",
+  question: "curiosity",
+  instruction: "curiosity",
+  micro_story: "internal_thought",
+  comparison: "contrast",
+  object_pov: "curiosity",
+  time_stamp: "curiosity",
+  anti_hook: "internal_thought",
+  escalation_hook: "internal_thought",
+};
+
+/**
+ * A phrasing variant keyed by HookLanguageStyle. Unlike the legacy
+ * HookPhrasingEntry, there is no static `opener` field — the new
+ * catalog's phrasings rarely match any of the 9 existing
+ * HookOpener regex patterns, so we let `lookupHookOpener(hook)`
+ * return null for these entries (the diversity tracker treats
+ * null as "no opener info, no penalty").
+ */
+export type LanguagePhrasingEntry = {
+  build: (s: Scenario) => string;
+};
+
+/**
+ * Banned hook prefixes (PART 4 of the HOOK STYLE spec). Hooks
+ * matching any of these prefixes are REJECTED by `validateHook`
+ * and additionally take a -5 selection penalty in the scorer.
+ *
+ * The regex set is anchored at start-of-string + optional leading
+ * whitespace, case-insensitive. Each pattern is the LITERAL prefix
+ * the user identified as collapsing into "same joke, different
+ * noun" — they are surface-level phrasings, not deep structures,
+ * so prefix-match is the correct fidelity.
+ */
+export const BANNED_HOOK_PREFIXES: ReadonlyArray<RegExp> = [
+  /^\s*the way i\b/i,
+  /^\s*why (did|do) i\b/i,
+  /^\s*i really thought\b/i,
+  /^\s*me saying\b/i,
+  /^\s*me,/i,
+  /^\s*what i said vs what i did\b/i,
+];
+
+/**
+ * Generic-filler phrases that read as "social-media boilerplate"
+ * rather than a specific thought. Hooks containing any of these
+ * substrings (case-insensitive) are REJECTED by `validateHook`.
+ * Substring-match (not prefix) because these phrases can appear
+ * mid-hook ("classic me, this is so me, anyway").
+ */
+export const GENERIC_FILLER_PHRASES: ReadonlyArray<RegExp> = [
+  /\bthis is so me\b/i,
+  /\bwe(?:'ve| have) all been there\b/i,
+  /\bso relatable\b/i,
+  /\btell me you\b/i,
+  /\bname a more iconic\b/i,
+];
+
+/**
+ * Returns true if the hook starts with any banned prefix.
+ * Used by both the validator (hard reject) and the scorer
+ * (-5 penalty if a fallback / Llama-mutated hook somehow
+ * sneaks through).
+ */
+export function lookupBannedHookPrefix(hook: string): boolean {
+  for (const re of BANNED_HOOK_PREFIXES) {
+    if (re.test(hook)) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns true if the hook contains any generic-filler phrase.
+ * Used by the validator only; not penalized separately because
+ * the validator-reject already removes it from the pool.
+ */
+export function containsGenericFiller(hook: string): boolean {
+  for (const re of GENERIC_FILLER_PHRASES) {
+    if (re.test(hook)) return true;
+  }
+  return false;
+}
+
+/**
+ * Phrasings keyed by HookLanguageStyle. Each style ships ≥3
+ * build-fn templates parameterized over Scenario fields
+ * (s.topicNoun / s.actionShort / s.realityShort). Every entry
+ * is hand-audited to:
+ *   - produce hook text that passes `validateHook` for ALL 25
+ *     scenarios (worst-case actionShort = 6 words,
+ *     worst-case realityShort = 8 words);
+ *   - never trigger any BANNED_HOOK_PREFIX or
+ *     GENERIC_FILLER_PHRASES match;
+ *   - express the language mode distinctly (a confession SOUNDS
+ *     like a confession, a time_stamp SOUNDS like a time_stamp).
+ *
+ * For each style, AT LEAST ONE entry is guaranteed to pass for
+ * EVERY scenario, so `pickValidatedLanguagePhrasing` never
+ * returns null for a (hookLanguageStyle, scenario) pair.
+ */
+export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
+  HookLanguageStyle,
+  LanguagePhrasingEntry[]
+> = {
+  confession: [
+    { build: (s) => `I keep pretending ${s.topicNoun} doesn't exist` },
+    { build: (s) => `I told myself I'd ${s.actionShort}` },
+    { build: (s) => `I have no plan, only ${s.realityShort}` },
+    { build: (s) => `I lied about ${s.actionShort}` },
+  ],
+  observation: [
+    { build: (s) => `there's always one ${s.topicNoun} you never deal with` },
+    { build: (s) => `everybody has a ${s.topicNoun} they keep avoiding` },
+    { build: (s) => `nobody ever talks about ${s.realityShort}` },
+    { build: (s) => `it's always the same loop with ${s.topicNoun}` },
+  ],
+  absurd_claim: [
+    { build: (s) => `${s.topicNoun} and I are in a long-term standoff` },
+    { build: (s) => `${s.topicNoun} pays rent here at this point` },
+    { build: (s) => `pretty sure ${s.topicNoun} runs my entire schedule now` },
+  ],
+  matter_of_fact: [
+    { build: (s) => `${s.topicNoun} won today, again` },
+    { build: (s) => `${s.topicNoun} is staying exactly where it is` },
+    { build: (s) => `today's update: ${s.realityShort}` },
+    { build: (s) => `nothing changed. ${s.realityShort}.` },
+  ],
+  question: [
+    { build: (s) => `at what point do we admit ${s.topicNoun}` },
+    { build: (s) => `how many days does ${s.topicNoun} get` },
+    { build: () => `who decided this was fine again` },
+    { build: (s) => `is it really still about ${s.topicNoun}` },
+  ],
+  instruction: [
+    { build: (s) => `how to avoid ${s.topicNoun} in three steps` },
+    { build: (s) => `pro tip: skip ${s.topicNoun} today` },
+    { build: (s) => `tutorial: how to ignore ${s.topicNoun} forever` },
+    { build: () => `step one: stare. step two: leave.` },
+  ],
+  micro_story: [
+    { build: (s) => `open ${s.topicNoun}, stare, close it, walk away` },
+    { build: (s) => `looked at ${s.topicNoun}. did nothing. continue scrolling.` },
+    { build: () => `I open it, glance, close it, pretend that counted` },
+    { build: (s) => `walks past ${s.topicNoun}, nods, keeps walking` },
+  ],
+  comparison: [
+    { build: (s) => `morning me with ${s.topicNoun} vs night me` },
+    { build: (s) => `theory vs reality with ${s.topicNoun}` },
+    { build: () => `me at 9am vs me at 9pm` },
+    { build: (s) => `plans about ${s.topicNoun} vs reality` },
+  ],
+  object_pov: [
+    { build: (s) => `${s.topicNoun} watching me decide nothing again` },
+    { build: (s) => `${s.topicNoun}, sitting there, fully aware of everything` },
+    { build: (s) => `${s.topicNoun} keeps the score so nothing escapes` },
+    { build: (s) => `${s.topicNoun} taking notes about my life again` },
+  ],
+  time_stamp: [
+    { build: (s) => `11:48pm and I'm still negotiating with ${s.topicNoun}` },
+    { build: (s) => `7am plan: ${s.actionShort}` },
+    { build: (s) => `it's tuesday and ${s.topicNoun} still has not moved` },
+    { build: (s) => `12:14am: still in standoff with ${s.topicNoun}` },
+  ],
+  anti_hook: [
+    { build: (s) => `anyway, ${s.topicNoun}` },
+    { build: (s) => `not great with ${s.topicNoun} today` },
+    { build: (s) => `so. ${s.topicNoun}.` },
+    { build: (s) => `here we are with ${s.topicNoun}` },
+  ],
+  escalation_hook: [
+    { build: (s) => `started with ${s.topicNoun}, ended somewhere worse` },
+    { build: (s) => `tried to handle ${s.topicNoun}, did the opposite` },
+    { build: (s) => `one job around ${s.topicNoun}, you can guess` },
+    { build: (s) => `${s.topicNoun} started small, this is no longer small` },
   ],
 };
 
@@ -1417,6 +1667,19 @@ export type PatternMeta = {
    */
   sceneObjectTag?: SceneObjectTag;
   sceneEnvCluster?: SceneEnvCluster;
+  /**
+   * Language-mode classification of the hook (12 values: confession,
+   * observation, absurd_claim, matter_of_fact, question, instruction,
+   * micro_story, comparison, object_pov, time_stamp, anti_hook,
+   * escalation_hook). Drives the HOOK STYLE spec's HARD batch guard
+   * (reject when all 3 picks share same hookLanguageStyle), the
+   * cross-batch penalty/boost (-3 same as last batch / +2 unused in
+   * last 3 batches), and the regen rescue pass (≥1 fresh language
+   * style on regenerate). Optional so Claude/Llama fallback wraps
+   * can omit; readers treat undefined as "no contribution to the
+   * hookLanguageStyle axis" (same discipline as `archetype`).
+   */
+  hookLanguageStyle?: HookLanguageStyle;
 };
 
 /**
@@ -1456,22 +1719,69 @@ function pickValidatedPhrasing(
   return null;
 }
 
+/**
+ * HookLanguageStyle counterpart to `pickValidatedPhrasing`. Iterates
+ * the new HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog in seed-rotated
+ * order, returning the first entry whose built hook passes
+ * `validateHook` (which now ALSO rejects banned-prefix matches +
+ * generic-filler matches via the extended validator above).
+ *
+ * The catalog is hand-audited so EVERY (hookLanguageStyle, scenario)
+ * pair has at least one passing entry, but we still return null on
+ * exhaustion as a safety rail — the Cartesian weave will offer many
+ * more (template, scenario, languageStyle) triples before maxIter.
+ */
+function pickValidatedLanguagePhrasing(
+  hookLanguageStyle: HookLanguageStyle,
+  scenario: Scenario,
+  tone: DerivedTone,
+  seed: number,
+): { entry: LanguagePhrasingEntry; index: number; hook: string } | null {
+  const phrasings = HOOK_PHRASINGS_BY_LANGUAGE_STYLE[hookLanguageStyle];
+  const n = phrasings.length;
+  const start = ((seed % n) + n) % n;
+  for (let offset = 0; offset < n; offset++) {
+    const idx = (start + offset) % n;
+    const entry = phrasings[idx]!;
+    const candidate = toneInflect(entry.build(scenario), tone).trim();
+    if (validateHook(candidate)) {
+      return { entry, index: idx, hook: candidate };
+    }
+  }
+  return null;
+}
+
 function assembleCandidate(
   template: Template,
   scenario: Scenario,
-  hookStyle: HookStyle,
+  hookLanguageStyle: HookLanguageStyle,
   tone: DerivedTone,
   hookPhrasingIndex: number,
   captionPhrasingIndex: number,
 ): { idea: Idea; meta: PatternMeta } | null {
-  const picked = pickValidatedPhrasing(
-    hookStyle,
+  const picked = pickValidatedLanguagePhrasing(
+    hookLanguageStyle,
     scenario,
     tone,
     hookPhrasingIndex,
   );
   if (!picked) return null;
-  const { entry, index, hook } = picked;
+  const { index, hook } = picked;
+  // Legacy hookStyle field is DERIVED from hookLanguageStyle via
+  // the lossy backward-compat mapping. Every value is a valid
+  // legacy HookStyle so the JSONB cache, viralPatternMemory, and
+  // quality scorer paths that read `hookStyle` keep working
+  // unchanged. The mapping never produces "the_way_i" or
+  // "why_do_i" since the new catalog never produces those
+  // phrasings — exactly the spec's PART 4 intent.
+  const hookStyle: HookStyle =
+    HOOK_LANGUAGE_STYLE_TO_LEGACY_HOOK_STYLE[hookLanguageStyle];
+  // hookOpener is DERIVED from the assembled hook text via the
+  // existing regex set. Most new-catalog phrasings don't match
+  // any of the 9 legacy opener patterns, so this returns null —
+  // the diversity tracker treats null as "no opener info, no
+  // penalty" (same discipline as Claude/Llama fallback hooks).
+  const derivedOpener = lookupHookOpener(hook);
 
   const captionPhrasings = CAPTION_PHRASINGS[template.structure];
   const caption = pickPhrasing(captionPhrasings, captionPhrasingIndex)(scenario);
@@ -1538,13 +1848,20 @@ function assembleCandidate(
       visualActionPattern,
       topicLane:
         TOPIC_LANE_BY_FAMILY[scenario.family] ?? "daily_routine",
-      hookOpener: entry.opener,
+      // hookOpener falls through derived value (may be undefined for
+      // new-catalog phrasings whose start matches none of the 9
+      // legacy regex patterns — diversity tracker handles undefined
+      // as "no opener info"). PatternMeta declares hookOpener as
+      // non-optional so we cast — undefined is safe at runtime
+      // (every read site in the codebase fallbacks via `?? null`).
+      hookOpener: derivedOpener as HookOpener,
       scriptType,
       energy: ENERGY_BY_VISUAL_ACTION[visualActionPattern],
       archetype: archetypeResolved?.archetype,
       archetypeFamily: archetypeResolved?.family,
       sceneObjectTag,
       sceneEnvCluster,
+      hookLanguageStyle,
     },
   };
 }
@@ -1607,11 +1924,14 @@ export type PatternCandidate = { idea: Idea; meta: PatternMeta };
  * Generate 12–20 deterministic pattern-based candidates.
  *
  * The candidate set is biased toward the creator's top structure /
- * hookStyle / emotionalSpike when memory is available, with ~25%
- * adjacent exploration so the batch never calcifies. No two
- * candidates share the same (templateId, scenarioFamily, hookStyle)
- * triple. Order matters — earlier entries are higher-priority for
- * the downstream scorer's tie-breaks.
+ * emotionalSpike when memory is available, with ~25% adjacent
+ * exploration so the batch never calcifies. No two candidates
+ * share the same (templateId, scenarioFamily, hookLanguageStyle)
+ * triple. The H axis iterates the new 12-value HookLanguageStyle
+ * catalog (was 5-value HookStyle) so each batch surfaces a far
+ * broader spread of language modes. Order matters — earlier
+ * entries are higher-priority for the downstream scorer's
+ * tie-breaks.
  */
 export function generatePatternCandidates(
   input: GeneratePatternCandidatesInput,
@@ -1642,18 +1962,35 @@ export function generatePatternCandidates(
     return aPen - bPen;
   });
 
-  // Hook-style rotation: top first, then everything else, repeated.
-  const styleOrder: HookStyle[] = [];
-  if (memTopHookStyle) styleOrder.push(memTopHookStyle);
-  for (const s of HOOK_STYLES) if (!styleOrder.includes(s)) styleOrder.push(s);
+  // Hook-language-style rotation: the H axis of the Cartesian was
+  // previously the legacy 5-value HookStyle catalog; it now iterates
+  // the new 12-value HookLanguageStyle catalog so each batch surfaces
+  // far more language modes (confession, observation, instruction,
+  // time_stamp, …) instead of recycling the same 5 phrasing patterns.
+  //
+  // Memory bias for the legacy hookStyle is INTENTIONALLY DROPPED at
+  // the H axis — the memory module tracks `hookStyles` (5 buckets,
+  // populated by historical posts) but not `hookLanguageStyles` (the
+  // new axis has no historical signal yet). We still order templates
+  // by memTopStructure + memTopSpike above, so the creator's
+  // strongest structural pattern still surfaces first. The legacy
+  // memTopHookStyle remains computed (and read by the rewriter +
+  // novelty scorer paths) but no longer drives generation order.
+  const styleOrder: HookLanguageStyle[] = [...HOOK_LANGUAGE_STYLES];
+  // Reference memTopHookStyle so its computation isn't dead-code
+  // eliminated by the linter — the value still flows through
+  // memory-bias paths in tryRewrite + scorer; we just don't use it
+  // to reorder the H axis anymore (no historical signal for the new
+  // 12-value axis).
+  void memTopHookStyle;
 
   const seen = new Set<string>();
   const out: PatternCandidate[] = [];
-  // Salt the seed when regenerating so the (template, scenario, style)
-  // weave shifts deterministically — same inputs never produce the same
-  // 12 candidates twice in a row. Caller-supplied salt (typically a
-  // hash of the previous batch + a millisecond cursor) gives every
-  // regenerate call a different starting offset.
+  // Salt the seed when regenerating so the (template, scenario,
+  // languageStyle) weave shifts deterministically — same inputs never
+  // produce the same 12 candidates twice in a row. Caller-supplied
+  // salt (typically a hash of the previous batch + a millisecond
+  // cursor) gives every regenerate call a different starting offset.
   // Unsigned-coerce the salt up-front so every downstream modulo /
   // index expression — including `pickPhrasing(arr, i + seedSalt)` and
   // `(i * 3 + seedSalt) % 7` — is guaranteed non-negative even if a
@@ -1666,16 +2003,15 @@ export function generatePatternCandidates(
     : 0;
   const seedSalt = (rawSalt >>> 0);
 
-  // Cartesian-diagonal weave: each axis (template, scenario, style)
-  // advances every iteration at its own rate. With T=6, S=20, H=5 and
-  // target=16 this guarantees all 5 hookStyles, all 6 structures, and
-  // 16 distinct scenarios in the candidate pool — giving the Layer 4
-  // diversifier real material to enforce hard structure/style/family
-  // uniqueness on. The previous nested weave divided style by T*S=120,
-  // which meant every batch <=120 candidates was single-style.
-  // Memory bias is preserved because orderedTemplates is already
-  // sorted top-structure-first, so the first iteration still surfaces
-  // the creator's strongest pattern.
+  // Cartesian-diagonal weave: each axis (template, scenario,
+  // languageStyle) advances every iteration at its own rate. With
+  // T=6, S=25, H=12 and target=16 this guarantees a far broader
+  // language-mode spread per batch than the previous H=5 setup —
+  // the Layer 4 diversifier sees ≥12 distinct hookLanguageStyles
+  // available before any guard kicks in. The seen-key still
+  // includes hookLanguageStyle so two candidates with the same
+  // (templateId, scenarioFamily, languageStyle) triple are still
+  // de-duped.
   const T = orderedTemplates.length;
   const S = orderedScenarios.length;
   const H = styleOrder.length;
@@ -1694,20 +2030,21 @@ export function generatePatternCandidates(
   while (out.length < target && i < maxIter) {
     const t = orderedTemplates[(i + tOff) % T];
     const s = orderedScenarios[(i + sOff) % S];
-    const hs = styleOrder[(i + hOff) % H];
-    const key = `${t.id}|${s.family}|${hs}`;
+    const hls = styleOrder[(i + hOff) % H];
+    const key = `${t.id}|${s.family}|${hls}`;
     i++;
     if (seen.has(key)) continue;
     seen.add(key);
     // assembleCandidate returns null when NO phrasing in the chosen
-    // hookStyle passes `validateHook` for this scenario (e.g. every
-    // variant overruns 10 words for the longest actionShort). Skip
-    // the triple silently — the weave will offer many more before
-    // hitting maxIter.
+    // hookLanguageStyle passes `validateHook` for this scenario (e.g.
+    // every variant overruns 10 words for the longest realityShort,
+    // or every variant matches a banned-prefix). Skip the triple
+    // silently — the weave will offer many more before hitting
+    // maxIter (T·S·H = 6·25·12 = 1800 triples).
     const built = assembleCandidate(
       t,
       s,
-      hs,
+      hls,
       tone,
       i + seedSalt,
       (i * 3 + seedSalt) % 7,

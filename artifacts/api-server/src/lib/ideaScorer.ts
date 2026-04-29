@@ -21,9 +21,11 @@ import type { StyleProfile } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
 import {
   HOOK_PHRASINGS_BY_STYLE,
+  lookupBannedHookPrefix,
   lookupHookOpener,
   validateHook,
   type Energy,
+  type HookLanguageStyle,
   type HookOpener,
   type PatternMeta,
   type ScriptType,
@@ -146,6 +148,14 @@ export type CandidateMeta = PatternMeta | {
    */
   sceneObjectTag?: SceneObjectTag;
   sceneEnvCluster?: SceneEnvCluster;
+  /**
+   * HOOK STYLE spec axis (12 values). Pattern-variation candidates
+   * always set this. Llama / Claude fallback wraps may omit (no
+   * derivation path from raw hook text — the language mode is a
+   * generation-time choice, not a lookup); selector treats absent
+   * as "no contribution to hookLanguageStyle axis".
+   */
+  hookLanguageStyle?: HookLanguageStyle;
 };
 
 // -----------------------------------------------------------------------------
@@ -705,6 +715,24 @@ export type NoveltyContext = {
    * `unusedScriptTypesLast3` lever).
    */
   unusedSceneObjectTagsLast3?: ReadonlySet<SceneObjectTag>;
+  /**
+   * HOOK STYLE spec axis — immediate-prior-batch language modes.
+   * Used by `scoreNovelty` (binary fresh dim) and `selectionPenalty`
+   * (-3 demotion). Drives the regen-fresh-hookLanguageStyle rescue.
+   */
+  recentHookLanguageStyles?: ReadonlySet<HookLanguageStyle>;
+  /**
+   * HOOK STYLE spec axis — language modes that have NOT appeared in
+   * any of the last 3 batches. Computed as `HOOK_LANGUAGE_STYLES −
+   * union(last 3 batches' hookLanguageStyles)`. Used by
+   * `scoreNovelty` for the +2 catalog-rotate boost — sized smaller
+   * than the +3 scriptType / sceneObjectTag boosts because the new
+   * language axis ships with no historical signal yet (creator
+   * memory doesn't track it), so we don't want it to fight the
+   * scriptType / archetype levers when those have stronger
+   * evidence.
+   */
+  unusedHookLanguageStylesLast3?: ReadonlySet<HookLanguageStyle>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -750,6 +778,12 @@ function metaSceneObjectTag(m: CandidateMeta): SceneObjectTag | undefined {
   return m.sceneObjectTag;
 }
 
+function metaHookLanguageStyle(
+  m: CandidateMeta,
+): HookLanguageStyle | undefined {
+  return m.hookLanguageStyle;
+}
+
 function metaSceneEnvCluster(m: CandidateMeta): SceneEnvCluster | undefined {
   return m.sceneEnvCluster;
 }
@@ -784,6 +818,7 @@ export function scoreNovelty(
   const scripts = new Set<ScriptType>();
   const archetypes = new Set<Archetype>();
   const sceneTags = new Set<SceneObjectTag>();
+  const langStyles = new Set<HookLanguageStyle>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -801,6 +836,8 @@ export function scoreNovelty(
     if (arc) archetypes.add(arc);
     const sot = metaSceneObjectTag(b.meta);
     if (sot) sceneTags.add(sot);
+    const hls = metaHookLanguageStyle(b.meta);
+    if (hls) langStyles.add(hls);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -878,23 +915,41 @@ export function scoreNovelty(
     !!sot &&
     !sceneTags.has(sot) &&
     !(ctx.recentSceneObjectTags?.has(sot) ?? false);
+  // K. HookLanguageStyle novelty — HOOK STYLE spec axis. Fresh on
+  //    BOTH within-batch and immediate-prior-batch. The new axis is
+  //    primary for hook diversity; we treat it as binary fresh dim
+  //    (parallel to opFresh) so the soft selector nudges toward 3
+  //    distinct language modes per batch (the HARD reject in
+  //    batchGuardsPass only blocks the all-3-identical worst case).
+  const hls = metaHookLanguageStyle(c.meta);
+  const hlsFresh =
+    !!hls &&
+    !langStyles.has(hls) &&
+    !(ctx.recentHookLanguageStyles?.has(hls) ?? false);
 
-  // K. Unused-in-last-3-batches "rotate the catalog" boost — large
+  // L. Unused-in-last-3-batches "rotate the catalog" boost — large
   //    +3 when this scriptType has not appeared in any of the last
   //    3 batches. Spec's headline lever for breaking the "same
   //    mental loop" failure mode: makes catalog rotation a real,
   //    not theoretical, force at pick time. Stacks on top of the
   //    per-axis fresh signals so a fresh-on-every-axis pick of a
-  //    catalog-cold scriptType gets +10 + 3 + 3 = +16 over a clone pick.
+  //    catalog-cold scriptType gets +11 + 3 + 3 + 2 = +19 over a clone pick.
   const unusedBoost =
     sct && (ctx.unusedScriptTypesLast3?.has(sct) ?? false) ? 3 : 0;
-  // L. Unused-tag boost — parallel +3 lever on the scene-object axis.
+  // M. Unused-tag boost — parallel +3 lever on the scene-object axis.
   //    A catalog-cold sceneObjectTag (no appearance in the last 3
   //    batches) gets the same +3 nudge. Stacks with the scriptType
   //    boost so a pick that's fresh-cold on BOTH axes can score
-  //    up to +10 + 6 = +16 over a clone.
+  //    up to +11 + 6 + 2 = +19 over a clone.
   const unusedTagBoost =
     sot && (ctx.unusedSceneObjectTagsLast3?.has(sot) ?? false) ? 3 : 0;
+  // N. Unused-language-style boost — parallel +2 lever on the new
+  //    HookLanguageStyle axis. Sized smaller (+2 not +3) because the
+  //    axis is brand-new with no historical signal yet — we don't
+  //    want it to outweigh the well-evidenced scriptType / scene-
+  //    object levers when forced to choose.
+  const unusedLangBoost =
+    hls && (ctx.unusedHookLanguageStylesLast3?.has(hls) ?? false) ? 2 : 0;
 
   return (
     (hookFresh ? 1 : 0) +
@@ -907,8 +962,10 @@ export function scoreNovelty(
     (sctFresh ? 1 : 0) +
     (arcFresh ? 1 : 0) +
     (sotFresh ? 1 : 0) +
+    (hlsFresh ? 1 : 0) +
     unusedBoost +
-    unusedTagBoost
+    unusedTagBoost +
+    unusedLangBoost
   );
 }
 
@@ -967,6 +1024,7 @@ export function selectionPenalty(
     const archetypes = new Set<Archetype>();
     const archetypeFamilies = new Set<ArchetypeFamily>();
     const sceneClusters = new Set<SceneEnvCluster>();
+    const langStyles = new Set<HookLanguageStyle>();
     for (const b of batchSoFar) {
       styles.add(b.idea.hookStyle);
       if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -986,6 +1044,8 @@ export function selectionPenalty(
       if (arcFam) archetypeFamilies.add(arcFam);
       const sec = metaSceneEnvCluster(b.meta);
       if (sec) sceneClusters.add(sec);
+      const hls = metaHookLanguageStyle(b.meta);
+      if (hls) langStyles.add(hls);
     }
     if (styles.has(c.idea.hookStyle)) p -= 2;
     if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -1018,6 +1078,14 @@ export function selectionPenalty(
     // this nudges the soft selector toward the same outcome.
     const csec = metaSceneEnvCluster(c.meta);
     if (csec && sceneClusters.has(csec)) p -= 1;
+    // HOOK STYLE spec — within-batch language-mode demotion. -2 for
+    // a collision (one already-picked candidate has same hookLanguageStyle).
+    // Soft nudge toward 3 distinct modes; the HARD reject in
+    // batchGuardsPass blocks only the all-3-identical worst case so
+    // a 2-of-same batch is still possible and gets this -2 to
+    // discourage the third clone.
+    const chls = metaHookLanguageStyle(c.meta);
+    if (chls && langStyles.has(chls)) p -= 2;
   }
   // Cross-batch tiered scriptType demotion (in addition to the
   // within-batch -2). The two tiers stack: a scriptType that's
@@ -1040,5 +1108,23 @@ export function selectionPenalty(
     if (ctx.recentSceneObjectTags?.has(csotCross) ?? false) p -= 3;
     if (ctx.frequentSceneObjectTagsLast3?.has(csotCross) ?? false) p -= 2;
   }
+  // HOOK STYLE spec — cross-batch hookLanguageStyle demotion. -3
+  // when this candidate's language mode appeared in the immediate-
+  // prior batch. Single-tier (no frequent-last-3 stack) because the
+  // axis is brand-new with no historical signal yet — start
+  // conservative and let the +2 unused-language boost do most of
+  // the rotation work.
+  const chlsCross = metaHookLanguageStyle(c.meta);
+  if (chlsCross) {
+    if (ctx.recentHookLanguageStyles?.has(chlsCross) ?? false) p -= 3;
+  }
+  // PART 4 — banned-phrasing penalty. -5 when the rendered hook
+  // matches any banned-prefix regex (the catalog never produces
+  // these but Llama / Claude fallback hooks can). Stacks with the
+  // hard reject in `validateHook` (which strips them at generation
+  // time) — this penalty is the belt-and-suspenders second line
+  // for any candidate that somehow slipped through (e.g. a Llama
+  // mutation that re-introduced a banned prefix on rewrite).
+  if (lookupBannedHookPrefix(c.idea.hook)) p -= 5;
   return p;
 }

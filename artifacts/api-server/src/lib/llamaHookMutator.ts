@@ -136,32 +136,52 @@ export function shouldMutateBatch(
 
   if (ctx.regenerate) return "regenerate";
 
-  // (2) In-batch templated phrasing — repeated openers OR repeated families.
+  // (2) In-batch templated phrasing — repeated openers OR repeated families
+  // OR repeated hookLanguageStyle. The hookLanguageStyle count parallels
+  // the opener count: identical language mode across ≥2 picks reads as
+  // the same monologue voice repeated, even when the literal opener
+  // strings differ. HOOK STYLE spec PART 7 — extends the existing
+  // templated_openers trigger rather than introducing a new code (the
+  // remediation pickMutationTargets does for templated_openers — mutate
+  // ALL picks — is exactly what we want here).
   const openerCounts = new Map<string, number>();
   const familyCounts = new Map<string, number>();
+  const langStyleCounts = new Map<string, number>();
   for (const c of batch) {
     const op =
       c.meta.hookOpener ?? lookupHookOpener(c.idea.hook) ?? null;
     if (op) openerCounts.set(op, (openerCounts.get(op) ?? 0) + 1);
     const fam = c.meta.scenarioFamily;
     if (fam) familyCounts.set(fam, (familyCounts.get(fam) ?? 0) + 1);
+    const hls = c.meta.hookLanguageStyle;
+    if (hls) langStyleCounts.set(hls, (langStyleCounts.get(hls) ?? 0) + 1);
   }
   for (const n of openerCounts.values()) if (n >= 2) return "templated_openers";
   for (const n of familyCounts.values()) if (n >= 2) return "templated_openers";
+  for (const n of langStyleCounts.values()) if (n >= 2) return "templated_openers";
 
-  // (3) Cross-batch similarity — at least 2 picks overlap with recent history
-  // on family / topic / visualAction.
+  // (3) Cross-batch similarity — at least 2 picks overlap with recent
+  // history on family / topic / visualAction / hookLanguageStyle. The
+  // hookLanguageStyle membership check is the spec's
+  // "hookSimilarityScore vs recent" proxy: when 2+ picks repeat the
+  // immediate-prior batch's language mode the day's voice has stalled,
+  // exactly the situation this trigger was designed for.
   let overlapCount = 0;
   for (const c of batch) {
     const fam = c.meta.scenarioFamily;
     const topic = c.meta.topicLane;
     const visual = c.meta.visualActionPattern;
+    const hls = c.meta.hookLanguageStyle;
     const overlapsFamily = fam ? ctx.novelty.recentFamilies?.has(fam) : false;
     const overlapsTopic = topic ? ctx.novelty.recentTopics?.has(topic) : false;
     const overlapsVisual = visual
       ? ctx.novelty.recentVisualActions?.has(visual)
       : false;
-    if (overlapsFamily || overlapsTopic || overlapsVisual) overlapCount++;
+    const overlapsLang = hls
+      ? ctx.novelty.recentHookLanguageStyles?.has(hls)
+      : false;
+    if (overlapsFamily || overlapsTopic || overlapsVisual || overlapsLang)
+      overlapCount++;
   }
   if (overlapCount >= 2) return "recent_history_similarity";
 

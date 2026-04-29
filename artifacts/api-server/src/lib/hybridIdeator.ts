@@ -31,6 +31,7 @@ import {
 } from "./ideaGen";
 import {
   generatePatternCandidates,
+  HOOK_LANGUAGE_STYLES,
   lookupHookOpener,
   lookupScriptType,
   lookupTopicLane,
@@ -38,6 +39,7 @@ import {
   SCRIPT_TYPE_CLUSTERS,
   SCRIPT_TYPES,
   type Energy,
+  type HookLanguageStyle,
   type HookOpener,
   type PatternCandidate,
   type ScriptType,
@@ -340,6 +342,22 @@ export function batchGuardsPass(batch: ScoredCandidate[]): boolean {
   ) {
     return false;
   }
+  // HOOK STYLE spec — HARD reject only the all-3-identical worst case.
+  // Softer than the archetype max-1 rule (per spec): 2-of-same is
+  // allowed (the soft -2 within-batch penalty in selectionPenalty
+  // discourages it without rejecting the whole batch). Skip when
+  // fields missing on legacy / fallback entries — they neither
+  // contribute to the count nor block the guard.
+  const langStyles: HookLanguageStyle[] = [];
+  for (const b of batch) {
+    if (b.meta.hookLanguageStyle) langStyles.push(b.meta.hookLanguageStyle);
+  }
+  if (
+    langStyles.length === batch.length &&
+    new Set(langStyles).size === 1
+  ) {
+    return false;
+  }
   // No more than 2 share scriptType — narrative-shape diversity. The
   // headline anti-clone guard from the script-diversity spec: without
   // it, 3 picks with distinct families but identical narrative shape
@@ -559,6 +577,45 @@ export function batchHasNewSceneObjectTag(
 }
 
 /**
+ * Count distinct fresh hookLanguageStyles in `batch` — i.e. styles
+ * present in `batch` but absent from `recent`. HOOK STYLE spec
+ * regen-rescue helper. Skips picks without the field (legacy /
+ * fallback) so a partially-tagged batch still contributes its
+ * tagged picks to the count.
+ */
+export function countNewHookLanguageStyles(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<HookLanguageStyle> | undefined,
+): number {
+  const seen = new Set<HookLanguageStyle>();
+  for (const c of batch) {
+    const hls = c.meta.hookLanguageStyle;
+    if (!hls) continue;
+    if (recent && recent.size > 0 && recent.has(hls)) continue;
+    seen.add(hls);
+  }
+  return seen.size;
+}
+
+/**
+ * Predicate for the regen-fresh-hookLanguageStyle rescue: at least
+ * one pick carries a hookLanguageStyle NOT in `recent`. Same
+ * vacuously-true + skip-missing-fields discipline as the
+ * sceneObjectTag variant above.
+ */
+export function batchHasNewHookLanguageStyle(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<HookLanguageStyle> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const hls = c.meta.hookLanguageStyle;
+    if (hls && !recent.has(hls)) return true;
+  }
+  return false;
+}
+
+/**
  * Predicate for the regen-fresh-scriptType rescue path. Returns true
  * when at least one pick in `batch` carries a scriptType that is NOT
  * in the immediate-prior batch's `recent` set. Vacuously true when
@@ -707,6 +764,46 @@ export function selectWithNovelty(
       );
     }
   }
+  // HOOK STYLE spec rescue: when regenerating, the picked batch MUST
+  // introduce at least one hookLanguageStyle that wasn't in the
+  // immediate-prior batch. ExtraGuard composes with ALL THREE prior
+  // invariants (scriptType + archetypeFamily + sceneObjectTag) so this
+  // pass cannot silently downgrade any of them. Same warn-and-ship-
+  // best-effort discipline as the prior rescues.
+  if (
+    opts.regenerate &&
+    chosen &&
+    (ctx.recentHookLanguageStyles?.size ?? 0) > 0 &&
+    !batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles)
+  ) {
+    const fresh = exhaustiveReselect(
+      pool,
+      count,
+      ctx,
+      (b) =>
+        batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) &&
+        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
+          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
+        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
+        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
+    );
+    if (fresh) {
+      chosen = fresh;
+    } else {
+      logger.warn(
+        {
+          recentHookLanguageStyles: Array.from(
+            ctx.recentHookLanguageStyles ?? [],
+          ),
+          poolSize: pool.length,
+          count,
+        },
+        "hybrid_ideator.regen_no_new_hook_language_style_shipping_best_effort",
+      );
+    }
+  }
   // SOFT preference (script-system FINAL spec §6): when regenerating,
   // prefer ≥2 fresh scriptTypes vs the immediate-prior batch. The hard
   // ≥1-fresh guarantee is handled above; this pass tries to upgrade
@@ -715,9 +812,9 @@ export function selectWithNovelty(
   // fails, no warn (1-fresh already meets the hard requirement).
   //
   // CRITICAL: extraGuard MUST also preserve the new archetypeFamily +
-  // sceneObjectTag invariants when those rescues fired — otherwise
-  // upgrading 1-fresh-script to 2-fresh-script could silently sacrifice
-  // a freshly-rescued archetypeFamily / sceneObjectTag.
+  // sceneObjectTag + hookLanguageStyle invariants when those rescues
+  // fired — otherwise upgrading 1-fresh-script to 2-fresh-script could
+  // silently sacrifice a freshly-rescued sibling axis.
   if (
     opts.regenerate &&
     chosen &&
@@ -733,7 +830,9 @@ export function selectWithNovelty(
         ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
           batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
         ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
+        ((ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
     );
     if (twoFresh) chosen = twoFresh;
   }
@@ -745,12 +844,12 @@ export function selectWithNovelty(
   // since the spec applies to all batches.
   //
   // CRITICAL: this pass MUST preserve the freshness invariant of the
-  // currently-chosen batch on ALL THREE axes (scriptType, archetype-
-  // Family, sceneObjectTag) — otherwise it could silently downgrade
-  // a fresh-rescued batch into an active-but-stale batch, violating
-  // the spec's hard regen guarantees. We snapshot the current fresh
-  // count on each axis and only accept active candidates that match
-  // or exceed it.
+  // currently-chosen batch on ALL FOUR axes (scriptType, archetype-
+  // Family, sceneObjectTag, hookLanguageStyle) — otherwise it could
+  // silently downgrade a fresh-rescued batch into an active-but-stale
+  // batch, violating the spec's hard regen guarantees. We snapshot
+  // the current fresh count on each axis and only accept active
+  // candidates that match or exceed it.
   if (chosen && !batchHasActive(chosen)) {
     const minFreshScriptRequired =
       opts.regenerate && (ctx.recentScriptTypes?.size ?? 0) > 0
@@ -764,6 +863,10 @@ export function selectWithNovelty(
       opts.regenerate &&
       (ctx.recentSceneObjectTags?.size ?? 0) > 0 &&
       batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags);
+    const requireFreshLang =
+      opts.regenerate &&
+      (ctx.recentHookLanguageStyles?.size ?? 0) > 0 &&
+      batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles);
     const active = exhaustiveReselect(
       pool,
       count,
@@ -774,7 +877,9 @@ export function selectWithNovelty(
         (!requireFreshFamily ||
           batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
         (!requireFreshTag ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
+        (!requireFreshLang ||
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
     );
     if (active) chosen = active;
   }
@@ -841,20 +946,29 @@ function buildNoveltyContext(
   const recentArchetypes = new Set<Archetype>();
   const recentArchetypeFamilies = new Set<ArchetypeFamily>();
   const recentSceneObjectTags = new Set<SceneObjectTag>();
+  // HOOK STYLE spec — immediate-prior-batch language modes. Read
+  // directly off the cache entry (first-class field, no derivation
+  // path from family / hook). Legacy entries written before the
+  // field existed contribute nothing — that's the right behavior:
+  // an absent tag should NOT appear in the "recent" set or it would
+  // poison the +2 unused-boost / -3 demotion semantics.
+  const recentHookLanguageStyles = new Set<HookLanguageStyle>();
   const immediatePrior = last3Batches[0] ?? [];
   for (const e of immediatePrior) {
-    if (!e.family) continue;
-    const st = lookupScriptType(e.family, e.templateId);
-    if (st) {
-      recentScriptTypes.add(st);
-      const arc = resolveArchetypeLoose(st);
-      if (arc) {
-        recentArchetypes.add(arc.archetype);
-        recentArchetypeFamilies.add(arc.family);
+    if (e.family) {
+      const st = lookupScriptType(e.family, e.templateId);
+      if (st) {
+        recentScriptTypes.add(st);
+        const arc = resolveArchetypeLoose(st);
+        if (arc) {
+          recentArchetypes.add(arc.archetype);
+          recentArchetypeFamilies.add(arc.family);
+        }
       }
+      const tag = lookupSceneObjectTag(e.family);
+      if (tag) recentSceneObjectTags.add(tag);
     }
-    const tag = lookupSceneObjectTag(e.family);
-    if (tag) recentSceneObjectTags.add(tag);
+    if (e.hookLanguageStyle) recentHookLanguageStyles.add(e.hookLanguageStyle);
   }
   for (const e of prev) {
     if (e.family) {
@@ -881,6 +995,13 @@ function buildNoveltyContext(
   // = frequent; catalog minus union = unused).
   let frequentSceneObjectTagsLast3: ReadonlySet<SceneObjectTag> | undefined;
   let unusedSceneObjectTagsLast3: ReadonlySet<SceneObjectTag> | undefined;
+  // HOOK STYLE spec — only the unused-last-3 tier on this axis (no
+  // frequent-last-3 stack). Sized smaller (+2 boost in scoreNovelty
+  // vs +3 for scriptType / sceneObjectTag) because the axis is brand
+  // new with no historical signal yet — start conservative.
+  let unusedHookLanguageStylesLast3:
+    | ReadonlySet<HookLanguageStyle>
+    | undefined;
   if (last3Batches.length > 0) {
     // Per-batch scriptType sets — one Set per batch so we can count
     // how many batches each scriptType appeared in (≥2 ⇒ frequent).
@@ -936,6 +1057,25 @@ function buildNoveltyContext(
     unusedSceneObjectTagsLast3 = new Set(
       SCENE_OBJECT_TAGS.filter((t) => !tagSeenAny.has(t)),
     );
+
+    // HOOK STYLE spec — unused-in-last-3 on the language-style axis.
+    // Source = first-class `hookLanguageStyle` field on each cache
+    // entry (no derivation from family / hook). Legacy entries
+    // without the field don't contribute to seenAny — that means
+    // their styles won't be subtracted from the catalog, so the
+    // unused set may temporarily look broader than reality. That's
+    // safe: the +2 boost just gets handed out a touch more
+    // generously until the cache rolls forward with envelopes that
+    // include the new field.
+    const langSeenAny = new Set<HookLanguageStyle>();
+    for (const batch of last3Batches) {
+      for (const e of batch) {
+        if (e.hookLanguageStyle) langSeenAny.add(e.hookLanguageStyle);
+      }
+    }
+    unusedHookLanguageStylesLast3 = new Set(
+      HOOK_LANGUAGE_STYLES.filter((s) => !langSeenAny.has(s)),
+    );
   }
 
   return {
@@ -953,6 +1093,8 @@ function buildNoveltyContext(
     recentSceneObjectTags,
     frequentSceneObjectTagsLast3,
     unusedSceneObjectTagsLast3,
+    recentHookLanguageStyles,
+    unusedHookLanguageStylesLast3,
   };
 }
 
@@ -964,6 +1106,16 @@ type CachedBatchEntry = {
   idea: Idea;
   family?: string;
   templateId?: string;
+  /**
+   * HOOK STYLE spec axis (12 values). Persisted in cache so
+   * `buildNoveltyContext` can derive `recentHookLanguageStyles` and
+   * `unusedHookLanguageStylesLast3` without an in-memory state. Cache
+   * is JSONB so adding the field is non-breaking; legacy entries
+   * without it just don't contribute to the cross-batch hook-language
+   * lever (the +2 unused-boost / -3 cross-batch demotion silently
+   * stay quiet until the next regen writes a new envelope).
+   */
+  hookLanguageStyle?: HookLanguageStyle;
 };
 
 /**
@@ -1005,9 +1157,21 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         idea: unknown;
         family?: unknown;
         templateId?: unknown;
+        hookLanguageStyle?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
+      // hookLanguageStyle is tolerantly parsed: only adopt it when the
+      // string matches a registered language-style value. Unknown
+      // values (legacy entries / typos / future-rename drift) silently
+      // drop to undefined so the cross-batch lever just stays quiet
+      // for that entry rather than corrupting the context Set.
+      const hlsRaw = wrapper.hookLanguageStyle;
+      const hookLanguageStyle: HookLanguageStyle | undefined =
+        typeof hlsRaw === "string" &&
+        (HOOK_LANGUAGE_STYLES as readonly string[]).includes(hlsRaw)
+          ? (hlsRaw as HookLanguageStyle)
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1016,6 +1180,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
           typeof wrapper.templateId === "string"
             ? wrapper.templateId
             : undefined,
+        hookLanguageStyle,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -1188,6 +1353,7 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     family: c.meta.scenarioFamily,
     templateId:
       c.meta.source === "pattern_variation" ? c.meta.templateId : undefined,
+    hookLanguageStyle: c.meta.hookLanguageStyle,
   }));
 }
 
@@ -1652,6 +1818,7 @@ export async function runHybridIdeator(
           idea: c.idea,
           family: c.meta.scenarioFamily,
           templateId: c.meta.templateId,
+          hookLanguageStyle: c.meta.hookLanguageStyle,
         }));
       await persistCache(input.creator, rescueEntries);
     }
