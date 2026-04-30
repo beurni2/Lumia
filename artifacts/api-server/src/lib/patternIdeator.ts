@@ -2839,6 +2839,395 @@ export type HookLanguageStyle = (typeof HOOK_LANGUAGE_STYLES)[number];
 export const HOOK_INTENTS = ["scroll_stop", "compulsion", "relatable"] as const;
 export type HookIntent = (typeof HOOK_INTENTS)[number];
 
+/* ------------------------------------------------------------------ */
+/* Phase 5 — PATTERN MAPPING LAYER                                     */
+/*                                                                    */
+/* A 12-value typed VIDEO PATTERN axis layered ABOVE the existing      */
+/* legacy `idea.pattern: string` field (which stays untouched — the    */
+/* string field carries template-derived shape labels like "loop" /   */
+/* "escalation" / "anticlimax" and is consumed by older selector      */
+/* paths). VideoPattern is a parallel typed axis whose values map to  */
+/* concrete filming approaches with explicit beats, pacing, and       */
+/* camera style. Each idea gains `filmingGuide: string[]` derived     */
+/* directly from the chosen pattern's beats — this is what the        */
+/* creator-facing UI shows ("how to actually film this idea").        */
+/*                                                                    */
+/* SELECTION: pickVideoPattern walks PATTERN_BY_FAMILY[family] ∩      */
+/* PATTERN_X_INTENT_COMPAT[hookIntent], ranking surviving candidates  */
+/* by inverse recency (unused patterns boosted, recently-used         */
+/* penalized) with a seed-deterministic tie-break. When the           */
+/* family∩intent intersection is empty, falls back to family-only and */
+/* sets `intentFallback=true` for telemetry — never returns null.     */
+/*                                                                    */
+/* DIVERSITY: max 2 picks share videoPattern per batch (hard guard    */
+/* `h2` in batchGuardsPass, mirrors the existing legacy `idea.pattern */
+/* ` cap). Cross-batch novelty: NoveltyContext.recentVideoPatterns +  */
+/* selectionPenalty -3 per match (mirrors hookIntent / family levers).*/
+/*                                                                    */
+/* JSONB COMPAT: `videoPattern` on PatternMeta and `filmingGuide` on  */
+/* Idea are BOTH OPTIONAL so cached pre-Phase-5 candidates round-trip */
+/* cleanly — readers MUST treat absent as "no contribution to the     */
+/* video-pattern axis" (same discipline as `voiceProfile`/`trendId`). */
+/* ------------------------------------------------------------------ */
+
+export const VIDEO_PATTERNS = [
+  "silent_reaction",
+  "escalation",
+  "micro_story",
+  "before_after",
+  "pov_internal",
+  "loop_behavior",
+  "object_pov",
+  "delayed_reaction",
+  "montage_repeat",
+  "confidence_collapse",
+  "deadpan_statement",
+  "cut_before_end",
+] as const;
+export type VideoPattern = (typeof VIDEO_PATTERNS)[number];
+
+export type VideoPatternDef = {
+  id: VideoPattern;
+  /** 3-5 ordered shot beats. Becomes `idea.filmingGuide` verbatim. */
+  beats: readonly string[];
+  pacing: "fast" | "medium" | "slow";
+  cameraStyle: string;
+  typicalDuration: "short" | "medium";
+};
+
+export const PATTERN_DEFS: Record<VideoPattern, VideoPatternDef> = {
+  silent_reaction: {
+    id: "silent_reaction",
+    beats: [
+      "open on the trigger moment (object, screen, or event in frame)",
+      "cut to your face — hold a flat, unreacting expression",
+      "small involuntary tell (slow blink, eye dart, exhale)",
+      "cut on the held look",
+    ],
+    pacing: "slow",
+    cameraStyle: "static eye-level, single locked frame on face",
+    typicalDuration: "short",
+  },
+  escalation: {
+    id: "escalation",
+    beats: [
+      "first attempt — small, controlled, looks fine",
+      "second attempt — slightly worse, you adjust",
+      "third attempt — visibly worse, you commit harder",
+      "final attempt — full failure, you stop",
+    ],
+    pacing: "fast",
+    cameraStyle: "single locked frame, jump-cut between attempts",
+    typicalDuration: "medium",
+  },
+  micro_story: {
+    id: "micro_story",
+    beats: [
+      "establish the everyday setup in 1 shot",
+      "show the small specific behavior the hook names",
+      "show the result of that behavior",
+      "land on the unspoken takeaway (face or object)",
+    ],
+    pacing: "medium",
+    cameraStyle: "two locked frames, scene + reaction",
+    typicalDuration: "medium",
+  },
+  before_after: {
+    id: "before_after",
+    beats: [
+      "before-state shot — clear, framed identically to the after",
+      "transition cut (no swipe, just hard cut)",
+      "after-state shot — same framing, the change is the only diff",
+      "optional 1-beat hold on the after",
+    ],
+    pacing: "fast",
+    cameraStyle: "matched framing both sides, hard cut center",
+    typicalDuration: "short",
+  },
+  pov_internal: {
+    id: "pov_internal",
+    beats: [
+      "first-person POV of the situation as you see it",
+      "overlay or voiceover of the inner monologue",
+      "external behavior that contradicts the monologue",
+      "hold the gap between thought and action",
+    ],
+    pacing: "medium",
+    cameraStyle: "handheld POV, your hands in frame, text overlay for thoughts",
+    typicalDuration: "medium",
+  },
+  loop_behavior: {
+    id: "loop_behavior",
+    beats: [
+      "show the behavior once, fully",
+      "cut and show it again, slightly different angle",
+      "cut and show it a third time — same behavior, no progress",
+      "end on the loop continuing (no resolution)",
+    ],
+    pacing: "medium",
+    cameraStyle: "rotating angles around a single repeating action",
+    typicalDuration: "medium",
+  },
+  object_pov: {
+    id: "object_pov",
+    beats: [
+      "frame the object as the subject (low angle, fills frame)",
+      "the object's perspective on what it 'sees' you do",
+      "the object reacts (or doesn't) to your behavior",
+      "cut on the object, not on you",
+    ],
+    pacing: "medium",
+    cameraStyle: "low-angle on object, you in background or out of frame",
+    typicalDuration: "short",
+  },
+  delayed_reaction: {
+    id: "delayed_reaction",
+    beats: [
+      "the trigger event happens — you don't react",
+      "continue what you were doing, fully composed",
+      "beat passes (1-3 seconds of normal behavior)",
+      "the reaction lands late, sudden, and disproportionate",
+    ],
+    pacing: "slow",
+    cameraStyle: "static frame on you, no cuts until the late reaction",
+    typicalDuration: "medium",
+  },
+  montage_repeat: {
+    id: "montage_repeat",
+    beats: [
+      "same action, different setting #1",
+      "same action, different setting #2",
+      "same action, different setting #3",
+      "optional 4th — the action becomes the punchline",
+    ],
+    pacing: "fast",
+    cameraStyle: "matched framing across locations, hard cuts between",
+    typicalDuration: "short",
+  },
+  confidence_collapse: {
+    id: "confidence_collapse",
+    beats: [
+      "open at peak confidence — you commit fully to the bit",
+      "first crack — something off-camera or in-frame undermines it",
+      "visible shift in your expression as the confidence drains",
+      "land on the collapsed version of the same pose / phrase",
+    ],
+    pacing: "medium",
+    cameraStyle: "single locked frame, no cut — the collapse plays in one take",
+    typicalDuration: "medium",
+  },
+  deadpan_statement: {
+    id: "deadpan_statement",
+    beats: [
+      "open on a static frame of you, eye-level",
+      "deliver the statement flat, no inflection",
+      "hold the frame after the statement (1-2 seconds of silence)",
+      "cut on the held silence, not on the line",
+    ],
+    pacing: "slow",
+    cameraStyle: "static eye-level, talking-head, no cuts during delivery",
+    typicalDuration: "short",
+  },
+  cut_before_end: {
+    id: "cut_before_end",
+    beats: [
+      "build the action toward an obvious payoff",
+      "the moment before the payoff lands, cut",
+      "leave the resolution implied, not shown",
+      "(no 4th beat — the cut IS the ending)",
+    ],
+    pacing: "fast",
+    cameraStyle: "single moving or static frame, hard cut on the anticipation peak",
+    typicalDuration: "short",
+  },
+};
+
+/**
+ * IdeaCoreFamily → allowed VideoPattern[].
+ *
+ * The Phase 5 spec lists 8 ideaCoreType-keyed mappings (overthinking,
+ * avoidance, failure_contradiction, absurd_escalation, micro_win,
+ * social_behavior, identity_conflict, time_distortion). Lumina's
+ * actual taxonomy has 12 IdeaCoreFamilies. Mapping reconciles
+ * semantically:
+ *   - overthinking         → emotional_loop + decision_paralysis
+ *   - avoidance            → ritual_disruption
+ *   - failure_contradiction → failure_contradiction (exact)
+ *   - absurd_escalation    → environmental_chaos
+ *   - micro_win            → anti_climax
+ *   - social_behavior      → social_friction
+ *   - identity_conflict    → identity_drift
+ *   - time_distortion      → time_distortion (exact)
+ *
+ * Three families are NOT in the spec (physical_betrayal,
+ * information_asymmetry, memory_glitch). They get curated mappings
+ * consistent with their narrative semantics — see inline notes.
+ *
+ * Every family resolves to ≥2 patterns, and every pattern appears
+ * in at least one family entry. The selector intersects this set
+ * with PATTERN_X_INTENT_COMPAT — the intersection is non-empty for
+ * every (family, intent) combo across the full 12×3 Cartesian
+ * (verified by the QA driver).
+ */
+export const PATTERN_BY_FAMILY: Record<IdeaCoreFamily, readonly VideoPattern[]> = {
+  // overthinking — quiet rumination + recursive thought
+  emotional_loop: ["pov_internal", "loop_behavior", "silent_reaction"],
+  // exact spec match
+  failure_contradiction: ["before_after", "micro_story", "confidence_collapse"],
+  // overthinking, decision-flavored
+  decision_paralysis: ["pov_internal", "loop_behavior", "delayed_reaction"],
+  // social_behavior
+  social_friction: ["montage_repeat", "pov_internal", "micro_story"],
+  // exact spec match
+  time_distortion: ["loop_behavior", "montage_repeat"],
+  // identity_conflict
+  identity_drift: ["before_after", "delayed_reaction", "confidence_collapse"],
+  // NOT in spec — body-failing typically plays as quiet observation
+  // ("the small humiliation of the body"). silent_reaction lands the
+  // muted shock, micro_story frames the everyday setup, and
+  // deadpan_statement gives the dry verbal acknowledgment lane.
+  physical_betrayal: ["silent_reaction", "micro_story", "deadpan_statement"],
+  // NOT in spec — the gap between what one party knows and what
+  // another party shows. pov_internal carries the inner-knower
+  // angle, delayed_reaction carries the late-realization angle,
+  // before_after carries the "you knew / now you don't" cut.
+  information_asymmetry: ["pov_internal", "delayed_reaction", "before_after"],
+  // absurd_escalation
+  environmental_chaos: ["escalation", "object_pov", "montage_repeat"],
+  // NOT in spec — forgetting and misremembering play as quiet pause +
+  // repetition. loop_behavior carries the rerun, silent_reaction
+  // carries the held blank, delayed_reaction carries the eventual
+  // catch-up.
+  memory_glitch: ["loop_behavior", "silent_reaction", "delayed_reaction"],
+  // avoidance
+  ritual_disruption: ["micro_story", "deadpan_statement", "before_after"],
+  // micro_win
+  anti_climax: ["cut_before_end", "deadpan_statement", "silent_reaction"],
+};
+
+/**
+ * VideoPattern × HookIntent compatibility.
+ *
+ * Spec PART 5 lists compat for 10 of 12 patterns:
+ *   - scroll_stop : silent_reaction, deadpan_statement, object_pov
+ *   - compulsion  : escalation, cut_before_end, delayed_reaction
+ *   - relatable   : micro_story, loop_behavior, pov_internal,
+ *                   montage_repeat
+ *
+ * The remaining 2 patterns (before_after, confidence_collapse) are
+ * curated additions:
+ *   - before_after        → scroll_stop + relatable
+ *     (scroll_stop because the matched-framing hard cut is a strong
+ *     visual hook; relatable because the change being shown IS the
+ *     specific thing being claimed.)
+ *   - confidence_collapse → compulsion + relatable
+ *     (compulsion because the build-up demands the payoff; relatable
+ *     because the collapse IS the admission the hook is making.)
+ *
+ * Stored INTENT-INDEXED (not PATTERN-indexed) so isPatternCompatible
+ * can scan a small list per call. Both directions are covered by
+ * the QA driver to catch any future drift.
+ */
+export const PATTERN_X_INTENT_COMPAT: Record<HookIntent, readonly VideoPattern[]> = {
+  scroll_stop: [
+    "silent_reaction",
+    "deadpan_statement",
+    "object_pov",
+    "before_after",
+  ],
+  compulsion: [
+    "escalation",
+    "cut_before_end",
+    "delayed_reaction",
+    "confidence_collapse",
+  ],
+  relatable: [
+    "micro_story",
+    "loop_behavior",
+    "pov_internal",
+    "montage_repeat",
+    "before_after",
+    "confidence_collapse",
+  ],
+};
+
+export function isPatternCompatible(
+  pattern: VideoPattern,
+  intent: HookIntent,
+): boolean {
+  return PATTERN_X_INTENT_COMPAT[intent].includes(pattern);
+}
+
+/**
+ * pickVideoPattern — the Phase 5 selector.
+ *
+ * Walks PATTERN_BY_FAMILY[family] ∩ PATTERN_X_INTENT_COMPAT[intent],
+ * ranking the survivors by inverse recency (unused patterns first,
+ * recently-used patterns last). Ties are broken deterministically by
+ * a fold of the seed so the same (family, intent, recent, seed)
+ * inputs always produce the same pick.
+ *
+ * INTENT FALLBACK: when the intersection is empty (no allowed-by-
+ * family pattern is also intent-compat), the selector falls back to
+ * family-only and sets `intentFallback=true`. By construction across
+ * the full 12-family × 3-intent Cartesian the intersection is
+ * never empty (see the QA driver), so this fallback is paranoia
+ * for future families/intents added without re-validating compat.
+ *
+ * UNDEFINED INTENT: when `intent` is undefined (callers that
+ * pre-date Phase 4's hookIntent axis), the selector behaves as if
+ * intent compat passes for everything — only family-allowed and
+ * recency rank. `intentFallback` stays false in this case (no
+ * intent was REQUESTED, so no fallback occurred).
+ */
+export function pickVideoPattern(
+  family: IdeaCoreFamily,
+  intent: HookIntent | undefined,
+  recentPatterns: ReadonlySet<VideoPattern>,
+  seed: number,
+): { pattern: VideoPattern; intentFallback: boolean } {
+  const familyAllowed = PATTERN_BY_FAMILY[family];
+  // Defensive: every family is registered above, but if a future
+  // edit removes one the type-system would catch it at the
+  // Record<IdeaCoreFamily, ...> declaration. This is just runtime
+  // belt-and-suspenders — fall back to the full catalog.
+  const allowed = familyAllowed.length > 0 ? familyAllowed : VIDEO_PATTERNS;
+
+  let candidates: readonly VideoPattern[] = allowed;
+  let intentFallback = false;
+  if (intent !== undefined) {
+    const intersected = allowed.filter((p) => isPatternCompatible(p, intent));
+    if (intersected.length > 0) {
+      candidates = intersected;
+    } else {
+      // No family-allowed pattern is intent-compat — fall back to
+      // family-only. Telemetry flag set so QA can count starvation.
+      intentFallback = true;
+    }
+  }
+
+  // Rank: unused (not in recentPatterns) before recently-used. Within
+  // each bucket, deterministic seed-tie-break by name hash so the
+  // same inputs always produce the same pick.
+  const unsigned = (seed >>> 0);
+  const ranked = [...candidates].sort((a, b) => {
+    const aRecent = recentPatterns.has(a) ? 1 : 0;
+    const bRecent = recentPatterns.has(b) ? 1 : 0;
+    if (aRecent !== bRecent) return aRecent - bRecent;
+    // Tie-break: deterministic seed fold over name char codes.
+    const aHash = ((a.charCodeAt(0) * 31 + a.length) ^ unsigned) >>> 0;
+    const bHash = ((b.charCodeAt(0) * 31 + b.length) ^ unsigned) >>> 0;
+    return aHash - bHash;
+  });
+
+  const pattern = ranked[0]!;
+  return { pattern, intentFallback };
+}
+
+/* ------------------------------------------------------------------ */
+/* End Phase 5 — PATTERN MAPPING LAYER                                 */
+/* ------------------------------------------------------------------ */
+
 /**
  * Lossy backward-compat mapping: HookLanguageStyle → legacy HookStyle.
  *
@@ -4543,6 +4932,32 @@ export type PatternMeta = {
    * cache reads. Does NOT affect scoring or batch guards.
    */
   intentFallback?: boolean;
+  /**
+   * Phase 5 (PATTERN MAPPING LAYER) — the typed VideoPattern axis the
+   * candidate commits to. Resolved at assembly time AFTER ideaCoreFamily
+   * and hookIntent are known via pickVideoPattern(family, intent,
+   * recentPatternsInPool, seed). Always set on Phase-5 pattern_variation
+   * candidates. Optional on the type so pre-Phase-5 cached candidates
+   * + Claude/Llama fallback wraps round-trip cleanly — readers MUST
+   * treat absent as "no contribution to the video-pattern axis" (same
+   * discipline as voiceProfile / trendId). Drives:
+   *   - HARD batch guard h2: ≤2 picks share videoPattern per batch.
+   *   - selectionPenalty: -3 per duplicate in batchSoFar (same lever
+   *     as the existing hookIntent dup penalty).
+   *   - Cross-batch novelty via NoveltyContext.recentVideoPatterns.
+   */
+  videoPattern?: VideoPattern;
+  /**
+   * Phase 5 telemetry — true ONLY when pickVideoPattern fell back to
+   * family-only because no family-allowed pattern was intent-compat
+   * for the slot's hookIntent. By construction across the full
+   * 12-family × 3-intent Cartesian the intersection is never empty
+   * (verified by the QA driver), so this is paranoia for future
+   * families/intents added without re-validating
+   * PATTERN_X_INTENT_COMPAT. Telemetry-only — does NOT affect scoring
+   * or batch guards.
+   */
+  videoPatternIntentFallback?: boolean;
 };
 
 /**
@@ -4722,6 +5137,18 @@ function assembleCandidate(
   // test callers) the picker is unfiltered and `intentFallback`
   // defaults to false.
   assignedIntent?: HookIntent,
+  // Phase 5 (PATTERN MAPPING LAYER) — the live within-pool set of
+  // VideoPatterns already chosen by previously-assembled candidates
+  // in this generation call. Threaded straight into pickVideoPattern
+  // as the `recentPatterns` axis so unused patterns rank above
+  // recently-used ones, giving the pool natural pattern spread BEFORE
+  // any selector / batch guard fires. Optional — undefined behaves
+  // as "no recency signal" (every pattern is equally fresh). The
+  // caller (generatePatternCandidates) MUST add the chosen
+  // `meta.videoPattern` to its mutable backing set after a successful
+  // build for the next slot to see the update — same discipline as
+  // `slotsAlreadyVoiced` for voice rotation.
+  recentVideoPatternsInPool?: ReadonlySet<VideoPattern>,
 ): { idea: Idea; meta: PatternMeta } | null {
   const picked = pickValidatedLanguagePhrasing(
     hookLanguageStyle,
@@ -4794,6 +5221,31 @@ function assembleCandidate(
   // `planned_vs_did` fallback in `resolveIdeaCoreType`).
   const ideaCoreType = resolveIdeaCoreType(template.id, scenario.family);
   const ideaCoreFamily = resolveIdeaCoreFamily(ideaCoreType);
+
+  // Phase 5 (PATTERN MAPPING LAYER) — resolve VideoPattern AFTER
+  // `ideaCoreFamily` and the winning entry's hook intent are both
+  // known. We use `getEntryIntent(sourceLanguagePhrasing)` (the
+  // ACTUAL intent of the entry that won, NOT `assignedIntent`) so
+  // intent-fallback slots get pattern selection consistent with the
+  // intent they're actually shipping with — keeps videoPattern in
+  // sync with `meta.hookIntent` below. The seed folds slotSalt with
+  // the family + intent name lengths so two slots with the same
+  // (family, intent, recent) inputs but different slotSalt produce
+  // different deterministic picks.
+  const resolvedHookIntent = getEntryIntent(sourceLanguagePhrasing);
+  const { pattern: videoPattern, intentFallback: videoPatternIntentFallback } =
+    pickVideoPattern(
+      ideaCoreFamily,
+      resolvedHookIntent,
+      recentVideoPatternsInPool ?? new Set<VideoPattern>(),
+      (slotSalt ^
+        ((ideaCoreFamily.length * 13 + resolvedHookIntent.length) >>> 0)) >>>
+        0,
+    );
+  // Copy beats by spread so `idea.filmingGuide` isn't a reference
+  // to the catalog's readonly array — downstream code that wants
+  // to mutate / annotate gets a private mutable string[].
+  const filmingGuide: string[] = [...PATTERN_DEFS[videoPattern].beats];
 
   // TREND CONTEXT LAYER (lightweight overlay, NOT a new generator).
   // The selector returns null for ~70% of candidates by design (the
@@ -4880,6 +5332,12 @@ function assembleCandidate(
     visualHook: scenario.visualHook,
     whatToShow: buildWhatToShow(scenario, template),
     howToFilm: buildHowToFilm(scenario, visualActionPattern),
+    // Phase 5 (PATTERN MAPPING LAYER) — ordered shot beats from
+    // PATTERN_DEFS[videoPattern].beats. Always set on Phase-5
+    // pattern_variation candidates. The legacy `howToFilm` prose
+    // field above stays UNTOUCHED so existing UI paths and JSONB
+    // cache readers continue to render without change.
+    filmingGuide,
   };
 
   return {
@@ -4954,6 +5412,25 @@ function assembleCandidate(
       // counts only real starvation events, not intent-less call
       // paths.
       ...(intentFallback ? { intentFallback: true } : {}),
+      // Phase 5 (PATTERN MAPPING LAYER) — the typed VideoPattern axis
+      // resolved above via pickVideoPattern. ALWAYS set on Phase-5
+      // pattern_variation candidates. Drives the within-batch hard
+      // guard h2 (≤2 picks per pattern), the cross-batch novelty
+      // penalty (-3 per match against NoveltyContext.recentVideoPatterns),
+      // and the within-pool recency rank for the next slot's
+      // pickVideoPattern call (via generatePatternCandidates'
+      // recentVideoPatterns mutable Set).
+      videoPattern,
+      // Phase 5 telemetry — emitted ONLY when the pickVideoPattern
+      // had to fall back to family-only (no family-allowed pattern
+      // was intent-compat for `resolvedHookIntent`). By construction
+      // this never fires for any (family, intent) combo in the
+      // current catalog (verified by the QA driver), but the field
+      // exists so future catalog additions surface starvation in
+      // telemetry instead of silently corrupting selection.
+      ...(videoPatternIntentFallback
+        ? { videoPatternIntentFallback: true }
+        : {}),
     },
   };
 }
@@ -5152,6 +5629,15 @@ export function generatePatternCandidates(
   // set. Reset is unnecessary — the picker is monotonic per generation
   // call, and a fresh call from the orchestrator gets a fresh pool.
   const slotsAlreadyVoiced: VoiceProfile[] = [];
+  // Phase 5 (PATTERN MAPPING LAYER) — within-pool VideoPattern
+  // recency. Mutated after every successful build so the next
+  // slot's pickVideoPattern call ranks already-used patterns BELOW
+  // unused ones. This gives the candidate POOL natural pattern
+  // spread BEFORE the downstream selector / batch guards see it,
+  // mirroring how `slotsAlreadyVoiced` shapes voice rotation. Reset
+  // unnecessary for the same reason — the picker is monotonic per
+  // generation call.
+  const recentVideoPatterns = new Set<VideoPattern>();
   while (out.length < target && i < maxIter) {
     const t = orderedTemplates[(i + tOff) % T];
     const s = orderedScenarios[(i + sOff) % S];
@@ -5222,10 +5708,19 @@ export function generatePatternCandidates(
       out.length,
       scenarioSeed,
       assignedIntent,
+      recentVideoPatterns,
     );
     if (built !== null) {
       out.push(built);
       slotsAlreadyVoiced.push(voiceForSlot);
+      // Phase 5 (PATTERN MAPPING LAYER) — record the chosen pattern
+      // so the next slot's pickVideoPattern call ranks it BELOW
+      // unused patterns. Always set on Phase-5 candidates (defensive
+      // optional-chain for safety against future non-pattern-variation
+      // sources slipping through this loop).
+      if (built.meta.videoPattern !== undefined) {
+        recentVideoPatterns.add(built.meta.videoPattern);
+      }
     }
   }
 

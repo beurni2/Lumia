@@ -54,6 +54,7 @@ import {
   type ScriptType,
   type Setting,
   type TopicLane,
+  type VideoPattern,
   type VisualActionPattern,
   type VoiceProfile,
   type VoiceProfileSelection,
@@ -368,6 +369,26 @@ export function batchGuardsPass(
   // alongside hookStyle and structure; without it a batch of
   // three "stitch_redo" or three "voiceover" formats could ship.
   if (countMax(batch.map((b) => b.idea.pattern)) > MAX_GROUP_SHARE) return false;
+  // Phase 5 (PATTERN MAPPING LAYER) — guard `h2`. No 3-same typed
+  // VideoPattern. Parallel to the legacy `idea.pattern` guard above
+  // but on the typed Phase-5 axis: `meta.videoPattern` is the
+  // controller axis ABOVE the legacy `idea.pattern` string, so a
+  // 3-of-same batch reads as one filming approach repeated even when
+  // the legacy `idea.pattern` field varies. Filtered to defined
+  // values so candidates without the field (Llama / Claude fallback
+  // wraps + pre-Phase-5 cache reads) silently abstain — the guard
+  // never fires against absences. Same MAX_GROUP_SHARE = 2 cap.
+  const videoPatternsInBatch = batch
+    .map((b): VideoPattern | undefined =>
+      "videoPattern" in b.meta ? b.meta.videoPattern : undefined,
+    )
+    .filter((v): v is VideoPattern => v !== undefined);
+  if (
+    videoPatternsInBatch.length > 0 &&
+    countMax(videoPatternsInBatch) > MAX_GROUP_SHARE
+  ) {
+    return false;
+  }
   // No 3-same structure.
   if (countMax(batch.map((b) => b.idea.structure)) > MAX_GROUP_SHARE) return false;
   // No more than 2 share family.

@@ -316,6 +316,23 @@ export const ideaSchema = z.object({
    */
   whatToShow: z.string().min(20).max(500),
   howToFilm: z.string().min(15).max(400),
+  /**
+   * Phase 5 (PATTERN MAPPING LAYER) — ordered shot beats derived
+   * from the chosen VideoPattern's `PATTERN_DEFS[pattern].beats`.
+   * Becomes the user-facing "filming guide" on the idea card,
+   * complementing the prose `howToFilm` field with discrete beats.
+   *
+   * OPTIONAL because:
+   *   - Pre-Phase-5 cached candidates predate this field.
+   *   - Claude/Llama fallback wraps don't run through pickVideoPattern
+   *     (no IdeaCoreFamily / HookIntent context at that layer).
+   *   - Test fixtures + future non-pattern-variation sources may omit.
+   *
+   * When present, `meta.videoPattern` MUST also be set so readers can
+   * cross-reference back to the pattern catalog. Cap of 8 beats is
+   * generous (catalog max is 4) — protects against catalog drift.
+   */
+  filmingGuide: z.array(z.string().min(1).max(220)).max(8).optional(),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 

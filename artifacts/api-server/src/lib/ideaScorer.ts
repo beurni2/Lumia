@@ -37,6 +37,7 @@ import {
   type ScriptType,
   type Setting,
   type TopicLane,
+  type VideoPattern,
   type VisualActionPattern,
   type VoiceProfile,
 } from "./patternIdeator";
@@ -563,6 +564,18 @@ function metaSourceLanguagePhrasing(
  */
 function metaHookIntent(m: CandidateMeta): HookIntent | undefined {
   return "hookIntent" in m ? m.hookIntent : undefined;
+}
+
+/**
+ * Phase 5 (PATTERN MAPPING LAYER) — accessor for the typed
+ * VideoPattern axis on PatternMeta. Returns undefined for fallback
+ * wraps + pre-Phase-5 cache reads (same discipline as
+ * `metaHookIntent`). Selectors / penalties that read this MUST treat
+ * undefined as "no contribution to the video-pattern axis" — never
+ * default to a specific pattern.
+ */
+function metaVideoPattern(m: CandidateMeta): VideoPattern | undefined {
+  return "videoPattern" in m ? m.videoPattern : undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -1474,6 +1487,28 @@ export type NoveltyContext = {
    * -2 penalty would fire against innocent fresh trends.
    */
   recentTrendIds?: ReadonlySet<string>;
+  /**
+   * Phase 5 (PATTERN MAPPING LAYER) — immediate-prior-batch
+   * VideoPattern set (the typed video-shape axis from
+   * `meta.videoPattern`). Used by `selectionPenalty` for the -3
+   * cross-batch demotion when this candidate's `meta.videoPattern`
+   * matches one shipped in the previous batch.
+   *
+   * Single-tier (no frequent-last-3 stack and no unused-last-3
+   * boost) because the within-pool recency pressure inside
+   * `pickVideoPattern` already handles within-pool spread, and the
+   * batch-guard `h2` already caps within-batch dup at 2 — the
+   * cross-batch lever here just keeps yesterday's two-of-a-kind
+   * from showing up again today.
+   *
+   * Skips when the candidate has no `meta.videoPattern` (Llama /
+   * Claude fallback wraps + pre-Phase-5 cache reads) — same
+   * discipline as voiceProfile / trendId / archetype. Read off
+   * cache by `buildNoveltyContext` (added in Phase 5 wiring there
+   * if/when the cache writes the new field; absent reads collapse
+   * to the empty set, which is the safe default).
+   */
+  recentVideoPatterns?: ReadonlySet<VideoPattern>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -1833,6 +1868,14 @@ export function selectionPenalty(
     // omit, in which case the value is silently undefined and
     // contributes nothing to the demotion).
     const voices = new Set<VoiceProfile>();
+    // Phase 5 (PATTERN MAPPING LAYER) — within-batch VideoPattern set.
+    // Drives the -3 dup penalty below. Sized at -3 (parallel to the
+    // within-batch HookIntent dup lever) because videoPattern is the
+    // controller axis above filming style — a 3-of-same batch reads
+    // as one filming idea repeated, even when scenarios differ.
+    // Skipped silently for fallback wraps + pre-Phase-5 cache reads
+    // whose meta omits the field — same discipline as voiceProfile.
+    const videoPatterns = new Set<VideoPattern>();
     for (const b of batchSoFar) {
       styles.add(b.idea.hookStyle);
       if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -1858,6 +1901,11 @@ export function selectionPenalty(
       if (ict) coreTypes.add(ict);
       const icf = metaIdeaCoreFamily(b.meta);
       if (icf) coreFamilies.add(icf);
+      // Phase 5 — collect VideoPattern from each prior pick. Skipped
+      // silently when meta.videoPattern is absent (fallback wraps,
+      // pre-Phase-5 cache reads).
+      const bvp2 = metaVideoPattern(b.meta);
+      if (bvp2) videoPatterns.add(bvp2);
     }
     if (styles.has(c.idea.hookStyle)) p -= 2;
     if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -1922,6 +1970,17 @@ export function selectionPenalty(
     // false-match, so we guard explicitly.
     const cvp = metaVoiceProfile(c.meta);
     if (cvp && voices.has(cvp)) p -= 2;
+
+    // Phase 5 (PATTERN MAPPING LAYER) — within-batch VideoPattern dup
+    // demotion. -3 when this candidate's videoPattern is already in
+    // batchSoFar (parallel to the within-batch HookIntent dup -3
+    // lever). Combined with the HARD batch guard `h2` (max 2 share
+    // videoPattern, in `batchGuardsPass`), this nudges the soft
+    // selector toward 3 distinct patterns even when the guard
+    // tolerates 2-of-same. Skipped silently when the candidate has
+    // no videoPattern — same discipline as voiceProfile.
+    const cvp2 = metaVideoPattern(c.meta);
+    if (cvp2 && videoPatterns.has(cvp2)) p -= 3;
 
     // HOOK INTENT spec (Phase 4) — within-batch intent demotion +
     // HARD all-3-same guard. HookIntent is the controller axis
@@ -2050,6 +2109,24 @@ export function selectionPenalty(
   const ctidCross = c.meta.trendId;
   if (ctidCross) {
     if (ctx.recentTrendIds?.has(ctidCross) ?? false) p -= 2;
+  }
+  // Phase 5 (PATTERN MAPPING LAYER) — cross-batch VideoPattern
+  // demotion. -3 when this candidate's videoPattern appeared in the
+  // immediate-prior batch. Single-tier (no frequent-last-3 stack)
+  // because:
+  //   - The within-pool recency pressure inside `pickVideoPattern`
+  //     already gives the pool natural pattern spread BEFORE the
+  //     selector sees it.
+  //   - The within-batch -3 dup + the HARD batch guard `h2` already
+  //     cap within-batch dup at 2 — the cross-batch lever just
+  //     prevents yesterday's two-of-a-kind from showing up again.
+  // Sized at -3 (parallel to the within-batch dup) so the soft
+  // selector breaks ties toward fresh patterns when a shippable
+  // alternative exists. Skipped when meta.videoPattern is absent —
+  // same discipline as voiceProfile / trendId / archetype.
+  const cvpCrossPattern = metaVideoPattern(c.meta);
+  if (cvpCrossPattern) {
+    if (ctx.recentVideoPatterns?.has(cvpCrossPattern) ?? false) p -= 3;
   }
   // PART 4 — banned-phrasing penalty. -5 when the rendered hook
   // matches any banned-prefix regex (the catalog never produces
