@@ -913,6 +913,425 @@ export function lookupScriptType(
 }
 
 // -----------------------------------------------------------------------------
+// IdeaCoreType taxonomy — narrative-FAMILY diversity axis (Phase 1)
+// -----------------------------------------------------------------------------
+// 120-value enum (12 families × 10 types) that REPLACES `scriptType` as the
+// active narrative-shape lever in the selector. `scriptType` is kept only as
+// inert telemetry (still resolved + persisted) to preserve the IDEA ARCHETYPE
+// derivation chain (resolveArchetypeLoose) and historical cache compatibility.
+//
+// Why a new axis: the prior `scriptType` taxonomy concentrated almost every
+// scenario+template default into the "I planned X → I failed" narrative
+// shape (loop_behavior / habit_break_fail / false_start / avoidance — all
+// failure variants). Three batches in a row felt identical because every
+// pick was a different filming of the same self-betrayal beat. The new
+// IdeaCoreFamily axis spreads scenarios across 12 distinct narrative
+// FAMILIES (failure is just ONE of them) and the selector enforces a hard
+// `<40% failure_contradiction` cap per batch so that family can never
+// dominate again.
+
+export type IdeaCoreFamily =
+  | "emotional_loop"
+  | "failure_contradiction"
+  | "decision_paralysis"
+  | "social_friction"
+  | "time_distortion"
+  | "identity_drift"
+  | "physical_betrayal"
+  | "information_asymmetry"
+  | "environmental_chaos"
+  | "memory_glitch"
+  | "ritual_disruption"
+  | "anti_climax";
+
+export const IDEA_CORE_FAMILIES: readonly IdeaCoreFamily[] = [
+  "emotional_loop",
+  "failure_contradiction",
+  "decision_paralysis",
+  "social_friction",
+  "time_distortion",
+  "identity_drift",
+  "physical_betrayal",
+  "information_asymmetry",
+  "environmental_chaos",
+  "memory_glitch",
+  "ritual_disruption",
+  "anti_climax",
+] as const;
+
+export type IdeaCoreType =
+  // emotional_loop (10)
+  | "denial"
+  | "rationalization"
+  | "suppressed_reaction"
+  | "emotional_disconnect"
+  | "delayed_emotion"
+  | "overreaction"
+  | "quiet_panic"
+  | "hidden_envy"
+  | "hidden_pride"
+  | "suppressed_disappointment"
+  // failure_contradiction (10)
+  | "planned_vs_did"
+  | "said_vs_meant"
+  | "expected_vs_got"
+  | "intent_vs_outcome"
+  | "knew_better_did_anyway"
+  | "promise_to_self_broken"
+  | "plan_vs_reality"
+  | "future_self_betrayed"
+  | "advice_unfollowed"
+  | "double_standard"
+  // decision_paralysis (10)
+  | "analysis_freeze"
+  | "choice_overload"
+  | "sunk_cost_lock"
+  | "what_if_spiral"
+  | "perfectionism_stall"
+  | "default_to_safe"
+  | "asking_for_signs"
+  | "deferring_to_others"
+  | "over_researching"
+  | "last_minute_pivot"
+  // social_friction (10)
+  | "boundary_violated"
+  | "unspoken_rule_broken"
+  | "social_radar_off"
+  | "awkward_silence_filler"
+  | "misread_room"
+  | "status_anxiety"
+  | "group_chat_shame"
+  | "public_correction"
+  | "mismatched_energy"
+  | "accidental_offense"
+  // time_distortion (10)
+  | "five_more_minutes"
+  | "anachronism_realization"
+  | "calendar_blindness"
+  | "deadline_denial"
+  | "hyperfixation_blackout"
+  | "schedule_collision"
+  | "ghost_of_yesterday"
+  | "future_dread_present_freeze"
+  | "age_dysphoria"
+  | "season_shock"
+  // identity_drift (10)
+  | "voice_shift"
+  | "accent_slip"
+  | "persona_borrow"
+  | "mirror_stranger"
+  | "old_self_intrusion"
+  | "pretending_to_be_pretending"
+  | "fake_until_real"
+  | "real_until_fake"
+  | "brand_creep"
+  | "tribe_betrayal"
+  // physical_betrayal (10)
+  | "body_won"
+  | "body_lost"
+  | "sense_betrayal"
+  | "reflex_takeover"
+  | "sneeze_chain"
+  | "posture_collapse"
+  | "hunger_override"
+  | "sleep_signal_ignored"
+  | "bladder_brain"
+  | "voice_crack"
+  // information_asymmetry (10)
+  | "they_dont_know"
+  | "i_dont_know_they_know"
+  | "both_pretending"
+  | "secret_kept"
+  | "secret_overshared"
+  | "dramatic_irony_self"
+  | "missing_context_panic"
+  | "surprise_information"
+  | "eavesdrop_aftermath"
+  | "partial_truth_spiral"
+  // environmental_chaos (10)
+  | "object_misplaced"
+  | "object_multiplied"
+  | "system_glitch"
+  | "unexpected_weather"
+  | "smell_invasion"
+  | "lighting_betrayal"
+  | "technology_rebellion"
+  | "animal_intrusion"
+  | "neighbor_event"
+  | "package_drama"
+  // memory_glitch (10)
+  | "name_blank"
+  | "walk_in_amnesia"
+  | "password_amnesia"
+  | "song_stuck"
+  | "deja_vu_loop"
+  | "false_memory"
+  | "memory_collision"
+  | "intrusive_old_text"
+  | "witnessed_self_replay"
+  | "mid_sentence_loss"
+  // ritual_disruption (10)
+  | "first_step_skipped"
+  | "sequence_broken"
+  | "replacement_inferior"
+  | "missing_prop"
+  | "contaminated_item"
+  | "location_displacement"
+  | "witness_to_ritual"
+  | "ritual_aging_out"
+  | "ritual_inheritance"
+  | "ritual_for_one_now_for_two"
+  // anti_climax (10)
+  | "buildup_to_nothing"
+  | "victory_was_pyrrhic"
+  | "rehearsed_for_silence"
+  | "expected_drama_got_paperwork"
+  | "prepared_for_wrong_thing"
+  | "escalation_fizzle"
+  | "crowd_dispersed"
+  | "finally_arrived_now_what"
+  | "post_event_void"
+  | "peak_was_yesterday";
+
+/** family ⇒ ordered tuple of its 10 IdeaCoreTypes. Single source of truth
+ * for both `IDEA_CORE_TYPE_TO_FAMILY` (reverse map) and the catalog
+ * derivations in `buildNoveltyContext` (unused-in-last-3 calculations). */
+const IDEA_CORE_TYPES_BY_FAMILY: Record<IdeaCoreFamily, readonly IdeaCoreType[]> = {
+  emotional_loop: [
+    "denial", "rationalization", "suppressed_reaction", "emotional_disconnect",
+    "delayed_emotion", "overreaction", "quiet_panic", "hidden_envy",
+    "hidden_pride", "suppressed_disappointment",
+  ],
+  failure_contradiction: [
+    "planned_vs_did", "said_vs_meant", "expected_vs_got", "intent_vs_outcome",
+    "knew_better_did_anyway", "promise_to_self_broken", "plan_vs_reality",
+    "future_self_betrayed", "advice_unfollowed", "double_standard",
+  ],
+  decision_paralysis: [
+    "analysis_freeze", "choice_overload", "sunk_cost_lock", "what_if_spiral",
+    "perfectionism_stall", "default_to_safe", "asking_for_signs",
+    "deferring_to_others", "over_researching", "last_minute_pivot",
+  ],
+  social_friction: [
+    "boundary_violated", "unspoken_rule_broken", "social_radar_off",
+    "awkward_silence_filler", "misread_room", "status_anxiety",
+    "group_chat_shame", "public_correction", "mismatched_energy",
+    "accidental_offense",
+  ],
+  time_distortion: [
+    "five_more_minutes", "anachronism_realization", "calendar_blindness",
+    "deadline_denial", "hyperfixation_blackout", "schedule_collision",
+    "ghost_of_yesterday", "future_dread_present_freeze", "age_dysphoria",
+    "season_shock",
+  ],
+  identity_drift: [
+    "voice_shift", "accent_slip", "persona_borrow", "mirror_stranger",
+    "old_self_intrusion", "pretending_to_be_pretending", "fake_until_real",
+    "real_until_fake", "brand_creep", "tribe_betrayal",
+  ],
+  physical_betrayal: [
+    "body_won", "body_lost", "sense_betrayal", "reflex_takeover",
+    "sneeze_chain", "posture_collapse", "hunger_override",
+    "sleep_signal_ignored", "bladder_brain", "voice_crack",
+  ],
+  information_asymmetry: [
+    "they_dont_know", "i_dont_know_they_know", "both_pretending",
+    "secret_kept", "secret_overshared", "dramatic_irony_self",
+    "missing_context_panic", "surprise_information", "eavesdrop_aftermath",
+    "partial_truth_spiral",
+  ],
+  environmental_chaos: [
+    "object_misplaced", "object_multiplied", "system_glitch",
+    "unexpected_weather", "smell_invasion", "lighting_betrayal",
+    "technology_rebellion", "animal_intrusion", "neighbor_event",
+    "package_drama",
+  ],
+  memory_glitch: [
+    "name_blank", "walk_in_amnesia", "password_amnesia", "song_stuck",
+    "deja_vu_loop", "false_memory", "memory_collision", "intrusive_old_text",
+    "witnessed_self_replay", "mid_sentence_loss",
+  ],
+  ritual_disruption: [
+    "first_step_skipped", "sequence_broken", "replacement_inferior",
+    "missing_prop", "contaminated_item", "location_displacement",
+    "witness_to_ritual", "ritual_aging_out", "ritual_inheritance",
+    "ritual_for_one_now_for_two",
+  ],
+  anti_climax: [
+    "buildup_to_nothing", "victory_was_pyrrhic", "rehearsed_for_silence",
+    "expected_drama_got_paperwork", "prepared_for_wrong_thing",
+    "escalation_fizzle", "crowd_dispersed", "finally_arrived_now_what",
+    "post_event_void", "peak_was_yesterday",
+  ],
+};
+
+/** Flat catalog of all 120 ideaCoreTypes — used by buildNoveltyContext for
+ * the "unused in last 3 batches" boost computation. */
+export const IDEA_CORE_TYPES: readonly IdeaCoreType[] = (() => {
+  const flat: IdeaCoreType[] = [];
+  for (const fam of IDEA_CORE_FAMILIES) {
+    for (const t of IDEA_CORE_TYPES_BY_FAMILY[fam]) flat.push(t);
+  }
+  return flat;
+})();
+
+/** Reverse map — type → family. O(1) lookup driven by the
+ * `IDEA_CORE_TYPES_BY_FAMILY` source of truth so adding a new type to a
+ * family only needs to touch one place. */
+const IDEA_CORE_TYPE_TO_FAMILY: Record<IdeaCoreType, IdeaCoreFamily> = (() => {
+  const m = {} as Record<IdeaCoreType, IdeaCoreFamily>;
+  for (const fam of IDEA_CORE_FAMILIES) {
+    for (const t of IDEA_CORE_TYPES_BY_FAMILY[fam]) m[t] = fam;
+  }
+  return m;
+})();
+
+export function resolveIdeaCoreFamily(t: IdeaCoreType): IdeaCoreFamily {
+  return IDEA_CORE_TYPE_TO_FAMILY[t];
+}
+
+/**
+ * Default IdeaCoreType per scenario family. Deliberately spread across ALL
+ * 12 IdeaCoreFamilies so the natural pool is family-diverse BEFORE template
+ * overrides kick in. failure_contradiction is intentionally rare in defaults
+ * (only `productivity`) — most "failure" content emerges from the
+ * `avoidance` / `routine_contradiction` / `expectation_vs_reality` template
+ * overrides below, where the per-batch <40% guard catches it.
+ */
+const IDEA_CORE_TYPE_BY_FAMILY: Record<string, IdeaCoreType> = {
+  sleep: "five_more_minutes",
+  coffee: "first_step_skipped",
+  gym: "persona_borrow",
+  laundry: "object_misplaced",
+  texting: "they_dont_know",
+  emails: "analysis_freeze",
+  fridge: "walk_in_amnesia",
+  outfit: "mirror_stranger",
+  errands: "mid_sentence_loss",
+  weekend_plans: "mismatched_energy",
+  productivity: "planned_vs_did",
+  cleaning: "sequence_broken",
+  social_call: "awkward_silence_filler",
+  snack: "hunger_override",
+  hydration: "body_lost",
+  morning: "first_step_skipped",
+  shopping: "choice_overload",
+  social_post: "hidden_envy",
+  dishes: "post_event_void",
+  podcast: "emotional_disconnect",
+  skincare: "brand_creep",
+  mirror_pep_talk: "fake_until_real",
+  walk: "hyperfixation_blackout",
+  doom_scroll_car: "hyperfixation_blackout",
+  closet_pile: "object_multiplied",
+};
+
+/**
+ * (template, scenario) overrides where the template's structural shape
+ * fundamentally reshapes the narrative family away from the scenario default.
+ *
+ * Failure-shape templates (`avoidance`, `routine_contradiction`,
+ * `expectation_vs_reality`) DO push picks into `failure_contradiction` — but
+ * the per-batch <40% guard in `batchGuardsPass` ensures no batch is
+ * dominated by them. Together with the scenario defaults' deliberate spread,
+ * the natural pool stays ~12-20% failure_contradiction.
+ */
+const IDEA_CORE_TYPE_OVERRIDES: Partial<
+  Record<TemplateId, Partial<Record<string, IdeaCoreType>>>
+> = {
+  denial_loop: {
+    sleep: "denial",
+    coffee: "rationalization",
+    gym: "denial",
+    hydration: "denial",
+    skincare: "rationalization",
+    productivity: "rationalization",
+    dishes: "denial",
+    closet_pile: "rationalization",
+    cleaning: "denial",
+    snack: "rationalization",
+    fridge: "rationalization",
+  },
+  expectation_vs_reality: {
+    gym: "expected_vs_got",
+    productivity: "plan_vs_reality",
+    morning: "plan_vs_reality",
+    weekend_plans: "expected_vs_got",
+    walk: "expected_vs_got",
+    outfit: "expected_vs_got",
+    podcast: "expected_vs_got",
+  },
+  small_panic: {
+    texting: "quiet_panic",
+    emails: "quiet_panic",
+    social_post: "quiet_panic",
+    social_call: "quiet_panic",
+    shopping: "quiet_panic",
+  },
+  avoidance: {
+    dishes: "planned_vs_did",
+    hydration: "promise_to_self_broken",
+    productivity: "planned_vs_did",
+    skincare: "promise_to_self_broken",
+    cleaning: "planned_vs_did",
+    laundry: "promise_to_self_broken",
+    emails: "planned_vs_did",
+    gym: "planned_vs_did",
+  },
+  social_awareness: {
+    mirror_pep_talk: "fake_until_real",
+    weekend_plans: "awkward_silence_filler",
+    social_call: "mismatched_energy",
+    social_post: "status_anxiety",
+    texting: "misread_room",
+    outfit: "status_anxiety",
+  },
+  routine_contradiction: {
+    productivity: "double_standard",
+    coffee: "advice_unfollowed",
+    dishes: "double_standard",
+    skincare: "advice_unfollowed",
+    cleaning: "double_standard",
+    morning: "double_standard",
+    hydration: "advice_unfollowed",
+  },
+};
+
+/**
+ * Resolve the IdeaCoreType for a (template, scenario) pair at assembly time.
+ * Override → scenario default → safe fallback (`planned_vs_did` so the
+ * caller never gets undefined; the failure-cluster guard will limit any
+ * over-concentration of the fallback).
+ */
+export function resolveIdeaCoreType(
+  templateId: TemplateId,
+  family: string,
+): IdeaCoreType {
+  const override = IDEA_CORE_TYPE_OVERRIDES[templateId]?.[family];
+  if (override) return override;
+  return IDEA_CORE_TYPE_BY_FAMILY[family] ?? "planned_vs_did";
+}
+
+/**
+ * Resolve the IdeaCoreType for a cached batch entry. Falls back to the
+ * scenario-default when templateId is absent (legacy cache entries pre-
+ * dating this taxonomy). Returns null when family itself is missing or
+ * unknown — caller skips the candidate's contribution to cross-batch sets.
+ */
+export function lookupIdeaCoreType(
+  family: string | undefined,
+  templateId?: string,
+): IdeaCoreType | null {
+  if (!family) return null;
+  if (templateId !== undefined) {
+    const override =
+      IDEA_CORE_TYPE_OVERRIDES[templateId as TemplateId]?.[family];
+    if (override) return override;
+  }
+  return IDEA_CORE_TYPE_BY_FAMILY[family] ?? null;
+}
+
+// -----------------------------------------------------------------------------
 // Energy taxonomy — derived from VisualActionPattern
 // -----------------------------------------------------------------------------
 // Per-batch "all-low-energy" rejection rule (spec section 5).
@@ -2261,8 +2680,37 @@ export type PatternMeta = {
    * when the family/templateId aren't in our taxonomy; readers
    * fall back to `lookupScriptType(family, templateId)` and treat
    * unresolvable as "no contribution to scriptType axis".
+   *
+   * Phase 1 update: scriptType is now INERT TELEMETRY ONLY. The
+   * narrative-shape axis active in the selector is `ideaCoreType` /
+   * `ideaCoreFamily` below. scriptType is kept populated so the
+   * IDEA ARCHETYPE derivation chain (resolveArchetypeLoose) and
+   * historical cache compatibility continue to work, but no batch
+   * guard / penalty / boost / rescue reads it any more.
    */
   scriptType?: ScriptType;
+  /**
+   * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
+   * (Phase 1 replacement for scriptType). Resolved at assembly time
+   * BEFORE the hook is generated via `resolveIdeaCoreType(template,
+   * family)`; family falls out of the type via
+   * `resolveIdeaCoreFamily`. Always set on pattern_variation
+   * candidates. Drives:
+   *   - HARD batch guards: ≤2 per family, ≤1 per exact type,
+   *     `failure_contradiction` < 40% of batch.
+   *   - Cross-batch novelty: -3 family ∈ recent (last batch),
+   *     -2 family ∈ frequent in last 3, +3 family unused in last 3.
+   *   - Pool caps + interleave: family-first ordering so the top of
+   *     the pool spans 6+ distinct families.
+   *   - Regen rescue: ≥2 NEW families vs the immediate-prior batch.
+   *
+   * Optional on the type so Claude/Llama fallback wraps can omit
+   * when the family/templateId aren't in our taxonomy; readers fall
+   * back to `lookupIdeaCoreType(family, templateId)` and treat
+   * unresolvable as "no contribution to the ideaCoreType axis".
+   */
+  ideaCoreType?: IdeaCoreType;
+  ideaCoreFamily?: IdeaCoreFamily;
   /**
    * Energy classification (active / low / medium) derived from
    * `visualActionPattern` via ENERGY_BY_VISUAL_ACTION. Used by the
@@ -2548,6 +2996,14 @@ function assembleCandidate(
   const sceneEnvCluster: SceneEnvCluster | undefined = sceneObjectTag
     ? ENV_CLUSTER_BY_TAG[sceneObjectTag]
     : undefined;
+  // IDEA CORE TYPE axis (Phase 1) — resolved BEFORE hook generation per
+  // spec so downstream hook+caption generation has access to the
+  // narrative family this candidate is committing to. Both fields are
+  // always set on pattern_variation candidates (the resolver returns
+  // a non-null type for every (template, family) pair via the
+  // `planned_vs_did` fallback in `resolveIdeaCoreType`).
+  const ideaCoreType = resolveIdeaCoreType(template.id, scenario.family);
+  const ideaCoreFamily = resolveIdeaCoreFamily(ideaCoreType);
 
   // TREND CONTEXT LAYER (lightweight overlay, NOT a new generator).
   // The selector returns null for ~70% of candidates by design (the
@@ -2656,6 +3112,8 @@ function assembleCandidate(
       // (every read site in the codebase fallbacks via `?? null`).
       hookOpener: derivedOpener as HookOpener,
       scriptType,
+      ideaCoreType,
+      ideaCoreFamily,
       energy: ENERGY_BY_VISUAL_ACTION[visualActionPattern],
       archetype: archetypeResolved?.archetype,
       archetypeFamily: archetypeResolved?.family,
@@ -2936,96 +3394,89 @@ export function generatePatternCandidates(
     }
   }
 
-  return interleaveByScriptType(applyPoolCaps(out));
+  return interleaveByIdeaCoreFamily(applyPoolCaps(out));
 }
 
 /**
- * Hard distribution caps applied to the candidate pool BEFORE interleave
- * (per script-system FINAL spec §3). Ensures no single scriptType — and
- * neither the avoidance nor the internal_contradiction cluster — can
- * dominate the downstream selector's pool:
- *   - Per-scriptType cap:  ceil(N * 0.20)  (≤20% any single scriptType)
- *   - Per-cluster   cap:   ceil(N * 0.40)  (≤40% avoidance OR
- *                                           internal_contradiction)
+ * Hard distribution caps applied to the candidate pool BEFORE interleave.
+ *
+ * Phase 1: caps are now driven by the IdeaCoreType axis (not the inert
+ * scriptType axis). Ensures no single ideaCoreType — and no single
+ * ideaCoreFamily — can dominate the downstream selector's pool:
+ *   - Per-type   cap:  ceil(N * 0.15)  (≤15% any single ideaCoreType)
+ *   - Per-family cap:  ceil(N * 0.35)  (≤35% any single ideaCoreFamily)
+ *
+ * The tighter per-type cap (15% vs the prior 20%) reflects the larger
+ * catalog (120 types vs 37 scriptTypes) — even a 15% cap is a generous
+ * 18-of-120 ceiling on a typical pool. The per-family cap is sized
+ * just below the per-batch <40% failure_contradiction guard so the
+ * pool naturally underfills the worst-case batch ratio rather than
+ * relying on the batch guard to be the only line of defense.
  *
  * Tail-drop preserves the upstream Cartesian-weave + memory-bias
  * ordering for the entries that survive (we drop OVERFLOW entries
  * encountered after the cap, never reorder kept entries). For pools
  * with ≤5 entries the caps are no-ops — the pool is already small
- * enough that any single dominant scriptType is structural rather
- * than fixable by pruning. Candidates without a scriptType (legacy
- * / fallback paths) bypass the per-scriptType cap but still count
- * toward total N for cap calculation; cluster caps don't apply to
- * them.
+ * enough that any single dominant family is structural rather than
+ * fixable by pruning. Candidates without an ideaCoreType (legacy /
+ * fallback paths) bypass the per-type / per-family caps but still
+ * count toward total N for cap calculation.
  */
 export function applyPoolCaps(
   candidates: PatternCandidate[],
 ): PatternCandidate[] {
   if (candidates.length <= 5) return candidates;
   const N = candidates.length;
-  const perTypeCap = Math.max(1, Math.ceil(N * 0.20));
-  const perClusterCap = Math.max(1, Math.ceil(N * 0.40));
-  const typeCounts = new Map<ScriptType, number>();
-  let avoidanceCount = 0;
-  let internalContradictionCount = 0;
+  const perTypeCap = Math.max(1, Math.ceil(N * 0.15));
+  const perFamilyCap = Math.max(1, Math.ceil(N * 0.35));
+  const typeCounts = new Map<IdeaCoreType, number>();
+  const familyCounts = new Map<IdeaCoreFamily, number>();
   const out: PatternCandidate[] = [];
   for (const c of candidates) {
-    const sct = c.meta.scriptType;
-    if (!sct) {
+    const t = c.meta.ideaCoreType;
+    const f = c.meta.ideaCoreFamily;
+    if (!t || !f) {
       out.push(c);
       continue;
     }
-    const tc = typeCounts.get(sct) ?? 0;
+    const tc = typeCounts.get(t) ?? 0;
     if (tc >= perTypeCap) continue;
-    if (
-      SCRIPT_TYPE_CLUSTERS.avoidance.has(sct) &&
-      avoidanceCount >= perClusterCap
-    ) {
-      continue;
-    }
-    if (
-      SCRIPT_TYPE_CLUSTERS.internal_contradiction.has(sct) &&
-      internalContradictionCount >= perClusterCap
-    ) {
-      continue;
-    }
-    typeCounts.set(sct, tc + 1);
-    if (SCRIPT_TYPE_CLUSTERS.avoidance.has(sct)) avoidanceCount++;
-    if (SCRIPT_TYPE_CLUSTERS.internal_contradiction.has(sct)) {
-      internalContradictionCount++;
-    }
+    const fc = familyCounts.get(f) ?? 0;
+    if (fc >= perFamilyCap) continue;
+    typeCounts.set(t, tc + 1);
+    familyCounts.set(f, fc + 1);
     out.push(c);
   }
   return out;
 }
 
 /**
- * Round-robin interleave the candidate pool by `meta.scriptType`.
- * Buckets candidates by scriptType, then emits one from each bucket
- * per pass until empty. Guarantees that the FIRST 6+ candidates span
- * ≥6 distinct scriptTypes when the natural pool supports it (i.e.
- * at least 6 buckets exist), making the downstream selector's job
- * dramatically easier — the highest-quality picks no longer all
- * cluster on the same narrative shape just because that scriptType's
- * scenarios sorted to the front of the Cartesian weave.
+ * Round-robin interleave the candidate pool by `meta.ideaCoreFamily`
+ * (Phase 1 — was `meta.scriptType` pre-Phase-1). Buckets candidates by
+ * family, then emits one from each bucket per pass until empty.
+ * Guarantees that the FIRST 6+ candidates span as many distinct
+ * IdeaCoreFamilies as the natural pool supports, making the downstream
+ * selector's job dramatically easier — the highest-quality picks no
+ * longer all cluster on the same narrative family just because that
+ * family's scenarios sorted to the front of the Cartesian weave.
  *
  * Soft, NOT hard: never drops candidates. Candidates with no
- * scriptType (legacy / fallback paths that may not resolve a
+ * ideaCoreFamily (legacy / fallback paths that may not resolve a
  * taxonomy entry) bucket under "_unknown" and are interleaved
  * alongside the typed buckets so they still ship.
  *
  * Bucket order = first-appearance order in the input, which preserves
  * the upstream memory bias (the creator's top-structure scenarios
- * surface their scriptType buckets first in the rotation).
+ * surface their family buckets first in the rotation).
  */
-function interleaveByScriptType(
+function interleaveByIdeaCoreFamily(
   candidates: PatternCandidate[],
 ): PatternCandidate[] {
   if (candidates.length <= 1) return candidates;
   const buckets = new Map<string, PatternCandidate[]>();
   const order: string[] = [];
   for (const c of candidates) {
-    const key = c.meta.scriptType ?? "_unknown";
+    const key = c.meta.ideaCoreFamily ?? "_unknown";
     let bucket = buckets.get(key);
     if (!bucket) {
       bucket = [];

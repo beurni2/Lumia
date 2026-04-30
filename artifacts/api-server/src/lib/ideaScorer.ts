@@ -27,6 +27,8 @@ import {
   type Energy,
   type HookLanguageStyle,
   type HookOpener,
+  type IdeaCoreFamily,
+  type IdeaCoreType,
   type PatternMeta,
   type ScriptType,
   type Setting,
@@ -132,6 +134,19 @@ export type CandidateMeta = PatternMeta | {
   topicLane?: TopicLane;
   hookOpener?: HookOpener;
   scriptType?: ScriptType;
+  /**
+   * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
+   * (Phase 1 replacement for `scriptType`). Pattern-variation candidates
+   * always set both via `resolveIdeaCoreType`. Llama / Claude fallback
+   * wraps may set via `lookupIdeaCoreType(family, templateId)` when the
+   * family is in the registered taxonomy; absent otherwise. Selector
+   * treats absent as "no contribution to ideaCoreType axis" (same
+   * discipline as the existing optional fields). The `scriptType` field
+   * above is kept INERT for telemetry / archetype-derivation; selection
+   * scoring + guards now read these two fields instead.
+   */
+  ideaCoreType?: IdeaCoreType;
+  ideaCoreFamily?: IdeaCoreFamily;
   energy?: Energy;
   /**
    * Archetype + family — IDEA ARCHETYPE spec axes. Llama / Claude
@@ -694,29 +709,62 @@ export type NoveltyContext = {
    */
   recentSettings?: ReadonlySet<Setting>;
   /**
-   * Cross-batch demotion for scriptType — derived from cached entries
-   * via `lookupScriptType(family, templateId)`. Captures every script
-   * type the orchestrator hands in via `prev` (currently the flattened
-   * recent-history window). Used by `scoreNovelty` (binary fresh dim)
-   * and `selectionPenalty` (-3 demotion at pick time).
+   * @deprecated Phase 1 — scriptType axis is INERT TELEMETRY. Set is still
+   * populated by `buildNoveltyContext` so logs / cache parse continue to
+   * work, but `scoreNovelty` and `selectionPenalty` no longer read it.
+   * The active narrative-shape lever is now `recentIdeaCoreFamilies` /
+   * `recentIdeaCoreTypes` below.
    */
   recentScriptTypes?: ReadonlySet<ScriptType>;
   /**
-   * ScriptTypes appearing in ≥2 of the last 3 batches. Computed
-   * separately from `recentScriptTypes` so the cross-batch tiered
-   * history can layer an additional `-2` on top of the per-batch
-   * `-3` (a scriptType that's frequent across 3 batches gets both
-   * penalties stacked = -5 total). Empty / undefined when the
-   * orchestrator passes fewer than the window's worth of batches.
+   * @deprecated Phase 1 — see `recentScriptTypes`. Replaced by
+   * `frequentIdeaCoreFamiliesLast3`.
    */
   frequentScriptTypesLast3?: ReadonlySet<ScriptType>;
   /**
-   * ScriptTypes that have NOT appeared in any of the last 3 batches.
-   * Computed as `SCRIPT_TYPES − union(last 3 batches' scriptTypes)`.
-   * Used by `scoreNovelty` for the spec's headline "rotate the
-   * catalog" `+3` boost. Empty when no last-3 history is supplied.
+   * @deprecated Phase 1 — see `recentScriptTypes`. Replaced by
+   * `unusedIdeaCoreFamiliesLast3`.
    */
   unusedScriptTypesLast3?: ReadonlySet<ScriptType>;
+  /**
+   * IdeaCoreFamily axis (Phase 1) — immediate-prior-batch families
+   * derived from cached entries via `lookupIdeaCoreType(family,
+   * templateId)` then `resolveIdeaCoreFamily(coreType)`. Used by:
+   *   - `scoreNovelty` — binary "fresh family" dim.
+   *   - `selectionPenalty` — `-3` cross-batch demotion when the
+   *     candidate's family is in this set (last batch).
+   *   - The hybrid orchestrator's regen rescue (requires ≥2 NEW
+   *     families per batch on regenerate).
+   *
+   * Unset / empty when no prior cache exists (cold start). Selector
+   * treats absent as "no contribution to the cross-batch family
+   * lever" — same discipline as the legacy scriptType fields.
+   */
+  recentIdeaCoreFamilies?: ReadonlySet<IdeaCoreFamily>;
+  /**
+   * IdeaCoreFamily axis (Phase 1) — families appearing in ≥2 of the
+   * last 3 batches. Stacks with `recentIdeaCoreFamilies` so a family
+   * that's BOTH immediate-prior AND frequent-across-3 takes
+   * `-3 + -2 = -5` cross-batch in `selectionPenalty`. Empty when
+   * fewer than 3 batches of history exist.
+   */
+  frequentIdeaCoreFamiliesLast3?: ReadonlySet<IdeaCoreFamily>;
+  /**
+   * IdeaCoreFamily axis (Phase 1) — families that have NOT appeared
+   * in any of the last 3 batches. Computed as
+   * `IDEA_CORE_FAMILIES − union(last 3 batches' families)`. Drives the
+   * spec's headline `+3` "rotate the catalog" boost in `scoreNovelty`
+   * — sized to dominate the per-axis fresh signals so a catalog-cold
+   * family wins over a tied-quality clone of a stale one.
+   */
+  unusedIdeaCoreFamiliesLast3?: ReadonlySet<IdeaCoreFamily>;
+  /**
+   * IdeaCoreType axis (Phase 1) — immediate-prior-batch exact types
+   * derived from cache. Used by `scoreNovelty` (binary fresh dim;
+   * smaller axis than family because exact-type collisions across
+   * 120 values are rare even without rotation).
+   */
+  recentIdeaCoreTypes?: ReadonlySet<IdeaCoreType>;
   /**
    * Cross-batch demotion for archetype — IDEA ARCHETYPE spec.
    * Derived from cached entries via `resolveArchetypeLoose(scriptType)`
@@ -867,6 +915,14 @@ function metaScriptType(m: CandidateMeta): ScriptType | undefined {
   return m.scriptType;
 }
 
+function metaIdeaCoreType(m: CandidateMeta): IdeaCoreType | undefined {
+  return m.ideaCoreType;
+}
+
+function metaIdeaCoreFamily(m: CandidateMeta): IdeaCoreFamily | undefined {
+  return m.ideaCoreFamily;
+}
+
 function metaArchetype(m: CandidateMeta): Archetype | undefined {
   return m.archetype;
 }
@@ -920,11 +976,14 @@ export function scoreNovelty(
   const topics = new Set<TopicLane>();
   const openers = new Set<HookOpener>();
   const settings = new Set<Setting>();
-  const scripts = new Set<ScriptType>();
   const archetypes = new Set<Archetype>();
   const sceneTags = new Set<SceneObjectTag>();
   const langStyles = new Set<HookLanguageStyle>();
   const voices = new Set<VoiceProfile>();
+  // Phase 1 — within-batch sets for the new IdeaCoreType axis (replaces
+  // the prior `scripts: Set<ScriptType>` set which is now inert).
+  const coreFamilies = new Set<IdeaCoreFamily>();
+  const coreTypes = new Set<IdeaCoreType>();
   for (const b of batchSoFar) {
     styles.add(b.idea.hookStyle);
     if (b.meta.scenarioFamily) families.add(b.meta.scenarioFamily);
@@ -936,8 +995,6 @@ export function scoreNovelty(
     const op = metaHookOpener(b);
     if (op) openers.add(op);
     settings.add(b.idea.setting as Setting);
-    const sct = metaScriptType(b.meta);
-    if (sct) scripts.add(sct);
     const arc = metaArchetype(b.meta);
     if (arc) archetypes.add(arc);
     const sot = metaSceneObjectTag(b.meta);
@@ -946,6 +1003,10 @@ export function scoreNovelty(
     if (hls) langStyles.add(hls);
     const vp = metaVoiceProfile(b.meta);
     if (vp) voices.add(vp);
+    const ict = metaIdeaCoreType(b.meta);
+    if (ict) coreTypes.add(ict);
+    const icf = metaIdeaCoreFamily(b.meta);
+    if (icf) coreFamilies.add(icf);
   }
 
   // A. Hook phrase novelty — fresh hookStyle on BOTH axes.
@@ -989,15 +1050,24 @@ export function scoreNovelty(
   const st = c.idea.setting as Setting;
   const stFresh =
     !settings.has(st) && !(ctx.recentSettings?.has(st) ?? false);
-  // H. ScriptType novelty — fresh narrative shape on BOTH axes. The
-  //    spec's headline lever: prevents 3 ideas from reading as the
-  //    same mental loop even when family/setting/style/topic differ
-  //    (e.g. 3 distinct loop_behavior picks: sleep + fridge + post).
-  const sct = metaScriptType(c.meta);
-  const sctFresh =
-    !!sct &&
-    !scripts.has(sct) &&
-    !(ctx.recentScriptTypes?.has(sct) ?? false);
+  // H. IdeaCoreFamily / IdeaCoreType novelty (Phase 1) — REPLACES the
+  //    prior scriptType fresh dim. `coreFamilyFresh` is the spec's
+  //    headline lever: prevents 3 ideas from reading as the same
+  //    narrative family (failure_contradiction × 3, etc) even when
+  //    every other axis rotates. `coreTypeFresh` is the finer dim
+  //    that prevents 3 distinct types in the same family from all
+  //    being `planned_vs_did` etc — sized at 1 (parallel to family)
+  //    so a fresh-on-both-dims pick gets the full +2 nudge.
+  const icf = metaIdeaCoreFamily(c.meta);
+  const coreFamilyFresh =
+    !!icf &&
+    !coreFamilies.has(icf) &&
+    !(ctx.recentIdeaCoreFamilies?.has(icf) ?? false);
+  const ict = metaIdeaCoreType(c.meta);
+  const coreTypeFresh =
+    !!ict &&
+    !coreTypes.has(ict) &&
+    !(ctx.recentIdeaCoreTypes?.has(ict) ?? false);
 
   // I. Archetype novelty — fresh archetype on BOTH axes (within batch
   //    + immediate-prior batch). IDEA ARCHETYPE spec axis: prevents
@@ -1048,15 +1118,17 @@ export function scoreNovelty(
     !voices.has(vp) &&
     !(ctx.recentVoiceProfiles?.has(vp) ?? false);
 
-  // L. Unused-in-last-3-batches "rotate the catalog" boost — large
-  //    +3 when this scriptType has not appeared in any of the last
-  //    3 batches. Spec's headline lever for breaking the "same
-  //    mental loop" failure mode: makes catalog rotation a real,
-  //    not theoretical, force at pick time. Stacks on top of the
-  //    per-axis fresh signals so a fresh-on-every-axis pick of a
-  //    catalog-cold scriptType gets +11 + 3 + 3 + 2 = +19 over a clone pick.
-  const unusedBoost =
-    sct && (ctx.unusedScriptTypesLast3?.has(sct) ?? false) ? 3 : 0;
+  // L. Unused-IdeaCoreFamily-in-last-3-batches "rotate the catalog"
+  //    boost (Phase 1, REPLACES the prior unused-scriptType +3 boost).
+  //    Large +3 when this candidate's IdeaCoreFamily has not appeared
+  //    in any of the last 3 batches. The spec's headline lever for
+  //    breaking the "I planned X → I failed" loop: makes family
+  //    rotation a hard, score-driven force at pick time. Stacks with
+  //    the per-axis fresh signals so a fresh-on-every-axis pick of a
+  //    catalog-cold family gets up to +12 + 3 + 3 + 2 = +20 over a
+  //    clone pick of yesterday's dominant family.
+  const unusedFamilyBoost =
+    icf && (ctx.unusedIdeaCoreFamiliesLast3?.has(icf) ?? false) ? 3 : 0;
   // M. Unused-tag boost — parallel +3 lever on the scene-object axis.
   //    A catalog-cold sceneObjectTag (no appearance in the last 3
   //    batches) gets the same +3 nudge. Stacks with the scriptType
@@ -1089,12 +1161,13 @@ export function scoreNovelty(
     (tlFresh ? 1 : 0) +
     (opFresh ? 1 : 0) +
     (stFresh ? 1 : 0) +
-    (sctFresh ? 1 : 0) +
+    (coreFamilyFresh ? 1 : 0) +
+    (coreTypeFresh ? 1 : 0) +
     (arcFresh ? 1 : 0) +
     (sotFresh ? 1 : 0) +
     (hlsFresh ? 1 : 0) +
     (vpFresh ? 1 : 0) +
-    unusedBoost +
+    unusedFamilyBoost +
     unusedTagBoost +
     unusedLangBoost +
     unusedVoiceBoost
@@ -1152,11 +1225,16 @@ export function selectionPenalty(
     const topics = new Set<TopicLane>();
     const openers = new Set<HookOpener>();
     const settings = new Set<Setting>();
-    const scripts = new Set<ScriptType>();
     const archetypes = new Set<Archetype>();
     const archetypeFamilies = new Set<ArchetypeFamily>();
     const sceneClusters = new Set<SceneEnvCluster>();
     const langStyles = new Set<HookLanguageStyle>();
+    // Phase 1 — within-batch sets for the IdeaCoreType axis. Drive
+    // the -2 same-family / -3 same-type penalties below; replace
+    // the prior `scripts: Set<ScriptType>` set + -2 same-scriptType
+    // penalty (now inert).
+    const coreFamilies = new Set<IdeaCoreFamily>();
+    const coreTypes = new Set<IdeaCoreType>();
     // VOICE PROFILES spec — within-batch voice set, mirrors the
     // hookLanguageStyle pattern. Populated from `metaVoiceProfile`
     // (pattern_variation always sets; Llama / Claude wraps may
@@ -1174,8 +1252,6 @@ export function selectionPenalty(
       const op = metaHookOpener(b);
       if (op) openers.add(op);
       settings.add(b.idea.setting as Setting);
-      const sct = metaScriptType(b.meta);
-      if (sct) scripts.add(sct);
       const arc = metaArchetype(b.meta);
       if (arc) archetypes.add(arc);
       const arcFam = metaArchetypeFamily(b.meta);
@@ -1186,6 +1262,10 @@ export function selectionPenalty(
       if (hls) langStyles.add(hls);
       const vp = metaVoiceProfile(b.meta);
       if (vp) voices.add(vp);
+      const ict = metaIdeaCoreType(b.meta);
+      if (ict) coreTypes.add(ict);
+      const icf = metaIdeaCoreFamily(b.meta);
+      if (icf) coreFamilies.add(icf);
     }
     if (styles.has(c.idea.hookStyle)) p -= 2;
     if (c.meta.scenarioFamily && families.has(c.meta.scenarioFamily)) p -= 3;
@@ -1198,8 +1278,18 @@ export function selectionPenalty(
     if (cop && openers.has(cop)) p -= 2;
     const cst = c.idea.setting as Setting;
     if (settings.has(cst)) p -= 2;
-    const csct = metaScriptType(c.meta);
-    if (csct && scripts.has(csct)) p -= 2;
+    // Phase 1 — IdeaCoreType / IdeaCoreFamily within-batch demotions.
+    // -3 for same exact type (the strongest within-batch lever after
+    // archetype, since exact-type collisions are the
+    // "I planned X → I failed × 3" failure mode the spec calls out).
+    // -2 for same family (a softer nudge that fires even when the
+    // exact types differ — e.g. two different failure_contradiction
+    // types in one batch). The prior `-2 same scriptType` line is
+    // REMOVED — scriptType is INERT in Phase 1.
+    const cict = metaIdeaCoreType(c.meta);
+    if (cict && coreTypes.has(cict)) p -= 3;
+    const cicf = metaIdeaCoreFamily(c.meta);
+    if (cicf && coreFamilies.has(cicf)) p -= 2;
     // IDEA ARCHETYPE spec — within-batch demotions. -4 for same
     // archetype (the strongest within-batch lever, sized to outrank
     // a typical fresh-on-3-axes novelty bonus); -2 for same family
@@ -1241,14 +1331,18 @@ export function selectionPenalty(
     const cvp = metaVoiceProfile(c.meta);
     if (cvp && voices.has(cvp)) p -= 2;
   }
-  // Cross-batch tiered scriptType demotion (in addition to the
-  // within-batch -2). The two tiers stack: a scriptType that's
-  // both in the immediate-prior batch AND frequent across the last
-  // 3 takes -3 + -2 = -5 in addition to any within-batch hit.
-  const csctCross = metaScriptType(c.meta);
-  if (csctCross) {
-    if (ctx.recentScriptTypes?.has(csctCross) ?? false) p -= 3;
-    if (ctx.frequentScriptTypesLast3?.has(csctCross) ?? false) p -= 2;
+  // Cross-batch tiered IdeaCoreFamily demotion (Phase 1, REPLACES the
+  // prior scriptType cross-batch lever). The two tiers stack: a
+  // family that's BOTH in the immediate-prior batch AND frequent
+  // across the last 3 takes -3 + -2 = -5 in addition to any within-
+  // batch hit. This is the cross-batch half of the spec's headline
+  // "rotate the family" lever — pairs with the +3 unused-family
+  // boost in `scoreNovelty` so a catalog-cold family gets a +6 swing
+  // over yesterday's dominant family on a tied-quality candidate.
+  const cicfCross = metaIdeaCoreFamily(c.meta);
+  if (cicfCross) {
+    if (ctx.recentIdeaCoreFamilies?.has(cicfCross) ?? false) p -= 3;
+    if (ctx.frequentIdeaCoreFamiliesLast3?.has(cicfCross) ?? false) p -= 2;
   }
   // Cross-batch tiered sceneObjectTag demotion — parallel to the
   // scriptType lever. A tag that's both immediate-prior AND frequent

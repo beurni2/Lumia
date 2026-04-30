@@ -25,6 +25,7 @@ Lumina is a pnpm workspace monorepo built with TypeScript.
 - **Database Conventions:** Additive migrations, versioned registry, immutable primary-key types.
 - **LLM Integration:** Claude Haiku 4.5 via Replit AI Integrations for idea generation.
 - **Per-Creator Format Distribution:** Rule-based system derives a target mix of four canonical patterns.
+- **Idea Core Axis (Phase 1):** A 120-value `ideaCoreType` axis (12 IdeaCoreFamilies × 10 types) drives selection scoring, within-batch HARD guards (≤2 per family / ≤1 per type / failure_contradiction <40%), and cross-batch regen rescue (≥2 NEW families). The legacy `scriptType` axis remains resolved + persisted as inert telemetry only — it no longer influences scoring or guards.
 - **Variation Injection:** Hard rule in the ideator system prompt forces variation across scenario, setting, emotional spike, hook style, payoff type, and prop/action, preventing repetition within a batch.
 - **Caption Craft:** Ideator system prompt enforces caption quality for generated ideas.
 - **Lumina Evolution Engine:** Derives pattern-level bias from recent feedback and action signals, aggregating data over 60 days to guide idea generation.

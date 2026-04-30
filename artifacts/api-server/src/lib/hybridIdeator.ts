@@ -32,10 +32,14 @@ import {
 import {
   generatePatternCandidates,
   HOOK_LANGUAGE_STYLES,
+  IDEA_CORE_FAMILIES,
+  IDEA_CORE_TYPES,
   lookupHookOpener,
+  lookupIdeaCoreType,
   lookupScriptType,
   lookupTopicLane,
   lookupVisualActionPattern,
+  resolveIdeaCoreFamily,
   SCRIPT_TYPE_CLUSTERS,
   SCRIPT_TYPES,
   selectPrimaryVoiceProfile,
@@ -43,6 +47,8 @@ import {
   type Energy,
   type HookLanguageStyle,
   type HookOpener,
+  type IdeaCoreFamily,
+  type IdeaCoreType,
   type PatternCandidate,
   type ScriptType,
   type Setting,
@@ -400,29 +406,50 @@ export function batchGuardsPass(
       return false;
     }
   }
-  // No more than 2 share scriptType — narrative-shape diversity. The
-  // headline anti-clone guard from the script-diversity spec: without
-  // it, 3 picks with distinct families but identical narrative shape
-  // (e.g. sleep + fridge + social_post all map to `loop_behavior`)
-  // read as one mental loop filmed three ways.
-  const scriptTypes = batch
-    .map((b) => b.meta.scriptType)
-    .filter((x): x is ScriptType => !!x);
-  if (scriptTypes.length > 0 && countMax(scriptTypes) > MAX_GROUP_SHARE) {
+  // Phase 1 — IDEA CORE FAMILY / TYPE HARD GUARDS. REPLACES the prior
+  // scriptType ≤2-share + SCRIPT_TYPE_CLUSTERS all-in-one-cluster
+  // checks (both went inert with the scriptType axis). The new
+  // guards operate on the 12-family / 120-type ideaCore axis the
+  // selector now uses for scoring + penalties.
+  //
+  //   1. ≤ 2 share ideaCoreFamily          (parallel to family / topic)
+  //   2. ≤ 1 share ideaCoreType            (stricter — 120-value axis,
+  //                                          a single collision already
+  //                                          feels like a clone)
+  //   3. failure_contradiction count       (the "I planned X → I failed"
+  //      < 0.4 * batch.length               loop the spec calls out as
+  //                                          the dominant failure mode.
+  //                                          Comparator is STRICT `< 40%`
+  //                                          (i.e. `>= 0.4 → reject`), so
+  //                                          allowed maxima are: N=3 → ≤1,
+  //                                          N=4 → ≤1, N=5 → ≤1 (2/5 = 0.4
+  //                                          which trips the floor),
+  //                                          N=6 → ≤2 (2/6 ≈ 0.333). If
+  //                                          inclusive ≤40% is later
+  //                                          desired, switch the comparator
+  //                                          to `> 0.4`.)
+  //
+  // All three guards skip when the relevant fields are missing on
+  // legacy / fallback entries — same omit-safe discipline as the
+  // archetype / hookLanguageStyle / voiceProfile guards above.
+  const coreFamilies = batch
+    .map((b) => b.meta.ideaCoreFamily)
+    .filter((x): x is IdeaCoreFamily => !!x);
+  if (coreFamilies.length > 0 && countMax(coreFamilies) > MAX_GROUP_SHARE) {
     return false;
   }
-  // Reject batch where ALL picks fall in the same NARRATIVE CLUSTER
-  // (avoidance / internal_contradiction). Spec calls these out as
-  // explicit failure modes even when the scriptTypes are distinct
-  // values within the cluster — e.g. {avoidance, false_start,
-  // habit_break_fail} are 3 different scriptTypes but all 3 are
-  // "I planned X, didn't do X" beats. Only fires when every pick
-  // contributes a scriptType (preserves graceful behavior on legacy
-  // / fallback candidates that may omit scriptType).
-  if (scriptTypes.length === batch.length) {
-    for (const cluster of Object.values(SCRIPT_TYPE_CLUSTERS)) {
-      if (scriptTypes.every((s) => cluster.has(s))) return false;
+  const coreTypes = batch
+    .map((b) => b.meta.ideaCoreType)
+    .filter((x): x is IdeaCoreType => !!x);
+  if (coreTypes.length > 0 && countMax(coreTypes) > 1) {
+    return false;
+  }
+  if (coreFamilies.length === batch.length) {
+    let failCount = 0;
+    for (const f of coreFamilies) {
+      if (f === "failure_contradiction") failCount += 1;
     }
+    if (failCount / batch.length >= 0.4) return false;
   }
   // Reject batch where ALL picks are low-energy (passive sit-and-stare
   // beats — phone_scroll_freeze, text_message_panic, face_reaction_-
@@ -512,12 +539,9 @@ function exhaustiveReselect(
 }
 
 /**
- * Count distinct fresh scriptTypes in `batch` — i.e. scriptTypes
- * present in `batch` but absent from `recent`. Used by the script-
- * system FINAL spec §6 ≥2-fresh soft preference. Picks without a
- * scriptType (legacy / fallback) don't count as fresh. When `recent`
- * is empty / undefined, every distinct scriptType in the batch is
- * treated as fresh (no prior batch → any pick is novel).
+ * @deprecated Phase 1 — scriptType axis is INERT. Kept exported in case
+ * legacy callers / tests still reference it; selectWithNovelty no longer
+ * uses it. Replaced by `countNewIdeaCoreFamilies` below.
  */
 export function countNewScriptTypes(
   batch: ScoredCandidate[],
@@ -529,6 +553,29 @@ export function countNewScriptTypes(
     if (!st) continue;
     if (recent && recent.size > 0 && recent.has(st)) continue;
     seen.add(st);
+  }
+  return seen.size;
+}
+
+/**
+ * Count distinct fresh IdeaCoreFamilies in `batch` — i.e. families
+ * present in `batch` but absent from `recent`. Phase 1 replacement
+ * for `countNewScriptTypes`. Drives the regen HARD `≥2 NEW families`
+ * rescue in `selectWithNovelty`. Picks without an ideaCoreFamily
+ * (legacy / fallback) don't count as fresh. When `recent` is empty /
+ * undefined, every distinct family in the batch is treated as fresh
+ * (no prior batch → any pick is novel).
+ */
+export function countNewIdeaCoreFamilies(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<IdeaCoreFamily> | undefined,
+): number {
+  const seen = new Set<IdeaCoreFamily>();
+  for (const c of batch) {
+    const f = c.meta.ideaCoreFamily;
+    if (!f) continue;
+    if (recent && recent.size > 0 && recent.has(f)) continue;
+    seen.add(f);
   }
   return seen.size;
 }
@@ -703,15 +750,10 @@ export function batchHasNewVoiceProfile(
 }
 
 /**
- * Predicate for the regen-fresh-scriptType rescue path. Returns true
- * when at least one pick in `batch` carries a scriptType that is NOT
- * in the immediate-prior batch's `recent` set. Vacuously true when
- * `recent` is empty / undefined (no prior batch → any pick is fresh).
- *
- * Picks without a scriptType (legacy / fallback candidates that
- * couldn't resolve a taxonomy entry) are skipped by the inner loop —
- * they neither prove freshness nor block the predicate from firing
- * when SOME other pick in the batch contributes a fresh scriptType.
+ * @deprecated Phase 1 — scriptType axis is INERT. Kept private and
+ * unreferenced; selectWithNovelty no longer composes a scriptType
+ * freshness extraGuard. The active rescue uses `countNewIdeaCoreFamilies`
+ * directly.
  */
 function batchHasNewScriptType(
   batch: ScoredCandidate[],
@@ -746,60 +788,113 @@ export function selectWithNovelty(
     const reselected = exhaustiveReselect(pool, count, ctx);
     if (reselected) chosen = reselected;
   }
-  // Spec rescue: when regenerating, the picked batch MUST introduce
-  // at least one scriptType that wasn't in the immediate-prior batch.
-  // The standard guards already cap per-axis sharing and reject all-
-  // cluster batches, but they DON'T require cross-batch novelty —
-  // a perfectly guard-clean pick can still be 100% recent scriptTypes
-  // if the pool is dominated by them. Run one more exhaustive pass
-  // with a hard fresh-scriptType predicate; if even that's impossible
-  // (the pool genuinely lacks an unused scriptType), ship best-effort
-  // with a warn log so the rut is visible in production telemetry.
+  // Phase 1 — IDEA CORE FAMILY HARD regen rescue. REPLACES the prior
+  // scriptType rescue. When regenerating, the picked batch MUST
+  // introduce at least 2 IdeaCoreFamilies that weren't in the
+  // immediate-prior batch (the "≥2 NEW families" rule from the spec —
+  // stricter than the prior ≥1 fresh because the family axis only
+  // has 12 values, so requiring 2 fresh per regen is what actually
+  // breaks the "I planned X → I failed × 3" loop). The standard
+  // guards already cap per-axis sharing + the failure-cluster floor,
+  // but they DON'T require cross-batch novelty — a perfectly guard-
+  // clean pick can still be 100% same-family-as-yesterday if the pool
+  // is dominated by it. Run one more exhaustive pass; if it's
+  // impossible (small pool genuinely lacks 2 fresh families), ship
+  // best-effort with a warn log so the rut is visible in telemetry.
   if (
     opts.regenerate &&
     chosen &&
-    (ctx.recentScriptTypes?.size ?? 0) > 0 &&
-    !batchHasNewScriptType(chosen, ctx.recentScriptTypes)
+    (ctx.recentIdeaCoreFamilies?.size ?? 0) > 0 &&
+    countNewIdeaCoreFamilies(chosen, ctx.recentIdeaCoreFamilies) < 2
   ) {
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
-      (b) => batchHasNewScriptType(b, ctx.recentScriptTypes),
+      (b) => countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >= 2,
     );
     if (fresh) {
       chosen = fresh;
     } else {
       logger.warn(
         {
-          recentScriptTypes: Array.from(ctx.recentScriptTypes ?? []),
+          recentIdeaCoreFamilies: Array.from(
+            ctx.recentIdeaCoreFamilies ?? [],
+          ),
           poolSize: pool.length,
           count,
         },
-        "hybrid_ideator.regen_no_new_scripttype_shipping_best_effort",
+        "hybrid_ideator.regen_lt_two_new_idea_core_families_shipping_best_effort",
       );
     }
   }
+  // CASCADE SNAPSHOT DISCIPLINE — the four rescue passes below
+  // (archetype / sceneObjectTag / hookLanguageStyle / voiceProfile)
+  // each compose their own +≥1-fresh invariant with whatever prior
+  // axes ALREADY achieved on `chosen`. Two snapshot rules:
+  //
+  //   (a) ideaCoreFamily — snapshot the COUNT of fresh families on
+  //       `chosen` as the floor; require `b` to match or exceed it.
+  //       This means: if the Phase 1 hard rescue achieved 2 fresh
+  //       families, every later pass preserves that 2; if the pool
+  //       only allowed 1 (best-effort ship), later passes only
+  //       require ≥1 so they can still improve scene/HLS/voice
+  //       freshness without re-tripping the impossible-to-satisfy
+  //       ≥2 floor.
+  //   (b) archetype / sceneObjectTag / hookLanguageStyle — snapshot
+  //       the BOOLEAN achievement of `chosen` on each axis; only
+  //       require it of `b` when `chosen` already had it. Prevents
+  //       a later pass from being blocked by a prior axis's
+  //       impossible-to-satisfy invariant (e.g. archetype rescue
+  //       failed → don't require fresh archetype in the
+  //       sceneObjectTag pass — would block a real scene-tag win).
+  //
+  // Both rules mirror the active-energy pass's snapshot logic
+  // (lines below) so the whole cascade has consistent
+  // "preserve-achieved" semantics instead of mixed
+  // absolute-required + preserve-achieved predicates.
+  function freshFamiliesAchieved(b: ScoredCandidate[]): number {
+    return (ctx.recentIdeaCoreFamilies?.size ?? 0) === 0
+      ? 0
+      : countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies);
+  }
+  function archetypeAchieved(b: ScoredCandidate[]): boolean {
+    return (
+      (ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
+      batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)
+    );
+  }
+  function sceneTagAchieved(b: ScoredCandidate[]): boolean {
+    return (
+      (ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
+      batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)
+    );
+  }
+  function hookLangAchieved(b: ScoredCandidate[]): boolean {
+    return (
+      (ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
+      batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)
+    );
+  }
+
   // IDEA ARCHETYPE spec rescue: when regenerating, the picked batch
   // MUST introduce at least one archetypeFamily that wasn't in the
-  // immediate-prior batch. Same warn-and-ship-best-effort discipline
-  // as the scriptType rescue above. Composes with the scriptType
-  // invariant via the extraGuard so this pass can't silently
-  // downgrade a freshly-rescued scriptType batch.
+  // immediate-prior batch. Composes with the Phase 1 ideaCoreFamily
+  // invariant via the achieved-count snapshot (rule a above).
   if (
     opts.regenerate &&
     chosen &&
     (ctx.recentArchetypeFamilies?.size ?? 0) > 0 &&
     !batchHasNewArchetypeFamily(chosen, ctx.recentArchetypeFamilies)
   ) {
+    const minFresh = freshFamiliesAchieved(chosen);
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
         batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) &&
-        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
-          batchHasNewScriptType(b, ctx.recentScriptTypes)),
+        freshFamiliesAchieved(b) >= minFresh,
     );
     if (fresh) {
       chosen = fresh;
@@ -818,25 +913,25 @@ export function selectWithNovelty(
   }
   // SCENE-OBJECT TAG spec rescue: when regenerating, the picked batch
   // MUST introduce at least one sceneObjectTag that wasn't in the
-  // immediate-prior batch. ExtraGuard composes with BOTH prior
-  // invariants (scriptType AND archetypeFamily) so this pass cannot
-  // silently downgrade either of them.
+  // immediate-prior batch. ExtraGuard composes via the snapshot
+  // pattern — only preserves prior achievements, not absolute
+  // invariants (rules a + b above).
   if (
     opts.regenerate &&
     chosen &&
     (ctx.recentSceneObjectTags?.size ?? 0) > 0 &&
     !batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags)
   ) {
+    const minFresh = freshFamiliesAchieved(chosen);
+    const requireArchetype = archetypeAchieved(chosen);
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
         batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) &&
-        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
-          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
-        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)),
+        freshFamiliesAchieved(b) >= minFresh &&
+        (!requireArchetype || archetypeAchieved(b)),
     );
     if (fresh) {
       chosen = fresh;
@@ -853,28 +948,26 @@ export function selectWithNovelty(
   }
   // HOOK STYLE spec rescue: when regenerating, the picked batch MUST
   // introduce at least one hookLanguageStyle that wasn't in the
-  // immediate-prior batch. ExtraGuard composes with ALL THREE prior
-  // invariants (scriptType + archetypeFamily + sceneObjectTag) so this
-  // pass cannot silently downgrade any of them. Same warn-and-ship-
-  // best-effort discipline as the prior rescues.
+  // immediate-prior batch. ExtraGuard composes via the snapshot
+  // pattern (rules a + b above).
   if (
     opts.regenerate &&
     chosen &&
     (ctx.recentHookLanguageStyles?.size ?? 0) > 0 &&
     !batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles)
   ) {
+    const minFresh = freshFamiliesAchieved(chosen);
+    const requireArchetype = archetypeAchieved(chosen);
+    const requireSceneTag = sceneTagAchieved(chosen);
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
         batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) &&
-        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
-          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
-        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
-        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)),
+        freshFamiliesAchieved(b) >= minFresh &&
+        (!requireArchetype || archetypeAchieved(b)) &&
+        (!requireSceneTag || sceneTagAchieved(b)),
     );
     if (fresh) {
       chosen = fresh;
@@ -893,34 +986,32 @@ export function selectWithNovelty(
   }
   // VOICE PROFILES spec rescue: when regenerating, the picked batch
   // MUST introduce at least one voiceProfile that wasn't in the
-  // immediate-prior batch. ExtraGuard composes with ALL FOUR prior
-  // invariants (scriptType + archetypeFamily + sceneObjectTag +
-  // hookLanguageStyle) so this pass cannot silently downgrade any
-  // of them. Same warn-and-ship-best-effort discipline as the prior
-  // rescues. Sized as a "≥1 fresh" minimum (not "2 fresh") because
-  // the voice catalog is only 8 values and a creator's allowed-set
-  // is typically 3-4 — a stricter rescue would starve on narrow
-  // calibration sets where the prior batch covered most of them.
+  // immediate-prior batch. ExtraGuard composes via the snapshot
+  // pattern (rules a + b above) with all four prior axes. Same
+  // warn-and-ship-best-effort discipline. Sized as "≥1 fresh"
+  // because the voice catalog is only 8 values and a creator's
+  // allowed-set is typically 3-4 — a stricter rescue would starve
+  // on narrow calibration sets.
   if (
     opts.regenerate &&
     chosen &&
     (ctx.recentVoiceProfiles?.size ?? 0) > 0 &&
     !batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles)
   ) {
+    const minFresh = freshFamiliesAchieved(chosen);
+    const requireArchetype = archetypeAchieved(chosen);
+    const requireSceneTag = sceneTagAchieved(chosen);
+    const requireHookLang = hookLangAchieved(chosen);
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
         batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) &&
-        ((ctx.recentScriptTypes?.size ?? 0) === 0 ||
-          batchHasNewScriptType(b, ctx.recentScriptTypes)) &&
-        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
-        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
-        ((ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)),
+        freshFamiliesAchieved(b) >= minFresh &&
+        (!requireArchetype || archetypeAchieved(b)) &&
+        (!requireSceneTag || sceneTagAchieved(b)) &&
+        (!requireHookLang || hookLangAchieved(b)),
     );
     if (fresh) {
       chosen = fresh;
@@ -936,43 +1027,12 @@ export function selectWithNovelty(
       );
     }
   }
-  // SOFT preference (script-system FINAL spec §6): when regenerating,
-  // prefer ≥2 fresh scriptTypes vs the immediate-prior batch. The hard
-  // ≥1-fresh guarantee is handled above; this pass tries to upgrade
-  // 1-fresh batches to 2-fresh when the pool supports it. Quietly keeps
-  // the existing pick if no such combination exists — best-effort, never
-  // fails, no warn (1-fresh already meets the hard requirement).
-  //
-  // CRITICAL: extraGuard MUST also preserve the new archetypeFamily +
-  // sceneObjectTag + hookLanguageStyle + voiceProfile invariants when
-  // those rescues fired — otherwise upgrading 1-fresh-script to 2-
-  // fresh-script could silently sacrifice a freshly-rescued sibling
-  // axis. The voice clause uses the same vacuously-true short-circuit
-  // pattern as the others — when the prior batch had no voice info
-  // (legacy / cold-start), the clause is satisfied automatically.
-  if (
-    opts.regenerate &&
-    chosen &&
-    (ctx.recentScriptTypes?.size ?? 0) > 0 &&
-    countNewScriptTypes(chosen, ctx.recentScriptTypes) < 2
-  ) {
-    const twoFresh = exhaustiveReselect(
-      pool,
-      count,
-      ctx,
-      (b) =>
-        countNewScriptTypes(b, ctx.recentScriptTypes) >= 2 &&
-        ((ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
-        ((ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
-        ((ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)) &&
-        ((ctx.recentVoiceProfiles?.size ?? 0) === 0 ||
-          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles)),
-    );
-    if (twoFresh) chosen = twoFresh;
-  }
+  // Phase 1 NOTE — the prior "soft ≥2-fresh scriptType upgrade" pass is
+  // GONE: the new IdeaCoreFamily HARD rescue above already enforces
+  // `≥2 NEW families` as a hard regen requirement, so a separate soft
+  // upgrade is redundant (any batch reaching this point either passed
+  // the hard rescue with ≥2 fresh families, or shipped best-effort
+  // because the pool genuinely couldn't supply 2 fresh families).
   // SOFT preference (script-system FINAL spec §7): prefer batches that
   // contain ≥1 "active" energy idea. The hard `allLowEnergy` reject in
   // batchGuardsPass already prevents the all-3-low worst case; this
@@ -988,9 +1048,15 @@ export function selectWithNovelty(
   // guarantees. We snapshot the current fresh count on each axis
   // and only accept active candidates that match or exceed it.
   if (chosen && !batchHasActive(chosen)) {
-    const minFreshScriptRequired =
-      opts.regenerate && (ctx.recentScriptTypes?.size ?? 0) > 0
-        ? countNewScriptTypes(chosen, ctx.recentScriptTypes)
+    // Phase 1 — snapshot the current ideaCoreFamily fresh count so the
+    // active-energy pass can't silently downgrade the rescue's HARD
+    // ≥2-fresh-families guarantee (replaces the prior scriptType
+    // snapshot). Outside regen this is `0` so the predicate is
+    // vacuous on the family axis (matching the prior scriptType
+    // behavior on first-load).
+    const minFreshFamiliesRequired =
+      opts.regenerate && (ctx.recentIdeaCoreFamilies?.size ?? 0) > 0
+        ? countNewIdeaCoreFamilies(chosen, ctx.recentIdeaCoreFamilies)
         : 0;
     const requireFreshFamily =
       opts.regenerate &&
@@ -1019,7 +1085,8 @@ export function selectWithNovelty(
       ctx,
       (b) =>
         batchHasActive(b) &&
-        countNewScriptTypes(b, ctx.recentScriptTypes) >= minFreshScriptRequired &&
+        countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >=
+          minFreshFamiliesRequired &&
         (!requireFreshFamily ||
           batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
         (!requireFreshTag ||
@@ -1117,6 +1184,15 @@ function buildNoveltyContext(
   // cross-batch demotion semantics with a ghost trend that no
   // candidate actually shipped.
   const recentTrendIds = new Set<string>();
+  // Phase 1 — IDEA CORE FAMILY / TYPE axis. Populated from the
+  // immediate-prior batch (same scope as scriptType / archetype /
+  // sceneObjectTag). Source priority: persisted envelope field
+  // (Phase-1+ writes) → `lookupIdeaCoreType(family, templateId)`
+  // derivation (legacy entries pre-dating the persisted fields).
+  // Either path produces the same canonical IdeaCoreType so the
+  // downstream lever is consistent across cache vintages.
+  const recentIdeaCoreFamilies = new Set<IdeaCoreFamily>();
+  const recentIdeaCoreTypes = new Set<IdeaCoreType>();
   const immediatePrior = last3Batches[0] ?? [];
   for (const e of immediatePrior) {
     if (e.family) {
@@ -1131,6 +1207,34 @@ function buildNoveltyContext(
       }
       const tag = lookupSceneObjectTag(e.family);
       if (tag) recentSceneObjectTags.add(tag);
+      // ideaCoreType: prefer the envelope-persisted value so cache
+      // entries written by Phase 1+ reflect the exact assembly-time
+      // resolution (template overrides applied). Fall back to the
+      // family/template lookup for legacy entries written before
+      // the field was persisted — same semantics, just one lookup
+      // per entry.
+      const ict =
+        e.ideaCoreType ?? lookupIdeaCoreType(e.family, e.templateId);
+      if (ict) {
+        recentIdeaCoreTypes.add(ict);
+        // Cross-validate the persisted family against the canonical
+        // type→family mapping. When ideaCoreType resolves, the
+        // canonical `resolveIdeaCoreFamily(ict)` is the source of
+        // truth — a malformed / mismatched persisted `ideaCoreFamily`
+        // (e.g. tampered JSONB or a future type→family remap) cannot
+        // poison `recentIdeaCoreFamilies` even though it survived
+        // the per-field whitelist parse. The persisted family is
+        // only consulted when type-lookup fails on a legacy entry
+        // (handled by the else branch below).
+        recentIdeaCoreFamilies.add(resolveIdeaCoreFamily(ict));
+      } else if (e.ideaCoreFamily) {
+        // Legacy / fallback path — type lookup failed (no persisted
+        // value AND no catalog mapping) but the envelope still
+        // carries a whitelisted family. Use it directly so that a
+        // valid persisted family isn't dropped on the floor when
+        // its sibling type is unrecoverable.
+        recentIdeaCoreFamilies.add(e.ideaCoreFamily);
+      }
     }
     if (e.hookLanguageStyle) recentHookLanguageStyles.add(e.hookLanguageStyle);
     if (e.voiceProfile) recentVoiceProfiles.add(e.voiceProfile);
@@ -1176,6 +1280,19 @@ function buildNoveltyContext(
   // weak axis dominate well-evidenced scriptType / scene-object
   // levers when they conflict.
   let unusedVoiceProfilesLast3: ReadonlySet<VoiceProfile> | undefined;
+  // Phase 1 — IDEA CORE FAMILY tiered cross-batch history. Computed
+  // separately from `recentIdeaCoreFamilies` (immediate-prior) so the
+  // two pieces stack in selectionPenalty: -3 for "in last batch" and
+  // -2 for "in ≥2 of last 3" (parallel to the prior scriptType
+  // tiering pattern). Same compute discipline as the scriptType axis
+  // — per-batch sets → counts → ≥2 = frequent; catalog minus union
+  // = unused.
+  let frequentIdeaCoreFamiliesLast3:
+    | ReadonlySet<IdeaCoreFamily>
+    | undefined;
+  let unusedIdeaCoreFamiliesLast3:
+    | ReadonlySet<IdeaCoreFamily>
+    | undefined;
   if (last3Batches.length > 0) {
     // Per-batch scriptType sets — one Set per batch so we can count
     // how many batches each scriptType appeared in (≥2 ⇒ frequent).
@@ -1270,6 +1387,42 @@ function buildNoveltyContext(
     unusedVoiceProfilesLast3 = new Set(
       VOICE_PROFILES.filter((v) => !voiceSeenAny.has(v)),
     );
+
+    // Phase 1 — IDEA CORE FAMILY tiered cross-batch history. Source
+    // priority per entry mirrors the immediate-prior loop above:
+    // persisted envelope field first, then `lookupIdeaCoreType(family,
+    // templateId)` derivation for legacy entries. The two paths
+    // resolve to the same canonical family so the per-batch counts
+    // are stable across cache vintages.
+    const familySeenInBatch: Set<IdeaCoreFamily>[] = last3Batches.map(
+      (batch) => {
+        const s = new Set<IdeaCoreFamily>();
+        for (const e of batch) {
+          if (!e.family) continue;
+          const ict =
+            e.ideaCoreType ?? lookupIdeaCoreType(e.family, e.templateId);
+          if (!ict) continue;
+          s.add(e.ideaCoreFamily ?? resolveIdeaCoreFamily(ict));
+        }
+        return s;
+      },
+    );
+    const familyCounts = new Map<IdeaCoreFamily, number>();
+    for (const s of familySeenInBatch) {
+      for (const f of s) {
+        familyCounts.set(f, (familyCounts.get(f) ?? 0) + 1);
+      }
+    }
+    const freqFamilies = new Set<IdeaCoreFamily>();
+    for (const [f, c] of familyCounts) {
+      if (c >= 2) freqFamilies.add(f);
+    }
+    frequentIdeaCoreFamiliesLast3 = freqFamilies;
+    const familySeenAny = new Set<IdeaCoreFamily>();
+    for (const s of familySeenInBatch) for (const f of s) familySeenAny.add(f);
+    unusedIdeaCoreFamiliesLast3 = new Set(
+      IDEA_CORE_FAMILIES.filter((f) => !familySeenAny.has(f)),
+    );
   }
 
   return {
@@ -1291,6 +1444,10 @@ function buildNoveltyContext(
     unusedHookLanguageStylesLast3,
     recentVoiceProfiles,
     unusedVoiceProfilesLast3,
+    recentIdeaCoreFamilies,
+    frequentIdeaCoreFamiliesLast3,
+    unusedIdeaCoreFamiliesLast3,
+    recentIdeaCoreTypes,
     recentTrendIds,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
@@ -1342,6 +1499,19 @@ type CachedBatchEntry = {
    * trend ids drop to undefined.
    */
   trendId?: string;
+  /**
+   * Phase 1 — IdeaCoreType / IdeaCoreFamily persisted alongside the
+   * existing scriptType-derivable fields so `buildNoveltyContext`
+   * can read the family / type axis directly off the envelope without
+   * a per-entry `lookupIdeaCoreType` call. Same non-breaking JSONB
+   * pattern: legacy entries written before this field shipped fall
+   * back to `lookupIdeaCoreType(family, templateId)` at read time, so
+   * the cross-batch family lever still functions on pre-Phase-1
+   * cached batches. Tolerantly parsed — unknown values (typos /
+   * future renames / dropped families) silently drop to undefined.
+   */
+  ideaCoreType?: IdeaCoreType;
+  ideaCoreFamily?: IdeaCoreFamily;
 };
 
 /**
@@ -1386,6 +1556,8 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         hookLanguageStyle?: unknown;
         voiceProfile?: unknown;
         trendId?: unknown;
+        ideaCoreType?: unknown;
+        ideaCoreFamily?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1424,6 +1596,28 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
       const tidRaw = wrapper.trendId;
       const trendId: string | undefined =
         typeof tidRaw === "string" && tidRaw.length > 0 ? tidRaw : undefined;
+      // Phase 1 — IdeaCoreType / IdeaCoreFamily tolerant parse. Same
+      // discipline as hookLanguageStyle / voiceProfile above: only
+      // adopt when the string is a registered catalog value, else
+      // silently drop to undefined. This preserves cross-batch lever
+      // sanity through future taxonomy edits — a renamed / removed
+      // type can never accidentally show up in `recentIdeaCoreTypes`
+      // and false-match a fresh candidate. Each field is parsed
+      // independently because future edits could legitimately
+      // produce one without the other (cache rolls forward over
+      // multiple regens, partial fills are fine).
+      const ictRaw = wrapper.ideaCoreType;
+      const ideaCoreType: IdeaCoreType | undefined =
+        typeof ictRaw === "string" &&
+        (IDEA_CORE_TYPES as readonly string[]).includes(ictRaw)
+          ? (ictRaw as IdeaCoreType)
+          : undefined;
+      const icfRaw = wrapper.ideaCoreFamily;
+      const ideaCoreFamily: IdeaCoreFamily | undefined =
+        typeof icfRaw === "string" &&
+        (IDEA_CORE_FAMILIES as readonly string[]).includes(icfRaw)
+          ? (icfRaw as IdeaCoreFamily)
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1435,6 +1629,8 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         hookLanguageStyle,
         voiceProfile,
         trendId,
+        ideaCoreType,
+        ideaCoreFamily,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -1626,6 +1822,15 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // this field directly off the envelope to populate
     // `recentTrendIds` for the -2 cross-batch demotion lever.
     trendId: c.meta.trendId,
+    // Phase 1 — persist ideaCoreType + ideaCoreFamily so the next
+    // regen's `buildNoveltyContext` can derive the active family /
+    // type axis directly off the envelope (no per-entry
+    // `lookupIdeaCoreType` round-trip). Llama / Claude fallback wraps
+    // may omit; undefined flows through cleanly and the next regen
+    // falls back to the `lookupIdeaCoreType(family, templateId)`
+    // derivation path for those entries.
+    ideaCoreType: c.meta.ideaCoreType,
+    ideaCoreFamily: c.meta.ideaCoreFamily,
   }));
 }
 
@@ -2263,6 +2468,16 @@ export async function runHybridIdeator(
           // validateTrendInjection); undefined flows through cleanly.
           // Mirrors the main toCacheEntries write above.
           trendId: c.meta.trendId,
+          // Phase 1 — mirror the main `toCacheEntries` write so the
+          // rescue path also seeds the next regen's
+          // `recentIdeaCoreFamilies` / `recentIdeaCoreTypes` straight
+          // off the envelope (envelope-first persistence goal).
+          // Without this, the lookup-fallback path in
+          // `buildNoveltyContext` masks the omission for catalog
+          // entries but leaks for any rescue ship that lacked a
+          // canonical lookup mapping.
+          ideaCoreType: c.meta.ideaCoreType,
+          ideaCoreFamily: c.meta.ideaCoreFamily,
         }));
       await persistCache(input.creator, rescueEntries);
     }
