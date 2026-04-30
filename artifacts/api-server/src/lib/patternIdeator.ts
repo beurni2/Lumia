@@ -2643,7 +2643,15 @@ export function validateHook(hook: string): boolean {
   if (trimmed.includes("${")) return false;
   if (/(\.{3}|…)\s*$/.test(trimmed)) return false;
   const words = trimmed.split(/\s+/);
-  if (words.length < 3 || words.length > 10) return false;
+  // Phase 3 PART 1 (HOOK TEMPLATE / SCROLL-STOPPING UPGRADE): floor
+  // lowered from 3 → 2 to admit FRAGMENT-style scroll-stopping hooks
+  // ("still nothing.", "immediately no.") that the spec PART 5 calls
+  // out as the target voice. The other rejection rails (banned
+  // prefix / generic filler / voice violation / dangling word /
+  // truncation marker / interpolation leak) all still apply, so a
+  // 2-word hook only passes if it's intentionally abrupt — not
+  // accidentally truncated.
+  if (words.length < 2 || words.length > 10) return false;
   const last = words[words.length - 1]!
     .toLowerCase()
     .replace(/[.,!?;:]+$/g, "");
@@ -3166,7 +3174,38 @@ export function applyVoiceToCaption(
 export type LanguagePhrasingEntry = {
   build: (s: Scenario) => string;
   voiceProfiles?: readonly VoiceProfile[];
+  /**
+   * Phase 3 PART 1 (HOOK TEMPLATE / SCROLL-STOPPING UPGRADE):
+   * lower = less reusable across scenarios = better. Range 1-5.
+   * Used by `scoreScrollStop` (-3 penalty when >=4) so highly-
+   * reusable templates take a hit unless their fragment / structure
+   * boosts compensate. Optional with default 3 (via `getEntryScores`)
+   * for backward-compat with cached / legacy entries.
+   */
+  rigidityScore?: number;
+  /**
+   * Phase 3 PART 1: higher = more emotional impact. Range 1-5.
+   * Surfaced as a soft signal in `scoreScrollStop` (folds into the
+   * +2 "emotionally charged" boost when intrinsic sharpness >= 4).
+   * Optional with default 3 (via `getEntryScores`).
+   */
+  sharpnessScore?: number;
 };
+
+/**
+ * Resolve effective `{ rigidity, sharpness }` for a phrasing entry,
+ * defaulting absent fields to 3 (mid-pool). Pure helper so the
+ * scorer + picker share one source of truth — adding or removing
+ * default constants in one place updates both call sites.
+ */
+export function getEntryScores(
+  entry: LanguagePhrasingEntry,
+): { rigidity: number; sharpness: number } {
+  return {
+    rigidity: entry.rigidityScore ?? 3,
+    sharpness: entry.sharpnessScore ?? 3,
+  };
+}
 
 /**
  * Banned hook prefixes (PART 4 of the HOOK STYLE spec). Hooks
@@ -3253,92 +3292,188 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
     {
       build: (s) => `I keep pretending ${s.topicNoun} doesn't exist`,
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `I told myself I'd ${s.actionShort}`,
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 4,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `I have no plan, only ${s.realityShort}`,
       voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `I lied about ${s.actionShort}`,
       voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `still avoiding ${s.topicNoun}, posting instead`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} is my whole personality now`,
       voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
+    },
+    // Phase 3 PART 1 EMOTIONAL_SPIKE additions — sharp, abrupt
+    // confession-flavored emotional reactions. All scenario-agnostic
+    // (no `s.*` interpolation) so they read as raw mid-action thoughts.
+    {
+      build: () => `i'm over it. truly.`,
+      voiceProfiles: ["blunt", "deadpan", "sarcastic"],
+      rigidityScore: 3,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `this ruined my mood`,
+      voiceProfiles: ["soft_confessional", "blunt", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i hate this part`,
+      voiceProfiles: ["blunt", "soft_confessional", "deadpan"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i did not try that hard`,
+      voiceProfiles: ["self_aware", "dry_humor", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
   ],
   observation: [
     {
       build: (s) => `there's always one ${s.topicNoun} you never deal with`,
       voiceProfiles: ["dry_humor", "deadpan", "poetic"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `everybody has a ${s.topicNoun} they keep avoiding`,
       voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
+      rigidityScore: 4,
+      sharpnessScore: 2,
     },
     {
       build: (s) => `nobody ever talks about ${s.realityShort}`,
       voiceProfiles: ["blunt", "deadpan", "sarcastic"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `it's always the same loop with ${s.topicNoun}`,
       voiceProfiles: ["dry_humor", "deadpan", "sarcastic"],
+      rigidityScore: 4,
+      sharpnessScore: 2,
     },
     {
       build: (s) => `${s.topicNoun} is a personality trait apparently`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor", "self_aware"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: () => `the small things become the whole thing eventually`,
       voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
+      rigidityScore: 4,
+      sharpnessScore: 3,
+    },
+    // Phase 3 PART 1 SELF_AWARE/META additions — observational hooks
+    // about the creator's own pattern. Scenario-agnostic so they
+    // read as direct meta-commentary.
+    {
+      build: () => `i see the pattern, again`,
+      voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i keep doing this. cool.`,
+      voiceProfiles: ["self_aware", "sarcastic", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `this is on me, fully`,
+      voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i already know how this ends`,
+      voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
   ],
   absurd_claim: [
     {
       build: (s) => `${s.topicNoun} and I are in a standoff`,
       voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `${s.topicNoun} pays rent here at this point`,
       voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `pretty sure ${s.topicNoun} runs my schedule now`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} is officially a third roommate`,
       voiceProfiles: ["chaotic", "dry_humor", "sarcastic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} feels like a villain origin story`,
       voiceProfiles: ["sarcastic", "chaotic", "self_aware"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} is sentient and we both know`,
       voiceProfiles: ["deadpan", "dry_humor", "chaotic"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `we are quietly losing to ${s.topicNoun} again`,
       voiceProfiles: ["soft_confessional", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
   ],
   matter_of_fact: [
     {
       build: (s) => `${s.topicNoun} won today, again`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} is staying exactly where it is`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `today's update: ${s.realityShort}`,
@@ -3349,163 +3484,290 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "dry_humor",
         "self_aware",
       ],
+      rigidityScore: 4,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `nothing changed. ${s.realityShort}.`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `no progress. ${s.topicNoun} remains.`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
+    },
+    // Phase 3 PART 1 DEADPAN/BLUNT additions — flat, scenario-agnostic
+    // declarations of failure / non-action. The spec PART 5 voice
+    // target ("interruptions, thoughts mid-action, slightly messy").
+    {
+      build: () => `this was my attempt`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `no progress made`,
+      voiceProfiles: ["deadpan", "blunt", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i did not do it`,
+      voiceProfiles: ["blunt", "deadpan", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i gave up early`,
+      voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `this didn't work`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
   ],
   question: [
     {
       build: (s) => `at what point do we admit ${s.topicNoun}`,
       voiceProfiles: ["self_aware", "dry_humor", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `how many days does ${s.topicNoun} get`,
       voiceProfiles: ["sarcastic", "dry_humor", "blunt"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: () => `who decided this was fine again`,
       voiceProfiles: ["sarcastic", "dry_humor", "self_aware"],
+      rigidityScore: 4,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `is it really still about ${s.topicNoun}`,
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `what if ${s.topicNoun} was the answer all along`,
       voiceProfiles: ["poetic", "self_aware", "dry_humor"],
+      rigidityScore: 4,
+      sharpnessScore: 2,
     },
     {
       build: (s) => `how many days of pretending about ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
   ],
   instruction: [
     {
       build: (s) => `how to avoid ${s.topicNoun} in three steps`,
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `pro tip: skip ${s.topicNoun} today`,
       voiceProfiles: ["sarcastic", "blunt", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `tutorial: how to ignore ${s.topicNoun} forever`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: () => `step one: stare. step two: leave.`,
       voiceProfiles: ["deadpan", "dry_humor", "sarcastic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: () => `lesson one: do less, see what happens`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+      rigidityScore: 4,
+      sharpnessScore: 2,
     },
     {
       build: (s) => `today's reminder: ${s.topicNoun} is allowed to wait`,
       voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
   ],
   micro_story: [
     {
       build: (s) => `open ${s.topicNoun}, stare, close it, walk away`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) =>
         `looked at ${s.topicNoun}, did nothing, continued scrolling`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: () => `I open it, glance, close it, pretend that counted`,
       voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
     },
     {
       build: (s) => `walks past ${s.topicNoun}, nods, keeps walking`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `spent five minutes preparing to think about ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `stood near ${s.topicNoun} like a forgotten ghost`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
+    },
+    // Phase 3 PART 1 NARRATIVE additions — short two-beat micro-stories.
+    // Period mid-string triggers the +3 scrollStop fragment boost.
+    {
+      build: () => `i opened it. then closed it.`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 4,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `i started. then stopped.`,
+      voiceProfiles: ["deadpan", "blunt", "dry_humor"],
+      rigidityScore: 4,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `i saw it. walked away.`,
+      voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 4,
+      sharpnessScore: 5,
     },
   ],
   comparison: [
     {
       build: (s) => `morning me with ${s.topicNoun} vs night me`,
       voiceProfiles: ["dry_humor", "self_aware", "sarcastic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `theory vs reality with ${s.topicNoun}`,
       voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
+      rigidityScore: 4,
+      sharpnessScore: 3,
     },
     {
       build: () => `me at 9am vs me at 9pm`,
       voiceProfiles: ["dry_humor", "self_aware", "deadpan", "sarcastic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `plans about ${s.topicNoun} vs reality`,
       voiceProfiles: ["dry_humor", "sarcastic", "deadpan"],
+      rigidityScore: 4,
+      sharpnessScore: 2,
     },
     {
       build: (s) => `planner me vs the ${s.topicNoun} version of me`,
       voiceProfiles: ["soft_confessional", "self_aware", "poetic"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `future me's ${s.topicNoun} vs current me's`,
       voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
   ],
   object_pov: [
     {
       build: (s) => `${s.topicNoun} watching me decide nothing again`,
       voiceProfiles: ["dry_humor", "poetic", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun}, sitting there, fully aware of everything`,
       voiceProfiles: ["poetic", "dry_humor", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} keeps the score so nothing escapes`,
       voiceProfiles: ["poetic", "dry_humor", "blunt"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `${s.topicNoun} taking notes about my life again`,
       voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} has seen things, ${s.topicNoun} is tired`,
       voiceProfiles: ["poetic", "soft_confessional", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `the ${s.topicNoun} is smug about today, frankly`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} just observing the disaster quietly`,
       voiceProfiles: ["dry_humor", "soft_confessional", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
   ],
   time_stamp: [
     {
       build: (s) => `11:48pm and I'm still negotiating with ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
     },
     {
       build: (s) => `7am plan: ${s.actionShort}`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `it's tuesday and ${s.topicNoun} has not moved`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `12:14am: still in standoff with ${s.topicNoun}`,
@@ -3515,79 +3777,182 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "dry_humor",
         "deadpan",
       ],
+      rigidityScore: 2,
+      sharpnessScore: 5,
     },
     {
       build: (s) => `monday and ${s.topicNoun} is winning, news at eleven`,
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `3pm and the ${s.topicNoun} is somehow louder`,
       voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
+    },
+    // Phase 3 PART 1 TIMESTAMP additions — pure timestamp + status
+    // fragments. Each contains a digit (highly specific +1 boost) and
+    // a mid-string period (fragment boost).
+    {
+      build: () => `9:14pm. still here.`,
+      voiceProfiles: ["soft_confessional", "dry_humor", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `2 hours later. nothing.`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `midnight. no progress.`,
+      voiceProfiles: ["soft_confessional", "deadpan", "blunt"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `day 3. nothing changed.`,
+      voiceProfiles: ["blunt", "deadpan", "soft_confessional"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
     },
   ],
   anti_hook: [
     {
       build: (s) => `anyway, ${s.topicNoun}`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `not great with ${s.topicNoun} today`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `so. ${s.topicNoun}.`,
       voiceProfiles: ["deadpan", "blunt", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 5,
     },
     {
       build: (s) => `here we are with ${s.topicNoun}`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 3,
     },
     {
       build: (s) => `${s.topicNoun}. that's the whole post.`,
       voiceProfiles: ["sarcastic", "chaotic", "deadpan", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 5,
     },
     {
       build: (s) => `${s.topicNoun} and a quiet kind of nothing`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `introducing: ${s.topicNoun} again, shockingly`,
       voiceProfiles: ["sarcastic", "self_aware", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
+    },
+    // Phase 3 PART 1 FRAGMENT additions (spec PART 5 PRIMARY voice).
+    // 2-3 word interruptions / mid-action thoughts. validateHook word
+    // floor was lowered 3 → 2 specifically to admit these. Each is
+    // scenario-agnostic so it reads as a raw thought, not a frame.
+    {
+      build: () => `again. seriously.`,
+      voiceProfiles: ["deadpan", "blunt"],
+      rigidityScore: 3,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `still nothing.`,
+      voiceProfiles: ["deadpan", "blunt", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `this is it?`,
+      voiceProfiles: ["deadpan", "sarcastic", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `immediately no.`,
+      voiceProfiles: ["blunt", "deadpan", "dry_humor"],
+      rigidityScore: 3,
+      sharpnessScore: 5,
+    },
+    {
+      build: () => `yep. still stuck.`,
+      voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
+    },
+    {
+      build: () => `not happening today.`,
+      voiceProfiles: ["blunt", "deadpan", "sarcastic"],
+      rigidityScore: 3,
+      sharpnessScore: 4,
     },
   ],
   escalation_hook: [
     {
       build: (s) => `started with ${s.topicNoun}, ended somewhere worse`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `tried to handle ${s.topicNoun}, did the opposite`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `one job around ${s.topicNoun}, you can guess`,
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) =>
         `${s.topicNoun} started small, this is no longer small`,
       voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `${s.topicNoun} went from small to entire personality`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `thought I'd manage ${s.topicNoun}, now its hostage`,
       voiceProfiles: ["chaotic", "dry_humor", "soft_confessional"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `the ${s.topicNoun} ate my afternoon, peacefully`,
       voiceProfiles: ["poetic", "chaotic", "dry_humor"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
     {
       build: (s) => `started managing ${s.topicNoun}, now we live together`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
+      rigidityScore: 2,
+      sharpnessScore: 4,
     },
   ],
 };
@@ -3946,6 +4311,30 @@ export type PatternMeta = {
    * envelope just carries `trendId`.
    */
   originalCaption?: string;
+  /**
+   * Phase 3 PART 1+3 (HOOK TEMPLATE / SCROLL-STOPPING UPGRADE) —
+   * reference to the `LanguagePhrasingEntry` the hook was built
+   * from. Read by `scoreScrollStop` (in `ideaScorer`) so the
+   * scrollStopScore can apply the rigidity penalty (entry.rigidity
+   * >= 4 → -3) and the sharpness boost (entry.sharpness >= 4 →
+   * folds into +2 emotional charge) without re-running the catalog
+   * lookup.
+   *
+   * IMPORTANT: this field is RUNTIME-ONLY. The `build` function on
+   * the entry will NOT survive JSON serialization to the JSONB
+   * cache, but `rigidityScore` + `sharpnessScore` + `voiceProfiles`
+   * (the JSON-safe subset) WILL survive, so `getEntryScores` still
+   * resolves correctly on rehydrated entries — readers MUST NOT
+   * call `.build()` on this field after a cache round-trip; only
+   * the score fields are reliable.
+   *
+   * Optional EVERYWHERE — Claude/Llama fallback wraps + legacy
+   * cache entries written before Phase 3 will have it undefined,
+   * and `scoreScrollStop(hook, undefined)` is the supported safe
+   * path (rigidity penalty + sharpness boost both no-op on
+   * absent entry — only intrinsic hook properties contribute).
+   */
+  sourceLanguagePhrasing?: LanguagePhrasingEntry;
 };
 
 /**
@@ -4081,7 +4470,7 @@ function assembleCandidate(
     voiceProfile,
   );
   if (!picked) return null;
-  const { index, hook } = picked;
+  const { entry: sourceLanguagePhrasing, index, hook } = picked;
   // Legacy hookStyle field is DERIVED from hookLanguageStyle via
   // the lossy backward-compat mapping. Every value is a valid
   // legacy HookStyle so the JSONB cache, viralPatternMemory, and
@@ -4274,6 +4663,14 @@ function assembleCandidate(
       // "no revert source available" (skip the candidate, never
       // attempt synthesis).
       originalCaption,
+      // Phase 3 PART 1+3 — `LanguagePhrasingEntry` reference for
+      // `scoreScrollStop` rigidity penalty + sharpness boost. Always
+      // set on pattern_variation candidates (the picker returns the
+      // entry alongside index + hook). RUNTIME-ONLY — see PatternMeta
+      // JSDoc above for the JSON-serialization caveat (scores survive,
+      // build fn does not — score lookups via getEntryScores still
+      // work on rehydrated entries).
+      sourceLanguagePhrasing,
     },
   };
 }

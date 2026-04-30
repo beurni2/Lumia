@@ -1,0 +1,270 @@
+HOOK TEMPLATE SYSTEM + SCROLL-STOPPING UPGRADE
+
+Goal:
+Fix weak, repetitive hooks by:
+1) Expanding templates to 100+ high-quality templates
+2) Making templates STYLE-LOCKED (not reusable across everything)
+3) Adding a “scroll-stopping” hook layer
+
+---
+
+PART 1 — TEMPLATE SYSTEM (100+ TEMPLATES)
+
+Each HookLanguageStyle must have its OWN template pool.
+
+NO shared generic templates.
+
+---
+
+STRUCTURE:
+
+type HookTemplate = {
+  id: string
+  style: HookLanguageStyle
+  text: string
+  rigidityScore: number   // lower = less reusable = better
+  sharpnessScore: number  // higher = more emotional impact
+}
+
+---
+
+ADD 100+ templates across styles:
+
+---
+
+FRAGMENT (high priority)
+
+- "again. seriously."
+- "not today."
+- "still nothing."
+- "this again."
+- "no progress."
+- "we're back here."
+- "same outcome."
+- "nothing changed."
+- "yep. still stuck."
+- "cool. great."
+- "this is it?"
+- "so… nothing?"
+- "here we go again."
+- "no improvement."
+- "still like this."
+- "just like that."
+- "and we're done."
+- "that was quick."
+- "immediately no."
+- "not happening."
+
+---
+
+TIMESTAMP
+
+- "9:14pm. still here."
+- "2 hours later. nothing."
+- "10:03am. already over it."
+- "midnight. no progress."
+- "3 minutes in. gave up."
+- "11:48pm. same problem."
+- "day 3. nothing changed."
+- "5 minutes later. worse."
+- "right now. still avoiding."
+- "this morning. same energy."
+
+---
+
+ABSURD / OBJECT POV
+
+- "the fridge is winning"
+- "this is a losing battle"
+- "the laundry knows"
+- "this situation is personal"
+- "the problem is watching me"
+- "i’m losing to this"
+- "this thing has power over me"
+- "it’s not looking good"
+- "this is not going my way"
+- "this is bigger than me"
+- "the situation escalated"
+- "i am not in control here"
+
+---
+
+DEADPAN / BLUNT
+
+- "this was my attempt"
+- "no progress made"
+- "i did not do it"
+- "nothing happened"
+- "this failed"
+- "i gave up"
+- "this is unfinished"
+- "still undone"
+- "not completed"
+- "this didn’t work"
+
+---
+
+CONFESSION
+
+- "i said i would. i didn’t."
+- "i was not serious"
+- "i knew this would happen"
+- "i did not try that hard"
+- "i avoided it again"
+- "i gave up early"
+- "i lied to myself"
+- "i’m not doing it today"
+- "i tried. briefly."
+- "i already quit"
+
+---
+
+OBSERVATION
+
+- "this keeps happening"
+- "it always ends like this"
+- "nothing ever changes"
+- "this is the pattern"
+- "same result every time"
+- "this is predictable"
+- "this is consistent"
+- "this repeats daily"
+- "we know how this ends"
+- "this cycle continues"
+
+---
+
+NARRATIVE
+
+- "i opened it. then closed it."
+- "i tried. it didn’t work."
+- "i started. then stopped."
+- "i got there. then left."
+- "i thought about it. that’s it."
+- "i went to do it. didn’t."
+- "i checked. then ignored it."
+- "i saw it. walked away."
+- "i started strong. ended early."
+- "i made it worse."
+
+---
+
+EMOTIONAL SPIKE
+
+- "this ruined my mood"
+- "i hate this"
+- "this is stressful"
+- "this is annoying"
+- "this is too much"
+- "this is exhausting"
+- "i’m over it"
+- "this is frustrating"
+- "this is not okay"
+- "this feels bad"
+
+---
+
+SELF-AWARE / META
+
+- "this is on me"
+- "i know what i’m doing"
+- "this is my fault"
+- "i’m aware of this"
+- "i see the pattern"
+- "i keep doing this"
+- "this is predictable"
+- "i already know"
+- "this is expected"
+- "i’m not surprised"
+
+---
+
+(Continue expanding to reach 100+ total — keep templates SHORT, specific, and non-generic)
+
+---
+
+PART 2 — TEMPLATE RULES
+
+1. Each HookLanguageStyle MUST use its own templates
+2. Generic templates are fallback only
+3. Penalize templates that work across too many scenarios
+4. Prefer:
+   - short
+   - specific
+   - emotionally sharp
+   - slightly awkward
+
+---
+
+PART 3 — SCROLL-STOPPING LAYER (CRITICAL)
+
+Add a new scoring boost:
+
+scrollStopScore (0–10)
+
+Increase score if hook:
+- creates tension
+- feels abrupt
+- is incomplete / fragment
+- implies something went wrong
+- is emotionally sharp
+- breaks expected sentence structure
+
+---
+
+BOOST CONDITIONS:
+
++3 if fragment or abrupt
++2 if emotionally charged
++2 if unusual structure
++2 if not a full sentence
++1 if highly specific
+
+---
+
+PENALTIES:
+
+-3 if generic sentence
+-3 if reusable across scenarios
+-2 if “safe” phrasing
+-2 if over-explained
+
+---
+
+PART 4 — HARD REJECTION
+
+Reject hook if:
+- starts with overused patterns:
+  - "the way I"
+  - "why did I"
+  - "I really thought"
+- structure identical to recent hooks
+- easily swappable across 3+ scenarios
+
+---
+
+PART 5 — GOAL
+
+Hooks should feel like:
+- interruptions
+- thoughts mid-action
+- emotionally real
+- slightly messy
+- human
+
+NOT:
+- clean
+- generic
+- explanatory
+- templated
+
+---
+
+SUCCESS CRITERIA
+
+When reading 3 hooks:
+They should feel like:
+"these are completely different thoughts"
+
+Not:
+"same sentence, different object"

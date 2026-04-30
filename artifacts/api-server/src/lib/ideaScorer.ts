@@ -21,6 +21,7 @@ import type { StyleProfile } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
 import {
   HOOK_PHRASINGS_BY_STYLE,
+  getEntryScores,
   lookupBannedHookPrefix,
   lookupHookOpener,
   validateHook,
@@ -29,6 +30,7 @@ import {
   type HookOpener,
   type IdeaCoreFamily,
   type IdeaCoreType,
+  type LanguagePhrasingEntry,
   type PatternMeta,
   type ScriptType,
   type Setting,
@@ -279,7 +281,255 @@ export type IdeaScore = {
   personalFit: 0 | 1 | 2;
   captionStrength: 0 | 1;
   freshness: 0 | 1;
+  /**
+   * Phase 3 PART 3 — scroll-stop score (0-10) derived from intrinsic
+   * hook properties (fragment shape, emotional charge, structure
+   * break, specificity) plus the source `LanguagePhrasingEntry`'s
+   * rigidity / sharpness scores. Folded into `total` with low weight
+   * (0.5x, rounded) so it nudges selection without overriding the
+   * pre-existing 6-axis scorer that shapes selection today.
+   */
+  scrollStopScore: number;
 };
+
+// -----------------------------------------------------------------------------
+// scrollStopScore (Phase 3 PART 3)
+// -----------------------------------------------------------------------------
+
+/**
+ * Emotional-charge tokens (case-insensitive substring match). When
+ * the hook contains ANY of these the +2 emotional-charge boost
+ * fires. Kept separate from `TENSION_MARKERS` (above) which scores
+ * a different axis — these are explicitly the spec PART 3 "would
+ * make a friend stop scrolling" affect words.
+ */
+const SCROLLSTOP_EMOTIONAL_TOKENS: readonly string[] = [
+  "hate",
+  "stressful",
+  "exhausting",
+  "annoying",
+  "over it",
+  "too much",
+  "frustrating",
+];
+
+/**
+ * Safe / hedged opening prefixes (case-insensitive prefix match).
+ * Hooks starting with these get the -2 safe-phrasing penalty per
+ * spec PART 3 — they read as the "preachy / observational" voice
+ * that PART 5 explicitly warns against ("don't sound like a TED
+ * talk").
+ */
+const SCROLLSTOP_SAFE_PREFIXES: readonly string[] = [
+  "i think",
+  "i feel like",
+  "you know when",
+  "kind of",
+];
+
+/**
+ * Lead-pronoun pattern. When the hook starts with a subject pronoun
+ * (i / you / we / they / he / she / it) it reads as a structurally-
+ * expected sentence — the +2 "unusual structure" boost is withheld.
+ * Combined with terminal punctuation + word count > 5 to detect a
+ * fully-formed sentence (which then loses the +2 "not full sentence"
+ * boost as well).
+ */
+const SCROLLSTOP_LEADING_PRONOUN_RE = /^(i|you|we|they|he|she|it)\b/i;
+
+/**
+ * Timestamp-leading pattern. A hook starting with a clock time
+ * (`9:14pm` / `7am`) or a date marker counts as a structure break
+ * even when the rest of the string contains a pronoun later — it's
+ * the OPENING that grabs attention.
+ */
+const SCROLLSTOP_TIMESTAMP_RE = /^(\d{1,2}:\d{2}\s?(am|pm)?|\d{1,2}\s?(am|pm))/i;
+
+/**
+ * Abstract-only filler tokens (case-insensitive). When a hook has
+ * NO digit + NO proper noun + NO meaningful noun outside this set,
+ * it's pure abstraction → -3 penalty. Matches the spec PART 3
+ * "no specific noun" rule. Tokens must be ≥4 chars when checked
+ * against this set (shorter = function words, ignored).
+ */
+const SCROLLSTOP_ABSTRACT_ONLY_TOKENS: ReadonlySet<string> = new Set([
+  "thing",
+  "things",
+  "everything",
+  "nothing",
+  "something",
+  "anything",
+  "stuff",
+  "moment",
+  "moments",
+  "time",
+  "times",
+  "this",
+  "that",
+  "these",
+  "those",
+  "what",
+  "when",
+  "where",
+  "really",
+  "still",
+  "again",
+  "today",
+  "right",
+  "very",
+  "much",
+  "fine",
+  "good",
+  "nice",
+  "okay",
+  "anyway",
+  "here",
+  "there",
+  "just",
+  "kind",
+  "with",
+  "about",
+  "from",
+  "into",
+  "over",
+  "under",
+  "after",
+  "before",
+  "always",
+  "never",
+  "maybe",
+  "every",
+  "some",
+  "many",
+  "most",
+  "more",
+  "less",
+  "than",
+  "then",
+  "they",
+  "have",
+  "been",
+  "were",
+  "will",
+  "would",
+  "could",
+  "should",
+]);
+
+/**
+ * Pure-function 0-10 scorer for "would a thumb stop on this hook".
+ * Composes intrinsic hook properties (fragment shape, emotional
+ * charge, structure break, specificity) with the source
+ * `LanguagePhrasingEntry`'s rigidity/sharpness when available. Safe
+ * to call with `sourceEntry === undefined` (Claude/Llama fallback,
+ * legacy cached entries) — entry-derived signals no-op in that case
+ * and only intrinsic hook properties contribute.
+ *
+ * Composition (per HOOK STYLE spec PART 3, scoring rubric):
+ *   baseline 0
+ *   +3 fragment (≤4 words OR period before final word)
+ *   +2 emotional charge (token match OR entry sharpness ≥4)
+ *   +2 unusual structure (no leading pronoun OR timestamp-leading)
+ *   +2 not a full sentence (no leading pronoun + terminal punct
+ *      + > 5 words = "looks like a sentence" → boost withheld)
+ *   +1 highly specific (digit OR proper noun)
+ *   −3 entry rigidity ≥4 (highly reusable across scenarios)
+ *   −2 safe-phrasing prefix
+ *   −2 over-explained (>12 words)
+ *   −3 pure abstraction (no digit + no proper noun + no
+ *      meaningful noun outside the filler set)
+ *   add baseline +5, clamp [0, 10]
+ *
+ * The weighted total ends up around 5-9 for shippable hooks, ≤4 for
+ * "filler" hooks the rest of the scorer is also likely to reject.
+ */
+export function scoreScrollStop(
+  hook: string,
+  sourceEntry?: LanguagePhrasingEntry,
+): number {
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return 0;
+  const lower = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/);
+  const wordCount = words.length;
+
+  // --- entry-derived signals (no-op when sourceEntry is undefined) ---
+  const entryScores = sourceEntry ? getEntryScores(sourceEntry) : null;
+  const entrySharp = entryScores ? entryScores.sharpness >= 4 : false;
+  const entryRigid = entryScores ? entryScores.rigidity >= 4 : false;
+
+  // --- intrinsic shape signals ---
+  const isFragmentShape =
+    wordCount <= 4 || /\.\s+\S/.test(trimmed);
+  const startsWithPronoun = SCROLLSTOP_LEADING_PRONOUN_RE.test(trimmed);
+  const startsWithTimestamp = SCROLLSTOP_TIMESTAMP_RE.test(trimmed);
+  const hasUnusualStructure = !startsWithPronoun || startsWithTimestamp;
+  // "Looks like a sentence": leading pronoun + terminal punctuation
+  // + > 5 words. Anything that breaks one of these three reads as
+  // an interruption / fragment / mid-action thought → +2 boost.
+  const looksLikeFullSentence =
+    startsWithPronoun && /[.!?]$/.test(trimmed) && wordCount > 5;
+
+  // --- specificity ---
+  const hasDigit = /\d/.test(trimmed);
+  // Proper-noun heuristic: capital letter mid-string (skip the very
+  // first character so a sentence-leading "I" / "Tuesday" still
+  // counts via the digit/topicNoun path, not as a proper noun by
+  // accident). The Cartesian assembler routinely produces lowercase
+  // hooks so this fires mainly when scenario.topicNoun is a true
+  // proper noun (rare) — kept as a +1 nudge, not a hard signal.
+  const hasProperNoun = /\s[A-Z][a-z]{2,}/.test(trimmed);
+
+  // --- abstraction detector ---
+  const meaningfulNoun = words.some((w) => {
+    const cleaned = w.toLowerCase().replace(/[.,!?;:'"`–—]/g, "");
+    return (
+      cleaned.length >= 4 && !SCROLLSTOP_ABSTRACT_ONLY_TOKENS.has(cleaned)
+    );
+  });
+  const isPureAbstraction = !hasDigit && !hasProperNoun && !meaningfulNoun;
+
+  // --- emotional charge: token in hook OR entry intrinsically sharp ---
+  const hasEmotionToken = SCROLLSTOP_EMOTIONAL_TOKENS.some((t) =>
+    lower.includes(t),
+  );
+
+  // --- safe-phrasing prefix ---
+  const hasSafePrefix = SCROLLSTOP_SAFE_PREFIXES.some((p) =>
+    lower.startsWith(p),
+  );
+
+  let raw = 0;
+  if (isFragmentShape) raw += 3;
+  if (hasEmotionToken || entrySharp) raw += 2;
+  if (hasUnusualStructure) raw += 2;
+  if (!looksLikeFullSentence) raw += 2;
+  if (hasDigit || hasProperNoun) raw += 1;
+  if (entryRigid) raw -= 3;
+  if (hasSafePrefix) raw -= 2;
+  if (wordCount > 12) raw -= 2;
+  if (isPureAbstraction) raw -= 3;
+
+  return Math.max(0, Math.min(10, raw + 5));
+}
+
+/**
+ * Resolve the source `LanguagePhrasingEntry` from a `CandidateMeta`.
+ * Only `pattern_variation` candidates carry it (set by
+ * `assembleCandidate`); Claude/Llama fallback wraps + legacy cached
+ * entries return undefined. Same defensive shape as the existing
+ * `metaTopicLane` / `metaScriptType` accessors.
+ *
+ * NOTE: After a JSONB cache round-trip the entry's `build` function
+ * is gone but `rigidityScore` / `sharpnessScore` survive — readers
+ * (currently only `scoreScrollStop`) MUST stick to score-field
+ * lookups via `getEntryScores` and never call `.build()`.
+ */
+function metaSourceLanguagePhrasing(
+  m: CandidateMeta,
+): LanguagePhrasingEntry | undefined {
+  return "sourceLanguagePhrasing" in m ? m.sourceLanguagePhrasing : undefined;
+}
 
 /** Words that signal tension / contradiction / regret in a hook. */
 const TENSION_MARKERS = [
@@ -442,13 +692,28 @@ export function scoreIdea(
   );
   const captionStrength = scoreCaptionStrength(idea);
   const freshness = scoreFreshness(idea, recentScenarios, meta);
+  // Phase 3 PART 3 — scroll-stop score. Pull the source phrasing
+  // entry from the candidate meta when present (pattern_variation
+  // candidates only); Claude/Llama fallback wraps + legacy cached
+  // entries pass `undefined`, in which case `scoreScrollStop`
+  // contributes intrinsic-only signal (no rigidity penalty / no
+  // entry sharpness boost).
+  const sourceEntry = meta ? metaSourceLanguagePhrasing(meta) : undefined;
+  const scrollStopScore = scoreScrollStop(idea.hook, sourceEntry);
+  // Low-weight (0.5x, rounded) fold into total per session plan —
+  // nudges selection without overriding the pre-existing 6-axis
+  // scorer that shapes selection today. Range [0..5] additive on
+  // top of the existing [0..10] from the legacy axes, so total
+  // floor / ceiling shifts to [0..15] — downstream selectors compare
+  // by total descending so the absolute scale doesn't matter.
   const total =
     hookImpact +
     tension +
     filmability +
     personalFit +
     captionStrength +
-    freshness;
+    freshness +
+    Math.round(scrollStopScore * 0.5);
   return {
     total,
     hookImpact,
@@ -457,6 +722,7 @@ export function scoreIdea(
     personalFit,
     captionStrength,
     freshness,
+    scrollStopScore,
   };
 }
 
@@ -500,10 +766,22 @@ function tryRewrite(
       // chosen entry's tag is authoritative; falling back to
       // `lookupHookOpener` only if the tag is somehow absent).
       const newOpener = entry.opener ?? lookupHookOpener(candidate);
+      // Phase 3: the rewrite path draws from `HOOK_PHRASINGS_BY_STYLE`
+      // (the legacy 5-style catalog) — these entries do NOT carry
+      // rigidity/sharpness scores. If we kept the original meta's
+      // `sourceLanguagePhrasing` (which pointed at the language-style
+      // catalog entry the picker chose), `scoreScrollStop` would
+      // attribute that entry's rigidity/sharpness to the rewritten
+      // hook — a false signal. Clear the field so the scorer falls
+      // back to hook-string inspection alone (the conservative path).
+      const nextMeta: CandidateMeta = { ...meta };
+      if ("sourceLanguagePhrasing" in nextMeta) {
+        nextMeta.sourceLanguagePhrasing = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
-          ...meta,
+          ...nextMeta,
           hookStyle: nextStyle,
           hookPhrasingIndex: i,
           hookOpener: newOpener,
