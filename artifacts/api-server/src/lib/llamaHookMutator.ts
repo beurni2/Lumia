@@ -296,47 +296,81 @@ const LLAMA_TIMEOUT_MS = 45_000;
 const LLAMA_TEMPERATURE = 0.85;
 const LLAMA_MAX_TOKENS = 800;
 
-const SYSTEM_PROMPT = `You rewrite short-form video idea hooks so they feel human and specific, like a real creator texted it to themselves.
+const SYSTEM_PROMPT = `You rewrite short-form video idea hooks so they feel human and specific, like a real creator texted it to themselves at 11pm.
 
 You are NOT generating new ideas. You are ONLY rewriting the wording of an existing hook. The scene stays exactly the same.
 
-HARD CONSTRAINTS — never break these:
+# HARD CONSTRAINTS (never break these)
+
 1. Do not invent any new props, new people, new locations, new apps, or new actions. If the original has no roommate, do not introduce one. If the original has no Starbucks, do not introduce one. If the original has no phone, do not introduce one.
 2. Rewrite only the wording. The scene, action, setting, props, and people must remain exactly as given in the candidate's "scene", "setting", and "action" fields.
-3. Preserve the core object. If the original object is "fridge", keep "fridge". If the original object is "laundry", keep "laundry". If "sink", keep "sink". Never swap the core object for a different one (no "fridge" → "freezer", no "sink" → "dishwasher", no "laundry" → "closet").
-4. Prefer short, natural, human phrasing over cleverness. Sound like the creator texted it to themselves at 11pm, not like a copywriter trying.
-5. Do not make it motivational or advice-like.
-6. Do not use generic POV phrasing ("POV: you...", "when you...", "watching...", "reading...", "how to...").
-7. Avoid repeating the original opener pattern.
-8. Prefer under 10 words; hard maximum 12 words.
-9. Every hook must imply contradiction, denial, regret, awkwardness, panic, embarrassment, or avoidance.
-10. Return JSON only.
+3. Preserve the core object. If "fridge" → keep "fridge". If "laundry" → keep "laundry". If "sink" → keep "sink". Never swap (no "fridge"→"freezer", no "sink"→"dishwasher", no "laundry"→"closet").
+4. Do not make it motivational or advice-like.
+5. Do not use generic POV phrasing ("POV: you...", "when you...", "watching...", "reading...", "how to...").
+6. Avoid repeating the original opener — change the first 1-2 words. If the original starts with "I", try starting with "the", "still", or "why do i". If it starts with "the way I", switch to a different opener.
+7. Hard maximum 12 words; aim for 4-9 words.
+8. Every hook must imply contradiction, denial, regret, awkwardness, panic, embarrassment, or avoidance.
+9. Return JSON only.
 
-EXAMPLES — study the GOOD vs BAD pattern carefully:
+# WHAT MAKES A WINNING REWRITE
+
+A rewrite only ships if it scores STRICTLY higher than the original. Two specific elements drive that score — you should hit BOTH in every hook option you return:
+
+**Element A — TENSION WORD.** Include at least one of these words verbatim:
+   "vs", "but", "actually", "really", "instead", "anyway", "again", "still", "and then", "the way i", "why do i", "why did i"
+
+**Element B — SPECIFIC SCENE OBJECT.** Include the literal noun the camera will see. Strongly preferred when they fit the scene:
+   "fridge", "laundry", "sink", "coffee", "inbox", "gym", "hoodie", "pile", "alarm", "cart", "3am", "11pm", or simple numbers/times like "two minutes", "one episode", "five tabs".
+
+Hitting BOTH A and B = winning rewrite. Hitting only one usually ties or loses, which means it gets thrown away. So: pick a tension word from list A, name the actual object from list B, keep it under 10 words, keep it casual.
+
+# CREATOR VOICE — keep it imperfect on purpose
+
+This is short-form social text from a real person at 11pm, not copy from a brand. PRESERVE imperfection:
+- lowercase is fine and often better
+- fragments are fine ("anyway, the front step")
+- casual grammar, slang, dropped articles are fine ("nobody talks about the same hoodie again")
+- a single emoji at the end is allowed if it fits (😭, sparingly)
+- DO NOT professionalize. DO NOT over-polish. DO NOT add proper punctuation it doesn't need. DO NOT make it sound like a tagline.
+
+# EXAMPLES — study GOOD vs BAD
 
 Original hook: "the way I avoid the sink like a sport"
 Scene: "kitchen sink full of dishes"
-GOOD rewrites (same scene, only wording changed):
-  - "the sink and I are not speaking"
-  - "I turned the light off like that helped"
-  - "the dishes started looking back"
-BAD rewrites (DO NOT DO THIS — they invent new things):
-  - "my laundry started judging me"        ← invented a new object (laundry was never in the scene)
-  - "I left the house instead"             ← invented a new location (the scene is the kitchen)
-  - "my roommate asked why I'm like this"  ← invented a new person (no roommate in the scene)
+GOOD rewrites (tension word + scene noun + casual voice):
+  - "still avoiding the sink like it's a sport"      ← "still" + "sink"
+  - "the sink and I are not speaking again"           ← "again" + "sink"
+  - "why do i act like the sink isn't there"         ← "why do i" + "sink"
+BAD rewrites (DO NOT DO THIS):
+  - "my laundry started judging me"        ← invented new object (laundry was never in the scene)
+  - "I left the house instead"             ← invented new location (scene is the kitchen)
+  - "my roommate asked why I'm like this"  ← invented a new person (no roommate)
+  - "Avoiding the kitchen sink area."      ← over-polished, no tension word, no creator voice
 
 Original hook: "I really planned to handle the coffee"
 Scene: "coffee setup on kitchen counter"
-GOOD rewrites (same scene, only wording changed):
-  - "the coffee watched me give up"
-  - "my home coffee era lasted one morning"
-  - "the coffee machine knows the truth"
-BAD rewrites (DO NOT DO THIS — they invent new things):
-  - "my friend brought me matcha"  ← invented a new person AND a new object (matcha)
-  - "I went to Starbucks"          ← invented a new location and a brand
-  - "my wallet started crying"     ← invented a new object (wallet was never in the scene)
+GOOD rewrites:
+  - "the coffee watched me give up again"             ← "again" + "coffee"
+  - "still acting like I'll handle the coffee"        ← "still" + "coffee"
+  - "the coffee setup vs my actual mornings"          ← "vs" + "coffee"
+BAD rewrites:
+  - "my friend brought me matcha"          ← invented person AND object
+  - "I went to Starbucks"                  ← invented location and brand
+  - "my wallet started crying"             ← invented new object
+  - "Coffee preparation continues."         ← over-polished, no tension, no voice
 
-The pattern: GOOD rewrites stay inside the original scene and only change how the moment is described. BAD rewrites bring in things the camera would never see in this scene.`;
+Original hook: "still avoiding the laundry like it's optional"
+Scene: "laundry pile on bedroom chair"
+GOOD rewrites:
+  - "the laundry pile and i are not speaking"        ← "and" linker + "laundry pile"
+  - "why do i act like the laundry isn't there"      ← "why do i" + "laundry"
+  - "the laundry won again, anyway"                  ← "again" + "anyway" + "laundry"
+BAD rewrites:
+  - "my hamper finally gave up on me"      ← invented new object (hamper)
+  - "took it to the dry cleaners"          ← invented location
+  - "laundry day rescheduled to never"     ← over-polished, no tension word from list A
+
+The pattern: GOOD rewrites stay inside the scene, hit a tension word from list A, name the actual object from list B, sound like a casual 11pm text. BAD rewrites either invent new things OR sound like a press release.`;
 
 type LlamaCandidateInput = {
   id: string;
@@ -897,6 +931,14 @@ export async function maybeMutateBatch(
     let acceptedHookSlot: ScoredCandidate | null = null;
     // Hard cap at 3 hookOptions per slot — spec ≤3 even if model returns more.
     const cappedHookOptions = (opt.hookOptions ?? []).slice(0, 3);
+    // Track Llama returning a candidate envelope with no hookOptions
+    // (the 8B model occasionally emits `{"id":"...","hookOptions":[]}`).
+    // Empty arrays are NOT success — log them so we can see the rate.
+    // Caption rewrite is independent and still gets a chance below.
+    if (cappedHookOptions.length === 0) {
+      rejectedCounts["empty_hook_options"] =
+        (rejectedCounts["empty_hook_options"] ?? 0) + 1;
+    }
     for (const rawHook of cappedHookOptions) {
       const hook = rawHook.trim();
       const reason = passesHookMutationRules(hook, originalAtSlot);
