@@ -2713,7 +2713,56 @@ export function selectionPenalty(
   const cPremIdCross = metaPremiseStyleId(c.meta);
   if (cPremIdCross) {
     if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 2;
+    // Phase 6C (PREMISE-FIRST SELECTION) — symmetric +2 boost when this
+    // candidate's `meta.premiseStyleId` is NOT in the last-3-batches
+    // fine-grained set AND the set is non-empty (i.e. we have history
+    // to compare against — first-batch cold-start abstains so a
+    // brand-new account doesn't artificially inflate every premise
+    // pick by +2 with no novelty signal). Sized to mirror the -2
+    // demotion above so the lever is symmetric: returning to a
+    // recently-used style costs -2, choosing a fresh-vs-recent style
+    // gains +2, total spread of 4pt between repeat + fresh — enough
+    // to dominate the typical 1-2pt composite spread without
+    // overpowering the +3 PREMISE_PREFERENCE bonus or the -8 fine-
+    // grained within-batch dup penalty. Silent-skip on empty history
+    // keeps the cold-start path identical to pre-6C behavior.
+    if (
+      ctx.recentPremiseStyleIds !== undefined &&
+      ctx.recentPremiseStyleIds.size > 0 &&
+      !ctx.recentPremiseStyleIds.has(cPremIdCross)
+    ) {
+      p += 2;
+    }
   }
+  // Phase 6C (PREMISE-FIRST SELECTION) — premise PREFERENCE bonus.
+  // +3 selection-layer boost when this candidate was sourced from a
+  // premise entry (`meta.usedBigPremise === true`, set in
+  // `assembleCandidate` whenever the picker's winning entry carried
+  // `bigPremise: true`). Sized to outweigh the typical 1-2pt
+  // composite-score spread between premise + legacy alternatives so
+  // the soft selector breaks ties toward premise output even when a
+  // legacy template otherwise scores marginally higher on
+  // hookImpact / personalFit. The bonus is UNCONDITIONAL — it
+  // applies on slot 1 (no batchSoFar) AND inside multi-slot
+  // contention — so it stacks coherently with both the within-batch
+  // dup penalties (-3 bucket / -8 fine-grained) and the cross-batch
+  // demotions (-2 bucket / -2 fine-grained) above:
+  //   - Fresh premise on slot 1                : net +3 (preferred).
+  //   - Premise reusing a recent style         : +3 -2 = +1 (still
+  //                                              preferred over legacy 0).
+  //   - Premise duplicating an in-batch style  : +3 -8 = -5 (correctly
+  //                                              loses to fresh-style
+  //                                              alternative — the dup
+  //                                              guards still win).
+  // Skipped silently for legacy template entries + Llama / Claude
+  // fallback wraps whose meta omits `usedBigPremise` — same fail-
+  // quiet discipline as voiceProfile / videoPattern / hookSkeletonId.
+  // The +3 / -8 stacking math above is the spec PART 1 acceptance
+  // gate "premise hooks are preferred BY DEFAULT, but legacy still
+  // wins on superior quality" expressed at the scoring layer; the
+  // hard within-batch HARD guard for fine-grained premiseStyleId
+  // dups (T003) closes the residual same-id-second-slot edge case.
+  if (c.meta.usedBigPremise === true) p += 3;
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The
   // per-intent scorers already apply a -4 inside scoreScrollStop /

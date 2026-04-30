@@ -1,0 +1,163 @@
+PHASE 6C — PREMISE-FIRST SELECTION + OUTPUT LINE OPTIMIZATION
+
+Goal:
+Make PremiseStyle hooks the default output because they are clearly better than legacy hook templates.
+
+Target:
+80–90% of shipped hooks should come from PremiseStyle.
+
+---
+
+1. PREMISE-FIRST SELECTION
+
+Change selection priority:
+
+Current:
+premise hooks are additive / optional
+
+New:
+premise hooks are preferred by default
+
+Rules:
+- If a valid PremiseStyle hook exists, prefer it
+- Legacy hook templates become fallback
+- Legacy templates only ship when:
+  - no premise hook passes validation
+  - premise hook is too long
+  - premise hook is unclear
+  - premise hook is not funny
+  - premise hook conflicts with scenario/safety
+
+Target:
+80–90% premise-based hooks across real batches.
+
+Do NOT force 100%.
+Keep 10–20% legacy/simple hooks for rhythm and variety.
+
+---
+
+2. OUTPUT LINE OPTIMIZATION
+
+Optimize final hook line before shipping.
+
+The output line must be:
+
+- short
+- simple
+- funny
+- instantly understandable
+- conversational
+- not over-explained
+- not too clever
+
+Preferred:
+6–10 words
+
+Hard cap:
+12 words max unless existing schema requires lower.
+
+---
+
+3. OUTPUT LINE CHECKS
+
+Reject or rewrite if hook:
+
+- feels like a caption, not a hook
+- sounds like a template
+- has too many clauses
+- is too abstract
+- is confusing
+- loses the joke
+- feels AI-written
+- is not funny within 1 second
+
+---
+
+4. COMEDY COMPRESSION
+
+Before final output:
+
+Compress hook by removing:
+- filler words
+- setup explanation
+- unnecessary adjectives
+- softeners
+- repeated meaning
+
+Example:
+
+Bad:
+"i am currently trying to be productive but failing"
+Good:
+"productivity filed a complaint"
+
+Bad:
+"i keep disappointing the goals i made for myself"
+Good:
+"i specialize in disappointing my future self"
+
+---
+
+5. LEGACY TEMPLATE ROLE
+
+Legacy templates remain available but should be lower priority.
+
+Use them for:
+- ultra-simple fragments
+- clear relatable moments
+- cases where premise hooks fail
+
+Do NOT let legacy templates dominate again.
+
+---
+
+6. DIVERSITY RULES
+
+Within a batch:
+- no duplicate PremiseStyle
+- no duplicate premise family if possible
+- keep HookIntent diversity intact
+- keep ideaCoreType diversity intact
+
+Across recent batches:
+- penalize reused PremiseStyle
+- penalize reused output-line skeleton
+- boost unused premise styles
+
+---
+
+7. LLAMA RULE
+
+Llama may polish only after PremiseStyle output exists.
+
+Allowed:
+- make hook shorter
+- make hook more natural
+- preserve slang/fragments/lowercase
+
+Forbidden:
+- change premise
+- professionalize
+- add new scene/object/person
+- make joke more complex
+
+---
+
+8. QA
+
+Run 10 real batches.
+
+Report:
+- premise hook share
+- legacy hook share
+- average word count
+- top 10 shipped hooks
+- worst 10 shipped hooks
+- post-worthy estimate
+
+Success:
+- 80–90% premise hooks
+- average hook length 6–10 words
+- fewer boring literal hooks
+- no broken grammar
+- output feels funnier and simpler

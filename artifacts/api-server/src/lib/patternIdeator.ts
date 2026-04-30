@@ -2919,6 +2919,178 @@ export function validateBigPremise(hook: string): boolean {
 }
 
 /**
+ * Phase 6C (OUTPUT LINE OPTIMIZATION) — comedy-compression transform.
+ *
+ * Pure, idempotent string transform that strips comedy-deflating
+ * filler words / softeners / redundant trailing words from a hook,
+ * collapses double whitespace, and trims. Designed to be called
+ * AFTER `validateHook` + `validateBigPremise` pass on a candidate;
+ * the picker then RE-runs `validateHook` on the compressed string
+ * (defensive — compression could in principle expose a previously-
+ * masked banned prefix or dangling word) and uses the compressed
+ * form ONLY when re-validation passes. If compression would push
+ * word count below the safety floor (3 words), the original is
+ * returned unchanged.
+ *
+ * Idempotence: calling `compressHook(compressHook(s))` returns the
+ * same string as `compressHook(s)` because every transform is
+ * content-removal — running on a fully-compressed string is a no-op.
+ *
+ * Empty-safety: never returns the empty string. If the input is
+ * blank or compression somehow produces blank, returns the original.
+ *
+ * Casing-safety: case-insensitive matches (regex `i` flag), but
+ * surviving tokens keep their original casing — we never lowercase
+ * the result, since voice-faithful catalog entries deliberately use
+ * lowercase / fragments and shouldn't be reflowed. The tone-inflect
+ * pass upstream is the only legitimate place to alter casing.
+ *
+ * NOT exported from the picker's main hot path — only the picker's
+ * `walk()` and the QA driver call it. Listed under the `// Phase
+ * 6C` block alongside `validateOutputLine` for cohesion.
+ */
+const COMPRESS_FILLER_PHRASES: ReadonlyArray<RegExp> = [
+  // Multi-word softeners. Match a leading word boundary + the phrase
+  // + ONE trailing whitespace so we don't leave double-spaces after
+  // removal; the trailing collapse-whitespace pass below cleans up
+  // the rest. Case-insensitive throughout.
+  /\b(?:a little bit|i feel like|you know|kind of|sort of|pretty much)\s+/gi,
+];
+
+const COMPRESS_FILLER_WORDS: ReadonlyArray<RegExp> = [
+  // Single filler words — cut when followed by another word so we
+  // don't strip the only content token (e.g. "just." stays). Matches
+  // word + trailing whitespace; the collapse-whitespace pass below
+  // cleans up the residual gap. Case-insensitive throughout.
+  /\b(?:currently|basically|literally|actually|really|just)\s+/gi,
+];
+
+const COMPRESS_TRAILING_WORDS: ReadonlyArray<RegExp> = [
+  // Trailing redundant words ("today" / "again") at the end of a
+  // hook, optionally followed by terminal punctuation. We preserve
+  // the punctuation so the rendered hook keeps its ".", "?", or "!".
+  /\s+(?:today|again)([.,!?;:]*)$/i,
+];
+
+export function compressHook(hook: string): string {
+  const original = hook.trim();
+  if (original.length === 0) return original;
+
+  let working = original;
+
+  // Pass 1 — multi-word softener phrases.
+  for (const re of COMPRESS_FILLER_PHRASES) {
+    working = working.replace(re, "");
+  }
+  // Pass 2 — single filler words (only when followed by another
+  // word, per the regex's required trailing whitespace).
+  for (const re of COMPRESS_FILLER_WORDS) {
+    working = working.replace(re, "");
+  }
+  // Pass 3 — trailing redundant words. Preserve any terminal
+  // punctuation via the captured group.
+  for (const re of COMPRESS_TRAILING_WORDS) {
+    working = working.replace(re, "$1");
+  }
+  // Collapse double whitespace + trim. Compression can leave " "
+  // gaps where a word was removed mid-sentence.
+  working = working.replace(/\s+/g, " ").trim();
+
+  // Empty-safety + min-word-count safety. If compression dropped to
+  // blank or below 3 tokens, fall back to the original — better to
+  // ship the un-compressed hook than risk a fragment that violates
+  // `validateHook`'s lower bound on the second-pass re-validate.
+  if (working.length === 0) return original;
+  const finalWords = working.split(/\s+/).filter((w) => w.length > 0);
+  if (finalWords.length < 3) return original;
+
+  return working;
+}
+
+/**
+ * Phase 6C (OUTPUT LINE OPTIMIZATION) — caption-like / over-clever /
+ * AI-feel rejection rail. Layered AFTER `validateHook` +
+ * `validateBigPremise` (and after `compressHook`) inside the picker's
+ * `walk()` — entries whose final compressed output trips any of the
+ * patterns below fall through to the next phrasing in seed-rotated
+ * order, the SAME self-healing path used by `validateHook` rejection.
+ *
+ * Each rule encodes one of the spec PART 6 anti-patterns:
+ *   - caption-like: 3+ sentences (multiple period+capital boundaries)
+ *     reads as a social-media caption rather than a punchy hook.
+ *   - too-many-clauses: >2 commas OR >2 of `and|but|or|because`.
+ *     Premise hooks land in 6-10 words; multi-clause structure
+ *     dilutes the joke.
+ *   - over-clever lexical signals: `paradox` / `conundrum` /
+ *     `juxtaposition` / `irony` / `oxymoron` are essayist words that
+ *     signal "I am a thoughtful observation" rather than "this made
+ *     me laugh out loud" — every catalog entry was audited; none of
+ *     these words appear in any `build()` output (only in style-id
+ *     telemetry tags + emotionalSpike strings, which never reach the
+ *     hook surface).
+ *   - AI-feel scaffolding: `it turns out that` / `as it happens` /
+ *     `interestingly enough` / `the truth is` / leading-or-post-comma
+ *     `ultimately` are formal-essay framings the catalog also
+ *     audited as absent. Rejecting them at the picker is a forward-
+ *     compatibility rail for any future entry / Llama mutation that
+ *     might re-introduce them.
+ *
+ * Returns `true` when the hook is safe to ship as-is; `false` when
+ * the picker should walk to the next entry. Pure (no I/O), so safe
+ * to call from any code path that has a candidate hook string.
+ */
+const OVER_CLEVER_WORDS: ReadonlyArray<RegExp> = [
+  // \b boundary on each side keeps "ironic" / "paradoxical" /
+  // "ironies" out of the false-positive set, since the spec only
+  // flags the noun forms ("paradox", "irony", etc.).
+  /\b(?:paradox|conundrum|juxtaposition|irony|oxymoron)\b/i,
+];
+
+const AI_FEEL_PATTERNS: ReadonlyArray<RegExp> = [
+  /\bit turns out that\b/i,
+  /\bas it happens\b/i,
+  /\binterestingly enough\b/i,
+  /\bthe truth is\b/i,
+  // "ultimately" only when leading or after a comma (typical AI-feel
+  // placement). Standalone mid-sentence "ultimately" is rare in
+  // natural speech but common in AI-generated essay text.
+  /(?:^|,\s+)ultimately\b/i,
+];
+
+export function validateOutputLine(hook: string): boolean {
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return false;
+
+  // Caption-like — count internal sentence boundaries (period /
+  // exclamation / question mark followed by whitespace + an
+  // alphanumeric character). 1+ such boundary means the hook has 2+
+  // sentences; 2+ means 3+ sentences (caption-like). Premise +
+  // legacy fragment hooks are 0-1 sentence by spec, so the threshold
+  // ≥2 internal boundaries is a comfortable rejection floor.
+  const sentenceBoundaries = (trimmed.match(/[.!?]\s+[A-Za-z0-9]/g) || []).length;
+  if (sentenceBoundaries >= 2) return false;
+
+  // Too-many-clauses — comma count > 2.
+  const commas = (trimmed.match(/,/g) || []).length;
+  if (commas > 2) return false;
+  // Too-many-conjunctions — > 2 of and|but|or|because. \b boundary
+  // both sides keeps "android" / "border" out of the count.
+  const conjunctions = (trimmed.match(/\b(?:and|but|or|because)\b/gi) || []).length;
+  if (conjunctions > 2) return false;
+
+  // Over-clever lexical signals. Substring scan via regex.
+  for (const re of OVER_CLEVER_WORDS) {
+    if (re.test(trimmed)) return false;
+  }
+  // AI-feel formal scaffolding.
+  for (const re of AI_FEEL_PATTERNS) {
+    if (re.test(trimmed)) return false;
+  }
+
+  return true;
+}
+
+/**
  * A single phrasing variant — `build` takes a scenario and returns
  * the assembled hook string. `opener` is the HookOpener it produces
  * (declared statically so we don't have to re-derive it per call).
@@ -6829,6 +7001,32 @@ function pickValidatedPhrasing(
 }
 
 /**
+ * Phase 6C (PREMISE-FIRST SELECTION) — per-slot deterministic gate
+ * for the picker's premise-first walk passes. ~80% of slots try
+ * premise entries (bigPremise === true) FIRST and only fall back to
+ * legacy entries when no premise validates; the remaining ~20% skip
+ * directly to legacy passes so the catalog still ships some
+ * legacy/simple hooks for "rhythm and variety" per spec PART 1
+ * ("Do NOT force 100%. Keep 10–20% legacy/simple hooks for rhythm
+ * and variety").
+ *
+ * Combined with the natural fallback when premise validation fails
+ * (validateHook / validateBigPremise / validateOutputLine — see T002),
+ * empirical premise share lands in the spec's 80–90% target band:
+ *   ~80% slot premise-first × ~100% premise pick rate (when premise
+ *   pool has a passing entry) ≈ 80%
+ * + ~20% slot legacy-first × ~30% organic premise rate (Phase 6
+ *   EXPANSION baseline, since legacy passes still walk premises that
+ *   happen to land earlier in the seed rotation) ≈ 6%
+ * = ~86% premise share, mid-band.
+ *
+ * Deterministic per slot via seed hash so cache replay stays stable —
+ * same (template, scenario, hookStyle) seed ⇒ same gate decision ⇒
+ * same picker outcome.
+ */
+const PREMISE_FIRST_BUCKET_PCT = 85;
+
+/**
  * HookLanguageStyle counterpart to `pickValidatedPhrasing`. Iterates
  * the new HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog in seed-rotated
  * order, returning the first entry whose built hook passes
@@ -6839,6 +7037,16 @@ function pickValidatedPhrasing(
  * pair has at least one passing entry, but we still return null on
  * exhaustion as a safety rail — the Cartesian weave will offer many
  * more (template, scenario, languageStyle) triples before maxIter.
+ *
+ * Phase 6C (PREMISE-FIRST SELECTION) layered ON TOP of the existing
+ * intent-first / intent-fallback / voice-aware pass orchestration:
+ * when the per-slot `PREMISE_FIRST_BUCKET_PCT` gate allows (~80% of
+ * slots), the picker runs the SAME 6-pass voice/intent matrix BUT
+ * restricted to entries with `bigPremise === true` BEFORE the legacy
+ * passes. Premise picker failure (no premise entry of any voice +
+ * intent validates for this scenario) naturally drops to the existing
+ * legacy passes — preserving Phase 6 EXPANSION's "premise as natural
+ * fallback chain" without forcing 100% premise output.
  */
 function pickValidatedLanguagePhrasing(
   hookLanguageStyle: HookLanguageStyle,
@@ -6871,13 +7079,27 @@ function pickValidatedLanguagePhrasing(
   // `validateHook`. Used by both the intent-first passes and the
   // intent-fallback passes below — sharing one walker means seed
   // rotation discipline is identical across all six passes.
+  //
+  // Phase 6C — `premiseOnly` (default false) restricts the walk to
+  // entries with `bigPremise === true`. Used by the premise-first
+  // orchestration block below; legacy callers keep the default and
+  // get the original "all entries" behavior.
   const walk = (
     intentRequired: HookIntent | null,
     voicePred: (e: LanguagePhrasingEntry) => boolean,
+    premiseOnly = false,
   ): { entry: LanguagePhrasingEntry; index: number; hook: string } | null => {
     for (let offset = 0; offset < n; offset++) {
       const idx = (start + offset) % n;
       const entry = phrasings[idx]!;
+      // Phase 6C — premise-first filter. Skip non-premise entries
+      // when the orchestration requested a premise-only walk; the
+      // matched entry will naturally fall through to the legacy
+      // pass below (which calls walk with premiseOnly = false) if
+      // no premise candidate validates for this slot. Cheap check
+      // BEFORE the more expensive intent / voice / build / validate
+      // gates so the premise-only walks are as fast as possible.
+      if (premiseOnly && entry.bigPremise !== true) continue;
       if (intentRequired !== null && entry.hookIntent !== intentRequired) continue;
       if (!voicePred(entry)) continue;
       // Phase 3B PART 3 — noun-type compatibility gate. Skip the
@@ -6907,7 +7129,36 @@ function pickValidatedLanguagePhrasing(
       if (entry.bigPremise === true && !validateBigPremise(candidate)) {
         continue;
       }
-      return { entry, index: idx, hook: candidate };
+      // Phase 6C (OUTPUT LINE OPTIMIZATION) — post-validate polish +
+      // caption-like / over-clever / AI-feel rail. Two-step:
+      //   1. `compressHook` — pure transform that strips comedy-
+      //      deflating filler / softener / redundant trailing words.
+      //      Idempotent + min-3-word-safe, so worst-case the helper
+      //      returns the original string unchanged.
+      //   2. The compressed string is RE-checked against
+      //      `validateHook` (defensive — compression could in
+      //      principle expose a previously-masked banned prefix or
+      //      dangling word once the filler vanishes); on failure we
+      //      fall back to the un-compressed candidate so we don't
+      //      throw away a hook that was already shippable BEFORE
+      //      compression.
+      //   3. `validateOutputLine` then fires on the FINAL form
+      //      (compressed-and-revalidated, or original on revalidate
+      //      failure). Rejection walks to the next entry, same
+      //      self-healing path as `validateHook` / `validateBigPremise`
+      //      rejection above.
+      // Applied to BOTH premise + legacy entries — the spec PART 6
+      // anti-patterns (caption-like, paradox/conundrum, "ultimately…")
+      // are off-voice for both surface types, and the catalog audit
+      // confirmed zero existing entries trip these rails so the
+      // back-compat surface is preserved.
+      const compressed = compressHook(candidate);
+      const finalHook =
+        compressed !== candidate && validateHook(compressed)
+          ? compressed
+          : candidate;
+      if (!validateOutputLine(finalHook)) continue;
+      return { entry, index: idx, hook: finalHook };
     }
     return null;
   };
@@ -6919,6 +7170,71 @@ function pickValidatedLanguagePhrasing(
     e.voiceProfiles === undefined;
   const anyVoice = (_e: LanguagePhrasingEntry) => true;
 
+  // Phase 6C (PREMISE-FIRST SELECTION) — per-slot deterministic gate.
+  // ~80% of slots run the SAME 6-pass intent / voice matrix below
+  // BUT restricted to entries with `bigPremise === true` BEFORE the
+  // legacy passes; the remaining ~20% skip directly to legacy passes
+  // so the catalog still ships some legacy/simple hooks for "rhythm
+  // and variety" per spec PART 1.
+  //
+  // The seed already encodes (template, scenario, hookLanguageStyle,
+  // slot index) per the picker's seeding discipline upstream, so a
+  // single `seed % 100` bucket is sufficient and stable across cache
+  // replay. Defensive `>>> 0` collapses any sign so the modulo is
+  // always non-negative.
+  const tryPremiseFirst =
+    (seed >>> 0) % 100 < PREMISE_FIRST_BUCKET_PCT;
+
+  // PREMISE-FIRST passes (when bucket allows). Mirror the legacy
+  // intent-first / intent-fallback orchestration below, but each call
+  // passes `premiseOnly = true` so non-premise entries are filtered
+  // out of the seed-rotated walk. Premise picker failure (no premise
+  // entry of any voice / intent validates for this scenario) naturally
+  // drops to the legacy passes below — the SAME self-healing path the
+  // legacy block already uses for validateHook / validateBigPremise
+  // rejection — so we never fail to ship a hook just because the
+  // premise pool happened to exhaust for this slot.
+  if (tryPremiseFirst) {
+    // PREMISE intent-first passes (when assignedIntent is set).
+    if (assignedIntent !== undefined) {
+      if (voiceProfile !== undefined) {
+        const pm = walk(assignedIntent, voiceMatch, true);
+        if (pm) return { ...pm, intentFallback: false };
+        const pne = walk(assignedIntent, voiceNeutral, true);
+        if (pne) return { ...pne, intentFallback: false };
+      }
+      const paw = walk(assignedIntent, anyVoice, true);
+      if (paw) return { ...paw, intentFallback: false };
+    }
+    // PREMISE intent-fallback passes (premise-only, ANY intent).
+    // Reached when no intent-matching premise validated above. We
+    // PREFER an intent-relaxed premise over an intent-honored legacy
+    // template per spec PART 1 ("Premise hooks are preferred BY
+    // DEFAULT") — HookIntent diversity is enforced at the BATCH
+    // level by `selectionPenalty` + `batchGuardsPass`, so picking a
+    // premise with relaxed intent here is recoverable downstream.
+    // The `intentFallback` flag tracks whether assignedIntent was
+    // honored so QA can count true intent-starvation events.
+    const premiseFallbackFlag = assignedIntent !== undefined;
+    if (voiceProfile !== undefined) {
+      const pm = walk(null, voiceMatch, true);
+      if (pm) return { ...pm, intentFallback: premiseFallbackFlag };
+      const pne = walk(null, voiceNeutral, true);
+      if (pne) return { ...pne, intentFallback: premiseFallbackFlag };
+    }
+    const paw = walk(null, anyVoice, true);
+    if (paw) return { ...paw, intentFallback: premiseFallbackFlag };
+  }
+
+  // LEGACY passes (premiseOnly = false default) — unchanged behavior.
+  // Reached when:
+  //   (a) the per-slot premise-first gate skipped premise passes
+  //       (the ~20% legacy-variety reservation), OR
+  //   (b) all 6 premise-only passes above exhausted without yielding
+  //       a shippable hook (every premise entry failed validateHook /
+  //       validateBigPremise / scenario fit / NEW validateOutputLine
+  //       (T002) for this slot).
+  //
   // INTENT-FIRST passes (when assignedIntent is set):
   //   1. intent + voice-match
   //   2. intent + voice-neutral

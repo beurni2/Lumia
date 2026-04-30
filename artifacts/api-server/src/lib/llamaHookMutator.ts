@@ -401,7 +401,28 @@ BAD rewrites:
   - "took it to the dry cleaners"          ← invented location
   - "laundry day rescheduled to never"     ← over-polished, no tension word from list A
 
-The pattern: GOOD rewrites stay inside the scene, hit a tension word from list A, name the actual object from list B, sound like a casual 11pm text. BAD rewrites either invent new things OR sound like a press release.`;
+The pattern: GOOD rewrites stay inside the scene, hit a tension word from list A, name the actual object from list B, sound like a casual 11pm text. BAD rewrites either invent new things OR sound like a press release.
+
+# PHASE 6C — PREMISE-PRESERVING POLISH MODE
+
+If a candidate is marked "premise": true in the JSON below, you are in POLISH-ONLY mode for that candidate. The original hook is already a strong premise — your job is to make it more natural, NOT to change the joke.
+
+ALLOWED for premise candidates:
+- drop filler ("just", "really", "currently", "literally", "actually", "kind of", "i feel like")
+- fix awkward phrasing while keeping the premise recognizable
+- preserve slang, lowercase, fragments, dropped articles
+- shorten if the same joke survives
+
+FORBIDDEN for premise candidates:
+- change the premise (the joke must remain recognizable as the same joke)
+- introduce new content nouns, scenes, objects, brands, apps, or people not already in the original
+- make it more clever, more witty, more essayist, or more polished
+- expand a short premise into a longer sentence
+- add "ultimately", "the truth is", "it turns out that", "interestingly enough", "as it happens", "paradox", "irony", "conundrum"
+
+If you cannot improve the wording without changing the premise, return the original hook unchanged in the hookOptions list. The selector will keep the original — that is correct behavior, not a failure.
+
+Non-premise candidates (premise field absent or false) follow the normal rewrite rules above — no polish-mode constraint.`;
 
 type LlamaCandidateInput = {
   id: string;
@@ -411,6 +432,20 @@ type LlamaCandidateInput = {
   action: string;
   emotion: string;
   caption: string;
+  /**
+   * Phase 6C (PREMISE-PRESERVING POLISH MODE) — flagged `true` for
+   * candidates whose meta carried `usedBigPremise === true` (i.e. the
+   * picker selected a Phase 6 premise entry). Llama reads this in the
+   * JSON payload + applies the polish-only constraint section of the
+   * SYSTEM_PROMPT addendum to those candidates ONLY. Omitted (rather
+   * than `false`) for legacy / fallback candidates so the JSON stays
+   * compact + the prompt's "premise field absent or false" branch is
+   * the natural default for non-premise hooks. Validation gate
+   * `polish_changed_premise` in `passesHookMutationRules` is the
+   * server-side enforcement of the same constraint — the prompt is
+   * the soft signal, the validator is the hard rail.
+   */
+  premise?: boolean;
 };
 
 type LlamaCandidateOutput = {
@@ -423,6 +458,17 @@ function toMinimalInput(c: ScoredCandidate, id: string): LlamaCandidateInput {
   // Whatever the scorer's `whatToShow` is, we use it as the "scene"
   // description because it's the single most concrete thing about
   // the candidate (it's literally "you do X then Y in Z").
+  // Phase 6C — flag premise-sourced candidates so the SYSTEM_PROMPT
+  // polish-mode addendum activates per-candidate. `usedBigPremise`
+  // is a discriminated-union field that lives only on the
+  // pattern_variation variant of CandidateMeta; the property check
+  // narrows safely so legacy / fallback wraps that omit it produce
+  // an undefined `premise` field (the "absent or false" branch the
+  // prompt addendum treats as normal-rewrite mode).
+  const premise =
+    "usedBigPremise" in c.meta && c.meta.usedBigPremise === true
+      ? true
+      : undefined;
   return {
     id,
     hook: c.idea.hook,
@@ -431,6 +477,7 @@ function toMinimalInput(c: ScoredCandidate, id: string): LlamaCandidateInput {
     action: c.idea.howToFilm.split(".")[0] ?? c.idea.howToFilm,
     emotion: c.idea.emotionalSpike,
     caption: c.idea.caption,
+    ...(premise === true ? { premise: true as const } : {}),
   };
 }
 
@@ -742,7 +789,91 @@ export function passesHookMutationRules(
     return "scene_drift";
   }
 
+  // Phase 6C (PREMISE-PRESERVING POLISH MODE) — strict premise gate.
+  // Only fires when the original was a Phase 6 BIG PREMISE pick
+  // (`meta.usedBigPremise === true`). Two checks, BOTH must pass:
+  //   (a) Levenshtein distance from the original ≤ 40% of the
+  //       original's character length. Above that ratio the rewrite
+  //       has been re-authored at the character level rather than
+  //       polished — even if every other rule passed, the joke is
+  //       no longer recognizable as the same premise.
+  //   (b) The rewrite must NOT introduce a content noun (length ≥ 4,
+  //       not in STOP_WORDS) that wasn't in the original hook OR
+  //       setting. Stricter than `scene_drift` above (which only
+  //       requires ≥1 OLD noun overlap — passes when the rewrite is
+  //       "kitchen sink" + "new dishwasher"); polish-mode forbids
+  //       ANY new content noun, since a new noun = a new "thing"
+  //       the joke didn't have.
+  // Skipped silently for non-premise originals (legacy templates +
+  // fallback wraps without `usedBigPremise === true`) — the existing
+  // Llama mutation surface for those candidates is intentionally
+  // unchanged. The discriminated-union property check narrows the
+  // type so the read is safe across all CandidateMeta variants.
+  if (
+    "usedBigPremise" in original.meta &&
+    original.meta.usedBigPremise === true
+  ) {
+    const origHook = original.idea.hook.trim();
+    const origLower = origHook.toLowerCase();
+    const dist = levenshteinDistance(origLower, lower);
+    if (dist > Math.floor(origHook.length * 0.4)) {
+      return "polish_changed_premise";
+    }
+    const origPremiseNouns = new Set([
+      ...extractContentNouns(origHook),
+      ...extractContentNouns(original.idea.setting),
+    ]);
+    const rewriteNouns = extractContentNouns(trimmed);
+    for (const n of rewriteNouns) {
+      if (!origPremiseNouns.has(n)) {
+        return "polish_changed_premise";
+      }
+    }
+  }
+
   return null;
+}
+
+/**
+ * Phase 6C (PREMISE-PRESERVING POLISH MODE) — minimal Levenshtein
+ * (edit-distance) implementation backing the `polish_changed_premise`
+ * validator. Standard 2D DP matrix; both inputs are short hook
+ * strings (max ~60 chars after trim), so allocating the (al+1) ×
+ * (bl+1) array is well under 4 KB and runs in microseconds — no need
+ * for a row-rolling space-optimized variant. Returns the minimum
+ * number of single-character insertions / deletions / substitutions
+ * required to transform `a` into `b`. Symmetric in its inputs.
+ *
+ * Empty-string fast paths short-circuit to the trivial "all chars
+ * are insertions" answer so the matrix allocation is skipped on the
+ * cheap-but-common case where one side is empty.
+ *
+ * Local to this module — kept private since the only consumer is
+ * the polish-mode gate above; promoting it to a shared helper would
+ * be premature until a second caller appears.
+ */
+function levenshteinDistance(a: string, b: string): number {
+  const al = a.length;
+  const bl = b.length;
+  if (al === 0) return bl;
+  if (bl === 0) return al;
+  const dp: number[][] = Array.from({ length: al + 1 }, () =>
+    new Array(bl + 1).fill(0) as number[],
+  );
+  for (let i = 0; i <= al; i++) dp[i]![0] = i;
+  for (let j = 0; j <= bl; j++) dp[0]![j] = j;
+  for (let i = 1; i <= al; i++) {
+    const rowI = dp[i]!;
+    const rowIPrev = dp[i - 1]!;
+    for (let j = 1; j <= bl; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      const del = rowIPrev[j]! + 1;
+      const ins = rowI[j - 1]! + 1;
+      const sub = rowIPrev[j - 1]! + cost;
+      rowI[j] = Math.min(del, ins, sub);
+    }
+  }
+  return dp[al]![bl]!;
 }
 
 /** Stop-words skipped when extracting content nouns for scene check. */

@@ -324,6 +324,30 @@ export function batchGuardsPass(
       if (b.meta.sceneEnvCluster) sceneClusters.push(b.meta.sceneEnvCluster);
     }
     if (countMax(sceneClusters) > 1) return false;
+
+    // (h) Phase 6C (PREMISE-FIRST SELECTION) — premiseStyleId HARD
+    // reject. Stricter than the existing -8 within-batch demotion in
+    // `selectionPenalty` (the soft signal): even with -8 there is a
+    // tail case where greedy on a small or premise-saturated pool
+    // picks the same fine-grained `premiseStyleId` twice (e.g. -8
+    // vs no fresh-style alternative still ships, since -8 only
+    // beats the alternative if a non-dup alternative exists at all).
+    // Closes that case by rejecting the batch outright; the picker
+    // re-runs in `exhaustiveReselect` over a wider candidate set,
+    // which has many more shippable alternatives at the per-fine-
+    // grained-id level (50 distinct ids vs 12 ideaCoreFamily / 8
+    // hookIntent / etc., so the alternative-density is favorable).
+    // Composes safely with (e)/(f)/(g) above — those guards reject
+    // by topical/scene clustering; this one rejects by premise-
+    // shape clustering, an orthogonal axis that they don't catch.
+    // Skip when fields missing (legacy / fallback safety — entries
+    // without a `premiseStyleId` count toward batch.length but don't
+    // contribute to this guard, identical discipline to (d)/(e)/(f)).
+    const premiseStyleIds: PremiseStyleId[] = [];
+    for (const b of batch) {
+      if (b.meta.premiseStyleId) premiseStyleIds.push(b.meta.premiseStyleId);
+    }
+    if (countMax(premiseStyleIds) > 1) return false;
   }
 
   // Guards below only meaningful at >=3 picks — at 1 or 2 every
