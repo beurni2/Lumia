@@ -162,6 +162,37 @@ export type Setting =
   | "outside"
   | "other";
 
+/**
+ * Phase 3B PART 2 — coarse semantic class for a scenario's
+ * `topicNoun`. Used by `LanguagePhrasingEntry.allowedNounTypes` to
+ * gate template-noun composition before `entry.build(scenario)` is
+ * called, eliminating semantically-broken pairs at the source
+ * ("future me thinks about the sneeze", "the wave watching me
+ * decide nothing") rather than relying on the post-build syntactic
+ * validator.
+ *
+ *   - `object`     — concrete physical thing (the fridge, the mug)
+ *   - `abstract`   — concept / persona / emotion (the compliment, the password)
+ *   - `action`     — an activity treated as a noun (the brushing, the wave)
+ *   - `place`      — a location (the front step, the bathroom)
+ *   - `event`      — a happening at a point in time (the meeting, the sneeze)
+ *   - `body_state` — physical sensation/condition (the soreness, the smell)
+ *   - `person`     — reserved for future scenarios; no current scenario uses
+ *                   a person as topicNoun.
+ *
+ * Add a value here only when a new scenario class needs it; templates
+ * that omit `allowedNounTypes` accept any type by default, so the
+ * gate is opt-in per template.
+ */
+export type TopicNounType =
+  | "object"
+  | "abstract"
+  | "action"
+  | "place"
+  | "event"
+  | "body_state"
+  | "person";
+
 export type Scenario = {
   family: string;
   triggerCategory: TriggerCategory;
@@ -197,6 +228,18 @@ export type Scenario = {
   filmingMin: number;
   /** A concrete object/topic noun ("the gym bag", "the fridge", "your phone"). */
   topicNoun: string;
+  /**
+   * Phase 3B PART 2 — coarse semantic class for `topicNoun`. REQUIRED
+   * so a new scenario cannot ship without classification (the picker's
+   * `allowedNounTypes` gate would silently abstain on undefined and
+   * un-gate the scenario, defeating the rail). See `TopicNounType`
+   * for value semantics. When a noun could plausibly satisfy two
+   * types (e.g. "the meeting" is both event AND has place flavor),
+   * choose the dominant template-affinity class — `event` here, since
+   * "future me thinks about the meeting" + "the meeting watching me
+   * decide" both read as event-of-time, not as place.
+   */
+  topicNounType: TopicNounType;
 };
 
 const SCENARIOS: Scenario[] = [
@@ -214,6 +257,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone glow on face in dark room, eyes dart to clock",
     filmingMin: 5,
     topicNoun: "the clock",
+    topicNounType: "object",
   },
   {
     family: "coffee",
@@ -229,6 +273,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "untouched coffee gear on the counter, keys jingle",
     filmingMin: 6,
     topicNoun: "the coffee",
+    topicNounType: "object",
   },
   {
     family: "gym",
@@ -244,6 +289,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "gym bag in same spot, dust visible on the strap",
     filmingMin: 4,
     topicNoun: "the gym bag",
+    topicNounType: "object",
   },
   {
     family: "laundry",
@@ -259,6 +305,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "laundry pile on the chair, shirt held up to the light",
     filmingMin: 4,
     topicNoun: "the laundry",
+    topicNounType: "object",
   },
   {
     family: "texting",
@@ -274,6 +321,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "thumb hovers over the keyboard, then locks the screen",
     filmingMin: 3,
     topicNoun: "the unread text",
+    topicNounType: "object",
   },
   {
     family: "emails",
@@ -289,6 +337,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "thumb sweeps across the inbox, the unread count drops to zero",
     filmingMin: 4,
     topicNoun: "the inbox",
+    topicNounType: "object",
   },
   {
     family: "fridge",
@@ -304,6 +353,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "fridge door open on bare shelves, light on the face",
     filmingMin: 4,
     topicNoun: "the fridge",
+    topicNounType: "object",
   },
   {
     family: "outfit",
@@ -319,6 +369,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "closet open behind you, hand goes straight to the hoodie",
     filmingMin: 4,
     topicNoun: "the closet",
+    topicNounType: "object",
   },
   {
     family: "errands",
@@ -334,6 +385,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "list on the dashboard with one item crossed off",
     filmingMin: 8,
     topicNoun: "the errand list",
+    topicNounType: "object",
   },
   {
     family: "weekend_plans",
@@ -349,6 +401,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "thumb hits send, blanket pulled up to the chin",
     filmingMin: 3,
     topicNoun: "the group chat",
+    topicNounType: "object",
   },
   {
     family: "productivity",
@@ -364,6 +417,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "to-do list flashes on screen, then the For You feed",
     filmingMin: 4,
     topicNoun: "the to-do app",
+    topicNounType: "object",
   },
   {
     family: "cleaning",
@@ -379,6 +433,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "same pile, different surface — wide shot of the room",
     filmingMin: 5,
     topicNoun: "the pile",
+    topicNounType: "object",
   },
   {
     family: "social_call",
@@ -394,6 +449,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wave goodbye, then the cringe-walk back to the door",
     filmingMin: 3,
     topicNoun: "the hallway",
+    topicNounType: "place",
   },
   {
     family: "snack",
@@ -409,6 +465,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "pantry door open, chip bag in hand, casual exit",
     filmingMin: 3,
     topicNoun: "the pantry",
+    topicNounType: "place",
   },
   {
     family: "hydration",
@@ -424,6 +481,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "water bottle from yesterday, condensation gone",
     filmingMin: 3,
     topicNoun: "the water bottle",
+    topicNounType: "object",
   },
   {
     family: "morning",
@@ -439,6 +497,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "alarm screen, hand swipes, screen goes dark",
     filmingMin: 3,
     topicNoun: "the alarm",
+    topicNounType: "object",
   },
   {
     family: "shopping",
@@ -454,6 +513,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "cart count goes from 0 to 1 to 3 in one shot",
     filmingMin: 4,
     topicNoun: "the shopping cart",
+    topicNounType: "object",
   },
   {
     family: "social_post",
@@ -469,6 +529,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "pull-to-refresh animation loops, like count unchanged",
     filmingMin: 3,
     topicNoun: "the post",
+    topicNounType: "object",
   },
   {
     family: "dishes",
@@ -484,6 +545,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "sink full of dishes, kitchen light clicks off",
     filmingMin: 3,
     topicNoun: "the sink",
+    topicNounType: "object",
   },
   {
     family: "podcast",
@@ -499,6 +561,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "podcast app closes, Spotify opens, familiar cover art",
     filmingMin: 3,
     topicNoun: "the podcast app",
+    topicNounType: "object",
   },
   {
     family: "skincare",
@@ -514,6 +577,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "skincare bottles untouched, single face wipe in hand",
     filmingMin: 3,
     topicNoun: "the skincare shelf",
+    topicNounType: "object",
   },
   {
     family: "mirror_pep_talk",
@@ -529,6 +593,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "tight on the mirror, your reflection holding its own gaze",
     filmingMin: 3,
     topicNoun: "the mirror",
+    topicNounType: "object",
   },
   {
     family: "walk",
@@ -544,6 +609,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "walking shoes on, door still open behind you",
     filmingMin: 4,
     topicNoun: "the front step",
+    topicNounType: "place",
   },
   {
     family: "doom_scroll_car",
@@ -559,6 +625,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "key still in the ignition, phone glow on your face",
     filmingMin: 3,
     topicNoun: "the parked car",
+    topicNounType: "object",
   },
   {
     family: "closet_pile",
@@ -574,6 +641,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide shot of the outfit pile on the bedroom floor",
     filmingMin: 5,
     topicNoun: "the try-on pile",
+    topicNounType: "object",
   },
   // ---------------------------------------------------------------------------
   // Phase 2 — 58 new scenarios, family-balanced across the 12 IdeaCoreFamilies.
@@ -597,6 +665,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "bill folder open on the table, hand frozen on the card",
     filmingMin: 4,
     topicNoun: "the bill",
+    topicNounType: "object",
   },
   {
     family: "gift_received",
@@ -612,6 +681,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "gift box on the couch, your face 20 min later by the sink",
     filmingMin: 6,
     topicNoun: "the gift",
+    topicNounType: "object",
   },
   {
     family: "birthday_text",
@@ -627,6 +697,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone screen of birthday emojis, thumb scrolling fast",
     filmingMin: 3,
     topicNoun: "the birthday thread",
+    topicNounType: "object",
   },
   {
     family: "colleague_promoted",
@@ -642,6 +713,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "LinkedIn 'I'm thrilled to share' post on screen",
     filmingMin: 4,
     topicNoun: "the promotion post",
+    topicNounType: "object",
   },
   {
     family: "compliment_freeze",
@@ -657,6 +729,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "your face in the mirror, neutral mid-skincare",
     filmingMin: 3,
     topicNoun: "the compliment",
+    topicNounType: "abstract",
   },
 
   // failure_contradiction (+6)
@@ -674,6 +747,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "six containers stacked on the shelf, untouched",
     filmingMin: 4,
     topicNoun: "the meal prep",
+    topicNounType: "object",
   },
   {
     family: "bedtime",
@@ -689,6 +763,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone clock 2:47, ceiling visible above",
     filmingMin: 3,
     topicNoun: "the bedtime",
+    topicNounType: "event",
   },
   {
     family: "screen_time",
@@ -704,6 +779,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "screen-time bar chart on phone, time number circled",
     filmingMin: 3,
     topicNoun: "the screen time",
+    topicNounType: "abstract",
   },
   {
     family: "journaling_habit",
@@ -719,6 +795,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "journal page with the underlined sentence, phone in hand",
     filmingMin: 4,
     topicNoun: "the journal",
+    topicNounType: "object",
   },
   {
     family: "parking_lecture",
@@ -734,6 +811,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "parking ticket against the dashboard",
     filmingMin: 3,
     topicNoun: "the parking ticket",
+    topicNounType: "object",
   },
   {
     family: "morning_pages",
@@ -749,6 +827,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone alarm screen with label 'morning pages 6am'",
     filmingMin: 3,
     topicNoun: "the morning alarm",
+    topicNounType: "object",
   },
 
   // decision_paralysis (+5)
@@ -766,6 +845,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "Netflix browse screen on TV, remote on the couch arm",
     filmingMin: 4,
     topicNoun: "the show",
+    topicNounType: "object",
   },
   {
     family: "restaurant_pick",
@@ -781,6 +861,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide shot of two people on a corner, three restaurants visible",
     filmingMin: 4,
     topicNoun: "the restaurant",
+    topicNounType: "place",
   },
   {
     family: "outfit_paralysis",
@@ -796,6 +877,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "five outfits laid in a row on the bed",
     filmingMin: 5,
     topicNoun: "the outfit",
+    topicNounType: "object",
   },
   {
     family: "gym_signup_signs",
@@ -811,6 +893,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "gym-app signup screen, then weather app, then black",
     filmingMin: 3,
     topicNoun: "the gym class",
+    topicNounType: "event",
   },
   {
     family: "breakup_text_pivot",
@@ -826,6 +909,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone propped on the sink, typing then erasing",
     filmingMin: 4,
     topicNoun: "the message",
+    topicNounType: "object",
   },
 
   // social_friction (+5)
@@ -843,6 +927,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "your face mid-song, candle glow, others around",
     filmingMin: 3,
     topicNoun: "the birthday song",
+    topicNounType: "object",
   },
   {
     family: "wave_back",
@@ -858,6 +943,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide shot of the sidewalk, the wave, the realization",
     filmingMin: 3,
     topicNoun: "the wave",
+    topicNounType: "action",
   },
   {
     family: "loud_neighbor_call",
@@ -873,6 +959,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "ear toward the wall, headphones around the neck",
     filmingMin: 4,
     topicNoun: "the neighbor's call",
+    topicNounType: "event",
   },
   {
     family: "group_chat_lurk",
@@ -888,6 +975,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "group chat scrolling fast, 'lol' typed last",
     filmingMin: 3,
     topicNoun: "the group chat",
+    topicNounType: "object",
   },
   {
     family: "library_voice",
@@ -903,6 +991,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "laptop screen, mute icon, side-eyes from neighboring tables",
     filmingMin: 3,
     topicNoun: "the laptop ding",
+    topicNounType: "event",
   },
 
   // time_distortion (+4)
@@ -920,6 +1009,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "form field with the wrong year, then corrected",
     filmingMin: 3,
     topicNoun: "the year",
+    topicNounType: "abstract",
   },
   {
     family: "meeting_collision",
@@ -935,6 +1025,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "two calendar reminders stacked, then Zoom screen",
     filmingMin: 3,
     topicNoun: "the meeting",
+    topicNounType: "event",
   },
   {
     family: "season_door",
@@ -950,6 +1041,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "front door open, cold visible breath in shorts",
     filmingMin: 3,
     topicNoun: "the cold",
+    topicNounType: "abstract",
   },
   {
     family: "birthday_age_dread",
@@ -965,6 +1057,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "your face in the mirror, harsh bathroom lighting",
     filmingMin: 4,
     topicNoun: "the birthday",
+    topicNounType: "event",
   },
 
   // identity_drift (+3)
@@ -982,6 +1075,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "headset on, mouth shape change post-call",
     filmingMin: 3,
     topicNoun: "the phone voice",
+    topicNounType: "abstract",
   },
   {
     family: "accent_pickup",
@@ -997,6 +1091,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone propped on the couch, your face mid-sentence",
     filmingMin: 3,
     topicNoun: "the accent",
+    topicNounType: "abstract",
   },
   {
     family: "old_photo_self",
@@ -1012,6 +1107,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone showing old photo memory, your reflection above",
     filmingMin: 4,
     topicNoun: "the old photo",
+    topicNounType: "object",
   },
 
   // physical_betrayal (+5)
@@ -1029,6 +1125,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone showing 2h 14m, room darker than before",
     filmingMin: 3,
     topicNoun: "the nap",
+    topicNounType: "event",
   },
   {
     family: "sneeze_chain",
@@ -1044,6 +1141,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "headphones askew, mute icon, tissue box visible",
     filmingMin: 3,
     topicNoun: "the sneeze",
+    topicNounType: "event",
   },
   {
     family: "posture_collapse_zoom",
@@ -1059,6 +1157,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "side-by-side: 9am posture vs 3pm posture",
     filmingMin: 4,
     topicNoun: "the posture",
+    topicNounType: "body_state",
   },
   {
     family: "bladder_brain_drive",
@@ -1074,6 +1173,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "GPS showing 12 min, your white-knuckle grip",
     filmingMin: 3,
     topicNoun: "the drive home",
+    topicNounType: "event",
   },
   {
     family: "voice_crack_meeting",
@@ -1089,6 +1189,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "Zoom view of you mid-meeting, chat filling with reactions",
     filmingMin: 3,
     topicNoun: "the meeting",
+    topicNounType: "event",
   },
 
   // information_asymmetry (+6)
@@ -1106,6 +1207,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone showing 'typing…' on, then off, then on",
     filmingMin: 3,
     topicNoun: "the typing dots",
+    topicNounType: "object",
   },
   {
     family: "dinner_lie",
@@ -1121,6 +1223,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "two people at the open fridge, eye contact",
     filmingMin: 4,
     topicNoun: "the dinner",
+    topicNounType: "event",
   },
   {
     family: "delivery_secret",
@@ -1136,6 +1239,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "three Amazon boxes lined up under the couch",
     filmingMin: 3,
     topicNoun: "the package",
+    topicNounType: "object",
   },
   {
     family: "wrong_chat_send",
@@ -1151,6 +1255,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "phone showing the wrong chat at the top",
     filmingMin: 3,
     topicNoun: "the message",
+    topicNounType: "object",
   },
   {
     family: "gym_avoid_coworker",
@@ -1166,6 +1271,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide sidewalk shot, the wave, the inner panic",
     filmingMin: 3,
     topicNoun: "the gym story",
+    topicNounType: "abstract",
   },
   {
     family: "bathroom_eavesdrop",
@@ -1181,6 +1287,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "feet visible under the next stall, your hand frozen on the lock",
     filmingMin: 3,
     topicNoun: "the bathroom",
+    topicNounType: "place",
   },
 
   // environmental_chaos (+5)
@@ -1198,6 +1305,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "spinning wifi icon, then the router across the room",
     filmingMin: 3,
     topicNoun: "the wifi",
+    topicNounType: "object",
   },
   {
     family: "surprise_storm",
@@ -1213,6 +1321,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "sky going from blue to black in two cuts",
     filmingMin: 3,
     topicNoun: "the weather",
+    topicNounType: "abstract",
   },
   {
     family: "trash_smell_hunt",
@@ -1228,6 +1337,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide kitchen shot, you mid-sniff at the corner",
     filmingMin: 4,
     topicNoun: "the smell",
+    topicNounType: "body_state",
   },
   {
     family: "flicker_skincare",
@@ -1243,6 +1353,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "your face strobing in the bathroom mirror",
     filmingMin: 3,
     topicNoun: "the bulb",
+    topicNounType: "object",
   },
   {
     family: "package_pile_unknown",
@@ -1258,6 +1369,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "four stacked boxes at the door, hand reaching",
     filmingMin: 3,
     topicNoun: "the packages",
+    topicNounType: "object",
   },
 
   // memory_glitch (+5)
@@ -1275,6 +1387,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "your face mid-introduction, gesture frozen",
     filmingMin: 3,
     topicNoun: "the name",
+    topicNounType: "abstract",
   },
   {
     family: "password_reset_loop",
@@ -1290,6 +1403,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "login screen with 'incorrect password' showing",
     filmingMin: 3,
     topicNoun: "the password",
+    topicNounType: "abstract",
   },
   {
     family: "song_loop_brushing",
@@ -1305,6 +1419,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "you brushing, mouth full of foam, eyes distant",
     filmingMin: 3,
     topicNoun: "the song",
+    topicNounType: "object",
   },
   {
     family: "did_i_lock_door",
@@ -1320,6 +1435,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "the rearview, the door, the steering wheel turning",
     filmingMin: 3,
     topicNoun: "the door",
+    topicNounType: "object",
   },
   {
     family: "wrong_friend_text",
@@ -1335,6 +1451,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "text screen mid-typing, calendar app, back to text",
     filmingMin: 3,
     topicNoun: "the plans",
+    topicNounType: "abstract",
   },
 
   // ritual_disruption (+4)
@@ -1352,6 +1469,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "the wrong mug in your hand, dishwasher closed",
     filmingMin: 3,
     topicNoun: "the mug",
+    topicNounType: "object",
   },
   {
     family: "lucky_pen_missing",
@@ -1367,6 +1485,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "open drawers, pencil in hand, lucky pen nowhere",
     filmingMin: 3,
     topicNoun: "the pen",
+    topicNounType: "object",
   },
   {
     family: "routine_witness",
@@ -1382,6 +1501,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "you mid-skincare, roommate's silhouette in the doorway",
     filmingMin: 4,
     topicNoun: "the skincare routine",
+    topicNounType: "action",
   },
   {
     family: "kid_copies_brushing",
@@ -1397,6 +1517,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "side-by-side at the sink, two toothbrushes, same motion",
     filmingMin: 3,
     topicNoun: "the brushing",
+    topicNounType: "action",
   },
 
   // anti_climax (+5)
@@ -1414,6 +1535,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "confetti on the floor, takeout containers, phone glow",
     filmingMin: 4,
     topicNoun: "the birthday",
+    topicNounType: "event",
   },
   {
     family: "concert_aftermath",
@@ -1429,6 +1551,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "wide parking lot shot, you alone, last cars leaving",
     filmingMin: 4,
     topicNoun: "the concert",
+    topicNounType: "event",
   },
   {
     family: "email_drama_paperwork",
@@ -1444,6 +1567,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "email open showing 'IRS Form W-9' or similar",
     filmingMin: 3,
     topicNoun: "the email",
+    topicNounType: "object",
   },
   {
     family: "vacation_first_morning",
@@ -1459,6 +1583,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "hotel ceiling, your face on the pillow, phone in hand",
     filmingMin: 3,
     topicNoun: "the vacation morning",
+    topicNounType: "event",
   },
   {
     family: "peak_was_yesterday_workout",
@@ -1474,6 +1599,7 @@ const SCENARIOS: Scenario[] = [
     visualHook: "you flat on the bed, phone showing yesterday's PR screenshot",
     filmingMin: 3,
     topicNoun: "the soreness",
+    topicNounType: "body_state",
   },
 ];
 
@@ -2637,6 +2763,41 @@ const DANGLING_TRAILING_WORDS = new Set([
  * fresh HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog), and tryRewrite
  * in the scorer now skips them too — exactly the spec's intent.
  */
+/**
+ * Phase 3B PART 1 — pairs of adjacent words that always indicate a
+ * grammar break from a fragile template/noun composition. Checked
+ * case-insensitively as a substring scan over the lowercased hook.
+ * Each entry is a literal bigram; the regex engine is not used here
+ * so accidental injection of regex metacharacters in a future
+ * addition cannot weaken the rail.
+ *
+ * NOTE: keep this list narrow — false positives here cost real
+ * candidates. The article-collision rail below catches the bulk of
+ * "the the" / "a the" / "the a" cases without needing entries here.
+ */
+const BANNED_GRAMMAR_BIGRAMS: ReadonlyArray<string> = [
+  "talks about it's",
+  "talks about its",
+  "thinking about it's",
+  "thinking about its",
+  "thinks about it's",
+  "thinks about its",
+  "about it's 3am",
+  "about it's 2am",
+];
+
+/**
+ * Phase 3B PART 1 — words that may legitimately appear adjacent to a
+ * duplicate of themselves in natural English. Used by the
+ * `repeated-word` rail so legitimate constructions ("had had",
+ * "that that") aren't rejected. Empty by default — re-add only if a
+ * real corpus-driven case appears.
+ */
+const REPEATED_WORD_ALLOWLIST: ReadonlySet<string> = new Set<string>([
+  "had", // "I had had enough"
+  "that", // "the thing that that means"
+]);
+
 export function validateHook(hook: string): boolean {
   const trimmed = hook.trim();
   if (trimmed.length === 0) return false;
@@ -2659,6 +2820,35 @@ export function validateHook(hook: string): boolean {
   if (lookupBannedHookPrefix(trimmed)) return false;
   if (containsGenericFiller(trimmed)) return false;
   if (containsVoiceViolation(trimmed)) return false;
+  // Phase 3B PART 1 — article-collision rail. Catches the
+  // "the the promotion post" / "a the mirror" / "the a fridge"
+  // family of bugs caused by a template prefixing "the"/"a"/"an"
+  // around a topicNoun that already starts with its own article.
+  // The picker will move on to the next entry on rejection (same
+  // mechanism as banned-prefix / generic-filler), so the catalog
+  // self-heals without manual per-template auditing.
+  if (/\b(the|a|an)\s+(the|a|an)\b/i.test(trimmed)) return false;
+  // Phase 3B PART 1 — repeated-word rail. Catches "the the",
+  // "is is", "to to" produced by template-noun composition
+  // races. Allowlist preserves legitimate doublings.
+  const lowerWords = trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.replace(/[.,!?;:'"()]+/g, ""));
+  for (let i = 1; i < lowerWords.length; i++) {
+    const w = lowerWords[i]!;
+    if (w.length === 0) continue;
+    if (lowerWords[i - 1] === w && !REPEATED_WORD_ALLOWLIST.has(w)) {
+      return false;
+    }
+  }
+  // Phase 3B PART 1 — grammar-break bigram rail. Targeted catches
+  // for "talks about it's …" / "thinking about it's …" composition
+  // bugs the previous QA driver surfaced.
+  const lowered = trimmed.toLowerCase();
+  for (const bigram of BANNED_GRAMMAR_BIGRAMS) {
+    if (lowered.includes(bigram)) return false;
+  }
   return true;
 }
 
@@ -3711,6 +3901,27 @@ export type LanguagePhrasingEntry = {
    * field are treated as scenario-shaped by default.
    */
   genericHook?: boolean;
+  /**
+   * Phase 3B PART 2 — coarse compatibility allowlist for the
+   * scenario's `topicNounType`. When set, the picker
+   * (`pickValidatedLanguagePhrasing` walk) skips this entry for any
+   * scenario whose `topicNounType` is NOT in the list, BEFORE calling
+   * `entry.build(scenario)`. This prevents semantically-broken
+   * compositions ("future me thinks about the sneeze", "the wave
+   * watching me decide nothing") at the source instead of rejecting
+   * them post-build.
+   *
+   * Set ONLY on formulaic templates whose phrasing requires a
+   * specific noun shape (most `skeletonId`-tagged templates do).
+   * Leave undefined for templates whose phrasing is naturally
+   * permissive across all noun types — undefined means "any
+   * topicNounType passes", same fallback discipline as the other
+   * optional fields here.
+   *
+   * Use the same `TopicNounType` union as `Scenario.topicNounType`
+   * so the typecheck enforces a closed set on both sides.
+   */
+  allowedNounTypes?: ReadonlyArray<TopicNounType>;
 };
 
 /**
@@ -3848,7 +4059,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "relatable",
     },
     {
-      build: (s) => `I lied about ${s.actionShort}`,
+      build: (s) => `I claimed I'd ${s.actionShort}, frankly`,
       voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
@@ -3913,7 +4124,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "relatable",
     },
     {
-      build: (s) => `everybody has a ${s.topicNoun} they keep avoiding`,
+      build: (s) => `everybody has ${s.topicNoun} they keep avoiding`,
       voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
       rigidityScore: 4,
       sharpnessScore: 2,
@@ -3992,6 +4203,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
       skeletonId: "noun_standoff",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} pays rent here at this point`,
@@ -4000,6 +4212,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_pays_rent",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `pretty sure ${s.topicNoun} runs my schedule now`,
@@ -4008,6 +4221,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_runs_schedule",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} is officially a third roommate`,
@@ -4016,6 +4230,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_third_roommate",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} feels like a villain origin story`,
@@ -4024,6 +4239,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "noun_villain_origin",
+      allowedNounTypes: ["object", "abstract", "event"] as const,
     },
     {
       build: (s) => `${s.topicNoun} is sentient and we both know`,
@@ -4032,6 +4248,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_sentient",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `we are quietly losing to ${s.topicNoun} again`,
@@ -4049,6 +4266,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_won_today",
+      allowedNounTypes: ["object", "abstract", "event"] as const,
     },
     {
       build: (s) => `${s.topicNoun} is staying exactly where it is`,
@@ -4057,6 +4275,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
       skeletonId: "noun_staying_put",
+      allowedNounTypes: ["object", "place"] as const,
     },
     {
       build: (s) => `today's update: ${s.realityShort}`,
@@ -4087,6 +4306,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "no_progress_remains",
+      allowedNounTypes: ["object", "place", "abstract", "body_state"] as const,
     },
     // Phase 3 PART 1 DEADPAN/BLUNT additions — flat, scenario-agnostic
     // declarations of failure / non-action. The spec PART 5 voice
@@ -4140,6 +4360,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "at_what_point_admit",
+      allowedNounTypes: ["object", "abstract", "body_state", "event"] as const,
     },
     {
       build: (s) => `how many days does ${s.topicNoun} get`,
@@ -4148,6 +4369,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "how_many_days_gets",
+      allowedNounTypes: ["object", "abstract", "event", "place"] as const,
     },
     {
       build: () => `who decided this was fine again`,
@@ -4171,6 +4393,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 2,
       hookIntent: "compulsion",
       skeletonId: "what_if_answer",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `how many days of pretending about ${s.topicNoun}`,
@@ -4179,6 +4402,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "how_many_days_pretending",
+      allowedNounTypes: ["object", "abstract", "action", "event"] as const,
     },
   ],
   instruction: [
@@ -4189,6 +4413,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "how_to_avoid_three_steps",
+      allowedNounTypes: ["object", "place", "event", "person"] as const,
     },
     {
       build: (s) => `pro tip: skip ${s.topicNoun} today`,
@@ -4197,6 +4422,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "pro_tip_skip",
+      allowedNounTypes: ["object", "place", "event", "person"] as const,
     },
     {
       build: (s) => `tutorial: how to ignore ${s.topicNoun} forever`,
@@ -4205,6 +4431,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "tutorial_ignore",
+      allowedNounTypes: ["object", "place", "event", "person"] as const,
     },
     {
       build: () => `step one: stare. step two: leave.`,
@@ -4229,6 +4456,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 3,
       hookIntent: "relatable",
       skeletonId: "todays_reminder_wait",
+      allowedNounTypes: ["object", "abstract", "event", "action"] as const,
     },
   ],
   micro_story: [
@@ -4269,6 +4497,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "relatable",
       skeletonId: "prep_to_think",
+      allowedNounTypes: ["object", "abstract", "event", "person"] as const,
     },
     {
       build: (s) => `stood near ${s.topicNoun} like a forgotten ghost`,
@@ -4312,6 +4541,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "relatable",
       skeletonId: "morning_me_vs_night_me",
+      allowedNounTypes: ["object", "abstract", "action"] as const,
     },
     {
       build: (s) => `theory vs reality with ${s.topicNoun}`,
@@ -4320,6 +4550,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 3,
       hookIntent: "relatable",
       skeletonId: "theory_vs_reality",
+      allowedNounTypes: ["object", "abstract", "action", "event"] as const,
     },
     {
       build: () => `me at 9am vs me at 9pm`,
@@ -4336,14 +4567,16 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 2,
       hookIntent: "relatable",
       skeletonId: "plans_vs_reality",
+      allowedNounTypes: ["object", "abstract", "event", "action"] as const,
     },
     {
-      build: (s) => `planner me vs the ${s.topicNoun} version of me`,
+      build: (s) => `planner me vs actual me on ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "poetic"],
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
       skeletonId: "planner_vs_version_me",
+      allowedNounTypes: ["object", "abstract", "event", "action"] as const,
     },
     {
       // Phase 3 HOOK TEMPLATE TUNING — rewrite of broken
@@ -4358,6 +4591,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "relatable",
       skeletonId: "future_vs_current_thinks",
+      allowedNounTypes: ["object", "abstract", "event"] as const,
     },
   ],
   object_pov: [
@@ -4368,6 +4602,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_watching_decide",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun}, sitting there, fully aware of everything`,
@@ -4376,6 +4611,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_sitting_aware",
+      allowedNounTypes: ["object"] as const,
     },
     {
       build: (s) => `${s.topicNoun} keeps the score so nothing escapes`,
@@ -4384,6 +4620,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
       skeletonId: "noun_keeps_score",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} taking notes about my life again`,
@@ -4392,6 +4629,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_taking_notes",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} has seen things, ${s.topicNoun} is tired`,
@@ -4400,14 +4638,16 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_seen_tired",
+      allowedNounTypes: ["object", "abstract", "place"] as const,
     },
     {
-      build: (s) => `the ${s.topicNoun} is smug about today, frankly`,
+      build: (s) => `${s.topicNoun} is smug about today, frankly`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "noun_smug",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} just observing the disaster quietly`,
@@ -4416,6 +4656,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "just_observing_disaster",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
   ],
   time_stamp: [
@@ -4426,6 +4667,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
       skeletonId: "timestamp_negotiating",
+      allowedNounTypes: ["object", "abstract", "event", "body_state", "place"] as const,
     },
     {
       build: (s) => `7am plan: ${s.actionShort}`,
@@ -4442,6 +4684,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "weekday_not_moved",
+      allowedNounTypes: ["object", "place", "event"] as const,
     },
     {
       build: (s) => `12:14am: still in standoff with ${s.topicNoun}`,
@@ -4455,6 +4698,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
       skeletonId: "timestamp_standoff",
+      allowedNounTypes: ["object", "abstract", "event", "place", "body_state"] as const,
     },
     {
       build: (s) => `monday and ${s.topicNoun} is winning, news at eleven`,
@@ -4463,14 +4707,16 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "weekday_news_at_eleven",
+      allowedNounTypes: ["object", "abstract", "event", "body_state"] as const,
     },
     {
-      build: (s) => `3pm and the ${s.topicNoun} is somehow louder`,
+      build: (s) => `3pm and ${s.topicNoun} is somehow louder`,
       voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       skeletonId: "afternoon_louder",
+      allowedNounTypes: ["object", "abstract", "event"] as const,
     },
     // Phase 3 PART 1 TIMESTAMP additions — pure timestamp + status
     // fragments. Each contains a digit (highly specific +1 boost) and
@@ -4619,6 +4865,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "started_ended_worse",
+      allowedNounTypes: ["object", "action", "event"] as const,
     },
     {
       build: (s) => `tried to handle ${s.topicNoun}, did the opposite`,
@@ -4627,6 +4874,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "tried_did_opposite",
+      allowedNounTypes: ["object", "abstract", "action", "event"] as const,
     },
     {
       build: (s) => `one job around ${s.topicNoun}, you can guess`,
@@ -4635,6 +4883,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "one_job_guess",
+      allowedNounTypes: ["object", "abstract", "action"] as const,
     },
     {
       build: (s) =>
@@ -4651,6 +4900,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "small_to_personality",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
       // Phase 3 HOOK TEMPLATE TUNING — typo fix "its" → "it's"
@@ -4663,14 +4913,16 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "manage_now_hostage",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
     {
-      build: (s) => `the ${s.topicNoun} ate my afternoon, peacefully`,
+      build: (s) => `${s.topicNoun} ate my afternoon, peacefully`,
       voiceProfiles: ["poetic", "chaotic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "ate_afternoon",
+      allowedNounTypes: ["object", "abstract", "event"] as const,
     },
     {
       build: (s) => `started managing ${s.topicNoun}, now we live together`,
@@ -4679,6 +4931,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "compulsion",
       skeletonId: "manage_live_together",
+      allowedNounTypes: ["object", "abstract"] as const,
     },
   ],
 };
@@ -5219,6 +5472,22 @@ function pickValidatedLanguagePhrasing(
       const entry = phrasings[idx]!;
       if (intentRequired !== null && entry.hookIntent !== intentRequired) continue;
       if (!voicePred(entry)) continue;
+      // Phase 3B PART 3 — noun-type compatibility gate. Skip the
+      // entry BEFORE calling `build()` when the entry declared an
+      // `allowedNounTypes` allowlist and the scenario's
+      // `topicNounType` is not in it. Undefined allowedNounTypes
+      // means "any noun type is fine" (legacy + naturally-permissive
+      // templates), preserving backwards-compatibility. The picker
+      // will fall through to the next phrasing in seed-rotated
+      // order, identical to the validateHook-rejection path; the
+      // subsequent intent-fallback / voice-fallback passes will
+      // also re-enter this walk and find a compatible entry.
+      if (
+        entry.allowedNounTypes !== undefined &&
+        !entry.allowedNounTypes.includes(scenario.topicNounType)
+      ) {
+        continue;
+      }
       const candidate = toneInflect(entry.build(scenario), tone).trim();
       if (validateHook(candidate)) {
         return { entry, index: idx, hook: candidate };

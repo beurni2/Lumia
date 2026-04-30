@@ -1,0 +1,139 @@
+PHASE 3B — HOOK CATALOG CLEANUP + HARDENING
+
+Goal:
+Fix broken hooks caused by:
+- grammar errors
+- bad noun-template composition
+- weak template robustness
+
+This is NOT scoring work.
+This is catalog + validation work.
+
+---
+
+PART 1 — FIX HARD BUGS (MANDATORY)
+
+Fix all known template issues:
+
+- duplicate words ("the the")
+- incorrect articles ("a the")
+- grammar mismatches ("talks about it's")
+
+Add a simple post-build validator:
+
+Reject hook if:
+- repeated words detected
+- invalid article sequence (a/an/the misuse)
+- obvious grammar break patterns
+
+---
+
+PART 2 — TEMPLATE-NOUN COMPATIBILITY
+
+Problem:
+Templates assume any noun works → produces nonsense.
+
+Fix:
+
+Add compatibility tagging to templates:
+
+Each template must define:
+
+allowedNounTypes:
+- object
+- abstract
+- action
+- place
+- event
+- body_state
+
+Example:
+
+"the [X] watching me decide nothing again"
+→ only works with:
+  - object
+  - abstract
+
+NOT:
+  - event (sneeze)
+  - vague states
+
+---
+
+At generation:
+
+Reject template if:
+scenario noun type ∉ template.allowedNounTypes
+
+---
+
+PART 3 — SAFE COMPOSITION CHECK
+
+After hook is built:
+
+Run validation:
+
+Reject hook if:
+- phrase is semantically broken
+- noun + verb pairing is unnatural
+
+Examples to reject:
+- "thinking about the sneeze"
+- "wave watching me decide"
+- "front step feels like a villain origin story"
+
+---
+
+PART 4 — UPGRADE TEMPLATE ROBUSTNESS
+
+For fragile templates:
+
+Option A:
+- tighten allowedNounTypes
+
+Option B:
+- rewrite template to be more flexible
+
+Example:
+
+BAD:
+"the [X] watching me decide nothing again"
+
+BETTER:
+"the [X] just sitting there while I do nothing"
+
+---
+
+PART 5 — QUALITY FLOOR
+
+Reject hook if:
+- confusing
+- awkward to read
+- unnatural phrasing
+- requires interpretation to understand
+
+---
+
+PART 6 — QA
+
+Generate 10 batches again.
+
+Targets:
+
+- 0 grammar errors
+- 0 broken noun fits
+- <10% awkward hooks
+- increase post-worthy from ~30% → >50%
+
+---
+
+IMPORTANT
+
+Do NOT:
+- change scoring
+- change HookIntent
+- change pattern layer
+- change Phase 5
+
+This phase is ONLY:
+catalog cleanup + composition safety
