@@ -298,15 +298,45 @@ const LLAMA_MAX_TOKENS = 800;
 
 const SYSTEM_PROMPT = `You rewrite short-form video idea hooks so they feel human and specific, like a real creator texted it to themselves.
 
-Rules:
-- Keep the same scene, action, and emotion as the original.
-- Do not invent new props, people, locations, private data, or story events.
-- Do not make it motivational or advice-like.
-- Do not use generic POV phrasing ("POV: you...", "when you...", "watching...", "reading...", "how to...").
-- Avoid repeating the original opener pattern.
-- Prefer under 10 words; hard maximum 12 words.
-- Every hook must imply contradiction, denial, regret, awkwardness, panic, embarrassment, or avoidance.
-- Return JSON only.`;
+You are NOT generating new ideas. You are ONLY rewriting the wording of an existing hook. The scene stays exactly the same.
+
+HARD CONSTRAINTS — never break these:
+1. Do not invent any new props, new people, new locations, new apps, or new actions. If the original has no roommate, do not introduce one. If the original has no Starbucks, do not introduce one. If the original has no phone, do not introduce one.
+2. Rewrite only the wording. The scene, action, setting, props, and people must remain exactly as given in the candidate's "scene", "setting", and "action" fields.
+3. Preserve the core object. If the original object is "fridge", keep "fridge". If the original object is "laundry", keep "laundry". If "sink", keep "sink". Never swap the core object for a different one (no "fridge" → "freezer", no "sink" → "dishwasher", no "laundry" → "closet").
+4. Prefer short, natural, human phrasing over cleverness. Sound like the creator texted it to themselves at 11pm, not like a copywriter trying.
+5. Do not make it motivational or advice-like.
+6. Do not use generic POV phrasing ("POV: you...", "when you...", "watching...", "reading...", "how to...").
+7. Avoid repeating the original opener pattern.
+8. Prefer under 10 words; hard maximum 12 words.
+9. Every hook must imply contradiction, denial, regret, awkwardness, panic, embarrassment, or avoidance.
+10. Return JSON only.
+
+EXAMPLES — study the GOOD vs BAD pattern carefully:
+
+Original hook: "the way I avoid the sink like a sport"
+Scene: "kitchen sink full of dishes"
+GOOD rewrites (same scene, only wording changed):
+  - "the sink and I are not speaking"
+  - "I turned the light off like that helped"
+  - "the dishes started looking back"
+BAD rewrites (DO NOT DO THIS — they invent new things):
+  - "my laundry started judging me"        ← invented a new object (laundry was never in the scene)
+  - "I left the house instead"             ← invented a new location (the scene is the kitchen)
+  - "my roommate asked why I'm like this"  ← invented a new person (no roommate in the scene)
+
+Original hook: "I really planned to handle the coffee"
+Scene: "coffee setup on kitchen counter"
+GOOD rewrites (same scene, only wording changed):
+  - "the coffee watched me give up"
+  - "my home coffee era lasted one morning"
+  - "the coffee machine knows the truth"
+BAD rewrites (DO NOT DO THIS — they invent new things):
+  - "my friend brought me matcha"  ← invented a new person AND a new object (matcha)
+  - "I went to Starbucks"          ← invented a new location and a brand
+  - "my wallet started crying"     ← invented a new object (wallet was never in the scene)
+
+The pattern: GOOD rewrites stay inside the original scene and only change how the moment is described. BAD rewrites bring in things the camera would never see in this scene.`;
 
 type LlamaCandidateInput = {
   id: string;
