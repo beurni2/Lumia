@@ -93,7 +93,15 @@ export type SceneObjectTag =
   | "parking_spot"
   | "hallway"
   | "stairs"
-  | "front_door";
+  | "front_door"
+  // Phase 2 additions — new physical contexts the 56 new scenarios introduce.
+  // Each tag belongs to exactly one cluster (see ENV_CLUSTER_BY_TAG below).
+  | "restaurant_table"
+  | "gift_box"
+  | "weighing_scale"
+  | "umbrella"
+  | "wifi_router"
+  | "nightstand";
 
 export const SCENE_OBJECT_TAGS: readonly SceneObjectTag[] = [
   "fridge", "sink", "laundry", "bed", "phone", "mirror", "closet", "car",
@@ -105,6 +113,9 @@ export const SCENE_OBJECT_TAGS: readonly SceneObjectTag[] = [
   "notes_app", "reminder", "work_tab", "spotify", "youtube", "doomscroll",
   "bedroom_floor", "kitchen_counter", "dashboard", "parking_spot", "hallway",
   "stairs", "front_door",
+  // Phase 2 additions
+  "restaurant_table", "gift_box", "weighing_scale", "umbrella", "wifi_router",
+  "nightstand",
 ] as const;
 
 // -----------------------------------------------------------------------------
@@ -164,7 +175,7 @@ export const ENV_CLUSTER_BY_TAG: Readonly<Record<SceneObjectTag, SceneEnvCluster
   towel: "bathroom",
   light_switch: "bathroom",
   skincare: "bathroom",
-  // outside (12)
+  // outside (13)
   car: "outside",
   dashboard: "outside",
   parking_spot: "outside",
@@ -177,6 +188,13 @@ export const ENV_CLUSTER_BY_TAG: Readonly<Record<SceneObjectTag, SceneEnvCluster
   keys: "outside",
   window: "outside",
   shoes: "outside",
+  umbrella: "outside",
+  // Phase 2 additions
+  restaurant_table: "kitchen",
+  gift_box: "bedroom",
+  nightstand: "bedroom",
+  weighing_scale: "bathroom",
+  wifi_router: "phone_digital",
 };
 
 // Reverse lookup: cluster → tags. Built once at module load.
@@ -240,6 +258,68 @@ export const SCENE_OBJECT_TAG_BY_FAMILY: Record<string, SceneObjectTag> = {
   walk: "front_door",
   doom_scroll_car: "dashboard",
   closet_pile: "closet",
+  // Phase 2 families — uniqueness is no longer a hard property of the pool
+  // (58 new families on a 58-tag pool would force collisions); the per-batch
+  // ≤1-tag-per-batch and ≤1-cluster-per-batch guards still work fine when
+  // scenarios share a tag — they simply can't co-occur in a single batch.
+  tipping_internal: "restaurant_table",
+  gift_received: "gift_box",
+  birthday_text: "notifications",
+  colleague_promoted: "laptop",
+  compliment_freeze: "mirror_self",
+  meal_prep: "kitchen_counter",
+  bedtime: "nightstand",
+  screen_time: "couch",
+  journaling_habit: "notes_app",
+  parking_lecture: "parking_spot",
+  morning_pages: "reminder",
+  streaming_pick: "tv",
+  restaurant_pick: "shoes",
+  outfit_paralysis: "outfit",
+  gym_signup_signs: "calendar",
+  breakup_text_pivot: "unread_messages",
+  birthday_song: "kitchen_counter",
+  wave_back: "hallway",
+  loud_neighbor_call: "window",
+  group_chat_lurk: "group_chat",
+  library_voice: "laptop",
+  wrong_year_form: "calendar",
+  meeting_collision: "calendar",
+  season_door: "door",
+  birthday_age_dread: "mirror_self",
+  customer_service_voice: "laptop",
+  accent_pickup: "phone",
+  old_photo_self: "phone",
+  nap_ambush: "couch",
+  sneeze_chain: "laptop",
+  posture_collapse_zoom: "laptop",
+  bladder_brain_drive: "car",
+  voice_crack_meeting: "laptop",
+  typing_dots_paused: "unread_messages",
+  dinner_lie: "fridge",
+  delivery_secret: "packages",
+  wrong_chat_send: "group_chat",
+  gym_avoid_coworker: "shoes",
+  bathroom_eavesdrop: "bathroom",
+  wifi_outage: "wifi_router",
+  surprise_storm: "umbrella",
+  trash_smell_hunt: "trash",
+  flicker_skincare: "light_switch",
+  package_pile_unknown: "packages",
+  name_blank_party: "hallway",
+  password_reset_loop: "laptop",
+  song_loop_brushing: "towel",
+  did_i_lock_door: "keys",
+  wrong_friend_text: "calendar",
+  mug_replaced: "coffee",
+  lucky_pen_missing: "desk",
+  routine_witness: "skincare",
+  kid_copies_brushing: "towel",
+  birthday_aftermath: "trash",
+  concert_aftermath: "parking_spot",
+  email_drama_paperwork: "mail",
+  vacation_first_morning: "bed",
+  peak_was_yesterday_workout: "bed",
 };
 
 // -----------------------------------------------------------------------------
