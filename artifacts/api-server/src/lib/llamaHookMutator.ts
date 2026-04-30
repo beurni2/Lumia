@@ -324,17 +324,45 @@ A rewrite only ships if it scores STRICTLY higher than the original. Two specifi
 
 Hitting BOTH A and B = winning rewrite. Hitting only one usually ties or loses, which means it gets thrown away. So: pick a tension word from list A, name the actual object from list B, keep it under 10 words, keep it casual.
 
-# CREATOR VOICE — keep it imperfect on purpose (NON-NEGOTIABLE)
+# INTENTIONAL IMPERFECTION RULE (NON-NEGOTIABLE)
 
-This is short-form social text from a real person at 11pm, not copy from a brand. You MUST preserve intentional imperfection. The following are GOOD, not problems to fix:
+This is short-form social text from a real person at 11pm, not copy from a brand. Llama MUST preserve creator-like imperfection.
+
+ALLOWED (these are GOOD, do not fix them):
 - slang ("kinda", "like", "literally", "anyway")
 - fragments ("anyway, the front step", "the laundry. again.")
 - lowercase (often better than capitalized — leave it lowercase)
-- dry phrasing — deadpan, flat, matter-of-fact beats clever
-- casual grammar, dropped articles, run-ons ("nobody talks about the same hoodie again")
+- slightly broken grammar, dropped articles, run-ons ("nobody talks about the same hoodie again")
+- dry / casual phrasing — deadpan, flat, matter-of-fact beats clever
 - a single emoji at the end is allowed if it fits (😭, sparingly)
 
-DO NOT professionalize the hook. DO NOT make it "cleaner" if cleaner means less like the creator — preserving voice ALWAYS beats polishing grammar. DO NOT add proper punctuation it doesn't need. DO NOT capitalize the first letter just because it's the start. DO NOT make it sound like a tagline, a press release, a brand caption, or copy. If your rewrite reads like marketing, it has failed even if every other rule passed.
+DO NOT:
+- rewrite into clean/professional language
+- "fix" grammar if it removes personality
+- turn short hooks into full sentences
+- make tone more formal or polished
+- remove awkwardness if it is intentional
+- capitalize the first letter just because it's the start
+- add proper punctuation it doesn't need
+- make it sound like a tagline, a press release, a brand caption, or copy
+
+If your rewrite reads like marketing or a written sentence, it has failed even if every other rule passed.
+
+Voice examples (these illustrate VOICE only — you still need Element A + Element B from the WINNING REWRITE section above):
+
+Good (creator voice — short, dry, lowercase, fragmentary):
+- "the laundry won"
+- "i'll do it later again"
+- "this is not happening today"
+- "i opened it and immediately closed it"
+
+Bad (formalized into written content — DO NOT REWRITE LIKE THIS):
+- "I have decided not to do the laundry today"
+- "I am postponing this task again"
+- "This situation is quite frustrating"
+- "I opened the application and reconsidered my actions"
+
+Goal: hooks should feel like something a creator would casually think or say, not something AI wrote.
 
 # EXAMPLES — study GOOD vs BAD
 
@@ -637,6 +665,60 @@ export function passesHookMutationRules(
   if (/\b(\w+)\s+\1\b/i.test(trimmed)) {
     return "duplicate_token";
   }
+
+  // -- INTENTIONAL IMPERFECTION RULE validators ------------------------
+  // These three checks enforce the creator-voice guard from the spec:
+  // a mutation must NOT formalize the hook, even if it satisfies every
+  // other rule. They run before scene_drift so the rejection telemetry
+  // surfaces the most useful reason. Fail-open behavior is unchanged —
+  // each rejection just skips that one hookOption and the slot keeps
+  // the original.
+
+  // (1) Formalized capitalization — original starts with a lowercase
+  // letter (the creator wrote it lowercase on purpose) but the rewrite
+  // starts with a capital. Catches "Avoiding the kitchen sink area."
+  // being a rewrite of "the way I avoid the sink like a sport".
+  // Originals starting with capital "I", "POV", proper nouns, etc.
+  // bypass this check (origFirst is uppercase, condition fails).
+  const origRaw = original.idea.hook.trim();
+  const origFirst = origRaw.charAt(0);
+  const newFirst = trimmed.charAt(0);
+  if (
+    origFirst >= "a" &&
+    origFirst <= "z" &&
+    newFirst >= "A" &&
+    newFirst <= "Z"
+  ) {
+    return "formalized_capitalization";
+  }
+
+  // (2) Formal-register vocabulary — words and phrasings that signal
+  // written content rather than spoken/thought content. Catches the
+  // BAD examples in the INTENTIONAL IMPERFECTION RULE: "I have
+  // decided…", "I am postponing this task…", "I … reconsidered my
+  // actions". Limited to words almost never said casually in a 4-12
+  // word hook so false positives stay rare.
+  if (
+    /\b(decided|postpon\w*|reconsider\w*|currently|presently|moreover|nevertheless|additionally|furthermore|regarding|consequently|subsequently)\b/i.test(
+      trimmed,
+    )
+  ) {
+    return "formal_register";
+  }
+
+  // (3) Length inflation — turning a short hook into a longer sentence
+  // is the "turn short hooks into full sentences" failure mode the
+  // spec calls out. Allows modest growth (+4 words) but rejects when
+  // the rewrite is also long in absolute terms (>8 words). E.g. "the
+  // laundry won" (3) → "I have decided not to do the laundry today"
+  // (10) trips this (10 > 3+4 AND 10 > 8). Modest expansions like
+  // 7→10 are allowed (10 == 7+3, fails the +4 strict comparison).
+  const origWords = origRaw.split(/\s+/).filter(Boolean).length;
+  if (wordCount > origWords + 4 && wordCount > 8) {
+    return "length_inflated";
+  }
+
+  // -- end INTENTIONAL IMPERFECTION RULE validators --------------------
 
   // Opener must differ from the original to count as a rewrite.
   const newOpener = lookupHookOpener(trimmed);
