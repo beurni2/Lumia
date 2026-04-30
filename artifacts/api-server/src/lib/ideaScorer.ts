@@ -200,6 +200,18 @@ export type CandidateMeta = PatternMeta | {
    */
   trendId?: string;
   /**
+   * Phase 3 HOOK TEMPLATE TUNING — formulaic hook-template skeleton id
+   * (e.g. `"todays_update"`). Mirrors the field on `PatternMeta`
+   * (above) so the cache write site can read `c.meta.hookSkeletonId`
+   * without a per-variant guard. Llama / Claude fallback wraps NEVER
+   * set this — there's no derivation path from raw hook text (the
+   * skeleton is a generation-time choice on the catalog entry, not a
+   * lookup), so the field stays undefined on every fallback wrap and
+   * the cross-batch lever silently abstains for those entries (same
+   * discipline as `trendId` / `voiceProfile` above).
+   */
+  hookSkeletonId?: string;
+  /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
    * (paired 1-to-1 with `trendId`). Read by `enforceTrendCap` in
@@ -480,6 +492,16 @@ export function scoreScrollStop(
   const entryScores = sourceEntry ? getEntryScores(sourceEntry) : null;
   const entrySharp = entryScores ? entryScores.sharpness >= 4 : false;
   const entryRigid = entryScores ? entryScores.rigidity >= 4 : false;
+  // Phase 3 HOOK TEMPLATE TUNING — scenario-AGNOSTIC entries (a `() =>`
+  // build that never references the Scenario) read identically across
+  // all topics, so they lose the topic-anchor that makes a scroll-stop
+  // shape feel concrete to a specific viewer. -2 (post-baseline)
+  // ensures a generic high-sharpness one-liner ("this ruined my
+  // mood") still scores below an equally-sharp scenario-tagged
+  // alternative. Strict `=== true` so absent / falsy fields contribute
+  // nothing — same discipline as the `entrySharp` / `entryRigid`
+  // checks above.
+  const entryGeneric = sourceEntry?.genericHook === true;
 
   // --- intrinsic shape signals ---
   const isFragmentShape =
@@ -532,6 +554,16 @@ export function scoreScrollStop(
   if (hasSafePrefix) raw -= 2;
   if (wordCount > 12) raw -= 2;
   if (isPureAbstraction) raw -= 3;
+  // Phase 3 HOOK TEMPLATE TUNING — generic-hook penalty (see the
+  // `entryGeneric` definition above for the rationale). -4 sized to
+  // overcome the broader composite-score gap (the per-intent score
+  // is ~5–8 of the total ~15-20pt scale, so the previous -2 was too
+  // soft — generic templates kept winning by virtue of catalog
+  // volume since one generic phrasing fits any scenario while a
+  // scenario-shaped phrasing only fits its own family). -4 ensures
+  // a tagged generic ("this ruined my mood") loses to a scenario-
+  // shaped alternative even when the alternative is mid-sharpness.
+  if (entryGeneric) raw -= 4;
 
   return Math.max(0, Math.min(10, raw + 5));
 }
@@ -576,6 +608,19 @@ function metaHookIntent(m: CandidateMeta): HookIntent | undefined {
  */
 function metaVideoPattern(m: CandidateMeta): VideoPattern | undefined {
   return "videoPattern" in m ? m.videoPattern : undefined;
+}
+
+/**
+ * Phase 3 HOOK TEMPLATE TUNING — accessor for the formulaic skeleton
+ * id that the picked `LanguagePhrasingEntry` carried (when it had
+ * one). Returns undefined for entries whose phrasing is genuinely
+ * scenario-shaped, for fallback wraps, and for pre-Phase-3 cache
+ * reads — same discipline as `metaVideoPattern`. Selectors / penalty
+ * code reading this MUST treat undefined as "no contribution to the
+ * skeleton axis" — never default to a sentinel id.
+ */
+function metaHookSkeletonId(m: CandidateMeta): string | undefined {
+  return "hookSkeletonId" in m ? m.hookSkeletonId : undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -657,7 +702,6 @@ export function scoreCompulsion(
   hook: string,
   sourceEntry?: LanguagePhrasingEntry,
 ): number {
-  void sourceEntry;
   const trimmed = hook.trim();
   if (trimmed.length === 0) return 0;
   const lower = trimmed.toLowerCase();
@@ -672,6 +716,13 @@ export function scoreCompulsion(
   const startsWithPronoun = SCROLLSTOP_LEADING_PRONOUN_RE.test(trimmed);
   const looksLikeFullSentence =
     startsWithPronoun && /[.!?]$/.test(trimmed) && wordCount > 5;
+  // Phase 3 HOOK TEMPLATE TUNING — same generic-hook penalty as
+  // scoreScrollStop. A scenario-AGNOSTIC compulsion fragment ("this
+  // is it?", "still nothing.") points at "something" but the viewer
+  // has no scenario hook to land on, so the open-loop mechanic is
+  // softer than a scenario-anchored equivalent. -2 keeps the per-
+  // intent contract symmetric across all three scorers.
+  const entryGeneric = sourceEntry?.genericHook === true;
 
   let raw = 0;
   if (endsWithMystery) raw += 3;
@@ -680,6 +731,7 @@ export function scoreCompulsion(
   if (hasDemonstrative) raw += 2;
   if (looksLikeFullSentence) raw -= 2;
   if (wordCount > 12) raw -= 2;
+  if (entryGeneric) raw -= 4;
 
   return Math.max(0, Math.min(10, raw + 5));
 }
@@ -754,7 +806,6 @@ export function scoreRelatable(
   hook: string,
   sourceEntry?: LanguagePhrasingEntry,
 ): number {
-  void sourceEntry;
   const trimmed = hook.trim();
   if (trimmed.length === 0) return 0;
   const lower = trimmed.toLowerCase();
@@ -789,6 +840,16 @@ export function scoreRelatable(
     lower.startsWith(p),
   );
 
+  // Phase 3 HOOK TEMPLATE TUNING — same generic-hook penalty as
+  // scoreScrollStop / scoreCompulsion. A scenario-AGNOSTIC relatable
+  // line ("i did not do it", "i'm over it. truly.") still admits
+  // something, but without a scenario noun the admission is generic
+  // self-talk rather than the spec's "names a specific action the
+  // viewer has done". -2 (post-baseline) closes the parity loophole
+  // where a generic high-admission line would beat a tagged scenario-
+  // anchored line of equal admission strength.
+  const entryGeneric = sourceEntry?.genericHook === true;
+
   let raw = 0;
   if (startsFirstPerson) raw += 3;
   if (hasBehaviorVerb) raw += 2;
@@ -796,6 +857,7 @@ export function scoreRelatable(
   if (lowercaseConversational) raw += 2;
   if (isGenericAbstraction) raw -= 2;
   if (hasSafePrefix) raw -= 2;
+  if (entryGeneric) raw -= 4;
 
   return Math.max(0, Math.min(10, raw + 5));
 }
@@ -1085,6 +1147,39 @@ function tryRewrite(
       const nextMeta: CandidateMeta = { ...meta };
       if ("sourceLanguagePhrasing" in nextMeta) {
         nextMeta.sourceLanguagePhrasing = undefined;
+      }
+      // Phase 3 HOOK TEMPLATE TUNING — the rewrite path swaps to a
+      // DIFFERENT legacy entry, so any `meta.hookSkeletonId` carried
+      // over from the original picker pick now belongs to a hook that
+      // is NO LONGER on the candidate. Without clearing, the within-
+      // batch + cross-batch + session-cap skeleton levers in
+      // `selectionPenalty` would all fire against the WRONG skeleton
+      // (penalizing or boosting based on phantom telemetry). Re-derive
+      // from the rewrite entry — `entry.skeletonId` is undefined for
+      // every legacy 5-style entry today (none of the legacy templates
+      // were tagged in T001) so the assignment usually clears the
+      // field, but the propagation path is in place for any future
+      // legacy tagging without a follow-up code change.
+      nextMeta.hookSkeletonId = entry.skeletonId;
+      // Phase 3 HOOK TEMPLATE TUNING — also propagate `genericHook`
+      // forward so a rewritten generic legacy hook still triggers both
+      // the per-intent generic penalty (read via metaSourceLanguage-
+      // Phrasing in scoreScrollStop / scoreCompulsion / scoreRelatable)
+      // AND the flat selection-layer -3 demotion. Constructed as a
+      // minimal stub (no `build` fn — the readers only touch optional
+      // score fields, with `getEntryScores` returning the conservative
+      // 3/3 default for the missing rigidityScore/sharpnessScore — same
+      // as the cleared-source posture above). Cast through `unknown`
+      // because LanguagePhrasingEntry's required `build` field is a
+      // structural-only constraint here that the readers never
+      // exercise on rewrite-derived stubs. Skipped when entry has no
+      // genericHook flag (the normal case for current legacy entries),
+      // in which case `sourceLanguagePhrasing` stays cleared per the
+      // original conservative-scoring intent.
+      if (entry.genericHook === true) {
+        nextMeta.sourceLanguagePhrasing = {
+          genericHook: true,
+        } as unknown as LanguagePhrasingEntry;
       }
       // Phase 4 (HOOK INTENT) — the rewritten hook now comes from a
       // DIFFERENT legacy entry, which carries its own intent (or
@@ -1509,6 +1604,53 @@ export type NoveltyContext = {
    * to the empty set, which is the safe default).
    */
   recentVideoPatterns?: ReadonlySet<VideoPattern>;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — immediate-prior-batch hook
+   * skeleton ids (the formulaic-template tags from
+   * `meta.hookSkeletonId`). Used by `selectionPenalty` for the -3
+   * cross-batch demotion when this candidate's `meta.hookSkeletonId`
+   * matches one shipped in the previous batch. Stacks with the -2
+   * `frequentHookSkeletonsLast3` tier when a skeleton is BOTH
+   * immediate-prior AND frequent across the last 3 batches (-3 + -2
+   * = -5 cross-batch, plus any within-batch -3 dup penalty).
+   *
+   * Source = first-class `hookSkeletonId` field on each cache entry
+   * (no derivation path from `idea.hook` text — formulaic templates
+   * don't share a fingerprint after Scenario interpolation). Legacy
+   * entries written before the field shipped contribute nothing,
+   * which is the right behavior — an absent tag should NOT show up
+   * in this set or the demotion would fire against innocent fresh
+   * skeletons.
+   */
+  recentHookSkeletons?: ReadonlySet<string>;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — cross-batch tiered counterpart to
+   * `recentHookSkeletons`. Holds skeleton ids that appeared in ≥2 of
+   * the last 3 batches (parallels `frequentIdeaCoreFamiliesLast3`
+   * compute pattern). Drives the -2 `selectionPenalty` stack on top
+   * of the immediate-prior -3, so a thrice-used skeleton accrues -5
+   * cross-batch + -3 within-batch dup before any tied scoring axis
+   * comes into play — comfortably enough to push the selector onto
+   * an alternative entry of the same intent / language style.
+   */
+  frequentHookSkeletonsLast3?: ReadonlySet<string>;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — session-wide hard-cap tier on top
+   * of the tiered last-3 levers above. Holds skeleton ids that have
+   * already shipped ≥2 times anywhere in the visible cache history
+   * (not just the last 3 batches). Drives an additional -4 demotion
+   * in `selectionPenalty` so a third appearance is reliably out-
+   * ranked even when the prior two uses are spaced beyond the last-3
+   * window (the failure mode the last-3 tiers leave open: a skeleton
+   * used in batches 2 + 4 + 6 escapes both `recentHookSkeletons`
+   * (batch 5) AND `frequentHookSkeletonsLast3` (batches 3–5 each
+   * see ≤1 use), so without this set it returns again at batch 6).
+   *
+   * Computed from the same first-class persisted `hookSkeletonId`
+   * field as the tiers above; legacy entries silently abstain.
+   * Empty for cold-start / single-batch history.
+   */
+  hookSkeletonsAtSessionCap?: ReadonlySet<string>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -1982,6 +2124,26 @@ export function selectionPenalty(
     const cvp2 = metaVideoPattern(c.meta);
     if (cvp2 && videoPatterns.has(cvp2)) p -= 3;
 
+    // Phase 3 HOOK TEMPLATE TUNING — within-batch hookSkeletonId dup
+    // demotion. -3 when this candidate's `meta.hookSkeletonId` is
+    // already in batchSoFar (parallel to the videoPattern dup lever
+    // above). Combined with the cross-batch tiered demotion below
+    // (-3 immediate-prior, -2 frequent-last-3 stack), a thrice-shipped
+    // skeleton accumulates -8 before tied scoring axes — comfortably
+    // below the typical 2-3pt spread between alternative entries of
+    // the same intent / language style. Skipped silently when the
+    // candidate has no hookSkeletonId (entries with genuinely
+    // scenario-shaped phrasing — same discipline as voiceProfile).
+    // Computed once outside the loop so the within-batch lookup is
+    // O(batchSoFar) per candidate rather than O(batchSoFar²).
+    const hookSkeletons = new Set<string>();
+    for (const b of batchSoFar) {
+      const hsid = metaHookSkeletonId(b.meta);
+      if (hsid) hookSkeletons.add(hsid);
+    }
+    const cHsid = metaHookSkeletonId(c.meta);
+    if (cHsid && hookSkeletons.has(cHsid)) p -= 3;
+
     // HOOK INTENT spec (Phase 4) — within-batch intent demotion +
     // HARD all-3-same guard. HookIntent is the controller axis
     // ABOVE HookLanguageStyle, so the per-dup soft penalty is sized
@@ -2128,6 +2290,55 @@ export function selectionPenalty(
   if (cvpCrossPattern) {
     if (ctx.recentVideoPatterns?.has(cvpCrossPattern) ?? false) p -= 3;
   }
+  // Phase 3 HOOK TEMPLATE TUNING — cross-batch hookSkeletonId
+  // demotion. TIERED (parallel to the ideaCoreFamily lever above):
+  //   - -3 when this candidate's `meta.hookSkeletonId` appeared in
+  //     the immediate-prior batch (`recentHookSkeletons`).
+  //   - additional -2 stack when the same skeleton appeared in ≥2 of
+  //     the last 3 batches (`frequentHookSkeletonsLast3`).
+  // Rationale for the stack: a skeleton like `todays_update` re-
+  // emerging from "fresh after a one-batch gap" is a softer offence
+  // than one that's been on rotation for three sessions running, so
+  // the second tier is the right shape for the "scenario-noun-swap
+  // repetition" failure mode the spec calls out. Combined with the
+  // within-batch -3 lever (above), a thrice-shipped skeleton accrues
+  // -8 cross+within before tied scoring axes — comfortably below the
+  // ~2-3pt spread between alternative entries of the same intent /
+  // language style. Skipped silently when the candidate has no
+  // hookSkeletonId — same discipline as voiceProfile / videoPattern
+  // / trendId. Matches against an absent tag never fire (Set.has
+  // narrows on the truthy-string guard above).
+  const cHsidCross = metaHookSkeletonId(c.meta);
+  if (cHsidCross) {
+    if (ctx.recentHookSkeletons?.has(cHsidCross) ?? false) p -= 3;
+    if (ctx.frequentHookSkeletonsLast3?.has(cHsidCross) ?? false) p -= 2;
+    // Phase 3 HOOK TEMPLATE TUNING — session-wide hard-cap. -8 stack
+    // when the candidate's skeleton has already shipped ≥2 times
+    // anywhere in the visible cache history. Catches the every-
+    // other-batch repeat pattern that escapes both last-3 tiers
+    // (a skeleton at batches 2+4 shows zero in `recent` and only
+    // one in any 3-batch window — so neither -3 nor -2 fires when
+    // it tries to return at batch 6). Sized at -8 because some
+    // formulaic skeletons (e.g. `manage_now_hostage`) outscore
+    // the next compulsion-intent alternative by ~5pt on the
+    // composite, so a -4 cap was too soft to actually displace
+    // them. -8 reliably pushes them below any same-intent alt.
+    if (ctx.hookSkeletonsAtSessionCap?.has(cHsidCross) ?? false) p -= 8;
+  }
+  // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
+  // generic-template hooks (entries with `genericHook=true`). The
+  // per-intent scorers already apply a -4 inside scoreScrollStop /
+  // scoreCompulsion / scoreRelatable but that signal saturates at
+  // the per-intent score clamp `Math.max(0, raw + 5)` — so once a
+  // generic's intrinsic intent signal goes below 0 the additional
+  // demotion has no effect on the composite total. Applying -3 here
+  // (POST score-clamp, in the un-clamped selection-layer space)
+  // closes that ceiling so generic templates reliably lose to
+  // scenario-specific phrasings even when their other axes
+  // (hookImpact / tension / personalFit) score equally. Skipped
+  // silently for fallback wraps without `sourceLanguagePhrasing`.
+  const cSrc = metaSourceLanguagePhrasing(c.meta);
+  if (cSrc?.genericHook === true) p -= 3;
   // PART 4 — banned-phrasing penalty. -5 when the rendered hook
   // matches any banned-prefix regex (the catalog never produces
   // these but Llama / Claude fallback hooks can). Stacks with the

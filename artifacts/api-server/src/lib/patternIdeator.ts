@@ -2686,6 +2686,22 @@ export type HookPhrasingEntry = {
    * legacy is fragment-shaped by construction).
    */
   hookIntent?: HookIntent;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — symmetric flag with the same name
+   * + semantics on `LanguagePhrasingEntry` so the per-intent scorers
+   * can apply the -2 generic penalty to legacy 5-style entries the
+   * same way they do for the new Phase 3 entries. See the JSDoc on
+   * `LanguagePhrasingEntry.genericHook` for the full contract.
+   */
+  genericHook?: boolean;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — symmetric `skeletonId` field for
+   * legacy 5-style entries, so a formulaic legacy template (e.g. a
+   * scaffold-dominated `(s) =>` build) participates in the same
+   * within-batch + cross-batch skeleton-cap as Phase 3 entries. See
+   * the JSDoc on `LanguagePhrasingEntry.skeletonId` for semantics.
+   */
+  skeletonId?: string;
 };
 
 export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
@@ -2745,16 +2761,19 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "what_i_planned_vs",
       build: () => `what I planned vs how it actually went`,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       opener: "what_i_planned_vs",
       build: () => `what morning me promised vs night me delivered`,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       opener: "me_saying",
       build: () => `me at 9am vs me at 9pm`,
       hookIntent: "relatable",
+      genericHook: true,
     },
   ],
   curiosity: [
@@ -2762,16 +2781,19 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "this_is_where",
       build: () => `this is where the plan officially fell apart`,
       hookIntent: "compulsion",
+      genericHook: true,
     },
     {
       opener: "silent_panic",
       build: () => `silent panic, zero words, full body`,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       opener: "realization",
       build: () => `the moment I knew I was never going`,
       hookIntent: "compulsion",
+      genericHook: true,
     },
   ],
 };
@@ -3645,6 +3667,50 @@ export type LanguagePhrasingEntry = {
    * HookIntent block above HookPhrasingEntry for definitions.
    */
   hookIntent: HookIntent;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — stable identifier for a formulaic
+   * hook skeleton (a `(s) => ...` build that interpolates Scenario
+   * fields into a fixed sentence shape, e.g. "today's update: ${X}").
+   * Two entries with the SAME `skeletonId` are noun-swap variants of
+   * one underlying joke and read as repetition even when the
+   * scenario differs.
+   *
+   * - Set ONLY on formulaic templates whose surface text is dominated
+   *   by the fixed scaffold (template-noun-swap risk).
+   * - LEAVE UNDEFINED on entries whose phrasing is genuinely scenario-
+   *   shaped (the scaffold IS the scenario, no formulaic skeleton to
+   *   cap).
+   *
+   * Drives:
+   *   - within-batch -3 demotion in `selectionPenalty` (parallels the
+   *     `videoPattern` dup lever).
+   *   - cross-batch tiered demotion in `selectionPenalty`: -3 if the
+   *     skeleton appeared in the immediate-prior batch, additional -2
+   *     stack if it appeared in ≥2 of the last 3 batches (parallels
+   *     the `ideaCoreFamily` cross-batch tiering).
+   *
+   * Persisted on cache envelopes via `meta.hookSkeletonId →
+   * CachedBatchEntry.hookSkeletonId` so the cross-batch lever
+   * survives the JSONB round-trip; entries written before this field
+   * existed silently abstain (undefined never matches).
+   */
+  skeletonId?: string;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — flag entries whose `build` is a
+   * scenario-AGNOSTIC `() =>` literal (no Scenario fields used).
+   * These hooks read the same regardless of which scenario produced
+   * them ("this ruined my mood", "i'm over it", "9:14pm. still here.").
+   *
+   * Folded into `scoreScrollStop` / `scoreCompulsion` / `scoreRelatable`
+   * as a -2 entry-derived signal — generic hooks lose their scenario-
+   * specific scroll-stop power, so even a high-sharpness generic
+   * loses to a scenario-tagged equivalent at parity.
+   *
+   * Optional with default false (via the `=== true` check at each
+   * read site) so legacy entries / future additions that omit the
+   * field are treated as scenario-shaped by default.
+   */
+  genericHook?: boolean;
 };
 
 /**
@@ -3811,6 +3877,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `this ruined my mood`,
@@ -3818,6 +3885,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `i hate this part`,
@@ -3825,6 +3893,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `i did not try that hard`,
@@ -3832,6 +3901,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
   ],
   observation: [
@@ -3876,6 +3946,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 3,
       hookIntent: "compulsion",
+      genericHook: true,
     },
     // Phase 3 PART 1 SELF_AWARE/META additions — observational hooks
     // about the creator's own pattern. Scenario-agnostic so they
@@ -3886,6 +3957,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `i keep doing this. cool.`,
@@ -3893,6 +3965,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `this is on me, fully`,
@@ -3900,6 +3973,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `i already know how this ends`,
@@ -3907,6 +3981,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      genericHook: true,
     },
   ],
   absurd_claim: [
@@ -3916,6 +3991,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_standoff",
     },
     {
       build: (s) => `${s.topicNoun} pays rent here at this point`,
@@ -3923,6 +3999,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_pays_rent",
     },
     {
       build: (s) => `pretty sure ${s.topicNoun} runs my schedule now`,
@@ -3930,6 +4007,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_runs_schedule",
     },
     {
       build: (s) => `${s.topicNoun} is officially a third roommate`,
@@ -3937,6 +4015,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_third_roommate",
     },
     {
       build: (s) => `${s.topicNoun} feels like a villain origin story`,
@@ -3944,6 +4023,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "noun_villain_origin",
     },
     {
       build: (s) => `${s.topicNoun} is sentient and we both know`,
@@ -3951,6 +4031,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_sentient",
     },
     {
       build: (s) => `we are quietly losing to ${s.topicNoun} again`,
@@ -3967,6 +4048,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_won_today",
     },
     {
       build: (s) => `${s.topicNoun} is staying exactly where it is`,
@@ -3974,6 +4056,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_staying_put",
     },
     {
       build: (s) => `today's update: ${s.realityShort}`,
@@ -3987,6 +4070,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
+      skeletonId: "todays_update",
     },
     {
       build: (s) => `nothing changed. ${s.realityShort}.`,
@@ -3994,6 +4078,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "nothing_changed_reality",
     },
     {
       build: (s) => `no progress. ${s.topicNoun} remains.`,
@@ -4001,6 +4086,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "no_progress_remains",
     },
     // Phase 3 PART 1 DEADPAN/BLUNT additions — flat, scenario-agnostic
     // declarations of failure / non-action. The spec PART 5 voice
@@ -4011,6 +4097,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `no progress made`,
@@ -4018,6 +4105,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `i did not do it`,
@@ -4025,6 +4113,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `i gave up early`,
@@ -4032,6 +4121,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `this didn't work`,
@@ -4039,6 +4129,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
   ],
   question: [
@@ -4048,6 +4139,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "at_what_point_admit",
     },
     {
       build: (s) => `how many days does ${s.topicNoun} get`,
@@ -4055,6 +4147,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "how_many_days_gets",
     },
     {
       build: () => `who decided this was fine again`,
@@ -4062,6 +4155,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 3,
       hookIntent: "compulsion",
+      genericHook: true,
     },
     {
       build: (s) => `is it really still about ${s.topicNoun}`,
@@ -4076,6 +4170,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 2,
       hookIntent: "compulsion",
+      skeletonId: "what_if_answer",
     },
     {
       build: (s) => `how many days of pretending about ${s.topicNoun}`,
@@ -4083,6 +4178,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "how_many_days_pretending",
     },
   ],
   instruction: [
@@ -4092,6 +4188,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "how_to_avoid_three_steps",
     },
     {
       build: (s) => `pro tip: skip ${s.topicNoun} today`,
@@ -4099,6 +4196,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "pro_tip_skip",
     },
     {
       build: (s) => `tutorial: how to ignore ${s.topicNoun} forever`,
@@ -4106,6 +4204,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "tutorial_ignore",
     },
     {
       build: () => `step one: stare. step two: leave.`,
@@ -4113,6 +4212,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      genericHook: true,
     },
     {
       build: () => `lesson one: do less, see what happens`,
@@ -4120,6 +4220,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 2,
       hookIntent: "compulsion",
+      genericHook: true,
     },
     {
       build: (s) => `today's reminder: ${s.topicNoun} is allowed to wait`,
@@ -4127,6 +4228,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "todays_reminder_wait",
     },
   ],
   micro_story: [
@@ -4151,6 +4253,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: (s) => `walks past ${s.topicNoun}, nods, keeps walking`,
@@ -4165,6 +4268,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "prep_to_think",
     },
     {
       build: (s) => `stood near ${s.topicNoun} like a forgotten ghost`,
@@ -4181,6 +4285,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `i started. then stopped.`,
@@ -4188,6 +4293,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 5,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: () => `i saw it. walked away.`,
@@ -4195,6 +4301,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 5,
       hookIntent: "relatable",
+      genericHook: true,
     },
   ],
   comparison: [
@@ -4204,6 +4311,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "morning_me_vs_night_me",
     },
     {
       build: (s) => `theory vs reality with ${s.topicNoun}`,
@@ -4211,6 +4319,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "theory_vs_reality",
     },
     {
       build: () => `me at 9am vs me at 9pm`,
@@ -4218,6 +4327,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      genericHook: true,
     },
     {
       build: (s) => `plans about ${s.topicNoun} vs reality`,
@@ -4225,6 +4335,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 2,
       hookIntent: "relatable",
+      skeletonId: "plans_vs_reality",
     },
     {
       build: (s) => `planner me vs the ${s.topicNoun} version of me`,
@@ -4232,13 +4343,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "planner_vs_version_me",
     },
     {
-      build: (s) => `future me's ${s.topicNoun} vs current me's`,
+      // Phase 3 HOOK TEMPLATE TUNING — rewrite of broken
+      // "future me's ${s.topicNoun} vs current me's" (the trailing
+      // "current me's" had no possessed noun, producing ungrammatical
+      // surface like "future me's gym vs current me's"). New shape
+      // keeps the same future-vs-current observer device but reads
+      // as a complete grammatical thought regardless of topicNoun.
+      build: (s) => `future me thinks about ${s.topicNoun}, current me does not`,
       voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "future_vs_current_thinks",
     },
   ],
   object_pov: [
@@ -4248,6 +4367,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_watching_decide",
     },
     {
       build: (s) => `${s.topicNoun}, sitting there, fully aware of everything`,
@@ -4255,6 +4375,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_sitting_aware",
     },
     {
       build: (s) => `${s.topicNoun} keeps the score so nothing escapes`,
@@ -4262,6 +4383,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_keeps_score",
     },
     {
       build: (s) => `${s.topicNoun} taking notes about my life again`,
@@ -4269,6 +4391,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_taking_notes",
     },
     {
       build: (s) => `${s.topicNoun} has seen things, ${s.topicNoun} is tired`,
@@ -4276,6 +4399,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_seen_tired",
     },
     {
       build: (s) => `the ${s.topicNoun} is smug about today, frankly`,
@@ -4283,6 +4407,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "noun_smug",
     },
     {
       build: (s) => `${s.topicNoun} just observing the disaster quietly`,
@@ -4290,6 +4415,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "just_observing_disaster",
     },
   ],
   time_stamp: [
@@ -4299,6 +4425,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      skeletonId: "timestamp_negotiating",
     },
     {
       build: (s) => `7am plan: ${s.actionShort}`,
@@ -4306,6 +4433,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "morning_plan_action",
     },
     {
       build: (s) => `it's tuesday and ${s.topicNoun} has not moved`,
@@ -4313,6 +4441,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "weekday_not_moved",
     },
     {
       build: (s) => `12:14am: still in standoff with ${s.topicNoun}`,
@@ -4325,6 +4454,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      skeletonId: "timestamp_standoff",
     },
     {
       build: (s) => `monday and ${s.topicNoun} is winning, news at eleven`,
@@ -4332,6 +4462,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "weekday_news_at_eleven",
     },
     {
       build: (s) => `3pm and the ${s.topicNoun} is somehow louder`,
@@ -4339,6 +4470,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "afternoon_louder",
     },
     // Phase 3 PART 1 TIMESTAMP additions — pure timestamp + status
     // fragments. Each contains a digit (highly specific +1 boost) and
@@ -4349,6 +4481,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `2 hours later. nothing.`,
@@ -4356,6 +4489,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `midnight. no progress.`,
@@ -4363,6 +4497,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `day 3. nothing changed.`,
@@ -4370,6 +4505,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
   ],
   anti_hook: [
@@ -4432,6 +4568,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `still nothing.`,
@@ -4439,6 +4576,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `this is it?`,
@@ -4446,6 +4584,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `immediately no.`,
@@ -4453,6 +4592,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `yep. still stuck.`,
@@ -4460,6 +4600,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
     {
       build: () => `not happening today.`,
@@ -4467,6 +4608,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      genericHook: true,
     },
   ],
   escalation_hook: [
@@ -4476,6 +4618,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "started_ended_worse",
     },
     {
       build: (s) => `tried to handle ${s.topicNoun}, did the opposite`,
@@ -4483,6 +4626,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "tried_did_opposite",
     },
     {
       build: (s) => `one job around ${s.topicNoun}, you can guess`,
@@ -4490,6 +4634,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "one_job_guess",
     },
     {
       build: (s) =>
@@ -4505,13 +4650,19 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "small_to_personality",
     },
     {
-      build: (s) => `thought I'd manage ${s.topicNoun}, now its hostage`,
+      // Phase 3 HOOK TEMPLATE TUNING — typo fix "its" → "it's"
+      // (the prior surface "now its hostage" used a possessive where
+      // a contraction was meant; "now it's hostage" reads as the
+      // intended "now it is being held hostage" admission).
+      build: (s) => `thought I'd manage ${s.topicNoun}, now it's hostage`,
       voiceProfiles: ["chaotic", "dry_humor", "soft_confessional"],
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "manage_now_hostage",
     },
     {
       build: (s) => `the ${s.topicNoun} ate my afternoon, peacefully`,
@@ -4519,6 +4670,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "ate_afternoon",
     },
     {
       build: (s) => `started managing ${s.topicNoun}, now we live together`,
@@ -4526,6 +4678,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "manage_live_together",
     },
   ],
 };
@@ -4958,6 +5111,23 @@ export type PatternMeta = {
    * or batch guards.
    */
   videoPatternIntentFallback?: boolean;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — stable identifier for the chosen
+   * `LanguagePhrasingEntry`'s formulaic skeleton (e.g. "todays_update",
+   * "manage_now_hostage"). Set ONLY when the picked entry carries a
+   * `skeletonId` (formulaic templates only); undefined for entries
+   * whose phrasing is genuinely scenario-shaped. Drives:
+   *   - within-batch -3 in `selectionPenalty` (parallels the
+   *     `videoPattern` dup lever).
+   *   - cross-batch tiered demotion in `selectionPenalty`: -3 if it
+   *     appeared in the immediate-prior batch, additional -2 stack if
+   *     it appeared in ≥2 of the last 3 batches.
+   * Persisted on cache via `CachedBatchEntry.hookSkeletonId` so the
+   * cross-batch lever survives the JSONB round-trip.
+   * Readers MUST treat absent as "no contribution to the skeleton
+   * axis" (same discipline as `videoPattern` / `voiceProfile`).
+   */
+  hookSkeletonId?: string;
 };
 
 /**
@@ -5430,6 +5600,17 @@ function assembleCandidate(
       // telemetry instead of silently corrupting selection.
       ...(videoPatternIntentFallback
         ? { videoPatternIntentFallback: true }
+        : {}),
+      // Phase 3 HOOK TEMPLATE TUNING — propagate the formulaic
+      // skeleton id from the WINNING entry. Spread-when-present so
+      // entries whose phrasing is genuinely scenario-shaped (no
+      // skeletonId tag) leave `meta.hookSkeletonId` undefined rather
+      // than serialising an explicit `undefined` into JSONB. The
+      // selectionPenalty + cross-batch novelty levers treat absent
+      // as "no contribution to the skeleton axis", so an untagged
+      // entry never matches the recent / frequent skeleton sets.
+      ...(sourceLanguagePhrasing.skeletonId
+        ? { hookSkeletonId: sourceLanguagePhrasing.skeletonId }
         : {}),
     },
   };

@@ -1181,6 +1181,17 @@ function buildNoveltyContext(
    * batch behavior — strict scope discipline.
    */
   last3Batches: CachedBatchEntry[][] = [],
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — full visible cache history,
+   * per-batch newest-first. Used ONLY to compute the session-wide
+   * `hookSkeletonsAtSessionCap` set (skeleton ids already shipped
+   * ≥2 times across the entire visible history). Defaults to
+   * `last3Batches` for back-compat — callers without a wider window
+   * effectively cap at last-3 for the session-cap signal too, which
+   * is the conservative behavior. Pass the full `priorBatches` to
+   * activate the every-other-batch repeat block.
+   */
+  allBatchesForSessionCap: CachedBatchEntry[][] = last3Batches,
 ): NoveltyContext {
   if (prev.length === 0 && last3Batches.length === 0) return { };
   const recentFamilies = new Set<string>();
@@ -1238,6 +1249,16 @@ function buildNoveltyContext(
   // cross-batch demotion semantics with a ghost trend that no
   // candidate actually shipped.
   const recentTrendIds = new Set<string>();
+  // Phase 3 HOOK TEMPLATE TUNING — immediate-prior-batch hook
+  // skeleton ids. Read directly off the persisted envelope (no
+  // derivation path from `idea.hook` — formulaic templates lose
+  // their fingerprint once the Scenario noun interpolates), so
+  // legacy entries written before the field shipped silently
+  // contribute nothing to the set, and the -3 cross-batch lever in
+  // `selectionPenalty` stays quiet for that entry rather than
+  // false-matching against absent. Populated alongside trendId in
+  // the immediate-prior loop below.
+  const recentHookSkeletons = new Set<string>();
   // Phase 1 — IDEA CORE FAMILY / TYPE axis. Populated from the
   // immediate-prior batch (same scope as scriptType / archetype /
   // sceneObjectTag). Source priority: persisted envelope field
@@ -1293,6 +1314,7 @@ function buildNoveltyContext(
     if (e.hookLanguageStyle) recentHookLanguageStyles.add(e.hookLanguageStyle);
     if (e.voiceProfile) recentVoiceProfiles.add(e.voiceProfile);
     if (e.trendId) recentTrendIds.add(e.trendId);
+    if (e.hookSkeletonId) recentHookSkeletons.add(e.hookSkeletonId);
   }
   for (const e of prev) {
     if (e.family) {
@@ -1347,6 +1369,18 @@ function buildNoveltyContext(
   let unusedIdeaCoreFamiliesLast3:
     | ReadonlySet<IdeaCoreFamily>
     | undefined;
+  // Phase 3 HOOK TEMPLATE TUNING — tiered cross-batch hookSkeletonId
+  // history. Computed separately from `recentHookSkeletons`
+  // (immediate-prior) so the two pieces stack in `selectionPenalty`:
+  // -3 for "in last batch" and -2 for "in ≥2 of last 3" (parallel
+  // to the IdeaCoreFamily tiering pattern). No `unusedLast3` tier
+  // because there's no positive boost on this axis — only the dual-
+  // tier demotion. Catalog is open-ended (no enum to subtract from),
+  // and the rotation work is done by the formulaic-vs-scenario
+  // genericness penalty + the within-batch dup demotion. Source =
+  // first-class `hookSkeletonId` field per cache entry — legacy
+  // entries omit silently and don't pollute counts.
+  let frequentHookSkeletonsLast3: ReadonlySet<string> | undefined;
   if (last3Batches.length > 0) {
     // Per-batch scriptType sets — one Set per batch so we can count
     // how many batches each scriptType appeared in (≥2 ⇒ frequent).
@@ -1477,6 +1511,73 @@ function buildNoveltyContext(
     unusedIdeaCoreFamiliesLast3 = new Set(
       IDEA_CORE_FAMILIES.filter((f) => !familySeenAny.has(f)),
     );
+
+    // Phase 3 HOOK TEMPLATE TUNING — tiered cross-batch hookSkeletonId
+    // compute. Same per-batch-set → counts → ≥2 = frequent pattern as
+    // IdeaCoreFamily above. Source is the first-class persisted field
+    // (no derivation), so legacy entries silently abstain — the
+    // counts only reflect Phase-3+ writes, which is exactly the
+    // right behavior (an absent tag should NOT show up in the
+    // frequent set or the -2 stack would fire against a fresh
+    // skeleton). No catalog-minus-seen "unused" tier because the
+    // skeleton catalog is open-ended (no enum to subtract from) and
+    // the only lever on this axis is demotion, not boost.
+    const skeletonSeenInBatch: Set<string>[] = last3Batches.map((batch) => {
+      const s = new Set<string>();
+      for (const e of batch) {
+        if (e.hookSkeletonId) s.add(e.hookSkeletonId);
+      }
+      return s;
+    });
+    const skeletonCounts = new Map<string, number>();
+    for (const s of skeletonSeenInBatch) {
+      for (const k of s) {
+        skeletonCounts.set(k, (skeletonCounts.get(k) ?? 0) + 1);
+      }
+    }
+    const freqSkeletons = new Set<string>();
+    for (const [k, c] of skeletonCounts) {
+      if (c >= 2) freqSkeletons.add(k);
+    }
+    frequentHookSkeletonsLast3 = freqSkeletons;
+  }
+
+  // Phase 3 HOOK TEMPLATE TUNING — session-wide hard-cap tier on top
+  // of the last-3 levers above. Counts skeleton uses across the FULL
+  // visible cache history (not just last 3) and surfaces any
+  // skeleton at usage ≥2 so the next-batch selector can apply a -4
+  // demotion to prevent a third appearance — closing the every-
+  // other-batch repeat hole that the last-3 tiers leave open
+  // (a skeleton at batches 2+4 misses both `recentHookSkeletons`
+  // (batch 5 prior) and `frequentHookSkeletonsLast3` (any 3-batch
+  // window covers ≤1 use)). Computed unconditionally — even with
+  // <3 batches of history a 2× use within batches 1+2 should already
+  // demote the third batch's third use. Legacy entries without the
+  // first-class field silently abstain via the truthy-string guard.
+  // Count TOTAL OCCURRENCES (not batches) across the visible session.
+  // The earlier per-batch `seenInBatch` collapse-then-count dropped a
+  // legitimate failure mode: a skeleton shipping 2× in batch N + 1×
+  // in batch N+1 is 3 total occurrences but counted as only 2 batch
+  // hits. Since the within-batch dup lever is a soft -3 (not a filter),
+  // 2-of-same-skeleton in one batch can absolutely ship — and the
+  // session cap MUST see that as 2 occurrences toward the ≥2 threshold
+  // so the next batch's third occurrence gets the -8 demotion. Legacy
+  // entries without the first-class `hookSkeletonId` field silently
+  // abstain via the truthy-string guard.
+  const sessionSkeletonCounts = new Map<string, number>();
+  for (const batch of allBatchesForSessionCap) {
+    for (const e of batch) {
+      if (e.hookSkeletonId) {
+        sessionSkeletonCounts.set(
+          e.hookSkeletonId,
+          (sessionSkeletonCounts.get(e.hookSkeletonId) ?? 0) + 1,
+        );
+      }
+    }
+  }
+  const hookSkeletonsAtSessionCap = new Set<string>();
+  for (const [k, c] of sessionSkeletonCounts) {
+    if (c >= 2) hookSkeletonsAtSessionCap.add(k);
   }
 
   return {
@@ -1503,6 +1604,9 @@ function buildNoveltyContext(
     unusedIdeaCoreFamiliesLast3,
     recentIdeaCoreTypes,
     recentTrendIds,
+    recentHookSkeletons,
+    frequentHookSkeletonsLast3,
+    hookSkeletonsAtSessionCap,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -1566,6 +1670,27 @@ type CachedBatchEntry = {
    */
   ideaCoreType?: IdeaCoreType;
   ideaCoreFamily?: IdeaCoreFamily;
+  /**
+   * Phase 3 HOOK TEMPLATE TUNING — formulaic hook-template skeleton id
+   * (e.g. `"todays_update"`, `"manage_now_hostage"`). Set ONLY when
+   * the picked LanguagePhrasingEntry carried a `skeletonId` tag —
+   * entries with genuinely scenario-shaped phrasings have no
+   * skeleton and persist undefined here. Persisted in cache so
+   * `buildNoveltyContext` can derive `recentHookSkeletons` (immediate-
+   * prior batch) and `frequentHookSkeletonsLast3` (≥2 of last 3
+   * batches) directly off the envelope without a derivation path —
+   * formulaic templates lose their fingerprint after Scenario noun
+   * interpolation, so there's no recovery from `idea.hook` text.
+   * Same non-breaking JSONB pattern as `trendId` above — legacy
+   * entries written before the field shipped contribute nothing to
+   * the cross-batch skeleton lever (the -3 immediate-prior / -2
+   * frequent-last-3 demotions stay quiet until the next regen
+   * writes a new envelope with the field populated). Tolerantly
+   * parsed: any non-empty string passes through (open-ended catalog
+   * — new skeletons can be added without a schema migration), empty
+   * strings drop to undefined so the recent set never holds a "".
+   */
+  hookSkeletonId?: string;
 };
 
 /**
@@ -1612,6 +1737,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         trendId?: unknown;
         ideaCoreType?: unknown;
         ideaCoreFamily?: unknown;
+        hookSkeletonId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1672,6 +1798,18 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         (IDEA_CORE_FAMILIES as readonly string[]).includes(icfRaw)
           ? (icfRaw as IdeaCoreFamily)
           : undefined;
+      // Phase 3 HOOK TEMPLATE TUNING — tolerant parse: any non-empty
+      // string passes through. Same discipline as `trendId` above —
+      // the catalog of skeleton ids is open-ended (new formulaic
+      // templates may add new ids without a schema migration), so
+      // we can't whitelist against an enum. Empty strings drop to
+      // undefined so the recent set never holds a "" sentinel and
+      // cross-batch matches against an absent tag never fire.
+      const hsidRaw = wrapper.hookSkeletonId;
+      const hookSkeletonId: string | undefined =
+        typeof hsidRaw === "string" && hsidRaw.length > 0
+          ? hsidRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1685,6 +1823,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         trendId,
         ideaCoreType,
         ideaCoreFamily,
+        hookSkeletonId,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -1885,6 +2024,17 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // derivation path for those entries.
     ideaCoreType: c.meta.ideaCoreType,
     ideaCoreFamily: c.meta.ideaCoreFamily,
+    // Phase 3 HOOK TEMPLATE TUNING — persist the formulaic-template
+    // skeleton id (when the picked LanguagePhrasingEntry carried
+    // one). Same non-breaking pattern as `trendId` / `voiceProfile`
+    // above: `meta.hookSkeletonId` is undefined for entries with
+    // genuinely scenario-shaped phrasings (no skeleton tag) and for
+    // Llama / Claude fallback wraps; undefined flows through to the
+    // cache cleanly and the next regen's `buildNoveltyContext`
+    // silently leaves that entry out of the recent / frequent
+    // skeleton sets — which is the right behavior since an absent
+    // tag should never accidentally match a fresh skeleton.
+    hookSkeletonId: c.meta.hookSkeletonId,
   }));
 }
 
@@ -2164,6 +2314,13 @@ export async function runHybridIdeator(
   const noveltyContext: NoveltyContext = buildNoveltyContext(
     previousEntries,
     last3Batches,
+    // Phase 3 HOOK TEMPLATE TUNING — pass the FULL visible per-
+    // batch breakdown (not just last 3) so `buildNoveltyContext`
+    // can compute the session-wide `hookSkeletonsAtSessionCap` set.
+    // The last-3 levers above only catch back-to-back / 2-of-3
+    // repeats; this third tier closes the every-other-batch
+    // (batches 2+4+6) repeat hole that escapes both windows.
+    priorBatches,
   );
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
   // subsequent `% 997` is always non-negative (JS keeps the sign of
@@ -2532,6 +2689,14 @@ export async function runHybridIdeator(
           // canonical lookup mapping.
           ideaCoreType: c.meta.ideaCoreType,
           ideaCoreFamily: c.meta.ideaCoreFamily,
+          // Phase 3 HOOK TEMPLATE TUNING — same field on the rescue
+          // path so a best-effort empty-after-filter ship still
+          // seeds the next regen's `recentHookSkeletons` /
+          // `frequentHookSkeletonsLast3` correctly. Mirrors the main
+          // toCacheEntries write above; undefined for entries with
+          // genuinely scenario-shaped phrasings flows through
+          // cleanly.
+          hookSkeletonId: c.meta.hookSkeletonId,
         }));
       await persistCache(input.creator, rescueEntries);
     }
