@@ -35,6 +35,7 @@ import {
   type IdeaCoreType,
   type LanguagePhrasingEntry,
   type PatternMeta,
+  type PremiseStyleId,
   type ScriptType,
   type Setting,
   type TopicLane,
@@ -227,6 +228,22 @@ export type CandidateMeta = PatternMeta | {
    * discipline as `hookSkeletonId` / `trendId` above).
    */
   bigPremiseStyle?: BigPremiseStyle;
+  /**
+   * Phase 6 EXPANSION — fine-grained 50-style id mirroring the
+   * matching field on `PatternMeta`. Llama / Claude fallback wraps
+   * NEVER set this; selector treats absent as "no contribution to
+   * the fine-grained premise-style axis" (same discipline as
+   * `bigPremiseStyle` / `hookSkeletonId` / `trendId` above).
+   */
+  premiseStyleId?: PremiseStyleId;
+  /**
+   * Phase 6 EXPANSION — display label paired with `premiseStyleId`
+   * (telemetry-only; never read by the selector). Cleared in lockstep
+   * with `premiseStyleId` on the rewrite-clear path so stale labels
+   * never leak past a hook substitution. Llama / Claude fallback
+   * wraps NEVER set this.
+   */
+  premiseStyleLabel?: string;
   /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
@@ -651,6 +668,21 @@ function metaHookSkeletonId(m: CandidateMeta): string | undefined {
  */
 function metaBigPremiseStyle(m: CandidateMeta): BigPremiseStyle | undefined {
   return "bigPremiseStyle" in m ? m.bigPremiseStyle : undefined;
+}
+
+/**
+ * Phase 6 EXPANSION (PREMISE STYLE ENGINE) — fine-grained 50-style id
+ * accessor mirroring `metaBigPremiseStyle` above. Returns the
+ * persisted id when the meta variant carries one (every Phase 6
+ * EXPANSION-derived candidate; undefined for the original 29
+ * hand-written premise entries that only carry the bucket field, and
+ * undefined for legacy template + Llama / Claude fallback wraps).
+ * Downstream callers MUST treat undefined as "no contribution to the
+ * fine-grained premise-style axis" — the bucket-level lever still
+ * fires independently.
+ */
+function metaPremiseStyleId(m: CandidateMeta): PremiseStyleId | undefined {
+  return "premiseStyleId" in m ? m.premiseStyleId : undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -1328,6 +1360,21 @@ function tryRewrite(
       if ("bigPremiseStyle" in nextMeta) {
         nextMeta.bigPremiseStyle = undefined;
       }
+      // Phase 6 EXPANSION — also clear the fine-grained id + label
+      // for the same staleness reason: the rewrite swaps to a legacy
+      // entry which is NEVER a Phase 6 EXPANSION premise (no legacy
+      // entry carries `premiseStyleId`), so leaving these set would
+      // attribute a fine-grained premise pick to a hook that no
+      // longer renders one. Both fields cleared together so the
+      // OUTPUT METADATA pair (id + label) stays internally consistent
+      // and the within-batch / cross-batch fine-grained levers go
+      // quiet for the rewritten candidate.
+      if ("premiseStyleId" in nextMeta) {
+        nextMeta.premiseStyleId = undefined;
+      }
+      if ("premiseStyleLabel" in nextMeta) {
+        nextMeta.premiseStyleLabel = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
@@ -1864,6 +1911,31 @@ export type NoveltyContext = {
    * contribution" — same discipline as the legacy axis sets above.
    */
   recentBigPremiseStyles?: ReadonlySet<BigPremiseStyle>;
+  /**
+   * Phase 6 EXPANSION (PREMISE STYLE ENGINE) — cross-batch fine-grained
+   * 50-id demotion set. Holds `premiseStyleId` values drawn from the
+   * last-3 batches' cache envelopes (any entry with a non-undefined
+   * `premiseStyleId` field — the source-of-truth populated by
+   * `assembleCandidate` and persisted via `toCacheEntries`). Used by
+   * `selectionPenalty` to apply a `-2` cross-batch demotion when a
+   * candidate's `meta.premiseStyleId` is in this set, parallel to
+   * the bucket-level `recentBigPremiseStyles` lever above.
+   *
+   * Sized SMALLER than the within-batch -3-per-dup lever
+   * intentionally — within-batch dup is the primary failure mode the
+   * spec calls out ("no same PremiseStyle twice in one batch") so
+   * the within-batch lever is sized to overwhelm any plausible
+   * scoring spread; cross-batch repetition on a 50-id pool is a
+   * weaker signal (the next batch is still likely to land on a
+   * fresh id by random walk).
+   *
+   * Empty / undefined for cold-start (no prior cache history) and
+   * for entries that didn't ship a Phase 6 EXPANSION premise (the
+   * original 29 hand-written premise entries + legacy template
+   * entries). Selector treats absent as "no contribution" — same
+   * discipline as the bucket-level set above.
+   */
+  recentPremiseStyleIds?: ReadonlySet<PremiseStyleId>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -2406,6 +2478,29 @@ export function selectionPenalty(
       if (dupCount > 0) p -= 3 * dupCount;
     }
 
+    // Phase 6 EXPANSION (PREMISE STYLE ENGINE) — within-batch
+    // fine-grained 50-id dup demotion. Sized at -8 PER DUPLICATE
+    // (LARGER than the bucket-level -3 lever above) to honor the
+    // spec hard rule "no same PremiseStyle twice in one batch": the
+    // soft -3 alone wasn't enough to reliably block a same-id second
+    // pick when its other axes outscored a fresh-id alternative by
+    // 4+ points (and this lever STACKS with the bucket-level -3, so
+    // a same-id pick eats -11 total on the second slot). Skipped
+    // silently for legacy entries without a fine-grained id (the
+    // original 29 hand-written premise entries + Llama / Claude
+    // fallback wraps + every legacy template) — same fail-quiet
+    // discipline as voiceProfile / videoPattern / hookSkeletonId.
+    const premiseIdCounts = new Map<PremiseStyleId, number>();
+    for (const b of batchSoFar) {
+      const pid = metaPremiseStyleId(b.meta);
+      if (pid) premiseIdCounts.set(pid, (premiseIdCounts.get(pid) ?? 0) + 1);
+    }
+    const cPremiseId = metaPremiseStyleId(c.meta);
+    if (cPremiseId) {
+      const dupCount = premiseIdCounts.get(cPremiseId) ?? 0;
+      if (dupCount > 0) p -= 8 * dupCount;
+    }
+
     // HOOK INTENT spec (Phase 4) — within-batch intent demotion +
     // HARD all-3-same guard. HookIntent is the controller axis
     // ABOVE HookLanguageStyle, so the per-dup soft penalty is sized
@@ -2605,6 +2700,19 @@ export function selectionPenalty(
   const cPremCross = metaBigPremiseStyle(c.meta);
   if (cPremCross) {
     if (ctx.recentBigPremiseStyles?.has(cPremCross) ?? false) p -= 2;
+  }
+  // Phase 6 EXPANSION (PREMISE STYLE ENGINE) — cross-batch fine-grained
+  // 50-id demotion. -2 when this candidate's `meta.premiseStyleId`
+  // appeared anywhere in the last-3-batches fine-grained set
+  // (`recentPremiseStyleIds`, populated by `buildNoveltyContext` from
+  // each batch's persisted `premiseStyleId` field). Sized parallel to
+  // the bucket-level lever above and STACKS with it (a same-id same-
+  // bucket recent repeat eats -4 total). Skipped silently when the
+  // candidate has no fine-grained id — same discipline as voiceProfile
+  // / hookSkeletonId / trendId.
+  const cPremIdCross = metaPremiseStyleId(c.meta);
+  if (cPremIdCross) {
+    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 2;
   }
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The

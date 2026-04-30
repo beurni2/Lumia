@@ -40,6 +40,7 @@ import {
   lookupScriptType,
   lookupTopicLane,
   lookupVisualActionPattern,
+  parsePremiseStyleId,
   resolveIdeaCoreFamily,
   SCRIPT_TYPE_CLUSTERS,
   SCRIPT_TYPES,
@@ -53,6 +54,7 @@ import {
   type IdeaCoreFamily,
   type IdeaCoreType,
   type PatternCandidate,
+  type PremiseStyleId,
   type ScriptType,
   type Setting,
   type TopicLane,
@@ -1335,6 +1337,22 @@ function buildNoveltyContext(
       if (e.bigPremiseStyle) recentBigPremiseStyles.add(e.bigPremiseStyle);
     }
   }
+  // Phase 6 EXPANSION (PREMISE STYLE ENGINE) — cross-batch fine-grained
+  // 50-id set, parallel to `recentBigPremiseStyles` above and sourced
+  // from the same last-3-batches window. The fine-grained pool is 50
+  // ids so the wider window stays comfortable (~6 ids at most after 3
+  // batches × ~2 premises per batch) — well under the catalog so the
+  // -2 cross-batch lever in `selectionPenalty` keeps the picker
+  // rotating ids without starving the supply. Legacy entries (and the
+  // original 29 hand-written premise entries without a fine-grained
+  // id) contribute nothing — same discipline as the bucket-level set
+  // above.
+  const recentPremiseStyleIds = new Set<PremiseStyleId>();
+  for (const batch of last3Batches) {
+    for (const e of batch) {
+      if (e.premiseStyleId) recentPremiseStyleIds.add(e.premiseStyleId);
+    }
+  }
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -1658,6 +1676,9 @@ function buildNoveltyContext(
     // the -2 cross-batch demotion in `selectionPenalty`. Empty Set
     // for cold-start (caller treats as no contribution).
     recentBigPremiseStyles,
+    // Phase 6 EXPANSION — fine-grained last-3 PremiseStyleId set
+    // drives the parallel -2 cross-batch demotion on the 50-id axis.
+    recentPremiseStyleIds,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -1754,6 +1775,20 @@ type CachedBatchEntry = {
    * string the catalog doesn't recognize.
    */
   bigPremiseStyle?: BigPremiseStyle;
+  /**
+   * Phase 6 EXPANSION (PREMISE STYLE ENGINE) — fine-grained 50-style
+   * id persisted on cache so `buildNoveltyContext` can populate
+   * `recentPremiseStyleIds` directly off the envelope, parallel to
+   * `bigPremiseStyle` above. Same non-breaking JSONB pattern: legacy
+   * entries written before Phase 6 EXPANSION shipped (and the
+   * original 29 hand-written premise entries that don't carry a
+   * fine-grained id) contribute nothing to the cross-batch -2
+   * fine-grained lever. Tolerantly parsed via `parsePremiseStyleId`
+   * against the closed PREMISE_STYLE_IDS set: unknown / typo'd /
+   * future-removed values silently drop to undefined so the recent
+   * set never holds a string the catalog doesn't recognize.
+   */
+  premiseStyleId?: PremiseStyleId;
 };
 
 /**
@@ -1802,6 +1837,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         ideaCoreFamily?: unknown;
         hookSkeletonId?: unknown;
         bigPremiseStyle?: unknown;
+        premiseStyleId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1886,6 +1922,13 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         (BIG_PREMISE_STYLES as readonly string[]).includes(bpsRaw)
           ? (bpsRaw as BigPremiseStyle)
           : undefined;
+      // Phase 6 EXPANSION — tolerant parse of fine-grained 50-style id.
+      // Same discipline as `bigPremiseStyle` above (closed enum, drop
+      // to undefined on typo / future removal). Decoupled from
+      // `bigPremiseStyle` so a future cache row may carry the
+      // fine-grained id even when the bucket field rolled out of
+      // sync (defensive — both fields are independently optional).
+      const premiseStyleId = parsePremiseStyleId(wrapper.premiseStyleId);
       out.push({
         idea: parsed.data,
         family:
@@ -1901,6 +1944,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         ideaCoreFamily,
         hookSkeletonId,
         bigPremiseStyle,
+        premiseStyleId,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2120,6 +2164,12 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // regen's `buildNoveltyContext` silently leaves that entry out
     // of `recentBigPremiseStyles`.
     bigPremiseStyle: c.meta.bigPremiseStyle,
+    // Phase 6 EXPANSION — persist the fine-grained 50-style id so the
+    // next regen's `buildNoveltyContext` can seed
+    // `recentPremiseStyleIds`. Same discipline as the bucket field
+    // above; undefined for entries without a fine-grained tag (the
+    // original 29 hand-written premise entries + every legacy entry).
+    premiseStyleId: c.meta.premiseStyleId,
   }));
 }
 
@@ -2805,6 +2855,9 @@ export async function runHybridIdeator(
           // Mirrors the main toCacheEntries write above; undefined
           // for legacy template entries flows through cleanly.
           bigPremiseStyle: c.meta.bigPremiseStyle,
+          // Phase 6 EXPANSION — fine-grained id on the rescue path
+          // (mirrors the main toCacheEntries write above).
+          premiseStyleId: c.meta.premiseStyleId,
         }));
       await persistCache(input.creator, rescueEntries);
     }

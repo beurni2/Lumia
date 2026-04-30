@@ -3933,6 +3933,781 @@ export const BIG_PREMISE_STYLES = [
 ] as const;
 export type BigPremiseStyle = (typeof BIG_PREMISE_STYLES)[number];
 
+/* ------------------------------------------------------------------ */
+/* PHASE 6 EXPANSION (PREMISE STYLE ENGINE) — fine-grained 50-style    */
+/* layer ABOVE the 5-bucket BigPremiseStyle infra. Each fine-grained   */
+/* style maps to ONE parent BigPremiseStyle bucket via `parentBucket`  */
+/* so all existing infrastructure (cross-batch novelty, cache          */
+/* persistence, validators, hard-floor exemption, tryRewrite skip)     */
+/* operates UNCHANGED at the bucket level. The fine-grained id is      */
+/* layered on top as an extra novelty axis (within-batch hard-dedup +  */
+/* cross-batch -2 demotion in `selectionPenalty`) so a single batch    */
+/* never ships two entries of the SAME PremiseStyleId (spec's "no     */
+/* same PremiseStyle twice in one batch" hard rule).                   */
+/* ------------------------------------------------------------------ */
+
+export const PREMISE_STYLE_IDS = [
+  "self_roast_reactor",
+  "absurd_escalation",
+  "duality_clash",
+  "overdramatic_reframe",
+  "expectation_collapse",
+  "irony_flip",
+  "relatable_pain",
+  "dopamine_denial",
+  "collapse_core",
+  "mundane_meltdown",
+  "pattern_exposure",
+  "delusion_downfall",
+  "inner_demon",
+  "micro_trauma",
+  "fake_confidence",
+  "anxiety_paradox",
+  "lazy_genius",
+  "doomscroll_disclosure",
+  "adulting_betrayal",
+  "hypocrisy_hyperdrive",
+  "fomo_fracture",
+  "self_destruction_speedrun",
+  "self_sabotage_scrollstop",
+  "chaos_confession",
+  "rage_resonance",
+  "metaphor_mayhem",
+  "contrast_catastrophe",
+  "pain_point_precision",
+  "irony_implosion",
+  "whiplash_wisdom",
+  "everyday_armageddon",
+  "delusion_spiral",
+  "cringe_trigger",
+  "confidence_crash",
+  "anxiety_avalanche",
+  "procrastination_paradox",
+  "burnout_betrayal",
+  "social_battery_sabotage",
+  "manifestation_mockery",
+  "group_chat_guilt",
+  "main_character_meltdown",
+  "comic_relief_cataclysm",
+  "three_am_spiral",
+  "todo_termination",
+  "boundary_backfire",
+  "plant_parent_psychosis",
+  "cart_autopsy",
+  "fridge_judgment",
+  "dream_disappointment",
+  "weekly_wipeout",
+] as const;
+export type PremiseStyleId = (typeof PREMISE_STYLE_IDS)[number];
+
+const PREMISE_STYLE_ID_SET: ReadonlySet<string> = new Set<string>(
+  PREMISE_STYLE_IDS,
+);
+
+/**
+ * Phase 6 EXPANSION — per-style metadata. `parentBucket` MUST be one
+ * of the 5 BigPremiseStyle buckets so the existing bucket-level
+ * novelty levers (`recentBigPremiseStyles` cross-batch -2,
+ * within-batch -3 dup) keep firing on the wider 50-id pool. The other
+ * fields (`transformLogic` / `worksBestWith` / `hookShapes`) are
+ * declarative metadata curated from the spec — currently telemetry-
+ * only (no scorer/picker reads them) but reserved for downstream
+ * tuning passes (e.g. ideaCoreFamily-aware compatibility filtering).
+ * `examples` is what the catalog actually ships: each example becomes
+ * one `LanguagePhrasingEntry` premise entry via
+ * `buildPremiseEntriesFromDefs` below.
+ */
+export type PremiseStyleDef = {
+  label: string;
+  purpose: string;
+  transformLogic: readonly string[];
+  worksBestWith: readonly string[];
+  hookShapes: readonly string[];
+  examples: readonly string[];
+  parentBucket: BigPremiseStyle;
+};
+
+export const PREMISE_STYLE_DEFS: Record<PremiseStyleId, PremiseStyleDef> = {
+  self_roast_reactor: {
+    label: "Self-Roast Reactor",
+    purpose: "Make the creator the joke.",
+    transformLogic: ["take a normal task", "frame creator as the failure point"],
+    worksBestWith: ["failure_contradiction", "ritual_disruption", "decision_paralysis"],
+    hookShapes: ["i cannot be trusted with X", "i ghosted my own X"],
+    examples: [
+      "i cannot be trusted with simple tasks",
+      "i ghosted my own to-do list",
+    ],
+    parentBucket: "self_roast",
+  },
+  absurd_escalation: {
+    label: "Absurd Escalation Engine",
+    purpose: "Turn a normal moment into chaos.",
+    transformLogic: ["start with one tiny action", "show disproportionate consequence"],
+    worksBestWith: ["environmental_chaos", "physical_betrayal", "failure_contradiction"],
+    hookShapes: ["i did one X. ruined Y", "this got worse for no reason"],
+    examples: [
+      "i checked one thing. ruined my day",
+      "this got worse for no reason",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  duality_clash: {
+    label: "Duality Detonation",
+    purpose: "Pit two versions of the creator against each other.",
+    transformLogic: ["name two time-shifted selves", "show one betraying the other"],
+    worksBestWith: ["identity_drift", "time_distortion", "decision_paralysis"],
+    hookShapes: ["Xam me is A. Yam me is B", "morning me hates everything night me does"],
+    examples: [
+      "2am me is a genius. 9am me is useless",
+      "morning me hates everything night me does",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  overdramatic_reframe: {
+    label: "Overdramatization Overdrive",
+    purpose: "Make a tiny issue feel huge.",
+    transformLogic: ["take a mundane setback", "frame as life-altering catastrophe"],
+    worksBestWith: ["anti_climax", "emotional_loop", "failure_contradiction"],
+    hookShapes: ["this is where my life X", "a simple Y defeated me"],
+    examples: [
+      "this is where my life collapsed",
+      "one chore ruined the whole afternoon",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  expectation_collapse: {
+    label: "Expectation Executioner",
+    purpose: "Set up hope, destroy it fast.",
+    transformLogic: ["state intention to do good thing", "instantly invalidate it"],
+    worksBestWith: ["failure_contradiction", "anti_climax", "decision_paralysis"],
+    hookShapes: ["i tried X. mistake.", "the plan did not survive Y"],
+    examples: [
+      "i tried being productive. mistake.",
+      "the plan did not survive contact",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  irony_flip: {
+    label: "Savage Irony Inversion",
+    purpose: "Say the opposite of what should be true.",
+    transformLogic: ["pick a virtuous action", "show it producing the opposite outcome"],
+    worksBestWith: ["failure_contradiction", "anti_climax", "ritual_disruption"],
+    hookShapes: ["X somehow made me Y", "being responsible ruined Z"],
+    examples: [
+      "resting somehow made me more tired",
+      "being responsible ruined everything",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  relatable_pain: {
+    label: "Relatable Pain Payload",
+    purpose: "Expose a common private behavior.",
+    transformLogic: ["name a private avoidance ritual", "show creator doing it"],
+    worksBestWith: ["emotional_loop", "ritual_disruption", "social_friction"],
+    hookShapes: ["i opened it and immediately closed it", "i checked it and pretended that counted"],
+    examples: [
+      "i opened it and immediately closed it",
+      "i checked it and pretended that counted",
+    ],
+    parentBucket: "self_roast",
+  },
+  dopamine_denial: {
+    label: "Dopamine Denial Device",
+    purpose: "Show craving vs self-control failure.",
+    transformLogic: ["set up self-discipline", "show it collapsing on contact"],
+    worksBestWith: ["emotional_loop", "ritual_disruption", "decision_paralysis"],
+    hookShapes: ["my discipline expired X", "one Y became my whole personality"],
+    examples: [
+      "my discipline expired instantly",
+      "one scroll became my whole personality",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  collapse_core: {
+    label: "Hyperbolic Collapse Core",
+    purpose: "Make small failure feel like total collapse.",
+    transformLogic: ["take one small inconvenience", "frame as full-day collapse"],
+    worksBestWith: ["physical_betrayal", "environmental_chaos", "anti_climax"],
+    hookShapes: ["this ended my whole X", "one Y took me out"],
+    examples: [
+      "this ended my whole momentum",
+      "one inconvenience took me out",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  mundane_meltdown: {
+    label: "Mundane Meltdown Missile",
+    purpose: "Make boring daily stuff emotionally dramatic.",
+    transformLogic: ["pick a routine chore", "frame as final boss / war"],
+    worksBestWith: ["ritual_disruption", "physical_betrayal", "environmental_chaos"],
+    hookShapes: ["the X won again", "Y became my final boss"],
+    examples: [
+      "the dishes won again",
+      "laundry became my final boss",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  pattern_exposure: {
+    label: "Psychological Pattern Pulverizer",
+    purpose: "Reveal a repeated behavior.",
+    transformLogic: ["name the recurring loop", "label it as identity"],
+    worksBestWith: ["emotional_loop", "identity_drift", "memory_glitch"],
+    hookShapes: ["this is my entire pattern", "same X. new Y."],
+    examples: [
+      "this is my entire pattern",
+      "same mistake. new outfit.",
+    ],
+    parentBucket: "identity_framing",
+  },
+  delusion_downfall: {
+    label: "Delusional Downfall Drill",
+    purpose: "Show confidence turning into failure.",
+    transformLogic: ["claim early belief in self", "watch evidence destroy it"],
+    worksBestWith: ["failure_contradiction", "anti_climax", "decision_paralysis"],
+    hookShapes: ["i believed in myself too X", "the confidence was not supported by Y"],
+    examples: [
+      "i believed in myself too early",
+      "the confidence was not supported by evidence",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  inner_demon: {
+    label: "Inner Demon Detonator",
+    purpose: "Externalize bad impulses.",
+    transformLogic: ["personify the bad impulse", "let it win the scene"],
+    worksBestWith: ["decision_paralysis", "emotional_loop", "identity_drift"],
+    hookShapes: ["my brain chose violence at X", "the bad idea won immediately"],
+    examples: [
+      "my brain chose violence at midnight",
+      "the bad idea won immediately",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  micro_trauma: {
+    label: "Micro-Trauma Magnifier",
+    purpose: "Turn small awkwardness into lasting damage.",
+    transformLogic: ["take a small awkward moment", "frame as permanent injury"],
+    worksBestWith: ["social_friction", "memory_glitch", "anti_climax"],
+    hookShapes: ["i will remember this forever", "that one moment changed my X"],
+    examples: [
+      "i will remember this forever",
+      "that one moment changed my personality",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  fake_confidence: {
+    label: "Fake Confidence Fracture",
+    purpose: "Confidence cracks quickly.",
+    transformLogic: ["walk in with a plan", "watch confidence vanish"],
+    worksBestWith: ["social_friction", "decision_paralysis", "failure_contradiction"],
+    hookShapes: ["i walked in like i had a X", "confidence left the Y first"],
+    examples: [
+      "i walked in like i had a plan",
+      "confidence left the room first",
+    ],
+    parentBucket: "self_roast",
+  },
+  anxiety_paradox: {
+    label: "Anxiety Paradox Accelerator",
+    purpose: "Show lazy body + anxious brain.",
+    transformLogic: ["pit body's exhaustion against brain's panic", "show neither winning"],
+    worksBestWith: ["physical_betrayal", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["too tired to X. too anxious to Y", "my body quit. my brain kept Z"],
+    examples: [
+      "too tired to move. too anxious to rest",
+      "my body quit. my brain kept screaming",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  lazy_genius: {
+    label: "Lazy Genius Lockpick",
+    purpose: "Clever excuse for laziness.",
+    transformLogic: ["frame inaction as optimization", "weaponize jargon"],
+    worksBestWith: ["ritual_disruption", "decision_paralysis", "anti_climax"],
+    hookShapes: ["i optimized doing nothing", "this is efficiency if you don't think too hard"],
+    examples: [
+      "i optimized doing nothing",
+      "this is efficiency if you don't think too hard",
+    ],
+    parentBucket: "self_roast",
+  },
+  doomscroll_disclosure: {
+    label: "Doomscroll Disclosure Bomb",
+    purpose: "Expose phone spiral.",
+    transformLogic: ["name the small intent", "show the hours-long spiral"],
+    worksBestWith: ["time_distortion", "ritual_disruption", "emotional_loop"],
+    hookShapes: ["i checked one thing. still here.", "my screen time filed a Y"],
+    examples: [
+      "i checked one thing. still here.",
+      "my screen time filed a complaint",
+    ],
+    parentBucket: "self_roast",
+  },
+  adulting_betrayal: {
+    label: "Adulting Betrayal Blade",
+    purpose: "Adult responsibility feels like a scam.",
+    transformLogic: ["personify adulthood", "show it making demands"],
+    worksBestWith: ["failure_contradiction", "ritual_disruption", "anti_climax"],
+    hookShapes: ["adulthood keeps asking too X", "i tried adulting. it Y back"],
+    examples: [
+      "adulthood keeps asking too much",
+      "i tried adulting. it fought back",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  hypocrisy_hyperdrive: {
+    label: "Hypocrisy Hyperdrive",
+    purpose: "Say one thing, do the opposite.",
+    transformLogic: ["state the principle", "immediately violate it"],
+    worksBestWith: ["failure_contradiction", "identity_drift", "decision_paralysis"],
+    hookShapes: ["i said X. then disappeared", "my standards apply to Y only"],
+    examples: [
+      "i said balance. then disappeared",
+      "my standards apply to future me only",
+    ],
+    parentBucket: "self_roast",
+  },
+  fomo_fracture: {
+    label: "FOMO Fracture Fuel",
+    purpose: "Want inclusion but not the commitment.",
+    transformLogic: ["want the invite", "reject the obligation"],
+    worksBestWith: ["social_friction", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["i wanted an X. not a Y.", "i have fomo and no Z"],
+    examples: [
+      "i wanted an invite. not a plan.",
+      "i have fomo and no energy",
+    ],
+    parentBucket: "self_roast",
+  },
+  self_destruction_speedrun: {
+    label: "Self-Destruction Speedrun",
+    purpose: "Fast sabotage.",
+    transformLogic: ["set up the win condition", "demolish it instantly"],
+    worksBestWith: ["failure_contradiction", "decision_paralysis", "anti_climax"],
+    hookShapes: ["i ruined it immediately", "record time. bad decision."],
+    examples: [
+      "i ruined it immediately",
+      "record time. bad decision.",
+    ],
+    parentBucket: "self_roast",
+  },
+  self_sabotage_scrollstop: {
+    label: "Scroll-Stopping Self-Sabotage",
+    purpose: "Make the bad choice obvious.",
+    transformLogic: ["acknowledge knowing better", "do it anyway"],
+    worksBestWith: ["failure_contradiction", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["i knew better. did it anyway.", "i watched myself X"],
+    examples: [
+      "i knew better. did it anyway.",
+      "i watched myself make it worse",
+    ],
+    parentBucket: "self_roast",
+  },
+  chaos_confession: {
+    label: "Chaos Confession Catalyst",
+    purpose: "Admit something unhinged.",
+    transformLogic: ["frame self as research subject", "admit abnormal behavior"],
+    worksBestWith: ["identity_drift", "memory_glitch", "decision_paralysis"],
+    hookShapes: ["i need to be X", "this is not normal Y from me"],
+    examples: [
+      "i need to be studied",
+      "this is not normal behavior anymore",
+    ],
+    parentBucket: "identity_framing",
+  },
+  rage_resonance: {
+    label: "Rage Resonance Reactor",
+    purpose: "Small annoyance becomes anger.",
+    transformLogic: ["pick a tiny irritation", "escalate to disproportionate rage"],
+    worksBestWith: ["physical_betrayal", "environmental_chaos", "social_friction"],
+    hookShapes: ["this annoyed me more than it should", "i took that personally"],
+    examples: [
+      "this annoyed me more than it should",
+      "i took that personally",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  metaphor_mayhem: {
+    label: "Metaphor Mayhem Machine",
+    purpose: "Use surreal comparison.",
+    transformLogic: ["pick a tech/social object", "map brain state onto it"],
+    worksBestWith: ["emotional_loop", "memory_glitch", "decision_paralysis"],
+    hookShapes: ["my brain is a X with Y", "my motivation left the Z"],
+    examples: [
+      "my brain is a browser with 47 tabs",
+      "my motivation left the group chat",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  contrast_catastrophe: {
+    label: "Contrast Catastrophe Core",
+    purpose: "Opposite states collide.",
+    transformLogic: ["state ambition", "state opposite reality"],
+    worksBestWith: ["failure_contradiction", "decision_paralysis", "anti_climax"],
+    hookShapes: ["big X. zero Y.", "high X. low Y."],
+    examples: [
+      "big plans. zero movement.",
+      "high standards. low execution.",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  pain_point_precision: {
+    label: "Pain Point Precision Nuke",
+    purpose: "Hit one exact pain.",
+    transformLogic: ["name the universal annoyance", "voice it bluntly"],
+    worksBestWith: ["emotional_loop", "ritual_disruption", "anti_climax"],
+    hookShapes: ["this hit a little too close", "this should not be this hard"],
+    examples: [
+      "this hit a little too close",
+      "this should not be this hard",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  irony_implosion: {
+    label: "Irony Implosion Igniter",
+    purpose: "The fix makes it worse.",
+    transformLogic: ["attempt the remedy", "show it backfiring"],
+    worksBestWith: ["failure_contradiction", "anti_climax", "ritual_disruption"],
+    hookShapes: ["trying to X stressed me out", "Y made me less prepared"],
+    examples: [
+      "trying to relax stressed me out",
+      "planning made me less prepared",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  whiplash_wisdom: {
+    label: "Whiplash Wisdom Weapon",
+    purpose: "Sudden realization with comedy.",
+    transformLogic: ["reach the realization late", "make it about self"],
+    worksBestWith: ["identity_drift", "memory_glitch", "anti_climax"],
+    hookShapes: ["that's when i realized i was the X", "the lesson arrived late"],
+    examples: [
+      "that's when i realized i was the problem",
+      "the lesson arrived late",
+    ],
+    parentBucket: "contrast_duality",
+  },
+  everyday_armageddon: {
+    label: "Everyday Armageddon Amplifier",
+    purpose: "Daily routine feels apocalyptic.",
+    transformLogic: ["pick a banal trigger", "frame as cosmic-scale disaster"],
+    worksBestWith: ["environmental_chaos", "ritual_disruption", "physical_betrayal"],
+    hookShapes: ["one X ruined the Y", "the morning started X me"],
+    examples: [
+      "one email ruined the atmosphere",
+      "the morning started attacking my plans",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  delusion_spiral: {
+    label: "Delusion Death Spiral",
+    purpose: "False belief gets worse.",
+    transformLogic: ["claim early calm", "expose deepening denial"],
+    worksBestWith: ["emotional_loop", "memory_glitch", "decision_paralysis"],
+    hookShapes: ["i thought i was X. adorable.", "the denial had layers"],
+    examples: [
+      "i thought i was fine. adorable.",
+      "the denial had layers",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  cringe_trigger: {
+    label: "Trauma Trigger Turbo",
+    purpose: "Memory cringe hits hard.",
+    transformLogic: ["name the involuntary memory replay", "amplify intensity"],
+    worksBestWith: ["memory_glitch", "social_friction", "emotional_loop"],
+    hookShapes: ["my brain replayed it in X", "i was doing fine until i remembered"],
+    examples: [
+      "my brain replayed it in 4k",
+      "i was doing fine until i remembered",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  confidence_crash: {
+    label: "Confidence Crash Catalyst",
+    purpose: "Confidence disappears on contact.",
+    transformLogic: ["have confidence at start", "watch it vanish at the moment"],
+    worksBestWith: ["social_friction", "decision_paralysis", "anti_climax"],
+    hookShapes: ["i had confidence for X seconds", "the moment arrived. i Y."],
+    examples: [
+      "i had confidence for six seconds",
+      "the moment arrived. i vanished.",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  anxiety_avalanche: {
+    label: "Anxiety Avalanche Architect",
+    purpose: "One worry becomes many.",
+    transformLogic: ["start with one thought", "show it cascading"],
+    worksBestWith: ["emotional_loop", "decision_paralysis", "memory_glitch"],
+    hookShapes: ["one X opened the floodgates", "my brain found a Y quest"],
+    examples: [
+      "one thought opened the floodgates",
+      "my brain found a side quest",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  procrastination_paradox: {
+    label: "Procrastination Paradox Punch",
+    purpose: "Avoiding work creates more work.",
+    transformLogic: ["delay the task", "show snowball effect"],
+    worksBestWith: ["decision_paralysis", "ritual_disruption", "time_distortion"],
+    hookShapes: ["i delayed it until it became a X", "future me is Y"],
+    examples: [
+      "i delayed it until it became a lifestyle",
+      "future me is suing",
+    ],
+    parentBucket: "self_roast",
+  },
+  burnout_betrayal: {
+    label: "Burnout Betrayal Blast",
+    purpose: "Rest no longer restores.",
+    transformLogic: ["attempt rest", "find it failed to restore"],
+    worksBestWith: ["physical_betrayal", "emotional_loop", "anti_climax"],
+    hookShapes: ["i rested and still X", "sleep did not fix the Y"],
+    examples: [
+      "i rested and still lost",
+      "sleep did not fix the plot",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  social_battery_sabotage: {
+    label: "Social Battery Sabotage",
+    purpose: "Social energy collapses.",
+    transformLogic: ["want plans abstractly", "panic when they materialize"],
+    worksBestWith: ["social_friction", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["i wanted X until they became real", "my social battery saw Y and died"],
+    examples: [
+      "i wanted plans until they became real",
+      "my social battery saw people and died",
+    ],
+    parentBucket: "over_dramatization",
+  },
+  manifestation_mockery: {
+    label: "Manifestation Mockery Missile",
+    purpose: "Self-help trend goes wrong.",
+    transformLogic: ["invoke manifestation framing", "produce ironic result"],
+    worksBestWith: ["failure_contradiction", "decision_paralysis", "anti_climax"],
+    hookShapes: ["i manifested X", "the universe misunderstood the Y"],
+    examples: [
+      "i manifested pressure",
+      "the universe misunderstood the assignment",
+    ],
+    parentBucket: "self_roast",
+  },
+  group_chat_guilt: {
+    label: "Group Chat Guilt Grenade",
+    purpose: "Group chat pressure.",
+    transformLogic: ["enter group chat", "feel social-debt anxiety"],
+    worksBestWith: ["social_friction", "information_asymmetry", "emotional_loop"],
+    hookShapes: ["the group chat replaced me already", "i opened it. immediately regretted it"],
+    examples: [
+      "the group chat replaced me already",
+      "i opened it. immediately regretted it",
+    ],
+    parentBucket: "self_roast",
+  },
+  main_character_meltdown: {
+    label: "Main Character Meltdown",
+    purpose: "Hero fantasy collapses.",
+    transformLogic: ["claim main-character framing", "watch it dissolve"],
+    worksBestWith: ["identity_drift", "anti_climax", "social_friction"],
+    hookShapes: ["main character energy left X", "i started strong. became Y."],
+    examples: [
+      "lead role energy left early",
+      "i started strong. became comic relief.",
+    ],
+    parentBucket: "identity_framing",
+  },
+  comic_relief_cataclysm: {
+    label: "Comic Relief Cataclysm",
+    purpose: "Creator becomes the joke.",
+    transformLogic: ["set up serious framing", "land as the funny part"],
+    worksBestWith: ["identity_drift", "social_friction", "anti_climax"],
+    hookShapes: ["i was not the lead. i was the X.", "somehow i became the Y part"],
+    examples: [
+      "i was not the lead. i was the lesson.",
+      "somehow i became the funny part",
+    ],
+    parentBucket: "identity_framing",
+  },
+  three_am_spiral: {
+    label: "3AM Spiral Sniper",
+    purpose: "Late-night brain chaos.",
+    transformLogic: ["name late-night self", "frame as ungovernable"],
+    worksBestWith: ["time_distortion", "decision_paralysis", "memory_glitch"],
+    hookShapes: ["3am me needs supervision", "my brain gets creative after X"],
+    examples: [
+      "3am me needs supervision",
+      "my brain gets creative after midnight",
+    ],
+    parentBucket: "identity_framing",
+  },
+  todo_termination: {
+    label: "To-Do List Termination",
+    purpose: "Task list relationship drama.",
+    transformLogic: ["personify the to-do list", "name the relationship as broken"],
+    worksBestWith: ["ritual_disruption", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["i ghosted my own X", "the X and i are not speaking"],
+    examples: [
+      "the list and i are not speaking",
+    ],
+    parentBucket: "self_roast",
+  },
+  boundary_backfire: {
+    label: "Boundary Backfire Bomb",
+    purpose: "Boundary attempt becomes chaos.",
+    transformLogic: ["claim a boundary", "show panic at the boundary"],
+    worksBestWith: ["social_friction", "decision_paralysis", "emotional_loop"],
+    hookShapes: ["i set a boundary and X", "peace somehow made me Y"],
+    examples: [
+      "i set a boundary and panicked",
+      "peace somehow made me anxious",
+    ],
+    parentBucket: "self_roast",
+  },
+  plant_parent_psychosis: {
+    label: "Plant Parent Psychosis",
+    purpose: "Treat plant care as emotional drama.",
+    transformLogic: ["personify the plant", "frame care as emotional negotiation"],
+    worksBestWith: ["ritual_disruption", "identity_drift", "physical_betrayal"],
+    hookShapes: ["my plant knows i'm X", "i negotiated with a Y leaf"],
+    examples: [
+      "my plant knows i'm unreliable",
+      "i negotiated with a dying leaf",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  cart_autopsy: {
+    label: "Amazon Cart Autopsy",
+    purpose: "Shopping cart exposes identity.",
+    transformLogic: ["personify the cart as witness", "let it indict the creator"],
+    worksBestWith: ["identity_drift", "ritual_disruption", "decision_paralysis"],
+    hookShapes: ["my cart knows too X", "this cart is a cry for Y"],
+    examples: [
+      "my cart knows too much",
+      "this cart is a cry for help",
+    ],
+    parentBucket: "self_roast",
+  },
+  fridge_judgment: {
+    label: "Fridge Judgment Frenzy",
+    purpose: "Fridge as witness/judge.",
+    transformLogic: ["personify the fridge", "let it indict the creator"],
+    worksBestWith: ["ritual_disruption", "identity_drift", "physical_betrayal"],
+    hookShapes: ["the fridge knows i'm X", "the fridge saw Y"],
+    examples: [
+      "the fridge knows i'm lying",
+      "the fridge saw everything",
+    ],
+    parentBucket: "absurd_metaphor",
+  },
+  dream_disappointment: {
+    label: "Dream Disappointment Drill",
+    purpose: "Ambition gets quietly betrayed.",
+    transformLogic: ["name a dream/goal", "show it being quietly disappointed"],
+    worksBestWith: ["identity_drift", "anti_climax", "emotional_loop"],
+    hookShapes: ["i gently disappoint my X weekly", "my dreams lowered their Y"],
+    examples: [
+      "i gently disappoint my goals weekly",
+      "my dreams lowered their expectations",
+    ],
+    parentBucket: "self_roast",
+  },
+  weekly_wipeout: {
+    label: "Weekly Warrior Wipeout",
+    purpose: "Week starts strong, collapses.",
+    transformLogic: ["name day X with potential", "show day Y collapsing"],
+    worksBestWith: ["time_distortion", "anti_climax", "ritual_disruption"],
+    hookShapes: ["X had potential. then i happened.", "the week lost me by Y"],
+    examples: [
+      "monday had potential. then i happened.",
+      "the week lost me by tuesday",
+    ],
+    parentBucket: "self_roast",
+  },
+};
+
+/**
+ * Phase 6 EXPANSION — derived label map for `meta.premiseStyleLabel`
+ * output (spec OUTPUT METADATA: `premiseStyleId` + `premiseStyleLabel`).
+ * Computed once at module load from `PREMISE_STYLE_DEFS` so the type
+ * system enforces label coverage for every id at compile time.
+ */
+export const PREMISE_STYLE_LABELS: Record<PremiseStyleId, string> =
+  Object.fromEntries(
+    (Object.entries(PREMISE_STYLE_DEFS) as ReadonlyArray<
+      [PremiseStyleId, PremiseStyleDef]
+    >).map(([id, def]) => [id, def.label]),
+  ) as Record<PremiseStyleId, string>;
+
+/**
+ * Phase 6 EXPANSION — resolve the parent BigPremiseStyle bucket for a
+ * fine-grained PremiseStyleId. Used by callers that want to apply
+ * bucket-level filters / penalties from a known fine-grained id
+ * (e.g. cache parsing fallbacks). Pure lookup — no allocation.
+ */
+export function getPremiseStyleParent(id: PremiseStyleId): BigPremiseStyle {
+  return PREMISE_STYLE_DEFS[id].parentBucket;
+}
+
+/**
+ * Phase 6 EXPANSION — type-safe parser for cache-round-trip values.
+ * Returns the typed id when `value` is a known PremiseStyleId, else
+ * undefined. Used by `tryParseEntries` to tolerate stale cache rows
+ * written before this field existed (or from a future build with
+ * extra ids the current build doesn't know).
+ */
+export function parsePremiseStyleId(
+  value: unknown,
+): PremiseStyleId | undefined {
+  return typeof value === "string" && PREMISE_STYLE_ID_SET.has(value)
+    ? (value as PremiseStyleId)
+    : undefined;
+}
+
+/**
+ * Phase 6 EXPANSION — generate `LanguagePhrasingEntry` premise entries
+ * from the 50-style catalog. Each example string in
+ * `PREMISE_STYLE_DEFS[id].examples` becomes one entry tagged with:
+ *   - `bigPremise: true` + `premiseStyle: parentBucket`
+ *     (so all existing 5-bucket infrastructure activates)
+ *   - `premiseStyleId: id`
+ *     (fine-grained novelty axis on top of the bucket)
+ *   - `rigidityScore: 1` + `sharpnessScore: 5` (premium scores)
+ *   - hand-resolved `hookIntent` + `voiceProfiles` per the requested
+ *     downstream slot (caller picks tags appropriate to the
+ *     hookLanguageStyle bucket the entries are spread into).
+ *
+ * Pure function — returns a fresh array each call so callers can
+ * spread it into different hookLanguageStyle buckets without
+ * accidental aliasing.
+ */
+function buildPremiseEntriesFromDefs(
+  ids: readonly PremiseStyleId[],
+  hookIntent: HookIntent,
+  voiceProfiles: readonly VoiceProfile[],
+): LanguagePhrasingEntry[] {
+  const out: LanguagePhrasingEntry[] = [];
+  for (const id of ids) {
+    const def = PREMISE_STYLE_DEFS[id];
+    for (const example of def.examples) {
+      out.push({
+        build: () => example,
+        voiceProfiles,
+        rigidityScore: 1,
+        sharpnessScore: 5,
+        hookIntent,
+        bigPremise: true,
+        premiseStyle: def.parentBucket,
+        premiseStyleId: id,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * A phrasing variant keyed by HookLanguageStyle. Unlike the legacy
  * HookPhrasingEntry, there is no static `opener` field — the new
@@ -4067,6 +4842,18 @@ export type LanguagePhrasingEntry = {
    * of the same style and back-to-back batches don't repeat styles.
    */
   premiseStyle?: BigPremiseStyle;
+  /**
+   * Phase 6 EXPANSION (PREMISE STYLE ENGINE) — fine-grained style id
+   * (one of 50). MUST be set when this entry was generated from
+   * `PREMISE_STYLE_DEFS[id].examples` via `buildPremiseEntriesFromDefs`.
+   * Optional / undefined for legacy template entries + the original
+   * 29 hand-written premise entries. Drives the within-batch hard
+   * dedup (-3 in `selectionPenalty`, "no same PremiseStyle twice in
+   * one batch" hard rule from spec) and cross-batch -2 demotion via
+   * `recentPremiseStyleIds`. The bucket-level `premiseStyle` lever
+   * still fires independently — both axes stack.
+   */
+  premiseStyleId?: PremiseStyleId;
 };
 
 /**
@@ -4328,6 +5115,38 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       bigPremise: true,
       premiseStyle: "identity_framing",
     },
+    // ----------------------------------------------------------------
+    // Phase 6 EXPANSION — first-person confessional premise hooks
+    // generated from PREMISE_STYLE_DEFS (17 styles × ~2 examples).
+    // All use `relatable` intent + the canonical confession voice
+    // triple. Each entry carries `premiseStyleId` so the fine-grained
+    // within-batch hard-dedup + cross-batch -2 lever in
+    // `selectionPenalty` activates, in addition to the bucket-level
+    // `premiseStyle` lever already in place.
+    // ----------------------------------------------------------------
+    ...buildPremiseEntriesFromDefs(
+      [
+        "self_roast_reactor",
+        "relatable_pain",
+        "fake_confidence",
+        "hypocrisy_hyperdrive",
+        "self_destruction_speedrun",
+        "self_sabotage_scrollstop",
+        "chaos_confession",
+        "doomscroll_disclosure",
+        "fomo_fracture",
+        "procrastination_paradox",
+        "manifestation_mockery",
+        "group_chat_guilt",
+        "dream_disappointment",
+        "plant_parent_psychosis",
+        "cart_autopsy",
+        "lazy_genius",
+        "todo_termination",
+      ],
+      "relatable",
+      ["self_aware", "soft_confessional", "dry_humor"],
+    ),
   ],
   observation: [
     {
@@ -4578,6 +5397,29 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       bigPremise: true,
       premiseStyle: "contrast_duality",
     },
+    // ----------------------------------------------------------------
+    // Phase 6 EXPANSION — declarative / 3rd-person observational
+    // premise hooks (11 styles × ~2 examples). `compulsion` intent
+    // pairs with the dry/deadpan/self_aware voice triple — these read
+    // as a creator naming a pattern, not confessing it.
+    // ----------------------------------------------------------------
+    ...buildPremiseEntriesFromDefs(
+      [
+        "pattern_exposure",
+        "contrast_catastrophe",
+        "mundane_meltdown",
+        "fridge_judgment",
+        "everyday_armageddon",
+        "weekly_wipeout",
+        "comic_relief_cataclysm",
+        "three_am_spiral",
+        "main_character_meltdown",
+        "dopamine_denial",
+        "social_battery_sabotage",
+      ],
+      "compulsion",
+      ["dry_humor", "deadpan", "self_aware"],
+    ),
   ],
   matter_of_fact: [
     {
@@ -5196,6 +6038,28 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "scroll_stop",
       genericHook: true,
     },
+    // ----------------------------------------------------------------
+    // Phase 6 EXPANSION — deadpan / blunt premise hooks (11 styles ×
+    // ~2 examples). `scroll_stop` intent matches the matter_of_fact
+    // bucket's role as the high-impact opener slot.
+    // ----------------------------------------------------------------
+    ...buildPremiseEntriesFromDefs(
+      [
+        "inner_demon",
+        "micro_trauma",
+        "anxiety_paradox",
+        "anxiety_avalanche",
+        "burnout_betrayal",
+        "delusion_downfall",
+        "delusion_spiral",
+        "confidence_crash",
+        "pain_point_precision",
+        "adulting_betrayal",
+        "rage_resonance",
+      ],
+      "scroll_stop",
+      ["blunt", "deadpan", "dry_humor"],
+    ),
   ],
   anti_hook: [
     {
@@ -5406,6 +6270,28 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       skeletonId: "manage_live_together",
       allowedNounTypes: ["object", "abstract"] as const,
     },
+    // ----------------------------------------------------------------
+    // Phase 6 EXPANSION — fragment / contrast / duality premise hooks
+    // (11 styles × ~2 examples). `scroll_stop` intent matches the
+    // anti_hook bucket's role as the surprise-cut opener slot.
+    // ----------------------------------------------------------------
+    ...buildPremiseEntriesFromDefs(
+      [
+        "duality_clash",
+        "overdramatic_reframe",
+        "expectation_collapse",
+        "irony_flip",
+        "irony_implosion",
+        "whiplash_wisdom",
+        "collapse_core",
+        "absurd_escalation",
+        "metaphor_mayhem",
+        "cringe_trigger",
+        "boundary_backfire",
+      ],
+      "scroll_stop",
+      ["dry_humor", "deadpan", "blunt"],
+    ),
   ],
 };
 
@@ -5876,6 +6762,33 @@ export type PatternMeta = {
    * axis" (same discipline as `hookSkeletonId` / `videoPattern`).
    */
   bigPremiseStyle?: BigPremiseStyle;
+  /**
+   * Phase 6 EXPANSION (PREMISE STYLE ENGINE) — fine-grained 50-style
+   * id mirroring `LanguagePhrasingEntry.premiseStyleId`. Set ONLY
+   * when the picked entry carried both `bigPremise: true` AND
+   * `premiseStyleId` (every Phase 6 EXPANSION entry; the original 29
+   * hand-written premise entries leave this undefined and only
+   * contribute to the bucket-level `bigPremiseStyle` lever above).
+   * Persisted on cache via `CachedBatchEntry.premiseStyleId` so the
+   * cross-batch -2 lever in `selectionPenalty` survives JSONB round-
+   * trip. Readers MUST treat absent as "no contribution to the
+   * fine-grained premise-style axis" (same discipline as
+   * `bigPremiseStyle` / `hookSkeletonId` / `videoPattern`).
+   */
+  premiseStyleId?: PremiseStyleId;
+  /**
+   * Phase 6 EXPANSION — display label paired with `premiseStyleId`
+   * (e.g. "Self-Roast Reactor" for `self_roast_reactor`). Resolved
+   * from `PREMISE_STYLE_LABELS` at `assembleCandidate` time and
+   * surfaced in spec OUTPUT METADATA so downstream readers (QA
+   * driver / future telemetry) can render human-readable style names
+   * without re-importing the catalog. NOT persisted on the cache —
+   * it's a derived value that can always be recomputed from the
+   * canonical `premiseStyleId` via `PREMISE_STYLE_LABELS[id]`. Same
+   * persistence discipline as `trendCaptionPreSnapshot` in
+   * `CandidateMeta` — runtime-only meta, cache carries only the id.
+   */
+  premiseStyleLabel?: string;
 };
 
 /**
@@ -6397,6 +7310,22 @@ function assembleCandidate(
             usedBigPremise: true,
             ...(sourceLanguagePhrasing.premiseStyle
               ? { bigPremiseStyle: sourceLanguagePhrasing.premiseStyle }
+              : {}),
+            // Phase 6 EXPANSION — propagate fine-grained 50-style id
+            // + derived label. Spread-when-present so the original
+            // 29 hand-written premise entries (which only carry the
+            // bucket-level `premiseStyle` field) leave both the id
+            // and label fields undefined rather than serialising
+            // explicit nulls. The selector reads `premiseStyleId`
+            // for both within-batch (-3 per dup) and cross-batch (-2
+            // in `recentPremiseStyleIds`) novelty levers; the label
+            // is telemetry-only OUTPUT METADATA per spec.
+            ...(sourceLanguagePhrasing.premiseStyleId
+              ? {
+                  premiseStyleId: sourceLanguagePhrasing.premiseStyleId,
+                  premiseStyleLabel:
+                    PREMISE_STYLE_LABELS[sourceLanguagePhrasing.premiseStyleId],
+                }
               : {}),
           }
         : {}),
