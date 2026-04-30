@@ -75,6 +75,35 @@ export interface TrendItem {
    *  metadata can begin populating this field per spec
    *  (US/UK/Nigeria/Philippines/India bundles). */
   readonly region?: string;
+  /** Optional negative-compat scenario list. When the candidate's
+   *  scenarioFamily appears here the trend is HARD-rejected by
+   *  `trendFitsCandidate` BEFORE the positive-fit check, alongside
+   *  `avoidArchetypeFamilies`. Encodes the FREQUENCY-TUNING spec's
+   *  "girl dinner avoids productivity / errands / emails / planning"
+   *  rule — the trend's archetype list could otherwise allow the
+   *  pairing through a coincidental archetype match on a
+   *  productivity-flavor scenario. Defense at the scenario layer is
+   *  cheaper than caption-content sniffing post-injection. */
+  readonly avoidFamilies?: ReadonlyArray<ScenarioFamilyId>;
+  /** Optional SECONDARY archetype-fit list. Consulted ONLY when no
+   *  trend in the catalog has a PRIMARY (`compatibleArchetypeFamilies`)
+   *  match for the candidate's archetype. Per FREQUENCY-TUNING spec:
+   *  raises emission rate without forcing weak pairings — secondary
+   *  fits earn +2 in `scoreTrendFit` (vs +4 for primary), so they
+   *  cluster lower in the score range and are filtered out by the
+   *  threshold unless paired with other positive signals (region,
+   *  freshness). */
+  readonly secondaryFitArchetypes?: ReadonlyArray<ArchetypeFamily>;
+  /** Optional SECONDARY scenario-fit list. Same fallback discipline
+   *  as `secondaryFitArchetypes`: only used when no primary scenario
+   *  fit exists. Earns +1 in `scoreTrendFit`. */
+  readonly secondaryFitFamilies?: ReadonlyArray<ScenarioFamilyId>;
+  /** Optional niche / meme-dependent flag. When `true`, the trend
+   *  earns a -2 penalty in `scoreTrendFit` so it only ships when
+   *  primary fit is strong enough to overcome the penalty. Caps the
+   *  baseline visibility of trends that read as too-online or
+   *  reference-locked (e.g. labubu, delulu_planning). */
+  readonly niche?: boolean;
 }
 
 /**
@@ -223,6 +252,13 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "weird_habits",
       "object_personality",
     ],
+    // FREQUENCY-TUNING spec — niche/meme-dependent flag. labubu is
+    // a reference-locked collectible meme that reads as too-online
+    // when paired with weak fits; the -2 niche penalty in
+    // `scoreTrendFit` keeps it from clearing the threshold unless
+    // primary fit is strong AND the slot has region/freshness
+    // bonuses to compensate.
+    niche: true,
   },
   {
     id: "erewhon_smoothie",
@@ -344,6 +380,14 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "identity",
       "micro_rituals",
     ],
+    // FREQUENCY-TUNING — secondary archetype fits. The "hot girl
+    // walk" frame is genuinely cross-archetype (the meme covers
+    // both the aspirational identity register AND the
+    // self-deception "I'm being healthy" register), so widen the
+    // archetype reach via secondary tags. Earns +2 vs +4 in score
+    // so secondary-only matches still need region/freshness to
+    // clear threshold.
+    secondaryFitArchetypes: ["self_deception", "low_energy_realism"],
   },
   {
     id: "parking_lot_chronicles",
@@ -367,6 +411,13 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "identity",
       "time_distortion",
     ],
+    // FREQUENCY-TUNING spec — niche flag. "delulu" is a meme-heavy
+    // term that carries strong online-Gen-Z signal and reads as
+    // dated when paired with weak fits. -2 caps baseline emission
+    // unless primary fit is strong (the default 4+3=7 primary score
+    // still clears 6 after the -2 — only secondary fits get demoted
+    // below threshold).
+    niche: true,
   },
   {
     id: "fake_busy",
@@ -378,6 +429,16 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "self_deception",
       "social_observation",
     ],
+    // FREQUENCY-TUNING — secondary fits. "fake busy mode" naturally
+    // covers low-energy / petty-logic registers ("look busy, do
+    // nothing") that aren't in the primary archetype list. Adding
+    // them as secondary admits the trend on more scenarios when no
+    // strong primary fit exists in the catalog (raises emission
+    // floor without forcing weak pairings — secondary-only matches
+    // earn 2+1=3 base which only clears 6 with primary family AND
+    // region/freshness, naturally self-rate-limiting).
+    secondaryFitArchetypes: ["low_energy_realism", "petty_logic"],
+    secondaryFitFamilies: ["mirror_pep_talk"],
   },
 
   // ─── PHRASES (6) — appended as " — label" to caption ─────────────
@@ -457,17 +518,31 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
     label: "girl dinner",
     freshnessScore: 0.45,
     compatibleFamilies: ["snack", "fridge"],
-    // Spec: girl dinner → petty_logic / self_deception → "this
-    // counts as dinner". Existing low_energy_realism / weird_habits
-    // / identity tags are kept (still valid alternative pairings)
-    // and the spec families are added so the pairing fires.
+    // FREQUENCY-TUNING spec — girl dinner allowed archetype list:
+    // petty_logic / self_deception / low_energy_realism /
+    // weird_habits. "identity" was REMOVED in Session 3 (caused
+    // pairings to read as a flex rather than the intended snack-
+    // standards-collapse beat — "this counts as dinner" is a
+    // petty_logic / self_deception register, not an identity
+    // statement).
     compatibleArchetypeFamilies: [
       "low_energy_realism",
       "weird_habits",
-      "identity",
       "petty_logic",
       "self_deception",
     ],
+    // FREQUENCY-TUNING spec named-bad-pairing fix: "to-do list +
+    // girl dinner" was the most-cited mismatch from Session 2
+    // runtime QA. The trend's archetype list could otherwise admit
+    // the pairing through a coincidental archetype match on a
+    // productivity-flavor scenario, so we hard-reject the entire
+    // productivity / errands / emails scenario family cluster
+    // (closest existing engine families to the spec's
+    // "productivity / to_do_list / planning / work-task" list —
+    // no `to_do_list` or `planning` family exists in the engine
+    // taxonomy, productivity/errands/emails cover the same
+    // semantic surface).
+    avoidFamilies: ["productivity", "errands", "emails"],
   },
   {
     // Spec: quiet luxury → identity / fake_self → "me pretending
@@ -485,6 +560,17 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "social_post",
     ],
     compatibleArchetypeFamilies: ["identity", "low_energy_realism"],
+    // FREQUENCY-TUNING — secondary archetype fit. The "pretending
+    // to be quiet luxury" register is squarely a self_deception
+    // beat (the trend literally encodes the gap between aspiration
+    // and reality), so admit it as a secondary archetype to widen
+    // emission. Note: phrase trends with no PRIMARY archetype
+    // match also incur the -3 decorative penalty per scoring
+    // table — a pure secondary-archetype hit on quiet_luxury would
+    // be 2 + 3 + 1 + 0 - 3 = 3 (rejected), so this only helps
+    // when paired with a primary scenario family AND something
+    // else (region/freshness) to push past 6.
+    secondaryFitArchetypes: ["self_deception"],
   },
 
   // ─── FORMATS (3) — appended as " (label)" to caption ─────────────
@@ -530,6 +616,14 @@ export const TREND_CATALOG: ReadonlyArray<TrendItem> = [
       "low_energy_realism",
       "self_deception",
     ],
+    // FREQUENCY-TUNING — secondary scenario fits. Voice-memo
+    // format reads naturally on driving/errands beats too (the
+    // "talking to no one in the car" frame is core to the meme),
+    // so admit those families as secondary. Format trends without
+    // a primary archetype hit still incur -3 decorative, so this
+    // mostly helps when the candidate's archetype IS in the primary
+    // archetype list above.
+    secondaryFitFamilies: ["doom_scroll_car", "errands", "morning"],
   },
   {
     id: "lazy_grwm_format",
@@ -603,10 +697,19 @@ export function trendFitsCandidate(
   region?: string | null,
 ): boolean {
   if (!scenarioFamily || !archetypeFamily) return false;
-  // Negative compat first — hard reject wins.
+  // Negative compat first — both archetype and scenario hard rejects
+  // win over any positive signal. Order doesn't matter functionally
+  // (both fail-closed) but archetype is checked first to mirror the
+  // PAIRING-system order that landed in Session 2.
   if (
     trend.avoidArchetypeFamilies &&
     trend.avoidArchetypeFamilies.includes(archetypeFamily)
+  ) {
+    return false;
+  }
+  if (
+    trend.avoidFamilies &&
+    trend.avoidFamilies.includes(scenarioFamily)
   ) {
     return false;
   }
@@ -618,6 +721,204 @@ export function trendFitsCandidate(
   // all trends regardless of their tag.
   if (trend.region && region && trend.region !== region) return false;
   return true;
+}
+
+/**
+ * Secondary-fit predicate — relaxed version of `trendFitsCandidate`
+ * consulted ONLY when no trend in the catalog passes the strict
+ * primary predicate. Per FREQUENCY-TUNING spec: secondary fits earn
+ * lower scores (+2 / +1 vs +4 / +3 for primary) so they cluster near
+ * the threshold and only ship when other positive signals (region,
+ * freshness) push them past it.
+ *
+ * The same negative-compat hard rejects from the primary predicate
+ * still apply (avoidArchetypeFamilies / avoidFamilies / region) —
+ * "secondary" loosens the POSITIVE fit lists, never the negative
+ * ones (a bad pairing is bad regardless of fit tier).
+ *
+ * Acceptance: archetypeFamily must appear in EITHER
+ * `compatibleArchetypeFamilies` OR `secondaryFitArchetypes` AND
+ * scenarioFamily must appear in EITHER `compatibleFamilies` OR
+ * `secondaryFitFamilies`. The score function later detects which
+ * tier each axis matched (primary vs secondary) and weights
+ * accordingly.
+ */
+export function trendFitsCandidateSecondary(
+  trend: TrendItem,
+  scenarioFamily: ScenarioFamilyId | null | undefined,
+  archetypeFamily: ArchetypeFamily | null | undefined,
+  region?: string | null,
+): boolean {
+  if (!scenarioFamily || !archetypeFamily) return false;
+  if (
+    trend.avoidArchetypeFamilies &&
+    trend.avoidArchetypeFamilies.includes(archetypeFamily)
+  ) {
+    return false;
+  }
+  if (
+    trend.avoidFamilies &&
+    trend.avoidFamilies.includes(scenarioFamily)
+  ) {
+    return false;
+  }
+  const archMatch =
+    trend.compatibleArchetypeFamilies.includes(archetypeFamily) ||
+    (trend.secondaryFitArchetypes?.includes(archetypeFamily) ?? false);
+  if (!archMatch) return false;
+  const famMatch =
+    trend.compatibleFamilies.includes(scenarioFamily) ||
+    (trend.secondaryFitFamilies?.includes(scenarioFamily) ?? false);
+  if (!famMatch) return false;
+  if (trend.region && region && trend.region !== region) return false;
+  return true;
+}
+
+/**
+ * Threshold for trend injection — score < 6 always returns null
+ * (skip). Per FREQUENCY-TUNING spec: keeps the bar high enough that
+ * secondary-only fits only ship when paired with bonus signals.
+ *
+ * Score arithmetic for reference (max 10, threshold 6). NOTE: the
+ * region/global +1 is awarded WHENEVER the predicate accepts —
+ * region-tagged trends with a region mismatch are already
+ * hard-rejected upstream, so any candidate that reaches scoring
+ * carries this +1 baseline. Examples below assume the candidate
+ * cleared the predicate (so +1 region/global is implicit):
+ *   pure primary, low-fresh global               = 4 + 3 + 1            = 8 ✓
+ *   pure primary, fresh (≥ 0.7)                  = 4 + 3 + 1 + 1        = 9 ✓
+ *   primary arch + secondary family, fresh       = 4 + 1 + 1 + 1        = 7 ✓
+ *   secondary arch + primary family, fresh       = 2 + 3 + 1 + 1        = 7 ✓ (no weak penalty —
+ *                                                                          primary family present)
+ *   secondary arch + secondary family, fresh     = 2 + 1 + 1 + 1 - 3    = 2 ✗ (weak-fit -3 fires
+ *                                                                          when BOTH primary missing)
+ *   pure primary, low-fresh, niche               = 4 + 3 + 1 - 2        = 6 ✓ (borderline)
+ *   pure primary, fresh, niche                   = 4 + 3 + 1 + 1 - 2    = 7 ✓
+ *   pure primary, fresh, repeat                  = 4 + 3 + 1 + 1 - 2    = 7 ✓ (still ships;
+ *                                                                          repeat alone insufficient
+ *                                                                          to demote a strong fit)
+ *   pure primary, low-fresh, niche, repeat       = 4 + 3 + 1 - 2 - 2    = 4 ✗ (multi-penalty
+ *                                                                          stacks below threshold)
+ *   decorative phrase/format, no primary arch    = 0/3 + 0 + 1 + ? - 3  ≤ 4 ✗ (decorative -3
+ *                                                                          fires when phrase/format
+ *                                                                          has no archetype anchor)
+ */
+export const TREND_FIT_THRESHOLD = 6 as const;
+
+/**
+ * Compute a 0–10 fit score per FREQUENCY-TUNING spec section 4.
+ * Pure / deterministic / no I/O — same inputs always return same
+ * score. Used by `selectTrendForCandidate` to pick the highest
+ * scoring trend (replaces the freshness-weighted random pick from
+ * Session 1) and to gate emission via `TREND_FIT_THRESHOLD`.
+ *
+ * Bonus arithmetic:
+ *   +4 primary archetype (compatibleArchetypeFamilies hit)
+ *   +3 primary family    (compatibleFamilies hit)
+ *   +2 secondary archetype (secondaryFitArchetypes hit AND no
+ *      primary archetype hit — secondary as fallback, not stack)
+ *   +1 secondary family    (secondaryFitFamilies hit AND no primary
+ *      family hit)
+ *   +1 region match (or global — predicate passes)
+ *   +1 high freshness (`freshnessScore >= HIGH_FRESHNESS`)
+ *
+ * Penalties:
+ *   -5 avoid-archetype OR avoid-family hit (defensive — already
+ *      hard-rejected by predicates; double-defense if a caller
+ *      somehow bypasses the predicate)
+ *   -3 weak scenario fit (NO primary scenario family AND NO
+ *      primary archetype — both axes are secondary-only)
+ *   -3 decorative-only (`type === "phrase" || "format"` AND no
+ *      primary archetype match — the trend is purely cosmetic
+ *      copy with no archetype-level alignment)
+ *   -2 niche (`niche === true` — caps too-online / reference-locked
+ *      items to ship only when primary fit is strong)
+ *   -2 repeated trend (`recentTrendIds` contains `trend.id`)
+ *
+ * Score is intentionally NOT clamped to [0, 10] — outputs may be
+ * negative (heavy penalty stack) which the caller filters via
+ * `TREND_FIT_THRESHOLD`. Negative scores still sort correctly so
+ * the highest-scoring pick remains well-defined.
+ */
+const HIGH_FRESHNESS = 0.7 as const;
+
+export function scoreTrendFit(
+  trend: TrendItem,
+  scenarioFamily: ScenarioFamilyId | null | undefined,
+  archetypeFamily: ArchetypeFamily | null | undefined,
+  region?: string | null,
+  recentTrendIds?: ReadonlySet<string> | readonly string[],
+): number {
+  if (!scenarioFamily || !archetypeFamily) return 0;
+  let score = 0;
+
+  const primaryArch =
+    trend.compatibleArchetypeFamilies.includes(archetypeFamily);
+  const primaryFam = trend.compatibleFamilies.includes(scenarioFamily);
+  const secondaryArch =
+    !primaryArch &&
+    (trend.secondaryFitArchetypes?.includes(archetypeFamily) ?? false);
+  const secondaryFam =
+    !primaryFam &&
+    (trend.secondaryFitFamilies?.includes(scenarioFamily) ?? false);
+
+  if (primaryArch) score += 4;
+  if (primaryFam) score += 3;
+  if (secondaryArch) score += 2;
+  if (secondaryFam) score += 1;
+
+  // Region: predicate-style — passes when trend has no region OR
+  // caller has no region OR they match. The +1 is awarded on every
+  // pass (so global trends consistently get the bonus regardless of
+  // caller region threading).
+  const regionPass =
+    !trend.region || !region || trend.region === region;
+  if (regionPass) score += 1;
+
+  if (trend.freshnessScore >= HIGH_FRESHNESS) score += 1;
+
+  // Defensive penalties — duplicates the predicates' hard rejects
+  // so a caller that bypasses `trendFitsCandidate` still sees the
+  // bad-pairing demotion in score.
+  const avoidArch =
+    trend.avoidArchetypeFamilies?.includes(archetypeFamily) ?? false;
+  const avoidFam =
+    trend.avoidFamilies?.includes(scenarioFamily) ?? false;
+  if (avoidArch || avoidFam) score -= 5;
+
+  // Weak scenario fit: BOTH axes matched only at the secondary
+  // tier. Discourages stacking secondaries that individually pass
+  // their fit lists but together represent a weak overall fit.
+  if (!primaryFam && !primaryArch && (secondaryFam || secondaryArch)) {
+    score -= 3;
+  }
+
+  // Decorative-only: phrase / format trends without an archetype
+  // anchor read as cosmetic rather than archetype-aligned.
+  if (
+    (trend.type === "phrase" || trend.type === "format") &&
+    !primaryArch
+  ) {
+    score -= 3;
+  }
+
+  if (trend.niche === true) score -= 2;
+
+  // Repeat penalty — `recentTrendIds` may be a Set OR an array;
+  // both are O(1) for Set / O(n) for small arrays which is fine
+  // here (recent set is bounded by the cache history depth). We
+  // narrow on `Array.isArray` rather than `instanceof Set` because
+  // TypeScript can't narrow a `readonly string[] | ReadonlySet<string>`
+  // union via the latter (Set's structural overlap with the readonly
+  // array primitive type confuses the type narrower).
+  if (recentTrendIds) {
+    const isRepeat = Array.isArray(recentTrendIds)
+      ? recentTrendIds.includes(trend.id)
+      : recentTrendIds.has(trend.id);
+    if (isRepeat) score -= 2;
+  }
+
+  return score;
 }
 
 /**
@@ -648,18 +949,43 @@ export interface TrendSelectionInput {
    *  region tag. Currently no upstream caller supplies this — the
    *  field is wired for the future creator.region data flow. */
   readonly region?: string;
+  /** Optional set of trend ids that fired in the recent batch
+   *  history (typically derived by `buildNoveltyContext` in the
+   *  hybrid orchestrator from the JSONB cache envelope). When
+   *  supplied, repeated trends earn a -2 penalty in `scoreTrendFit`
+   *  so the selector prefers fresh trends over recently-shipped
+   *  ones. NOT yet plumbed by the patternIdeator call site —
+   *  the existing -2 cross-batch demotion in `selectionPenalty`
+   *  (`hybridIdeator.ts` novelty selection) handles cross-batch
+   *  repetition independently at the candidate-selection layer.
+   *  This field is the score-layer counterpart for when patternIdeator
+   *  starts threading noveltyContext into `assembleCandidate`. */
+  readonly recentTrendIds?: ReadonlySet<string> | readonly string[];
 }
 
 /**
- * Deterministic trend selector.
+ * Deterministic trend selector — FREQUENCY-TUNING refactor.
  *
  * 1. Hash (slotIndex, family, salt) into a 0-99 bucket.
  * 2. If `bucket >= TREND_INJECTION_RATE_PCT` → return null (skip —
  *    keeps emission rate ≤ rate%).
- * 3. Else filter `getActiveTrends()` by `trendFitsCandidate`.
- * 4. If filter empty → return null (NO forced trend — strict fit).
- * 5. Else freshness-weighted deterministic pick from the filtered
- *    list using the same hash as a tie-breaker.
+ * 3. Build the candidate POOL:
+ *    a. PRIMARY pool — `getActiveTrends()` filtered by
+ *       `trendFitsCandidate` (strict positive fit).
+ *    b. SECONDARY pool — consulted ONLY when primary is empty.
+ *       Uses `trendFitsCandidateSecondary` (relaxed positive fit
+ *       that admits secondaryFit lists). Same negative-compat hard
+ *       rejects still apply.
+ * 4. If pool empty → return null (NO forced trend — strict fit).
+ * 5. Score each candidate via `scoreTrendFit`, filter to
+ *    `score >= TREND_FIT_THRESHOLD` (= 6).
+ * 6. If no candidate clears threshold → return null (skip rather
+ *    than ship a weak fit per spec "Quality > frequency").
+ * 7. Pick HIGHEST-scoring candidate. Ties broken deterministically
+ *    via the upper-16-bits of the hash modulo tied-set length —
+ *    replaces the freshness-weighted random pick from Session 1
+ *    so the picker is now SCORE-driven (best fit wins) not
+ *    FRESHNESS-driven (highest score with fresh tie-break wins).
  *
  * Same input ALWAYS returns the same trend (reproducibility — the
  * cache-replay path relies on this).
@@ -667,29 +993,65 @@ export interface TrendSelectionInput {
 export function selectTrendForCandidate(
   input: TrendSelectionInput,
 ): TrendItem | null {
-  const { slotIndex, scenarioFamily, archetypeFamily, salt, region } = input;
+  const {
+    slotIndex,
+    scenarioFamily,
+    archetypeFamily,
+    salt,
+    region,
+    recentTrendIds,
+  } = input;
   if (!scenarioFamily || !archetypeFamily) return null;
   const h = hashTriple(slotIndex, scenarioFamily, salt);
   const bucket = h % 100;
   if (bucket >= TREND_INJECTION_RATE_PCT) return null;
-  const eligible = getActiveTrends().filter((t) =>
+
+  const active = getActiveTrends();
+  const primaryPool = active.filter((t) =>
     trendFitsCandidate(t, scenarioFamily, archetypeFamily, region),
   );
-  if (eligible.length === 0) return null;
-  // Freshness-weighted pick: cumulative weight sum, then h-modulo
-  // into the cumulative distribution. Same hash → same pick.
-  const totalWeight = eligible.reduce((s, t) => s + t.freshnessScore, 0);
-  if (totalWeight <= 0) return null;
-  // Use the upper 16 bits of h for the weighted draw so it's
-  // independent of the lower-bits bucket gate above.
-  const draw = ((h >>> 16) / 0xffff) * totalWeight;
-  let acc = 0;
-  for (const t of eligible) {
-    acc += t.freshnessScore;
-    if (draw <= acc) return t;
-  }
-  // Floating-point safety: last item wins on rounding overflow.
-  return eligible[eligible.length - 1] ?? null;
+  // Secondary pool ONLY when primary empty — keeps the secondary
+  // tier as a TRUE fallback rather than letting weaker fits dilute
+  // strong primary picks. Inside the secondary predicate the
+  // primary trends still pass (they trivially also satisfy the
+  // relaxed predicate), but the score function distinguishes them
+  // and primary fits will outscore secondary-only fits.
+  const pool: ReadonlyArray<TrendItem> =
+    primaryPool.length > 0
+      ? primaryPool
+      : active.filter((t) =>
+          trendFitsCandidateSecondary(t, scenarioFamily, archetypeFamily, region),
+        );
+  if (pool.length === 0) return null;
+
+  // Score every candidate, keep only those clearing the threshold.
+  // The `recentTrendIds` lookup is structurally optional — most
+  // callers leave it unset and the score function no-ops the
+  // repeat penalty.
+  const scored = pool
+    .map((t) => ({
+      trend: t,
+      score: scoreTrendFit(
+        t,
+        scenarioFamily,
+        archetypeFamily,
+        region,
+        recentTrendIds,
+      ),
+    }))
+    .filter((s) => s.score >= TREND_FIT_THRESHOLD);
+  if (scored.length === 0) return null;
+
+  // Highest-score wins. Sort descending by score; for ties, use
+  // the upper-16-bits of the hash modulo the tied subset length so
+  // the pick is deterministic (cache-replay safe) AND varies by
+  // (slotIndex, family, salt) so the same trend doesn't always win
+  // ties.
+  const maxScore = scored.reduce((m, s) => Math.max(m, s.score), -Infinity);
+  const tied = scored.filter((s) => s.score === maxScore);
+  if (tied.length === 1) return tied[0]?.trend ?? null;
+  const tieIdx = (h >>> 16) % tied.length;
+  return tied[tieIdx]?.trend ?? null;
 }
 
 /**

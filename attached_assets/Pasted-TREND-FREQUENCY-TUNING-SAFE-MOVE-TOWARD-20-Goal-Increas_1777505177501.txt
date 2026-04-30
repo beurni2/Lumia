@@ -1,0 +1,128 @@
+TREND FREQUENCY TUNING — SAFE MOVE TOWARD ~20%
+
+Goal:
+Increase visible trend usage from ~12% toward ~20% WITHOUT forcing weak pairings.
+
+Do NOT hard-force trends.
+Do NOT inject trends just to hit a quota.
+Quality > frequency.
+
+---
+
+1. TARGET RANGE
+
+Trend usage target:
+15–25%
+
+This is a soft target, not a hard rule.
+
+If no strong fit exists:
+skip trend.
+
+---
+
+2. KEEP STRICT PRIMARY FIT
+
+Primary trend injection still requires:
+- compatible archetype / archetype family
+- no avoidArchetype conflict
+- region compatibility
+- trend improves specificity
+- trend does not feel forced
+
+---
+
+3. ADD SECONDARY FIT
+
+Extend TrendItem:
+
+secondaryFitArchetypes?: string[]
+secondaryFitFamilies?: string[]
+
+Use secondary fit ONLY if:
+- no primary fit is available
+- fit confidence remains above threshold
+
+Secondary fit is lower priority than primary fit.
+
+---
+
+4. TREND FIT SCORE
+
+Create trendFitScore from 0–10:
+
++4 primary archetype match
++3 primary family match
++2 secondary archetype match
++1 secondary family match
++1 region match or global
++1 high freshness
+
+Penalties:
+-5 avoidArchetype / avoidFamily match
+-3 weak scenario fit
+-3 trend feels decorative only
+-2 niche/meme-dependent
+-2 repeated trend from recent batch
+
+Thresholds:
+- score >= 6 → allowed
+- score < 6 → skip
+
+---
+
+5. TRY MORE CANDIDATES
+
+When considering trend injection:
+- evaluate 2–3 candidate trends
+- pick best scoring fit
+- max 1 trend per idea
+
+Do NOT use first matching trend blindly.
+
+---
+
+6. BAD PAIRING FIX
+
+Tighten “girl dinner”:
+
+Allowed:
+- petty_logic
+- self_deception
+- low_energy_realism
+- weird_habits
+
+Avoid:
+- productivity
+- to_do_list
+- planning
+- work/task scenarios
+
+Specifically prevent:
+to-do list + girl dinner
+
+---
+
+7. BATCH CAP
+
+Keep current hard cap:
+- never all ideas trended
+- default 0–1 trended ideas per batch of 3
+- max 2 only if both are strong fits
+
+---
+
+8. QA
+
+Run 10 batches.
+
+Check:
+- trend usage lands roughly 15–25%
+- no forced pairings
+- girl dinner no longer attaches to to-do/productivity
+- captions remain human
+- non-trend ideas still dominate
+- no region leakage
+
+Success:
+Trends feel slightly more present, but still natural.
