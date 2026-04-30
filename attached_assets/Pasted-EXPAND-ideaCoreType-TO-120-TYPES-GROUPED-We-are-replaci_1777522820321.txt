@@ -1,0 +1,200 @@
+EXPAND ideaCoreType TO 120 TYPES (GROUPED)
+
+We are replacing the current small ideaCoreType set with a structured taxonomy:
+
+12 families × 10 types each = 120 total
+
+Each idea MUST be assigned ONE ideaCoreType before generation.
+
+---
+
+FAMILY 1 — FAILURE / CONTRADICTION
+- intention_vs_action
+- planned_vs_actual
+- discipline_break
+- routine_collapse
+- last_minute_quit
+- half_commitment
+- false_restart
+- delayed_start
+- “tomorrow” loop
+- performative_effort
+
+---
+
+FAMILY 2 — OVERTHINKING
+- decision_paralysis
+- infinite_options
+- replaying_moment
+- hypothetical_spiral
+- micro_analysis
+- second_guessing
+- delayed_decision
+- perfection_block
+- mental_loop
+- overplanning
+
+---
+
+FAMILY 3 — DELUSION / SELF-DECEPTION
+- false_confidence
+- lying_to_self
+- fake_progress
+- optimistic_denial
+- “this time is different”
+- minimizing_problem
+- self_gaslighting
+- fake_identity
+- ignoring_reality
+- imagined_version_of_self
+
+---
+
+FAMILY 4 — AVOIDANCE
+- active_avoidance
+- passive_avoidance
+- distraction_escape
+- fake_busy
+- task_dodging
+- emotional_avoidance
+- procrastination_loop
+- avoidance_ritual
+- delay_tactics
+- comfort_zone_lock
+
+---
+
+FAMILY 5 — MICRO-WINS
+- small_success
+- accidental_success
+- partial_completion
+- low_effort_win
+- minimal_progress
+- unexpected_win
+- tiny_habit
+- “good enough”
+- survival_win
+- quiet_progress
+
+---
+
+FAMILY 6 — IRRATIONAL LOGIC
+- flawed_reasoning
+- excuse_building
+- fake_rules
+- selective_logic
+- emotional_logic
+- convenient_logic
+- double_standard
+- shifting_goalposts
+- loophole_abuse
+- irrational_tradeoff
+
+---
+
+FAMILY 7 — EMOTIONAL SPIKE
+- sudden_panic
+- guilt_wave
+- relief_moment
+- quiet_dread
+- anxiety_spike
+- embarrassment_flash
+- regret_hit
+- shame_loop
+- internal_cringe
+- emotional_drop
+
+---
+
+FAMILY 8 — SOCIAL / BEHAVIOR
+- social_mask
+- people_pleasing
+- silent_judgment
+- comparison_spiral
+- awkward_interaction
+- fake_agreement
+- unspoken_rules
+- group_behavior
+- subtle_competition
+- social_exhaustion
+
+---
+
+FAMILY 9 — INTERNAL MONOLOGUE
+- self_talk
+- inner_argument
+- conflicting_thoughts
+- mental_commentary
+- narrated_action
+- detached_observation
+- internal_confession
+- self_roast
+- suppressed_thought
+- looping_phrase
+
+---
+
+FAMILY 10 — TIME DISTORTION
+- time_blindness
+- “just_one_minute”
+- time_skip
+- lost_time
+- delayed_awareness
+- rushed_last_second
+- stretched_moment
+- procrastination_time_warp
+- late_realization
+- false_urgency
+
+---
+
+FAMILY 11 — ABSURD / ESCALATION
+- minor_to_extreme
+- overreaction
+- disproportionate_response
+- dramatic_thinking
+- absurd_comparison
+- unrealistic_jump
+- internal_catastrophe
+- tiny_problem_big_story
+- unnecessary_escalation
+- chaos_chain
+
+---
+
+FAMILY 12 — IDENTITY / SELF
+- identity_conflict
+- version_gap (who I am vs who I want)
+- imposter_feeling
+- self_doubt
+- identity_loop
+- inconsistent_self
+- aspirational_self
+- regression
+- role_confusion
+- self_contradiction
+
+---
+
+HARD RULES:
+
+1. No more than 2 ideas per batch from same FAMILY
+2. No more than 1 idea per batch with exact same ideaCoreType
+3. Regenerate MUST include at least 2 NEW families not in previous batch
+4. If a family appears in last 2 batches → -3 penalty
+5. If unused in last 3 batches → +3 boost
+
+---
+
+CRITICAL:
+
+ideaCoreType must be assigned BEFORE:
+- hook generation
+- scenario selection
+
+It must influence:
+- hook direction
+- scene behavior
+- emotional tone
+
+NOT just labeling after generation.
