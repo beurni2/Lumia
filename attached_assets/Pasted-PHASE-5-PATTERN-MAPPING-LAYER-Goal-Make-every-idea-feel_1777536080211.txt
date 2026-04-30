@@ -1,0 +1,201 @@
+PHASE 5 — PATTERN MAPPING LAYER
+
+Goal:
+Make every idea feel like a real video by assigning the correct filming structure (pattern).
+
+We are NOT generating random formats.
+
+We are mapping:
+
+ideaCoreType → best-fitting patterns
+
+---
+
+PART 1 — DEFINE PATTERN TYPE
+
+type VideoPattern =
+  | "silent_reaction"
+  | "escalation"
+  | "micro_story"
+  | "before_after"
+  | "pov_internal"
+  | "loop_behavior"
+  | "object_pov"
+  | "delayed_reaction"
+  | "montage_repeat"
+  | "confidence_collapse"
+  | "deadpan_statement"
+  | "cut_before_end"
+
+---
+
+PART 2 — PATTERN STRUCTURE
+
+Each pattern must define:
+
+{
+  id: VideoPattern,
+  beats: string[],        // sequence of actions
+  pacing: "fast" | "medium" | "slow",
+  cameraStyle: string,    // front camera, POV, static, etc.
+  typicalDuration: string // short / medium
+}
+
+Example:
+
+silent_reaction:
+- hook text
+- stare
+- pause
+- cut
+
+escalation:
+- attempt
+- worse outcome
+- worse outcome
+- fail
+
+---
+
+PART 3 — MAPPING TABLE (CORE)
+
+Create mapping:
+
+ideaCoreType → 2–3 best patterns
+
+Example:
+
+overthinking:
+  → ["pov_internal", "loop_behavior", "silent_reaction"]
+
+avoidance:
+  → ["micro_story", "loop_behavior", "delayed_reaction"]
+
+failure_contradiction:
+  → ["before_after", "micro_story", "confidence_collapse"]
+
+absurd_escalation:
+  → ["escalation", "object_pov"]
+
+micro_win:
+  → ["deadpan_statement", "before_after"]
+
+social_behavior:
+  → ["montage_repeat", "pov_internal"]
+
+identity_conflict:
+  → ["before_after", "delayed_reaction"]
+
+time_distortion:
+  → ["loop_behavior", "montage_repeat"]
+
+---
+
+RULES:
+
+- Each ideaCoreType must map to 2–3 patterns
+- DO NOT assign more than 4 patterns per type
+- Avoid random or generic mappings
+
+---
+
+PART 4 — SELECTION LOGIC
+
+During generation:
+
+1. pick ideaCoreType
+2. retrieve allowed patterns
+3. pick one pattern based on:
+   - HookIntent compatibility
+   - recent pattern usage (avoid repetition)
+   - diversity scoring
+
+---
+
+PART 5 — PATTERN × HOOKINTENT COMPATIBILITY
+
+Define compatibility:
+
+scroll_stop:
+- silent_reaction
+- deadpan_statement
+- object_pov
+
+compulsion:
+- escalation
+- cut_before_end
+- delayed_reaction
+
+relatable:
+- micro_story
+- loop_behavior
+- pov_internal
+- montage_repeat
+
+Reject mismatches.
+
+---
+
+PART 6 — DIVERSITY RULES
+
+- No more than 2 ideas per batch with same pattern
+- Regenerate must introduce ≥1 new pattern
+- Recently used patterns → penalty
+- Unused patterns → boost
+
+---
+
+PART 7 — OUTPUT EXTENSION
+
+Each idea must now include:
+
+{
+  hook: string,
+  pattern: VideoPattern,
+  filmingGuide: string[] // simple instructions
+}
+
+Example:
+
+pattern: "micro_story"
+
+filmingGuide:
+- open fridge
+- pause
+- close fridge
+- cut
+
+---
+
+PART 8 — VALIDATION
+
+Reject if:
+- pattern conflicts with ideaCoreType
+- pattern conflicts with HookIntent
+- pattern feels forced or unnatural
+- filming steps don’t match scenario
+
+---
+
+PART 9 — QA
+
+Generate 5 batches.
+
+Verify:
+- patterns feel natural
+- ideas feel like real videos
+- no random pattern assignment
+- variety across batches
+- user can instantly visualize filming
+
+---
+
+SUCCESS CRITERIA
+
+User should feel:
+
+“I can film this immediately”
+
+NOT:
+
+“I have to figure this out”
