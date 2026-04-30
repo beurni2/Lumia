@@ -30,6 +30,7 @@ import {
   type Idea,
 } from "./ideaGen";
 import {
+  BIG_PREMISE_STYLES,
   generatePatternCandidates,
   HOOK_LANGUAGE_STYLES,
   IDEA_CORE_FAMILIES,
@@ -44,6 +45,7 @@ import {
   SCRIPT_TYPES,
   selectPrimaryVoiceProfile,
   VOICE_PROFILES,
+  type BigPremiseStyle,
   type Energy,
   type HookIntent,
   type HookLanguageStyle,
@@ -1317,6 +1319,22 @@ function buildNoveltyContext(
     if (e.trendId) recentTrendIds.add(e.trendId);
     if (e.hookSkeletonId) recentHookSkeletons.add(e.hookSkeletonId);
   }
+  // Phase 6 (BIG PREMISE LAYER) — cross-batch premise-style set,
+  // sourced from the LAST-3-BATCHES window (wider than the
+  // immediate-prior-only `recentTrendIds` / `recentHookSkeletons`
+  // axes above). The wider window is intentional: there are only 5
+  // premise styles so an immediate-prior-only set would have ~80%
+  // false-fresh hit rate after one batch — the last-3 window keeps
+  // the -2 cross-batch lever active long enough to actually rotate
+  // styles. Legacy entries (and Llama / Claude fallback wraps)
+  // without `bigPremiseStyle` contribute nothing — same discipline
+  // as the trendId / skeletonId sets above.
+  const recentBigPremiseStyles = new Set<BigPremiseStyle>();
+  for (const batch of last3Batches) {
+    for (const e of batch) {
+      if (e.bigPremiseStyle) recentBigPremiseStyles.add(e.bigPremiseStyle);
+    }
+  }
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -1636,6 +1654,10 @@ function buildNoveltyContext(
     // history exists; cold-start callers see an empty Set which is
     // a no-op in the lookup path.
     recentHookStrings,
+    // Phase 6 (BIG PREMISE LAYER) — last-3 premise-style set drives
+    // the -2 cross-batch demotion in `selectionPenalty`. Empty Set
+    // for cold-start (caller treats as no contribution).
+    recentBigPremiseStyles,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -1720,6 +1742,18 @@ type CachedBatchEntry = {
    * strings drop to undefined so the recent set never holds a "".
    */
   hookSkeletonId?: string;
+  /**
+   * Phase 6 (BIG PREMISE LAYER) — premise-style id (one of 5 values)
+   * persisted on cache so `buildNoveltyContext` can populate
+   * `recentBigPremiseStyles` directly off the envelope. Same non-
+   * breaking JSONB pattern as `hookSkeletonId` above — legacy entries
+   * written before Phase 6 shipped contribute nothing to the cross-
+   * batch -2 premise-style lever. Tolerantly parsed against
+   * `BIG_PREMISE_STYLES`: unknown / typo'd / future-removed values
+   * silently drop to undefined so the recent set never holds a
+   * string the catalog doesn't recognize.
+   */
+  bigPremiseStyle?: BigPremiseStyle;
 };
 
 /**
@@ -1767,6 +1801,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         ideaCoreType?: unknown;
         ideaCoreFamily?: unknown;
         hookSkeletonId?: unknown;
+        bigPremiseStyle?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1839,6 +1874,18 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         typeof hsidRaw === "string" && hsidRaw.length > 0
           ? hsidRaw
           : undefined;
+      // Phase 6 (BIG PREMISE LAYER) — tolerant parse against the closed
+      // BIG_PREMISE_STYLES enum. Unknown / future-removed / typo'd
+      // values silently drop to undefined so the cross-batch -2
+      // premise-style lever stays quiet for legacy / corrupt entries
+      // rather than poisoning the recentBigPremiseStyles Set with a
+      // string the catalog doesn't recognize.
+      const bpsRaw = wrapper.bigPremiseStyle;
+      const bigPremiseStyle: BigPremiseStyle | undefined =
+        typeof bpsRaw === "string" &&
+        (BIG_PREMISE_STYLES as readonly string[]).includes(bpsRaw)
+          ? (bpsRaw as BigPremiseStyle)
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1853,6 +1900,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         ideaCoreType,
         ideaCoreFamily,
         hookSkeletonId,
+        bigPremiseStyle,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2064,6 +2112,14 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // skeleton sets — which is the right behavior since an absent
     // tag should never accidentally match a fresh skeleton.
     hookSkeletonId: c.meta.hookSkeletonId,
+    // Phase 6 (BIG PREMISE LAYER) — persist the premise-style id
+    // (when the picked entry carried one). Same non-breaking pattern
+    // as `hookSkeletonId` above: undefined for legacy template entries
+    // (no `bigPremise` flag) and for Llama / Claude fallback wraps;
+    // undefined flows through to the cache cleanly and the next
+    // regen's `buildNoveltyContext` silently leaves that entry out
+    // of `recentBigPremiseStyles`.
+    bigPremiseStyle: c.meta.bigPremiseStyle,
   }));
 }
 
@@ -2743,6 +2799,12 @@ export async function runHybridIdeator(
           // genuinely scenario-shaped phrasings flows through
           // cleanly.
           hookSkeletonId: c.meta.hookSkeletonId,
+          // Phase 6 (BIG PREMISE LAYER) — same field on the rescue
+          // path so a best-effort empty-after-filter ship still seeds
+          // the next regen's `recentBigPremiseStyles` correctly.
+          // Mirrors the main toCacheEntries write above; undefined
+          // for legacy template entries flows through cleanly.
+          bigPremiseStyle: c.meta.bigPremiseStyle,
         }));
       await persistCache(input.creator, rescueEntries);
     }

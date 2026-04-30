@@ -26,6 +26,7 @@ import {
   lookupBannedHookPrefix,
   lookupHookOpener,
   validateHook,
+  type BigPremiseStyle,
   type Energy,
   type HookIntent,
   type HookLanguageStyle,
@@ -211,6 +212,21 @@ export type CandidateMeta = PatternMeta | {
    * discipline as `trendId` / `voiceProfile` above).
    */
   hookSkeletonId?: string;
+  /**
+   * Phase 6 (BIG PREMISE LAYER) — telemetry-only flag mirroring the
+   * field on `PatternMeta`. Llama / Claude fallback wraps NEVER set
+   * this (premises are only emitted by the local catalog), so the
+   * field stays undefined on every fallback wrap and the QA driver
+   * can count premises shipped without a per-variant guard.
+   */
+  usedBigPremise?: boolean;
+  /**
+   * Phase 6 — premise-style id mirroring the field on `PatternMeta`.
+   * Llama / Claude fallback wraps NEVER set this; selector treats
+   * absent as "no contribution to the premise-style axis" (same
+   * discipline as `hookSkeletonId` / `trendId` above).
+   */
+  bigPremiseStyle?: BigPremiseStyle;
   /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
@@ -621,6 +637,20 @@ function metaVideoPattern(m: CandidateMeta): VideoPattern | undefined {
  */
 function metaHookSkeletonId(m: CandidateMeta): string | undefined {
   return "hookSkeletonId" in m ? m.hookSkeletonId : undefined;
+}
+
+/**
+ * Phase 6 (BIG PREMISE LAYER) — premise-style accessor mirroring
+ * `metaHookSkeletonId` above. Returns the persisted style id when
+ * the meta variant carries one (pattern_variation candidates whose
+ * picked entry was tagged `bigPremise: true`), otherwise undefined.
+ * Llama / Claude fallback wraps NEVER set `bigPremiseStyle` (no
+ * derivation path from raw hook text — premises are catalog-only)
+ * so this returns undefined for them, and downstream callers MUST
+ * treat undefined as "no contribution to the premise-style axis".
+ */
+function metaBigPremiseStyle(m: CandidateMeta): BigPremiseStyle | undefined {
+  return "bigPremiseStyle" in m ? m.bigPremiseStyle : undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -1138,6 +1168,16 @@ function tryRewrite(
   if (meta.source !== "pattern_variation") return null;
   if (!meta.scenario) return null;
   const scenario = meta.scenario;
+  // Phase 6 (BIG PREMISE LAYER) — premises are scenario-agnostic
+  // complete jokes (spec PART 7). The rewrite path swaps the chosen
+  // hook for a DIFFERENT legacy entry from `HOOK_PHRASINGS_BY_STYLE`,
+  // which is scenario-bound by construction. Rewriting a premise
+  // would replace the entire joke with a template — defeating the
+  // feature. Skip rewrite for premise picks; if the score is too
+  // weak the candidate gets rejected like any other (correct fail-
+  // closed behavior — a premium premise that doesn't survive scoring
+  // shouldn't be silently replaced by a generic template hook).
+  if ("usedBigPremise" in meta && meta.usedBigPremise === true) return null;
   // Try each *other* hook style; for each, walk its phrasing list
   // and return the first variant that passes `validateHook`. We
   // deliberately do NOT slice to 10 words — the validator already
@@ -1274,6 +1314,20 @@ function tryRewrite(
       if ("intentFallback" in nextMeta) {
         nextMeta.intentFallback = undefined;
       }
+      // Phase 6 (BIG PREMISE LAYER) — the rewrite swaps to a DIFFERENT
+      // legacy entry which is NEVER a premise (no legacy entry carries
+      // `bigPremise: true`). Clear the original premise telemetry so
+      // downstream readers (QA driver count, within-batch -3 dup,
+      // cross-batch -2 in `recentBigPremiseStyles`) don't attribute
+      // a premise pick to a hook that no longer renders one. Same
+      // staleness discipline as the `sourceLanguagePhrasing` /
+      // `hookSkeletonId` / `intentFallback` clears above.
+      if ("usedBigPremise" in nextMeta) {
+        nextMeta.usedBigPremise = undefined;
+      }
+      if ("bigPremiseStyle" in nextMeta) {
+        nextMeta.bigPremiseStyle = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
@@ -1364,7 +1418,19 @@ export function filterAndRescore(
     let rewriteAttempted = false;
 
     // Hard floor: any zero in the three critical axes ⇒ reject regardless.
-    if (score.hookImpact === 0 || score.tension === 0 || score.filmability === 0) {
+    // Phase 6 — Big Premise candidates are scenario-AGNOSTIC complete jokes by
+    // design and therefore never contain the tension-marker / specific-detail
+    // words `scoreHookImpact` looks for, so they always score `hookImpact = 0`
+    // legitimately. The deferred Part 4 boost would have lifted their score
+    // implicitly; until that ships, we exempt premise candidates ONLY from the
+    // `hookImpact === 0` arm of the hard floor (tension and filmability arms
+    // still apply — those measure the SHOT, not the hook's wording). This is a
+    // structural gate-decision change for a new candidate kind, NOT a scoring
+    // philosophy change: `scoreIdea` itself is untouched.
+    const isPremise =
+      (meta as { usedBigPremise?: boolean }).usedBigPremise === true;
+    const hookImpactFails = !isPremise && score.hookImpact === 0;
+    if (hookImpactFails || score.tension === 0 || score.filmability === 0) {
       // Try rewrite once if it's pattern_variation — maybe a different
       // hook style salvages it.
       // Phase 3D BUG A — thread the cross-batch hot skeleton list so
@@ -1773,6 +1839,31 @@ export type NoveltyContext = {
    * other fresh-axis sets.
    */
   recentHookStrings?: ReadonlySet<string>;
+  /**
+   * Phase 6 (BIG PREMISE LAYER) — cross-batch premise-style demotion.
+   * Holds `bigPremiseStyle` ids drawn from the last-3 batches' cache
+   * envelopes (any entry with a non-undefined `bigPremiseStyle` field
+   * — the source-of-truth populated by `assembleCandidate` and
+   * persisted via `toCacheEntries`). Used by `selectionPenalty` to
+   * apply a `-2` cross-batch demotion when a candidate's
+   * `meta.bigPremiseStyle` is in this set.
+   *
+   * Sized SMALLER than the skeleton tiers (-3 / -8) intentionally —
+   * each premise entry is a UNIQUE complete-hook string (no
+   * template-noun-swap risk), so cross-batch repetition is far less
+   * obnoxious than skeleton repetition. The within-batch dup penalty
+   * (handled inline in `selectionPenalty` by counting how many
+   * `batchSoFar` entries already carry the same `bigPremiseStyle`)
+   * is `-3` per duplicate — sized LARGER than the cross-batch lever
+   * because three premises of the same style in ONE batch is the
+   * primary failure mode the spec calls out.
+   *
+   * Empty / undefined for cold-start (no prior cache history) and
+   * for entries that didn't ship a premise (legacy template entries
+   * without `bigPremise: true`). Selector treats absent as "no
+   * contribution" — same discipline as the legacy axis sets above.
+   */
+  recentBigPremiseStyles?: ReadonlySet<BigPremiseStyle>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -2292,6 +2383,29 @@ export function selectionPenalty(
     const cHsid = metaHookSkeletonId(c.meta);
     if (cHsid && hookSkeletons.has(cHsid)) p -= 3;
 
+    // Phase 6 (BIG PREMISE LAYER) — within-batch premise-style dup
+    // demotion. -3 PER DUPLICATE already in batchSoFar (count-based,
+    // not set-based — three picks of the same premise style in one
+    // batch is the primary failure mode the spec calls out, so a
+    // single -3 on the second pick wasn't enough; the third pick
+    // accumulates -6 and reliably loses to a fresh-style alternative
+    // even when its other axes score 4-5pt higher). Sized parallel
+    // to the within-batch hookSkeletonId / videoPattern dup levers
+    // above. Skipped silently when the candidate has no
+    // bigPremiseStyle (legacy template entries + Llama / Claude
+    // fallback wraps — same discipline as voiceProfile / videoPattern
+    // / hookSkeletonId).
+    const premiseStyleCounts = new Map<BigPremiseStyle, number>();
+    for (const b of batchSoFar) {
+      const ps = metaBigPremiseStyle(b.meta);
+      if (ps) premiseStyleCounts.set(ps, (premiseStyleCounts.get(ps) ?? 0) + 1);
+    }
+    const cPremise = metaBigPremiseStyle(c.meta);
+    if (cPremise) {
+      const dupCount = premiseStyleCounts.get(cPremise) ?? 0;
+      if (dupCount > 0) p -= 3 * dupCount;
+    }
+
     // HOOK INTENT spec (Phase 4) — within-batch intent demotion +
     // HARD all-3-same guard. HookIntent is the controller axis
     // ABOVE HookLanguageStyle, so the per-dup soft penalty is sized
@@ -2472,6 +2586,25 @@ export function selectionPenalty(
     // composite, so a -4 cap was too soft to actually displace
     // them. -8 reliably pushes them below any same-intent alt.
     if (ctx.hookSkeletonsAtSessionCap?.has(cHsidCross) ?? false) p -= 8;
+  }
+  // Phase 6 (BIG PREMISE LAYER) — cross-batch premise-style demotion.
+  // -2 when this candidate's `meta.bigPremiseStyle` appeared anywhere
+  // in the last-3-batches premise-style set (`recentBigPremiseStyles`,
+  // populated by `buildNoveltyContext` from each batch's persisted
+  // `bigPremiseStyle` field). Sized SMALLER than the skeleton tiers
+  // (-3 / -8) intentionally — every premise entry is a UNIQUE
+  // complete-hook string so there's no template-noun-swap repetition
+  // risk; cross-batch repetition is far less obnoxious than skeleton
+  // repetition. Combined with the within-batch -3-per-dup lever
+  // above, the soft selector consistently rotates premise styles
+  // across batches even when the strongest catalog entry happens to
+  // share a style with a recent shipment. Skipped silently when the
+  // candidate has no bigPremiseStyle (legacy template entries +
+  // Llama / Claude fallback wraps — same discipline as voiceProfile
+  // / hookSkeletonId / trendId).
+  const cPremCross = metaBigPremiseStyle(c.meta);
+  if (cPremCross) {
+    if (ctx.recentBigPremiseStyles?.has(cPremCross) ?? false) p -= 2;
   }
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The

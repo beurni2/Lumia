@@ -1,0 +1,181 @@
+PHASE 6 — BIG PREMISE + COMEDY COMPRESSION LAYER
+
+Goal:
+Upgrade ideas from small relatable moments → big, funny, viral premises.
+
+Output must be:
+- simple
+- short
+- immediately funny
+- high emotional punch
+
+---
+
+PART 1 — BIG PREMISE TRANSFORMATION
+
+After ideaCoreType + scenario are selected:
+
+Transform idea into a stronger premise using:
+
+1. SELF-ROAST
+- exaggerate personal failure
+- make creator the joke
+
+Example:
+"i avoided my to-do list"
+→ "i ghosted my own to-do list"
+
+---
+
+2. ABSURD METAPHOR
+
+- turn situation into something bigger/unexpected
+
+Example:
+"late night thoughts"
+→ "my brain filed for emotional bankruptcy"
+
+---
+
+3. CONTRAST / DUALITY
+
+- two opposing identities
+
+Example:
+"night vs morning"
+→ "2AM me is a genius, 9AM me is a criminal"
+
+---
+
+4. OVER-DRAMATIZATION
+
+- make small moment feel huge
+
+Example:
+"small mistake"
+→ "this is where my life collapsed"
+
+---
+
+5. IDENTITY FRAMING
+
+- tie to “who I am”
+
+Example:
+"i procrastinate"
+→ "i specialize in disappointing my future self"
+
+---
+
+PART 2 — COMEDY COMPRESSION
+
+After premise is generated:
+
+Rules:
+
+- ≤ 10 words (prefer 6–9)
+- 1 clear idea
+- no filler words
+- no explanation
+- no generic phrasing
+
+---
+
+PART 3 — ANTI-BORING RULES
+
+Reject hook if:
+
+- reads like observation instead of joke
+- feels safe or neutral
+- no emotional spike
+- could apply to any scenario
+
+---
+
+PART 4 — FUNNINESS HEURISTICS
+
+Boost if:
+
+- unexpected phrasing
+- contrast inside sentence
+- self-roast tone
+- slightly absurd but relatable
+
+Penalty if:
+
+- generic
+- predictable
+- flat tone
+- “i did X again” type phrasing
+
+---
+
+PART 5 — KEEP SIMPLICITY
+
+Do NOT:
+
+- make it complex
+- add multiple ideas
+- over-explain
+- make it “smart”
+
+Goal:
+
+simple + funny > clever
+
+---
+
+PART 6 — EXAMPLES (TARGET STYLE)
+
+GOOD:
+
+- "i ghosted my own to-do list"
+- "my brain hates me after 11pm"
+- "i gently disappoint my dreams weekly"
+- "this is why i can’t have nice habits"
+- "i am my own worst project"
+
+BAD:
+
+- "i tried to be productive but failed"
+- "i struggle with motivation sometimes"
+- "this happens to me often"
+- "i was thinking about it again"
+
+---
+
+PART 7 — INTEGRATION
+
+Flow becomes:
+
+ideaCoreType
+→ scenario
+→ HookIntent
+→ Big Premise transform
+→ Comedy compression
+→ template (only if needed)
+→ pattern layer
+→ final output
+
+---
+
+IMPORTANT
+
+Do NOT:
+- change Phase 5
+- change HookIntent system
+- change scoring system yet
+
+This layer sits ABOVE templates, not replacing them.
+
+---
+
+SUCCESS CRITERIA
+
+When reading hooks:
+
+User reaction should be:
+"this is funny immediately"
+
+NOT:
+"this is relatable but boring"

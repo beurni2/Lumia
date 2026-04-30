@@ -2853,6 +2853,72 @@ export function validateHook(hook: string): boolean {
 }
 
 /**
+ * Phase 6 (BIG PREMISE LAYER) — anti-boring / comedy-compression
+ * validator applied IN ADDITION to `validateHook` for entries marked
+ * `bigPremise: true`. Enforces spec PART 2 (≤10 words — already in
+ * `validateHook`) + PART 3 (no comedy-deflating filler words) + PART 4
+ * penalty rules (no naked "i did X again" / "i (was )?thinking about" /
+ * lazy-observation openers). Legacy template entries skip this gate
+ * entirely (the picker only invokes it when `entry.bigPremise === true`)
+ * so the existing flow is untouched and back-compat is preserved.
+ *
+ * Returns `true` when the candidate is sharp enough to ship as a
+ * premise; `false` when it should be rejected so the picker walks to
+ * the next entry in seed-rotated order (same self-healing path as
+ * `validateHook` rejection).
+ */
+const BIG_PREMISE_FILLER_WORDS: ReadonlySet<string> = new Set<string>([
+  "just",
+  "really",
+  "basically",
+  "literally",
+  "actually",
+]);
+
+const BIG_PREMISE_FILLER_PHRASES: readonly string[] = [
+  "kind of",
+  "pretty much",
+  "sort of",
+];
+
+const BIG_PREMISE_BORING_PATTERNS: readonly RegExp[] = [
+  // "i did X again" / "i tried X again" — Part 4 boring pattern
+  /\bi (did|tried|attempted|was) \w+ again\b/i,
+  // "i (was )?thinking about" — naked observation opener
+  /\bi (was |am )?thinking about\b/i,
+  // "i think …" as the FIRST two words — lazy observation opener
+  /^i think\b/i,
+  // "i feel like …" as the FIRST three words — lazy observation opener
+  /^i feel like\b/i,
+  // "you know when …" as the FIRST three words — lazy observation opener
+  /^you know when\b/i,
+];
+
+export function validateBigPremise(hook: string): boolean {
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return false;
+  // Word-count cap (spec PART 2). `validateHook` already enforces
+  // ≤10 words but premises must NEVER bypass this even if the
+  // shared validator is later relaxed.
+  const words = trimmed.split(/\s+/);
+  if (words.length > 10) return false;
+  // Filler-word rail (spec PART 3 — "comedy compression").
+  const lower = trimmed.toLowerCase();
+  for (const word of words) {
+    const w = word.toLowerCase().replace(/[.,!?;:'"()]+/g, "");
+    if (BIG_PREMISE_FILLER_WORDS.has(w)) return false;
+  }
+  for (const phrase of BIG_PREMISE_FILLER_PHRASES) {
+    if (lower.includes(phrase)) return false;
+  }
+  // Boring-pattern rail (spec PART 4 penalty class).
+  for (const pat of BIG_PREMISE_BORING_PATTERNS) {
+    if (pat.test(trimmed)) return false;
+  }
+  return true;
+}
+
+/**
  * A single phrasing variant — `build` takes a scenario and returns
  * the assembled hook string. `opener` is the HookOpener it produces
  * (declared statically so we don't have to re-derive it per call).
@@ -3834,6 +3900,39 @@ export function applyVoiceToCaption(
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Phase 6 — BIG PREMISE + COMEDY COMPRESSION LAYER                    */
+/*                                                                     */
+/* A funnier-than-template variety of LanguagePhrasingEntry whose      */
+/* `build` returns a complete scenario-AGNOSTIC premise hook (whole    */
+/* joke, no template-noun-swap). Premises sit ABOVE templates per     */
+/* spec PART 7 — they participate in the existing seed-rotated         */
+/* picker so when a premise validates first it ships, otherwise the    */
+/* picker falls through to the surrounding (template-shaped) entries  */
+/* in the same HookLanguageStyle bucket. Five styles map to the       */
+/* spec's PART 1 transformations:                                      */
+/*   - self_roast          : exaggerate personal failure              */
+/*   - absurd_metaphor     : turn the situation into something bigger */
+/*   - contrast_duality    : two opposing identities                  */
+/*   - over_dramatization  : make a small moment feel huge            */
+/*   - identity_framing    : tie to "who I am"                        */
+/* `bigPremise` + `premiseStyle` are OPTIONAL on LanguagePhrasingEntry */
+/* (additive, JSON-safe). The picker layers an extra rejection rail   */
+/* (`validateBigPremise`) ON TOP of `validateHook` for entries with    */
+/* `bigPremise === true` — enforces the spec's PART 2 (≤10 words, no  */
+/* filler) + PART 3 (no boring/observation phrasing) constraints,     */
+/* without touching the legacy template flow.                          */
+/* ------------------------------------------------------------------ */
+
+export const BIG_PREMISE_STYLES = [
+  "self_roast",
+  "absurd_metaphor",
+  "contrast_duality",
+  "over_dramatization",
+  "identity_framing",
+] as const;
+export type BigPremiseStyle = (typeof BIG_PREMISE_STYLES)[number];
+
 /**
  * A phrasing variant keyed by HookLanguageStyle. Unlike the legacy
  * HookPhrasingEntry, there is no static `opener` field — the new
@@ -3946,6 +4045,28 @@ export type LanguagePhrasingEntry = {
    * so the typecheck enforces a closed set on both sides.
    */
   allowedNounTypes?: ReadonlyArray<TopicNounType>;
+  /**
+   * Phase 6 (BIG PREMISE LAYER) — flag entries whose `build` returns
+   * a complete scenario-AGNOSTIC premise hook (per spec PART 1: a
+   * funny stand-alone joke, NOT a template-noun-swap). When true,
+   * the picker layers `validateBigPremise` ON TOP of `validateHook`
+   * (PART 2 + PART 3 rails: ≤10 words, no filler, no boring
+   * observation phrasing). When undefined / false, the entry follows
+   * the legacy template flow unchanged. Premise entries should also
+   * leave `genericHook` undefined (premises are sharp, NOT flat) and
+   * leave `skeletonId` undefined (each premise is its own unique
+   * joke, not a template skeleton subject to the noun-swap cap).
+   */
+  bigPremise?: boolean;
+  /**
+   * Phase 6 — which of the 5 premise styles this entry expresses.
+   * MUST be set when `bigPremise === true` (the picker doesn't
+   * enforce this at runtime; it's a JSDoc contract). Drives the
+   * cross-batch + within-batch premise-style novelty axis in
+   * `selectionPenalty` so a single batch never ships 3+ premises
+   * of the same style and back-to-back batches don't repeat styles.
+   */
+  premiseStyle?: BigPremiseStyle;
 };
 
 /**
@@ -4143,6 +4264,70 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "relatable",
       genericHook: true,
     },
+    // ----------------------------------------------------------------
+    // Phase 6 BIG PREMISE additions — scenario-AGNOSTIC complete
+    // premise hooks (PART 1: SELF_ROAST + IDENTITY_FRAMING for the
+    // confession bucket since first-person admissions read most
+    // naturally as those two styles). Each carries `bigPremise: true`
+    // + `premiseStyle` + premium scores (rigidity 1 = least reusable,
+    // sharpness 5 = highest emotional impact). NO `genericHook` flag
+    // (premises are sharp, not flat) and NO `skeletonId` (each entry
+    // is its own unique joke, not a template skeleton).
+    // ----------------------------------------------------------------
+    {
+      build: () => `i ghosted my own to-do list`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `i am my own worst project`,
+      voiceProfiles: ["self_aware", "blunt", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `i lose to myself in scheduled rounds`,
+      voiceProfiles: ["dry_humor", "deadpan", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `i am the protagonist of accidental chaos`,
+      voiceProfiles: ["self_aware", "dry_humor", "soft_confessional"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
+    },
+    {
+      build: () => `i am professionally allergic to follow-through`,
+      voiceProfiles: ["self_aware", "dry_humor", "soft_confessional"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
+    },
+    {
+      build: () => `i was raised to disappoint exactly myself`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
+    },
   ],
   observation: [
     {
@@ -4229,6 +4414,36 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "compulsion",
       genericHook: true,
     },
+    // Phase 6 BIG PREMISE additions — OVER_DRAMATIZATION premises
+    // read as "general observations about catastrophic stakes",
+    // a natural fit for the observation bucket.
+    {
+      build: () => `this small thing has unmade me entirely`,
+      voiceProfiles: ["soft_confessional", "blunt", "sarcastic"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
+    {
+      build: () => `this inconvenience has rewritten my whole arc`,
+      voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
+    {
+      build: () => `my entire personality is currently unraveling`,
+      voiceProfiles: ["chaotic", "sarcastic", "soft_confessional"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
   ],
   absurd_claim: [
     {
@@ -4293,6 +4508,75 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "relatable",
       skeletonId: "quietly_losing_to",
       allowedNounTypes: ["event", "body_state", "abstract", "object"] as const,
+    },
+    // Phase 6 BIG PREMISE additions — ABSURD_METAPHOR premises
+    // (PART 1: turn the situation into something bigger). These
+    // anthropomorphize internal state into bureaucratic / corporate
+    // / aviation language for comic effect — natural fit for the
+    // absurd_claim bucket. Plus 2 CONTRAST_DUALITY entries that
+    // read as absurd parallel-self framings.
+    {
+      build: () => `my brain filed for emotional bankruptcy`,
+      voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "absurd_metaphor",
+    },
+    {
+      build: () => `my brain hates me after 11pm`,
+      voiceProfiles: ["chaotic", "dry_humor", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "absurd_metaphor",
+    },
+    {
+      build: () => `my motivation is in airplane mode again`,
+      voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "absurd_metaphor",
+    },
+    {
+      build: () => `my dopamine called in sick again`,
+      voiceProfiles: ["chaotic", "dry_humor", "sarcastic"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "absurd_metaphor",
+    },
+    {
+      build: () => `my willpower is on permanent vacation`,
+      voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "absurd_metaphor",
+    },
+    {
+      build: () => `morning me undoes everything afternoon me does`,
+      voiceProfiles: ["dry_humor", "deadpan", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "contrast_duality",
+    },
+    {
+      build: () => `past me made plans, present me suffers`,
+      voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "contrast_duality",
     },
   ],
   matter_of_fact: [
@@ -4387,6 +4671,92 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       genericHook: true,
+    },
+    // Phase 6 BIG PREMISE additions — matter_of_fact carries the
+    // bulk of declarative premise hooks (OVER_DRAMATIZATION +
+    // SELF_ROAST + IDENTITY_FRAMING) since its bucket signature is
+    // "blunt declarative statement about reality" — exactly what a
+    // big-premise hook reads as.
+    {
+      build: () => `this is where my life collapsed`,
+      voiceProfiles: ["chaotic", "blunt", "sarcastic"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
+    {
+      build: () => `my dignity has officially left the chat`,
+      voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
+    {
+      build: () => `my soul has politely vacated the building`,
+      voiceProfiles: ["chaotic", "dry_humor", "sarcastic"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
+    },
+    {
+      build: () => `i specialize in disappointing my future self`,
+      voiceProfiles: ["self_aware", "dry_humor", "soft_confessional"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `i gently disappoint my dreams weekly`,
+      voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `this is why i can't have nice habits`,
+      voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `i specialize in highly creative avoidance`,
+      voiceProfiles: ["self_aware", "dry_humor", "sarcastic"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
+    },
+    {
+      build: () => `i am the villain of my own scheduling`,
+      voiceProfiles: ["self_aware", "sarcastic", "dry_humor"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
+    },
+    {
+      build: () => `my brand is mild self-betrayal`,
+      voiceProfiles: ["self_aware", "dry_humor", "blunt"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "relatable",
+      bigPremise: true,
+      premiseStyle: "identity_framing",
     },
   ],
   question: [
@@ -4638,6 +5008,26 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       hookIntent: "relatable",
       skeletonId: "future_vs_current_thinks",
       allowedNounTypes: ["object", "abstract", "event"] as const,
+    },
+    // Phase 6 BIG PREMISE additions — CONTRAST_DUALITY premises
+    // in the comparison bucket (explicit two-side framings).
+    {
+      build: () => `the planner version versus the chaos version`,
+      voiceProfiles: ["dry_humor", "sarcastic", "deadpan"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "contrast_duality",
+    },
+    {
+      build: () => `yesterday me booked chaos for today me's calendar`,
+      voiceProfiles: ["dry_humor", "sarcastic", "deadpan"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "contrast_duality",
     },
   ],
   object_pov: [
@@ -4916,6 +5306,26 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
       genericHook: true,
+    },
+    // Phase 6 BIG PREMISE additions — short fragment premises that
+    // fit the anti_hook bucket's "abrupt fragment" voice.
+    {
+      build: () => `joke's on me. again.`,
+      voiceProfiles: ["dry_humor", "deadpan", "self_aware"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "self_roast",
+    },
+    {
+      build: () => `truly humiliating turn of events`,
+      voiceProfiles: ["sarcastic", "blunt", "deadpan"],
+      rigidityScore: 1,
+      sharpnessScore: 5,
+      hookIntent: "scroll_stop",
+      bigPremise: true,
+      premiseStyle: "over_dramatization",
     },
   ],
   escalation_hook: [
@@ -5444,6 +5854,28 @@ export type PatternMeta = {
    * axis" (same discipline as `videoPattern` / `voiceProfile`).
    */
   hookSkeletonId?: string;
+  /**
+   * Phase 6 (BIG PREMISE LAYER) — true when the WINNING
+   * `LanguagePhrasingEntry` carried `bigPremise: true` (a complete
+   * scenario-AGNOSTIC premise hook that passed BOTH `validateHook`
+   * AND the additional `validateBigPremise` rail). Telemetry only;
+   * the selector reads `bigPremiseStyle` (below) for the within-
+   * batch + cross-batch novelty levers. Optional / defaults to
+   * undefined for entries that fell through to the legacy template
+   * flow — undefined is treated as "no contribution to the premise
+   * axis" everywhere downstream.
+   */
+  usedBigPremise?: boolean;
+  /**
+   * Phase 6 — which of the 5 premise styles the WINNING entry
+   * expressed (set ONLY when the picked entry carried both
+   * `bigPremise: true` AND `premiseStyle`). Persisted on cache via
+   * `CachedBatchEntry.bigPremiseStyle` so the cross-batch -2 lever
+   * in `selectionPenalty` survives the JSONB round-trip. Readers
+   * MUST treat absent as "no contribution to the premise-style
+   * axis" (same discipline as `hookSkeletonId` / `videoPattern`).
+   */
+  bigPremiseStyle?: BigPremiseStyle;
 };
 
 /**
@@ -5552,9 +5984,17 @@ function pickValidatedLanguagePhrasing(
         continue;
       }
       const candidate = toneInflect(entry.build(scenario), tone).trim();
-      if (validateHook(candidate)) {
-        return { entry, index: idx, hook: candidate };
+      if (!validateHook(candidate)) continue;
+      // Phase 6 (BIG PREMISE LAYER) — premium anti-boring rail
+      // applied AFTER `validateHook` succeeds, but ONLY for entries
+      // marked `bigPremise: true`. Legacy template entries skip
+      // this gate entirely so the existing flow is untouched.
+      // Rejection falls through to the next phrasing in seed-rotated
+      // order (same self-healing path as `validateHook` rejection).
+      if (entry.bigPremise === true && !validateBigPremise(candidate)) {
+        continue;
       }
+      return { entry, index: idx, hook: candidate };
     }
     return null;
   };
@@ -5943,6 +6383,22 @@ function assembleCandidate(
       // entry never matches the recent / frequent skeleton sets.
       ...(sourceLanguagePhrasing.skeletonId
         ? { hookSkeletonId: sourceLanguagePhrasing.skeletonId }
+        : {}),
+      // Phase 6 (BIG PREMISE LAYER) — propagate the winning entry's
+      // premise flag + style. Spread-when-present so legacy template
+      // entries (no `bigPremise` flag) leave both fields undefined
+      // rather than serialising explicit `false` / `undefined` into
+      // JSONB. The selector reads `bigPremiseStyle` for both within-
+      // batch (-3 dup) and cross-batch (-2 in `recentBigPremiseStyles`)
+      // novelty levers; `usedBigPremise` is telemetry-only (QA driver
+      // counts premises shipped per batch).
+      ...(sourceLanguagePhrasing.bigPremise
+        ? {
+            usedBigPremise: true,
+            ...(sourceLanguagePhrasing.premiseStyle
+              ? { bigPremiseStyle: sourceLanguagePhrasing.premiseStyle }
+              : {}),
+          }
         : {}),
     },
   };

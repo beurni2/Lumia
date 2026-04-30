@@ -1,0 +1,538 @@
+PHASE 6 — PREMISE STYLE ENGINE
+
+Goal:
+Upgrade Lumina ideas from small relatable observations into simple, funny, viral-style premises.
+
+Current issue:
+The system is technically strong, but outputs still feel too small, literal, and template-like.
+
+We want hooks closer to:
+- “i ghosted my own to-do list”
+- “my brain hates me after 11pm”
+- “2am me is a genius. 9am me is useless”
+- “the fridge knows i’m lying”
+
+---
+
+CORE IDEA
+
+Add PremiseStyle as a new upstream layer.
+
+PremiseStyle = comedic transformation rule.
+
+It should decide HOW the idea becomes funny before hook templates are used.
+
+---
+
+NEW FLOW
+
+ideaCoreType
+→ scenario
+→ HookIntent
+→ PremiseStyle
+→ hook generation
+→ comedy compression
+→ validation
+→ pattern / filming guide
+
+Templates become fallback/supporting material, not the primary source of humor.
+
+---
+
+DATA STRUCTURE
+
+Create:
+
+type PremiseStyle = {
+  id: string
+  label: string
+  purpose: string
+  transformLogic: string[]
+  worksBestWith: string[]
+  hookShapes: string[]
+  examples: string[]
+}
+
+---
+
+IMPLEMENT THESE 50 PREMISE STYLES
+
+1. self_roast_reactor
+Label: Self-Roast Reactor
+Purpose: Make the creator the joke.
+Examples:
+- "i cannot be trusted with simple tasks"
+- "i ghosted my own to-do list"
+
+2. absurd_escalation
+Label: Absurd Escalation Engine
+Purpose: Turn a normal moment into chaos.
+Examples:
+- "i checked one thing. ruined my day"
+- "this got worse for no reason"
+
+3. duality_clash
+Label: Duality Detonation
+Purpose: Pit two versions of the creator against each other.
+Examples:
+- "2am me is a genius. 9am me is useless"
+- "morning me betrayed night me"
+
+4. overdramatic_reframe
+Label: Overdramatization Overdrive
+Purpose: Make a tiny issue feel huge.
+Examples:
+- "this is where my life collapsed"
+- "a simple task defeated me"
+
+5. expectation_collapse
+Label: Expectation Executioner
+Purpose: Set up hope, destroy it fast.
+Examples:
+- "i tried being productive. mistake."
+- "the plan did not survive contact"
+
+6. irony_flip
+Label: Savage Irony Inversion
+Purpose: Say the opposite of what should be true.
+Examples:
+- "resting somehow made me more tired"
+- "being responsible ruined everything"
+
+7. relatable_pain
+Label: Relatable Pain Payload
+Purpose: Expose a common private behavior.
+Examples:
+- "i opened it and immediately closed it"
+- "i checked it and pretended that counted"
+
+8. dopamine_denial
+Label: Dopamine Denial Device
+Purpose: Show craving vs self-control failure.
+Examples:
+- "my discipline expired instantly"
+- "one scroll became my whole personality"
+
+9. collapse_core
+Label: Hyperbolic Collapse Core
+Purpose: Make small failure feel like total collapse.
+Examples:
+- "this ended my whole momentum"
+- "one inconvenience took me out"
+
+10. mundane_meltdown
+Label: Mundane Meltdown Missile
+Purpose: Make boring daily stuff emotionally dramatic.
+Examples:
+- "the dishes won again"
+- "laundry became my final boss"
+
+11. pattern_exposure
+Label: Psychological Pattern Pulverizer
+Purpose: Reveal a repeated behavior.
+Examples:
+- "this is my entire pattern"
+- "same mistake. new outfit."
+
+12. delusion_downfall
+Label: Delusional Downfall Drill
+Purpose: Show confidence turning into failure.
+Examples:
+- "i believed in myself too early"
+- "the confidence was not supported by evidence"
+
+13. inner_demon
+Label: Inner Demon Detonator
+Purpose: Externalize bad impulses.
+Examples:
+- "my brain chose violence at midnight"
+- "the bad idea won immediately"
+
+14. micro_trauma
+Label: Micro-Trauma Magnifier
+Purpose: Turn small awkwardness into lasting damage.
+Examples:
+- "i will remember this forever"
+- "that one moment changed my personality"
+
+15. fake_confidence
+Label: Fake Confidence Fracture
+Purpose: Confidence cracks quickly.
+Examples:
+- "i walked in like i had a plan"
+- "confidence left the room first"
+
+16. anxiety_paradox
+Label: Anxiety Paradox Accelerator
+Purpose: Show lazy body + anxious brain.
+Examples:
+- "too tired to move. too anxious to rest"
+- "my body quit. my brain kept screaming"
+
+17. lazy_genius
+Label: Lazy Genius Lockpick
+Purpose: Clever excuse for laziness.
+Examples:
+- "i optimized doing nothing"
+- "this is efficiency if you don’t think too hard"
+
+18. doomscroll_disclosure
+Label: Doomscroll Disclosure Bomb
+Purpose: Expose phone spiral.
+Examples:
+- "i checked one thing. still here."
+- "my screen time filed a complaint"
+
+19. adulting_betrayal
+Label: Adulting Betrayal Blade
+Purpose: Adult responsibility feels like a scam.
+Examples:
+- "adulthood keeps asking too much"
+- "i tried adulting. it fought back"
+
+20. hypocrisy_hyperdrive
+Label: Hypocrisy Hyperdrive
+Purpose: Say one thing, do the opposite.
+Examples:
+- "i said balance. then disappeared"
+- "my standards apply to future me only"
+
+21. fomo_fracture
+Label: FOMO Fracture Fuel
+Purpose: Want inclusion but not the commitment.
+Examples:
+- "i wanted an invite. not a plan."
+- "i have fomo and no energy"
+
+22. self_destruction_speedrun
+Label: Self-Destruction Speedrun
+Purpose: Fast sabotage.
+Examples:
+- "i ruined it immediately"
+- "record time. bad decision."
+
+23. self_sabotage_scrollstop
+Label: Scroll-Stopping Self-Sabotage
+Purpose: Make the bad choice obvious.
+Examples:
+- "i knew better. did it anyway."
+- "i watched myself make it worse"
+
+24. chaos_confession
+Label: Chaos Confession Catalyst
+Purpose: Admit something unhinged.
+Examples:
+- "i need to be studied"
+- "this is not normal behavior from me"
+
+25. rage_resonance
+Label: Rage Resonance Reactor
+Purpose: Small annoyance becomes anger.
+Examples:
+- "this annoyed me more than it should"
+- "i took that personally"
+
+26. metaphor_mayhem
+Label: Metaphor Mayhem Machine
+Purpose: Use surreal comparison.
+Examples:
+- "my brain is a browser with 47 tabs"
+- "my motivation left the group chat"
+
+27. contrast_catastrophe
+Label: Contrast Catastrophe Core
+Purpose: Opposite states collide.
+Examples:
+- "big plans. zero movement."
+- "high standards. low execution."
+
+28. pain_point_precision
+Label: Pain Point Precision Nuke
+Purpose: Hit one exact pain.
+Examples:
+- "i hate how real this is"
+- "this should not be this hard"
+
+29. irony_implosion
+Label: Irony Implosion Igniter
+Purpose: The fix makes it worse.
+Examples:
+- "trying to relax stressed me out"
+- "planning made me less prepared"
+
+30. whiplash_wisdom
+Label: Whiplash Wisdom Weapon
+Purpose: Sudden realization with comedy.
+Examples:
+- "that’s when i realized i was the problem"
+- "the lesson arrived late"
+
+31. everyday_armageddon
+Label: Everyday Armageddon Amplifier
+Purpose: Daily routine feels apocalyptic.
+Examples:
+- "one email ruined the atmosphere"
+- "the morning started attacking me"
+
+32. delusion_spiral
+Label: Delusion Death Spiral
+Purpose: False belief gets worse.
+Examples:
+- "i thought i was fine. adorable."
+- "the denial had layers"
+
+33. cringe_trigger
+Label: Trauma Trigger Turbo
+Purpose: Memory cringe hits hard.
+Examples:
+- "my brain replayed it in 4k"
+- "i was doing fine until i remembered"
+
+34. confidence_crash
+Label: Confidence Crash Catalyst
+Purpose: Confidence disappears on contact.
+Examples:
+- "i had confidence for six seconds"
+- "the moment arrived. i vanished."
+
+35. anxiety_avalanche
+Label: Anxiety Avalanche Architect
+Purpose: One worry becomes many.
+Examples:
+- "one thought opened the floodgates"
+- "my brain found a side quest"
+
+36. procrastination_paradox
+Label: Procrastination Paradox Punch
+Purpose: Avoiding work creates more work.
+Examples:
+- "i delayed it until it became a lifestyle"
+- "future me is suing"
+
+37. burnout_betrayal
+Label: Burnout Betrayal Blast
+Purpose: Rest no longer restores.
+Examples:
+- "i rested and still lost"
+- "sleep did not fix the plot"
+
+38. social_battery_sabotage
+Label: Social Battery Sabotage
+Purpose: Social energy collapses.
+Examples:
+- "i wanted plans until they became real"
+- "my social battery saw people and died"
+
+39. manifestation_mockery
+Label: Manifestation Mockery Missile
+Purpose: Self-help trend goes wrong.
+Examples:
+- "i manifested pressure"
+- "the universe misunderstood the assignment"
+
+40. group_chat_guilt
+Label: Group Chat Guilt Grenade
+Purpose: Group chat pressure.
+Examples:
+- "the group chat moved on without me"
+- "i opened it. immediately regretted it"
+
+41. main_character_meltdown
+Label: Main Character Meltdown
+Purpose: Hero fantasy collapses.
+Examples:
+- "main character energy left early"
+- "i started strong. became comic relief."
+
+42. comic_relief_cataclysm
+Label: Comic Relief Cataclysm
+Purpose: Creator becomes the joke.
+Examples:
+- "i was not the lead. i was the lesson."
+- "somehow i became the funny part"
+
+43. three_am_spiral
+Label: 3AM Spiral Sniper
+Purpose: Late-night brain chaos.
+Examples:
+- "3am me needs supervision"
+- "my brain gets creative after midnight"
+
+44. todo_termination
+Label: To-Do List Termination
+Purpose: Task list relationship drama.
+Examples:
+- "i ghosted my own to-do list"
+- "the list and i are not speaking"
+
+45. boundary_backfire
+Label: Boundary Backfire Bomb
+Purpose: Boundary attempt becomes chaos.
+Examples:
+- "i set a boundary and panicked"
+- "peace somehow made me anxious"
+
+46. plant_parent_psychosis
+Label: Plant Parent Psychosis
+Purpose: Treat plant care as emotional drama.
+Examples:
+- "my plant knows i’m unreliable"
+- "i negotiated with a dying leaf"
+
+47. cart_autopsy
+Label: Amazon Cart Autopsy
+Purpose: Shopping cart exposes identity.
+Examples:
+- "my cart knows too much"
+- "this cart is a cry for help"
+
+48. fridge_judgment
+Label: Fridge Judgment Frenzy
+Purpose: Fridge as witness/judge.
+Examples:
+- "the fridge knows i’m lying"
+- "the fridge saw everything"
+
+49. dream_disappointment
+Label: Dream Disappointment Drill
+Purpose: Ambition gets quietly betrayed.
+Examples:
+- "i gently disappoint my goals weekly"
+- "my dreams lowered their expectations"
+
+50. weekly_wipeout
+Label: Weekly Warrior Wipeout
+Purpose: Week starts strong, collapses.
+Examples:
+- "monday had potential. then i happened."
+- "the week lost me by tuesday"
+
+---
+
+SELECTION RULES
+
+Select PremiseStyle based on:
+
+1. ideaCoreType / ideaCoreFamily compatibility
+2. scenario compatibility
+3. HookIntent compatibility
+4. recent usage
+
+Hard rules:
+- no same PremiseStyle twice in one batch
+- avoid recently used styles across regenerate history
+- boost unused styles
+- do not force a style if it does not fit the scenario
+
+---
+
+COMEDY COMPRESSION
+
+After premise generation:
+
+Hook must be:
+- preferably 6–10 words
+- maximum 12 words
+- one clear joke
+- simple
+- instantly understandable
+
+Reject if:
+- too clever
+- too long
+- over-explained
+- multiple ideas in one hook
+- generic
+- not funny
+- literal/descriptive only
+
+---
+
+PREMISE QUALITY RULES
+
+Boost hooks that include:
+- self-roast
+- absurd metaphor
+- identity contrast
+- emotional exaggeration
+- unexpected object/personification
+- specific behavior
+- sharp contradiction
+
+Penalize hooks that:
+- merely describe the action
+- sound like old templates
+- feel safe/neutral
+- lack comedic twist
+- could fit any scenario
+
+---
+
+INTEGRATION RULES
+
+Do not remove existing systems.
+
+Keep:
+- ideaCoreType
+- scenarios
+- HookIntent
+- HookLanguageStyle
+- template catalog
+- pattern mapping layer
+- validation rails
+- Llama mutation fail-open behavior
+
+PremiseStyle should influence hook generation before templates.
+
+Templates should become fallback/support, not the main humor source.
+
+---
+
+OUTPUT METADATA
+
+Add optional metadata:
+
+premiseStyleId
+premiseStyleLabel
+
+Must be optional/backward-safe.
+
+No database migration unless strictly necessary.
+
+---
+
+QA
+
+Run:
+- 10 batches
+- include regenerate=true
+- inspect 30+ hooks
+
+Report:
+
+1. post-worthy hooks count
+2. formulaic hooks count
+3. broken hooks count
+4. repeated premiseStyle count
+5. average hook word count
+6. examples of best hooks
+7. examples of weak hooks
+
+Success target:
+- 50%+ hooks feel post-worthy
+- 0 broken grammar/noun-fit hooks
+- no PremiseStyle repeats in same batch
+- hooks feel funny immediately
+
+---
+
+IMPORTANT
+
+This is a quality layer, not a distribution layer.
+
+Do not tune Phase 5.
+Do not rewrite scoring globally.
+Do not change database schema unless unavoidable.
+
+Goal:
+Make Lumina feel funny, bold, and creator-ready.
