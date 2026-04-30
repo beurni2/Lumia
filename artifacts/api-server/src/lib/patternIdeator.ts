@@ -4768,6 +4768,13 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
     // fragments. Each contains a digit (highly specific +1 boost) and
     // a mid-string period (fragment boost).
     {
+      // Phase 3D BUG B — tagged so the cross-batch skeleton cap and
+      // the rewriter's two-pass walk both see this static-timestamp
+      // template. The exact-hook string set in
+      // `noveltyContext.recentHookStrings` provides a belt-and-braces
+      // guard against re-shipping identical text even if a future
+      // skeleton-id change accidentally untagged it again.
+      skeletonId: "static_timestamp_still_here",
       build: () => `9:14pm. still here.`,
       voiceProfiles: ["soft_confessional", "dry_humor", "deadpan"],
       rigidityScore: 2,

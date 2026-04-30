@@ -1,0 +1,101 @@
+Yes — scope Phase 3D as a bug-fix pass.
+
+Priority order:
+
+1. Bug A — tryRewrite skeleton cap bypass
+2. Bug B — exact hook string dedup
+3. Bug C — Claude fallback word-count crash
+
+Do not change scoring philosophy.
+Do not tune hook creativity.
+Do not touch Phase 5.
+Do not expand catalogs.
+
+---
+
+BUG A — tryRewrite skeleton cap bypass
+
+Problem:
+recentHookSkeletons is built correctly, and skeletonId is persisted correctly, but tryRewrite can still re-select already-hot legacy skeleton entries before selection penalties apply.
+
+Fix:
+Teach tryRewrite to consult recentHookSkeletons before choosing rewrite entries.
+
+Rules:
+- If entry.skeletonId appears hot in recentHookSkeletons, skip it
+- If all rewrite options are skipped, fall back to existing behavior
+- Preserve existing noun-type allowlist checks
+- Preserve genericHook handling
+- Preserve metadata threading
+
+Goal:
+A skeleton like totally_fine_about must not ship every batch.
+
+---
+
+BUG B — exact hook string dedup
+
+Problem:
+Generic hooks without skeletonId can repeat exactly across batches, e.g. “9:14pm. still here.” shipped 6×.
+
+Fix:
+Add recentHookStrings to novelty context.
+
+Rules:
+- Normalize hook strings:
+  - lowercase
+  - trim
+  - collapse whitespace
+  - strip trailing punctuation if needed
+- Hard reject exact hook string if it appears in current batch or recent cache history
+- If hard rejection would starve the pool, allow fallback only after all fresh options fail
+
+Goal:
+No exact hook repeats across a real regenerate session.
+
+Also:
+Add skeletonId to “9:14pm. still here.” if appropriate, but do not rely only on skeletonId.
+
+---
+
+BUG C — Claude fallback word-count crash
+
+Problem:
+Fallback can return hooks > 10 words and crash Zod validation.
+
+Fix:
+Add server-side fallback guard.
+
+Rules:
+- Before schema parse, validate hook word count
+- If hook > 10 words:
+  - attempt one deterministic trim/rewrite if safe
+  - otherwise reject that idea
+- If fallback batch underfills:
+  - return local valid candidates if available
+  - fail gracefully, do not crash request
+
+Also tighten fallback prompt:
+- hard hook limit <= 10 words
+- JSON-only
+- reject/repair long hooks before final output
+
+Goal:
+Claude fallback must never crash request due to hook length.
+
+---
+
+QA
+
+Run real-session QA:
+- 8 batches
+- accumulating cache
+- regenerate=true after seed
+
+Pass criteria:
+1. no exact hook string repeats
+2. no skeleton exceeds 2 uses per session unless pool starvation fallback is explicitly logged
+3. totally_fine_about does not appear in every batch
+4. generic hooks remain occasional
+5. Claude fallback does not crash on long hooks
+6. no Phase 5 changes

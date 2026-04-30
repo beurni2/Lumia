@@ -62,6 +62,7 @@ import {
 import { parseTasteCalibration } from "./tasteCalibration";
 import {
   filterAndRescore,
+  normalizeHookForDedup,
   scoreNovelty,
   selectionPenalty,
   type CandidateMeta,
@@ -1565,6 +1566,19 @@ function buildNoveltyContext(
   // entries without the first-class `hookSkeletonId` field silently
   // abstain via the truthy-string guard.
   const sessionSkeletonCounts = new Map<string, number>();
+  // Phase 3D BUG B — exact-hook string dedup. Harvest normalized
+  // hook strings from the FULL visible cache history in the same
+  // walk that powers `sessionSkeletonCounts`. Symmetric with
+  // `selectionPenalty`'s lookup side — both call
+  // `normalizeHookForDedup`. This catches the legacy
+  // `9:14pm. still here.` repeat-shipping failure mode where the
+  // skeleton-id cap was bypassed because the entry shipped without
+  // a `skeletonId` in older batches; even after we tag it going
+  // forward (Phase 3D Bug B fix in patternIdeator.ts), the
+  // exact-string set is the belt-and-braces guard that catches any
+  // mid-string punctuation drift or re-emission via a different
+  // code path.
+  const recentHookStrings = new Set<string>();
   for (const batch of allBatchesForSessionCap) {
     for (const e of batch) {
       if (e.hookSkeletonId) {
@@ -1572,6 +1586,15 @@ function buildNoveltyContext(
           e.hookSkeletonId,
           (sessionSkeletonCounts.get(e.hookSkeletonId) ?? 0) + 1,
         );
+      }
+      // Harvest the hook string regardless of whether the entry has
+      // a skeletonId — that's the whole point of the belt-and-braces
+      // guard. Defensive guard for malformed cache entries (missing
+      // idea or missing hook) so a single bad row can't kill the
+      // whole context build.
+      const h = e.idea?.hook;
+      if (typeof h === "string" && h.length > 0) {
+        recentHookStrings.add(normalizeHookForDedup(h));
       }
     }
   }
@@ -1607,6 +1630,12 @@ function buildNoveltyContext(
     recentHookSkeletons,
     frequentHookSkeletonsLast3,
     hookSkeletonsAtSessionCap,
+    // Phase 3D BUG B — exact-hook string set (normalized) sourced
+    // from the FULL visible cache. Consumed by `selectionPenalty`
+    // for the -1000 cross-batch hard reject. Never empty when
+    // history exists; cold-start callers see an empty Set which is
+    // a no-op in the lookup path.
+    recentHookStrings,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -2429,6 +2458,14 @@ export async function runHybridIdeator(
     memory,
     recentScenarios: input.recentScenarios,
     derivedStyleHints,
+    // Phase 3D BUG A — thread the cross-batch hot skeleton list to
+    // the rewriter via filterAndRescore so its two-pass walk can
+    // prefer fresh skeletons. Phase 3D BUG B — pass the exact-hook
+    // string set too, even though filterAndRescore doesn't read it
+    // today (selectionPenalty does). Keeps the wiring symmetric so
+    // a future pre-scoring filter can consume the same field.
+    recentHookSkeletons: noveltyContext.recentHookSkeletons,
+    recentHookStrings: noveltyContext.recentHookStrings,
   });
 
   let usedFallback = false;
@@ -2491,6 +2528,15 @@ export async function runHybridIdeator(
         memory,
         recentScenarios: input.recentScenarios,
         derivedStyleHints,
+        // Phase 3D BUG A / BUG B — same wiring as the local-pool
+        // filterAndRescore call above. Cross-batch hot skeletons
+        // for the rewriter; exact-hook string set for the future
+        // pre-scoring filter (selectionPenalty already reads it).
+        // Critical to thread on the fallback path too — Claude can
+        // freely produce a near-duplicate of a recently-shipped hook
+        // even though it doesn't ride the legacy skeleton catalog.
+        recentHookSkeletons: noveltyContext.recentHookSkeletons,
+        recentHookStrings: noveltyContext.recentHookStrings,
       });
       fallbackKeptCount = fallbackResult.kept.length;
       merged = [...merged, ...fallbackResult.kept].sort(

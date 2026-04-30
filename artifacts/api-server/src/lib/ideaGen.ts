@@ -993,6 +993,7 @@ export async function generateIdeas(
     `CONCEPT vs MOMENT — if an idea describes a CONCEPT (\"the weirdness of small talk\") rather than a MOMENT (\"the elevator small-talk that goes one floor too long\"), DROP IT. Real ideas happen at a clock-time in a specific place.`,
     `DO NOT OVER-FILTER simple ideas — if the trigger is CLEAR and the emotional reaction is STRONG, simplicity is a feature, not a bug. Don't add complexity to \"elevate\" a simple idea.`,
     `Remember: target hook ≤8 words (hard ceiling 10, allowed only if it still reads in <1s and feels natural — do NOT reject a strong hook purely on word count); every hook lands in <2s; videoLengthSec ∈ [15,25]; filmingTimeMin ≤30; every idea has payoffType; aim for ≥60% hasContrast and ≥60% hasVisualAction across the batch${region === "western" ? "; western set must hit ≥70% POV/situational" : ""}.`,
+    `OUTPUT FORMAT — RETURN JSON ONLY. The very first character of your output MUST be { and the very last MUST be }. NO prose before or after, NO markdown fences, NO trailing commentary. The response is parsed by a strict JSON parser; any non-JSON wrapper crashes the request. HOOK LENGTH IS A HARD GATE — count the words of every hook before emitting (whitespace-split, contractions = 1 word). If a candidate hook is >10 words after your final tightening pass, DROP THAT IDEA from the response array entirely rather than shipping it. Returning ${count - 1} valid ideas is strictly better than returning ${count} where one has an over-long hook — the over-long hook gets dropped downstream and the request can fail with zero usable ideas.`,
     `PATTERN-FIRST — pick ONE of {pov, reaction, mini_story, contrast} as the SHAPE for your trigger+reaction. MINI-STORY IS THE DEFAULT — start there for every idea; if a mini_story slot feels weak, GENERATE A BETTER MINI-STORY (do NOT silently fall back to pov). POV is GATED — only allowed when the hook is genuinely strong, the tension is unmistakable, AND the angle feels personal (not generic "POV: you…"). REACTION requires BOTH a {panic|regret|denial} spike AND an instantly visual face/body response that carries the video. If the idea won't fit a pattern by these rules, scrap it.`,
     `VISUALIZABILITY GATE — for EACH idea ask "can I picture the trigger AND the reaction on screen in the first 2s?". If not, scrap it.`,
     `BANNED globally: advice / motivational / "talk about" / "share your thoughts" / "explain why" / abstract-concept hooks / personality-trait hooks (Sagittarius / introvert / Type A / etc.) / general statements ("adulting is hard") / dialogue-dependent ideas (multi-line back-and-forth) / multi-step concepts / planning-heavy ideas / SENSITIVE PRIVATE CONTENT (bank apps, real DMs, medical info, addresses, IDs, salary). Lean on relatable situations: awkward, broke/tired/lazy, small daily frustrations, self-deprecating moments.`,
@@ -1038,7 +1039,19 @@ export async function generateIdeas(
     // raw model output. Salvage every COMPLETE, schema-valid idea
     // object from the truncated stream.
     const rawText = (err as { rawText?: string } | null)?.rawText;
-    const recovered = rawText ? recoverPartialIdeas(rawText) : [];
+    let recovered = rawText ? recoverPartialIdeas(rawText) : [];
+    // Phase 3D BUG C — when strict-walk recovery yields zero (every
+    // idea object had at least one schema-failing field, most often
+    // a hook over the 10-word ceiling that the schema's .refine()
+    // dropped), retry with a hook-fix pass: split the over-long
+    // hook on the first comma/em-dash and keep the leading clause
+    // when it still reads ≥3 words AND ≤10 words. Drop the idea if
+    // the trim can't bring it under cap. Symmetric guard for the
+    // Claude fallback path in hybridIdeator that previously crashed
+    // the whole request when ALL 3 fallback ideas were over-long.
+    if (recovered.length === 0 && rawText) {
+      recovered = recoverIdeasWithHookFix(rawText);
+    }
     if (recovered.length === 0) throw err;
     out = { ideas: recovered };
   }
@@ -1183,17 +1196,107 @@ export async function generateIdeas(
 }
 
 /**
- * Best-effort recovery of complete idea objects from a Haiku response
- * that got truncated mid-stream. Walks the raw text with a
- * string-aware brace counter (so braces inside JSON string literals
- * don't throw off depth), extracts each top-level `{...}` block
- * inside the `"ideas": [...]` array, then JSON-parses + zod-validates
- * each one. Malformed or partial objects (the final one if truncation
- * happened mid-object) are silently dropped.
+ * Phase 3D BUG C — hook-fix recovery. Same loose-JSON walk as
+ * `recoverPartialIdeas` BUT before per-idea `safeParse` we apply
+ * `tryShortenHook` to deterministically trim over-long hooks at
+ * the first comma / em-dash / hyphen, keeping the leading clause
+ * when its word count lands in [3, 10]. Drops the idea entirely
+ * when the trim can't bring the hook under cap, since shipping a
+ * truncated-mid-thought hook is worse than dropping the slot.
  *
- * Returns [] when nothing is salvageable, in which case the caller
- * re-throws the original error rather than returning silent zero.
+ * Invoked ONLY when the strict `recoverPartialIdeas` walk returns
+ * 0 — this is the second-chance path that prevented the
+ * `runHybridIdeator` crash when ALL Claude-fallback ideas exceeded
+ * the 10-word ceiling. Returns `[]` when nothing is salvageable;
+ * caller still re-throws in that case (matching the original
+ * silent-zero-vs-throw contract).
  */
+function recoverIdeasWithHookFix(rawText: string): Idea[] {
+  const arrStart = rawText.indexOf('"ideas"');
+  if (arrStart < 0) return [];
+  const bracketStart = rawText.indexOf("[", arrStart);
+  if (bracketStart < 0) return [];
+
+  const recovered: Idea[] = [];
+  let depth = 0;
+  let objStart = -1;
+  let inStr = false;
+  let escape = false;
+  for (let i = bracketStart + 1; i < rawText.length; i++) {
+    const ch = rawText[i]!;
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = !inStr;
+      continue;
+    }
+    if (inStr) continue;
+    if (ch === "{") {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0 && objStart >= 0) {
+        const blob = rawText.slice(objStart, i + 1);
+        try {
+          const rawObj = JSON.parse(blob) as Record<string, unknown>;
+          const fixed = tryShortenHook(rawObj);
+          if (fixed) {
+            const result = ideaSchema.safeParse(fixed);
+            if (result.success) recovered.push(result.data);
+          }
+        } catch {
+          // Bad JSON in this object — skip and keep walking.
+        }
+        objStart = -1;
+      } else if (depth < 0) {
+        break;
+      }
+    } else if (ch === "]" && depth === 0) {
+      break;
+    }
+  }
+  return recovered;
+}
+
+/**
+ * Returns a shallow-cloned idea object with a hook ≤10 words when
+ * the original was over cap and a clean comma/dash split yields a
+ * leading clause in [3, 10] words. Returns the original object
+ * unchanged when the hook is already under cap (let `safeParse`
+ * decide on the rest). Returns `null` when the hook is over cap
+ * and no clean trim works — caller MUST drop the idea (better
+ * than shipping a mangled half-hook to the user).
+ *
+ * Word count rule MUST stay symmetric with the schema's .refine()
+ * at the top of this file: `.trim().split(/\s+/).length`.
+ */
+function tryShortenHook(
+  raw: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const hook = raw.hook;
+  if (typeof hook !== "string") return raw;
+  const wc = hook.trim().split(/\s+/).filter(Boolean).length;
+  if (wc <= 10) return raw;
+  // Try keeping the first comma / em-dash / hyphen-separated clause.
+  // U+2014 = em dash, U+2013 = en dash. Plain hyphen also splits.
+  const m = hook.match(/^[^,\u2014\u2013\-]+/);
+  if (m) {
+    const clause = m[0].trim().replace(/[.,!?;:]+$/, "");
+    const cwc = clause.split(/\s+/).filter(Boolean).length;
+    if (cwc >= 3 && cwc <= 10) {
+      return { ...raw, hook: clause };
+    }
+  }
+  return null;
+}
+
 function recoverPartialIdeas(rawText: string): Idea[] {
   const arrStart = rawText.indexOf('"ideas"');
   if (arrStart < 0) return [];

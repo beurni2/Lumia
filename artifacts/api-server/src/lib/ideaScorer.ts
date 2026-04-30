@@ -1107,9 +1107,33 @@ export type ScoredCandidate = {
   rewriteAttempted: boolean;
 };
 
+/**
+ * Phase 3D BUG B — exact-hook string dedup normalizer.
+ * Used by `selectionPenalty` (against `ctx.recentHookStrings` AND
+ * `batchSoFar`) AND by `buildNoveltyContext` when populating that
+ * set from cache. MUST stay symmetric — the build side and the
+ * lookup side must apply the EXACT same normalization or the
+ * -1000 hard-reject silently no-ops. Lowercase + trim + collapse
+ * internal whitespace + strip a single trailing `.,!?;:` so
+ * cosmetic punctuation drift (e.g. `9:14pm. still here.` vs
+ * `9:14pm. still here`) doesn't defeat the dedup. We deliberately
+ * do NOT strip mid-string punctuation — preserves emoji, dashes,
+ * and intentional fragmentation (the `9:14pm. still here.` static
+ * timestamp template depends on the mid-string period for its
+ * "two-clause status fragment" shape).
+ */
+export function normalizeHookForDedup(hook: string): string {
+  return hook
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[.,!?;:]+$/, "");
+}
+
 function tryRewrite(
   idea: Idea,
   meta: CandidateMeta,
+  recentHookSkeletons?: ReadonlySet<string>,
 ): { idea: Idea; meta: CandidateMeta } | null {
   if (meta.source !== "pattern_variation") return null;
   if (!meta.scenario) return null;
@@ -1124,12 +1148,44 @@ function tryRewrite(
     keyof typeof HOOK_PHRASINGS_BY_STYLE
   >;
   const otherStyles = allStyles.filter((s) => s !== idea.hookStyle);
-  for (const nextStyle of otherStyles) {
-    const phrasings = HOOK_PHRASINGS_BY_STYLE[nextStyle];
-    if (!phrasings || phrasings.length === 0) continue;
-    for (let i = 0; i < phrasings.length; i++) {
-      const entry = phrasings[i]!;
-      // Phase 3C HOOK CATALOG TAG COMPLETION — noun-type
+  // Phase 3D BUG A — two-pass walk to keep the cross-batch
+  // skeleton cap honest on the rewriter path. Pass 1 skips legacy
+  // entries whose `skeletonId` is already in `recentHookSkeletons`
+  // (i.e. has shipped recently per the persisted cache history),
+  // so the rewriter no longer happily re-selects the same legacy
+  // skeleton (`totally_fine_about` was the headline offender —
+  // shipping in 8/8 batches in the Phase 3C QA sweep) on every
+  // regen before `selectionPenalty`'s -3 cross-batch demotion
+  // even sees the candidate. Pass 2 is the original no-skip walk,
+  // entered only when pass 1 starved AND a non-empty hot list
+  // existed (so cold-cache / unprovided callers behave EXACTLY
+  // like before — same single walk, no behavioral drift). The
+  // skip applies only when the entry HAS a `skeletonId` (legacy
+  // entries without one are not subject to the cap and are
+  // considered fresh on every pass).
+  const hasHotList =
+    recentHookSkeletons !== undefined && recentHookSkeletons.size > 0;
+  const passes: ReadonlyArray<boolean> = hasHotList ? [true, false] : [false];
+  for (const skipHotSkeletons of passes) {
+    for (const nextStyle of otherStyles) {
+      const phrasings = HOOK_PHRASINGS_BY_STYLE[nextStyle];
+      if (!phrasings || phrasings.length === 0) continue;
+      for (let i = 0; i < phrasings.length; i++) {
+        const entry = phrasings[i]!;
+        // Phase 3D BUG A — see two-pass header above. The skip
+        // fires only on pass 1 (skipHotSkeletons=true), only when
+        // the entry has a skeletonId, and only when that id is
+        // in the recent set. Pass 2 (skipHotSkeletons=false)
+        // bypasses this check entirely, preserving the original
+        // pool-starvation safety net.
+        if (
+          skipHotSkeletons &&
+          entry.skeletonId !== undefined &&
+          recentHookSkeletons!.has(entry.skeletonId)
+        ) {
+          continue;
+        }
+        // Phase 3C HOOK CATALOG TAG COMPLETION — noun-type
       // compatibility gate. Skip the entry BEFORE calling `build()`
       // when the entry declared an `allowedNounTypes` allowlist and
       // the scenario's `topicNounType` is not in it. Mirrors the
@@ -1228,6 +1284,7 @@ function tryRewrite(
           hookIntent: rewrittenIntent,
         },
       };
+      }
     }
   }
   return null;
@@ -1250,6 +1307,26 @@ export type FilterAndRescoreInput = {
    * See `lib/visionProfileAggregator.ts` for the doc shape.
    */
   derivedStyleHints?: DerivedStyleHints;
+  /**
+   * Phase 3D BUG A — cross-batch hot skeleton ids forwarded into
+   * `tryRewrite` so its two-pass entry walk skips legacy hook
+   * entries whose `skeletonId` already shipped recently. Sourced
+   * from `noveltyContext.recentHookSkeletons` at the orchestrator
+   * boundary; defaults to undefined so callers that don't thread
+   * a novelty context (e.g. unit tests, ad-hoc rescoring) keep
+   * the original single-walk rewrite behavior.
+   */
+  recentHookSkeletons?: ReadonlySet<string>;
+  /**
+   * Phase 3D BUG B — exact-hook string set forwarded to nothing
+   * here today (filtering happens in `selectionPenalty`); kept on
+   * the input shape so the same orchestrator wiring that hands
+   * `recentHookSkeletons` to filterAndRescore can pass this in
+   * one shot. Reserved for future use if we want to short-circuit
+   * candidates pre-scoring rather than rely on the -1000 demotion
+   * inside the selector.
+   */
+  recentHookStrings?: ReadonlySet<string>;
 };
 
 export type FilterAndRescoreResult = {
@@ -1290,7 +1367,9 @@ export function filterAndRescore(
     if (score.hookImpact === 0 || score.tension === 0 || score.filmability === 0) {
       // Try rewrite once if it's pattern_variation — maybe a different
       // hook style salvages it.
-      const rewritten = tryRewrite(idea, meta);
+      // Phase 3D BUG A — thread the cross-batch hot skeleton list so
+      // the rewriter's two-pass walk can prefer fresh skeletons.
+      const rewritten = tryRewrite(idea, meta, input.recentHookSkeletons);
       if (!rewritten) {
         rejected++;
         continue;
@@ -1315,7 +1394,10 @@ export function filterAndRescore(
 
     // 6–7 promising-but-weak: try one rewrite, keep best of the two.
     if (score.total >= 6 && score.total <= 7 && !rewriteAttempted) {
-      const rewritten = tryRewrite(idea, meta);
+      // Phase 3D BUG A — same hot-skeleton thread as the hard-floor
+      // rewrite path above. Two-pass walk skips entries whose
+      // skeletonId is already in the cross-batch recent set.
+      const rewritten = tryRewrite(idea, meta, input.recentHookSkeletons);
       if (rewritten) {
         const rewrittenScore = scoreIdea(
           rewritten.idea,
@@ -1670,6 +1752,27 @@ export type NoveltyContext = {
    * Empty for cold-start / single-batch history.
    */
   hookSkeletonsAtSessionCap?: ReadonlySet<string>;
+  /**
+   * Phase 3D BUG B — exact-hook string dedup (the legacy
+   * `9:14pm. still here.` repeat-shipping failure mode that the
+   * skeleton-id cap doesn't catch when an entry has no
+   * `skeletonId` tag, AND a belt-and-braces guard for entries that
+   * DO have one but get re-emitted by a different code path). Holds
+   * normalized hook strings (`normalizeHookForDedup` — lowercase +
+   * trim + collapse whitespace + strip trailing `.,!?;:`) harvested
+   * from the FULL visible cache history (every batch in
+   * `allBatchesForSessionCap`). Used by `selectionPenalty` to apply
+   * a -1000 demotion when the candidate's normalized hook is in this
+   * set — effectively a hard reject when a fresh alternative exists,
+   * but the soft selector still picks the highest-scored candidate
+   * from a fully-poisoned pool (starvation fallback — every member
+   * of the pool gets the same -1000, so the relative ordering on the
+   * remaining axes is preserved).
+   *
+   * Empty for cold-start. Optional + ReadonlySet to mirror the
+   * other fresh-axis sets.
+   */
+  recentHookStrings?: ReadonlySet<string>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -2001,6 +2104,32 @@ export function selectionPenalty(
   ctx: NoveltyContext = EMPTY_NOVELTY_CONTEXT,
 ): number {
   let p = 0;
+  // Phase 3D BUG B — exact-hook string hard reject (effective).
+  // -1000 demotion when this candidate's normalized hook is in
+  // `ctx.recentHookStrings` (cross-batch — built from the FULL
+  // visible cache history) OR matches the normalized hook of any
+  // pick already in `batchSoFar` (within-batch). The selector still
+  // picks the highest-scored member of a fully-poisoned pool (every
+  // member then carries the same -1000 floor and relative ordering
+  // on the remaining axes is preserved — that's the spec's
+  // pool-starvation fallback). Normalization MUST stay symmetric
+  // with `buildNoveltyContext`'s build side — both call
+  // `normalizeHookForDedup`. We harvest cross-batch and within-batch
+  // separately so this works on cold-start (no ctx) AND when the
+  // selector hands us a partially-built batch.
+  if (ctx.recentHookStrings || batchSoFar.length > 0) {
+    const candNorm = normalizeHookForDedup(c.idea.hook);
+    if (ctx.recentHookStrings?.has(candNorm)) {
+      p -= 1000;
+    } else if (batchSoFar.length > 0) {
+      for (const b of batchSoFar) {
+        if (normalizeHookForDedup(b.idea.hook) === candNorm) {
+          p -= 1000;
+          break;
+        }
+      }
+    }
+  }
   // Within-batch demotion: build per-axis sets from batchSoFar and
   // saturate per-axis (one match is enough). Skipping this whole
   // block when batchSoFar is empty preserves the previous
