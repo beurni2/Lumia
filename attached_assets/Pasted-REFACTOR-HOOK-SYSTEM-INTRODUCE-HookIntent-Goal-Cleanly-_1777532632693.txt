@@ -1,0 +1,189 @@
+REFACTOR HOOK SYSTEM — INTRODUCE HookIntent
+
+Goal:
+Cleanly organize the hook system so hooks feel different in purpose, not just wording.
+
+We are NOT adding another independent hook layer.
+We are refactoring the existing hook system around a controller axis called HookIntent.
+
+---
+
+1. ADD HookIntent
+
+type HookIntent =
+  | "scroll_stop"
+  | "compulsion"
+  | "relatable"
+
+Definitions:
+
+scroll_stop:
+- grabs attention immediately
+- abrupt, surprising, fragment-like
+- makes user pause
+
+Examples:
+"again. seriously."
+"this was a mistake"
+"no progress."
+
+compulsion:
+- creates an open loop
+- implies something happens next
+- makes viewer want to continue
+
+Examples:
+"this is where it went wrong"
+"i should’ve stopped here"
+"this didn’t end well"
+
+relatable:
+- specific behavior
+- internal thought
+- slightly embarrassing truth
+- makes viewer think “this is me”
+
+Examples:
+"i opened it and immediately closed it"
+"this still counts"
+"i’ve done this before"
+
+---
+
+2. UPDATE HookTemplate STRUCTURE
+
+Each hook template should include:
+
+{
+  id: string,
+  text: string,
+  hookLanguageStyle: HookLanguageStyle,
+  hookIntent: HookIntent,
+  rigidityScore?: number,
+  sharpnessScore?: number
+}
+
+Existing templates must be assigned a hookIntent.
+
+---
+
+3. GENERATION FLOW UPDATE
+
+Current:
+idea → HookLanguageStyle → template → scoring
+
+New:
+ideaCoreType
+→ HookIntent
+→ compatible HookLanguageStyle
+→ template
+→ validation
+→ scoring
+
+HookIntent must be selected BEFORE template selection.
+
+---
+
+4. BATCH RULES
+
+For batch of 3:
+
+Prefer:
+- 1 scroll_stop
+- 1 compulsion
+- 1 relatable
+
+Hard guard:
+- do not allow all 3 hooks to share same HookIntent
+
+For larger batches:
+- no HookIntent should exceed 40–50% unless insufficient valid candidates exist
+
+---
+
+5. SCORING
+
+Add HookIntentScore or fold intent into existing scoring.
+
+Each intent should be judged differently:
+
+scroll_stop scores higher when:
+- abrupt
+- short
+- surprising
+- pattern-breaking
+
+compulsion scores higher when:
+- unresolved
+- creates curiosity
+- implies consequence
+- does not explain everything
+
+relatable scores higher when:
+- behavior-specific
+- internally recognizable
+- slightly embarrassing
+- specific, not generic
+
+Do not force one universal scoring rule across all intents.
+
+---
+
+6. VALIDATION
+
+Reject hooks if:
+- they mix multiple intents awkwardly
+- they become confusing instead of intriguing
+- they over-explain
+- they lose the original scene
+- they become generic filler
+- they sound too polished / corporate
+
+Preserve intentional imperfection:
+- lowercase
+- fragments
+- slang
+- casual grammar
+- dry phrasing
+
+---
+
+7. RELATIONSHIP TO EXISTING SYSTEM
+
+Do not remove:
+- HookLanguageStyle
+- rigidityScore
+- sharpnessScore
+- scrollStopScore
+- existing validators
+
+HookIntent sits above them.
+
+HookIntent = purpose of the hook
+HookLanguageStyle = sentence shape / language style
+Template = actual phrasing
+
+---
+
+8. QA
+
+Generate 5 batches.
+
+Verify:
+- each batch has mixed HookIntent
+- hooks feel different in purpose
+- no batch feels like 3 versions of the same thought
+- compulsion hooks create curiosity
+- relatable hooks feel specific and human
+- scroll_stop hooks feel abrupt but still understandable
+- no weak generic hooks like “this failed” dominate
+
+---
+
+SUCCESS CRITERION
+
+User should feel:
+“These hooks hit in different ways.”
+
+Not:
+“These are just different wordings of the same hook.”

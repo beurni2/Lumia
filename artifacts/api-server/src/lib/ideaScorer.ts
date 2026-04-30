@@ -21,11 +21,13 @@ import type { StyleProfile } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
 import {
   HOOK_PHRASINGS_BY_STYLE,
+  getEntryIntent,
   getEntryScores,
   lookupBannedHookPrefix,
   lookupHookOpener,
   validateHook,
   type Energy,
+  type HookIntent,
   type HookLanguageStyle,
   type HookOpener,
   type IdeaCoreFamily,
@@ -285,11 +287,31 @@ export type IdeaScore = {
    * Phase 3 PART 3 — scroll-stop score (0-10) derived from intrinsic
    * hook properties (fragment shape, emotional charge, structure
    * break, specificity) plus the source `LanguagePhrasingEntry`'s
-   * rigidity / sharpness scores. Folded into `total` with low weight
-   * (0.5x, rounded) so it nudges selection without overriding the
-   * pre-existing 6-axis scorer that shapes selection today.
+   * rigidity / sharpness scores.
+   *
+   * Phase 4 (HOOK INTENT) — STILL COMPUTED for every candidate
+   * regardless of `meta.hookIntent` so the field retains its scroll-
+   * stop semantics for telemetry / dashboards / historical comparisons.
+   * NO LONGER FOLDED INTO `total` — that role moved to
+   * `hookIntentScore` below, which dispatches to the per-intent scorer
+   * matching the candidate's actual intent. Pre-Phase-4 callers reading
+   * `scrollStopScore` get the same number they always got; only the
+   * `total` arithmetic changed.
    */
   scrollStopScore: number;
+  /**
+   * Phase 4 (HOOK INTENT) — intent-aware hook score (0-10). Dispatches
+   * via `scoreHookIntent(hook, meta.hookIntent ?? "scroll_stop", entry)`
+   * so each candidate is scored against the hook discipline appropriate
+   * to its assigned intent: scroll_stop → fragment-shape + emotional
+   * charge (= existing `scoreScrollStop`), compulsion → mystery-ending
+   * + forward-implication + demonstrative-verb shape, relatable →
+   * first-person + specific-behavior + admission tokens. REPLACES
+   * `scrollStopScore` in the `total` fold at the same 0.5x weight, so
+   * the selection budget is unchanged — only the per-intent SHAPE of
+   * a "good" hook moved.
+   */
+  hookIntentScore: number;
 };
 
 // -----------------------------------------------------------------------------
@@ -531,6 +553,262 @@ function metaSourceLanguagePhrasing(
   return "sourceLanguagePhrasing" in m ? m.sourceLanguagePhrasing : undefined;
 }
 
+/**
+ * Resolve the candidate's `hookIntent` from `CandidateMeta`. Phase 4
+ * pattern_variation candidates always carry it (set by
+ * `assembleCandidate` from the WINNING entry's intent, NOT the slot's
+ * `assignedIntent`). Legacy cache reads + Claude/Llama fallback wraps
+ * may omit it — the dispatcher in `scoreHookIntent` defaults absent
+ * intent to `scroll_stop` to preserve Phase 3 scoring semantics.
+ */
+function metaHookIntent(m: CandidateMeta): HookIntent | undefined {
+  return "hookIntent" in m ? m.hookIntent : undefined;
+}
+
+// -----------------------------------------------------------------------------
+// Phase 4 (HOOK INTENT) — per-intent scoring
+//
+// Each intent gets its OWN 0-10 hook score; `scoreHookIntent` dispatches
+// to the right one based on the candidate's `meta.hookIntent`. The three
+// scorers share the same shape as `scoreScrollStop` (intrinsic-only
+// signals + low-weight fold into `total`) so the selection budget is
+// unchanged — only the per-intent definition of a "good" hook moves.
+// All three are pure (no entry-derived signals beyond the optional
+// `sourceEntry` parameter, which is reserved for future symmetry with
+// scroll_stop's rigidity / sharpness reads).
+// -----------------------------------------------------------------------------
+
+/**
+ * Mystery-ending tokens (last alphabetic word in the hook). Per spec
+ * PART 4 — "ends with the moment, not the resolution". Hooks ending
+ * with these words leave the viewer unresolved, which is the core
+ * compulsion mechanic. Lowercase-only; `lastAlphaWord` lower-cases
+ * before the lookup so the hook can be any case.
+ */
+const COMPULSION_MYSTERY_WORDS: ReadonlySet<string> = new Set([
+  "well",
+  "here",
+  "wrong",
+  "next",
+  "then",
+]);
+
+/**
+ * Forward-implication tokens (case-insensitive substring match). When
+ * present, the hook is pointing at a future event / consequence the
+ * viewer hasn't seen yet — same compulsion mechanic as the mystery
+ * ending, scored independently because the two patterns CAN co-occur
+ * (e.g. "i should've stopped here" hits both).
+ */
+const COMPULSION_FORWARD_TOKENS: readonly string[] = [
+  "should've",
+  "should have",
+  "was where",
+  "going to",
+  "until",
+  "before",
+];
+
+/**
+ * Demonstrative + verb shape ("this is", "this was", "this didn't").
+ * The "this" without an antecedent forces the viewer to LOOK to find
+ * out what "this" refers to — a different compulsion mechanic from
+ * the mystery / forward shapes.
+ */
+const COMPULSION_DEMONSTRATIVE_VERB_RE: RegExp =
+  /\bthis\s+(is|was|isn'?t|wasn'?t|didn'?t|won'?t|always|keeps)\b/i;
+
+/**
+ * Compulsion score — 0-10 derived from intrinsic hook properties:
+ *   +3 ends with a mystery word (last alphabetic word in [well, here,
+ *      wrong, next, then])
+ *   +2 contains a forward-implication token (should've / was where /
+ *      going to / until / before)
+ *   +2 NOT a "looks like a complete resolved sentence" (mirrors the
+ *      `looksLikeFullSentence` heuristic from `scoreScrollStop` so
+ *      both intent scorers agree on what "resolved" looks like)
+ *   +2 contains demonstrative + verb shape (this is / this was / …)
+ *   −2 fully self-contained answer (= the looksLikeFullSentence shape
+ *      DOES match — kept asymmetric vs the +2 above so a resolved
+ *      sentence loses 4 points net rather than 2, matching the spec
+ *      "ends with the moment, not the resolution")
+ *   −2 over-explained (>12 words — same threshold as scoreScrollStop)
+ *   add baseline +5, clamp [0, 10]
+ *
+ * sourceEntry is accepted for signature parity with `scoreScrollStop`
+ * but not yet used — kept on the parameter list so a future entry-
+ * derived compulsion signal (e.g. an explicit "leaves resolved"
+ * tag) can be folded in without changing the call sites.
+ */
+export function scoreCompulsion(
+  hook: string,
+  sourceEntry?: LanguagePhrasingEntry,
+): number {
+  void sourceEntry;
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return 0;
+  const lower = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/);
+  const wordCount = words.length;
+
+  const lastAlphaWord =
+    (lower.match(/[a-z']+(?=[^a-z']*$)/i)?.[0] ?? "").toLowerCase();
+  const endsWithMystery = COMPULSION_MYSTERY_WORDS.has(lastAlphaWord);
+  const hasForward = COMPULSION_FORWARD_TOKENS.some((t) => lower.includes(t));
+  const hasDemonstrative = COMPULSION_DEMONSTRATIVE_VERB_RE.test(trimmed);
+  const startsWithPronoun = SCROLLSTOP_LEADING_PRONOUN_RE.test(trimmed);
+  const looksLikeFullSentence =
+    startsWithPronoun && /[.!?]$/.test(trimmed) && wordCount > 5;
+
+  let raw = 0;
+  if (endsWithMystery) raw += 3;
+  if (hasForward) raw += 2;
+  if (!looksLikeFullSentence) raw += 2;
+  if (hasDemonstrative) raw += 2;
+  if (looksLikeFullSentence) raw -= 2;
+  if (wordCount > 12) raw -= 2;
+
+  return Math.max(0, Math.min(10, raw + 5));
+}
+
+/**
+ * First-person leading shape (case-insensitive). Matches `i ` (with
+ * word boundary), `i'm`, `i'll`, `i've`, leading `me`/`my`. Per spec
+ * PART 4 — "sounds like the viewer's own internal monologue".
+ */
+const RELATABLE_FIRST_PERSON_RE: RegExp = /^(i\b|i'm|i'll|i've|me\b|my\b)/i;
+
+/**
+ * Concrete behavior verbs (case-insensitive whole-word match against
+ * each token in the hook). Per spec PART 4 — "names a specific
+ * action the viewer has done". Distinct from the abstract verbs the
+ * scoreScrollStop abstraction detector rewards — these are
+ * SPECIFICALLY past-tense narration verbs the relatable shape
+ * leans on.
+ */
+const RELATABLE_BEHAVIOR_VERBS: ReadonlySet<string> = new Set([
+  "opened",
+  "closed",
+  "texted",
+  "deleted",
+  "walked",
+  "said",
+  "did",
+  "lied",
+  "checked",
+  "ignored",
+  "scrolled",
+  "stared",
+  "called",
+  "wrote",
+  "read",
+  "ate",
+]);
+
+/**
+ * Admission tokens (case-insensitive whole-word match). Per spec
+ * PART 4 — "admits something embarrassing". The presence of these
+ * words flags a hook that's owning a recurring failure mode rather
+ * than describing it from a distance.
+ */
+const RELATABLE_ADMISSION_TOKENS: readonly string[] = [
+  "still",
+  "again",
+  "keep",
+  "keeps",
+  "always",
+  "never",
+];
+
+/**
+ * Relatable score — 0-10 derived from intrinsic hook properties:
+ *   +3 starts with first-person (i, i'm, i'll, i've, me, my)
+ *   +2 contains a concrete behavior verb (opened, closed, texted, …)
+ *   +2 contains an admission token (still, again, keep, always, never)
+ *   +2 lowercase-conversational (no uppercase chars beyond char 0 —
+ *      catalog hooks are lowercase-styled so this rewards the
+ *      dominant catalog shape vs. capitalized-fragment shapes that
+ *      read as scroll_stop or compulsion)
+ *   −2 generic abstraction (no first-person AND no meaningful noun —
+ *      reuses the scoreScrollStop abstraction detector for symmetry)
+ *   −2 starts with a safe prefix (i think / i feel like / you know
+ *      when / kind of — same SCROLLSTOP_SAFE_PREFIXES set; safe
+ *      phrasings are ALSO bad relatable because they observe-from-
+ *      a-distance rather than admit)
+ *   add baseline +5, clamp [0, 10]
+ */
+export function scoreRelatable(
+  hook: string,
+  sourceEntry?: LanguagePhrasingEntry,
+): number {
+  void sourceEntry;
+  const trimmed = hook.trim();
+  if (trimmed.length === 0) return 0;
+  const lower = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/);
+
+  const startsFirstPerson = RELATABLE_FIRST_PERSON_RE.test(trimmed);
+
+  const cleanedWords = words.map((w) =>
+    w.toLowerCase().replace(/[.,!?;:'"`–—]/g, ""),
+  );
+  const hasBehaviorVerb = cleanedWords.some((w) =>
+    RELATABLE_BEHAVIOR_VERBS.has(w),
+  );
+  const hasAdmission = cleanedWords.some((w) =>
+    RELATABLE_ADMISSION_TOKENS.includes(w),
+  );
+
+  // lowercase-conversational: no uppercase chars beyond char 0. Slice(1)
+  // skips any leading capital so a sentence-leading "I" doesn't
+  // disqualify (matches the same first-char tolerance used in the
+  // proper-noun heuristic of scoreScrollStop).
+  const lowercaseConversational = !/[A-Z]/.test(trimmed.slice(1));
+
+  // Generic abstraction reuses the SAME meaningful-noun heuristic as
+  // scoreScrollStop so the two scorers agree on what "abstract" means.
+  const meaningfulNoun = cleanedWords.some(
+    (w) => w.length >= 4 && !SCROLLSTOP_ABSTRACT_ONLY_TOKENS.has(w),
+  );
+  const isGenericAbstraction = !startsFirstPerson && !meaningfulNoun;
+
+  const hasSafePrefix = SCROLLSTOP_SAFE_PREFIXES.some((p) =>
+    lower.startsWith(p),
+  );
+
+  let raw = 0;
+  if (startsFirstPerson) raw += 3;
+  if (hasBehaviorVerb) raw += 2;
+  if (hasAdmission) raw += 2;
+  if (lowercaseConversational) raw += 2;
+  if (isGenericAbstraction) raw -= 2;
+  if (hasSafePrefix) raw -= 2;
+
+  return Math.max(0, Math.min(10, raw + 5));
+}
+
+/**
+ * Dispatcher — routes to the per-intent scorer matching the
+ * candidate's actual intent. Used by `scoreIdea` to compute
+ * `hookIntentScore`. Defaults absent intent to `"scroll_stop"` so
+ * legacy cache reads + Claude/Llama fallback wraps (which don't tag
+ * intent) get the Phase 3 scoring semantics they always had.
+ */
+export function scoreHookIntent(
+  hook: string,
+  intent: HookIntent,
+  sourceEntry?: LanguagePhrasingEntry,
+): number {
+  switch (intent) {
+    case "scroll_stop":
+      return scoreScrollStop(hook, sourceEntry);
+    case "compulsion":
+      return scoreCompulsion(hook, sourceEntry);
+    case "relatable":
+      return scoreRelatable(hook, sourceEntry);
+  }
+}
+
 /** Words that signal tension / contradiction / regret in a hook. */
 const TENSION_MARKERS = [
   "vs",
@@ -699,13 +977,29 @@ export function scoreIdea(
   // contributes intrinsic-only signal (no rigidity penalty / no
   // entry sharpness boost).
   const sourceEntry = meta ? metaSourceLanguagePhrasing(meta) : undefined;
+  // Phase 3 PART 3 — scrollStopScore STAYS COMPUTED for telemetry /
+  // dashboards / historical comparisons (the field on IdeaScore retains
+  // its scroll-stop semantics regardless of the candidate's actual
+  // intent). Phase 4 (HOOK INTENT) — `hookIntentScore` BELOW is the new
+  // value folded into `total`; this scrollStopScore line is preserved
+  // for the field but no longer contributes to the weighted sum.
   const scrollStopScore = scoreScrollStop(idea.hook, sourceEntry);
-  // Low-weight (0.5x, rounded) fold into total per session plan —
-  // nudges selection without overriding the pre-existing 6-axis
-  // scorer that shapes selection today. Range [0..5] additive on
-  // top of the existing [0..10] from the legacy axes, so total
-  // floor / ceiling shifts to [0..15] — downstream selectors compare
-  // by total descending so the absolute scale doesn't matter.
+  // Phase 4 (HOOK INTENT) — dispatch to the per-intent scorer matching
+  // the candidate's actual intent. Defaults absent intent to
+  // `"scroll_stop"` so legacy cache reads + Claude/Llama fallback
+  // wraps (which don't tag intent) get the Phase 3 scoring semantics
+  // they always had — for those reads, hookIntentScore EQUALS
+  // scrollStopScore by construction, so the total fold arithmetic is
+  // unchanged for legacy candidates.
+  const hookIntent: HookIntent =
+    (meta ? metaHookIntent(meta) : undefined) ?? "scroll_stop";
+  const hookIntentScore = scoreHookIntent(idea.hook, hookIntent, sourceEntry);
+  // Low-weight (0.5x, rounded) fold into total — same weight slot as
+  // scrollStopScore had in Phase 3 (REPLACED, not added — selection
+  // budget unchanged). Range [0..5] additive on top of the existing
+  // [0..10] from the legacy axes, so total floor / ceiling stays at
+  // [0..15] — downstream selectors compare by total descending so
+  // the absolute scale doesn't matter.
   const total =
     hookImpact +
     tension +
@@ -713,7 +1007,7 @@ export function scoreIdea(
     personalFit +
     captionStrength +
     freshness +
-    Math.round(scrollStopScore * 0.5);
+    Math.round(hookIntentScore * 0.5);
   return {
     total,
     hookImpact,
@@ -723,6 +1017,7 @@ export function scoreIdea(
     captionStrength,
     freshness,
     scrollStopScore,
+    hookIntentScore,
   };
 }
 
@@ -778,6 +1073,24 @@ function tryRewrite(
       if ("sourceLanguagePhrasing" in nextMeta) {
         nextMeta.sourceLanguagePhrasing = undefined;
       }
+      // Phase 4 (HOOK INTENT) — the rewritten hook now comes from a
+      // DIFFERENT legacy entry, which carries its own intent (or
+      // defaults to scroll_stop via getEntryIntent for legacy entries
+      // without the field). Without updating meta.hookIntent here, the
+      // candidate would carry STALE intent metadata from the original
+      // pick, causing scoreHookIntent to dispatch to the wrong per-
+      // intent scorer and the batch guards (both the soft -3/-100 in
+      // selectionPenalty and the hard all-3-same in batchGuardsPass)
+      // to make decisions on a phantom intent. Re-derive from the
+      // winning entry — the same discipline used at first-pick time
+      // (assembleCandidate sets meta.hookIntent = getEntryIntent(
+      // sourceLanguagePhrasing) at line 4948 of patternIdeator.ts).
+      // intentFallback is cleared because rewrite is its own path —
+      // the original picker's fallback telemetry no longer applies.
+      const rewrittenIntent = getEntryIntent(entry);
+      if ("intentFallback" in nextMeta) {
+        nextMeta.intentFallback = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
@@ -785,6 +1098,7 @@ function tryRewrite(
           hookStyle: nextStyle,
           hookPhrasingIndex: i,
           hookOpener: newOpener,
+          hookIntent: rewrittenIntent,
         },
       };
     }
@@ -1608,6 +1922,63 @@ export function selectionPenalty(
     // false-match, so we guard explicitly.
     const cvp = metaVoiceProfile(c.meta);
     if (cvp && voices.has(cvp)) p -= 2;
+
+    // HOOK INTENT spec (Phase 4) — within-batch intent demotion +
+    // HARD all-3-same guard. HookIntent is the controller axis
+    // ABOVE HookLanguageStyle, so the per-dup soft penalty is sized
+    // larger (-3) than the language-style / voice / opener -2 lever
+    // and just under the -4 archetype lever — enough to overcome
+    // the typical 1-2pt hookIntentScore spread between the strongest
+    // and weakest intent's catalog entries (compulsion phrasings
+    // tend to score 2-3pts below scroll_stop / relatable on the
+    // intent-specific scorer, so a -2 dup wasn't enough to push the
+    // 3rd pick onto a fresh intent — QA showed 7/1/7 distribution).
+    // The HARD guard at the bottom is sized to overwhelm any
+    // plausible base total (max ~15 with the per-intent fold) so
+    // the selector will ALWAYS prefer a shippable other-intent
+    // candidate over a third clone, even when the third clone
+    // scores higher on every other axis. The guard fires ONLY when
+    // batchSoFar.length === 2 AND both prior picks share THIS
+    // candidate's intent — for batch sizes of 1 or 2 only the soft
+    // -3 fires (per the session plan "no intent guard for batches
+    // of 1-2"). Intentless candidates (legacy cache reads / Llama
+    // / Claude wraps) silently skip both branches — same discipline
+    // as every other optional-axis penalty above. Counts (not just
+    // set membership) are required here because the HARD branch
+    // needs to know "how many of the same intent are already in
+    // the batch", which a Set cannot answer.
+    const intentCounts = new Map<HookIntent, number>();
+    for (const b of batchSoFar) {
+      const bi = metaHookIntent(b.meta);
+      if (bi) intentCounts.set(bi, (intentCounts.get(bi) ?? 0) + 1);
+    }
+    const ci = metaHookIntent(c.meta);
+    if (ci) {
+      const dupCount = intentCounts.get(ci) ?? 0;
+      if (dupCount > 0) p -= 3;
+      // Symmetric FRESH-intent bonus — captures the spec's
+      // "Prefer 1 of each" SOFT preference explicitly. Fires only
+      // when batchSoFar already has at least 1 pick AND this
+      // candidate's intent is NOT yet represented in the batch.
+      // Sized at +5 to give an 8pt total swing (fresh +5 vs dup
+      // -3) that's enough to overcome BOTH the typical 2-3pt gap
+      // in baseline intentScore between intents (compulsion ~7
+      // vs scroll_stop / relatable ~9-10) AND the typical 2pt
+      // lower novelty bonus that compulsion candidates accrue
+      // because their language-style + archetype pool is narrower
+      // than scroll_stop / relatable. WITHOUT this swing the
+      // selector ships 7/2/6 instead of the spec's intended
+      // ~5/5/5; the trace showed compulsion losing pick 3 by a
+      // single adj-point because its noveltyScore was 2pt below
+      // relatable, and a +3 bonus only closed half the gap. The
+      // value is calibrated empirically against the QA driver —
+      // bumping further would over-rotate (intent becomes the
+      // ONLY axis that matters), so +5 is the floor that meets
+      // G2 (≥3 ships per intent across 5 batches) without
+      // distorting the other rotation axes.
+      if (batchSoFar.length > 0 && dupCount === 0) p += 5;
+      if (batchSoFar.length === 2 && dupCount === 2) p -= 100;
+    }
   }
   // Cross-batch tiered IdeaCoreFamily demotion (Phase 1, REPLACES the
   // prior scriptType cross-batch lever). The two tiers stack: a

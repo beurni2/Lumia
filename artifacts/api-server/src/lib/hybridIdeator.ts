@@ -45,6 +45,7 @@ import {
   selectPrimaryVoiceProfile,
   VOICE_PROFILES,
   type Energy,
+  type HookIntent,
   type HookLanguageStyle,
   type HookOpener,
   type IdeaCoreFamily,
@@ -322,6 +323,38 @@ export function batchGuardsPass(
   // Guards below only meaningful at >=3 picks — at 1 or 2 every
   // "max 2 per group" condition is vacuously satisfied.
   if (batch.length < 3) return true;
+
+  // (h) HOOK INTENT spec (Phase 4) — HARD reject when ALL picks in
+  // a batch of 3+ share the same hookIntent. Mirrors the -100
+  // "soft" all-3-same penalty in selectionPenalty: that lever
+  // prevents the GREEDY selector from ever PICKING the third clone
+  // when an other-intent shippable exists in the candidate pool;
+  // this final guard is defense-in-depth for the residual case
+  // where the candidate pool collapses to a single effective intent
+  // (e.g., severe picker fallback or pool starvation), leaving
+  // greedy with no other-intent shippable. Without this guard the
+  // -100 penalty becomes irrelevant in that case (-100 vs no
+  // alternative still ships). Skip when fewer than batch.length
+  // candidates contributed an intent (legacy / pre-Phase-4 cache
+  // entries) — the guard is "all 3 confirmed same", not "all 3
+  // missing intent". Spec: "no batch of 3 ships with all 3 sharing
+  // the same hookIntent" — batches of 1-2 trivially can't trip,
+  // already excluded by the early return above.
+  const intents: HookIntent[] = [];
+  for (const b of batch) {
+    // `hookIntent` lives only on the pattern_variation variant of
+    // CandidateMeta; the llama_3_1 / claude_fallback variants omit
+    // it entirely (intent is a Phase 4 / pattern-pipeline-only
+    // concept). Use a property check to narrow safely so fallback
+    // wraps don't synthetically mark the batch as "intent missing".
+    if ("hookIntent" in b.meta && b.meta.hookIntent) {
+      intents.push(b.meta.hookIntent);
+    }
+  }
+  if (intents.length === batch.length && new Set(intents).size === 1) {
+    return false;
+  }
+
   // Spec: "never 3× same hookStyle/format/structure, never >2
   // share family/visualAction/topic" — both clauses collapse to
   // a uniform "max 2 per group" rule for any batch size, so use

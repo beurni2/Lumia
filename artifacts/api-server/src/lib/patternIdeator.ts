@@ -2675,6 +2675,17 @@ export function validateHook(hook: string): boolean {
 export type HookPhrasingEntry = {
   opener: HookOpener;
   build: (s: Scenario) => string;
+  /**
+   * Phase 4 (HOOK INTENT) — optional intent tag for legacy entries.
+   * Used by `tryRewrite` so the rewriter can prefer entries matching
+   * the original `meta.hookIntent` when retrying. Optional because
+   * legacy cache / fallback paths may construct entries without it;
+   * readers default to `scroll_stop` via `getEntryIntent` (the safest
+   * default since the legacy validator already rejects open-loop /
+   * relatable-style banned prefixes — anything that ships through
+   * legacy is fragment-shaped by construction).
+   */
+  hookIntent?: HookIntent;
 };
 
 export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
@@ -2682,70 +2693,85 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
     {
       opener: "the_way_i",
       build: (s) => `the way I avoid ${s.topicNoun} like a sport`,
+      hookIntent: "relatable",
     },
     {
       opener: "the_way_i",
       build: (s) => `the way I gaslight myself about ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
     {
       opener: "me_saying",
       build: (s) => `me, refusing to deal with ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
   ],
   why_do_i: [
     {
       opener: "why_did_i",
       build: (s) => `why did I lie to myself about ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
     {
       opener: "why_did_i",
       build: (s) => `why did I expect anything from ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
     {
       opener: "denial_statement",
       build: (s) => `I am totally fine about ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
   ],
   internal_thought: [
     {
       opener: "i_really",
       build: (s) => `I really thought I'd ${s.actionShort}`,
+      hookIntent: "relatable",
     },
     {
       opener: "i_really",
       build: (s) => `I really planned to handle ${s.topicNoun}`,
+      hookIntent: "relatable",
     },
     {
       opener: "me_saying",
       build: (s) => `me, lying about ${s.topicNoun} again`,
+      hookIntent: "relatable",
     },
   ],
   contrast: [
     {
       opener: "what_i_planned_vs",
       build: () => `what I planned vs how it actually went`,
+      hookIntent: "relatable",
     },
     {
       opener: "what_i_planned_vs",
       build: () => `what morning me promised vs night me delivered`,
+      hookIntent: "relatable",
     },
     {
       opener: "me_saying",
       build: () => `me at 9am vs me at 9pm`,
+      hookIntent: "relatable",
     },
   ],
   curiosity: [
     {
       opener: "this_is_where",
       build: () => `this is where the plan officially fell apart`,
+      hookIntent: "compulsion",
     },
     {
       opener: "silent_panic",
       build: () => `silent panic, zero words, full body`,
+      hookIntent: "scroll_stop",
     },
     {
       opener: "realization",
       build: () => `the moment I knew I was never going`,
+      hookIntent: "compulsion",
     },
   ],
 };
@@ -2785,6 +2811,33 @@ export const HOOK_LANGUAGE_STYLES = [
   "escalation_hook",
 ] as const;
 export type HookLanguageStyle = (typeof HOOK_LANGUAGE_STYLES)[number];
+
+/* ------------------------------------------------------------------ */
+/* HOOK INTENT — controller axis ABOVE HookLanguageStyle (Phase 4).    */
+/*                                                                     */
+/* HookLanguageStyle answers "what TYPE of thought" (confession /       */
+/* observation / question / …). HookIntent answers "what JOB does the   */
+/* hook do for the viewer":                                             */
+/*   - scroll_stop : abrupt, surprising, fragment — makes the user      */
+/*     PAUSE on the post (anti_hook fragments, time_stamps, absurd      */
+/*     claims, object_pov, hard 2-word interruptions).                  */
+/*   - compulsion  : open loop / forward-implication — makes the user   */
+/*     CONTINUE to find out what happened (questions, instructions,     */
+/*     escalation, narrative ending mid-arc).                           */
+/*   - relatable   : specific first-person admission — makes the user   */
+/*     THINK "this is me" (confessions, comparisons me-vs-me, micro-    */
+/*     story admission shapes).                                          */
+/*                                                                      */
+/* Generation flow: each candidate slot is assigned an intent           */
+/* round-robin (slot % 3); the picker filters the chosen language-      */
+/* style's entries to those matching the assigned intent, falling back  */
+/* to ANY entry of that style if none match (telemetry-only — never     */
+/* starves a slot). The `hookIntent` recorded on PatternMeta is the     */
+/* intent of the entry that ACTUALLY won, not the assigned intent.     */
+/* ------------------------------------------------------------------ */
+
+export const HOOK_INTENTS = ["scroll_stop", "compulsion", "relatable"] as const;
+export type HookIntent = (typeof HOOK_INTENTS)[number];
 
 /**
  * Lossy backward-compat mapping: HookLanguageStyle → legacy HookStyle.
@@ -3190,6 +3243,19 @@ export type LanguagePhrasingEntry = {
    * Optional with default 3 (via `getEntryScores`).
    */
   sharpnessScore?: number;
+  /**
+   * Phase 4 (HOOK INTENT) — REQUIRED job-of-the-hook tag controlling
+   * which entries are eligible for a given candidate slot. The
+   * generation flow assigns a target intent per slot (round-robin
+   * `slot % 3`) and the picker filters this catalog to entries
+   * matching that intent first, falling back to ANY entry of the
+   * same hookLanguageStyle if none of the matching-intent entries
+   * validate (telemetry-only fallback — never starves a slot). The
+   * scorer dispatches per-intent scoring (`scoreScrollStop` /
+   * `scoreCompulsion` / `scoreRelatable`) off this field. See the
+   * HookIntent block above HookPhrasingEntry for definitions.
+   */
+  hookIntent: HookIntent;
 };
 
 /**
@@ -3205,6 +3271,22 @@ export function getEntryScores(
     rigidity: entry.rigidityScore ?? 3,
     sharpness: entry.sharpnessScore ?? 3,
   };
+}
+
+/**
+ * Phase 4 — resolve effective `hookIntent` for either entry shape
+ * (Phase 3 LanguagePhrasingEntry where the field is REQUIRED, or
+ * legacy HookPhrasingEntry where it's OPTIONAL). Defaults to
+ * `scroll_stop` when absent — the legacy validator already rejects
+ * the open-loop / first-person banned prefixes, so anything that
+ * ships through the legacy 5-style catalog is fragment-shaped by
+ * construction. Pure helper so picker + scorer + rewriter share one
+ * source of truth.
+ */
+export function getEntryIntent(
+  entry: LanguagePhrasingEntry | HookPhrasingEntry,
+): HookIntent {
+  return entry.hookIntent ?? "scroll_stop";
 }
 
 /**
@@ -3294,36 +3376,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `I told myself I'd ${s.actionShort}`,
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
       rigidityScore: 4,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `I have no plan, only ${s.realityShort}`,
       voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `I lied about ${s.actionShort}`,
       voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `still avoiding ${s.topicNoun}, posting instead`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `${s.topicNoun} is my whole personality now`,
       voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     // Phase 3 PART 1 EMOTIONAL_SPIKE additions — sharp, abrupt
     // confession-flavored emotional reactions. All scenario-agnostic
@@ -3333,24 +3421,28 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["blunt", "deadpan", "sarcastic"],
       rigidityScore: 3,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `this ruined my mood`,
       voiceProfiles: ["soft_confessional", "blunt", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `i hate this part`,
       voiceProfiles: ["blunt", "soft_confessional", "deadpan"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `i did not try that hard`,
       voiceProfiles: ["self_aware", "dry_humor", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
   ],
   observation: [
@@ -3359,36 +3451,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["dry_humor", "deadpan", "poetic"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `everybody has a ${s.topicNoun} they keep avoiding`,
       voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
       rigidityScore: 4,
       sharpnessScore: 2,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `nobody ever talks about ${s.realityShort}`,
       voiceProfiles: ["blunt", "deadpan", "sarcastic"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `it's always the same loop with ${s.topicNoun}`,
       voiceProfiles: ["dry_humor", "deadpan", "sarcastic"],
       rigidityScore: 4,
       sharpnessScore: 2,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `${s.topicNoun} is a personality trait apparently`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor", "self_aware"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `the small things become the whole thing eventually`,
       voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
       rigidityScore: 4,
       sharpnessScore: 3,
+      hookIntent: "compulsion",
     },
     // Phase 3 PART 1 SELF_AWARE/META additions — observational hooks
     // about the creator's own pattern. Scenario-agnostic so they
@@ -3398,24 +3496,28 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `i keep doing this. cool.`,
       voiceProfiles: ["self_aware", "sarcastic", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `this is on me, fully`,
       voiceProfiles: ["self_aware", "blunt", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `i already know how this ends`,
       voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
   ],
   absurd_claim: [
@@ -3424,42 +3526,49 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} pays rent here at this point`,
       voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `pretty sure ${s.topicNoun} runs my schedule now`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} is officially a third roommate`,
       voiceProfiles: ["chaotic", "dry_humor", "sarcastic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} feels like a villain origin story`,
       voiceProfiles: ["sarcastic", "chaotic", "self_aware"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `${s.topicNoun} is sentient and we both know`,
       voiceProfiles: ["deadpan", "dry_humor", "chaotic"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `we are quietly losing to ${s.topicNoun} again`,
       voiceProfiles: ["soft_confessional", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
   ],
   matter_of_fact: [
@@ -3468,12 +3577,14 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} is staying exactly where it is`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `today's update: ${s.realityShort}`,
@@ -3486,18 +3597,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       ],
       rigidityScore: 4,
       sharpnessScore: 3,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `nothing changed. ${s.realityShort}.`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `no progress. ${s.topicNoun} remains.`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     // Phase 3 PART 1 DEADPAN/BLUNT additions — flat, scenario-agnostic
     // declarations of failure / non-action. The spec PART 5 voice
@@ -3507,30 +3621,35 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `no progress made`,
       voiceProfiles: ["deadpan", "blunt", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `i did not do it`,
       voiceProfiles: ["blunt", "deadpan", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `i gave up early`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `this didn't work`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
   ],
   question: [
@@ -3539,36 +3658,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["self_aware", "dry_humor", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `how many days does ${s.topicNoun} get`,
       voiceProfiles: ["sarcastic", "dry_humor", "blunt"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: () => `who decided this was fine again`,
       voiceProfiles: ["sarcastic", "dry_humor", "self_aware"],
       rigidityScore: 4,
       sharpnessScore: 3,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `is it really still about ${s.topicNoun}`,
       voiceProfiles: ["self_aware", "soft_confessional", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `what if ${s.topicNoun} was the answer all along`,
       voiceProfiles: ["poetic", "self_aware", "dry_humor"],
       rigidityScore: 4,
       sharpnessScore: 2,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `how many days of pretending about ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
   ],
   instruction: [
@@ -3577,36 +3702,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `pro tip: skip ${s.topicNoun} today`,
       voiceProfiles: ["sarcastic", "blunt", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `tutorial: how to ignore ${s.topicNoun} forever`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: () => `step one: stare. step two: leave.`,
       voiceProfiles: ["deadpan", "dry_humor", "sarcastic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: () => `lesson one: do less, see what happens`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
       rigidityScore: 4,
       sharpnessScore: 2,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `today's reminder: ${s.topicNoun} is allowed to wait`,
       voiceProfiles: ["poetic", "self_aware", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
   ],
   micro_story: [
@@ -3615,6 +3746,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) =>
@@ -3622,30 +3754,35 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `I open it, glance, close it, pretend that counted`,
       voiceProfiles: ["self_aware", "dry_humor", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `walks past ${s.topicNoun}, nods, keeps walking`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `spent five minutes preparing to think about ${s.topicNoun}`,
       voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `stood near ${s.topicNoun} like a forgotten ghost`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     // Phase 3 PART 1 NARRATIVE additions — short two-beat micro-stories.
     // Period mid-string triggers the +3 scrollStop fragment boost.
@@ -3654,18 +3791,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 4,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: () => `i started. then stopped.`,
       voiceProfiles: ["deadpan", "blunt", "dry_humor"],
       rigidityScore: 4,
       sharpnessScore: 5,
+      hookIntent: "relatable",
     },
     {
       build: () => `i saw it. walked away.`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 4,
       sharpnessScore: 5,
+      hookIntent: "relatable",
     },
   ],
   comparison: [
@@ -3674,36 +3814,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["dry_humor", "self_aware", "sarcastic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `theory vs reality with ${s.topicNoun}`,
       voiceProfiles: ["dry_humor", "sarcastic", "self_aware"],
       rigidityScore: 4,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     {
       build: () => `me at 9am vs me at 9pm`,
       voiceProfiles: ["dry_humor", "self_aware", "deadpan", "sarcastic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `plans about ${s.topicNoun} vs reality`,
       voiceProfiles: ["dry_humor", "sarcastic", "deadpan"],
       rigidityScore: 4,
       sharpnessScore: 2,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `planner me vs the ${s.topicNoun} version of me`,
       voiceProfiles: ["soft_confessional", "self_aware", "poetic"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "relatable",
     },
     {
       build: (s) => `future me's ${s.topicNoun} vs current me's`,
       voiceProfiles: ["self_aware", "deadpan", "soft_confessional"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "relatable",
     },
   ],
   object_pov: [
@@ -3712,42 +3858,49 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["dry_humor", "poetic", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun}, sitting there, fully aware of everything`,
       voiceProfiles: ["poetic", "dry_humor", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} keeps the score so nothing escapes`,
       voiceProfiles: ["poetic", "dry_humor", "blunt"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} taking notes about my life again`,
       voiceProfiles: ["dry_humor", "sarcastic", "chaotic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} has seen things, ${s.topicNoun} is tired`,
       voiceProfiles: ["poetic", "soft_confessional", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `the ${s.topicNoun} is smug about today, frankly`,
       voiceProfiles: ["sarcastic", "chaotic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} just observing the disaster quietly`,
       voiceProfiles: ["dry_humor", "soft_confessional", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
   ],
   time_stamp: [
@@ -3756,18 +3909,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["soft_confessional", "self_aware", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `7am plan: ${s.actionShort}`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `it's tuesday and ${s.topicNoun} has not moved`,
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `12:14am: still in standoff with ${s.topicNoun}`,
@@ -3779,18 +3935,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       ],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `monday and ${s.topicNoun} is winning, news at eleven`,
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `3pm and the ${s.topicNoun} is somehow louder`,
       voiceProfiles: ["poetic", "soft_confessional", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     // Phase 3 PART 1 TIMESTAMP additions — pure timestamp + status
     // fragments. Each contains a digit (highly specific +1 boost) and
@@ -3800,24 +3959,28 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["soft_confessional", "dry_humor", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `2 hours later. nothing.`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `midnight. no progress.`,
       voiceProfiles: ["soft_confessional", "deadpan", "blunt"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `day 3. nothing changed.`,
       voiceProfiles: ["blunt", "deadpan", "soft_confessional"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
   ],
   anti_hook: [
@@ -3826,42 +3989,49 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "dry_humor", "blunt"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `not great with ${s.topicNoun} today`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `so. ${s.topicNoun}.`,
       voiceProfiles: ["deadpan", "blunt", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `here we are with ${s.topicNoun}`,
       voiceProfiles: ["deadpan", "soft_confessional", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 3,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun}. that's the whole post.`,
       voiceProfiles: ["sarcastic", "chaotic", "deadpan", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `${s.topicNoun} and a quiet kind of nothing`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: (s) => `introducing: ${s.topicNoun} again, shockingly`,
       voiceProfiles: ["sarcastic", "self_aware", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     // Phase 3 PART 1 FRAGMENT additions (spec PART 5 PRIMARY voice).
     // 2-3 word interruptions / mid-action thoughts. validateHook word
@@ -3872,36 +4042,42 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["deadpan", "blunt"],
       rigidityScore: 3,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `still nothing.`,
       voiceProfiles: ["deadpan", "blunt", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `this is it?`,
       voiceProfiles: ["deadpan", "sarcastic", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `immediately no.`,
       voiceProfiles: ["blunt", "deadpan", "dry_humor"],
       rigidityScore: 3,
       sharpnessScore: 5,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `yep. still stuck.`,
       voiceProfiles: ["dry_humor", "deadpan", "soft_confessional"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
     {
       build: () => `not happening today.`,
       voiceProfiles: ["blunt", "deadpan", "sarcastic"],
       rigidityScore: 3,
       sharpnessScore: 4,
+      hookIntent: "scroll_stop",
     },
   ],
   escalation_hook: [
@@ -3910,18 +4086,21 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `tried to handle ${s.topicNoun}, did the opposite`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `one job around ${s.topicNoun}, you can guess`,
       voiceProfiles: ["sarcastic", "dry_humor", "chaotic"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) =>
@@ -3929,30 +4108,35 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       voiceProfiles: ["chaotic", "sarcastic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `${s.topicNoun} went from small to entire personality`,
       voiceProfiles: ["chaotic", "sarcastic", "self_aware"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `thought I'd manage ${s.topicNoun}, now its hostage`,
       voiceProfiles: ["chaotic", "dry_humor", "soft_confessional"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `the ${s.topicNoun} ate my afternoon, peacefully`,
       voiceProfiles: ["poetic", "chaotic", "dry_humor"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
     {
       build: (s) => `started managing ${s.topicNoun}, now we live together`,
       voiceProfiles: ["poetic", "soft_confessional", "deadpan"],
       rigidityScore: 2,
       sharpnessScore: 4,
+      hookIntent: "compulsion",
     },
   ],
 };
@@ -4335,6 +4519,30 @@ export type PatternMeta = {
    * absent entry — only intrinsic hook properties contribute).
    */
   sourceLanguagePhrasing?: LanguagePhrasingEntry;
+  /**
+   * Phase 4 (HOOK INTENT) — the intent of the entry that ACTUALLY won
+   * the picker, NOT the slot's `assignedIntent` (which is only honored
+   * when an intent-matching entry validated for the scenario). Always
+   * set on pattern_variation candidates (the assembler reads it via
+   * `getEntryIntent(picked.entry)`). The selector / batch guard / per-
+   * intent scorer all read this field; readers MUST treat undefined as
+   * "no contribution to intent axis" (legacy cache entries written
+   * before Phase 4 won't have it, and Claude/Llama fallback wraps may
+   * omit) — same fallback discipline as `archetype` / `voiceProfile`.
+   * The dispatch in `scoreHookIntent(hook, intent ?? "scroll_stop", …)`
+   * defaults absent intent to `scroll_stop` to preserve Phase 3
+   * scoring semantics for legacy reads.
+   */
+  hookIntent?: HookIntent;
+  /**
+   * Phase 4 (HOOK INTENT) — true ONLY when the slot was assigned a
+   * specific intent but the picker had to fall back to an entry of a
+   * DIFFERENT intent (no intent-matching entry validated for the
+   * scenario). Telemetry-only — used by the QA driver to count true
+   * intent starvation events. Optional + defaults to false on legacy
+   * cache reads. Does NOT affect scoring or batch guards.
+   */
+  intentFallback?: boolean;
 };
 
 /**
@@ -4392,52 +4600,90 @@ function pickValidatedLanguagePhrasing(
   tone: DerivedTone,
   seed: number,
   voiceProfile?: VoiceProfile,
-): { entry: LanguagePhrasingEntry; index: number; hook: string } | null {
+  // Phase 4 (HOOK INTENT) — optional. When set, the picker filters the
+  // chosen language-style's entries to those tagged with this intent
+  // first (intent-first passes), and only falls back to ANY-intent
+  // entries (intent-fallback passes) when no intent-matching entry
+  // validates for this scenario. The returned `intentFallback` flag
+  // tells the caller which path won so PatternMeta can record it for
+  // QA / scoring telemetry. When `assignedIntent` is undefined the
+  // picker behaves exactly as before (3-pass voice-aware) and always
+  // returns `intentFallback: false`.
+  assignedIntent?: HookIntent,
+): {
+  entry: LanguagePhrasingEntry;
+  index: number;
+  hook: string;
+  intentFallback: boolean;
+} | null {
   const phrasings = HOOK_PHRASINGS_BY_LANGUAGE_STYLE[hookLanguageStyle];
   const n = phrasings.length;
   const start = ((seed % n) + n) % n;
 
-  // Voice-aware selection (THREE-PASS):
-  //   Pass 1: prefer entries whose `voiceProfiles` contains the
-  //           requested voice (the spec's "voice should affect the
-  //           hook wording" rule — same HLS × different voice =
-  //           different phrasing).
-  //   Pass 2: voice-NEUTRAL entries (no `voiceProfiles` tag — these
-  //           read fine in any voice, used as a graceful fallback
-  //           when no voice-tagged entry is shippable).
-  //   Pass 3: ANY entry that passes `validateHook` (preserves the
-  //           existing safety net — same behavior as before voice
-  //           was added when voiceProfile is undefined).
-  // The seed-rotated start index is the same across all three passes
-  // so a given (seed, scenario, hls, voice) tuple is deterministic.
-  if (voiceProfile) {
+  // Inner walker: scans phrasings in seed-rotated order, returning the
+  // first entry that passes the intent filter, the voice predicate, AND
+  // `validateHook`. Used by both the intent-first passes and the
+  // intent-fallback passes below — sharing one walker means seed
+  // rotation discipline is identical across all six passes.
+  const walk = (
+    intentRequired: HookIntent | null,
+    voicePred: (e: LanguagePhrasingEntry) => boolean,
+  ): { entry: LanguagePhrasingEntry; index: number; hook: string } | null => {
     for (let offset = 0; offset < n; offset++) {
       const idx = (start + offset) % n;
       const entry = phrasings[idx]!;
-      if (!entry.voiceProfiles?.includes(voiceProfile)) continue;
+      if (intentRequired !== null && entry.hookIntent !== intentRequired) continue;
+      if (!voicePred(entry)) continue;
       const candidate = toneInflect(entry.build(scenario), tone).trim();
       if (validateHook(candidate)) {
         return { entry, index: idx, hook: candidate };
       }
     }
-    for (let offset = 0; offset < n; offset++) {
-      const idx = (start + offset) % n;
-      const entry = phrasings[idx]!;
-      if (entry.voiceProfiles !== undefined) continue;
-      const candidate = toneInflect(entry.build(scenario), tone).trim();
-      if (validateHook(candidate)) {
-        return { entry, index: idx, hook: candidate };
-      }
+    return null;
+  };
+
+  const voiceMatch = (e: LanguagePhrasingEntry) =>
+    voiceProfile !== undefined &&
+    (e.voiceProfiles?.includes(voiceProfile) ?? false);
+  const voiceNeutral = (e: LanguagePhrasingEntry) =>
+    e.voiceProfiles === undefined;
+  const anyVoice = (_e: LanguagePhrasingEntry) => true;
+
+  // INTENT-FIRST passes (when assignedIntent is set):
+  //   1. intent + voice-match
+  //   2. intent + voice-neutral
+  //   3. intent + ANY voice (preserve intent at the cost of voice)
+  // Then the SAME seed-rotated voice discipline as before, but WITHOUT
+  // the intent filter — `intentFallback: true` flags the candidate so
+  // PatternMeta can record the slot's assigned intent was not honored.
+  if (assignedIntent !== undefined) {
+    if (voiceProfile !== undefined) {
+      const m = walk(assignedIntent, voiceMatch);
+      if (m) return { ...m, intentFallback: false };
+      const ne = walk(assignedIntent, voiceNeutral);
+      if (ne) return { ...ne, intentFallback: false };
     }
+    const aw = walk(assignedIntent, anyVoice);
+    if (aw) return { ...aw, intentFallback: false };
   }
-  for (let offset = 0; offset < n; offset++) {
-    const idx = (start + offset) % n;
-    const entry = phrasings[idx]!;
-    const candidate = toneInflect(entry.build(scenario), tone).trim();
-    if (validateHook(candidate)) {
-      return { entry, index: idx, hook: candidate };
-    }
+
+  // INTENT-FALLBACK passes (no intent constraint). Reached when:
+  //   (a) `assignedIntent` was undefined (legacy / test callers), or
+  //   (b) every intent-matching entry failed validation for this
+  //       scenario. The `intentFallback` flag distinguishes these
+  //       cases — true ONLY when an intent was requested but couldn't
+  //       be honored, so the QA driver can count true intent
+  //       starvation events without false positives from intent-less
+  //       call paths.
+  const fallbackFlag = assignedIntent !== undefined;
+  if (voiceProfile !== undefined) {
+    const m = walk(null, voiceMatch);
+    if (m) return { ...m, intentFallback: fallbackFlag };
+    const ne = walk(null, voiceNeutral);
+    if (ne) return { ...ne, intentFallback: fallbackFlag };
   }
+  const aw = walk(null, anyVoice);
+  if (aw) return { ...aw, intentFallback: fallbackFlag };
   return null;
 }
 
@@ -4461,6 +4707,21 @@ function assembleCandidate(
   // assignments for the same slotIndex.
   slotIndex: number = 0,
   slotSalt: number = 0,
+  // Phase 4 (HOOK INTENT) — optional. The slot's assigned intent for
+  // round-robin pool diversity (see `generatePatternCandidates` for the
+  // assignment policy). Passed straight through to the picker, which
+  // honors it via intent-first passes and falls back to ANY-intent
+  // entries when no intent-matching entry validates for the chosen
+  // (style, scenario) pair. The `meta.hookIntent` recorded BELOW comes
+  // from the WINNING entry (`getEntryIntent(picked.entry)`), NOT from
+  // `assignedIntent` — fallbacks change the actual intent and the
+  // selector / batch guard / per-intent scorer all need the truth. The
+  // separate `meta.intentFallback` flag records whether the slot's
+  // assigned intent was honored, used by the QA driver to count
+  // starvation events. When `assignedIntent` is undefined (legacy /
+  // test callers) the picker is unfiltered and `intentFallback`
+  // defaults to false.
+  assignedIntent?: HookIntent,
 ): { idea: Idea; meta: PatternMeta } | null {
   const picked = pickValidatedLanguagePhrasing(
     hookLanguageStyle,
@@ -4468,9 +4729,10 @@ function assembleCandidate(
     tone,
     hookPhrasingIndex,
     voiceProfile,
+    assignedIntent,
   );
   if (!picked) return null;
-  const { entry: sourceLanguagePhrasing, index, hook } = picked;
+  const { entry: sourceLanguagePhrasing, index, hook, intentFallback } = picked;
   // Legacy hookStyle field is DERIVED from hookLanguageStyle via
   // the lossy backward-compat mapping. Every value is a valid
   // legacy HookStyle so the JSONB cache, viralPatternMemory, and
@@ -4671,6 +4933,27 @@ function assembleCandidate(
       // build fn does not — score lookups via getEntryScores still
       // work on rehydrated entries).
       sourceLanguagePhrasing,
+      // Phase 4 (HOOK INTENT) — derived from the WINNING entry, NOT
+      // from the slot's `assignedIntent`. When the picker's intent-
+      // first passes succeed these are equal; when they fail and the
+      // intent-fallback passes win, this records the actual intent
+      // the candidate ships with (so the per-intent scorer + batch
+      // guard see the truth, not the request). Always set on
+      // pattern_variation candidates — `getEntryIntent` defaults to
+      // `scroll_stop` for legacy entries lacking the field, which
+      // means a non-tagged Phase 1/2 catalog entry would still
+      // produce a non-null intent here. (Every Phase 3 entry IS
+      // tagged, so the default never triggers in the current
+      // generation flow — kept for future Claude/Llama wraps.)
+      hookIntent: getEntryIntent(sourceLanguagePhrasing),
+      // Phase 4 (HOOK INTENT) — telemetry for the QA driver. Only
+      // SET when an `assignedIntent` was passed AND the picker had
+      // to fall back to a different intent (no intent-matching entry
+      // validated). Stays undefined when the slot's intent was
+      // honored OR when no intent was requested — the latter so QA
+      // counts only real starvation events, not intent-less call
+      // paths.
+      ...(intentFallback ? { intentFallback: true } : {}),
     },
   };
 }
@@ -4900,6 +5183,21 @@ export function generatePatternCandidates(
     const voiceForSlot = pickVoiceForSlot(out.length, allowedVoices);
     void slotsAlreadyVoiced;
     void voiceSelection.primary;
+    // HOOK INTENT axis (Phase 4) — round-robin over the 3-value
+    // HOOK_INTENTS array, indexed by `out.length` (the slot the
+    // candidate would occupy on success — same discipline as
+    // `voiceForSlot` and the trend layer's `slotIndex`, so failed-
+    // build attempts don't burn intent rotation slots). With target=16
+    // this guarantees the candidate POOL spans intents (≈5-6 of each
+    // before the diversifier sees it) BEFORE any selection guard
+    // fires — the soft preference for "1 of each in a batch of 3"
+    // emerges naturally from the rotation. The picker honors this as
+    // a hard filter on the chosen language-style's entries with a
+    // graceful fallback when the (style, scenario) pair has no intent-
+    // matching entry that validates (telemetry-only flag — see
+    // `meta.intentFallback` in PatternMeta).
+    const assignedIntent: HookIntent =
+      HOOK_INTENTS[out.length % HOOK_INTENTS.length]!;
     // assembleCandidate returns null when NO phrasing in the chosen
     // hookLanguageStyle passes `validateHook` for this scenario (e.g.
     // every variant overruns 10 words for the longest realityShort,
@@ -4923,6 +5221,7 @@ export function generatePatternCandidates(
       voiceForSlot,
       out.length,
       scenarioSeed,
+      assignedIntent,
     );
     if (built !== null) {
       out.push(built);
