@@ -324,14 +324,17 @@ A rewrite only ships if it scores STRICTLY higher than the original. Two specifi
 
 Hitting BOTH A and B = winning rewrite. Hitting only one usually ties or loses, which means it gets thrown away. So: pick a tension word from list A, name the actual object from list B, keep it under 10 words, keep it casual.
 
-# CREATOR VOICE — keep it imperfect on purpose
+# CREATOR VOICE — keep it imperfect on purpose (NON-NEGOTIABLE)
 
-This is short-form social text from a real person at 11pm, not copy from a brand. PRESERVE imperfection:
-- lowercase is fine and often better
-- fragments are fine ("anyway, the front step")
-- casual grammar, slang, dropped articles are fine ("nobody talks about the same hoodie again")
+This is short-form social text from a real person at 11pm, not copy from a brand. You MUST preserve intentional imperfection. The following are GOOD, not problems to fix:
+- slang ("kinda", "like", "literally", "anyway")
+- fragments ("anyway, the front step", "the laundry. again.")
+- lowercase (often better than capitalized — leave it lowercase)
+- dry phrasing — deadpan, flat, matter-of-fact beats clever
+- casual grammar, dropped articles, run-ons ("nobody talks about the same hoodie again")
 - a single emoji at the end is allowed if it fits (😭, sparingly)
-- DO NOT professionalize. DO NOT over-polish. DO NOT add proper punctuation it doesn't need. DO NOT make it sound like a tagline.
+
+DO NOT professionalize the hook. DO NOT make it "cleaner" if cleaner means less like the creator — preserving voice ALWAYS beats polishing grammar. DO NOT add proper punctuation it doesn't need. DO NOT capitalize the first letter just because it's the start. DO NOT make it sound like a tagline, a press release, a brand caption, or copy. If your rewrite reads like marketing, it has failed even if every other rule passed.
 
 # EXAMPLES — study GOOD vs BAD
 
