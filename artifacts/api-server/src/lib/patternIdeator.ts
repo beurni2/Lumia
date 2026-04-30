@@ -2892,6 +2892,17 @@ export type HookPhrasingEntry = {
    * the JSDoc on `LanguagePhrasingEntry.skeletonId` for semantics.
    */
   skeletonId?: string;
+  /**
+   * Phase 3C HOOK CATALOG TAG COMPLETION — symmetric `allowedNounTypes`
+   * field for legacy 5-style entries used by `tryRewrite`. Same
+   * semantics as `LanguagePhrasingEntry.allowedNounTypes`: undefined =
+   * "any noun type works", otherwise the rewriter skips this entry
+   * BEFORE calling `entry.build(scenario)` when
+   * `scenario.topicNounType` is not in the allowlist. Critical for
+   * preventing semantically-incompatible rewrites like
+   * "I am totally fine about the wave" (event noun + denial template).
+   */
+  allowedNounTypes?: ReadonlyArray<TopicNounType>;
 };
 
 export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
@@ -2900,16 +2911,21 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "the_way_i",
       build: (s) => `the way I avoid ${s.topicNoun} like a sport`,
       hookIntent: "relatable",
+      skeletonId: "way_i_avoid_sport",
+      allowedNounTypes: ["object", "place", "event", "person"] as const,
     },
     {
       opener: "the_way_i",
       build: (s) => `the way I gaslight myself about ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "way_i_gaslight_about",
+      allowedNounTypes: ["abstract", "event", "body_state", "place"] as const,
     },
     {
       opener: "me_saying",
       build: (s) => `me, refusing to deal with ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "refusing_to_deal",
     },
   ],
   why_do_i: [
@@ -2917,16 +2933,21 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "why_did_i",
       build: (s) => `why did I lie to myself about ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "why_lie_about",
     },
     {
       opener: "why_did_i",
       build: (s) => `why did I expect anything from ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "why_expect_anything",
+      allowedNounTypes: ["object", "place", "event", "person"] as const,
     },
     {
       opener: "denial_statement",
       build: (s) => `I am totally fine about ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "totally_fine_about",
+      allowedNounTypes: ["abstract", "body_state", "object", "place"] as const,
     },
   ],
   internal_thought: [
@@ -2939,11 +2960,14 @@ export const HOOK_PHRASINGS_BY_STYLE: Record<HookStyle, HookPhrasingEntry[]> = {
       opener: "i_really",
       build: (s) => `I really planned to handle ${s.topicNoun}`,
       hookIntent: "relatable",
+      skeletonId: "planned_to_handle",
     },
     {
       opener: "me_saying",
       build: (s) => `me, lying about ${s.topicNoun} again`,
       hookIntent: "relatable",
+      skeletonId: "lying_about_again",
+      allowedNounTypes: ["abstract", "body_state", "object", "place"] as const,
     },
   ],
   contrast: [
@@ -4043,6 +4067,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "keep_pretending_doesnt_exist",
     },
     {
       build: (s) => `I told myself I'd ${s.actionShort}`,
@@ -4071,6 +4096,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "avoiding_posting",
+      allowedNounTypes: ["object", "place", "event", "action", "abstract"] as const,
     },
     {
       build: (s) => `${s.topicNoun} is my whole personality now`,
@@ -4078,6 +4105,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "whole_personality",
+      allowedNounTypes: ["object", "abstract", "place", "action"] as const,
     },
     // Phase 3 PART 1 EMOTIONAL_SPIKE additions — sharp, abrupt
     // confession-flavored emotional reactions. All scenario-agnostic
@@ -4122,6 +4151,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "always_one_never_deal",
     },
     {
       build: (s) => `everybody has ${s.topicNoun} they keep avoiding`,
@@ -4129,6 +4159,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 2,
       hookIntent: "relatable",
+      skeletonId: "everybody_has_avoiding",
+      allowedNounTypes: ["object", "place", "event", "action", "abstract"] as const,
     },
     {
       build: (s) => `nobody ever talks about ${s.realityShort}`,
@@ -4143,6 +4175,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 4,
       sharpnessScore: 2,
       hookIntent: "relatable",
+      skeletonId: "same_loop_with",
     },
     {
       build: (s) => `${s.topicNoun} is a personality trait apparently`,
@@ -4150,6 +4183,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "personality_trait_apparently",
+      allowedNounTypes: ["object", "abstract", "action"] as const,
     },
     {
       build: () => `the small things become the whole thing eventually`,
@@ -4256,6 +4291,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "quietly_losing_to",
+      allowedNounTypes: ["event", "body_state", "abstract", "object"] as const,
     },
   ],
   matter_of_fact: [
@@ -4385,6 +4422,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "compulsion",
+      skeletonId: "is_it_really_still_about",
     },
     {
       build: (s) => `what if ${s.topicNoun} was the answer all along`,
@@ -4466,6 +4504,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "open_stare_close",
+      allowedNounTypes: ["object"] as const,
     },
     {
       build: (s) =>
@@ -4474,6 +4514,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "looked_did_nothing_scrolling",
+      allowedNounTypes: ["object", "place", "abstract", "event", "action"] as const,
     },
     {
       build: () => `I open it, glance, close it, pretend that counted`,
@@ -4489,6 +4531,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "relatable",
+      skeletonId: "walks_past_nods",
+      allowedNounTypes: ["place", "object", "person"] as const,
     },
     {
       build: (s) => `spent five minutes preparing to think about ${s.topicNoun}`,
@@ -4505,6 +4549,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "relatable",
+      skeletonId: "stood_near_ghost",
+      allowedNounTypes: ["place", "object"] as const,
     },
     // Phase 3 PART 1 NARRATIVE additions — short two-beat micro-stories.
     // Period mid-string triggers the +3 scrollStop fragment boost.
@@ -4761,6 +4807,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "anyway_noun",
     },
     {
       build: (s) => `not great with ${s.topicNoun} today`,
@@ -4768,6 +4815,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "not_great_with_today",
     },
     {
       build: (s) => `so. ${s.topicNoun}.`,
@@ -4775,6 +4823,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      skeletonId: "so_noun",
     },
     {
       build: (s) => `here we are with ${s.topicNoun}`,
@@ -4782,6 +4831,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 3,
       hookIntent: "scroll_stop",
+      skeletonId: "here_we_are_with",
     },
     {
       build: (s) => `${s.topicNoun}. that's the whole post.`,
@@ -4789,6 +4839,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 5,
       hookIntent: "scroll_stop",
+      skeletonId: "whole_post_noun",
     },
     {
       build: (s) => `${s.topicNoun} and a quiet kind of nothing`,
@@ -4796,6 +4847,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 3,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "quiet_kind_of_nothing",
+      allowedNounTypes: ["place", "event", "body_state", "abstract", "object"] as const,
     },
     {
       build: (s) => `introducing: ${s.topicNoun} again, shockingly`,
@@ -4803,6 +4856,7 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "scroll_stop",
+      skeletonId: "introducing_again",
     },
     // Phase 3 PART 1 FRAGMENT additions (spec PART 5 PRIMARY voice).
     // 2-3 word interruptions / mid-action thoughts. validateHook word
@@ -4892,6 +4946,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
       rigidityScore: 2,
       sharpnessScore: 4,
       hookIntent: "compulsion",
+      skeletonId: "started_small_no_longer",
+      allowedNounTypes: ["object", "place", "abstract", "event", "action", "body_state"] as const,
     },
     {
       build: (s) => `${s.topicNoun} went from small to entire personality`,

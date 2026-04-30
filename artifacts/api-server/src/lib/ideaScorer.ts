@@ -1129,6 +1129,25 @@ function tryRewrite(
     if (!phrasings || phrasings.length === 0) continue;
     for (let i = 0; i < phrasings.length; i++) {
       const entry = phrasings[i]!;
+      // Phase 3C HOOK CATALOG TAG COMPLETION — noun-type
+      // compatibility gate. Skip the entry BEFORE calling `build()`
+      // when the entry declared an `allowedNounTypes` allowlist and
+      // the scenario's `topicNounType` is not in it. Mirrors the
+      // identical gate inside `pickValidatedLanguagePhrasing.walk()`
+      // (added in Phase 3B) so the rewriter and the live picker
+      // share one noun-fit discipline. Undefined `allowedNounTypes`
+      // means "any noun type is fine" (legacy + naturally-permissive
+      // templates). The rewriter falls through to the next entry,
+      // identical to the `validateHook` rejection path; the outer
+      // `for (const nextStyle of otherStyles)` loop will also re-
+      // enter the next style's phrasing list and find a compatible
+      // entry there.
+      if (
+        entry.allowedNounTypes !== undefined &&
+        !entry.allowedNounTypes.includes(scenario.topicNounType)
+      ) {
+        continue;
+      }
       const candidate = entry.build(scenario).trim();
       if (!validateHook(candidate)) continue;
       // Found a shippable rewrite. Update hookOpener too so the
