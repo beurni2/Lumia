@@ -623,6 +623,18 @@ export function passesHookMutationRules(
     }
   }
 
+  // Duplicate adjacent token — "the the shopping cart", "and and then".
+  // Llama 8B occasionally repeats articles/conjunctions when chained
+  // against an existing noun phrase that already contains the article
+  // (e.g. it tries to start the rewrite with "the" against an original
+  // hook whose noun is "the shopping cart"). Case-insensitive on word
+  // boundaries; punctuation between dupes is fine since `\s+` requires
+  // whitespace only. Cheap regex, run before the scene-preservation
+  // tokenization pass.
+  if (/\b(\w+)\s+\1\b/i.test(trimmed)) {
+    return "duplicate_token";
+  }
+
   // Opener must differ from the original to count as a rewrite.
   const newOpener = lookupHookOpener(trimmed);
   const oldOpener =
