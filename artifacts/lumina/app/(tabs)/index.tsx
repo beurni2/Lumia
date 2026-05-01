@@ -742,6 +742,29 @@ export default function HomeScreen() {
           {returnSignalText ? (
             <Text style={styles.returnSignal}>{returnSignalText}</Text>
           ) : null}
+
+          {/* DEV-ONLY entry point to the WIP single-idea swipe feed
+              preview at /feed. Gated on __DEV__ so production
+              builds never ship it. Placed directly under the
+              header so it's impossible to miss in dev sessions.
+              REMOVE this block when the swipe feed graduates and
+              replaces (or links from) the canonical Home flow. */}
+          {__DEV__ ? (
+            <Pressable
+              onPress={() => router.push("/feed")}
+              accessibilityRole="link"
+              accessibilityLabel="Preview new single-idea feed (dev only)"
+              style={({ pressed }) => [
+                styles.devFeedLink,
+                pressed ? styles.devFeedLinkPressed : null,
+              ]}
+              hitSlop={8}
+            >
+              <Text style={styles.devFeedLinkText}>
+                dev · preview new feed →
+              </Text>
+            </Pressable>
+          ) : null}
         </Animated.View>
 
         {/* Skeleton screen covers BOTH initial load AND regenerate.
@@ -941,31 +964,6 @@ export default function HomeScreen() {
               <Text style={styles.retryLabel}>Retry</Text>
             </Pressable>
           </View>
-        ) : null}
-
-        {/* DEV-ONLY entry point to the WIP single-idea swipe feed
-            preview at /feed. Gated on __DEV__ so production
-            builds never ship it. Sits at the very end of the
-            ScrollView (below ideas, error block, all CTAs) so it
-            is invisible to anyone not specifically looking for
-            it but reachable in two taps for visual review.
-            REMOVE this block when the swipe feed graduates and
-            replaces (or links from) the canonical Home flow. */}
-        {__DEV__ ? (
-          <Pressable
-            onPress={() => router.push("/feed")}
-            accessibilityRole="link"
-            accessibilityLabel="Preview new single-idea feed (dev only)"
-            style={({ pressed }) => [
-              styles.devFeedLink,
-              pressed ? styles.devFeedLinkPressed : null,
-            ]}
-            hitSlop={8}
-          >
-            <Text style={styles.devFeedLinkText}>
-              dev · preview new feed →
-            </Text>
-          </Pressable>
         ) : null}
       </ScrollView>
       {/* Viral feedback-loop whisper — fires on the Nth lifetime
@@ -1285,15 +1283,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   devFeedLink: {
-    alignSelf: "center",
-    marginTop: 28,
-    marginBottom: 8,
+    alignSelf: "flex-start",
+    marginTop: 14,
+    marginBottom: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(255,30,158,0.30)",
-    backgroundColor: "rgba(255,30,158,0.08)",
+    borderColor: "rgba(255,30,158,0.40)",
+    backgroundColor: "rgba(255,30,158,0.12)",
   },
   devFeedLinkPressed: {
     opacity: 0.6,
