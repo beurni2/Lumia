@@ -8068,16 +8068,47 @@ function pickValidatedLanguagePhrasing(
   const n = phrasings.length;
   const start = ((seed % n) + n) % n;
 
-  // Inner walker: scans phrasings in seed-rotated order, returning the
-  // first entry that passes the intent filter, the voice predicate, AND
-  // `validateHook`. Used by both the intent-first passes and the
-  // intent-fallback passes below — sharing one walker means seed
-  // rotation discipline is identical across all six passes.
+  // Inner walker: scans phrasings in seed-rotated order. Used by both
+  // the intent-first passes and the intent-fallback passes below —
+  // sharing one walker means seed rotation discipline is identical
+  // across all six passes.
   //
   // Phase 6C — `premiseOnly` (default false) restricts the walk to
   // entries with `bigPremise === true`. Used by the premise-first
   // orchestration block below; legacy callers keep the default and
   // get the original "all entries" behavior.
+  //
+  // Phase 6E (FOLLOWUP — picker walk reordering) — selection mode
+  // depends on `premiseOnly`:
+  //
+  //   * premiseOnly === true   → BEST-SCORED. Walk the FULL seed-
+  //     rotated rotation, collect every premise candidate that passes
+  //     all gates (validateHook + validateBigPremise +
+  //     validateOutputLine + comedy score >= 5), and return the one
+  //     with the HIGHEST `premiseComedyScore.total`. Ties resolve to
+  //     the candidate that appeared FIRST in the seed-rotated order
+  //     (strict `>` below preserves the earlier-wins semantics —
+  //     keeps seed rotation deterministic and stable across QA
+  //     replays). Short-circuits on a perfect 10 (no further scan
+  //     can improve). This eliminates the failure mode where a
+  //     mediocre 5-6 hook ships only because it appeared earlier in
+  //     seed order than a 7-9 hook in the same eligible pool.
+  //
+  //   * premiseOnly === false  → FIRST-VALID (original behavior). The
+  //     legacy fallback passes are reached when premise-first
+  //     exhausted, and they're a "find SOMETHING shippable" path
+  //     where (a) legacy entries have no comparable quality score
+  //     and (b) short-circuiting on first valid matters for slot
+  //     fill rate. Premise entries that happen to surface in this
+  //     fallback (intent + voice axes can shuffle them to the front)
+  //     still get HARD-rejected at <5 via the same score gate; we
+  //     just don't second-guess the first valid hit.
+  //
+  // The HARD reject (<5), the 5-6 demote band, all thresholds, the
+  // catalog, validateHook / validateBigPremise / validateOutputLine,
+  // and Phase 5 are all untouched. The change is selection-policy
+  // only: scan the same eligible set, pick the best instead of the
+  // first.
   const walk = (
     intentRequired: HookIntent | null,
     voicePred: (e: LanguagePhrasingEntry) => boolean,
@@ -8091,6 +8122,18 @@ function pickValidatedLanguagePhrasing(
     // filters out low scores so anything returned here is >= 5.
     premiseComedyScore?: PremiseComedyScore;
   } | null => {
+    // Phase 6E followup — `best` accumulates the highest-scored valid
+    // premise across the rotation when `premiseOnly === true`; for
+    // legacy walks we return on first valid below and never touch
+    // this slot.
+    let best:
+      | {
+          entry: LanguagePhrasingEntry;
+          index: number;
+          hook: string;
+          premiseComedyScore?: PremiseComedyScore;
+        }
+      | null = null;
     for (let offset = 0; offset < n; offset++) {
       const idx = (start + offset) % n;
       const entry = phrasings[idx]!;
@@ -8186,9 +8229,25 @@ function pickValidatedLanguagePhrasing(
         if (score.rejected || score.total < 5) continue;
         premiseComedyScore = score;
       }
-      return { entry, index: idx, hook: finalHook, premiseComedyScore };
+      // Phase 6E (FOLLOWUP — picker walk reordering) — selection
+      // policy split. Legacy walks (premiseOnly === false) keep the
+      // original first-valid behavior; premise-only walks accumulate
+      // the highest-scored candidate and return at end-of-rotation
+      // (or short-circuit on a perfect 10 — no scan can improve).
+      // See the long comment above the walk declaration for the
+      // rationale.
+      const result = { entry, index: idx, hook: finalHook, premiseComedyScore };
+      if (!premiseOnly) return result;
+      const score = premiseComedyScore?.total ?? 0;
+      const bestScore = best?.premiseComedyScore?.total ?? 0;
+      // Strict `>` — earlier seed-rotated index wins on ties so the
+      // walk stays deterministic and matches QA snapshot replay.
+      if (best === null || score > bestScore) {
+        best = result;
+        if (score >= 10) break;
+      }
     }
-    return null;
+    return best;
   };
 
   const voiceMatch = (e: LanguagePhrasingEntry) =>
