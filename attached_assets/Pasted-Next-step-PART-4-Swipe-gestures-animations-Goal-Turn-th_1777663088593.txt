@@ -1,0 +1,115 @@
+Next step: PART 4 — Swipe gestures + animations
+
+Goal:
+Turn the static feed into a smooth, native-feeling swipe experience.
+
+Focus ONLY on interaction and motion.
+Do not add backend, reactions persistence, or nav changes yet.
+
+---
+
+SCOPE
+
+Add swipe gestures to SwipeIdeaCard:
+
+- Swipe UP → next idea
+- Swipe RIGHT → save (visual only, no backend yet)
+- Swipe LEFT → skip
+
+---
+
+IMPLEMENTATION
+
+Use:
+- react-native-gesture-handler
+- react-native-reanimated
+
+(Do not introduce new libraries beyond these)
+
+---
+
+BEHAVIOR
+
+1. Swipe UP (primary)
+- vertical swipe
+- threshold-based trigger
+- card animates up and fades out
+- next idea slides in from bottom
+- preload next idea (already available in array)
+
+2. Swipe RIGHT (save)
+- card moves right + slight rotation
+- quick snap animation
+- then return to center (since no persistence yet)
+- optional small “Saved” indicator flash
+
+3. Swipe LEFT (skip)
+- card moves left
+- fades slightly
+- returns to center
+
+---
+
+ANIMATION RULES
+
+- duration: ~200–300ms
+- easing: smooth, slightly springy (not stiff)
+- no jank
+- 60fps target
+
+---
+
+STATE MANAGEMENT
+
+- keep current index in feed.tsx
+- pass idea + index to SwipeIdeaCard
+- update index on swipe up only
+
+---
+
+VISUAL FEEDBACK
+
+While dragging:
+- card follows finger
+- slight rotation based on horizontal drag
+- opacity reduces slightly on strong swipe
+
+---
+
+CONSTRAINTS
+
+Do NOT:
+- implement reaction logic yet
+- persist saves/skips
+- change data fetching
+- modify bottom nav
+- change card layout
+
+---
+
+SUCCESS CRITERIA
+
+- feels like TikTok swipe (smooth, responsive)
+- no lag or flicker
+- user can quickly swipe through ideas
+- swipe direction is intuitive
+- animation feels satisfying
+
+---
+
+QA
+
+Test:
+- rapid swiping
+- edge swipes
+- small vs large gestures
+- no crashes
+- no stuck states
+
+---
+
+IMPORTANT
+
+This step is about FEEL, not features.
+
+If the motion feels off, we fix it before adding anything else.
