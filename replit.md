@@ -84,6 +84,7 @@ Lumina is a pnpm workspace monorepo built with TypeScript.
 - **Visible adaptation flow (Quick Tune):** A 3-step auto-advancing flow (format → tone → hook) that biases idea generation based on user preferences, with visual feedback and a "Better match?" prompt.
 - **Quick Tune onboarding trigger:** Triggers the Quick Tune flow based on client-side state after a certain number of ideas are viewed or scrolled.
 - **Daily-habit copy lock:** Home screen H1 and sub are locked to "3 ideas for today" / "Made for your style." Daily return messages vary based on user history.
+- **Single-idea swipe feed (preview):** New `/feed` route renders one idea at a time via `SwipeIdeaCard` (hero hook + non-numeric viral-feel badge + pattern preview + why-it-works). Static visual-direction pass — no gestures, no reaction persistence, no backend changes; reuses `dailyIdeasCache` with a built-in mock fallback. Existing tab nav untouched.
 
 # External Dependencies
 
