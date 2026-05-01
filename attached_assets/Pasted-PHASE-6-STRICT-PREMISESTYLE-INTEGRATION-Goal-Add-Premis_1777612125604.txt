@@ -1,0 +1,193 @@
+PHASE 6 — STRICT PREMISESTYLE INTEGRATION
+
+Goal:
+Add PremiseStyle as the primary comedic premise layer without breaking existing systems.
+
+Core rule:
+PremiseStyle is the ONLY layer allowed to create the main joke/premise of the hook.
+
+Everything else must support it, not overwrite it.
+
+---
+
+1. LAYER OWNERSHIP
+
+ideaCoreType:
+- decides what human behavior the idea is about
+
+scenario:
+- decides where/what object/context the idea uses
+
+HookIntent:
+- decides why the hook works:
+  - scroll_stop
+  - compulsion
+  - relatable
+
+PremiseStyle:
+- creates the comedic framing / main joke
+
+Hook templates:
+- fallback only if PremiseStyle output fails
+
+VideoPattern:
+- filming structure only
+
+Trend:
+- optional seasoning only
+
+Llama:
+- polish only; never changes premise meaning
+
+---
+
+2. NEW FLOW
+
+ideaCoreType
+→ scenario
+→ HookIntent
+→ PremiseStyle
+→ generate hook
+→ validate/compress
+→ VideoPattern
+→ filmingGuide
+→ optional trend
+→ optional Llama polish
+
+---
+
+3. PREMISESTYLE STRUCTURE
+
+type PremiseStyle = {
+  id: string
+  label: string
+  purpose: string
+  worksBestWith: IdeaCoreFamily[]
+  compatibleHookIntents: HookIntent[]
+  transformLogic: string[]
+  hookShapes: string[]
+  exampleHooks: string[]
+}
+
+---
+
+4. SELECTION RULES
+
+Choose PremiseStyle after ideaCoreType, scenario, and HookIntent are known.
+
+Selection should consider:
+- compatibility with ideaCoreFamily
+- compatibility with HookIntent
+- recent PremiseStyle usage
+- voice profile if available
+
+Rules:
+- no duplicate PremiseStyle in same batch
+- penalize PremiseStyle used in recent batches
+- boost unused PremiseStyle
+- do not force a bad PremiseStyle if none fit
+
+---
+
+5. HOOK GENERATION
+
+PremiseStyle generates the hook first.
+
+Hook requirements:
+- simple
+- funny
+- clear
+- ≤10 words preferred
+- one idea only
+- conversational
+- not overly clever
+- not explanatory
+
+Examples:
+Good:
+- "i ghosted my own to-do list"
+- "my brain hates me after 11pm"
+- "the fridge knows i’m lying"
+- "i gently disappoint my goals weekly"
+
+Bad:
+- "i struggled to complete my planned task today"
+- "this is relatable because i procrastinate"
+- "when you try to be productive but fail"
+
+---
+
+6. TEMPLATE FALLBACK
+
+Use hook templates ONLY if:
+- PremiseStyle generation fails validation
+- PremiseStyle output is too generic
+- PremiseStyle output is not funny
+- PremiseStyle output is too long
+
+Templates must not overwrite a valid strong PremiseStyle hook.
+
+---
+
+7. LLAMA RULE
+
+Llama may polish wording only.
+
+Allowed:
+- shorten
+- make more conversational
+- preserve slang/lowercase/fragments
+- improve punch
+
+Forbidden:
+- change scenario
+- change premise
+- add people/props/locations
+- professionalize tone
+- make it cleaner but less creator-like
+
+---
+
+8. TREND RULE
+
+Trend may add freshness only if it naturally fits.
+
+Trend cannot:
+- determine the premise
+- override PremiseStyle
+- turn the hook into trend stuffing
+
+---
+
+9. VALIDATION
+
+Reject hook if:
+- not funny
+- too literal
+- too generic
+- too long
+- explains the joke
+- loses scenario
+- loses PremiseStyle purpose
+- sounds corporate
+- has grammar/composition bugs
+
+---
+
+10. QA
+
+Generate 10 batches.
+
+Report:
+- PremiseStyle distribution
+- duplicate PremiseStyle count
+- template fallback rate
+- Llama mutation rate
+- post-worthy estimate
+- examples of best/worst hooks
+
+Success:
+- hooks feel bigger/funnier than before
+- fewer small boring micro-moments
+- no system conflict
+- pattern/filming guide still makes sense
