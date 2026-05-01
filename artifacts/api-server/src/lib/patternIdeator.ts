@@ -5112,6 +5112,63 @@ export type PremiseComedyScore = {
   >;
 };
 
+/**
+ * Phase 6F — LegacyComedyScore type (single source of truth for the
+ * legacy / non-premise rubric). Lives in patternIdeator.ts alongside
+ * PremiseComedyScore so PatternMeta can declare an optional
+ * `legacyComedyScore` field without re-introducing the ideaScorer.ts
+ * ⇄ patternIdeator.ts circular import that was avoided in 6E.
+ *
+ * The Phase 6F SPEC explicitly characterizes legacy as the SIMPLER
+ * fallback layer that "must still be good" but does NOT need to be
+ * clever — so the rubric is intentionally LIGHTER than the premise
+ * version. Four dims summing to 10 (vs the premise rubric's five
+ * dims), with the harder-to-reach top-of-dim values reserved for
+ * sharp-but-simple legacy hooks (e.g. "i opened it. then closed it",
+ * "i checked. that counted").
+ *
+ * Gating model parallel to PremiseComedyScore but with thresholds
+ * shifted ONE STEP LOWER per the spec PART 3 (legacy is simpler, so
+ * the keep band starts at 6 instead of 7 and the demote band is the
+ * single value 5 instead of the two-value 5-6 band):
+ *   - score ≥ 6 → keep
+ *   - score = 5 → demote (scaled `selectionPenalty` boost goes
+ *                negative — see `legacyComedyBoost` below)
+ *   - score < 5 → HARD reject at the picker walk fallback
+ *
+ * See `scoreLegacyComedyScore` further down for the rubric and
+ * `legacyComedyBoost` for the selection-layer boost band.
+ */
+export type LegacyComedyScore = {
+  /** Common behavior / everyday situation / "this is me" feeling. 0-3. */
+  relatability: 0 | 1 | 2 | 3;
+  /** Instantly understandable / no clever phrasing / no jargon. 0-3. */
+  clarity: 0 | 1 | 2 | 3;
+  /** Short / clean / one idea / no multi-clause caption-like split. 0-2. */
+  simplicity: 0 | 1 | 2;
+  /**
+   * Mild frustration / avoidance / procrastination / subtle self-
+   * awareness — legacy doesn't need an explicit emotion spike, but
+   * the rubric rewards entries that carry one. 0-2.
+   */
+  emotional: 0 | 1 | 2;
+  /** Sum of dims, capped at 10. */
+  total: number;
+  /**
+   * True ONLY when a legacy-specific HARD reject pattern fired (the
+   * explicit Part 4 generic-filler list, no-anchor structure, or
+   * length > 12 words). Independent of `total < 5` — that gating
+   * decision lives at the picker walk fallback site. `rejected: true`
+   * always implies `total: 0`.
+   */
+  rejected: boolean;
+  /** Free-form telemetry tag for the matching reject family. */
+  rejectReason?:
+    | "generic_filler"
+    | "no_anchor"
+    | "too_long";
+};
+
 export type LanguagePhrasingEntry = {
   build: (s: Scenario) => string;
   voiceProfiles?: readonly VoiceProfile[];
@@ -8008,6 +8065,362 @@ export function premiseComedyBoost(score: number | undefined): number {
   if (score === 7) return 4;
   if (score === 6) return 1;
   return -2; // score === 5
+}
+
+// ============================================================
+// Phase 6F — Legacy comedy scoring (lighter rubric than premise)
+// ============================================================
+// Spec source:
+// `attached_assets/Pasted-PHASE-6F-STRICT-PREMISESTYLE-INTEGRATION-A-VERSION-Goal_1777613462870.txt`
+//
+// PART 4 explicit hard-reject list. The first three are spec
+// verbatim ("this is happening again", "today was hard", "this
+// always happens"); the remaining shapes lump together other
+// spec-equivalent generic-recap openers the user explicitly
+// called out as "leftover / template filler" feel. Conservative
+// per the user's T002 instruction ("do NOT make legacy too
+// strict; legacy should not need to be clever").
+const LEGACY_HARD_REJECT_PATTERNS: ReadonlyArray<RegExp> = [
+  /^this is happening again[.!?]?$/i,
+  /^today was hard[.!?]?$/i,
+  /^this always happens[.!?]?$/i,
+  /^that('?s| is)? life[.!?]?$/i,
+  /^such is life[.!?]?$/i,
+  /^story of my life[.!?]?$/i,
+  /^another day another (struggle|fail|disaster)[.!?]?$/i,
+  /^(today|tonight|monday) (was|is|feels) (so )?(hard|tough|difficult|rough|exhausting|long)[.!?]?$/i,
+  /^this is (so )?(me|relatable|true|us)[.!?]?$/i,
+  /^that('?s| is) (so )?(me|relatable|true|us)[.!?]?$/i,
+];
+
+/**
+ * Behavior / action verb tokens — drives BOTH the no-anchor reject
+ * (a hook with NO first-person AND NO concrete noun AND NO behavior
+ * verb is "could apply to anything" per spec PART 4) AND the
+ * relatability dim's top-step gating ("clear behavior anchor"
+ * required for relatability=3).
+ *
+ * Curated to favor the everyday-procrastination action vocabulary
+ * the spec PART 5 examples use ("opened", "closed", "checked",
+ * "avoiding") rather than generic linking verbs ("is", "was", "be")
+ * which would over-trigger and defeat the no-anchor check.
+ */
+const LEGACY_BEHAVIOR_VERB_TOKENS: ReadonlyArray<string> = [
+  // Past-tense action verbs
+  "opened", "closed", "checked", "checked it", "ignored", "snoozed",
+  "skipped", "scrolled", "swiped", "refreshed", "deleted", "ordered",
+  "paid", "bought", "returned", "ghosted", "blocked", "muted",
+  "unfollowed", "left", "quit", "stopped", "started", "tried",
+  "planned", "meant", "promised", "said", "told", "replied",
+  "answered", "missed", "forgot", "remembered", "noticed", "realized",
+  "watched", "looked", "ate", "drank", "lay", "sat", "walked",
+  "woke", "slept", "waited", "called", "texted", "emailed",
+  "booked", "cancelled", "canceled", "showed up", "showed",
+  // Avoidance / procrastination present-tense
+  "avoid", "avoiding", "avoided", "ignoring", "skipping", "scrolling",
+  "doomscrolling", "procrastinating", "postponing", "snoozing",
+  "still avoiding", "still ignoring", "still procrastinating",
+  "still scrolling", "still waiting",
+  // Said / promised future-tense softeners
+  "i'll", "i will", "going to", "gonna", "supposed to", "meant to",
+  "planned to", "tried to", "should have", "should've",
+];
+
+/**
+ * Avoidance / procrastination / mild-frustration vocabulary — drives
+ * the emotional dim. Lighter than the premise emotion token set on
+ * purpose: legacy hooks earn the emotional dim via subtle self-aware
+ * vocabulary, not the explicit emotional spikes ("emotional
+ * bankruptcy", "spiral") that earn premise punch.
+ */
+const LEGACY_AVOIDANCE_TOKENS: ReadonlyArray<string> = [
+  "avoid", "avoiding", "avoided", "ignored", "ignoring", "ghosted",
+  "skipped", "skipping", "postponed", "postponing", "snoozed",
+  "snoozing", "later", "tomorrow", "again", "still", "not today",
+  "fine", "i'm fine", "totally fine", "okay", "i'm okay",
+  "supposed to", "meant to", "planned to", "tried to",
+  "should have", "should've", "going to", "gonna",
+  "i'll", "i will", "next week", "in a minute", "in a sec",
+];
+
+/**
+ * Self-awareness / mild-resignation phrases — the spec's "subtle
+ * self-awareness" emotional signal. Detected by phrase pattern
+ * because the bare tokens ("guess", "apparently") would over-trigger
+ * outside the resignation framing.
+ */
+const LEGACY_SELF_AWARENESS_PHRASES: ReadonlyArray<RegExp> = [
+  /\bi guess\b/i,
+  /\bsomehow\b/i,
+  /\bof course\b/i,
+  /\bobviously\b/i,
+  /\bapparently\b/i,
+  /\bbecause why not\b/i,
+  /\bwhy not\b/i,
+  /\bi knew it\b/i,
+  /\bthat tracks\b/i,
+];
+
+/**
+ * Universal-experience tokens for legacy relatability — overlaps
+ * with `COMEDY_UNIVERSAL_TOKENS` (premise) but lighter / more
+ * everyday-coded so the relatability dim doesn't require the same
+ * "main character meltdown" energy a premise hook would.
+ */
+const LEGACY_UNIVERSAL_TOKENS: ReadonlyArray<string> = [
+  "procrastination", "productivity", "sleep", "phone", "food",
+  "work", "weekend", "monday", "tuesday", "midnight", "tonight",
+  "scrolling", "doomscroll", "tired", "lazy", "messy", "broke",
+  "lonely", "anxious", "burnt out", "burned out", "exhausted",
+  "to-do list", "todo list", "calendar", "inbox", "alarm",
+  "morning", "evening", "afternoon", "night",
+  "future me", "past me", "today me", "yesterday me", "tomorrow me",
+  "my brain", "my body", "my phone", "my fridge",
+];
+
+/**
+ * Filler / softener tokens — drives a CLARITY dim penalty when
+ * present. Same vocab the existing `compressHook` strips but kept
+ * separate here because we want to penalize hooks that ship WITH
+ * the filler still in (they survived compression → the filler is
+ * load-bearing in the entry's `build` output → the entry deserves
+ * a clarity demote).
+ */
+const LEGACY_FILLER_TOKENS: ReadonlyArray<string> = [
+  "really", "kind of", "kinda", "sort of", "sorta", "basically",
+  "literally", "actually", "pretty much", "i think", "i feel like",
+  "you know", "honestly", "tbh", "to be honest",
+];
+
+/**
+ * Score a candidate legacy (non-premise) hook against the Phase 6F
+ * LegacyComedyScore rubric. Pure deterministic — same inputs → same
+ * output. Returns a 0-10 total + per-dimension breakdown + reject
+ * decision.
+ *
+ * NOTE on gating responsibility (parallel to scorePremiseComedyScore):
+ * this function does NOT enforce the < 5 reject. The HARD reject is
+ * enforced by the caller (`pickValidatedLanguagePhrasing` walk
+ * fallback path); the score=5 demote band is enforced by the
+ * `selectionPenalty` scaled boost in ideaScorer.ts via
+ * `legacyComedyBoost`. Keeping scoring + gating separate makes both
+ * layers independently testable and lets QA telemetry see the raw
+ * score even on rejected hooks.
+ *
+ * Conservative rubric per the user's T002 instruction ("legacy
+ * should not need to be clever"): each dim earns its top step from
+ * a small surface-text or entry-flag signal rather than requiring
+ * sharp comedic mechanism detection. The keep band is ≥ 6 (not ≥ 7
+ * like premise) and the no-anchor reject requires ALL THREE of
+ * (no first-person, no concrete noun, no behavior verb) to fire —
+ * a stricter precondition than the premise no-anchor rule because
+ * legacy hooks legitimately ship with simpler structure.
+ *
+ * @param hook   The fully-rendered hook string (POST-compressHook,
+ *               POST-validateOutputLine — i.e. the form that would
+ *               actually ship).
+ * @param entry  Optional. The catalog `LanguagePhrasingEntry` the
+ *               hook was built from. When provided, `genericHook` /
+ *               `hookIntent` participate in dim adjustments. Llama /
+ *               Claude fallback wraps may omit; the function falls
+ *               back to text-only signals cleanly.
+ * @param scenario Optional. The scenario the hook was built for.
+ *               When provided, `topicNoun` participates in the
+ *               concrete-noun / specificity check.
+ */
+export function scoreLegacyComedyScore(
+  hook: string,
+  entry?:
+    | Pick<LanguagePhrasingEntry, "genericHook" | "hookIntent">
+    | undefined,
+  scenario?: { topicNoun?: string } | undefined,
+): LegacyComedyScore {
+  const text = (hook ?? "").toLowerCase().trim();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  // --- HARD reject pass (PART 4 explicit list) -------------------
+  for (const pat of LEGACY_HARD_REJECT_PATTERNS) {
+    if (pat.test(text)) {
+      return {
+        relatability: 0,
+        clarity: 0,
+        simplicity: 0,
+        emotional: 0,
+        total: 0,
+        rejected: true,
+        rejectReason: "generic_filler",
+      };
+    }
+  }
+
+  // --- HARD reject — too long (>12 words) ------------------------
+  if (wordCount > 12) {
+    return {
+      relatability: 0,
+      clarity: 0,
+      simplicity: 0,
+      emotional: 0,
+      total: 0,
+      rejected: true,
+      rejectReason: "too_long",
+    };
+  }
+
+  // --- Anchor pass — "could apply to anything" reject ------------
+  // Stricter precondition than the premise no_anchor rule (premise
+  // requires NO first-person AND NO concrete noun AND NO emotion;
+  // legacy adds behavior-verb to the OR-chain so simple action hooks
+  // like "still avoiding it" pass even without first-person + emotion
+  // tokens).
+  const hasFirstPerson = /\b(i|me|my|i'?m|i'?ve|i'?ll|i'?d|mine)\b/.test(text);
+  const hasConcreteNoun =
+    COMEDY_CONCRETE_NOUN_TOKENS.some((t) => text.includes(t)) ||
+    LEGACY_UNIVERSAL_TOKENS.some((t) => text.includes(t)) ||
+    (scenario?.topicNoun !== undefined &&
+      scenario.topicNoun.length > 0 &&
+      text.includes(
+        scenario.topicNoun.toLowerCase().replace(/^the\s+/, ""),
+      ));
+  const hasBehaviorVerb = LEGACY_BEHAVIOR_VERB_TOKENS.some((t) =>
+    text.includes(t),
+  );
+  const hasEmotion =
+    COMEDY_EMOTION_TOKENS.some((t) => text.includes(t)) ||
+    LEGACY_AVOIDANCE_TOKENS.some((t) => text.includes(t));
+  if (!hasFirstPerson && !hasConcreteNoun && !hasBehaviorVerb && !hasEmotion) {
+    return {
+      relatability: 0,
+      clarity: 0,
+      simplicity: 0,
+      emotional: 0,
+      total: 0,
+      rejected: true,
+      rejectReason: "no_anchor",
+    };
+  }
+
+  // --- Relatability (0-3) ----------------------------------------
+  // Ladder:
+  //   0: nothing (would have been rejected at no_anchor; defensive)
+  //   1: first-person OR universal token OR concrete noun OR behavior
+  //   2: first-person + (universal OR concrete OR behavior OR emotion)
+  //   3: first-person + universal-experience + (behavior OR emotion)
+  const hasUniversal = LEGACY_UNIVERSAL_TOKENS.some((t) => text.includes(t));
+  let relatability: 0 | 1 | 2 | 3 = 0;
+  if (hasFirstPerson || hasUniversal || hasConcreteNoun || hasBehaviorVerb) {
+    relatability = 1;
+  }
+  if (
+    hasFirstPerson &&
+    (hasUniversal || hasConcreteNoun || hasBehaviorVerb || hasEmotion)
+  ) {
+    relatability = 2;
+  }
+  if (hasFirstPerson && hasUniversal && (hasBehaviorVerb || hasEmotion)) {
+    relatability = 3;
+  }
+
+  // --- Clarity (0-3) ---------------------------------------------
+  // Default 2 (legacy templates are presumed clear per spec PART 7).
+  // Adjustments:
+  //   +1 if simple sentence (≤7 words, no commas, no complex
+  //      conjunction, no multi-clause split) → max 3
+  //   -1 if has filler/softener tokens (signals over-softening)
+  //   -1 if has complex conjunction (because/while/whereas/etc)
+  //   -1 if entry.genericHook === true (catalog flag for low-
+  //      quality interchangeable templates)
+  // Floor at 0.
+  let clarity: 0 | 1 | 2 | 3 = 2;
+  const hasFiller = LEGACY_FILLER_TOKENS.some((t) => text.includes(t));
+  const commaCount = (text.match(/,/g) ?? []).length;
+  const hasComplexConjunction =
+    /\b(because|even though|while|however|despite|whereas|although)\b/i.test(
+      text,
+    );
+  const isSimple =
+    wordCount <= 7 && commaCount === 0 && !hasComplexConjunction;
+  let clarityRaw: number = 2;
+  if (isSimple) clarityRaw += 1;
+  if (hasFiller) clarityRaw -= 1;
+  if (hasComplexConjunction) clarityRaw -= 1;
+  if (entry?.genericHook === true) clarityRaw -= 1;
+  if (clarityRaw < 0) clarityRaw = 0;
+  if (clarityRaw > 3) clarityRaw = 3;
+  clarity = clarityRaw as 0 | 1 | 2 | 3;
+
+  // --- Simplicity (0-2) ------------------------------------------
+  // Note: word-count > 12 is HARD-rejected above, so this dim only
+  // discriminates the ≤12 band.
+  let simplicity: 0 | 1 | 2 = 2;
+  if (wordCount > 10 || commaCount > 1 || hasComplexConjunction) {
+    simplicity = 1;
+  }
+  if (commaCount > 2 || /[;:]/.test(text)) {
+    simplicity = 0;
+  }
+
+  // --- Emotional Signal (0-2) ------------------------------------
+  // Ladder:
+  //   0: nothing
+  //   1: avoidance/procrastination token OR self-awareness phrase
+  //   2: explicit emotion token (from premise emotion set) OR
+  //      avoidance + self-awareness combo
+  let emotional: 0 | 1 | 2 = 0;
+  const hasAvoidance = LEGACY_AVOIDANCE_TOKENS.some((t) => text.includes(t));
+  const hasSelfAwareness = LEGACY_SELF_AWARENESS_PHRASES.some((p) =>
+    p.test(text),
+  );
+  const hasExplicitEmotion = COMEDY_EMOTION_TOKENS.some((t) =>
+    text.includes(t),
+  );
+  if (hasAvoidance || hasSelfAwareness) emotional = 1;
+  if (hasExplicitEmotion || (hasAvoidance && hasSelfAwareness)) emotional = 2;
+
+  const rawTotal = relatability + clarity + simplicity + emotional;
+  return {
+    relatability,
+    clarity,
+    simplicity,
+    emotional,
+    total: Math.min(10, rawTotal),
+    rejected: false,
+  };
+}
+
+/**
+ * Phase 6F — selection-layer scaled boost for legacy hooks. Mirrors
+ * `premiseComedyBoost` but with a LIGHTER band so PART 6's tie-bias
+ * rule ("both strong → prefer premise") falls out naturally without
+ * a separate tie-break: at parity scores premise wins by 2pts; at
+ * premise ≤ 6 + legacy ≥ 7 legacy can overcome the gap; ties go to
+ * premise.
+ *
+ * Band:
+ *   - 10              → +5  (top legacy — sharp + simple, allowed
+ *                            to win against a 7-band premise)
+ *   - 9               → +4
+ *   - 8               → +3
+ *   - 7               → +2  (keep band — clearly preferred over a
+ *                            5-6 band premise but loses to ≥ 7 premise)
+ *   - 6               → 0   (keep band floor — neutral lever; ships
+ *                            when no better candidate exists)
+ *   - 5               → -3  (demote band — strongly prefer alternatives)
+ *   - <5 (rejected)   →  0  (defensive — these hooks were already
+ *                            blocked at the picker walk fallback and
+ *                            never reach selection)
+ *
+ * Pure helper — no side effects. Exported for QA / test introspection
+ * + consumption from ideaScorer.ts at the selectionPenalty site.
+ */
+export function legacyComedyBoost(score: number | undefined): number {
+  if (score === undefined || score < 5) return 0;
+  if (score >= 10) return 5;
+  if (score === 9) return 4;
+  if (score === 8) return 3;
+  if (score === 7) return 2;
+  if (score === 6) return 0;
+  return -3; // score === 5
 }
 
 /**
