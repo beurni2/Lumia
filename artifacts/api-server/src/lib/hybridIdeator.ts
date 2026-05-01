@@ -981,6 +981,26 @@ export function batchHasNewVoiceProfile(
   return false;
 }
 
+// Phase 6D Path B+: PremiseStyle is now a primary diversity axis. The
+// four downstream cross-batch rescues (archetype / sceneTag / hookLang /
+// voice) all gate on a single axis. Per the unified-token principle from
+// Path B, a batch with a fresh premiseStyleId IS stylistically diverse
+// — the rescue should pass even if the axis-of-record token repeats.
+// This helper mirrors the four batchHas* signatures above so the cascade
+// rescues can compose `axisHasNew(b) || batchHasNewPremiseStyleId(b, ...)`
+// in a single uniform pattern.
+export function batchHasNewPremiseStyleId(
+  batch: ScoredCandidate[],
+  recent: ReadonlySet<string> | undefined,
+): boolean {
+  if (!recent || recent.size === 0) return true;
+  for (const c of batch) {
+    const ps = c.meta.premiseStyleId;
+    if (ps && !recent.has(ps)) return true;
+  }
+  return false;
+}
+
 /**
  * @deprecated Phase 1 — scriptType axis is INERT. Kept private and
  * unreferenced; selectWithNovelty no longer composes a scriptType
@@ -1168,19 +1188,29 @@ export function selectWithNovelty(
   function archetypeAchieved(b: ScoredCandidate[]): boolean {
     return (
       (ctx.recentArchetypeFamilies?.size ?? 0) === 0 ||
-      batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)
+      batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) ||
+      // Phase 6D Path B+: a fresh premiseStyleId satisfies the
+      // archetype-axis "achieved" predicate via unified-token logic
+      // (PremiseStyle is now a primary diversity axis). Composing
+      // rescues see this as already-achieved and won't re-impose the
+      // axis predicate on the reselect pool.
+      batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)
     );
   }
   function sceneTagAchieved(b: ScoredCandidate[]): boolean {
     return (
       (ctx.recentSceneObjectTags?.size ?? 0) === 0 ||
-      batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)
+      batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) ||
+      // Phase 6D Path B+ — see archetypeAchieved comment.
+      batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)
     );
   }
   function hookLangAchieved(b: ScoredCandidate[]): boolean {
     return (
       (ctx.recentHookLanguageStyles?.size ?? 0) === 0 ||
-      batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)
+      batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) ||
+      // Phase 6D Path B+ — see archetypeAchieved comment.
+      batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)
     );
   }
 
@@ -1192,7 +1222,12 @@ export function selectWithNovelty(
     opts.regenerate &&
     chosen &&
     (ctx.recentArchetypeFamilies?.size ?? 0) > 0 &&
-    !batchHasNewArchetypeFamily(chosen, ctx.recentArchetypeFamilies)
+    !batchHasNewArchetypeFamily(chosen, ctx.recentArchetypeFamilies) &&
+    // Phase 6D Path B+: skip the rescue when the chosen batch already
+    // carries a fresh premiseStyleId — unified-token logic treats that
+    // as sufficient cross-batch diversity even if archetypeFamily
+    // tokens repeat.
+    !batchHasNewPremiseStyleId(chosen, ctx.recentPremiseStyleIds)
   ) {
     const minFresh = freshFamiliesAchieved(chosen);
     const fresh = exhaustiveReselect(
@@ -1200,7 +1235,11 @@ export function selectWithNovelty(
       count,
       ctx,
       (b) =>
-        batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) &&
+        // Phase 6D Path B+: accept reselects that introduce EITHER a
+        // fresh archetypeFamily OR a fresh premiseStyleId. Same
+        // unified-token vocabulary as the rescue's trigger condition.
+        (batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         freshFamiliesAchieved(b) >= minFresh,
     );
     if (fresh) {
@@ -1228,7 +1267,9 @@ export function selectWithNovelty(
     opts.regenerate &&
     chosen &&
     (ctx.recentSceneObjectTags?.size ?? 0) > 0 &&
-    !batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags)
+    !batchHasNewSceneObjectTag(chosen, ctx.recentSceneObjectTags) &&
+    // Phase 6D Path B+ — see archetype rescue above for rationale.
+    !batchHasNewPremiseStyleId(chosen, ctx.recentPremiseStyleIds)
   ) {
     const minFresh = freshFamiliesAchieved(chosen);
     const requireArchetype = archetypeAchieved(chosen);
@@ -1237,7 +1278,9 @@ export function selectWithNovelty(
       count,
       ctx,
       (b) =>
-        batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) &&
+        // Phase 6D Path B+: unified-token reselect predicate.
+        (batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         freshFamiliesAchieved(b) >= minFresh &&
         (!requireArchetype || archetypeAchieved(b)),
     );
@@ -1263,7 +1306,9 @@ export function selectWithNovelty(
     opts.regenerate &&
     chosen &&
     (ctx.recentHookLanguageStyles?.size ?? 0) > 0 &&
-    !batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles)
+    !batchHasNewHookLanguageStyle(chosen, ctx.recentHookLanguageStyles) &&
+    // Phase 6D Path B+ — see archetype rescue above for rationale.
+    !batchHasNewPremiseStyleId(chosen, ctx.recentPremiseStyleIds)
   ) {
     const minFresh = freshFamiliesAchieved(chosen);
     const requireArchetype = archetypeAchieved(chosen);
@@ -1273,7 +1318,9 @@ export function selectWithNovelty(
       count,
       ctx,
       (b) =>
-        batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) &&
+        // Phase 6D Path B+: unified-token reselect predicate.
+        (batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         freshFamiliesAchieved(b) >= minFresh &&
         (!requireArchetype || archetypeAchieved(b)) &&
         (!requireSceneTag || sceneTagAchieved(b)),
@@ -1306,7 +1353,9 @@ export function selectWithNovelty(
     opts.regenerate &&
     chosen &&
     (ctx.recentVoiceProfiles?.size ?? 0) > 0 &&
-    !batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles)
+    !batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles) &&
+    // Phase 6D Path B+ — see archetype rescue above for rationale.
+    !batchHasNewPremiseStyleId(chosen, ctx.recentPremiseStyleIds)
   ) {
     const minFresh = freshFamiliesAchieved(chosen);
     const requireArchetype = archetypeAchieved(chosen);
@@ -1317,7 +1366,9 @@ export function selectWithNovelty(
       count,
       ctx,
       (b) =>
-        batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) &&
+        // Phase 6D Path B+: unified-token reselect predicate.
+        (batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         freshFamiliesAchieved(b) >= minFresh &&
         (!requireArchetype || archetypeAchieved(b)) &&
         (!requireSceneTag || sceneTagAchieved(b)) &&
@@ -1398,14 +1449,25 @@ export function selectWithNovelty(
         batchHasActive(b) &&
         countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >=
           minFreshFamiliesRequired &&
+        // Phase 6D Path B+: each axis-preservation predicate accepts
+        // EITHER the axis-of-record token OR a fresh premiseStyleId.
+        // This keeps the active-energy pass in step with the four
+        // cascade rescues above — they all agree that a fresh
+        // premiseStyleId is sufficient cross-batch diversity, so the
+        // active-energy reselect must not reject candidates the
+        // cascades would have accepted.
         (!requireFreshFamily ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies)) &&
+          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         (!requireFreshTag ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags)) &&
+          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         (!requireFreshLang ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles)) &&
+          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
         (!requireFreshVoice ||
-          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles)),
+          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) ||
+          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)),
     );
     if (active) chosen = active;
   }
