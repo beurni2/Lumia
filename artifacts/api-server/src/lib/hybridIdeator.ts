@@ -186,6 +186,80 @@ function utcToday(): string {
  */
 const HIGH_QUALITY_SCORE = 8;
 const RESELECT_MAX_COUNT = 5;
+
+/* ----------------------------------------------------------------- */
+/* PHASE 6D DIAGNOSTIC INSTRUMENTATION — env-gated, REMOVABLE.       */
+/*                                                                    */
+/* Path C from the Phase 6D session-plan resolution: investigate why  */
+/* certain premise executions (e.g. `relationship_framing` with 11    */
+/* catalog entries, `delusion_admission` with 26) NEVER win selection */
+/* slots in 3-6 of 8 sample QA runs. The premise gate is structurally */
+/* blocked at 0.787 mean (target 0.85). Hypothesis: the highTier      */
+/* filter at L884 (`scored.filter((c) => c.score.total >= 8)`) drops  */
+/* premise candidates BEFORE the +4 selectionPenalty boost can fire — */
+/* so a premise scoring 7 intrinsically never enters the pool the     */
+/* greedy picker sees, even though a 7+4=11 adjusted would beat any   */
+/* legacy-9 sitting in highTier.                                      */
+/*                                                                    */
+/* This sink captures, per call to `selectWithNovelty`, the top-N     */
+/* candidates ranked by adjusted score (intrinsic + novelty +         */
+/* penalty), with a `picked` + `inHighTier` flag so we can see        */
+/* exactly which premise candidates would have won but were filtered  */
+/* out vs. which entered the pool but lost on intrinsic score alone.  */
+/* Empty-batch view (slot-0 perspective): novelty / penalty are       */
+/* computed against `[]` so dynamic within-batch levers (-3 dup       */
+/* style, etc.) don't pollute the diagnostic baseline.                */
+/*                                                                    */
+/* Enabled ONLY when `process.env.PHASE6D_DEBUG === "1"`. Production  */
+/* path is byte-identical (early-return before any allocation). The   */
+/* `_qaPhase6d` driver sets the env var, drains the sink between      */
+/* batches, and ships per-batch diagnostics in its response. DELETE   */
+/* this block + the capture site at the end of `selectWithNovelty`   */
+/* together with the QA driver in T005 cleanup.                       */
+/* ----------------------------------------------------------------- */
+export type Phase6dCandidateBreakdown = {
+  hook: string;
+  premiseStyleId?: string;
+  executionId?: string;
+  bigPremiseStyle?: string;
+  ideaCoreFamily?: string;
+  ideaCoreType?: string;
+  archetypeFamily?: string;
+  intrinsic: number;
+  novelty: number;
+  penalty: number;
+  adjusted: number;
+  inHighTier: boolean;
+  picked: boolean;
+  /** Slot-relative breakdowns: scores recomputed against the
+   *  greedy-simulated batchSoFar at each slot 0/1/2. Lets us see
+   *  exactly which dynamic within-batch lever pushed a premise
+   *  candidate below a legacy alternative at slot 2. */
+  perSlot?: Array<{
+    slot: number;
+    novelty: number;
+    penalty: number;
+    adjusted: number;
+    bestAtSlot: boolean;
+  }>;
+};
+export type Phase6dSelectionDebug = {
+  poolSize: number;
+  highTierSize: number;
+  topCandidates: Phase6dCandidateBreakdown[];
+  /** Per-pass cascade trace: which rescue pass swapped `chosen`,
+   *  and what the new batch composition was. Used to identify
+   *  exactly which post-greedy lever is dropping premise picks. */
+  passes: Array<{
+    pass: string;
+    swapped: boolean;
+    composition: Array<{ p?: string; e?: string; intr: number }>;
+  }>;
+};
+export const __phase6dDebugSink: Phase6dSelectionDebug[] = [];
+export function __phase6dResetSink(): void {
+  __phase6dDebugSink.length = 0;
+}
 const RESELECT_TOP_MULTIPLIER = 4;
 
 type SelectionResult = {
@@ -884,14 +958,49 @@ export function selectWithNovelty(
   const pool = highTier.length >= count ? highTier : scored;
 
   const greedy = greedySelect(pool, count, ctx);
+  // PHASE 6D DIAGNOSTIC — per-pass snapshot tracker (env-gated; production
+  // path skips entirely via empty-array fast path). Each call to
+  // `phase6dSnap` records the current `chosen` composition after a
+  // named rescue pass, letting the QA driver pinpoint exactly which
+  // pass swapped a premise candidate out for a legacy alternative.
+  const phase6dPasses: Phase6dSelectionDebug["passes"] = [];
+  const phase6dEnabled = process.env.PHASE6D_DEBUG === "1";
+  let phase6dPrev: ScoredCandidate[] | null = null;
+  const phase6dSnap = (passName: string, current: ScoredCandidate[] | null): void => {
+    if (!phase6dEnabled) return;
+    const composition = (current ?? []).map((c) => ({
+      p: c.meta.premiseStyleId,
+      e: c.meta.executionId,
+      intr: c.score.total,
+    }));
+    const swapped =
+      phase6dPrev !== current &&
+      (phase6dPrev?.length !== current?.length ||
+        (current?.some((c, i) => c !== phase6dPrev?.[i]) ?? false));
+    phase6dPasses.push({ pass: passName, swapped, composition });
+    phase6dPrev = current;
+  };
+  // PHASE 6D DIAGNOSTIC — capture raw greedy (pre-guards) so we can
+  // distinguish "greedy already legacy" from "greedy was all-premise
+  // but batchGuardsPass forced exhaustiveReselect into a legacy mix".
+  if (phase6dEnabled) {
+    phase6dSnap("greedy_raw", greedy);
+  }
   let chosen: ScoredCandidate[] | null = null;
-  if (batchGuardsPass(greedy, { voiceStrongPreference: ctx.voiceStrongPreference })) {
+  const greedyGuardsPass = batchGuardsPass(greedy, {
+    voiceStrongPreference: ctx.voiceStrongPreference,
+  });
+  if (greedyGuardsPass) {
     chosen = greedy;
   } else {
     // Greedy violated guards — try exhaustive search over top candidates.
     const reselected = exhaustiveReselect(pool, count, ctx);
     if (reselected) chosen = reselected;
   }
+  phase6dSnap(
+    greedyGuardsPass ? "greedy_passed_guards" : "guards_reselect",
+    chosen,
+  );
   // Phase 1 — IDEA CORE FAMILY HARD regen rescue. REPLACES the prior
   // scriptType rescue. When regenerating, the picked batch MUST
   // introduce at least 2 IdeaCoreFamilies that weren't in the
@@ -932,6 +1041,7 @@ export function selectWithNovelty(
       );
     }
   }
+  phase6dSnap("regen_fresh_families", chosen);
   // CASCADE SNAPSHOT DISCIPLINE — the four rescue passes below
   // (archetype / sceneObjectTag / hookLanguageStyle / voiceProfile)
   // each compose their own +≥1-fresh invariant with whatever prior
@@ -1015,6 +1125,7 @@ export function selectWithNovelty(
       );
     }
   }
+  phase6dSnap("regen_fresh_archetype", chosen);
   // SCENE-OBJECT TAG spec rescue: when regenerating, the picked batch
   // MUST introduce at least one sceneObjectTag that wasn't in the
   // immediate-prior batch. ExtraGuard composes via the snapshot
@@ -1050,6 +1161,7 @@ export function selectWithNovelty(
       );
     }
   }
+  phase6dSnap("regen_fresh_scene_tag", chosen);
   // HOOK STYLE spec rescue: when regenerating, the picked batch MUST
   // introduce at least one hookLanguageStyle that wasn't in the
   // immediate-prior batch. ExtraGuard composes via the snapshot
@@ -1088,6 +1200,7 @@ export function selectWithNovelty(
       );
     }
   }
+  phase6dSnap("regen_fresh_hook_lang", chosen);
   // VOICE PROFILES spec rescue: when regenerating, the picked batch
   // MUST introduce at least one voiceProfile that wasn't in the
   // immediate-prior batch. ExtraGuard composes via the snapshot
@@ -1131,6 +1244,7 @@ export function selectWithNovelty(
       );
     }
   }
+  phase6dSnap("regen_fresh_voice", chosen);
   // Phase 1 NOTE — the prior "soft ≥2-fresh scriptType upgrade" pass is
   // GONE: the new IdeaCoreFamily HARD rescue above already enforces
   // `≥2 NEW families` as a hard regen requirement, so a separate soft
@@ -1201,6 +1315,88 @@ export function selectWithNovelty(
           batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles)),
     );
     if (active) chosen = active;
+  }
+  phase6dSnap("active_energy", chosen);
+  // PHASE 6D DIAGNOSTIC — env-gated debug capture (see the sink JSDoc
+  // near `__phase6dDebugSink` for design + removal notes). Computed
+  // against an EMPTY batchSoFar so the breakdown reflects the slot-0
+  // baseline view (no within-batch dynamic levers polluting the
+  // diagnostic). Captures ONLY when the env var is set; production
+  // path skips the entire block via the early-return.
+  if (process.env.PHASE6D_DEBUG === "1") {
+    const finalBatch: ScoredCandidate[] | null = chosen ?? greedy;
+    const pickedSet = new Set<ScoredCandidate>(finalBatch);
+    const highTierSet = new Set<ScoredCandidate>(highTier);
+    const empty: ScoredCandidate[] = [];
+    // Empty-batch view (slot-0 baseline)
+    const breakdowns: Phase6dCandidateBreakdown[] = scored.map((c) => {
+      const intrinsic = c.score.total;
+      const novelty =
+        intrinsic >= HIGH_QUALITY_SCORE ? scoreNovelty(c, empty, ctx) : 0;
+      const penalty = selectionPenalty(c, empty, ctx);
+      return {
+        hook: c.idea.hook,
+        premiseStyleId: c.meta.premiseStyleId,
+        executionId: c.meta.executionId,
+        bigPremiseStyle: c.meta.bigPremiseStyle,
+        ideaCoreFamily: c.meta.ideaCoreFamily,
+        ideaCoreType: c.meta.ideaCoreType,
+        archetypeFamily: c.meta.archetypeFamily,
+        intrinsic,
+        novelty,
+        penalty,
+        adjusted: intrinsic + novelty + penalty,
+        inHighTier: highTierSet.has(c),
+        picked: pickedSet.has(c),
+        perSlot: [],
+      };
+    });
+    // Per-slot greedy-simulation: re-run greedy from the same pool
+    // and at each slot record every candidate's adjusted score
+    // relative to the actual batchSoFar that the picker would see.
+    // This exposes which dynamic within-batch lever pushed a premise
+    // candidate below a legacy alternative.
+    const breakdownByCandidate = new Map<ScoredCandidate, Phase6dCandidateBreakdown>();
+    for (let i = 0; i < scored.length; i++) {
+      breakdownByCandidate.set(scored[i], breakdowns[i]);
+    }
+    const simBatch: ScoredCandidate[] = [];
+    const simSet = new Set<ScoredCandidate>();
+    for (let slot = 0; slot < count; slot++) {
+      let best: { c: ScoredCandidate; adj: number } | null = null;
+      for (const c of scored) {
+        if (simSet.has(c)) continue;
+        const intrinsic = c.score.total;
+        const novelty =
+          intrinsic >= HIGH_QUALITY_SCORE ? scoreNovelty(c, simBatch, ctx) : 0;
+        const penalty = selectionPenalty(c, simBatch, ctx);
+        const adj = intrinsic + novelty + penalty;
+        const bd = breakdownByCandidate.get(c);
+        if (bd?.perSlot) {
+          bd.perSlot.push({
+            slot,
+            novelty,
+            penalty,
+            adjusted: adj,
+            bestAtSlot: false,
+          });
+        }
+        if (best === null || adj > best.adj) best = { c, adj };
+      }
+      if (!best) break;
+      simBatch.push(best.c);
+      simSet.add(best.c);
+      const bd = breakdownByCandidate.get(best.c);
+      const last = bd?.perSlot?.[bd.perSlot.length - 1];
+      if (last) last.bestAtSlot = true;
+    }
+    breakdowns.sort((a, b) => b.adjusted - a.adjusted);
+    __phase6dDebugSink.push({
+      poolSize: scored.length,
+      highTierSize: highTier.length,
+      topCandidates: breakdowns.slice(0, 30),
+      passes: phase6dPasses,
+    });
   }
   if (chosen) return { batch: chosen, guardsPassed: true };
   // No guard-passing combination exists in the top-N. Return the

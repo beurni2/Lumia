@@ -13,7 +13,12 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client";
-import { runHybridIdeator } from "../lib/hybridIdeator";
+import {
+  runHybridIdeator,
+  __phase6dDebugSink,
+  __phase6dResetSink,
+  type Phase6dSelectionDebug,
+} from "../lib/hybridIdeator";
 import {
   PREMISE_STYLE_DEFS,
   validateHook,
@@ -105,30 +110,45 @@ router.post("/_qa/phase6d", async (_req, res, next) => {
     const COUNT = 3;
 
     const batches: CapturedEntry[][] = [];
-
-    for (let i = 0; i < N_BATCHES; i++) {
-      const c = (
-        await db
-          .select()
-          .from(schema.creators)
-          .where(eq(schema.creators.id, creator.id))
-          .limit(1)
-      )[0]!;
-      await runHybridIdeator({
-        creator: c,
-        region: "western",
-        styleProfile,
-        count: COUNT,
-        regenerate: i > 0,
-      });
-      const cAfter = (
-        await db
-          .select()
-          .from(schema.creators)
-          .where(eq(schema.creators.id, creator.id))
-          .limit(1)
-      )[0]!;
-      batches.push(extractCurrent(cAfter.lastIdeaBatchJson));
+    // PHASE 6D DIAGNOSTIC — enable debug sink for this run so the
+    // selectWithNovelty capture site emits per-call breakdowns. Reset
+    // before each batch so we can attribute records to the batch
+    // they fired in. Restored to prior value at end via try/finally
+    // so a runtime error doesn't leak the env var to other requests.
+    const prevDebugEnv = process.env.PHASE6D_DEBUG;
+    process.env.PHASE6D_DEBUG = "1";
+    const debugByBatch: Phase6dSelectionDebug[][] = [];
+    try {
+      for (let i = 0; i < N_BATCHES; i++) {
+        const c = (
+          await db
+            .select()
+            .from(schema.creators)
+            .where(eq(schema.creators.id, creator.id))
+            .limit(1)
+        )[0]!;
+        __phase6dResetSink();
+        await runHybridIdeator({
+          creator: c,
+          region: "western",
+          styleProfile,
+          count: COUNT,
+          regenerate: i > 0,
+        });
+        debugByBatch.push([...__phase6dDebugSink]);
+        const cAfter = (
+          await db
+            .select()
+            .from(schema.creators)
+            .where(eq(schema.creators.id, creator.id))
+            .limit(1)
+        )[0]!;
+        batches.push(extractCurrent(cAfter.lastIdeaBatchJson));
+      }
+    } finally {
+      if (prevDebugEnv === undefined) delete process.env.PHASE6D_DEBUG;
+      else process.env.PHASE6D_DEBUG = prevDebugEnv;
+      __phase6dResetSink();
     }
 
     const catalogFailures: {
@@ -263,6 +283,7 @@ router.post("/_qa/phase6d", async (_req, res, next) => {
       hooksByStyle,
       gates,
       perBatch: batches,
+      debugByBatch,
     });
   } catch (err) {
     next(err);
