@@ -1,0 +1,214 @@
+PHASE 6F — STRICT PREMISESTYLE INTEGRATION (A+ VERSION)
+
+Goal:
+Make PremiseStyle the primary comedic engine while ensuring legacy hooks are high-quality fallback, not weak output.
+
+We are NOT removing legacy.
+We are upgrading legacy to meet the same quality standard.
+
+---
+
+CORE RULE
+
+PremiseStyle is the ONLY layer that defines the main joke.
+
+Legacy is:
+- fallback
+- simple hooks
+- must still be good
+
+No hook should feel like a leftover or template filler.
+
+---
+
+PART 1 — SELECTION POLICY
+
+Keep current 6E behavior:
+
+- Premise hooks evaluated first (best-scored)
+- Legacy used when:
+  - no premise ≥5
+  - premise pool exhausted
+  - legacy clearly better than weak premise
+
+Do NOT force premise share.
+Quality > quota.
+
+---
+
+PART 2 — ADD LEGACY COMEDY SCORING
+
+Create:
+
+scoreLegacyComedyScore (0–10)
+
+This is a LIGHTER version of PremiseComedyScore.
+
+---
+
+LEGACY SCORING DIMENSIONS
+
+Relatability (0–3)
+- common behavior
+- everyday situation
+- “this is me” feeling
+
+Clarity (0–3)
+- instantly understandable
+- no confusion
+- no clever phrasing
+
+Simplicity (0–2)
+- short
+- clean
+- one idea
+
+Emotional Signal (0–2)
+- mild frustration
+- avoidance
+- procrastination
+- subtle self-awareness
+
+TOTAL = 10
+
+---
+
+PART 3 — LEGACY PASS / FAIL
+
+Keep:
+- score ≥ 6
+
+Demote:
+- score = 5
+
+Reject:
+- score < 5
+
+Reason:
+Legacy is simpler, so threshold is slightly lower than premise.
+
+---
+
+PART 4 — HARD REJECT (LEGACY)
+
+Reject if:
+
+- generic filler:
+  "this is happening again"
+  "today was hard"
+  "this always happens"
+
+- too vague:
+  applies to anything
+
+- awkward phrasing
+
+- too long (>12 words)
+
+- reads like caption, not hook
+
+- no clear behavior/action
+
+---
+
+PART 5 — ALLOW STRONG SIMPLE HOOKS
+
+Legacy should win when:
+
+- simple but sharp
+- behavior-based
+- relatable
+
+Examples:
+
+✓ "i opened it. then closed it"
+✓ "i said i'll do it later"
+✓ "still avoiding it"
+✓ "i checked. that counted"
+✓ "not today. again"
+
+These should score 6–8 and be allowed to win.
+
+---
+
+PART 6 — PREMISE VS LEGACY DECISION
+
+If both valid:
+
+- premise ≥7 → prefer premise
+- legacy ≥7 AND premise ≤6 → allow legacy to win
+- both strong → prefer premise (tie bias)
+
+---
+
+PART 7 — DO NOT OVER-REJECT LEGACY
+
+Important:
+
+Do NOT:
+- make legacy too strict
+- eliminate all legacy hooks
+- require legacy to be “clever”
+
+Legacy should feel:
+- natural
+- human
+- simple
+
+---
+
+PART 8 — OUTPUT LINE RULES (BOTH)
+
+- 6–10 words preferred
+- max 12 words
+- one idea
+- conversational
+- no over-explaining
+- no AI tone
+
+---
+
+PART 9 — LLAMA RULE (UNCHANGED)
+
+- only polish
+- preserve meaning
+- rescore after mutation
+
+---
+
+PART 10 — QA
+
+Run 10 batches.
+
+Report:
+
+- premise share
+- legacy share
+- avg PremiseComedyScore
+- avg LegacyComedyScore
+- % hooks ≥7 (both types)
+- top 10 hooks
+- bottom 10 hooks
+- post-worthy estimate
+
+---
+
+SUCCESS CRITERIA
+
+- no weak legacy hooks
+- legacy feels simple but good
+- premise still dominates naturally
+- output feels consistently post-worthy
+- no drop in overall quality
+
+---
+
+IMPORTANT
+
+We are not optimizing for:
+- maximum premise share
+
+We are optimizing for:
+- maximum quality output
+
+Legacy exists to protect quality, not reduce it.
