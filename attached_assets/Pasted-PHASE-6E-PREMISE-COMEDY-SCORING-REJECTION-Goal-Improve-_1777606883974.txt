@@ -1,0 +1,187 @@
+PHASE 6E — PREMISE COMEDY SCORING + REJECTION
+
+Goal:
+Improve premise quality, not premise quantity.
+
+Phase 6D made premise hooks dominant.
+Now we need to ensure the selected premise hooks are actually funny, simple, and post-worthy.
+
+Do NOT change Phase 5.
+Do NOT expand the catalog.
+Do NOT add new premise styles.
+Do NOT chase premise-share higher.
+This phase is about quality control.
+
+---
+
+1. ADD PremiseComedyScore
+
+Score each premise hook from 0–10.
+
+Dimensions:
+
+Surprise: 0–2
+- unexpected phrasing
+- not obvious
+- not plain observation
+
+Specificity: 0–2
+- tied to the scenario
+- not generic
+- has concrete behavior/object/emotion
+
+Emotional Punch: 0–2
+- self-roast
+- embarrassment
+- frustration
+- anxiety
+- delusion
+- contradiction
+
+Simplicity: 0–2
+- instantly understandable
+- short
+- one clear joke
+
+Relatability: 0–2
+- feels like something people actually do/think
+- likely to trigger “me” response
+
+Total = 10
+
+---
+
+2. PASS / FAIL THRESHOLD
+
+Keep:
+- score ≥ 7
+
+Rewrite or demote:
+- score 5–6
+
+Reject:
+- score < 5
+
+Do NOT let weak premise hooks ship just because premise share target exists.
+
+---
+
+3. HARD REJECTION RULES
+
+Reject premise hook if:
+
+- too literal
+- not funny
+- generic
+- too clever/confusing
+- reads like a caption instead of a hook
+- over-explains the joke
+- loses the scenario
+- feels like AI wordplay
+- has no emotional spike
+- could apply to almost anything
+
+Examples to reject:
+- "i tried to be productive and failed"
+- "this happens every time"
+- "i am dealing with the task again"
+- "this is relatable"
+- "today was difficult"
+
+---
+
+4. BOOST STRONG COMEDY MECHANISMS
+
+Boost hooks that use:
+
+- self-roast
+- absurd metaphor
+- object personification
+- sharp contrast
+- identity contradiction
+- overdramatic framing
+- specific embarrassing behavior
+- late-night spiral
+- social anxiety
+- consumer/phone behavior
+
+Examples:
+- "i ghosted my own to-do list"
+- "my brain filed for emotional bankruptcy"
+- "the fridge knows i’m lying"
+- "2am me is a visionary. 9am me is useless"
+- "i specialize in disappointing my future self"
+
+---
+
+5. OUTPUT LINE OPTIMIZATION
+
+After scoring, optimize final hook line:
+
+Rules:
+- prefer 6–10 words
+- max 12 words
+- one joke only
+- remove filler
+- preserve slang/lowercase/fragments
+- do not professionalize
+- do not make it more complex
+
+Bad:
+"i am currently struggling to complete my planned tasks"
+
+Good:
+"i ghosted my own to-do list"
+
+---
+
+6. PREMISE VS LEGACY
+
+Premise hooks should still dominate, but quality wins.
+
+If a premise hook scores low and a legacy hook is clearly stronger:
+- allow legacy hook to ship
+
+Do NOT sacrifice visible quality just to preserve premise percentage.
+
+---
+
+7. LLAMA RULE
+
+Llama may polish only after a premise hook exists.
+
+Allowed:
+- shorten
+- make punchier
+- improve natural phrasing
+
+Forbidden:
+- change premise meaning
+- add props/people/locations
+- make it formal
+- rewrite into generic AI voice
+
+Llama output must be rescored with PremiseComedyScore before accepting.
+
+---
+
+8. QA
+
+Run 10 real batches.
+
+Report:
+- premise share
+- average PremiseComedyScore
+- % hooks scoring ≥7
+- top 10 hooks
+- bottom 10 hooks
+- rejected premise count
+- legacy fallback count
+- estimated post-worthy rate
+
+Success criteria:
+- premise share remains roughly 75–90%
+- average PremiseComedyScore ≥7
+- broken/boring premise hooks reduced
+- post-worthy estimate improves
+- no Phase 5 changes
