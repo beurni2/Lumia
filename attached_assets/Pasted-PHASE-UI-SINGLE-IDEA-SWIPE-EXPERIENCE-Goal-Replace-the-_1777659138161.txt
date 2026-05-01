@@ -1,0 +1,244 @@
+PHASE UI — SINGLE IDEA SWIPE EXPERIENCE
+
+Goal:
+Replace the current multi-idea display with a single-idea swipe-based feed that feels like a content experience, not a generator.
+
+Each idea should feel like a post, not an option.
+
+---
+
+PART 1 — SCREEN STRUCTURE
+
+Create a new screen:
+
+IdeaFeedScreen
+
+Component hierarchy:
+
+<IdeaFeedScreen>
+  <FeedHeader />
+  <SwipeIdeaCard />
+  <ReactionBar />
+  <SwipeHints />
+  <SecondaryActions />
+  <BottomNav />
+</IdeaFeedScreen>
+
+---
+
+PART 2 — FEED HEADER
+
+Top section:
+
+- Title: “3 ideas for today”
+- Subtitle: “Made for your style”
+- Settings icon (top-right)
+
+Style:
+- large title (32–40px)
+- subtle subtitle (16–18px)
+- left-aligned
+- minimal UI
+
+---
+
+PART 3 — SWIPE IDEA CARD (CORE)
+
+Create:
+
+<SwipeIdeaCard />
+
+This is the main focus.
+
+Structure:
+
+<IdeaCard>
+  <IdeaMeta />
+  <HeroHook />
+  <ViralFeelBadge />
+  <PatternPreview />
+  <WhyItWorks />
+</IdeaCard>
+
+---
+
+PART 3A — IDEA META
+
+Top row inside card:
+
+- “IDEA 1” (small, accent color)
+- pattern or type pill (right side)
+
+Keep minimal.
+
+---
+
+PART 3B — HERO HOOK (MOST IMPORTANT)
+
+Display the hook text.
+
+Rules:
+- font size: 42–56px (mobile)
+- bold
+- max 3 lines
+- center-left aligned
+- occupies ~60–70% of visual focus
+
+Example:
+“i ghosted my own
+to-do list”
+
+---
+
+PART 3C — VIRAL FEEL BADGE
+
+Display a non-numeric signal:
+
+Examples:
+- “🔥 this would go viral”
+- “⚡ high share potential”
+- or dot indicator (●●●●○)
+
+DO NOT show raw numbers.
+
+---
+
+PART 3D — PATTERN PREVIEW
+
+Show filming hint:
+
+Example:
+“🎬 Silent Reaction”
+“Look → pause → close app”
+
+Keep short (1–2 lines max).
+
+---
+
+PART 3E — WHY IT WORKS (SHORT)
+
+One-line explanation:
+
+Example:
+“Self-roast + everyday avoidance”
+
+No long paragraphs.
+
+---
+
+PART 4 — SWIPE INTERACTIONS
+
+Enable gestures:
+
+- Swipe UP → next idea
+- Swipe RIGHT → save idea
+- Swipe LEFT → skip idea
+
+Animations:
+- smooth vertical card transition
+- right swipe → card flies into saved
+- left swipe → dismiss
+
+Preload next 2 ideas in memory.
+
+---
+
+PART 5 — REACTION BAR
+
+Below the card:
+
+Buttons:
+
+- “this is me”
+- “too real”
+- “would post”
+- “meh”
+
+Layout:
+2x2 grid or horizontal row
+
+Behavior:
+- tap → triggers animation
+- stores reaction
+- optionally auto-advance after ~400ms
+
+---
+
+PART 6 — SECONDARY ACTIONS
+
+Below reactions:
+
+- Remix
+- Copy
+- More
+
+Lower visual weight than reactions.
+
+---
+
+PART 7 — EXPANDED DETAIL (MODAL OR SHEET)
+
+On tap “More” or card:
+
+Show:
+
+- Hook
+- What to show
+- How to film
+- Caption
+- Why it works
+
+Keep feed clean; details optional.
+
+---
+
+PART 8 — BOTTOM NAV
+
+Simple navigation:
+
+- Ideas
+- Studio
+- Saved
+- Profile
+
+Minimal styling.
+
+---
+
+PART 9 — UX RULES
+
+- Dark mode default
+- Minimal UI (no clutter)
+- No “AI-generated” labels
+- Fast interactions (no loading feel)
+- Preload next ideas
+
+---
+
+PART 10 — DATA INTEGRATION
+
+Each idea object should include:
+
+- hook (string)
+- videoPattern (string)
+- filmingGuide (array)
+- viralFeelScore (0–10, not shown raw)
+- premiseStyleId
+- ideaCoreType
+
+---
+
+PART 11 — PERFORMANCE
+
+- preload next 2 ideas
+- no visible loading spinner between swipes
+- cache last seen ideas for session continuity
+
+---
+
+PART 12 — SUCCESS CRITERIA
+
+- user focuses on 1 idea at a time
+- higher engagement per idea
+- faster emotional reaction (not analysis)
+- feels like browsing content, not selecting options
