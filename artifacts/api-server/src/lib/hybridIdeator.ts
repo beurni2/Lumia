@@ -2138,16 +2138,18 @@ type CachedBatchEntry = {
   /**
    * Phase 6E (PREMISE COMEDY SCORING + REJECTION) — integer rubric
    * total (0-10) for the WINNING premise hook, persisted on the
-   * cache envelope so the QA driver (`_qaPhase6e`) can read it back
+   * cache envelope so future telemetry / QA drivers can read it back
    * via `extractCurrent` without re-scoring from the hook string
-   * (which would lose the picker-walk's exact score after later
-   * Llama polish edits the text). No cross-batch novelty consumer
-   * today — the field is telemetry-only. Same non-breaking JSONB
-   * pattern as the rest of the Phase 6 fields above: legacy entries
-   * written before this field shipped read back as undefined.
-   * Tolerantly parsed as a finite integer in `[0, 10]` — anything
-   * outside that range silently drops to undefined so downstream
-   * averages / histograms can't be poisoned by a corrupt envelope.
+   * (which would lose the picker-walk's exact context-aware score
+   * after later Llama polish edits the text — `executionId` and
+   * `scenario.topicNoun` boosts can't be reproduced from the hook
+   * alone). No cross-batch novelty consumer today — the field is
+   * telemetry-only. Same non-breaking JSONB pattern as the rest of
+   * the Phase 6 fields above: legacy entries written before this
+   * field shipped read back as undefined. Tolerantly parsed as a
+   * finite integer in `[0, 10]` — anything outside that range
+   * silently drops to undefined so downstream averages / histograms
+   * can't be poisoned by a corrupt envelope.
    */
   premiseComedyScoreTotal?: number;
 };

@@ -1436,6 +1436,16 @@ function tryRewrite(
       if ("executionId" in nextMeta) {
         nextMeta.executionId = undefined;
       }
+      // Phase 6E — clear the comedy-rubric snapshot when the candidate
+      // is rewritten to a legacy template. The score is intrinsically
+      // tied to the original premise hook text + entry context; once
+      // the hook is swapped to a non-premise legacy entry the cached
+      // score no longer describes the shipped string. Same staleness
+      // discipline as the `premiseStyleId` / `premiseStyleLabel` /
+      // `executionId` clears above.
+      if ("premiseComedyScore" in nextMeta) {
+        nextMeta.premiseComedyScore = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
