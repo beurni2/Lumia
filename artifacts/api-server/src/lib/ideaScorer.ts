@@ -25,6 +25,19 @@ import {
   getEntryScores,
   lookupBannedHookPrefix,
   lookupHookOpener,
+  // Phase 6E — selection-layer scaled boost replacing the Phase 6D
+  // unconditional `+7 if usedBigPremise === true`. Function lives in
+  // patternIdeator.ts (alongside `scorePremiseComedyScore` so the
+  // picker walk's HARD reject can call the scorer without forcing a
+  // new ideaScorer.ts → patternIdeator.ts runtime import cycle).
+  premiseComedyBoost,
+  // Phase 6E — re-export of the scoring fn for the Llama re-scoring
+  // guard in `hybridIdeator.ts` (T003). Re-exporting through
+  // ideaScorer.ts keeps that file as the canonical "scoring API"
+  // surface for downstream consumers; the picker walk in
+  // patternIdeator.ts uses it locally without going back through the
+  // re-export.
+  scorePremiseComedyScore,
   validateHook,
   type BigPremiseStyle,
   type Energy,
@@ -35,6 +48,7 @@ import {
   type IdeaCoreType,
   type LanguagePhrasingEntry,
   type PatternMeta,
+  type PremiseComedyScore,
   type PremiseStyleId,
   type ScriptType,
   type Setting,
@@ -52,6 +66,16 @@ import type {
   SceneObjectTag,
   SceneEnvCluster,
 } from "./sceneObjectTaxonomy";
+
+// Phase 6E — re-exports of the comedy-scoring API. The function +
+// type live in `patternIdeator.ts` (so the picker walk can call the
+// scorer without forcing a runtime cycle), but `ideaScorer.ts`
+// remains the canonical scoring-API surface so existing downstream
+// consumers (test scripts, hybridIdeator's Llama re-scoring guard,
+// the QA driver) keep their import paths unchanged. Pure pass-through —
+// no wrapping, no behavior delta.
+export { scorePremiseComedyScore, premiseComedyBoost } from "./patternIdeator";
+export type { PremiseComedyScore } from "./patternIdeator";
 
 // Map the pattern engine's `Setting` enum (8 values, scenario-centric)
 // to the Llama 3.2 Vision `setting` enum (7 values, frame-centric).
@@ -253,6 +277,22 @@ export type CandidateMeta = PatternMeta | {
    * above).
    */
   executionId?: string;
+  /**
+   * Phase 6E (PREMISE COMEDY SCORING + REJECTION) — full rubric
+   * score mirroring the matching field on `PatternMeta`. Llama /
+   * Claude fallback wraps NEVER set this directly (premise hooks
+   * are emitted only by the local catalog; the rubric is a premise-
+   * quality gate, not a fallback gate). Field declared on this
+   * fallback shape ANYWAY so the union member-access in
+   * `selectionPenalty.premiseComedyBoost(c.meta.premiseComedyScore?.total)`
+   * type-checks across both arms of the union without requiring an
+   * `"in" meta` narrowing — the optional `?.` chain naturally
+   * collapses to `undefined → 0 boost` for every fallback wrap.
+   * Llama re-scoring guard in T003 may populate a Llama-polished
+   * premise's score on the wrap path AFTER polish; until then the
+   * field stays undefined for fallback wraps (no behavior change).
+   */
+  premiseComedyScore?: PremiseComedyScore;
   /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
@@ -2272,6 +2312,7 @@ export function scoreNovelty(
   );
 }
 
+
 /**
  * Negative penalty applied to a candidate at pick time. The
  * already-picked batch contributes within-batch demotions; the
@@ -2897,7 +2938,65 @@ export function selectionPenalty(
   //                                              hard `validateHook`
   //                                              reject still blocks
   //                                              these from shipping).
-  if (c.meta.usedBigPremise === true) p += 7;
+  // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — REPLACES the
+  // Phase 6D unconditional `if (usedBigPremise === true) p += 7`
+  // with a scaled boost driven by `meta.premiseComedyScore.total`
+  // (5-dim 0-10 rubric, computed at picker-walk time after
+  // `validateOutputLine`):
+  //   total >= 10 → +7 (matches the historical Phase 6D top — premium
+  //                     premise wins easily, identical stacking math
+  //                     for the strongest hooks)
+  //   total ===  9 → +6
+  //   total ===  8 → +5
+  //   total ===  7 → +4 (clearly preferred over legacy 0)
+  //   total ===  6 → +1 (demote band — premise can ship if no better
+  //                     legacy alternative exists for the slot)
+  //   total ===  5 → -2 (demote band — strong legacy strictly preferred)
+  //   total <   5  →  0 (defensive — picker walk's HARD reject already
+  //                     blocked these; this branch is never taken in
+  //                     practice but keeps the math degradation clean
+  //                     if a stale candidate slips through)
+  //
+  // Three orthogonal back-compat guarantees:
+  //   1. Legacy entries (no `usedBigPremise`) skip the `if` exactly
+  //      as they did under Phase 6D — the boost remains a premise-
+  //      only lever, never accidentally promoting a legacy hook.
+  //   2. The score is read via `?.total` so a defensive miss
+  //      (premise candidate without a populated score, e.g. a
+  //      cached pre-6E entry replayed from JSONB) collapses to
+  //      `premiseComedyBoost(undefined) === 0` — the candidate
+  //      neither gets the old +7 nor a demotion, exactly the same
+  //      neutral position a legacy entry sits in. Zero behavior
+  //      change for any non-premise candidate.
+  //   3. The picker walk's < 5 HARD reject already keeps low-score
+  //      premises out of the candidate pool entirely, so the -2 /
+  //      +1 demote-band branches above only fire on hooks that
+  //      passed both the rubric AND every prior structural rail
+  //      (`validateHook` / `validateBigPremise` / `validateOutputLine`).
+  //
+  // Stacking math (re-verifying the Phase 6D acceptance gate at the
+  // new boost ceiling, since the dup / freshness levers below are
+  // unchanged):
+  //   - Fresh score-10 premise on slot 1        : net +7 (preferred).
+  //   - Score-10 premise reusing recent style   : +7 -2 = +5 (still
+  //                                               preferred over legacy 0).
+  //   - Score-10 premise dup'ing in-batch style : +7 -8 = -1 (correctly
+  //                                               loses to fresh-style
+  //                                               alternative).
+  //   - Score-7 premise on slot 1               : net +4 (clearly above
+  //                                               legacy 0).
+  //   - Score-7 premise reusing recent style    : +4 -2 = +2 (still
+  //                                               preferred over legacy 0).
+  //   - Score-6 premise vs strong legacy        : +1 vs legacy +0..+5
+  //                                               (legacy can win on
+  //                                               other axes — exactly
+  //                                               the spec PART 6 intent).
+  //   - Score-5 premise vs neutral legacy       : -2 vs legacy 0 (legacy
+  //                                               wins — exactly the spec
+  //                                               PART 6 intent).
+  if (c.meta.usedBigPremise === true) {
+    p += premiseComedyBoost(c.meta.premiseComedyScore?.total);
+  }
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The
   // per-intent scorers already apply a -4 inside scoreScrollStop /

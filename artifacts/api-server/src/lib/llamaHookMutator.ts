@@ -34,7 +34,7 @@
 import { openrouter } from "@workspace/integrations-openrouter-ai";
 import type { Idea } from "./ideaGen";
 import type { ScoredCandidate, IdeaScore, NoveltyContext } from "./ideaScorer";
-import { scoreIdea } from "./ideaScorer";
+import { scoreIdea, scorePremiseComedyScore } from "./ideaScorer";
 import {
   lookupHookOpener,
   validateHook,
@@ -929,10 +929,38 @@ function applyHookRewrite(
 ): { candidate: ScoredCandidate; better: boolean } {
   const newIdea: Idea = { ...original.idea, hook: newHook };
   const newOpener = lookupHookOpener(newHook) ?? undefined;
+  // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — re-score the
+  // polished hook against the comedy rubric BEFORE accepting it.
+  // Only premise candidates (`usedBigPremise === true`) are gated;
+  // legacy + fallback rewrites stay on the existing
+  // `isBetterMutation` track. The guard is the more conservative of
+  // two thresholds:
+  //   (a) post.total ≥ pre.total  — polish must not regress; AND
+  //   (b) post.total ≥ 7          — polish must not leave the hook
+  //                                  in the 5-6 demote band.
+  // Combined: post.total ≥ max(pre.total, 7). If the original was
+  // already a borderline 5-6 that won selection on the demote-band
+  // path (no better legacy available), polish has to actually lift
+  // it to ship-quality — silently keeping a lateral 6→6 edit would
+  // defeat the rubric. Falling either guard reverts to the original
+  // by returning `better: false` (Phase 6C's premise-meaning guard
+  // upstream in `passesHookMutationRules` still gates the prompt
+  // surface; this is the score-side guard that runs AFTER mutation
+  // text passes content checks). Captured `pickedPremiseComedyScore`
+  // on `newMeta` regardless so the QA driver telemetry surface
+  // reflects the polished hook's actual rubric score.
+  const newPremiseComedy =
+    "usedBigPremise" in original.meta &&
+    original.meta.usedBigPremise === true
+      ? scorePremiseComedyScore(newHook)
+      : undefined;
   const newMeta = {
     ...original.meta,
     hookOpener: newOpener,
     source: "llama_3_1" as const,
+    ...(newPremiseComedy !== undefined
+      ? { premiseComedyScore: newPremiseComedy }
+      : {}),
   };
   const newScore = scoreIdea(
     newIdea,
@@ -941,7 +969,23 @@ function applyHookRewrite(
     ctx.recentScenarios,
     newMeta,
   );
-  const better = isBetterMutation(newScore, original.score);
+  let better = isBetterMutation(newScore, original.score);
+  if (
+    better &&
+    newPremiseComedy !== undefined &&
+    "usedBigPremise" in original.meta &&
+    original.meta.usedBigPremise === true
+  ) {
+    const preTotal =
+      "premiseComedyScore" in original.meta &&
+      original.meta.premiseComedyScore !== undefined
+        ? original.meta.premiseComedyScore.total
+        : scorePremiseComedyScore(original.idea.hook).total;
+    const threshold = Math.max(preTotal, 7);
+    if (newPremiseComedy.rejected || newPremiseComedy.total < threshold) {
+      better = false;
+    }
+  }
   return {
     candidate: {
       idea: newIdea,

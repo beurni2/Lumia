@@ -2135,6 +2135,21 @@ type CachedBatchEntry = {
    * undefined so the recent set never holds a "" sentinel.
    */
   executionId?: string;
+  /**
+   * Phase 6E (PREMISE COMEDY SCORING + REJECTION) — integer rubric
+   * total (0-10) for the WINNING premise hook, persisted on the
+   * cache envelope so the QA driver (`_qaPhase6e`) can read it back
+   * via `extractCurrent` without re-scoring from the hook string
+   * (which would lose the picker-walk's exact score after later
+   * Llama polish edits the text). No cross-batch novelty consumer
+   * today — the field is telemetry-only. Same non-breaking JSONB
+   * pattern as the rest of the Phase 6 fields above: legacy entries
+   * written before this field shipped read back as undefined.
+   * Tolerantly parsed as a finite integer in `[0, 10]` — anything
+   * outside that range silently drops to undefined so downstream
+   * averages / histograms can't be poisoned by a corrupt envelope.
+   */
+  premiseComedyScoreTotal?: number;
 };
 
 /**
@@ -2185,6 +2200,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         bigPremiseStyle?: unknown;
         premiseStyleId?: unknown;
         executionId?: unknown;
+        premiseComedyScoreTotal?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2289,6 +2305,22 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
       const eidRaw = wrapper.executionId;
       const executionId: string | undefined =
         typeof eidRaw === "string" && eidRaw.length > 0 ? eidRaw : undefined;
+      // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — tolerant
+      // parse: only adopt finite integers in `[0, 10]` (rubric range
+      // by construction). NaN / out-of-range / non-number / float
+      // values silently drop to undefined so a corrupt envelope can
+      // never poison QA-driver averages or histograms. The rubric's
+      // total is always integer-valued in the live writer (sum of
+      // five 0-2 integer dim scores), so a non-integer in cache is
+      // unambiguously corruption — drop it.
+      const pcsRaw = wrapper.premiseComedyScoreTotal;
+      const premiseComedyScoreTotal: number | undefined =
+        typeof pcsRaw === "number" &&
+        Number.isInteger(pcsRaw) &&
+        pcsRaw >= 0 &&
+        pcsRaw <= 10
+          ? pcsRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -2306,6 +2338,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         bigPremiseStyle,
         premiseStyleId,
         executionId,
+        premiseComedyScoreTotal,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2538,6 +2571,24 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // original 29 hand-written premise entries + every legacy entry
     // + every Llama / Claude fallback wrap).
     executionId: c.meta.executionId,
+    // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — persist ONLY
+    // the integer rubric total (0-10), not the per-dimension
+    // breakdown. The cross-batch consumers (none today; this is
+    // QA-driver telemetry only) need the headline number; the
+    // per-dim split is runtime-only state for boost computation +
+    // QA report tables. Same non-breaking JSONB pattern as the rest
+    // of the Phase 6 fields above: undefined for legacy template
+    // entries / Llama / Claude fallback wraps that didn't run
+    // through the premise picker walk. Source: `meta.premiseComedy-
+    // Score?.total` — the optional `?.` chain collapses to undefined
+    // for both PatternMeta entries without the field set AND for
+    // CandidateMeta fallback-shape entries (where the field is
+    // declared on the union but never populated by the wrap path).
+    premiseComedyScoreTotal:
+      "premiseComedyScore" in c.meta &&
+      c.meta.premiseComedyScore !== undefined
+        ? c.meta.premiseComedyScore.total
+        : undefined,
   }));
 }
 
@@ -3230,6 +3281,17 @@ export async function runHybridIdeator(
           // id on the rescue path (mirrors the main toCacheEntries
           // write above).
           executionId: c.meta.executionId,
+          // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — same
+          // field on the rescue path so a best-effort empty-after-
+          // filter ship still surfaces the rubric total to the QA
+          // driver telemetry. Mirrors the main toCacheEntries write
+          // above; undefined for legacy / fallback entries that
+          // never carried a comedy score flows through cleanly.
+          premiseComedyScoreTotal:
+            "premiseComedyScore" in c.meta &&
+            c.meta.premiseComedyScore !== undefined
+              ? c.meta.premiseComedyScore.total
+              : undefined,
         }));
       await persistCache(input.creator, rescueEntries);
     }

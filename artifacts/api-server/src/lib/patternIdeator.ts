@@ -5059,6 +5059,59 @@ function buildPremiseEntriesFromDefs(
  * voice (used for safety-net fallback when no voice-tagged entry
  * for the requested HLS × voice cell exists).
  */
+/**
+ * Phase 6E — PremiseComedyScore type (single source of truth).
+ *
+ * Lives in patternIdeator.ts (alongside PatternMeta) so PatternMeta
+ * can declare an optional `premiseComedyScore` field without the
+ * ideaScorer.ts ⇄ patternIdeator.ts circular import that would
+ * otherwise be required. The SCORING FUNCTION
+ * (`scorePremiseComedyScore`) lives in ideaScorer.ts and imports
+ * this type back; ideaScorer.ts also re-exports the type so existing
+ * callers that import `PremiseComedyScore` from there keep working.
+ *
+ * See `scorePremiseComedyScore` in ideaScorer.ts for the rubric and
+ * the gating model (HARD reject < 5 at picker walk; scaled selection-
+ * layer boost via `premiseComedyBoost` for 5-10 band).
+ */
+export type PremiseComedyScore = {
+  /** Unexpected phrasing / non-obvious / not plain observation. 0-2. */
+  surprise: 0 | 1 | 2;
+  /** Tied to scenario / not generic / has concrete behavior or object. 0-2. */
+  specificity: 0 | 1 | 2;
+  /** Self-roast / embarrassment / frustration / anxiety / contradiction. 0-2. */
+  punch: 0 | 1 | 2;
+  /** Instantly understandable / short / one clear joke. 0-2. */
+  simplicity: 0 | 1 | 2;
+  /** Feels like something people actually do/think — triggers "me" response. 0-2. */
+  relatability: 0 | 1 | 2;
+  /** Sum of dims, capped at 10. */
+  total: number;
+  /**
+   * True ONLY when a HARD reject pattern fired (PART 3 explicit examples
+   * or "could apply to almost anything" structural shape). Independent
+   * of `total < 5` — that gating decision lives at the picker walk.
+   * `rejected: true` always implies `total: 0`.
+   */
+  rejected: boolean;
+  /** Free-form telemetry tag for the matching reject family. */
+  rejectReason?:
+    | "hard_pattern_reject"
+    | "no_anchor"
+    | "starts_generic_observation";
+  /** PART 4 — strong-comedy mechanisms detected. Telemetry only. */
+  boostMechanisms: ReadonlyArray<
+    | "self_roast"
+    | "absurd_metaphor"
+    | "object_personification"
+    | "time_marker_contrast"
+    | "identity_contradiction"
+    | "overdramatic_framing"
+    | "consumer_phone_behavior"
+    | "late_night_spiral"
+  >;
+};
+
 export type LanguagePhrasingEntry = {
   build: (s: Scenario) => string;
   voiceProfiles?: readonly VoiceProfile[];
@@ -7320,6 +7373,29 @@ export type PatternMeta = {
    * `videoPattern`).
    */
   executionId?: string;
+  /**
+   * Phase 6E (PREMISE COMEDY SCORING + REJECTION) — full
+   * PremiseComedyScore for the WINNING entry's hook, computed at
+   * picker-walk time AFTER `validateHook` + `validateBigPremise` +
+   * `validateOutputLine` pass on the FINAL post-`compressHook` text.
+   * Drives:
+   *   - HARD reject < 5 at the picker walk (set BEFORE this meta is
+   *     materialized — a < 5 hook never reaches PatternMeta because
+   *     the walk continues to the next phrasing in seed-rotated
+   *     order).
+   *   - Scaled selection-layer boost in `selectionPenalty` via
+   *     `premiseComedyBoost(meta.premiseComedyScore?.total)` —
+   *     replaces Phase 6D's flat +7 lever with a 7→+4, 8→+5, 9→+6,
+   *     10→+7, 6→+1, 5→-2 gradient so a strong legacy can beat a
+   *     borderline premise per spec PART 6.
+   *   - Telemetry surface for the QA driver (PART 8 report).
+   * Set ONLY when the picked entry carried `bigPremise === true`
+   * (the rubric is a premise-quality gate, not a legacy gate).
+   * Optional / undefined for legacy template entries + Llama /
+   * Claude fallback wraps that didn't run through the premise
+   * picker walk.
+   */
+  premiseComedyScore?: PremiseComedyScore;
 };
 
 /**
@@ -7408,6 +7484,493 @@ function pickValidatedPhrasing(
 // lets legacy diminish to its natural fallthrough rate.
 const PREMISE_FIRST_BUCKET_PCT = 100;
 
+/* ────────────────────────────────────────────────────────────────── */
+/* Phase 6E — PREMISE COMEDY SCORING + REJECTION                      */
+/*                                                                    */
+/* Pure deterministic 0-10 rubric scoring premise hooks across 5      */
+/* dimensions (surprise / specificity / emotional punch / simplicity  */
+/* / relatability), each 0-2. Layered AFTER `validateHook` +          */
+/* `validateBigPremise` + `validateOutputLine` (those rails handle    */
+/* structural correctness; this rubric handles COMEDY QUALITY).       */
+/*                                                                    */
+/* Spec-compliant gating model:                                       */
+/*   total >= 7  → keep (premium premise)                             */
+/*   5 <= t < 7  → demote via scaled selection-layer boost (still     */
+/*                 ships if no better legacy alternative exists)      */
+/*   total < 5   → HARD REJECT at the picker walk layer (never        */
+/*                 reaches selection)                                 */
+/*                                                                    */
+/* Detection sets are intentionally text-based (not catalog-bound)    */
+/* so the rubric also scores Llama-polished output (PART 7) and any   */
+/* future hand-written premise that may not carry an `executionId`.   */
+/* `entry` + `scenario` are OPTIONAL — when omitted the function      */
+/* gracefully degrades to text-only signals (no scenario-noun match,  */
+/* no execution-id boost) so Llama / Claude fallback wraps still get  */
+/* a reasonable comedy score for the re-scoring guard in T003.        */
+/*                                                                    */
+/* COLOCATION RATIONALE — lives in patternIdeator.ts (not             */
+/* ideaScorer.ts where the rest of the SCORER lives) so the picker    */
+/* walk in `pickValidatedLanguagePhrasing` (immediately below) can    */
+/* call `scorePremiseComedyScore` at the < 5 HARD reject site WITHOUT */
+/* introducing a new ideaScorer.ts → patternIdeator.ts runtime        */
+/* import cycle. The selection-layer scaled boost                     */
+/* (`premiseComedyBoost`) is consumed back from ideaScorer.ts via a   */
+/* normal type-only ⇄ runtime import direction; that direction        */
+/* already exists for many other helpers and stays acyclic.           */
+/* ────────────────────────────────────────────────────────────────── */
+
+/** Per-dimension cell — narrowed to the 0-2 spec range. */
+type ComedyDim = 0 | 1 | 2;
+
+/**
+ * PART 3 explicit reject examples + structurally-equivalent shapes.
+ * Anchored regexes (line-bounded) so a longer hook that happens to
+ * contain "today was difficult" as a clause does NOT trip the
+ * reject — only the literal SHIPPED-LINE form does.
+ */
+const COMEDY_HARD_REJECT_PATTERNS: ReadonlyArray<RegExp> = [
+  /^i tried to be productive and failed[.!?]?$/i,
+  /^this happens every time[.!?]?$/i,
+  /^i am dealing with the task again[.!?]?$/i,
+  /^this is relatable[.!?]?$/i,
+  /^today was difficult[.!?]?$/i,
+  // Structurally-equivalent generic-observation shapes the spec
+  // PART 3 lumps under "too literal / not funny / generic".
+  /^this is (so )?(me|relatable|true|us)[.!?]?$/i,
+  /^that('?s| is) (so )?(me|relatable|true|us)[.!?]?$/i,
+  /^(today|tonight|monday|life) (was|is|feels) (hard|tough|difficult|rough|exhausting)[.!?]?$/i,
+];
+
+/**
+ * Surprise tokens — words/phrases that signal absurd, unexpected, or
+ * cognitively-jarring framings. Lowercase substring matches (case
+ * normalized at scoring time). Pulled from PART 4 boost-mechanism
+ * examples ("filed for emotional bankruptcy", "ghosted my own to-do
+ * list") + the executionIds vocabulary ("metaphor_mayhem",
+ * "cosmic_overreaction"). Curated to avoid common everyday verbs
+ * that would over-trigger.
+ */
+const COMEDY_SURPRISE_TOKENS: ReadonlyArray<string> = [
+  // Legal / formal-vocab applied to casual life events
+  "bankruptcy", "lawsuit", "subpoena", "litigation", "deposition",
+  "filed for", "filed a", "filed taxes", "filed a complaint",
+  "considered legally", "legally allowed", "patent pending",
+  "trademarked", "warranty", "press conference", "press release",
+  // Corporate / organizational vocab applied to self
+  "ceo of", "manager of", "spokesperson", "ambassador", "specialist in",
+  "specialize in", "specializes in", "hostile takeover", "negotiating",
+  "blackmail", "unionized", "shareholders", "stakeholder",
+  // Emotional-support / customer-service absurdism
+  "emotional support", "customer service", "filed a complaint",
+  "is a visionary", "the visionary",
+  // Object personification / surveillance framing
+  "knows i'm lying", "knows i'm fine", "watching me decide",
+  "judging me", "judges me", "betrayed me", "betrayed by",
+  // Game / RPG / mythology applied to mundane life
+  "side quest", "boss battle", "final form", "main character",
+  "villain origin", "lore drop", "speedrun", "patch notes",
+];
+
+/**
+ * Execution-id boosts for surprise/punch. Hooks built from these
+ * `PREMISE_STYLE_DEFS[*].executions[*]` patterns reliably produce
+ * non-obvious comedic framings even when their text doesn't trip a
+ * surface-token match.
+ */
+const COMEDY_SURPRISE_EXECUTION_IDS: ReadonlySet<string> = new Set([
+  "metaphor_mayhem",
+  "cosmic_overreaction",
+  "whiplash_pivot",
+  "identity_framing",
+  "pattern_naming",
+  "ironic_confidence",
+  "delusion_admission",
+]);
+
+/**
+ * Generic-observation prefixes — when a hook starts with one of these
+ * shapes the surprise dimension is forced to 0 (overrides any token
+ * match). These openers signal "AI summary voice" or "bland caption-
+ * like recap" and their presence dominates whatever follows.
+ */
+const COMEDY_GENERIC_PREFIX_PATTERNS: ReadonlyArray<RegExp> = [
+  /^here'?s why\b/i,
+  /^this is why\b/i,
+  /^that'?s why\b/i,
+  /^when you (try|just|simply)\b/i,
+  /^(it|today|tonight) (is|was|feels)\b/i,
+];
+
+/**
+ * Emotion / embarrassment / anxiety / frustration token set — drives
+ * the punch dimension. Curated to favor specific emotional vocabulary
+ * over generic ones ("sad", "happy") so the dimension actually
+ * discriminates between flat feelings and sharp comedic spikes.
+ */
+const COMEDY_EMOTION_TOKENS: ReadonlyArray<string> = [
+  "embarrassed", "anxiety", "anxious", "panic", "panicked",
+  "frustration", "frustrated", "betrayed", "betrayal",
+  "spiral", "spiraling", "meltdown", "trauma", "traumatized",
+  "disappointment", "disappointed", "disaster", "collapse",
+  "crisis", "existential", "emergency", "ashamed", "shame",
+  "cringe", "cringing", "unhinged", "feral", "unwell",
+  "goblin", "gremlin", "gaslight", "gaslit", "sabotaged",
+  "ruined", "ruining", "ghosted", "ghosting", "haunted",
+  "cursed", "drained", "overwhelmed", "wrecked", "begged",
+  "apologized", "humiliated", "exposed", "menace",
+  "delusional", "deluded", "depressed", "depression",
+  "screaming", "crying", "weeping", "sobbing", "raging",
+  // Burnout / fatigue-vocabulary (emotional-truth side of "tired")
+  "burnout", "burnt out", "burned out", "exhausted", "drained",
+  "tired", "wrecked", "worn out", "fried",
+  // Self-roast verdict words (emotional self-judgment)
+  "useless", "pointless", "worthless", "hopeless", "broken",
+  // Internal-emotion vocabulary (regret / shame / guilt — strong
+  // self-roast fuel even without an external trigger word)
+  "regret", "regretted", "shame", "shameful", "guilt", "guilty",
+  "remorse", "remorseful", "grief", "grieving",
+  // Absurd-metaphor emotion-coded phrases (one punch point each)
+  "emotional bankruptcy", "emotional damage", "emotional support",
+  "filed for emotional", "in a chokehold", "chokehold",
+];
+
+/**
+ * Execution-ids that reliably express emotional spikes regardless of
+ * the surface text. Boost punch to 2 when matched.
+ */
+const COMEDY_PUNCH_EXECUTION_IDS: ReadonlySet<string> = new Set([
+  "chaos_acceptance",
+  "delusion_admission",
+  "expectation_collapse",
+  "gen_z_collapse",
+  "cosmic_overreaction",
+  "whiplash_pivot",
+]);
+
+/**
+ * Concrete-noun tokens — drives the specificity dimension. Generic
+ * scenario-anchored objects that signal "this hook is grounded in a
+ * real moment" rather than abstract advice.
+ */
+const COMEDY_CONCRETE_NOUN_TOKENS: ReadonlyArray<string> = [
+  "to-do list", "todo list", "fridge", "phone", "alarm",
+  "couch", "doomscroll", "tab", "tabs", "calendar", "voicemail",
+  "card", "credit card", "subscription", "inbox", "email",
+  "notification", "screen time", "gym bag", "mirror", "mug",
+  "kettle", "hoodie", "fork", "spoon", "outfit", "laundry",
+  "pillow", "blanket", "fridge door", "phone screen", "battery",
+  "wifi", "doordash", "uber", "amazon cart", "grocery list",
+];
+
+/**
+ * Universal-experience tokens — drives the relatability dimension.
+ * Things people commonly identify with as "yeah that's me".
+ */
+const COMEDY_UNIVERSAL_TOKENS: ReadonlyArray<string> = [
+  "procrastination", "productivity", "sleep", "phone", "food",
+  "work", "weekend", "monday", "tuesday", "midnight", "scrolling",
+  "doomscroll", "hangover", "broke", "tired", "burned out",
+  "burnt out", "anxious", "lonely", "messy", "lazy", "broken",
+  "9am me", "2am me", "3am me", "morning me", "future me",
+  "past me", "me when", "the way i", "my brain", "my body",
+  "my therapist", "my bank", "my mom", "my boss",
+];
+
+/**
+ * Strong-relatability phrase patterns — match the "me" trigger shapes
+ * the spec PART 1 calls out as ideal premise-hook DNA.
+ */
+const COMEDY_RELATABILITY_PHRASES: ReadonlyArray<RegExp> = [
+  /\bi am the (kind|type|villain|ceo|manager|main character)\b/i,
+  /\bi specialize in\b/i,
+  /\bi ghosted my own\b/i,
+  /\bmain character of (my|this|that)\b/i,
+  /\bi (am|'?m) the reason\b/i,
+  /\bme when (i|you|we)\b/i,
+  /\b(2am|3am|9am|monday) (me|i)\b/i,
+];
+
+/**
+ * PART 4 boost mechanism patterns — when a hook expresses one of
+ * these strong-comedy mechanisms it gets a small dimension-targeted
+ * bonus (capped per-dim at 2, total capped at 10). Detection is
+ * purely text-based so it works on Llama output as well as catalog
+ * entries.
+ */
+const COMEDY_MECHANISM_PATTERNS: ReadonlyArray<{
+  mechanism: PremiseComedyScore["boostMechanisms"][number];
+  pattern: RegExp;
+}> = [
+  {
+    mechanism: "self_roast",
+    pattern:
+      /\bi(?:'?m| am) the (?:kind|type|villain|ceo|manager|reason|main character)\b|\bi specialize in\b|\bi ghosted my own\b/i,
+  },
+  {
+    mechanism: "absurd_metaphor",
+    pattern:
+      /\b(?:filed (?:for|a)|filed taxes|patent pending|emotional bankruptcy|hostile takeover|press conference|side quest|speedrun|patch notes|customer service|emotional support)\b/i,
+  },
+  {
+    mechanism: "object_personification",
+    // Spec PART 4 example: "the fridge knows i'm lying" — accept BOTH
+    // "my X" and "the X" possessive shapes so personified-object hooks
+    // built around any salient object trigger the boost.
+    pattern:
+      /\b(?:my|the) (?:fridge|phone|alarm|brain|body|therapist|mug|couch|hoodie|wifi|inbox|doordash|to-?do list|mirror|kettle|laundry|calendar|voicemail|pillow|blanket|battery|notification|screen time|tabs?|email) (?:knows|told|judges|judged|watches|hates|betrayed|filed|ghosted|left|quit|gave up|texted|whispered|snitched|reported)\b/i,
+  },
+  {
+    mechanism: "time_marker_contrast",
+    pattern: /\b(?:2am|3am|9am|monday|tuesday|midnight|noon) (?:me|i)\b/i,
+  },
+  {
+    mechanism: "identity_contradiction",
+    pattern:
+      /\b(?:visionary|specialist|expert|the kind of person|legally allowed|considered legally|the ceo of)\b/i,
+  },
+  {
+    mechanism: "overdramatic_framing",
+    pattern:
+      /\b(?:meltdown|spiral|crisis|disaster|collapse|emergency|villain origin|trauma|haunted|cursed|wrecked)\b/i,
+  },
+  {
+    mechanism: "consumer_phone_behavior",
+    pattern:
+      /\b(?:doomscroll|screen time|notification|inbox|tabs?|battery|wifi|amazon cart|doordash|uber)\b/i,
+  },
+  {
+    mechanism: "late_night_spiral",
+    pattern: /\b(?:2am|3am|midnight|late night|tonight)\b.*\b(?:me|i|spiral|thought)\b/i,
+  },
+];
+
+/**
+ * Score a candidate hook against the Phase 6E PremiseComedyScore
+ * rubric. Pure deterministic — same inputs → same output (no clocks,
+ * no random, no I/O). Returns a 0-10 total + per-dimension breakdown
+ * + reject decision + telemetry boost-mechanism tags.
+ *
+ * NOTE: this function does NOT enforce gating. The < 5 HARD reject
+ * is enforced by the caller (`pickValidatedLanguagePhrasing` walk
+ * directly below); the 5-6 demote band is enforced by the
+ * `selectionPenalty` scaled boost in ideaScorer.ts via
+ * `premiseComedyBoost`. Keeping the scoring + the gating decisions
+ * separate makes both layers independently testable and lets QA
+ * telemetry see the raw score even on rejected hooks.
+ *
+ * @param hook   The fully-rendered hook string (POST-compressHook,
+ *               POST-validateOutputLine — i.e. the form that would
+ *               actually ship).
+ * @param entry  Optional. The catalog `LanguagePhrasingEntry` the
+ *               hook was built from. When provided, `executionId` /
+ *               `bigPremise` boost the dimensions. Llama / Claude
+ *               fallback wraps may omit; the function falls back to
+ *               text-only signals cleanly.
+ * @param scenario Optional. The scenario the hook was built for.
+ *               When provided, `topicNoun` participates in the
+ *               specificity match. Same fallback discipline.
+ */
+export function scorePremiseComedyScore(
+  hook: string,
+  entry?:
+    | Pick<
+        LanguagePhrasingEntry,
+        "bigPremise" | "executionId" | "premiseStyleId"
+      >
+    | undefined,
+  scenario?: { topicNoun?: string } | undefined,
+): PremiseComedyScore {
+  const text = (hook ?? "").toLowerCase().trim();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  // --- HARD REJECT pass (PART 3) ---------------------------------
+  for (const pat of COMEDY_HARD_REJECT_PATTERNS) {
+    if (pat.test(text)) {
+      return {
+        surprise: 0,
+        specificity: 0,
+        punch: 0,
+        simplicity: 0,
+        relatability: 0,
+        total: 0,
+        rejected: true,
+        rejectReason: "hard_pattern_reject",
+        boostMechanisms: [],
+      };
+    }
+  }
+
+  // --- Anchor pass — "could apply to almost anything" reject -----
+  // A hook with NO first-person AND NO concrete-noun anchor AND NO
+  // emotional-spike token is by definition "could apply to anything"
+  // per PART 3. Bypassed at the rubric layer (returns total=0,
+  // rejected=true) so the picker walk's < 5 gate trivially fires.
+  const hasFirstPerson = /\b(i|me|my|i'?m|i'?ve|i'?ll|i'?d|mine)\b/.test(text);
+  const hasConcreteNoun =
+    COMEDY_CONCRETE_NOUN_TOKENS.some((t) => text.includes(t)) ||
+    (scenario?.topicNoun !== undefined &&
+      scenario.topicNoun.length > 0 &&
+      text.includes(
+        scenario.topicNoun.toLowerCase().replace(/^the\s+/, ""),
+      ));
+  const hasEmotion = COMEDY_EMOTION_TOKENS.some((t) => text.includes(t));
+  if (!hasFirstPerson && !hasConcreteNoun && !hasEmotion) {
+    return {
+      surprise: 0,
+      specificity: 0,
+      punch: 0,
+      simplicity: 0,
+      relatability: 0,
+      total: 0,
+      rejected: true,
+      rejectReason: "no_anchor",
+      boostMechanisms: [],
+    };
+  }
+
+  // --- Surprise (0-2) --------------------------------------------
+  let surprise: ComedyDim = 1;
+  const hasSurpriseToken = COMEDY_SURPRISE_TOKENS.some((t) =>
+    text.includes(t),
+  );
+  const surpriseExecutionMatch =
+    entry?.executionId !== undefined &&
+    COMEDY_SURPRISE_EXECUTION_IDS.has(entry.executionId);
+  if (hasSurpriseToken || surpriseExecutionMatch) surprise = 2;
+  // Generic-observation prefix DOWNGRADES surprise to 0 regardless
+  // of any token match — these openers signal "AI summary voice"
+  // and dominate whatever follows them.
+  const startsGeneric = COMEDY_GENERIC_PREFIX_PATTERNS.some((p) =>
+    p.test(text),
+  );
+  if (startsGeneric) surprise = 0;
+
+  // --- Specificity (0-2) -----------------------------------------
+  let specificity: ComedyDim = 0;
+  const matchesScenarioNoun =
+    scenario?.topicNoun !== undefined &&
+    scenario.topicNoun.length > 0 &&
+    text.includes(
+      scenario.topicNoun.toLowerCase().replace(/^the\s+/, ""),
+    );
+  const hasMyNoun = /\bmy [a-z]+\b/.test(text);
+  if (hasConcreteNoun || matchesScenarioNoun || hasMyNoun) specificity = 1;
+  if (
+    (hasConcreteNoun || matchesScenarioNoun) &&
+    (hasMyNoun ||
+      /\b(today|tonight|3am|2am|9am|monday|tuesday|midnight)\b/.test(text))
+  ) {
+    specificity = 2;
+  }
+
+  // --- Emotional Punch (0-2) -------------------------------------
+  let punch: ComedyDim = 0;
+  if (hasEmotion) punch = 1;
+  const punchExecutionMatch =
+    entry?.executionId !== undefined &&
+    COMEDY_PUNCH_EXECUTION_IDS.has(entry.executionId);
+  if (punchExecutionMatch) punch = 2;
+
+  // --- Simplicity (0-2) ------------------------------------------
+  let simplicity: ComedyDim = 2;
+  const commaCount = (text.match(/,/g) ?? []).length;
+  const hasComplexConjunction = /\b(because|even though|while|however|despite|whereas)\b/i.test(
+    text,
+  );
+  if (wordCount > 10 || commaCount > 1 || hasComplexConjunction) simplicity = 1;
+  if (wordCount > 12 || commaCount > 2 || /[;:]/.test(text)) simplicity = 0;
+
+  // --- Relatability (0-2) ----------------------------------------
+  let relatability: ComedyDim = 0;
+  const hasUniversal = COMEDY_UNIVERSAL_TOKENS.some((t) => text.includes(t));
+  if (hasFirstPerson && (hasUniversal || hasEmotion || hasConcreteNoun)) {
+    relatability = 1;
+  }
+  if (hasFirstPerson && hasUniversal && hasEmotion) relatability = 2;
+  if (
+    hasFirstPerson &&
+    COMEDY_RELATABILITY_PHRASES.some((p) => p.test(text))
+  ) {
+    relatability = 2;
+  }
+
+  // --- Boost mechanisms (PART 4) ---------------------------------
+  // Detect ALL matching mechanisms (cross-cutting telemetry) and
+  // apply ONE small targeted dimension bonus per detected family.
+  // Caps preserved (each dim ≤ 2, total ≤ 10) so a flood of
+  // mechanisms can't push a structurally-weak hook above the keep
+  // threshold artificially.
+  const boostMechanisms: PremiseComedyScore["boostMechanisms"][number][] = [];
+  for (const { mechanism, pattern } of COMEDY_MECHANISM_PATTERNS) {
+    if (pattern.test(text)) boostMechanisms.push(mechanism);
+  }
+  if (boostMechanisms.includes("self_roast") && punch < 2) {
+    punch = (punch + 1) as ComedyDim;
+  }
+  if (boostMechanisms.includes("absurd_metaphor") && surprise < 2) {
+    surprise = (surprise + 1) as ComedyDim;
+  }
+  if (boostMechanisms.includes("object_personification") && specificity < 2) {
+    specificity = (specificity + 1) as ComedyDim;
+  }
+  if (
+    (boostMechanisms.includes("time_marker_contrast") ||
+      boostMechanisms.includes("late_night_spiral")) &&
+    relatability < 2
+  ) {
+    relatability = (relatability + 1) as ComedyDim;
+  }
+  if (boostMechanisms.includes("identity_contradiction") && surprise < 2) {
+    surprise = (surprise + 1) as ComedyDim;
+  }
+  if (boostMechanisms.includes("overdramatic_framing") && punch < 2) {
+    punch = (punch + 1) as ComedyDim;
+  }
+
+  const rawTotal = surprise + specificity + punch + simplicity + relatability;
+  return {
+    surprise,
+    specificity,
+    punch,
+    simplicity,
+    relatability,
+    total: Math.min(10, rawTotal),
+    rejected: false,
+    boostMechanisms,
+  };
+}
+
+/**
+ * Phase 6E — selection-layer scaled boost replacing Phase 6D's flat
+ * `+7 if usedBigPremise === true` lever (still applied in
+ * `selectionPenalty` in ideaScorer.ts; this helper computes the new
+ * value). Maps a comedy score onto a smooth +7..-2 boost band so:
+ *   - 10              → +7  (Phase 6D top — premium premise wins easily)
+ *   - 9               → +6
+ *   - 8               → +5
+ *   - 7               → +4  (keep band — clearly preferred over legacy)
+ *   - 6               → +1  (demote band — premise can ship if no better
+ *                            legacy alternative exists)
+ *   - 5               → -2  (demote band — legacy strongly preferred)
+ *   - <5 (rejected)   →  0  (defensive — these hooks were already blocked
+ *                            at the picker walk and never reach selection;
+ *                            return 0 so the math degrades cleanly if a
+ *                            stale low-score candidate slips through)
+ *
+ * Pure helper — no side effects. Exported for QA / test introspection
+ * + consumption from ideaScorer.ts at the selectionPenalty +7 site.
+ */
+export function premiseComedyBoost(score: number | undefined): number {
+  if (score === undefined || score < 5) return 0;
+  if (score >= 10) return 7;
+  if (score === 9) return 6;
+  if (score === 8) return 5;
+  if (score === 7) return 4;
+  if (score === 6) return 1;
+  return -2; // score === 5
+}
+
 /**
  * HookLanguageStyle counterpart to `pickValidatedPhrasing`. Iterates
  * the new HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog in seed-rotated
@@ -7451,6 +8014,16 @@ function pickValidatedLanguagePhrasing(
   index: number;
   hook: string;
   intentFallback: boolean;
+  // Phase 6E — populated when the WINNING entry was a premise
+  // (entry.bigPremise === true) AND the picker walk scored its
+  // post-compress / post-validateOutputLine hook >= 5. Undefined
+  // when the winner is a legacy entry, or when the winner is a
+  // premise that pre-dated 6E plumbing (defensive — no current code
+  // path strips the field, but the optional shape keeps callers
+  // robust). Threaded up through every `return { ...x, ... }` site
+  // below into PatternMeta in `assembleCandidate` so
+  // `selectionPenalty.premiseComedyBoost` can read it.
+  premiseComedyScore?: PremiseComedyScore;
 } | null {
   const phrasings = HOOK_PHRASINGS_BY_LANGUAGE_STYLE[hookLanguageStyle];
   const n = phrasings.length;
@@ -7470,7 +8043,15 @@ function pickValidatedLanguagePhrasing(
     intentRequired: HookIntent | null,
     voicePred: (e: LanguagePhrasingEntry) => boolean,
     premiseOnly = false,
-  ): { entry: LanguagePhrasingEntry; index: number; hook: string } | null => {
+  ): {
+    entry: LanguagePhrasingEntry;
+    index: number;
+    hook: string;
+    // Phase 6E — see outer return-type comment. Set ONLY when the
+    // winning entry was a premise; the < 5 HARD reject site already
+    // filters out low scores so anything returned here is >= 5.
+    premiseComedyScore?: PremiseComedyScore;
+  } | null => {
     for (let offset = 0; offset < n; offset++) {
       const idx = (start + offset) % n;
       const entry = phrasings[idx]!;
@@ -7540,7 +8121,33 @@ function pickValidatedLanguagePhrasing(
           ? compressed
           : candidate;
       if (!validateOutputLine(finalHook)) continue;
-      return { entry, index: idx, hook: finalHook };
+      // Phase 6E (PREMISE COMEDY SCORING + REJECTION) — for premise
+      // entries, score the FINAL hook against the 5-dim 0-10 rubric
+      // and HARD REJECT when total < 5 (or when the rubric tripped a
+      // PART 3 explicit / structural reject pattern). Same self-
+      // healing behavior as `validateHook` / `validateBigPremise` /
+      // `validateOutputLine` rejection above — we `continue` to the
+      // next phrasing in seed-rotated order so the premise pool can
+      // self-heal toward a higher-quality hook for the same scenario
+      // before falling through to the legacy passes.
+      //
+      // Legacy entries (entry.bigPremise !== true) are intentionally
+      // NOT scored — the rubric is a PREMISE-quality gate per spec.
+      // Legacy hooks remain governed by the existing structural rails.
+      // The 5-6 demote band (still >= 5 here) is enforced downstream
+      // in `selectionPenalty` via the scaled `premiseComedyBoost`,
+      // not at the picker walk; that lets a borderline-but-shippable
+      // premise still win when no better candidate exists for the
+      // slot, while a strong legacy can beat it on the +7..-2 boost
+      // gradient. The score is threaded up through the picker return
+      // into PatternMeta so QA + the boost lever can read it.
+      let premiseComedyScore: PremiseComedyScore | undefined;
+      if (entry.bigPremise === true) {
+        const score = scorePremiseComedyScore(finalHook, entry, scenario);
+        if (score.rejected || score.total < 5) continue;
+        premiseComedyScore = score;
+      }
+      return { entry, index: idx, hook: finalHook, premiseComedyScore };
     }
     return null;
   };
@@ -7712,7 +8319,19 @@ function assembleCandidate(
     assignedIntent,
   );
   if (!picked) return null;
-  const { entry: sourceLanguagePhrasing, index, hook, intentFallback } = picked;
+  const {
+    entry: sourceLanguagePhrasing,
+    index,
+    hook,
+    intentFallback,
+    // Phase 6E — picker walk attaches the rubric score for the
+    // winning premise hook (undefined for legacy winners). Threaded
+    // straight onto PatternMeta in the bigPremise block below so
+    // `selectionPenalty.premiseComedyBoost` (ideaScorer.ts) can read
+    // `meta.premiseComedyScore.total` and the QA driver can read
+    // the per-dimension breakdown + boost mechanisms.
+    premiseComedyScore: pickedPremiseComedyScore,
+  } = picked;
   // Legacy hookStyle field is DERIVED from hookLanguageStyle via
   // the lossy backward-compat mapping. Every value is a valid
   // legacy HookStyle so the JSONB cache, viralPatternMemory, and
@@ -8038,6 +8657,24 @@ function assembleCandidate(
             // discipline as the `premiseStyleId` block above.
             ...(sourceLanguagePhrasing.executionId
               ? { executionId: sourceLanguagePhrasing.executionId }
+              : {}),
+            // Phase 6E (PREMISE COMEDY SCORING + REJECTION) —
+            // propagate the picker-walk's rubric score for the
+            // winning premise hook to PatternMeta. Spread-when-
+            // present so a defensive miss (premise entry that
+            // somehow reached `assembleCandidate` without scoring,
+            // e.g. a stale path) leaves the field undefined rather
+            // than serialising explicit nulls — matching the
+            // `premiseStyleId` / `executionId` discipline above.
+            // The selection-layer scaled boost
+            // (`selectionPenalty.premiseComedyBoost`) reads
+            // `meta.premiseComedyScore?.total`; absent-or-zero
+            // gracefully maps to a 0 boost contribution so a
+            // missing score never accidentally promotes or demotes
+            // a legacy candidate. The QA driver (T005) reads the
+            // full breakdown for the PART 8 report.
+            ...(pickedPremiseComedyScore !== undefined
+              ? { premiseComedyScore: pickedPremiseComedyScore }
               : {}),
           }
         : {}),
