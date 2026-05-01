@@ -759,6 +759,60 @@ export function countNewIdeaCoreFamilies(
 }
 
 /**
+ * Phase 6D — Path B: count distinct fresh DIVERSITY TOKENS in `batch`,
+ * where a token is either a fresh `ideaCoreFamily` (not in
+ * `recentFamilies`) OR a fresh `premiseStyleId` (not in
+ * `recentPremiseStyleIds`). Tokens are union-counted in a single Set
+ * keyed by axis prefix, so a candidate carrying both a fresh family
+ * AND a fresh premise-style contributes to BOTH axes (max one entry
+ * each per distinct value across the batch). Drives the Phase 1
+ * `≥2 NEW diversity tokens` rescue invariant in `selectWithNovelty`,
+ * superseding the family-only count.
+ *
+ * Rationale: PremiseStyle is a legitimate diversity axis introduced
+ * by Phase 6/6D — two batches with overlapping `ideaCoreFamily` but
+ * distinct `premiseStyleId` values (e.g. yesterday: "burnout_betrayal"
+ * + "self_destruction_speedrun" both in `expectation_collapse` family;
+ * today: "whiplash_wisdom" + "pattern_exposure" same family) are
+ * stylistically distinct and should NOT trip the cross-batch
+ * fresh-families HARD floor. Without this, the rescue forces legacy
+ * substitutions whenever the premise pool's family distribution
+ * concentrates, capping premise-share at ~0.78 (see Phase 6D T005
+ * diagnostic /tmp/qa6d_diag4.json). Legacy / fallback picks lacking
+ * BOTH axis values still don't contribute (preserves the original
+ * intent: a batch of pure-legacy carryover from yesterday counts as 0
+ * fresh tokens regardless of how many candidates it has).
+ */
+export function countFreshDiversityTokens(
+  batch: ScoredCandidate[],
+  recentFamilies: ReadonlySet<IdeaCoreFamily> | undefined,
+  recentPremiseStyleIds: ReadonlySet<string> | undefined,
+): number {
+  const seen = new Set<string>();
+  for (const c of batch) {
+    const f = c.meta.ideaCoreFamily;
+    if (
+      f &&
+      !(recentFamilies && recentFamilies.size > 0 && recentFamilies.has(f))
+    ) {
+      seen.add(`fam:${f}`);
+    }
+    const p = c.meta.premiseStyleId;
+    if (
+      p &&
+      !(
+        recentPremiseStyleIds &&
+        recentPremiseStyleIds.size > 0 &&
+        recentPremiseStyleIds.has(p)
+      )
+    ) {
+      seen.add(`pstyle:${p}`);
+    }
+  }
+  return seen.size;
+}
+
+/**
  * True when at least one pick in `batch` carries `meta.energy ===
  * "active"`. Used by the script-system FINAL spec §7 soft "≥1 active"
  * preference. Picks without an energy field don't count as active.
@@ -1014,17 +1068,41 @@ export function selectWithNovelty(
   // is dominated by it. Run one more exhaustive pass; if it's
   // impossible (small pool genuinely lacks 2 fresh families), ship
   // best-effort with a warn log so the rut is visible in telemetry.
+  // Phase 6D — Path B: replace the family-only freshness count with
+  // `countFreshDiversityTokens`, which unions fresh `ideaCoreFamily`
+  // values AND fresh `premiseStyleId` values into a single token set.
+  // PremiseStyle is a stylistic diversity axis introduced by Phase
+  // 6/6D — two batches with overlapping families but distinct premise
+  // styles ARE diverse and should not trip the HARD ≥2 floor. Trigger
+  // condition unchanged in shape: still fires whenever the rescue's
+  // upstream signal (`recentIdeaCoreFamilies` populated) indicates
+  // we're past the cold-start; we now also consult premise-style
+  // freshness so that pure-premise batches with concentrated families
+  // but distinct styles satisfy the floor without legacy substitution
+  // (lifts premise-share past the structural ~0.78 cap — see Phase
+  // 6D T005 diagnostic /tmp/qa6d_diag4.json batch 8). The diversity
+  // INTENT (≥2 fresh tokens) is preserved; only the token vocabulary
+  // is widened to recognize the premise-style axis.
   if (
     opts.regenerate &&
     chosen &&
     (ctx.recentIdeaCoreFamilies?.size ?? 0) > 0 &&
-    countNewIdeaCoreFamilies(chosen, ctx.recentIdeaCoreFamilies) < 2
+    countFreshDiversityTokens(
+      chosen,
+      ctx.recentIdeaCoreFamilies,
+      ctx.recentPremiseStyleIds,
+    ) < 2
   ) {
     const fresh = exhaustiveReselect(
       pool,
       count,
       ctx,
-      (b) => countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >= 2,
+      (b) =>
+        countFreshDiversityTokens(
+          b,
+          ctx.recentIdeaCoreFamilies,
+          ctx.recentPremiseStyleIds,
+        ) >= 2,
     );
     if (fresh) {
       chosen = fresh;
@@ -1034,10 +1112,13 @@ export function selectWithNovelty(
           recentIdeaCoreFamilies: Array.from(
             ctx.recentIdeaCoreFamilies ?? [],
           ),
+          recentPremiseStyleIds: Array.from(
+            ctx.recentPremiseStyleIds ?? [],
+          ),
           poolSize: pool.length,
           count,
         },
-        "hybrid_ideator.regen_lt_two_new_idea_core_families_shipping_best_effort",
+        "hybrid_ideator.regen_lt_two_fresh_diversity_tokens_shipping_best_effort",
       );
     }
   }
@@ -1067,10 +1148,22 @@ export function selectWithNovelty(
   // (lines below) so the whole cascade has consistent
   // "preserve-achieved" semantics instead of mixed
   // absolute-required + preserve-achieved predicates.
+  // Phase 6D — Path B: snapshot helper now mirrors the Phase 1
+  // rescue's widened token vocabulary so downstream cascade rescues
+  // (archetype / sceneTag / hookLang / voice) preserve the SAME
+  // unified-token achieved-floor as the Phase 1 pass produced.
+  // Without this widening the cascade would re-tighten to
+  // family-only and immediately undo the Path B lift on the very
+  // next pass. Retains the cold-start abstain (return 0 when no
+  // recent batches exist).
   function freshFamiliesAchieved(b: ScoredCandidate[]): number {
     return (ctx.recentIdeaCoreFamilies?.size ?? 0) === 0
       ? 0
-      : countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies);
+      : countFreshDiversityTokens(
+          b,
+          ctx.recentIdeaCoreFamilies,
+          ctx.recentPremiseStyleIds,
+        );
   }
   function archetypeAchieved(b: ScoredCandidate[]): boolean {
     return (
