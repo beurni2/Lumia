@@ -2500,17 +2500,42 @@ export function selectionPenalty(
     if (cHsid && hookSkeletons.has(cHsid)) p -= 3;
 
     // Phase 6 (BIG PREMISE LAYER) — within-batch premise-style dup
-    // demotion. -3 PER DUPLICATE already in batchSoFar (count-based,
-    // not set-based — three picks of the same premise style in one
-    // batch is the primary failure mode the spec calls out, so a
-    // single -3 on the second pick wasn't enough; the third pick
-    // accumulates -6 and reliably loses to a fresh-style alternative
-    // even when its other axes score 4-5pt higher). Sized parallel
-    // to the within-batch hookSkeletonId / videoPattern dup levers
-    // above. Skipped silently when the candidate has no
-    // bigPremiseStyle (legacy template entries + Llama / Claude
-    // fallback wraps — same discipline as voiceProfile / videoPattern
-    // / hookSkeletonId).
+    // demotion. Originally -3 PER DUPLICATE on the BUCKET-level
+    // `bigPremiseStyle` axis (which contains multiple distinct
+    // PremiseStyles per bucket — e.g. the `expectation_collapse`
+    // bucket holds `burnout_betrayal`, `self_destruction_speedrun`,
+    // `whiplash_wisdom`, etc.).
+    //
+    // Phase 6D Path F: bucket-level -3 was over-penalizing distinct
+    // PremiseStyles that happen to share a parent bucket — two
+    // legitimately-different premise hooks (e.g. burnout_betrayal +
+    // whiplash_wisdom, both in `expectation_collapse`) ate -3 of
+    // selection-layer pressure each, often pushing slot-2 / slot-3
+    // below LEG hooks even with the +7 selection-layer boost
+    // (Mechanism A — see /tmp/qa6d_pathCDE7.json batches 6/7 where
+    // greedy raw shipped 6 LEG despite Path-D rescues being
+    // non-binding). Reduced to -1 PER DUPLICATE so:
+    //   - Cross-bucket premise pair          : 0  (no penalty, was 0)
+    //   - Same-bucket DIFFERENT premise id  : -1 (was -3) — main fix
+    //   - Same-bucket SAME premise id        : -1 + -8 = -9 (was -11)
+    //                                          — still strictly
+    //                                          dominated by the
+    //                                          fine-grained id
+    //                                          penalty below + the
+    //                                          HARD within-batch
+    //                                          (premiseStyleId,
+    //                                          executionId) tuple
+    //                                          guard from 6C/6D-T004
+    //                                          which makes a
+    //                                          same-style second
+    //                                          pick STRUCTURALLY
+    //                                          impossible regardless
+    //                                          of soft scoring.
+    // Same-style protection is fully preserved: -8 fine-grained id
+    // penalty (below) AND the HARD `batchGuardsPass` reject (6C/6D)
+    // both still apply unchanged. Goal: allow multiple distinct
+    // PremiseStyles to win within the same batch without LEG hooks
+    // outranking them on within-batch dynamics.
     const premiseStyleCounts = new Map<BigPremiseStyle, number>();
     for (const b of batchSoFar) {
       const ps = metaBigPremiseStyle(b.meta);
@@ -2519,7 +2544,7 @@ export function selectionPenalty(
     const cPremise = metaBigPremiseStyle(c.meta);
     if (cPremise) {
       const dupCount = premiseStyleCounts.get(cPremise) ?? 0;
-      if (dupCount > 0) p -= 3 * dupCount;
+      if (dupCount > 0) p -= 1 * dupCount;
     }
 
     // Phase 6 EXPANSION (PREMISE STYLE ENGINE) — within-batch
