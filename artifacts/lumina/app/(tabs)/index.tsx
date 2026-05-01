@@ -942,6 +942,31 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ) : null}
+
+        {/* DEV-ONLY entry point to the WIP single-idea swipe feed
+            preview at /feed. Gated on __DEV__ so production
+            builds never ship it. Sits at the very end of the
+            ScrollView (below ideas, error block, all CTAs) so it
+            is invisible to anyone not specifically looking for
+            it but reachable in two taps for visual review.
+            REMOVE this block when the swipe feed graduates and
+            replaces (or links from) the canonical Home flow. */}
+        {__DEV__ ? (
+          <Pressable
+            onPress={() => router.push("/feed")}
+            accessibilityRole="link"
+            accessibilityLabel="Preview new single-idea feed (dev only)"
+            style={({ pressed }) => [
+              styles.devFeedLink,
+              pressed ? styles.devFeedLinkPressed : null,
+            ]}
+            hitSlop={8}
+          >
+            <Text style={styles.devFeedLinkText}>
+              dev · preview new feed →
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
       {/* Viral feedback-loop whisper — fires on the Nth lifetime
           YES (3rd, 7th, 15th, 30th). Sits as a sibling of the
@@ -1258,5 +1283,25 @@ const styles = StyleSheet.create({
     color: "#0A0824",
     fontSize: 14,
     letterSpacing: 0.5,
+  },
+  devFeedLink: {
+    alignSelf: "center",
+    marginTop: 28,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,30,158,0.30)",
+    backgroundColor: "rgba(255,30,158,0.08)",
+  },
+  devFeedLinkPressed: {
+    opacity: 0.6,
+  },
+  devFeedLinkText: {
+    fontFamily: fontFamily.body,
+    fontSize: 11,
+    color: "#FF6BBD",
+    letterSpacing: 0.6,
   },
 });
