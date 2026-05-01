@@ -40,6 +40,23 @@ import {
   // identical no-cycle reason — the function lives next to the
   // scorer in patternIdeator.ts.
   legacyComedyBoost,
+  // Phase 7 (VIRAL FEEL SCORE) — selection-layer scaled boost for
+  // the final ranking polish layer. Applied SYMMETRICALLY across
+  // premise + legacy entries (the comedy boosts above are mutually
+  // exclusive). Same import path as the comedy boosts for the
+  // identical no-cycle reason — the function lives next to the
+  // scorer in patternIdeator.ts. Boost band intentionally LIGHTER
+  // than both comedy bands so a strong comedy score always
+  // dominates selection per spec PART 5.
+  viralFeelBoost,
+  // Phase 7 PART 1 — soft PremiseStyle alignment preference maps
+  // for HookIntent + HookLanguageStyle. Used at the selection-
+  // penalty site below to award small (+1 each, max +2 stack)
+  // tie-break-grade bonuses when the candidate's chosen surface
+  // matches its premiseStyleId's preferred set. Pure data tables;
+  // no behavior delta from importing them.
+  PREMISESTYLE_TO_HOOKINTENT_PREFERENCE,
+  PREMISESTYLE_TO_HOOKLANGUAGE_PREFERENCE,
   // Phase 6E — re-export of the scoring fn for the Llama re-scoring
   // guard in `hybridIdeator.ts` (T003). Re-exporting through
   // ideaScorer.ts keeps that file as the canonical "scoring API"
@@ -61,6 +78,12 @@ import {
   type IdeaCoreType,
   type LanguagePhrasingEntry,
   type LegacyComedyScore,
+  // Phase 7 (VIRAL FEEL SCORE) — full rubric type mirroring the
+  // matching field on PatternMeta. Imported here so the
+  // CandidateMeta union's fallback shape can declare the symmetric
+  // `viralFeelScore?: ViralFeelScore` field — same union-typing
+  // reasoning as the comedy-score type imports above.
+  type ViralFeelScore,
   type PatternMeta,
   type PremiseComedyScore,
   type PremiseStyleId,
@@ -331,6 +354,36 @@ export type CandidateMeta = PatternMeta | {
    * undefined for fallback wraps (no behavior change).
    */
   legacyComedyScore?: LegacyComedyScore;
+  /**
+   * Phase 7 (VIRAL FEEL SCORE) — full rubric score mirroring the
+   * matching field on `PatternMeta`. Same union-typing reasoning as
+   * `premiseComedyScore` / `legacyComedyScore` above: declared on
+   * the fallback shape so the union member-access in
+   * `selectionPenalty.viralFeelBoost(c.meta.viralFeelScore?.total)`
+   * type-checks across both arms of the union without an `"in" meta`
+   * narrowing — the optional `?.` chain naturally collapses to
+   * `undefined → 0 boost` for every fallback wrap. Llama / Claude
+   * fallback wraps NEVER set this directly today (the viral score
+   * is computed at `assembleCandidate` time on the pattern path
+   * only); the field stays undefined for fallback wraps and the
+   * scaled boost silently abstains (no behavior change).
+   */
+  viralFeelScore?: ViralFeelScore;
+  /**
+   * Phase 7 PART 1 — hook intent mirroring the matching field on
+   * `PatternMeta`. Declared on the fallback shape so the soft
+   * PremiseStyle alignment bonus in `selectionPenalty` can read
+   * `c.meta.hookIntent` without an `"in" meta` narrowing. Llama /
+   * Claude fallback wraps NEVER set this directly (no derivation
+   * path from raw hook text — intent is a generation-time choice
+   * on the catalog entry). The alignment bonus is also gated on
+   * `premiseStyleId !== undefined` (which is also undefined on
+   * fallback wraps), so the bonus silently abstains for fallback
+   * wraps regardless — this field declaration is purely for type-
+   * narrowing convenience, mirroring the same discipline as the
+   * comedy-score + viral-score fields above.
+   */
+  hookIntent?: HookIntent;
   /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
@@ -3165,6 +3218,75 @@ export function selectionPenalty(
   //                                                     band).
   if (c.meta.usedBigPremise !== true) {
     p += legacyComedyBoost(c.meta.legacyComedyScore?.total);
+  }
+  // Phase 7 (VIRAL FEEL SCORE) — final ranking polish layer applied
+  // SYMMETRICALLY across premise + legacy entries (unlike the comedy
+  // boosts above which are mutually exclusive). The boost band is
+  // intentionally LIGHTER than both comedy bands so the spec PART 5
+  // invariant holds:
+  //
+  //   Comedy boost ceilings (already applied above):
+  //     - premiseComedyBoost:    10→+7, 9→+6, 8→+5, 7→+4, 6→+1, 5→-2
+  //     - legacyComedyBoost:     10→+5, 9→+4, 8→+3, 7→+2, 6→+0, 5→-3
+  //
+  //   Viral boost ceiling (this layer):
+  //     - viralFeelBoost:         9-10→+3, 7-8→+2, 5-6→+1, <5→0
+  //
+  // A premium comedy candidate (≥7) earns at minimum +2 (legacy) or
+  // +4 (premise) — so even a premium viral score (+3) on a weak
+  // comedy hook (<5 → comedy boost 0; or already gated out by HARD
+  // reject in the picker walk) cannot rescue a weak comedy hook to
+  // displace a premium comedy candidate. Comedy ALWAYS dominates.
+  //
+  // Reads `meta.viralFeelScore?.total` defensively — `undefined` is
+  // pre-Phase-7 cached candidates, Llama / Claude fallback wraps
+  // that didn't run through `assembleCandidate`, and any future
+  // candidate type that bypasses the scoring step. `viralFeelBoost-
+  // (undefined) === 0`, so the absent path is a no-op. No HARD
+  // reject from this layer — `validateHook` + the comedy `<5` HARD
+  // reject in the picker walk remain the only gates.
+  p += viralFeelBoost(c.meta.viralFeelScore?.total);
+  // Phase 7 PART 1 — soft PremiseStyle alignment bonuses for
+  // HookIntent + HookLanguageStyle. Small (+1 each, max +2 stack)
+  // tie-break-grade nudges that fire ONLY when the candidate carries
+  // an explicit `premiseStyleId` AND the candidate's chosen
+  // `hookIntent` / `hookLanguageStyle` is in that style's preferred
+  // set per `PREMISESTYLE_TO_HOOKINTENT_PREFERENCE` /
+  // `PREMISESTYLE_TO_HOOKLANGUAGE_PREFERENCE`.
+  //
+  // Soft preferences, NOT hard filters: a non-preferred intent /
+  // language style still ships normally, it just doesn't earn the
+  // alignment bonus. Skipped entirely for legacy entries (no
+  // `premiseStyleId`) and Llama / Claude fallback wraps that
+  // didn't carry a resolved style id. The +1 magnitude is
+  // deliberately well below the comedy + viral bands so alignment
+  // never displaces comedy quality in selection — it only pushes
+  // the picker toward the spec PART 1 style ⇄ surface combos
+  // (deadpan/self-roast → matter_of_fact / confession; absurd →
+  // absurd_claim / object_pov; duality → comparison / time_stamp;
+  // confession → confession / observation) when comedy + viral
+  // are tied.
+  const styleIdForBonus = c.meta.premiseStyleId;
+  if (styleIdForBonus !== undefined) {
+    const intentPrefs = PREMISESTYLE_TO_HOOKINTENT_PREFERENCE[styleIdForBonus];
+    const cIntent = c.meta.hookIntent;
+    if (
+      intentPrefs !== undefined &&
+      cIntent !== undefined &&
+      intentPrefs.includes(cIntent)
+    ) {
+      p += 1;
+    }
+    const langPrefs =
+      PREMISESTYLE_TO_HOOKLANGUAGE_PREFERENCE[styleIdForBonus];
+    const cLangStyle = c.meta.hookLanguageStyle;
+    if (
+      langPrefs !== undefined &&
+      cLangStyle !== undefined &&
+      langPrefs.includes(cLangStyle)
+    ) {
+      p += 1;
+    }
   }
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The

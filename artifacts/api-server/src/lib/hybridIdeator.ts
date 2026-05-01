@@ -2174,6 +2174,27 @@ type CachedBatchEntry = {
    * envelope.
    */
   legacyComedyScoreTotal?: number;
+  /**
+   * Phase 7 (VIRAL FEEL SCORE) — integer rubric total (0-10) for the
+   * WINNING candidate, persisted on the cache envelope so the QA
+   * driver and future telemetry can read it back via `extractCurrent`
+   * without re-scoring from the post-Llama-polish hook string. Unlike
+   * the comedy fields above (which are mutually exclusive — premise
+   * OR legacy, never both), this field is set on EVERY pattern_-
+   * variation candidate (premise + legacy alike), since the viral
+   * score is a final ranking polish layer that runs symmetrically.
+   *
+   * No cross-batch novelty consumer today — telemetry only. Same
+   * non-breaking JSONB pattern as `legacyComedyScoreTotal` above:
+   * legacy / pre-Phase-7 entries silently read back as undefined,
+   * and Llama / Claude fallback wraps that didn't run through
+   * `assembleCandidate` (no `meta.viralFeelScore`) also persist
+   * undefined. Tolerantly parsed below as a finite integer in
+   * `[0, 10]` — anything outside that range silently drops to
+   * undefined so QA averages / histograms can't be poisoned by a
+   * corrupt envelope.
+   */
+  viralFeelScoreTotal?: number;
 };
 
 /**
@@ -2226,6 +2247,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         executionId?: unknown;
         premiseComedyScoreTotal?: unknown;
         legacyComedyScoreTotal?: unknown;
+        viralFeelScoreTotal?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2363,6 +2385,25 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         lcsRaw <= 10
           ? lcsRaw
           : undefined;
+      // Phase 7 (VIRAL FEEL SCORE) — same tolerant integer-in-[0,10]
+      // parse as the comedy fields above. The viral rubric's total
+      // is always integer-valued in the live writer (sum of five
+      // integer dim scores: instantRecognition 0-3 / scrollInterruption
+      // 0-2 / shareability 0-2 / emotionalSpike 0-2 / formatFit 0-1),
+      // so a non-integer / out-of-range / non-number value in cache
+      // is unambiguously corruption — silently drop to undefined so
+      // QA driver averages / histograms can't be poisoned by a
+      // garbled envelope. Symmetric across premise + legacy entries
+      // (the viral score is a final ranking polish layer, not
+      // mutually exclusive with either comedy track).
+      const vfsRaw = wrapper.viralFeelScoreTotal;
+      const viralFeelScoreTotal: number | undefined =
+        typeof vfsRaw === "number" &&
+        Number.isInteger(vfsRaw) &&
+        vfsRaw >= 0 &&
+        vfsRaw <= 10
+          ? vfsRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -2382,6 +2423,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         executionId,
         premiseComedyScoreTotal,
         legacyComedyScoreTotal,
+        viralFeelScoreTotal,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2651,6 +2693,27 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
       "legacyComedyScore" in c.meta &&
       c.meta.legacyComedyScore !== undefined
         ? c.meta.legacyComedyScore.total
+        : undefined,
+    // Phase 7 (VIRAL FEEL SCORE) — symmetric single-integer persist
+    // parallel to the comedy fields above. Unlike those (which are
+    // mutually exclusive — premise OR legacy, never both on the
+    // same candidate), the viral score is a final ranking polish
+    // layer that runs symmetrically across premise + legacy entries
+    // alike, so this field is set on EVERY well-formed
+    // pattern_variation candidate. Source: `meta.viralFeelScore?.total`
+    // — the optional `?.` chain collapses to undefined for both
+    // PatternMeta entries without the field set (pre-Phase-7 cache
+    // rolls — only `assembleCandidate` populates it today) AND
+    // for CandidateMeta fallback-shape entries (Llama / Claude
+    // wraps that didn't run through `assembleCandidate`; the field
+    // is declared on the PatternMeta union, so the fallback shape
+    // simply leaves it undefined). Same `"key" in c.meta` guard
+    // pattern as the comedy fields so TypeScript narrows correctly
+    // across the candidate-meta union without runtime allocation.
+    viralFeelScoreTotal:
+      "viralFeelScore" in c.meta &&
+      c.meta.viralFeelScore !== undefined
+        ? c.meta.viralFeelScore.total
         : undefined,
   }));
 }
@@ -3367,6 +3430,18 @@ export async function runHybridIdeator(
             "legacyComedyScore" in c.meta &&
             c.meta.legacyComedyScore !== undefined
               ? c.meta.legacyComedyScore.total
+              : undefined,
+          // Phase 7 (VIRAL FEEL SCORE) — same field on the rescue
+          // path so a best-effort empty-after-filter ship still
+          // surfaces the viral rubric total to the QA driver
+          // telemetry. Mirrors the main toCacheEntries write
+          // above; undefined for pre-Phase-7 cache entries +
+          // Llama / Claude fallback wraps that didn't run through
+          // `assembleCandidate` flows through cleanly.
+          viralFeelScoreTotal:
+            "viralFeelScore" in c.meta &&
+            c.meta.viralFeelScore !== undefined
+              ? c.meta.viralFeelScore.total
               : undefined,
         }));
       await persistCache(input.creator, rescueEntries);

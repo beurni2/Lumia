@@ -1,0 +1,196 @@
+PHASE 7 — PREMISESTYLE ALIGNMENT + VIRAL FEEL SCORE
+
+Goal:
+Optimize the remaining layers so they support PremiseStyle, then add a final ViralFeelScore to boost ideas that feel more likely to perform.
+
+PremiseStyle is now the main joke/premise engine.
+Other layers should support it, not compete with it.
+
+---
+
+PART 1 — LIGHT PREMISESTYLE ALIGNMENT
+
+Do NOT refactor the whole system.
+Do NOT rewrite prior phases.
+This is a light alignment pass.
+
+Align these layers:
+
+1. HookIntent
+- Bias HookIntent from PremiseStyle when possible.
+- Do not force if existing HookIntent is stronger.
+- Example:
+  - self_roast / confession styles → relatable or scroll_stop
+  - absurd_escalation → compulsion
+  - duality / contrast styles → scroll_stop or compulsion
+  - social confession → relatable
+
+2. HookLanguageStyle
+- Must support the PremiseStyle tone.
+- Do not let language style change the joke.
+- Example:
+  - deadpan/self-roast → blunt, fragment, direct
+  - absurd/object/personification → absurd, object_pov, observation
+  - duality → comparison, before_after, contrast
+  - confession → direct, self-aware, relatable
+
+3. VoiceProfile
+- Voice can format the hook.
+- Voice cannot change the premise.
+- Preserve slang, lowercase, fragments, dry phrasing.
+- Do not soften sharp jokes.
+
+4. Llama polish
+- Only tighten/humanize.
+- Do not change premise meaning.
+- Do not add new people, props, settings, or events.
+- Re-score after polish.
+
+---
+
+PART 2 — ADD ViralFeelScore
+
+Create:
+
+scoreViralFeel(candidate): 0–10
+
+This score should run after:
+- premise/legacy hook is selected
+- pattern is selected
+- hook/pattern metadata exists
+
+ViralFeelScore should be a boost signal, not a hard reject.
+
+---
+
+PART 3 — VIRAL FEEL RUBRIC
+
+Score 0–10:
+
+1. Instant Recognition: 0–3
+Does it feel like:
+- “this is me”
+- “I’ve done this”
+- “I know this feeling”
+
+2. Scroll Interruption: 0–2
+Does the hook interrupt expectation?
+- abrupt
+- funny
+- weird
+- surprising
+- emotionally sharp
+
+3. Shareability: 0–2
+Would someone send/tag/comment?
+- identity mirror
+- group behavior
+- confession
+- “be honest, is this me?”
+
+4. Emotional Spike: 0–2
+Does it carry:
+- embarrassment
+- anxiety
+- irony
+- self-roast
+- frustration
+- delusion
+
+5. Format Fit: 0–1
+Does hook + videoPattern feel native to TikTok/Reels/Shorts?
+Does the filming pattern amplify the joke?
+
+Total = 10.
+
+---
+
+PART 4 — SYNERGY BOOSTS
+
+Add small boosts for strong combinations:
+
+Examples:
+
+self_roast + silent_reaction
+→ strong deadpan viral feel
+
+absurd_escalation + escalation
+→ strong watch-through / chaos feel
+
+duality / contrast + before_after
+→ strong comparison feel
+
+object_personification + object_pov
+→ strong visual joke
+
+three_am_spiral + pov_internal / loop_behavior
+→ strong late-night relatability
+
+group_chat / social_battery + pov_internal / delayed_reaction
+→ strong comment/share potential
+
+doomscroll / phone behavior + loop_behavior
+→ strong repetition feel
+
+---
+
+PART 5 — SELECTION INTEGRATION
+
+Add ViralFeelScore as a final selection boost.
+
+Suggested:
+- +0 to +3 selection boost based on ViralFeelScore
+- Do not overpower PremiseComedyScore or LegacyComedyScore
+- Do not allow ViralFeelScore to rescue a weak hook
+
+Rules:
+- if comedy score < 5 → still reject
+- if hook is invalid → still reject
+- ViralFeelScore only helps good candidates rise
+
+---
+
+PART 6 — DO NOT TOUCH
+
+Do NOT:
+- change Phase 5 pattern definitions
+- change database schema
+- expand catalogs
+- change hard validators
+- force trends
+- force viral score to dominate
+
+This is final ranking polish, not a new generator.
+
+---
+
+PART 7 — QA
+
+Run 10 real batches.
+
+Report:
+- average ViralFeelScore
+- top 10 by ViralFeelScore
+- bottom 10 by ViralFeelScore
+- premise share
+- legacy share
+- average PremiseComedyScore
+- average LegacyComedyScore
+- post-worthy estimate
+- examples where ViralFeelScore changed selection
+
+Check:
+- are outputs more “sendable”?
+- do hooks feel less forgettable?
+- do patterns feel more connected to jokes?
+- did any weak hook get boosted too much?
+
+---
+
+SUCCESS CRITERIA
+
+- outputs feel more viral-ready
+- stronger “I’d send this” / “this is me” feeling
+- no regression in clarity
+- no weak hooks rescued by viral score
+- PremiseStyle remains the main joke engine

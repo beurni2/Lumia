@@ -5086,6 +5086,246 @@ export const PREMISESTYLE_TO_PATTERN_MAP: Record<
 };
 
 /**
+ * Phase 7 — PremiseStyleId × VideoPattern SYNERGY MAP.
+ *
+ * Curated subset of `PREMISESTYLE_TO_PATTERN_MAP` calling out the
+ * style→pattern combos the spec PART 5 explicitly names as "obvious
+ * mismatches" if NOT paired this way. When a candidate's chosen
+ * `videoPattern` matches an entry here for its `premiseStyleId`, the
+ * `formatFit` dim of `scoreViralFeel` is boosted to 1 (the dim's
+ * ceiling). Absent / mismatched combos get formatFit=0 — they're
+ * still valid (the routing layer in `pickVideoPattern` already
+ * picked a family∩intent compatible pattern), they just don't earn
+ * the synergy bonus.
+ *
+ * Pure additive — never used as a hard filter. The numeric value is
+ * the synergy bonus magnitude; today only +1 is used (collapses into
+ * the formatFit dim's 0/1 ladder), but the field is `number` so a
+ * future tune can introduce graded synergy without a type change.
+ */
+export const PREMISE_PATTERN_SYNERGY_MAP: Record<
+  PremiseStyleId,
+  Partial<Record<VideoPattern, number>>
+> = {
+  // self_roast — hook is the punchline; flat verbal naming + held face
+  self_roast_reactor: { silent_reaction: 1, deadpan_statement: 1 },
+  relatable_pain: { silent_reaction: 1, micro_story: 1 },
+  fake_confidence: { confidence_collapse: 1, before_after: 1 },
+  lazy_genius: { deadpan_statement: 1, silent_reaction: 1 },
+  doomscroll_disclosure: { loop_behavior: 1 },
+  hypocrisy_hyperdrive: { before_after: 1 },
+  fomo_fracture: { before_after: 1 },
+  self_destruction_speedrun: { escalation: 1, cut_before_end: 1 },
+  self_sabotage_scrollstop: { silent_reaction: 1, micro_story: 1 },
+  procrastination_paradox: { loop_behavior: 1 },
+  group_chat_guilt: { object_pov: 1, pov_internal: 1 },
+  todo_termination: { object_pov: 1, deadpan_statement: 1 },
+  boundary_backfire: { confidence_collapse: 1 },
+  cart_autopsy: { object_pov: 1 },
+  dream_disappointment: { before_after: 1, cut_before_end: 1 },
+  weekly_wipeout: { before_after: 1, montage_repeat: 1 },
+  manifestation_mockery: { confidence_collapse: 1, before_after: 1 },
+
+  // absurd_metaphor — escalation / object personification / surreal
+  absurd_escalation: { escalation: 1, montage_repeat: 1 },
+  collapse_core: { cut_before_end: 1, silent_reaction: 1 },
+  mundane_meltdown: { escalation: 1 },
+  inner_demon: { pov_internal: 1 },
+  metaphor_mayhem: { object_pov: 1, pov_internal: 1 },
+  rage_resonance: { escalation: 1, cut_before_end: 1 },
+  everyday_armageddon: { escalation: 1, montage_repeat: 1 },
+  cringe_trigger: { delayed_reaction: 1, silent_reaction: 1 },
+  plant_parent_psychosis: { object_pov: 1 },
+  fridge_judgment: { object_pov: 1 },
+
+  // contrast_duality — two-state collisions; matched-framing cuts
+  duality_clash: { before_after: 1, montage_repeat: 1 },
+  expectation_collapse: { before_after: 1, confidence_collapse: 1 },
+  irony_flip: { before_after: 1, delayed_reaction: 1 },
+  irony_implosion: { before_after: 1, escalation: 1 },
+  whiplash_wisdom: { delayed_reaction: 1, before_after: 1 },
+  contrast_catastrophe: { before_after: 1, confidence_collapse: 1 },
+
+  // over_dramatization — escalating buildup → collapse / abrupt KO
+  overdramatic_reframe: { escalation: 1, cut_before_end: 1 },
+  dopamine_denial: { confidence_collapse: 1, escalation: 1 },
+  delusion_downfall: { confidence_collapse: 1, delayed_reaction: 1 },
+  micro_trauma: { delayed_reaction: 1, silent_reaction: 1 },
+  anxiety_paradox: { pov_internal: 1, loop_behavior: 1 },
+  adulting_betrayal: { escalation: 1, cut_before_end: 1 },
+  pain_point_precision: { deadpan_statement: 1, silent_reaction: 1 },
+  delusion_spiral: { confidence_collapse: 1, escalation: 1 },
+  confidence_crash: { confidence_collapse: 1, before_after: 1 },
+  anxiety_avalanche: { escalation: 1, pov_internal: 1 },
+  burnout_betrayal: { before_after: 1, silent_reaction: 1 },
+  social_battery_sabotage: { confidence_collapse: 1, pov_internal: 1 },
+
+  // identity_framing — labelling self / role
+  pattern_exposure: { loop_behavior: 1, montage_repeat: 1 },
+  chaos_confession: { deadpan_statement: 1, pov_internal: 1 },
+  main_character_meltdown: { confidence_collapse: 1, before_after: 1 },
+  comic_relief_cataclysm: { delayed_reaction: 1, micro_story: 1 },
+  three_am_spiral: { pov_internal: 1, loop_behavior: 1 },
+};
+
+/**
+ * Phase 7 PART 1 — PremiseStyleId → preferred HookIntent[] alignment.
+ *
+ * Soft preference layer, NOT a hard filter. When a candidate's
+ * `meta.hookIntent` is in this style's preferred set, `selectionPenalty`
+ * adds a small +1 bonus (parallel to the language-style preference
+ * map below). Empty array means no preference (the bonus never
+ * fires for that style). All 50 ids are covered so the lookup is
+ * total — readers can rely on `PREMISESTYLE_TO_HOOKINTENT_PREFERENCE[id]`
+ * never being undefined.
+ *
+ * Curated per spec PART 1.1: self-roast / confession styles favor
+ * `relatable` + `scroll_stop` (admission shapes); absurd_escalation
+ * favors `compulsion` (open-loop dramatic buildup); duality / contrast
+ * favors `scroll_stop` + `compulsion` (the flip is the payoff).
+ */
+export const PREMISESTYLE_TO_HOOKINTENT_PREFERENCE: Record<
+  PremiseStyleId,
+  readonly HookIntent[]
+> = {
+  // self_roast — confession / admission shapes
+  self_roast_reactor: ["relatable", "scroll_stop"],
+  relatable_pain: ["relatable"],
+  fake_confidence: ["scroll_stop", "relatable"],
+  lazy_genius: ["relatable", "scroll_stop"],
+  doomscroll_disclosure: ["relatable", "scroll_stop"],
+  hypocrisy_hyperdrive: ["relatable", "scroll_stop"],
+  fomo_fracture: ["relatable", "compulsion"],
+  self_destruction_speedrun: ["compulsion", "scroll_stop"],
+  self_sabotage_scrollstop: ["scroll_stop", "relatable"],
+  procrastination_paradox: ["relatable", "compulsion"],
+  group_chat_guilt: ["relatable"],
+  todo_termination: ["relatable", "scroll_stop"],
+  boundary_backfire: ["relatable", "compulsion"],
+  cart_autopsy: ["scroll_stop", "relatable"],
+  dream_disappointment: ["relatable", "compulsion"],
+  weekly_wipeout: ["relatable", "compulsion"],
+  manifestation_mockery: ["scroll_stop", "relatable"],
+
+  // absurd_metaphor — compulsion / scroll_stop dominate (open-loop drama)
+  absurd_escalation: ["compulsion", "scroll_stop"],
+  collapse_core: ["scroll_stop", "compulsion"],
+  mundane_meltdown: ["compulsion", "scroll_stop"],
+  inner_demon: ["compulsion", "relatable"],
+  metaphor_mayhem: ["scroll_stop", "compulsion"],
+  rage_resonance: ["compulsion", "scroll_stop"],
+  everyday_armageddon: ["compulsion", "scroll_stop"],
+  cringe_trigger: ["scroll_stop", "relatable"],
+  plant_parent_psychosis: ["scroll_stop", "compulsion"],
+  fridge_judgment: ["scroll_stop", "compulsion"],
+
+  // contrast_duality — scroll_stop / compulsion (the flip is the payoff)
+  duality_clash: ["scroll_stop", "compulsion"],
+  expectation_collapse: ["scroll_stop", "compulsion"],
+  irony_flip: ["scroll_stop", "compulsion"],
+  irony_implosion: ["scroll_stop", "compulsion"],
+  whiplash_wisdom: ["compulsion", "scroll_stop"],
+  contrast_catastrophe: ["scroll_stop", "compulsion"],
+
+  // over_dramatization — compulsion / scroll_stop (escalation pays off)
+  overdramatic_reframe: ["compulsion", "scroll_stop"],
+  dopamine_denial: ["compulsion", "relatable"],
+  delusion_downfall: ["compulsion", "scroll_stop"],
+  micro_trauma: ["relatable", "scroll_stop"],
+  anxiety_paradox: ["relatable", "compulsion"],
+  adulting_betrayal: ["compulsion", "relatable"],
+  pain_point_precision: ["relatable", "scroll_stop"],
+  delusion_spiral: ["compulsion", "scroll_stop"],
+  confidence_crash: ["compulsion", "scroll_stop"],
+  anxiety_avalanche: ["compulsion", "relatable"],
+  burnout_betrayal: ["relatable", "compulsion"],
+  social_battery_sabotage: ["relatable", "compulsion"],
+
+  // identity_framing — relatable / scroll_stop (naming a role)
+  pattern_exposure: ["relatable", "scroll_stop"],
+  chaos_confession: ["relatable", "scroll_stop"],
+  main_character_meltdown: ["scroll_stop", "compulsion"],
+  comic_relief_cataclysm: ["relatable", "scroll_stop"],
+  three_am_spiral: ["relatable", "compulsion"],
+};
+
+/**
+ * Phase 7 PART 1 — PremiseStyleId → preferred HookLanguageStyle[]
+ * alignment. Soft preference, parallel to the intent map above.
+ *
+ * Curated per spec PART 1.2: deadpan / self-roast → matter_of_fact /
+ * confession / micro_story (blunt admission); absurd → absurd_claim /
+ * object_pov / observation; duality → comparison / time_stamp (two-
+ * state framing); confession → confession / observation (direct,
+ * self-aware). Empty array = no preference (bonus never fires for
+ * that style). All 50 ids covered so the lookup is total.
+ */
+export const PREMISESTYLE_TO_HOOKLANGUAGE_PREFERENCE: Record<
+  PremiseStyleId,
+  readonly HookLanguageStyle[]
+> = {
+  // self_roast — blunt / direct / micro_story
+  self_roast_reactor: ["confession", "matter_of_fact", "micro_story"],
+  relatable_pain: ["confession", "observation", "micro_story"],
+  fake_confidence: ["matter_of_fact", "confession", "comparison"],
+  lazy_genius: ["matter_of_fact", "confession", "observation"],
+  doomscroll_disclosure: ["confession", "micro_story", "time_stamp"],
+  hypocrisy_hyperdrive: ["comparison", "matter_of_fact", "observation"],
+  fomo_fracture: ["comparison", "confession", "observation"],
+  self_destruction_speedrun: ["escalation_hook", "micro_story", "matter_of_fact"],
+  self_sabotage_scrollstop: ["confession", "matter_of_fact", "anti_hook"],
+  procrastination_paradox: ["confession", "observation", "time_stamp"],
+  group_chat_guilt: ["confession", "object_pov", "observation"],
+  todo_termination: ["object_pov", "matter_of_fact", "confession"],
+  boundary_backfire: ["confession", "comparison", "matter_of_fact"],
+  cart_autopsy: ["object_pov", "observation", "matter_of_fact"],
+  dream_disappointment: ["comparison", "matter_of_fact", "observation"],
+  weekly_wipeout: ["comparison", "time_stamp", "observation"],
+  manifestation_mockery: ["comparison", "matter_of_fact", "observation"],
+
+  // absurd_metaphor — absurd_claim / object_pov / observation
+  absurd_escalation: ["absurd_claim", "escalation_hook", "observation"],
+  collapse_core: ["absurd_claim", "anti_hook", "matter_of_fact"],
+  mundane_meltdown: ["absurd_claim", "escalation_hook", "observation"],
+  inner_demon: ["absurd_claim", "confession", "observation"],
+  metaphor_mayhem: ["object_pov", "absurd_claim", "observation"],
+  rage_resonance: ["absurd_claim", "escalation_hook", "anti_hook"],
+  everyday_armageddon: ["absurd_claim", "escalation_hook", "observation"],
+  cringe_trigger: ["absurd_claim", "anti_hook", "observation"],
+  plant_parent_psychosis: ["object_pov", "absurd_claim", "observation"],
+  fridge_judgment: ["object_pov", "absurd_claim", "matter_of_fact"],
+
+  // contrast_duality — comparison / time_stamp / before_after framing
+  duality_clash: ["comparison", "time_stamp", "observation"],
+  expectation_collapse: ["comparison", "matter_of_fact", "anti_hook"],
+  irony_flip: ["comparison", "matter_of_fact", "observation"],
+  irony_implosion: ["comparison", "escalation_hook", "observation"],
+  whiplash_wisdom: ["comparison", "matter_of_fact", "observation"],
+  contrast_catastrophe: ["comparison", "matter_of_fact", "anti_hook"],
+
+  // over_dramatization — escalation / absurd_claim / anti_hook
+  overdramatic_reframe: ["absurd_claim", "escalation_hook", "anti_hook"],
+  dopamine_denial: ["matter_of_fact", "comparison", "anti_hook"],
+  delusion_downfall: ["absurd_claim", "matter_of_fact", "anti_hook"],
+  micro_trauma: ["confession", "observation", "anti_hook"],
+  anxiety_paradox: ["confession", "observation", "matter_of_fact"],
+  adulting_betrayal: ["matter_of_fact", "absurd_claim", "comparison"],
+  pain_point_precision: ["matter_of_fact", "confession", "observation"],
+  delusion_spiral: ["confession", "absurd_claim", "matter_of_fact"],
+  confidence_crash: ["matter_of_fact", "comparison", "anti_hook"],
+  anxiety_avalanche: ["escalation_hook", "confession", "observation"],
+  burnout_betrayal: ["comparison", "confession", "matter_of_fact"],
+  social_battery_sabotage: ["confession", "comparison", "matter_of_fact"],
+
+  // identity_framing — confession / matter_of_fact / time_stamp
+  pattern_exposure: ["matter_of_fact", "observation", "time_stamp"],
+  chaos_confession: ["confession", "matter_of_fact", "observation"],
+  main_character_meltdown: ["matter_of_fact", "absurd_claim", "comparison"],
+  comic_relief_cataclysm: ["confession", "observation", "matter_of_fact"],
+  three_am_spiral: ["time_stamp", "confession", "observation"],
+};
+
+/**
  * Phase 6 EXPANSION — resolve the parent BigPremiseStyle bucket for a
  * fine-grained PremiseStyleId. Used by callers that want to apply
  * bucket-level filters / penalties from a known fine-grained id
@@ -5282,6 +5522,54 @@ export type LegacyComedyScore = {
     | "generic_filler"
     | "no_anchor"
     | "too_long";
+};
+
+/**
+ * Phase 7 — ViralFeelScore type (single source of truth).
+ *
+ * Lives in patternIdeator.ts alongside PremiseComedyScore /
+ * LegacyComedyScore so PatternMeta can declare an optional
+ * `viralFeelScore` field without re-introducing the ideaScorer.ts ⇄
+ * patternIdeator.ts circular import that 6E/6F also avoided.
+ *
+ * The ViralFeelScore is a FINAL RANKING POLISH layer — it does NOT
+ * gate (no HARD reject), it does NOT rescue weak hooks (its
+ * `selectionPenalty` boost band is intentionally LIGHTER than both
+ * comedy bands so a strong comedy score always dominates), and it
+ * does NOT change the catalog or hard validators. Its single job is
+ * to break ties in the keep band toward the candidate that "feels
+ * more sendable" — high instant recognition + scroll interruption +
+ * shareability + emotional spike + format fit.
+ *
+ * Five dims summing to 10:
+ *   - instantRecognition (0-3): first-person + behavior verbs + everyday
+ *     anchor → "yeah, that's me" trigger
+ *   - scrollInterruption (0-2): surprise/spike words, comma cuts,
+ *     fragment shapes → makes the user PAUSE
+ *   - shareability      (0-2): identity-mirror tokens + group/confession
+ *     verbs → "I have to send this to ___"
+ *   - emotionalSpike    (0-2): embarrassment / anxiety / irony /
+ *     delusion vocabulary → emotional bite
+ *   - formatFit         (0-1): videoPattern × premiseStyleId synergy
+ *     bonus PLUS basic pattern-style compatibility — the filming
+ *     pattern actually amplifies what the hook is doing
+ *
+ * See `scoreViralFeel` further down for the rubric and
+ * `viralFeelBoost` for the selection-layer boost band.
+ */
+export type ViralFeelScore = {
+  /** First-person + behavior verbs + everyday anchor. 0-3. */
+  instantRecognition: 0 | 1 | 2 | 3;
+  /** Surprise / spike words / fragment shape / comma cuts. 0-2. */
+  scrollInterruption: 0 | 1 | 2;
+  /** Identity-mirror tokens / group-confession verbs. 0-2. */
+  shareability: 0 | 1 | 2;
+  /** Embarrassment / anxiety / irony / delusion vocabulary. 0-2. */
+  emotionalSpike: 0 | 1 | 2;
+  /** VideoPattern × PremiseStyleId synergy + base compatibility. 0-1. */
+  formatFit: 0 | 1;
+  /** Sum of dims, capped at 10. Never < 0. */
+  total: number;
 };
 
 export type LanguagePhrasingEntry = {
@@ -7610,6 +7898,32 @@ export type PatternMeta = {
    * picker walk; mutually exclusive with `premiseComedyScore`.
    */
   legacyComedyScore?: LegacyComedyScore;
+  /**
+   * Phase 7 (VIRAL FEEL SCORE) — final ranking polish layer attached
+   * to EVERY pattern_variation candidate (premise + legacy alike,
+   * symmetric to the comedy scores above which are mutually
+   * exclusive). Computed at `assembleCandidate` time AFTER
+   * `videoPattern` + the comedy scores are populated, so the
+   * formatFit dim can read the resolved style × pattern synergy.
+   *
+   * Drives a SINGLE downstream consumer:
+   *   - Selection-layer scaled boost in `selectionPenalty` via
+   *     `viralFeelBoost(meta.viralFeelScore?.total)` — band
+   *     (10/9→+3, 8/7→+2, 6/5→+1, <5→0) intentionally LIGHTER than
+   *     both premise (`+5..+7`) and legacy (`+5`) comedy ceilings,
+   *     so the spec PART 5 invariant ("viral feel never overpowers
+   *     comedy") falls out arithmetically: a strong comedy score
+   *     always dominates a strong viral score in tie-breaking, and
+   *     a weak comedy hook (already past the rubric < 5 HARD reject)
+   *     can never be rescued by a high viral feel.
+   *
+   * Optional / undefined for Llama / Claude fallback wraps and
+   * pre-Phase-7 cached candidates that round-trip through JSONB
+   * without the field — `viralFeelBoost(undefined) === 0`, so the
+   * absent-field path collapses cleanly to a no-op. Same defensive
+   * discipline as `legacyComedyScore` / `premiseComedyScore`.
+   */
+  viralFeelScore?: ViralFeelScore;
 };
 
 /**
@@ -8687,6 +9001,270 @@ export function legacyComedyBoost(score: number | undefined): number {
 }
 
 /**
+ * Phase 7 — instant-recognition vocabulary for ViralFeelScore.
+ * Universal-everyday tokens reused from the legacy + premise sets so
+ * "yeah, that's me" triggers don't drift away from the comedy
+ * vocabulary the rest of the engine grounds against.
+ */
+const VIRAL_RECOGNITION_TOKENS: ReadonlyArray<string> = [
+  ...LEGACY_UNIVERSAL_TOKENS,
+  ...COMEDY_UNIVERSAL_TOKENS,
+];
+
+/**
+ * Phase 7 — surprise / spike vocabulary for the scrollInterruption
+ * dim. Reuses the premise comedy surprise execution-id signal via
+ * text-only pattern fallbacks (we can't read execution-ids from the
+ * post-Llama-polish hook string reliably) plus high-impact spike
+ * words: numbers, time markers, fragment cues, hard-stop punctuation.
+ */
+const VIRAL_SPIKE_TOKENS: ReadonlyArray<string> = [
+  // Time-marker spikes (specific moments)
+  "2am", "3am", "9am", "midnight", "noon", "monday", "tuesday",
+  "tonight", "yesterday me", "today me", "tomorrow me", "future me",
+  "past me",
+  // Object personification + absurd-metaphor spike words (curated
+  // from COMEDY_MECHANISM_PATTERNS surface tokens — kept as bare
+  // strings here so this list is `text.includes`-checkable like the
+  // other token sets; the regex-based mechanism patterns drive the
+  // emotional/recognition dims separately).
+  "speedrun", "side quest", "patch notes", "press conference",
+  "hostile takeover", "patent pending", "filed for", "filed taxes",
+  "emotional bankruptcy", "emotional support", "customer service",
+  // Hard-fact / numeric anchors (concrete spike tokens)
+  "hours", "minutes", "tabs", "subscriptions", "screen time",
+];
+
+/**
+ * Phase 7 — shareability vocabulary. Identity-mirror phrasings + the
+ * "send this to my group chat" trigger words. Curated to favor the
+ * "you'll know exactly who this is" phrasings the spec PART 5 calls
+ * out as ideal viral-feel DNA.
+ */
+const VIRAL_SHAREABILITY_TOKENS: ReadonlyArray<string> = [
+  "group chat", "the group chat", "my group chat",
+  "tell my therapist", "tell my mom", "tell my boss",
+  "literally me", "this is so me", "tag yourself", "tag a friend",
+  "the type of person", "the kind of person", "main character",
+  "ceo of", "manager of", "specialist", "visionary",
+  "everyone i know", "every girl", "every guy",
+];
+const VIRAL_SHAREABILITY_PATTERNS: ReadonlyArray<RegExp> = [
+  /\bi am the (?:kind|type|villain|ceo|manager|main character)\b/i,
+  /\bi specialize in\b/i,
+  /\bi'?m the reason\b/i,
+  /\bme when (?:i|you|we)\b/i,
+  /\b(?:everyone|every girl|every guy|every woman|every man)\b/i,
+];
+
+/**
+ * Phase 7 — emotional-spike vocabulary. Subset of the premise
+ * COMEDY_EMOTION_TOKENS curated to skew toward the embarrassment /
+ * anxiety / irony / delusion bands the spec calls out, EXCLUDING
+ * the burnout / fatigue tokens (those drive legacy emotional, not
+ * viral spike).
+ */
+const VIRAL_EMOTIONAL_SPIKE_TOKENS: ReadonlyArray<string> = [
+  "embarrassed", "anxiety", "anxious", "panic", "panicked",
+  "spiral", "spiraling", "meltdown", "trauma", "traumatized",
+  "disaster", "collapse", "crisis", "emergency",
+  "ashamed", "shame", "cringe", "cringing", "unhinged", "feral",
+  "humiliated", "exposed", "menace",
+  "delusional", "deluded", "delusion",
+  "betrayed", "betrayal", "ghosted", "gaslit",
+  "ruined", "wrecked", "obliterated",
+  "screaming", "crying", "sobbing", "begged",
+];
+
+/**
+ * Phase 7 — pure deterministic ViralFeelScore. Same inputs → same
+ * output. Computes a 5-dim total in [0, 10] with the per-dim
+ * sub-scores in their advertised bands. Never throws, never rejects.
+ *
+ * Designed as a FINAL RANKING POLISH:
+ *   - No HARD reject branch (returns total ≥ 0 for every input).
+ *   - Bonus band in `viralFeelBoost` is intentionally LIGHTER than
+ *     both `premiseComedyBoost` and `legacyComedyBoost` so a strong
+ *     comedy score always dominates selection, exactly per spec
+ *     PART 5 ("viral feel never overpowers comedy").
+ *   - Pulls from existing token tables so the vocabulary stays in
+ *     sync with the rest of the engine — no drift across rebuilds.
+ *
+ * @param hook   The fully-rendered hook string (POST-compressHook,
+ *               POST-validateOutputLine — i.e. the form that would
+ *               actually ship and that the user would read).
+ * @param meta   Optional. The fully-assembled PatternMeta. When
+ *               provided, `videoPattern` + `premiseStyleId` drive
+ *               the formatFit dim's synergy bonus. Pre-Phase-7 +
+ *               Llama / Claude wraps may omit fields; the function
+ *               degrades cleanly to text-only signals.
+ * @param scenario Optional. The scenario the hook was built for.
+ *               When provided, `topicNoun` participates in the
+ *               instant-recognition concrete-anchor check.
+ */
+export function scoreViralFeel(
+  hook: string,
+  meta?:
+    | {
+        videoPattern?: VideoPattern;
+        premiseStyleId?: PremiseStyleId;
+      }
+    | undefined,
+  scenario?: { topicNoun?: string } | undefined,
+): ViralFeelScore {
+  const text = (hook ?? "").toLowerCase().trim();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  // --- instantRecognition (0-3) ----------------------------------
+  // Ladder:
+  //   0: nothing
+  //   1: first-person OR universal token OR concrete noun OR behavior
+  //   2: first-person + (universal OR concrete OR behavior)
+  //   3: first-person + universal-experience + behavior + (anchor or
+  //      strong-relatability phrase)
+  const hasFirstPerson = /\b(i|me|my|i'?m|i'?ve|i'?ll|i'?d|mine)\b/.test(text);
+  const hasUniversal = VIRAL_RECOGNITION_TOKENS.some((t) => text.includes(t));
+  const hasConcreteNoun =
+    COMEDY_CONCRETE_NOUN_TOKENS.some((t) => text.includes(t)) ||
+    (scenario?.topicNoun !== undefined &&
+      scenario.topicNoun.length > 0 &&
+      text.includes(
+        scenario.topicNoun.toLowerCase().replace(/^the\s+/, ""),
+      ));
+  const hasBehaviorVerb = LEGACY_BEHAVIOR_VERB_TOKENS.some((t) =>
+    text.includes(t),
+  );
+  const hasRelatabilityPhrase = COMEDY_RELATABILITY_PHRASES.some((p) =>
+    p.test(text),
+  );
+  let instantRecognition: 0 | 1 | 2 | 3 = 0;
+  if (hasFirstPerson || hasUniversal || hasConcreteNoun || hasBehaviorVerb) {
+    instantRecognition = 1;
+  }
+  if (hasFirstPerson && (hasUniversal || hasConcreteNoun || hasBehaviorVerb)) {
+    instantRecognition = 2;
+  }
+  if (
+    hasFirstPerson &&
+    hasUniversal &&
+    hasBehaviorVerb &&
+    (hasConcreteNoun || hasRelatabilityPhrase)
+  ) {
+    instantRecognition = 3;
+  }
+
+  // --- scrollInterruption (0-2) ----------------------------------
+  // Ladder:
+  //   0: nothing
+  //   1: surprise/spike token OR fragment shape (≤4 words OR ends w/
+  //      hard punctuation OR contains a comma cut)
+  //   2: BOTH spike token AND fragment/cut shape
+  const hasSpikeToken = VIRAL_SPIKE_TOKENS.some((t) => text.includes(t));
+  const isShortFragment = wordCount > 0 && wordCount <= 4;
+  const hasHardPunctuation = /[.!?]\s*$/.test(text);
+  const hasCommaCut = /,/.test(text);
+  const hasFragmentShape = isShortFragment || hasHardPunctuation || hasCommaCut;
+  let scrollInterruption: 0 | 1 | 2 = 0;
+  if (hasSpikeToken || hasFragmentShape) scrollInterruption = 1;
+  if (hasSpikeToken && hasFragmentShape) scrollInterruption = 2;
+
+  // --- shareability (0-2) ----------------------------------------
+  // Ladder:
+  //   0: nothing
+  //   1: identity-mirror token OR group/confession phrase
+  //   2: BOTH identity-mirror token AND first-person admission shape
+  const hasShareToken = VIRAL_SHAREABILITY_TOKENS.some((t) => text.includes(t));
+  const hasSharePattern = VIRAL_SHAREABILITY_PATTERNS.some((p) => p.test(text));
+  const hasShareSignal = hasShareToken || hasSharePattern;
+  let shareability: 0 | 1 | 2 = 0;
+  if (hasShareSignal) shareability = 1;
+  if (hasShareSignal && hasFirstPerson && (hasBehaviorVerb || hasUniversal)) {
+    shareability = 2;
+  }
+
+  // --- emotionalSpike (0-2) --------------------------------------
+  // Ladder:
+  //   0: nothing
+  //   1: one emotional-spike token
+  //   2: ≥2 emotional-spike tokens OR one spike token + first-person
+  //      admission ("i'm spiraling", "i'm anxious")
+  let spikeHits = 0;
+  for (const t of VIRAL_EMOTIONAL_SPIKE_TOKENS) {
+    if (text.includes(t)) spikeHits += 1;
+    if (spikeHits >= 2) break;
+  }
+  let emotionalSpike: 0 | 1 | 2 = 0;
+  if (spikeHits >= 1) emotionalSpike = 1;
+  if (spikeHits >= 2 || (spikeHits >= 1 && hasFirstPerson)) {
+    emotionalSpike = 2;
+  }
+
+  // --- formatFit (0-1) -------------------------------------------
+  // 1 when the chosen videoPattern is in PREMISE_PATTERN_SYNERGY_MAP
+  // for this candidate's premiseStyleId (the spec PART 5 explicit-
+  // synergy combos), OR when the chosen videoPattern is a member of
+  // the broader PREMISESTYLE_TO_PATTERN_MAP allowlist for the same
+  // style (compatibility floor — the routing layer already picked
+  // a family∩intent compatible pattern, so this only adds the dim
+  // when there's also style-level alignment).
+  // 0 otherwise — unknown style / unknown pattern / non-premise
+  // entries (no premiseStyleId) all collapse to the safe baseline.
+  let formatFit: 0 | 1 = 0;
+  const styleId = meta?.premiseStyleId;
+  const pattern = meta?.videoPattern;
+  if (styleId !== undefined && pattern !== undefined) {
+    const synergy = PREMISE_PATTERN_SYNERGY_MAP[styleId];
+    if (synergy && (synergy[pattern] ?? 0) > 0) {
+      formatFit = 1;
+    } else {
+      const allowed = PREMISESTYLE_TO_PATTERN_MAP[styleId];
+      if (allowed && allowed.includes(pattern)) {
+        formatFit = 1;
+      }
+    }
+  }
+
+  const rawTotal =
+    instantRecognition + scrollInterruption + shareability + emotionalSpike + formatFit;
+  const total = Math.max(0, Math.min(10, rawTotal));
+
+  return {
+    instantRecognition,
+    scrollInterruption,
+    shareability,
+    emotionalSpike,
+    formatFit,
+    total,
+  };
+}
+
+/**
+ * Phase 7 — selection-layer scaled boost for ViralFeelScore. Pure
+ * helper, no side effects. Intentionally LIGHTER than both
+ * `premiseComedyBoost` (10→+7..5→-2) and `legacyComedyBoost`
+ * (10→+5..5→-3) so the spec PART 5 invariant holds:
+ * a strong comedy score ALWAYS dominates a strong viral score in
+ * selection, and a weak comedy hook is NEVER rescued by a high viral
+ * feel.
+ *
+ * Band:
+ *   - 9-10  → +3
+ *   - 7-8   → +2
+ *   - 5-6   → +1
+ *   - <5    →  0  (also covers undefined — no rescue; defensive)
+ *
+ * Exported for QA / test introspection + consumption from
+ * ideaScorer.ts at the selectionPenalty site.
+ */
+export function viralFeelBoost(score: number | undefined): number {
+  if (score === undefined || score < 5) return 0;
+  if (score >= 9) return 3;
+  if (score >= 7) return 2;
+  return 1; // 5 or 6
+}
+
+/**
  * HookLanguageStyle counterpart to `pickValidatedPhrasing`. Iterates
  * the new HOOK_PHRASINGS_BY_LANGUAGE_STYLE catalog in seed-rotated
  * order, returning the first entry whose built hook passes
@@ -9533,6 +10111,31 @@ function assembleCandidate(
       ...(pickedLegacyComedyScore !== undefined
         ? { legacyComedyScore: pickedLegacyComedyScore }
         : {}),
+      // Phase 7 (VIRAL FEEL SCORE) — final ranking polish layer.
+      // Computed AFTER `videoPattern` is resolved above (so the
+      // formatFit dim can read the chosen pattern × premiseStyleId
+      // synergy) AND AFTER both comedy-score blocks are constructed
+      // (the viral score is a SEPARATE final layer — it never
+      // displaces the comedy boosts in selection, only complements
+      // them per spec PART 5). Pure function — same `(hook, meta,
+      // scenario)` triple always yields the same score, so ordering
+      // here is stable across re-runs. Spread-when-defined kept for
+      // discipline, though `scoreViralFeel` is total (always returns
+      // a value) — the spread guards against future changes that
+      // might introduce an undefined-path. The selection-layer
+      // boost reads `meta.viralFeelScore?.total`, so the absent
+      // path collapses cleanly to `viralFeelBoost(undefined) === 0`.
+      viralFeelScore: scoreViralFeel(
+        hook,
+        {
+          videoPattern,
+          ...(sourceLanguagePhrasing.bigPremise &&
+          sourceLanguagePhrasing.premiseStyleId
+            ? { premiseStyleId: sourceLanguagePhrasing.premiseStyleId }
+            : {}),
+        },
+        scenario,
+      ),
     },
   };
 }
