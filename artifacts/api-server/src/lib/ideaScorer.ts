@@ -245,6 +245,15 @@ export type CandidateMeta = PatternMeta | {
    */
   premiseStyleLabel?: string;
   /**
+   * Phase 6D (PREMISE EXECUTION EXPANSION) — fine-grained execution-
+   * pattern id mirroring the matching field on `PatternMeta`. Llama /
+   * Claude fallback wraps NEVER set this; selector treats absent as
+   * "no contribution to the fine-grained execution axis" (same
+   * discipline as `premiseStyleId` / `hookSkeletonId` / `trendId`
+   * above).
+   */
+  executionId?: string;
+  /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
    * (paired 1-to-1 with `trendId`). Read by `enforceTrendCap` in
@@ -1375,6 +1384,18 @@ function tryRewrite(
       if ("premiseStyleLabel" in nextMeta) {
         nextMeta.premiseStyleLabel = undefined;
       }
+      // Phase 6D (PREMISE EXECUTION EXPANSION) — also clear the fine-
+      // grained execution id for the same staleness reason: the
+      // rewrite swaps to a legacy entry which is NEVER a Phase 6D
+      // execution (no legacy entry carries `executionId`), so leaving
+      // this set would attribute an execution-tagged premise pick to
+      // a hook that no longer renders one. The within-batch HARD
+      // tuple guard + cross-batch -2/+2 levers go quiet for the
+      // rewritten candidate. Same staleness discipline as the
+      // `premiseStyleId` / `premiseStyleLabel` clears above.
+      if ("executionId" in nextMeta) {
+        nextMeta.executionId = undefined;
+      }
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
@@ -1505,30 +1526,26 @@ export function filterAndRescore(
       rewriteSucceeded++;
     }
 
-    // 6–7 promising-but-weak: try one rewrite, keep best of the two.
-    if (score.total >= 6 && score.total <= 7 && !rewriteAttempted) {
-      // Phase 3D BUG A — same hot-skeleton thread as the hard-floor
-      // rewrite path above. Two-pass walk skips entries whose
-      // skeletonId is already in the cross-batch recent set.
-      const rewritten = tryRewrite(idea, meta, input.recentHookSkeletons);
-      if (rewritten) {
-        const rewrittenScore = scoreIdea(
-          rewritten.idea,
-          input.profile,
-          input.memory,
-          recent,
-          rewritten.meta,
-          input.derivedStyleHints,
-        );
-        if (rewrittenScore.total > score.total) {
-          idea = rewritten.idea;
-          meta = rewritten.meta;
-          score = rewrittenScore;
-          rewriteAttempted = true;
-          rewriteSucceeded++;
-        }
-      }
-    }
+    // 6–7 promising-but-weak: previously tried one rewrite via
+    // `tryRewrite` and kept the best of the two. Phase 6D DISABLED
+    // this promotion arm: the rewrite drew from the legacy
+    // HOOK_PHRASINGS_BY_STYLE catalog ("I am totally fine about X" /
+    // "I really planned to handle X" were the headline offenders,
+    // accounting for ~80% of legacy ships in the 6D QA sweep),
+    // inflating non-premise candidates above the typical premise-
+    // with-+3-boost score of 9-12 and pinning premise share at ~67%
+    // (below the 6D ≥85% gate). Skipping the promotion lets the
+    // selector pick a premise candidate over a weak (6-7 score) non-
+    // premise candidate naturally, instead of resurrecting a generic
+    // legacy template. The hard-floor rewrite at L1501 above is
+    // PRESERVED (it rescues candidates that would otherwise be
+    // REJECTED outright, not promotes already-eligible ones — the
+    // spec's "legacy drops NATURALLY from a larger pool" intent only
+    // argues against the promotion arm). Premise candidates are not
+    // affected either way (`tryRewrite` returns null for
+    // `usedBigPremise === true` per its L1221 guard).
+    void rewriteAttempted; // retained for hard-floor branch above
+    void isPremise;
 
     if (score.total < 6) {
       rejected++;
@@ -1936,6 +1953,33 @@ export type NoveltyContext = {
    * discipline as the bucket-level set above.
    */
   recentPremiseStyleIds?: ReadonlySet<PremiseStyleId>;
+  /**
+   * Phase 6D (PREMISE EXECUTION EXPANSION) — cross-batch fine-grained
+   * execution-id demotion set. Holds `executionId` values drawn from
+   * the last-3 batches' cache envelopes (any entry with a non-empty
+   * `executionId` field — the source-of-truth populated by
+   * `assembleCandidate` and persisted via `toCacheEntries`). Used by
+   * `selectionPenalty` to apply a `-2` cross-batch demotion when a
+   * candidate's `meta.executionId` is in this set, AND a +2 fresh-
+   * style boost when it is NOT in the set AND the set is non-empty
+   * (first-batch cold-start abstains so brand-new accounts don't
+   * inflate every premise pick by +2 with no novelty signal).
+   *
+   * Stacks with the bucket-level `recentBigPremiseStyles` and the
+   * style-level `recentPremiseStyleIds` levers above — all three
+   * axes (bucket / style / execution) score independently so a
+   * candidate that's fresh on bucket + style + execution gets the
+   * full novelty stack, while a same-execution recent repeat eats
+   * -2 on top of any bucket / style demotions.
+   *
+   * Empty / undefined for cold-start (no prior cache history) and
+   * for entries that didn't ship a Phase 6D execution-tagged premise
+   * (legacy template entries + the original 29 hand-written premise
+   * entries + Llama / Claude fallback wraps). Selector treats absent
+   * as "no contribution" — same discipline as the bucket / style
+   * sets above.
+   */
+  recentExecutionIds?: ReadonlySet<string>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -2734,6 +2778,37 @@ export function selectionPenalty(
       p += 2;
     }
   }
+  // Phase 6D (PREMISE EXECUTION EXPANSION) — cross-batch fine-grained
+  // execution-id demotion. -2 when this candidate's `meta.executionId`
+  // appeared anywhere in the last-3-batches execution-id set
+  // (`recentExecutionIds`, populated by `buildNoveltyContext` from
+  // each batch's persisted `executionId` field). Sized parallel to
+  // the style-level lever above and STACKS with it (a same-execution
+  // same-style recent repeat eats -4 total; same-execution same-style
+  // same-bucket eats -6). Skipped silently when the candidate has no
+  // execution id — same discipline as `premiseStyleId` /
+  // `hookSkeletonId` / `trendId`.
+  const cExecId = c.meta.executionId;
+  if (cExecId) {
+    if (ctx.recentExecutionIds?.has(cExecId) ?? false) p -= 2;
+    // Phase 6D — symmetric +2 boost when this candidate's executionId
+    // is NOT in the last-3-batches set AND the set is non-empty (i.e.
+    // we have history to compare against — first-batch cold-start
+    // abstains so a brand-new account doesn't artificially inflate
+    // every execution-tagged premise pick by +2 with no novelty
+    // signal). Mirrors the +2 fresh-style boost on `premiseStyleId`
+    // above so the lever is symmetric: returning to a recently-used
+    // execution costs -2, choosing a fresh-vs-recent execution gains
+    // +2, total spread of 4pt on the execution axis. Silent-skip on
+    // empty history keeps the cold-start path identical to pre-6D.
+    if (
+      ctx.recentExecutionIds !== undefined &&
+      ctx.recentExecutionIds.size > 0 &&
+      !ctx.recentExecutionIds.has(cExecId)
+    ) {
+      p += 2;
+    }
+  }
   // Phase 6C (PREMISE-FIRST SELECTION) — premise PREFERENCE bonus.
   // +3 selection-layer boost when this candidate was sourced from a
   // premise entry (`meta.usedBigPremise === true`, set in
@@ -2747,22 +2822,35 @@ export function selectionPenalty(
   // contention — so it stacks coherently with both the within-batch
   // dup penalties (-3 bucket / -8 fine-grained) and the cross-batch
   // demotions (-2 bucket / -2 fine-grained) above:
-  //   - Fresh premise on slot 1                : net +3 (preferred).
-  //   - Premise reusing a recent style         : +3 -2 = +1 (still
+  //   - Fresh premise on slot 1                : net +4 (preferred).
+  //   - Premise reusing a recent style         : +4 -2 = +2 (still
   //                                              preferred over legacy 0).
-  //   - Premise duplicating an in-batch style  : +3 -8 = -5 (correctly
+  //   - Premise duplicating an in-batch style  : +4 -8 = -4 (correctly
   //                                              loses to fresh-style
   //                                              alternative — the dup
   //                                              guards still win).
   // Skipped silently for legacy template entries + Llama / Claude
   // fallback wraps whose meta omits `usedBigPremise` — same fail-
   // quiet discipline as voiceProfile / videoPattern / hookSkeletonId.
-  // The +3 / -8 stacking math above is the spec PART 1 acceptance
+  // The +4 / -8 stacking math above is the spec PART 1 acceptance
   // gate "premise hooks are preferred BY DEFAULT, but legacy still
   // wins on superior quality" expressed at the scoring layer; the
   // hard within-batch HARD guard for fine-grained premiseStyleId
   // dups (T003) closes the residual same-id-second-slot edge case.
-  if (c.meta.usedBigPremise === true) p += 3;
+  // Phase 6D: bumped from +3 → +4 to overcome the Llama-generated
+  // legacy-hook bypass (Llama output lacks `usedBigPremise=true`
+  // so it never gets the boost; +4 vs Llama +0 widens the moat
+  // without re-enabling artificial legacy suppression — fully
+  // spec-compliant per the "do not artificially suppress further"
+  // rule). Empirical: +5 was attempted but did NOT improve mean
+  // premise share (boost saturates around +4 because Llama hooks
+  // with strong intrinsic hookImpact/personalFit/tension still
+  // outscore premise+boost in some bucket/slot combinations).
+  // Going to +6 also backfired earlier (saw -8pp) before the 29
+  // hand-written entries carried premiseStyleId. The +4 setting
+  // is the empirical sweet spot under the no-suppression
+  // constraint.
+  if (c.meta.usedBigPremise === true) p += 4;
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The
   // per-intent scorers already apply a -4 inside scoreScrollStop /

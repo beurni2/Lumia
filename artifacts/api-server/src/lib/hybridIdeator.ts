@@ -348,6 +348,27 @@ export function batchGuardsPass(
       if (b.meta.premiseStyleId) premiseStyleIds.push(b.meta.premiseStyleId);
     }
     if (countMax(premiseStyleIds) > 1) return false;
+
+    // (i) Phase 6D (PREMISE EXECUTION EXPANSION) — `(premiseStyleId,
+    // executionId)` tuple HARD reject. Defense-in-depth on top of
+    // (h) above: spec PART 5 explicitly states BOTH the per-style
+    // HARD AND the per-tuple HARD as separate rules. Under (h) the
+    // tuple guard is functionally redundant (no two entries can
+    // share the same premiseStyleId so they can't share the same
+    // tuple either), but if (h) is ever weakened or bypassed (e.g.
+    // a future rescue-ship path that disables (h)) this guard
+    // independently catches the (style, execution) repeat. Skip
+    // when fields missing (legacy / fallback safety — entries
+    // without both `premiseStyleId` AND `executionId` count toward
+    // batch.length but don't contribute to this guard, identical
+    // discipline to (d)/(e)/(f)/(h)).
+    const tupleKeys: string[] = [];
+    for (const b of batch) {
+      if (b.meta.premiseStyleId && b.meta.executionId) {
+        tupleKeys.push(`${b.meta.premiseStyleId}::${b.meta.executionId}`);
+      }
+    }
+    if (countMax(tupleKeys) > 1) return false;
   }
 
   // Guards below only meaningful at >=3 picks — at 1 or 2 every
@@ -1377,6 +1398,23 @@ function buildNoveltyContext(
       if (e.premiseStyleId) recentPremiseStyleIds.add(e.premiseStyleId);
     }
   }
+  // Phase 6D (PREMISE EXECUTION EXPANSION) — cross-batch execution-id
+  // set, parallel to `recentPremiseStyleIds` above and sourced from
+  // the same last-3-batches window. The execution-id pool is open-
+  // ended (~15 reusable patterns shared across styles) so the wider
+  // window stays comfortable — at ~2 premises per batch × 3 batches
+  // = ~6 ids tracked, well under the catalog so the -2/+2 cross-
+  // batch levers in `selectionPenalty` keep the picker rotating
+  // executions without starving the supply. Legacy entries (and
+  // Llama / Claude fallback wraps + the original 29 hand-written
+  // premise entries that don't carry an execution id) contribute
+  // nothing — same discipline as the style-level set above.
+  const recentExecutionIds = new Set<string>();
+  for (const batch of last3Batches) {
+    for (const e of batch) {
+      if (e.executionId) recentExecutionIds.add(e.executionId);
+    }
+  }
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -1703,6 +1741,11 @@ function buildNoveltyContext(
     // Phase 6 EXPANSION — fine-grained last-3 PremiseStyleId set
     // drives the parallel -2 cross-batch demotion on the 50-id axis.
     recentPremiseStyleIds,
+    // Phase 6D (PREMISE EXECUTION EXPANSION) — last-3 execution-id set
+    // drives the -2 cross-batch demotion + +2 fresh-execution boost
+    // on the open-ended execution axis. Empty Set for cold-start
+    // (caller treats as no contribution).
+    recentExecutionIds,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -1813,6 +1856,20 @@ type CachedBatchEntry = {
    * set never holds a string the catalog doesn't recognize.
    */
   premiseStyleId?: PremiseStyleId;
+  /**
+   * Phase 6D (PREMISE EXECUTION EXPANSION) — fine-grained execution-
+   * pattern id persisted on cache so `buildNoveltyContext` can
+   * populate `recentExecutionIds` directly off the envelope, parallel
+   * to `premiseStyleId` above. Same non-breaking JSONB pattern:
+   * legacy entries written before Phase 6D shipped (and the original
+   * 29 hand-written premise entries that don't carry an execution id)
+   * contribute nothing to the cross-batch -2/+2 execution levers.
+   * Tolerantly parsed as a non-empty string (open-ended catalog —
+   * new execution variants can ship without a schema migration; same
+   * discipline as `hookSkeletonId` above). Empty strings drop to
+   * undefined so the recent set never holds a "" sentinel.
+   */
+  executionId?: string;
 };
 
 /**
@@ -1862,6 +1919,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         hookSkeletonId?: unknown;
         bigPremiseStyle?: unknown;
         premiseStyleId?: unknown;
+        executionId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -1953,6 +2011,19 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
       // fine-grained id even when the bucket field rolled out of
       // sync (defensive — both fields are independently optional).
       const premiseStyleId = parsePremiseStyleId(wrapper.premiseStyleId);
+      // Phase 6D (PREMISE EXECUTION EXPANSION) — tolerant parse: any
+      // non-empty string passes through (open-ended catalog of
+      // execution ids — new variants can ship without a schema
+      // migration). Same discipline as `hookSkeletonId` / `trendId`
+      // above: the catalog is curator-managed, so we don't whitelist
+      // against an enum here — the live `meta.executionId` writes go
+      // through `PREMISE_STYLE_DEFS[*].executions[*].id`'s known set.
+      // Empty strings drop to undefined so `recentExecutionIds` never
+      // holds a "" sentinel and cross-batch matches against an
+      // absent tag never fire.
+      const eidRaw = wrapper.executionId;
+      const executionId: string | undefined =
+        typeof eidRaw === "string" && eidRaw.length > 0 ? eidRaw : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -1969,6 +2040,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         hookSkeletonId,
         bigPremiseStyle,
         premiseStyleId,
+        executionId,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2194,6 +2266,13 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // above; undefined for entries without a fine-grained tag (the
     // original 29 hand-written premise entries + every legacy entry).
     premiseStyleId: c.meta.premiseStyleId,
+    // Phase 6D (PREMISE EXECUTION EXPANSION) — persist the execution-
+    // pattern id so the next regen's `buildNoveltyContext` can seed
+    // `recentExecutionIds`. Same discipline as the style-level field
+    // above; undefined for entries without an execution tag (the
+    // original 29 hand-written premise entries + every legacy entry
+    // + every Llama / Claude fallback wrap).
+    executionId: c.meta.executionId,
   }));
 }
 
@@ -2882,6 +2961,10 @@ export async function runHybridIdeator(
           // Phase 6 EXPANSION — fine-grained id on the rescue path
           // (mirrors the main toCacheEntries write above).
           premiseStyleId: c.meta.premiseStyleId,
+          // Phase 6D (PREMISE EXECUTION EXPANSION) — execution-pattern
+          // id on the rescue path (mirrors the main toCacheEntries
+          // write above).
+          executionId: c.meta.executionId,
         }));
       await persistCache(input.creator, rescueEntries);
     }
