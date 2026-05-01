@@ -7572,19 +7572,35 @@ const COMEDY_SURPRISE_TOKENS: ReadonlyArray<string> = [
 ];
 
 /**
- * Execution-id boosts for surprise/punch. Hooks built from these
- * `PREMISE_STYLE_DEFS[*].executions[*]` patterns reliably produce
- * non-obvious comedic framings even when their text doesn't trip a
- * surface-token match.
+ * Execution-id boosts for the SURPRISE dimension. Hooks built from
+ * these `PREMISE_STYLE_DEFS[*].executions[*]` patterns reliably
+ * produce non-obvious comedic framings even when their text doesn't
+ * trip a surface-token match.
+ *
+ * Phase 6E AUDIT (post-T005 QA): pruned the executions that were
+ * inflating weak abstract / cosmic / vague-self-deception hooks
+ * past the HARD reject. Removed entries (with example phrasings
+ * they were boosting from <5 into the demote band):
+ *   - `cosmic_overreaction`  → "this small thing has unmade me
+ *                              entirely", "this inconvenience has
+ *                              rewritten my whole arc" (dramatic
+ *                              but ungrounded — fails relatability)
+ *   - `pattern_naming`       → "this is my entire pattern" (meta-
+ *                              vague observation, no specific
+ *                              behavior)
+ *   - `delusion_admission`   → "i checked it and pretended that
+ *                              counted" (vague self-deception
+ *                              without concrete behavior anchor)
+ *
+ * Retained executions all produce structurally-surprising framings
+ * (absurd metaphor, sudden pivot, identity flip, ironic confidence)
+ * that read as comedy independent of execution-id context.
  */
 const COMEDY_SURPRISE_EXECUTION_IDS: ReadonlySet<string> = new Set([
   "metaphor_mayhem",
-  "cosmic_overreaction",
   "whiplash_pivot",
   "identity_framing",
-  "pattern_naming",
   "ironic_confidence",
-  "delusion_admission",
 ]);
 
 /**
@@ -7637,14 +7653,37 @@ const COMEDY_EMOTION_TOKENS: ReadonlyArray<string> = [
 /**
  * Execution-ids that reliably express emotional spikes regardless of
  * the surface text. Boost punch to 2 when matched.
+ *
+ * Phase 6E AUDIT (post-T005 QA): pruned executions whose "emotional
+ * spike" was actually generic dramatic vocabulary unmoored from
+ * concrete behavior. Removed entries (with examples they were
+ * inflating into the demote band):
+ *   - `cosmic_overreaction`  → "this small thing has unmade me
+ *                              entirely" (drama without grounding)
+ *   - `expectation_collapse` → "resting somehow made me more tired"
+ *                              (clean ironic flip, but the punch
+ *                              boost was masking weaker variants
+ *                              shipping at the same exec id; text
+ *                              still passes via emotion tokens when
+ *                              actually grounded)
+ *   - `gen_z_collapse`       → "my dignity has officially left the
+ *                              chat" (vague life-collapse phrasing
+ *                              the user audit explicitly called out)
+ *   - `delusion_admission`   → "the cart told on me before i did"
+ *                              (parallel to surprise removal —
+ *                              vague self-deception without a real
+ *                              emotional spike)
+ *   - `whiplash_pivot`       → structural surprise, not an emotional
+ *                              spike — kept in surprise set, dropped
+ *                              from punch where it doesn't belong
+ *
+ * Retained: `chaos_acceptance` continues to produce grounded time-
+ * marker / behavioral-contradiction punch hooks ("yesterday me
+ * booked chaos for today me's calendar") via real first-person
+ * action vocabulary the rubric should reward.
  */
 const COMEDY_PUNCH_EXECUTION_IDS: ReadonlySet<string> = new Set([
   "chaos_acceptance",
-  "delusion_admission",
-  "expectation_collapse",
-  "gen_z_collapse",
-  "cosmic_overreaction",
-  "whiplash_pivot",
 ]);
 
 /**
