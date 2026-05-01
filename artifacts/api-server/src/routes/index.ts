@@ -20,7 +20,6 @@ import visionStyleRouter from "./visionStyle";
 import ideaFeedbackRouter from "./ideaFeedback";
 import tasteCalibrationRouter from "./tasteCalibration";
 import enhancementsRouter from "./enhancements";
-import qaPhase6dRouter from "./_qaPhase6d";
 
 const router: IRouter = Router();
 
@@ -59,10 +58,6 @@ router.use(enhancementsRouter);
 //     5-question onboarding bias for the ideator). Pure additive;
 //     skipped state is honoured so we never re-prompt.
 router.use(tasteCalibrationRouter);
-// TEMPORARY (Phase 6D PREMISE EXECUTION EXPANSION QA driver) —
-// `/api/_qa/phase6d`. Delete this mount + the import + the
-// `_qaPhase6d.ts` file after sign-off (T005 cleanup).
-router.use(qaPhase6dRouter);
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //
