@@ -34,7 +34,17 @@
 import { openrouter } from "@workspace/integrations-openrouter-ai";
 import type { Idea } from "./ideaGen";
 import type { ScoredCandidate, IdeaScore, NoveltyContext } from "./ideaScorer";
-import { scoreIdea, scorePremiseComedyScore } from "./ideaScorer";
+import {
+  scoreIdea,
+  scorePremiseComedyScore,
+  // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — re-score the
+  // polished hook against the legacy 4-dim 0-10 rubric, parallel
+  // to the Phase 6E premise re-score guard. Imported through
+  // `./ideaScorer` (the canonical scoring-API surface) — same
+  // import path as `scorePremiseComedyScore` so the polish path
+  // has one consistent entry point for both rubrics.
+  scoreLegacyComedyScore,
+} from "./ideaScorer";
 import {
   lookupHookOpener,
   validateHook,
@@ -954,12 +964,48 @@ function applyHookRewrite(
     original.meta.usedBigPremise === true
       ? scorePremiseComedyScore(newHook)
       : undefined;
+  // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — symmetric to the
+  // Phase 6E premise re-score immediately above, but for legacy
+  // hooks. Re-scores the polished hook against the 4-dim 0-10
+  // rubric so the post-mutation score reflects the actual shipping
+  // string (not a stale pre-polish score), and so the regress-and-
+  // floor guard below can reject lateral or below-7 polish edits
+  // for legacy hooks the same way it does for premises. Mutually
+  // exclusive with `newPremiseComedy` by construction — a candidate
+  // is either premise (`usedBigPremise === true`) or legacy
+  // (everything else, including fallback wraps). Fallback wraps
+  // (Llama / Claude — `source !== "pattern_variation"`) ALSO get
+  // the legacy rubric re-scored here, intentionally: a fallback
+  // hook polished by Llama is structurally a free-form short
+  // sentence (not a premise), so the legacy 4-dim rubric is the
+  // correct quality bar. The picker walk's own scoring path never
+  // populates `legacyComedyScore` for a fallback wrap (fallbacks
+  // don't go through `pickValidatedLanguagePhrasing`), so the
+  // pre-polish baseline `preTotal` for fallback wraps falls back
+  // to scoring the original hook string — same minimal-data
+  // discipline as the premise guard's `scorePremiseComedyScore(
+  // original.idea.hook)` line below.
+  const newLegacyComedy =
+    !("usedBigPremise" in original.meta) ||
+    original.meta.usedBigPremise !== true
+      ? scoreLegacyComedyScore(newHook)
+      : undefined;
   const newMeta = {
     ...original.meta,
     hookOpener: newOpener,
     source: "llama_3_1" as const,
     ...(newPremiseComedy !== undefined
       ? { premiseComedyScore: newPremiseComedy }
+      : {}),
+    // Phase 6F — propagate the polished legacy score onto the
+    // post-mutation meta so `selectionPenalty.legacyComedyBoost`
+    // and the QA driver telemetry both see the score that matches
+    // the shipping hook string, mirroring the `premiseComedyScore`
+    // spread immediately above. Spread-when-present so a
+    // defensive miss (premise candidate) leaves the field absent
+    // rather than serialising explicit nulls.
+    ...(newLegacyComedy !== undefined
+      ? { legacyComedyScore: newLegacyComedy }
       : {}),
   };
   const newScore = scoreIdea(
@@ -983,6 +1029,47 @@ function applyHookRewrite(
         : scorePremiseComedyScore(original.idea.hook).total;
     const threshold = Math.max(preTotal, 7);
     if (newPremiseComedy.rejected || newPremiseComedy.total < threshold) {
+      better = false;
+    }
+  }
+  // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — parallel
+  // regress-and-floor guard for legacy hooks. Same combined
+  // threshold as the premise guard above:
+  //   (a) post.total ≥ pre.total — polish must not regress; AND
+  //   (b) post.total ≥ 7         — polish must not leave the hook
+  //                                 in the 5-6 demote band.
+  // Combined: post.total ≥ max(pre.total, 7). The threshold is the
+  // SAME 7 used for premises (not a lower legacy-band number) on
+  // purpose — once we're paying the cost of a polish call, the
+  // bar is "ship-quality" regardless of which catalog path the
+  // pre-polish hook came from. A polished legacy hook landing in
+  // the 5-6 demote band is exactly the kind of lateral-edit waste
+  // this guard exists to prevent. `pre.total` is read from the
+  // cached `legacyComedyScore` when available (same staleness
+  // discipline as the premise guard's `premiseComedyScore`
+  // lookup); when absent (cached pre-6F entry replayed from JSONB,
+  // or a fallback wrap that never had a picker-walk score),
+  // `pre.total` falls back to scoring the original hook string —
+  // identical pattern to the premise guard's
+  // `scorePremiseComedyScore(original.idea.hook)` line. Mutually
+  // exclusive with the premise guard above by construction (same
+  // `usedBigPremise` discriminator inverted), so a single call
+  // never triggers both branches. Falling either guard reverts to
+  // the original by setting `better = false`, identical to the
+  // premise path.
+  if (
+    better &&
+    newLegacyComedy !== undefined &&
+    (!("usedBigPremise" in original.meta) ||
+      original.meta.usedBigPremise !== true)
+  ) {
+    const preTotal =
+      "legacyComedyScore" in original.meta &&
+      original.meta.legacyComedyScore !== undefined
+        ? original.meta.legacyComedyScore.total
+        : scoreLegacyComedyScore(original.idea.hook).total;
+    const threshold = Math.max(preTotal, 7);
+    if (newLegacyComedy.rejected || newLegacyComedy.total < threshold) {
       better = false;
     }
   }

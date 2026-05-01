@@ -2152,6 +2152,28 @@ type CachedBatchEntry = {
    * can't be poisoned by a corrupt envelope.
    */
   premiseComedyScoreTotal?: number;
+  /**
+   * Phase 6F (LEGACY COMEDY SCORING + REJECTION) — symmetric
+   * single-integer cache field for the LEGACY rubric, parallel to
+   * `premiseComedyScoreTotal` above. Persists `[0, 10]` total of
+   * the 4-dim rubric (relatability 0-3 / clarity 0-3 / simplicity
+   * 0-2 / emotional 0-2) for the WINNING legacy hook, so the QA
+   * driver can read it back via `extractCurrent` without re-scoring
+   * from the post-Llama-polish hook string (which would lose the
+   * picker-walk's exact context-aware score and the `entry.generic-
+   * Hook` flag adjustment). No cross-batch novelty consumer today —
+   * field is telemetry-only, identical to the premise field. Same
+   * non-breaking JSONB pattern: legacy / pre-6F entries silently
+   * read back as undefined. Mutually exclusive with
+   * `premiseComedyScoreTotal` by construction (a candidate is
+   * either premise or legacy, never both — the picker walk's
+   * if/else assigns at most one rubric on `c.meta`). Tolerantly
+   * parsed below to a finite integer in `[0, 10]` — anything
+   * outside that range silently drops to undefined so downstream
+   * QA averages / histograms can't be poisoned by a corrupt
+   * envelope.
+   */
+  legacyComedyScoreTotal?: number;
 };
 
 /**
@@ -2203,6 +2225,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         premiseStyleId?: unknown;
         executionId?: unknown;
         premiseComedyScoreTotal?: unknown;
+        legacyComedyScoreTotal?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2323,6 +2346,23 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         pcsRaw <= 10
           ? pcsRaw
           : undefined;
+      // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — same
+      // tolerant integer-in-[0,10] parse as the premise field
+      // immediately above. The legacy rubric's total is also
+      // always integer-valued in the live writer (sum of four
+      // integer dim scores: relatability 0-3 / clarity 0-3 /
+      // simplicity 0-2 / emotional 0-2), so a non-integer / out-
+      // of-range / non-number value in cache is unambiguously
+      // corruption — silently drop to undefined so QA driver
+      // averages / histograms can't be poisoned.
+      const lcsRaw = wrapper.legacyComedyScoreTotal;
+      const legacyComedyScoreTotal: number | undefined =
+        typeof lcsRaw === "number" &&
+        Number.isInteger(lcsRaw) &&
+        lcsRaw >= 0 &&
+        lcsRaw <= 10
+          ? lcsRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -2341,6 +2381,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         premiseStyleId,
         executionId,
         premiseComedyScoreTotal,
+        legacyComedyScoreTotal,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2590,6 +2631,26 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
       "premiseComedyScore" in c.meta &&
       c.meta.premiseComedyScore !== undefined
         ? c.meta.premiseComedyScore.total
+        : undefined,
+    // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — symmetric
+    // single-integer write parallel to `premiseComedyScoreTotal`
+    // above. Source: `meta.legacyComedyScore?.total` — the
+    // optional `?.` chain collapses to undefined for both
+    // PatternMeta entries without the field set (premise picks +
+    // pre-6F replays + cache rolls without the score) AND for
+    // CandidateMeta fallback-shape entries (Llama/Claude wraps
+    // where the field is declared on the union but not populated
+    // by the wrap path; the Phase 6F Llama re-score guard in
+    // `applyHookRewrite` DOES populate it on polish, so a
+    // polished fallback wrap will carry a meaningful score
+    // through to cache). Mutually exclusive with the premise
+    // field on every well-formed candidate (the picker walk's
+    // if/else assigns at most one rubric), so both fields can
+    // safely co-exist on the cache shape without ambiguity.
+    legacyComedyScoreTotal:
+      "legacyComedyScore" in c.meta &&
+      c.meta.legacyComedyScore !== undefined
+        ? c.meta.legacyComedyScore.total
         : undefined,
   }));
 }
@@ -3293,6 +3354,19 @@ export async function runHybridIdeator(
             "premiseComedyScore" in c.meta &&
             c.meta.premiseComedyScore !== undefined
               ? c.meta.premiseComedyScore.total
+              : undefined,
+          // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — same
+          // field on the rescue path so a best-effort empty-after-
+          // filter ship still surfaces the legacy rubric total to
+          // the QA driver telemetry. Mirrors the main
+          // toCacheEntries write above; undefined for premise /
+          // pre-6F-cache / fallback-without-polish entries that
+          // never carried a legacy comedy score flows through
+          // cleanly.
+          legacyComedyScoreTotal:
+            "legacyComedyScore" in c.meta &&
+            c.meta.legacyComedyScore !== undefined
+              ? c.meta.legacyComedyScore.total
               : undefined,
         }));
       await persistCache(input.creator, rescueEntries);

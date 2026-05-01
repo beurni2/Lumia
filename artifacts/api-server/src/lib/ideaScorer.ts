@@ -31,6 +31,15 @@ import {
   // picker walk's HARD reject can call the scorer without forcing a
   // new ideaScorer.ts → patternIdeator.ts runtime import cycle).
   premiseComedyBoost,
+  // Phase 6F (LEGACY COMEDY SCORING) — selection-layer scaled boost
+  // mirroring `premiseComedyBoost` for legacy hooks. Lighter band
+  // (10→+5..5→-3) preserves spec PART 6 tie-bias: a premium premise
+  // (≥7 → +4..+7) still beats a premium legacy (≥7 → +2..+5) on tie
+  // axes, but a premium legacy (≥7 → +2..+5) beats a weak premise
+  // (≤6 → -2..+1). Same import path as `premiseComedyBoost` for the
+  // identical no-cycle reason — the function lives next to the
+  // scorer in patternIdeator.ts.
+  legacyComedyBoost,
   // Phase 6E — re-export of the scoring fn for the Llama re-scoring
   // guard in `hybridIdeator.ts` (T003). Re-exporting through
   // ideaScorer.ts keeps that file as the canonical "scoring API"
@@ -38,6 +47,10 @@ import {
   // patternIdeator.ts uses it locally without going back through the
   // re-export.
   scorePremiseComedyScore,
+  // Phase 6F (LEGACY COMEDY SCORING) — re-export of the legacy
+  // scorer for the Llama re-scoring guard (T005) in
+  // `llamaHookMutator.ts`, parallel to `scorePremiseComedyScore`.
+  scoreLegacyComedyScore,
   validateHook,
   type BigPremiseStyle,
   type Energy,
@@ -47,6 +60,7 @@ import {
   type IdeaCoreFamily,
   type IdeaCoreType,
   type LanguagePhrasingEntry,
+  type LegacyComedyScore,
   type PatternMeta,
   type PremiseComedyScore,
   type PremiseStyleId,
@@ -76,6 +90,14 @@ import type {
 // no wrapping, no behavior delta.
 export { scorePremiseComedyScore, premiseComedyBoost } from "./patternIdeator";
 export type { PremiseComedyScore } from "./patternIdeator";
+// Phase 6F (LEGACY COMEDY SCORING) — same canonical-scoring-API
+// reasoning as the Phase 6E re-exports above. Pure pass-through; no
+// wrapping, no behavior delta. The Llama re-scoring guard in
+// `llamaHookMutator.ts` (T005) and the QA driver (T008) consume
+// these from `./ideaScorer` so test scripts and downstream callers
+// keep one stable scoring-API import surface across both phases.
+export { scoreLegacyComedyScore, legacyComedyBoost } from "./patternIdeator";
+export type { LegacyComedyScore } from "./patternIdeator";
 
 // Map the pattern engine's `Setting` enum (8 values, scenario-centric)
 // to the Llama 3.2 Vision `setting` enum (7 values, frame-centric).
@@ -293,6 +315,22 @@ export type CandidateMeta = PatternMeta | {
    * field stays undefined for fallback wraps (no behavior change).
    */
   premiseComedyScore?: PremiseComedyScore;
+  /**
+   * Phase 6F (LEGACY COMEDY SCORING + REJECTION) — full rubric
+   * score mirroring the matching field on `PatternMeta`. Same
+   * union-typing reasoning as `premiseComedyScore` above: declared
+   * on the fallback shape so the union member-access in
+   * `selectionPenalty.legacyComedyBoost(c.meta.legacyComedyScore?.total)`
+   * type-checks across both arms of the union without an `"in" meta`
+   * narrowing — the optional `?.` chain naturally collapses to
+   * `undefined → 0 boost` for every fallback wrap (Llama / Claude
+   * fallback hooks are not legacy-catalog hooks, so the rubric
+   * never applies; the boost stays neutral). The Llama re-scoring
+   * guard in T005 may populate a Llama-polished legacy hook's score
+   * on the wrap path AFTER polish; until then the field stays
+   * undefined for fallback wraps (no behavior change).
+   */
+  legacyComedyScore?: LegacyComedyScore;
   /**
    * TREND + ARCHETYPE PAIRING spec — pre-trend caption snapshot
    * captured by `assembleCandidate` ONLY when a trend was injected
@@ -1327,6 +1365,26 @@ function tryRewrite(
       }
       const candidate = entry.build(scenario).trim();
       if (!validateHook(candidate)) continue;
+      // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — apply the
+      // same 4-dim 0-10 rubric + HARD reject < 5 that the picker
+      // walk in `pickValidatedLanguagePhrasing` uses, so the
+      // rewriter cannot rescue a low-quality legacy hook that the
+      // picker would have rejected. The rewriter is already
+      // legacy-only (the `if (... usedBigPremise === true) return null`
+      // gate at the top of this function), so every `entry` here is
+      // a legacy candidate and gets the legacy rubric applied
+      // (never the premise rubric — premises are scenario-agnostic
+      // and never appear in `HOOK_PHRASINGS_BY_STYLE`). The
+      // computed score is propagated to `nextMeta.legacyComedyScore`
+      // below (parallel to the `premiseComedyScore` clear) so
+      // `selectionPenalty.legacyComedyBoost` reads accurate per-
+      // rewrite data, not a stale score carried over from the
+      // original pick. Symmetric with the picker walk's HARD reject
+      // — no `continue` ordering subtlety because the per-entry
+      // skeleton + noun-type checks above already use the same
+      // `continue` exit path.
+      const legacyScore = scoreLegacyComedyScore(candidate, entry, scenario);
+      if (legacyScore.rejected || legacyScore.total < 5) continue;
       // Found a shippable rewrite. Update hookOpener too so the
       // batch guards / novelty scorer see the new opener (the
       // chosen entry's tag is authoritative; falling back to
@@ -1446,6 +1504,23 @@ function tryRewrite(
       if ("premiseComedyScore" in nextMeta) {
         nextMeta.premiseComedyScore = undefined;
       }
+      // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — OVERWRITE
+      // (not clear) any prior `legacyComedyScore` carried over
+      // from the original pick with the freshly-computed score
+      // for THIS rewrite candidate. Different from the
+      // `premiseComedyScore = undefined` above because the
+      // original premise telemetry no longer applies (the
+      // rewrite is legacy, not premise) so it must be cleared,
+      // whereas the rewrite IS itself a legacy hook and so a
+      // legacy score IS meaningful — just tied to the new
+      // candidate, not the original. Assigning `legacyScore`
+      // here keeps `selectionPenalty.legacyComedyBoost` in
+      // perfect sync with the actual shipping hook string,
+      // mirroring the picker walk's per-candidate scoring
+      // discipline. The HARD reject above already guarantees
+      // `legacyScore.total >= 5` and `rejected === false`, so
+      // the boost band is in the safe demote-or-better range.
+      nextMeta.legacyComedyScore = legacyScore;
       return {
         idea: { ...idea, hook: candidate, hookStyle: nextStyle },
         meta: {
@@ -3006,6 +3081,90 @@ export function selectionPenalty(
   //                                               PART 6 intent).
   if (c.meta.usedBigPremise === true) {
     p += premiseComedyBoost(c.meta.premiseComedyScore?.total);
+  }
+  // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — selection-layer
+  // scaled boost mirroring the Phase 6E premise wiring above for
+  // legacy hooks (entries with `usedBigPremise !== true`). The
+  // picker walk in `pickValidatedLanguagePhrasing` now scores every
+  // legacy candidate via `scoreLegacyComedyScore` (4-dim 0-10
+  // rubric: relatability 0-3 / clarity 0-3 / simplicity 0-2 /
+  // emotional 0-2) and HARD-rejects < 5 BEFORE this boost ever
+  // sees the candidate, exactly mirroring the premise gate. The
+  // band is intentionally LIGHTER than premise (10→+5..5→-3 vs
+  // premise 10→+7..5→-2) to preserve the spec PART 6 tie-bias —
+  // a premium premise still beats a premium legacy on tie axes,
+  // but a premium legacy beats a weak premise:
+  //   total >= 10 → +5 (top of legacy band; loses to premise +7)
+  //   total ===  9 → +4 (still loses to premise +6)
+  //   total ===  8 → +3 (still loses to premise +5)
+  //   total ===  7 → +2 (still loses to premise +4 — but BEATS
+  //                      premise +1 / -2 demote-band cleanly)
+  //   total ===  6 → 0  (neutral — same posture as a pre-6F legacy
+  //                      hook, no behavior change for in-band picks)
+  //   total ===  5 → -3 (demote band — premise demote is -2 here,
+  //                      so a 5-band legacy loses to a 5-band
+  //                      premise; both lose to a 7-band of either
+  //                      kind. Mirrors the spec PART 6 demote
+  //                      ordering.)
+  //   total <   5  →  0 (defensive — picker walk's HARD reject
+  //                      already blocked these; same neutral
+  //                      collapse as `premiseComedyBoost(undefined)`)
+  //
+  // Three back-compat guarantees mirroring the Phase 6E reasoning:
+  //   1. Premise entries (`usedBigPremise === true`) skip THIS `if`
+  //      exactly as legacy entries skipped the Phase 6E `if` above —
+  //      premise gets the premise boost, legacy gets the legacy
+  //      boost, never both. The two surfaces are mutually exclusive
+  //      by construction (the picker walk's if/else assigns at most
+  //      one of `premiseComedyScore` / `legacyComedyScore`).
+  //   2. The score is read via `?.total` so a defensive miss
+  //      (legacy candidate without a populated score, e.g. a cached
+  //      pre-6F entry replayed from JSONB, or a fallback wrap's
+  //      candidate) collapses to `legacyComedyBoost(undefined) === 0` —
+  //      the candidate sits at the same neutral position a pre-6F
+  //      legacy candidate sat at. ZERO behavior change for any
+  //      candidate whose score was not populated by the new picker
+  //      walk.
+  //   3. The picker walk's < 5 HARD reject already keeps low-score
+  //      legacy entries out of the candidate pool, so the -3 demote
+  //      branch above only fires on hooks that passed both the
+  //      rubric AND every prior structural rail (`validateHook` /
+  //      structural opener checks).
+  //
+  // Stacking math (verifying the spec PART 6 tie-bias holds at the
+  // boost ceiling, since the dup / freshness / generic / banned
+  // levers below are unchanged):
+  //   - Premium premise (10) vs premium legacy (10) : +7 vs +5
+  //                                                   → premise wins
+  //                                                     by 2 (correct).
+  //   - Premium premise (7)  vs premium legacy (10) : +4 vs +5
+  //                                                   → legacy wins
+  //                                                     by 1 (correct
+  //                                                     — a premier
+  //                                                     legacy outranks
+  //                                                     a so-so premise).
+  //   - Premium legacy (10)  vs weak premise (6)    : +5 vs +1
+  //                                                   → legacy wins
+  //                                                     by 4 (correct).
+  //   - Premium legacy (10)  vs weak premise (5)    : +5 vs -2
+  //                                                   → legacy wins
+  //                                                     by 7 (correct).
+  //   - 5-band premise vs 5-band legacy             : -2 vs -3
+  //                                                   → premise wins
+  //                                                     by 1 (correct
+  //                                                     — premise tie-
+  //                                                     bias still
+  //                                                     applies in the
+  //                                                     demote band).
+  //   - Pre-6F cached legacy (no score) vs new 6-band:  0 vs 0
+  //                                                   → tied (correct
+  //                                                     — the cache
+  //                                                     migration is
+  //                                                     a no-op for the
+  //                                                     baseline neutral
+  //                                                     band).
+  if (c.meta.usedBigPremise !== true) {
+    p += legacyComedyBoost(c.meta.legacyComedyScore?.total);
   }
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The

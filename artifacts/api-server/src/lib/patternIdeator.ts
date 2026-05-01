@@ -7453,6 +7453,35 @@ export type PatternMeta = {
    * picker walk.
    */
   premiseComedyScore?: PremiseComedyScore;
+  /**
+   * Phase 6F (LEGACY COMEDY SCORING + REJECTION) — symmetric to
+   * `premiseComedyScore` above but for legacy template entries
+   * (entry.bigPremise !== true). Populated by the picker walk
+   * (`pickValidatedPhrasing`) when the WINNING entry is a legacy
+   * hook AND the 4-dim 0-10 rubric scored its post-compress /
+   * post-validateOutputLine final hook >= 5. Walks that select
+   * lower-scoring or rubric-rejected entries `continue` past them
+   * in seed-rotated order, so anything attached here has already
+   * cleared the HARD-reject bar.
+   *
+   * Three downstream consumers, all parallel to the premise field:
+   *   - `selectionPenalty.legacyComedyBoost` reads
+   *     `meta.legacyComedyScore?.total` → scaled lever
+   *     (10→+5, 9→+4, 8→+3, 7→+2, 6→0, 5→-3). Lighter band than
+   *     `premiseComedyBoost` so the spec PART 6 tie-bias falls out
+   *     naturally without a separate "premise wins ties" rule:
+   *     premise ≥7 still beats legacy ≥7 by ≥1pt; legacy ≥7 beats
+   *     premise ≤6.
+   *   - Telemetry surface for the QA driver (PART 8 report).
+   *   - Llama re-score guard (T005) re-runs the rubric on polished
+   *     legacy hooks so the cached score reflects the final form.
+   * Set ONLY when the picked entry carried `bigPremise !== true`
+   * (the legacy rubric is a legacy-quality gate, not a premise
+   * gate). Optional / undefined for premise entries + Llama /
+   * Claude fallback wraps that didn't run through the legacy
+   * picker walk; mutually exclusive with `premiseComedyScore`.
+   */
+  legacyComedyScore?: LegacyComedyScore;
 };
 
 /**
@@ -8127,6 +8156,79 @@ const LEGACY_BEHAVIOR_VERB_TOKENS: ReadonlyArray<string> = [
 ];
 
 /**
+ * Phase 6F audit-tune — additional present-tense action verbs used
+ * in `micro_story` style multi-beat hooks. KEPT SEPARATE from
+ * `LEGACY_BEHAVIOR_VERB_TOKENS` on purpose: this list is consumed
+ * ONLY by `countBehaviorVerbs()` for the multi-beat-exemption flag
+ * (≥2 visible action verbs ⇒ comma-separated micro-actions are
+ * treated like period-separated beats). Keeping it isolated means
+ * adding present-tense bare stems ("open", "close", "stare") cannot
+ * change `hasBehaviorVerb` / no_anchor / relatability semantics for
+ * single-action hooks — the existing rubric for non-multi-beat
+ * hooks is unchanged.
+ *
+ * Word-boundary regex matching is used (not substring) so "open"
+ * does not falsely match "opener", "opening", etc.
+ */
+const LEGACY_MULTIBEAT_ACTION_VERBS: ReadonlyArray<string> = [
+  // Present-tense bare stems and 3rd-person singular forms commonly
+  // used in micro_story patterns ("open the X, stare, close it,
+  // walk away" / "I open it, glance, close it, pretend that
+  // counted").
+  "open", "opens", "close", "closes", "look", "looks",
+  "watch", "watches", "glance", "glances", "stare", "stares",
+  "pretend", "pretends", "walk", "walks", "stand", "stands",
+  "sit", "sits", "scroll", "scrolls", "refresh", "refreshes",
+  "swipe", "swipes", "check", "checks", "ignore", "ignores",
+  "snooze", "snoozes", "skip", "skips", "wait", "waits",
+  "leave", "leaves", "stop", "stops", "start", "starts",
+  "say", "says", "tell", "tells", "reply", "replies",
+  "answer", "answers", "show", "shows", "go", "goes",
+  "see", "sees", "do", "does", "nod", "nods",
+  "keep", "keeps", "begin", "begins", "continue", "continues",
+  "spent", "preparing", "stood", "walked", "walking",
+  // Compound verb phrase used in catalog ("walk away", "walks away")
+  "walk away", "walks away",
+  // Past-tense overlap with `LEGACY_BEHAVIOR_VERB_TOKENS` —
+  // duplicated here so the count helper sees them too. The
+  // word-boundary regex prevents double-substring matches.
+  "opened", "closed", "checked", "ignored", "snoozed",
+  "skipped", "scrolled", "swiped", "deleted", "ordered",
+  "looked", "watched", "ate", "drank", "lay", "sat",
+  "woke", "slept", "waited", "called", "texted", "emailed",
+  "ghosted", "blocked", "muted",
+];
+
+/**
+ * Phase 6F audit-tune — counts visible action verbs in a hook using
+ * word-boundary regex (not substring matching). Used by
+ * `scoreLegacyComedyScore` to detect multi-beat micro-story hooks
+ * (≥2 verbs joined by commas/periods) and exempt them from the
+ * comma penalty — so "I open it, glance, close it, pretend that
+ * counted" is treated like the spec PART 5 example "i opened it.
+ * then closed it" instead of being killed for having 3 commas.
+ */
+function countBehaviorVerbs(text: string): number {
+  let count = 0;
+  // Combine both lists (de-duplicated implicitly by the Set below)
+  // so the count covers past-tense AND present-tense forms.
+  const seen = new Set<string>();
+  for (const v of LEGACY_MULTIBEAT_ACTION_VERBS) seen.add(v);
+  for (const v of LEGACY_BEHAVIOR_VERB_TOKENS) seen.add(v);
+  for (const v of seen) {
+    // Escape regex special chars; spaces become \s+ so "walk away"
+    // matches "walk  away" too.
+    const escaped = v
+      .replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")
+      .replace(/\s+/g, "\\s+");
+    const re = new RegExp(`\\b${escaped}\\b`, "g");
+    const matches = text.match(re);
+    if (matches) count += matches.length;
+  }
+  return count;
+}
+
+/**
  * Avoidance / procrastination / mild-frustration vocabulary — drives
  * the emotional dim. Lighter than the premise emotion token set on
  * purpose: legacy hooks earn the emotional dim via subtle self-aware
@@ -8230,9 +8332,18 @@ const LEGACY_FILLER_TOKENS: ReadonlyArray<string> = [
  */
 export function scoreLegacyComedyScore(
   hook: string,
-  entry?:
-    | Pick<LanguagePhrasingEntry, "genericHook" | "hookIntent">
-    | undefined,
+  // Phase 6F (LEGACY COMEDY SCORING) — accepts either a Phase 3
+  // `LanguagePhrasingEntry` (used by the picker walk) OR a legacy
+  // `HookPhrasingEntry` (used by the rewriter), since the scorer
+  // only reads `entry?.genericHook` (the catalog low-quality flag)
+  // and never touches `hookIntent`. Both entry types have the
+  // identical optional `genericHook?: boolean` field, so a single
+  // structural shape `{ genericHook?: boolean }` is the precise
+  // contract — broader than `Pick<LanguagePhrasingEntry, …>` (which
+  // would force `hookIntent` to be required even though it's
+  // never read) and intentionally NOT scenario-shape-typed so a
+  // Phase 6 LegacyHookEntry remains call-compatible if/when added.
+  entry?: { genericHook?: boolean } | undefined,
   scenario?: { topicNoun?: string } | undefined,
 ): LegacyComedyScore {
   const text = (hook ?? "").toLowerCase().trim();
@@ -8338,8 +8449,21 @@ export function scoreLegacyComedyScore(
     /\b(because|even though|while|however|despite|whereas|although)\b/i.test(
       text,
     );
+  // Phase 6F audit-tune — multi-beat micro-story exemption. Hooks
+  // with ≥2 visible action verbs (counted via word-boundary regex)
+  // and ≤12 words are treated as comma-separated behavior beats —
+  // structurally equivalent to the spec PART 5 period-separated
+  // example "i opened it. then closed it". This unblocks sharp
+  // multi-action hooks like "I open it, glance, close it, pretend
+  // that counted" / "open the X, stare, close it, walk away" that
+  // the strict comma rule was over-killing (T002 audit found ~37%
+  // kill rate on `micro_story` style before tune).
+  const behaviorVerbCount = countBehaviorVerbs(text);
+  const isMultiBeatBehavior =
+    behaviorVerbCount >= 2 && wordCount <= 12 && !hasComplexConjunction;
   const isSimple =
-    wordCount <= 7 && commaCount === 0 && !hasComplexConjunction;
+    (wordCount <= 7 && commaCount === 0 && !hasComplexConjunction) ||
+    isMultiBeatBehavior;
   let clarityRaw: number = 2;
   if (isSimple) clarityRaw += 1;
   if (hasFiller) clarityRaw -= 1;
@@ -8352,12 +8476,23 @@ export function scoreLegacyComedyScore(
   // --- Simplicity (0-2) ------------------------------------------
   // Note: word-count > 12 is HARD-rejected above, so this dim only
   // discriminates the ≤12 band.
+  //
+  // Phase 6F audit-tune — multi-beat behavior hooks (≥2 action
+  // verbs, ≤12 words, no complex conjunction) are EXEMPT from the
+  // comma-count penalty. Commas in this case are micro-action beat
+  // separators (semantically the same as periods), not run-on
+  // syntax. Only semicolons / colons (mid-sentence breaks) still
+  // drop simplicity to 0.
   let simplicity: 0 | 1 | 2 = 2;
-  if (wordCount > 10 || commaCount > 1 || hasComplexConjunction) {
-    simplicity = 1;
-  }
-  if (commaCount > 2 || /[;:]/.test(text)) {
-    simplicity = 0;
+  if (isMultiBeatBehavior) {
+    if (/[;:]/.test(text)) simplicity = 0;
+  } else {
+    if (wordCount > 10 || commaCount > 1 || hasComplexConjunction) {
+      simplicity = 1;
+    }
+    if (commaCount > 2 || /[;:]/.test(text)) {
+      simplicity = 0;
+    }
   }
 
   // --- Emotional Signal (0-2) ------------------------------------
@@ -8476,6 +8611,16 @@ function pickValidatedLanguagePhrasing(
   // below into PatternMeta in `assembleCandidate` so
   // `selectionPenalty.premiseComedyBoost` can read it.
   premiseComedyScore?: PremiseComedyScore;
+  // Phase 6F — symmetric to `premiseComedyScore`, populated when the
+  // WINNING entry was a legacy template (entry.bigPremise !== true)
+  // AND the picker walk scored its final hook >= 5. Threaded up
+  // through every `return { ...x, ... }` site below into
+  // PatternMeta in `assembleCandidate` so
+  // `selectionPenalty.legacyComedyBoost` can read it. Undefined
+  // when the winner is a premise (the premise path already populates
+  // `premiseComedyScore` instead — the two are mutually exclusive
+  // because each walk site picks at most one entry).
+  legacyComedyScore?: LegacyComedyScore;
 } | null {
   const phrasings = HOOK_PHRASINGS_BY_LANGUAGE_STYLE[hookLanguageStyle];
   const n = phrasings.length;
@@ -8534,17 +8679,30 @@ function pickValidatedLanguagePhrasing(
     // winning entry was a premise; the < 5 HARD reject site already
     // filters out low scores so anything returned here is >= 5.
     premiseComedyScore?: PremiseComedyScore;
+    // Phase 6F — see outer return-type comment. Set ONLY when the
+    // winning entry was a legacy template; the < 5 HARD reject site
+    // (mirroring premise) filters out low scores so anything
+    // returned here is >= 5. The two are mutually exclusive.
+    legacyComedyScore?: LegacyComedyScore;
   } | null => {
-    // Phase 6E followup — `best` accumulates the highest-scored valid
-    // premise across the rotation when `premiseOnly === true`; for
-    // legacy walks we return on first valid below and never touch
-    // this slot.
+    // Phase 6E (premise) + Phase 6F (legacy) — `best` accumulates
+    // the highest-scored valid candidate across the rotation. Both
+    // premise and legacy walks now use best-scored selection so the
+    // legacy pool meets the same quality bar as the premise pool
+    // (spec PART 1 / PART 6 — "legacy hooks should not be cleverer
+    // than premise but they MUST be clear/simple/relatable/non-
+    // trash"). The previous first-valid behavior shipped mediocre
+    // hooks that appeared earlier in seed-rotated order over higher-
+    // quality hooks later in the rotation; mirroring premise's
+    // best-scored policy fixes that without changing the eligible
+    // set.
     let best:
       | {
           entry: LanguagePhrasingEntry;
           index: number;
           hook: string;
           premiseComedyScore?: PremiseComedyScore;
+          legacyComedyScore?: LegacyComedyScore;
         }
       | null = null;
     for (let offset = 0; offset < n; offset++) {
@@ -8626,35 +8784,49 @@ function pickValidatedLanguagePhrasing(
       // self-heal toward a higher-quality hook for the same scenario
       // before falling through to the legacy passes.
       //
-      // Legacy entries (entry.bigPremise !== true) are intentionally
-      // NOT scored — the rubric is a PREMISE-quality gate per spec.
-      // Legacy hooks remain governed by the existing structural rails.
-      // The 5-6 demote band (still >= 5 here) is enforced downstream
-      // in `selectionPenalty` via the scaled `premiseComedyBoost`,
-      // not at the picker walk; that lets a borderline-but-shippable
-      // premise still win when no better candidate exists for the
-      // slot, while a strong legacy can beat it on the +7..-2 boost
-      // gradient. The score is threaded up through the picker return
-      // into PatternMeta so QA + the boost lever can read it.
+      // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — symmetric
+      // gate for legacy entries (entry.bigPremise !== true). Score
+      // the FINAL hook against the 4-dim 0-10 legacy rubric and
+      // HARD REJECT when total < 5 (or when the structural rails
+      // — generic_filler list / no_anchor / too_long — tripped).
+      // Same self-healing `continue` so the legacy pool can also
+      // self-heal toward a higher-quality hook before exhausting.
+      // The 5-band (demote) is allowed here and penalized
+      // downstream in `selectionPenalty` via the scaled
+      // `legacyComedyBoost` — a lighter boost band than the premise
+      // boost (10→+5..5→-3) so the spec PART 6 tie-bias falls out
+      // naturally: premise ≥7 still beats legacy ≥7 by ≥1pt;
+      // legacy ≥7 beats premise ≤6 (correct per spec).
       let premiseComedyScore: PremiseComedyScore | undefined;
+      let legacyComedyScore: LegacyComedyScore | undefined;
       if (entry.bigPremise === true) {
         const score = scorePremiseComedyScore(finalHook, entry, scenario);
         if (score.rejected || score.total < 5) continue;
         premiseComedyScore = score;
+      } else {
+        const score = scoreLegacyComedyScore(finalHook, entry, scenario);
+        if (score.rejected || score.total < 5) continue;
+        legacyComedyScore = score;
       }
-      // Phase 6E (FOLLOWUP — picker walk reordering) — selection
-      // policy split. Legacy walks (premiseOnly === false) keep the
-      // original first-valid behavior; premise-only walks accumulate
-      // the highest-scored candidate and return at end-of-rotation
-      // (or short-circuit on a perfect 10 — no scan can improve).
-      // See the long comment above the walk declaration for the
-      // rationale.
-      const result = { entry, index: idx, hook: finalHook, premiseComedyScore };
-      if (!premiseOnly) return result;
-      const score = premiseComedyScore?.total ?? 0;
-      const bestScore = best?.premiseComedyScore?.total ?? 0;
-      // Strict `>` — earlier seed-rotated index wins on ties so the
+      // Phase 6E (FOLLOWUP) + Phase 6F — best-scored selection for
+      // BOTH premise and legacy walks. Each iteration's score is
+      // pulled from whichever rubric produced it (premise OR legacy
+      // — they're mutually exclusive per the if/else above), then
+      // accumulated into `best` if it strictly beats the running
+      // max. Strict `>` preserves earlier-wins tie semantics so the
       // walk stays deterministic and matches QA snapshot replay.
+      // Short-circuit on a perfect 10 (no scan can improve).
+      const result = {
+        entry,
+        index: idx,
+        hook: finalHook,
+        premiseComedyScore,
+        legacyComedyScore,
+      };
+      const score =
+        premiseComedyScore?.total ?? legacyComedyScore?.total ?? 0;
+      const bestScore =
+        best?.premiseComedyScore?.total ?? best?.legacyComedyScore?.total ?? 0;
       if (best === null || score > bestScore) {
         best = result;
         if (score >= 10) break;
@@ -8842,6 +9014,13 @@ function assembleCandidate(
     // `meta.premiseComedyScore.total` and the QA driver can read
     // the per-dimension breakdown + boost mechanisms.
     premiseComedyScore: pickedPremiseComedyScore,
+    // Phase 6F — symmetric to `pickedPremiseComedyScore`. Populated
+    // when the picker selected a legacy template (mutually exclusive
+    // with the premise field). Threaded onto PatternMeta in the
+    // !bigPremise block below so `selectionPenalty.legacyComedyBoost`
+    // can read `meta.legacyComedyScore.total` for the lighter scaled
+    // boost band that preserves spec PART 6 tie-bias.
+    legacyComedyScore: pickedLegacyComedyScore,
   } = picked;
   // Legacy hookStyle field is DERIVED from hookLanguageStyle via
   // the lossy backward-compat mapping. Every value is a valid
@@ -9188,6 +9367,26 @@ function assembleCandidate(
               ? { premiseComedyScore: pickedPremiseComedyScore }
               : {}),
           }
+        : {}),
+      // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — propagate the
+      // picker walk's legacy rubric score onto PatternMeta when the
+      // WINNING entry was a legacy template (entry.bigPremise !==
+      // true). Sits OUTSIDE the bigPremise spread above (which is
+      // gated on `sourceLanguagePhrasing.bigPremise`) so the legacy
+      // field never co-exists with the premise field — the two
+      // surfaces are mutually exclusive by construction (the picker
+      // walk's if/else assigns at most one). Spread-when-present so
+      // a defensive miss leaves the field undefined rather than
+      // serialising explicit nulls — same discipline as the
+      // `premiseStyleId` / `executionId` / `premiseComedyScore`
+      // blocks. The selection-layer scaled boost
+      // (`selectionPenalty.legacyComedyBoost`) reads
+      // `meta.legacyComedyScore?.total`; absent-or-zero gracefully
+      // maps to a 0 boost contribution so a missing score never
+      // accidentally promotes or demotes a candidate. The QA driver
+      // reads the full breakdown for the PART 8 report.
+      ...(pickedLegacyComedyScore !== undefined
+        ? { legacyComedyScore: pickedLegacyComedyScore }
         : {}),
     },
   };
