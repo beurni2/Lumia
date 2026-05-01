@@ -3679,7 +3679,12 @@ export function pickVideoPattern(
   intent: HookIntent | undefined,
   recentPatterns: ReadonlySet<VideoPattern>,
   seed: number,
-): { pattern: VideoPattern; intentFallback: boolean } {
+  premiseStyleId?: PremiseStyleId,
+): {
+  pattern: VideoPattern;
+  intentFallback: boolean;
+  premiseStyleAlignmentApplied: boolean;
+} {
   const familyAllowed = PATTERN_BY_FAMILY[family];
   // Defensive: every family is registered above, but if a future
   // edit removes one the type-system would catch it at the
@@ -3700,6 +3705,27 @@ export function pickVideoPattern(
     }
   }
 
+  // Phase 6B — premiseStyle → pattern alignment overlay. When the
+  // candidate carries a fine-grained premiseStyleId, intersect the
+  // family ∩ intent set with the style's compat list so the chosen
+  // filming pattern AMPLIFIES the joke (not just satisfies the
+  // family/intent allowlists). If the intersection is empty (style's
+  // patterns don't overlap the family/intent path), fall back to the
+  // family/intent candidates UNCHANGED — alignment is best-effort,
+  // never a starvation source. Telemetry flag set so QA can count
+  // hit/miss rate per style.
+  let premiseStyleAlignmentApplied = false;
+  if (premiseStyleId !== undefined) {
+    const styleAllowed = PREMISESTYLE_TO_PATTERN_MAP[premiseStyleId];
+    if (styleAllowed.length > 0) {
+      const aligned = candidates.filter((p) => styleAllowed.includes(p));
+      if (aligned.length > 0) {
+        candidates = aligned;
+        premiseStyleAlignmentApplied = true;
+      }
+    }
+  }
+
   // Rank: unused (not in recentPatterns) before recently-used. Within
   // each bucket, deterministic seed-tie-break by name hash so the
   // same inputs always produce the same pick.
@@ -3715,7 +3741,7 @@ export function pickVideoPattern(
   });
 
   const pattern = ranked[0]!;
-  return { pattern, intentFallback };
+  return { pattern, intentFallback, premiseStyleAlignmentApplied };
 }
 
 /* ------------------------------------------------------------------ */
@@ -4969,6 +4995,95 @@ export const PREMISE_STYLE_LABELS: Record<PremiseStyleId, string> =
       [PremiseStyleId, PremiseStyleDef]
     >).map(([id, def]) => [id, def.label]),
   ) as Record<PremiseStyleId, string>;
+
+/**
+ * Phase 6B — PremiseStyleId → compatible VideoPattern[] alignment map.
+ *
+ * Routing layer that lets the FILMING PATTERN match the JOKE, not just
+ * the family/intent. Each of the 50 fine-grained premise styles maps
+ * to 2-4 patterns whose `beats` / `cameraStyle` naturally amplify the
+ * style's transformLogic (see `PREMISE_STYLE_DEFS[id].purpose`).
+ *
+ * USAGE: `pickVideoPattern` intersects this list with
+ *   `PATTERN_BY_FAMILY[family]` ∩ `PATTERN_X_INTENT_COMPAT[intent]`.
+ * If the intersection is non-empty → rank within it (existing inverse-
+ * recency + seed-fold logic). If empty (or `premiseStyleId` undefined)
+ * → fallback to the unchanged family/intent path.
+ *
+ * DIVERSITY AUDIT (verified by QA driver in T005):
+ *   - every one of the 12 patterns appears in ≥1 style's compat list
+ *     (loop_behavior is the floor at 5 occurrences = 10%)
+ *   - no pattern dominates >40% of style mappings
+ *     (deadpan_statement = 19/50 = 38% is the ceiling)
+ *
+ * NON-PREMISE candidates (legacy / Llama / Claude / fallbacks) do not
+ * carry a `premiseStyleId` and therefore route through the unchanged
+ * family/intent path — Phase 6F legacy scoring is untouched.
+ */
+export const PREMISESTYLE_TO_PATTERN_MAP: Record<
+  PremiseStyleId,
+  readonly VideoPattern[]
+> = {
+  // self_roast — creator named as the failure point; flat verbal naming + held face
+  self_roast_reactor: ["deadpan_statement", "silent_reaction", "micro_story"],
+  relatable_pain: ["micro_story", "silent_reaction", "deadpan_statement"],
+  fake_confidence: ["confidence_collapse", "before_after", "cut_before_end"],
+  lazy_genius: ["deadpan_statement", "micro_story", "silent_reaction"],
+  doomscroll_disclosure: ["loop_behavior", "micro_story", "pov_internal"],
+  hypocrisy_hyperdrive: ["before_after", "deadpan_statement", "micro_story"],
+  fomo_fracture: ["before_after", "pov_internal", "confidence_collapse"],
+  self_destruction_speedrun: ["cut_before_end", "escalation", "silent_reaction"],
+  self_sabotage_scrollstop: ["micro_story", "silent_reaction", "deadpan_statement"],
+  procrastination_paradox: ["loop_behavior", "escalation", "micro_story"],
+  group_chat_guilt: ["object_pov", "micro_story", "silent_reaction"],
+  todo_termination: ["object_pov", "deadpan_statement", "micro_story"],
+  boundary_backfire: ["confidence_collapse", "escalation", "pov_internal"],
+  cart_autopsy: ["object_pov", "deadpan_statement", "montage_repeat"],
+  dream_disappointment: ["before_after", "deadpan_statement", "cut_before_end"],
+  weekly_wipeout: ["before_after", "montage_repeat", "confidence_collapse"],
+  manifestation_mockery: ["before_after", "confidence_collapse", "cut_before_end"],
+
+  // absurd_metaphor — tiny → cosmic; chaos / object personification / surreal
+  absurd_escalation: ["escalation", "cut_before_end", "montage_repeat"],
+  collapse_core: ["cut_before_end", "silent_reaction", "deadpan_statement"],
+  mundane_meltdown: ["escalation", "montage_repeat", "silent_reaction"],
+  inner_demon: ["pov_internal", "deadpan_statement", "escalation"],
+  metaphor_mayhem: ["object_pov", "deadpan_statement", "pov_internal"],
+  rage_resonance: ["escalation", "silent_reaction", "cut_before_end"],
+  everyday_armageddon: ["escalation", "object_pov", "montage_repeat"],
+  cringe_trigger: ["delayed_reaction", "silent_reaction", "pov_internal"],
+  plant_parent_psychosis: ["object_pov", "deadpan_statement", "micro_story"],
+  fridge_judgment: ["object_pov", "silent_reaction", "deadpan_statement"],
+
+  // contrast_duality — two-state collisions; matched-framing cuts
+  duality_clash: ["before_after", "montage_repeat", "confidence_collapse"],
+  expectation_collapse: ["confidence_collapse", "before_after", "cut_before_end"],
+  irony_flip: ["before_after", "deadpan_statement", "delayed_reaction"],
+  irony_implosion: ["before_after", "escalation", "cut_before_end"],
+  whiplash_wisdom: ["delayed_reaction", "before_after", "confidence_collapse"],
+  contrast_catastrophe: ["before_after", "confidence_collapse", "cut_before_end"],
+
+  // over_dramatization — escalating buildup → collapse / abrupt KO
+  overdramatic_reframe: ["escalation", "silent_reaction", "cut_before_end"],
+  dopamine_denial: ["confidence_collapse", "escalation", "micro_story"],
+  delusion_downfall: ["confidence_collapse", "before_after", "delayed_reaction"],
+  micro_trauma: ["delayed_reaction", "silent_reaction", "before_after"],
+  anxiety_paradox: ["pov_internal", "loop_behavior", "silent_reaction"],
+  adulting_betrayal: ["escalation", "cut_before_end", "montage_repeat"],
+  pain_point_precision: ["deadpan_statement", "silent_reaction", "micro_story"],
+  delusion_spiral: ["confidence_collapse", "escalation", "pov_internal"],
+  confidence_crash: ["confidence_collapse", "before_after", "cut_before_end"],
+  anxiety_avalanche: ["escalation", "montage_repeat", "pov_internal"],
+  burnout_betrayal: ["before_after", "silent_reaction", "deadpan_statement"],
+  social_battery_sabotage: ["confidence_collapse", "before_after", "pov_internal"],
+
+  // identity_framing — labelling self / role; before/after + interior + naming
+  pattern_exposure: ["loop_behavior", "montage_repeat", "pov_internal"],
+  chaos_confession: ["deadpan_statement", "pov_internal", "micro_story"],
+  main_character_meltdown: ["confidence_collapse", "before_after", "delayed_reaction"],
+  comic_relief_cataclysm: ["micro_story", "deadpan_statement", "delayed_reaction"],
+  three_am_spiral: ["pov_internal", "loop_behavior", "deadpan_statement"],
+};
 
 /**
  * Phase 6 EXPANSION — resolve the parent BigPremiseStyle bucket for a
@@ -7349,6 +7464,19 @@ export type PatternMeta = {
    */
   videoPatternIntentFallback?: boolean;
   /**
+   * Phase 6B — true when the chosen `videoPattern` was filtered through
+   * `PREMISESTYLE_TO_PATTERN_MAP[premiseStyleId]` (style → pattern
+   * alignment overlay applied on top of family ∩ intent). Absent /
+   * false when:
+   *   - the entry has no `premiseStyleId` (legacy / Llama / fallback)
+   *   - the style's compat list has zero overlap with family ∩ intent
+   *     (alignment skipped, family/intent path used UNCHANGED)
+   * Telemetry-only — does NOT affect scoring or batch guards. The QA
+   * driver counts hit/miss rate per style to validate the routing
+   * actually fires for the premise share.
+   */
+  videoPatternPremiseStyleAligned?: boolean;
+  /**
    * Phase 3 HOOK TEMPLATE TUNING — stable identifier for the chosen
    * `LanguagePhrasingEntry`'s formulaic skeleton (e.g. "todays_update",
    * "manage_now_hostage"). Set ONLY when the picked entry carries a
@@ -9095,15 +9223,24 @@ function assembleCandidate(
   // (family, intent, recent) inputs but different slotSalt produce
   // different deterministic picks.
   const resolvedHookIntent = getEntryIntent(sourceLanguagePhrasing);
-  const { pattern: videoPattern, intentFallback: videoPatternIntentFallback } =
-    pickVideoPattern(
-      ideaCoreFamily,
-      resolvedHookIntent,
-      recentVideoPatternsInPool ?? new Set<VideoPattern>(),
-      (slotSalt ^
-        ((ideaCoreFamily.length * 13 + resolvedHookIntent.length) >>> 0)) >>>
-        0,
-    );
+  // Phase 6B — pass the entry's fine-grained premiseStyleId (when
+  // present) so `pickVideoPattern` can apply the alignment overlay
+  // (style → patterns) on top of the family/intent allowlist. Legacy
+  // / Llama / Claude / fallback entries don't carry premiseStyleId
+  // and therefore route through the unchanged family/intent path.
+  const {
+    pattern: videoPattern,
+    intentFallback: videoPatternIntentFallback,
+    premiseStyleAlignmentApplied: videoPatternPremiseStyleAligned,
+  } = pickVideoPattern(
+    ideaCoreFamily,
+    resolvedHookIntent,
+    recentVideoPatternsInPool ?? new Set<VideoPattern>(),
+    (slotSalt ^
+      ((ideaCoreFamily.length * 13 + resolvedHookIntent.length) >>> 0)) >>>
+      0,
+    sourceLanguagePhrasing.premiseStyleId,
+  );
   // Copy beats by spread so `idea.filmingGuide` isn't a reference
   // to the catalog's readonly array — downstream code that wants
   // to mutate / annotate gets a private mutable string[].
@@ -9292,6 +9429,14 @@ function assembleCandidate(
       // telemetry instead of silently corrupting selection.
       ...(videoPatternIntentFallback
         ? { videoPatternIntentFallback: true }
+        : {}),
+      // Phase 6B — telemetry: true when the chosen videoPattern was
+      // filtered through the premiseStyleId → patterns alignment map.
+      // Spread-when-true so non-premise entries (no premiseStyleId)
+      // and premise entries with empty intersection (alignment fell
+      // through to family/intent path) leave the field absent.
+      ...(videoPatternPremiseStyleAligned
+        ? { videoPatternPremiseStyleAligned: true }
         : {}),
       // Phase 3 HOOK TEMPLATE TUNING — propagate the formulaic
       // skeleton id from the WINNING entry. Spread-when-present so

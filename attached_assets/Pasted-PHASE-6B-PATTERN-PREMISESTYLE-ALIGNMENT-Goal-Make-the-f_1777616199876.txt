@@ -1,0 +1,184 @@
+PHASE 6B — PATTERN × PREMISESTYLE ALIGNMENT
+
+Goal:
+Make the filming pattern match the joke.
+
+Right now:
+- patterns are chosen from family + intent
+- premiseStyle exists but is not driving filming
+
+After this:
+- premiseStyle influences HOW the idea is filmed
+- pattern amplifies the joke, not just the scenario
+
+---
+
+CORE RULE
+
+Pattern must support the PremiseStyle.
+
+NOT:
+scenario → pattern
+
+BUT:
+premiseStyle → pattern (with compatibility constraints)
+
+---
+
+PART 1 — ADD COMPATIBILITY MAP
+
+Create:
+
+PREMISESTYLE_TO_PATTERN_MAP
+
+Each premiseStyle maps to 2–4 compatible patterns.
+
+Examples:
+
+self_roast_reactor →
+- silent_reaction
+- direct_address
+- talking_head_deadpan
+
+absurd_escalation →
+- escalation
+- cut_before_end
+- chaos_sequence
+
+duality_contrast →
+- before_after
+- split_screen
+- contrast_cut
+
+object_personification →
+- object_pov
+- silent_reaction
+- narrator_voice
+
+social_confession →
+- direct_address
+- voice_memo
+- talking_head
+
+overdramatic →
+- escalation
+- cinematic_overreaction
+
+---
+
+PART 2 — PATTERN SELECTION ORDER
+
+Change pattern selection flow:
+
+Current:
+family → pattern
+
+New:
+1. get premiseStyle
+2. get compatible patterns
+3. intersect with:
+   - family allowed patterns
+   - HookIntent compatibility
+4. rank candidates
+5. pick best
+
+Fallback:
+- if no match → fallback to existing family-based logic
+
+---
+
+PART 3 — PATTERN RANKING
+
+Rank by:
+
+1. compatibility strength with premiseStyle
+2. recency (unused patterns boosted)
+3. diversity within batch
+
+Do NOT:
+- random pick
+- ignore premiseStyle
+
+---
+
+PART 4 — FILMING GUIDE ALIGNMENT
+
+Each pattern has beats.
+
+Ensure beats reflect the premise:
+
+Example:
+
+Premise:
+"i ghosted my own to-do list"
+
+Pattern:
+silent_reaction
+
+Beats:
+- look at phone/list
+- pause
+- subtle reaction
+- cut
+
+NOT:
+random escalation or irrelevant motion
+
+---
+
+PART 5 — WITHIN-BATCH DIVERSITY
+
+Keep:
+
+- no 3-of-same pattern
+- prefer ≥2 distinct patterns per batch
+- avoid repeating same pattern across consecutive batches
+
+PremiseStyle diversity rules remain unchanged.
+
+---
+
+PART 6 — DO NOT BREAK EXISTING SYSTEM
+
+Do NOT:
+- change scoring system
+- change premise scoring
+- change legacy scoring
+- change HookIntent logic
+- change Phase 5 pattern definitions
+- modify catalog structure
+
+This is a routing/alignment layer only.
+
+---
+
+PART 7 — QA
+
+Run 10 batches.
+
+Report:
+
+- pattern distribution
+- premiseStyle → pattern match rate
+- fallback rate (when mapping fails)
+- top 10 hooks + patterns
+- bottom 10 hooks + patterns
+
+Success:
+
+- pattern matches feel natural for the joke
+- no weird mismatches (e.g. calm joke with chaos pattern)
+- visual idea feels stronger than before
+- diversity still intact
+
+---
+
+IMPORTANT
+
+Pattern should feel like:
+
+"of course this is how you'd film this joke"
+
+NOT:
+
+"this is just a random format applied"
