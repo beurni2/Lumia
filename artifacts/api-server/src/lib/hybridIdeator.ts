@@ -1068,7 +1068,37 @@ export function selectWithNovelty(
     chosen = greedy;
   } else {
     // Greedy violated guards — try exhaustive search over top candidates.
-    const reselected = exhaustiveReselect(pool, count, ctx);
+    //
+    // Phase 6D Path D (extension to guards_reselect): apply the same
+    // premise-aware tiered reselect used by the active_energy rescue
+    // below. When greedy fails non-freshness guards (e.g.
+    // allLowEnergy, narrative-shape, voice-strong-preference), the
+    // reselect should prefer a guards-passing combo that retains AT
+    // LEAST as many premise candidates as greedy had — otherwise the
+    // reselect silently swaps in LEG candidates whenever they happen
+    // to satisfy guards (empirically the dominant non-freshness LEG
+    // source post Path-B+ / Path-C; see /tmp/qa6d_pathCD10.json
+    // batches 4/5/6). Tier 2 fallback preserves the original
+    // "any guards-passing combo" semantics so we never lose the
+    // underlying invariant on creators whose pool genuinely cannot
+    // supply a premise-preserving guards-passing combo.
+    const greedyPremiseCount = greedy.filter(
+      (c) => c.meta.usedBigPremise === true,
+    ).length;
+    let reselected =
+      greedyPremiseCount > 0
+        ? exhaustiveReselect(
+            pool,
+            count,
+            ctx,
+            (b) =>
+              b.filter((c) => c.meta.usedBigPremise === true).length >=
+              greedyPremiseCount,
+          )
+        : null;
+    if (!reselected) {
+      reselected = exhaustiveReselect(pool, count, ctx);
+    }
     if (reselected) chosen = reselected;
   }
   phase6dSnap(
@@ -1441,34 +1471,74 @@ export function selectWithNovelty(
       opts.regenerate &&
       (ctx.recentVoiceProfiles?.size ?? 0) > 0 &&
       batchHasNewVoiceProfile(chosen, ctx.recentVoiceProfiles);
-    const active = exhaustiveReselect(
+    // Phase 6D Path D: count premise candidates in the currently-
+    // chosen batch, so we can require any active-energy reselect to
+    // preserve OR INCREASE that count. The active-energy rescue's
+    // primary job is to add an "active" anchor — but it must NOT
+    // silently downgrade premise share by swapping in a more-active
+    // batch that happens to carry more LEG. This snapshot drives the
+    // tiered reselect below: prefer premise-preserving alternatives
+    // first, and only fall back to "any active alternative" if the
+    // pool genuinely cannot supply one. Mirrors the snapshot
+    // discipline used for the freshness invariants above.
+    const minPremiseRequired = chosen.filter(
+      (c) => c.meta.usedBigPremise === true,
+    ).length;
+    // Phase 6D Path B+: each axis-preservation predicate accepts
+    // EITHER the axis-of-record token OR a fresh premiseStyleId.
+    // This keeps the active-energy pass in step with the four
+    // cascade rescues above — they all agree that a fresh
+    // premiseStyleId is sufficient cross-batch diversity, so the
+    // active-energy reselect must not reject candidates the
+    // cascades would have accepted. Hoisted into a single named
+    // predicate so the Path D tiered reselect below can compose it.
+    const baseActiveGuard = (b: ScoredCandidate[]): boolean =>
+      batchHasActive(b) &&
+      countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >=
+        minFreshFamiliesRequired &&
+      (!requireFreshFamily ||
+        batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) ||
+        batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
+      (!requireFreshTag ||
+        batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) ||
+        batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
+      (!requireFreshLang ||
+        batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) ||
+        batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
+      (!requireFreshVoice ||
+        batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) ||
+        batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds));
+    // Phase 6D Path D — TIER 1: try to find an active alternative
+    // that ALSO preserves (or increases) premise count. This is the
+    // premise-aware tiebreak: among multiple valid active reselects,
+    // prefer those that don't sacrifice premise share. Honors all
+    // user constraints — does not weaken hard diversity guards
+    // (composes baseActiveGuard verbatim), does not remove the
+    // active_energy rescue (Tier 2 below preserves the original
+    // semantics as fallback), does not force 100% premise (the
+    // tiered design caps premise preservation at the chosen
+    // batch's current count, never adds a 100%-premise floor).
+    let active = exhaustiveReselect(
       pool,
       count,
       ctx,
       (b) =>
-        batchHasActive(b) &&
-        countNewIdeaCoreFamilies(b, ctx.recentIdeaCoreFamilies) >=
-          minFreshFamiliesRequired &&
-        // Phase 6D Path B+: each axis-preservation predicate accepts
-        // EITHER the axis-of-record token OR a fresh premiseStyleId.
-        // This keeps the active-energy pass in step with the four
-        // cascade rescues above — they all agree that a fresh
-        // premiseStyleId is sufficient cross-batch diversity, so the
-        // active-energy reselect must not reject candidates the
-        // cascades would have accepted.
-        (!requireFreshFamily ||
-          batchHasNewArchetypeFamily(b, ctx.recentArchetypeFamilies) ||
-          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
-        (!requireFreshTag ||
-          batchHasNewSceneObjectTag(b, ctx.recentSceneObjectTags) ||
-          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
-        (!requireFreshLang ||
-          batchHasNewHookLanguageStyle(b, ctx.recentHookLanguageStyles) ||
-          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)) &&
-        (!requireFreshVoice ||
-          batchHasNewVoiceProfile(b, ctx.recentVoiceProfiles) ||
-          batchHasNewPremiseStyleId(b, ctx.recentPremiseStyleIds)),
+        baseActiveGuard(b) &&
+        b.filter((c) => c.meta.usedBigPremise === true).length >=
+          minPremiseRequired,
     );
+    // Phase 6D Path D — TIER 2: if no premise-preserving active
+    // alternative exists, fall back to the original active-only
+    // predicate. This preserves the rescue's original "best-effort
+    // active anchor" semantics for the rare case where the pool
+    // genuinely lacks a premise-preserving option (e.g. the only
+    // active candidates are Llama-generated legacy hooks). Without
+    // this fallback we'd silently lose the active-energy spec
+    // guarantee on those batches — Tier 1 wraps the constraint,
+    // Tier 2 ensures we never drop the underlying invariant.
+    if (!active) {
+      active = exhaustiveReselect(pool, count, ctx, baseActiveGuard);
+    }
     if (active) chosen = active;
   }
   phase6dSnap("active_energy", chosen);

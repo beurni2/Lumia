@@ -2842,15 +2842,37 @@ export function selectionPenalty(
   // so it never gets the boost; +4 vs Llama +0 widens the moat
   // without re-enabling artificial legacy suppression — fully
   // spec-compliant per the "do not artificially suppress further"
-  // rule). Empirical: +5 was attempted but did NOT improve mean
-  // premise share (boost saturates around +4 because Llama hooks
-  // with strong intrinsic hookImpact/personalFit/tension still
-  // outscore premise+boost in some bucket/slot combinations).
-  // Going to +6 also backfired earlier (saw -8pp) before the 29
-  // hand-written entries carried premiseStyleId. The +4 setting
-  // is the empirical sweet spot under the no-suppression
-  // constraint.
-  if (c.meta.usedBigPremise === true) p += 4;
+  // rule).
+  //
+  // Phase 6D Path C (post-Path-B+ tightening): bumped +4 → +7 once
+  // Path B + B+ confirmed all 5 cross-batch freshness rescues are
+  // now non-binding. The earlier +5 / +6 attempts saturated /
+  // backfired BEFORE the 200-entry executions catalog landed and
+  // BEFORE the hand-written entries carried premiseStyleId — the
+  // candidate landscape today has dense premiseStyleId coverage,
+  // so a wider boost no longer starves the picker on creators
+  // whose calibration leaves few premise-styled candidates in the
+  // pool. Empirically (Path C+D QA), +7 lifts mean premise-share
+  // toward the 0.85 spec gate without forcing 100% premise (the
+  // strongest Llama legacy hooks with hookImpact/tension headroom
+  // still win, preserving the 10-20% legacy rhythm requested by
+  // the user). Stacking math:
+  //   - Fresh premise on slot 1                : net +7 (preferred).
+  //   - Premise reusing a recent style         : +7 -2 = +5 (still
+  //                                              preferred over legacy 0).
+  //   - Premise duplicating an in-batch style  : +7 -8 = -1 (correctly
+  //                                              loses to fresh-style
+  //                                              alternative — the dup
+  //                                              guards still win).
+  //   - Premise with banned prefix             : +7 -5 = +2 (banned
+  //                                              prefix still penalized,
+  //                                              just no longer fully
+  //                                              suppressed at the
+  //                                              selection layer; the
+  //                                              hard `validateHook`
+  //                                              reject still blocks
+  //                                              these from shipping).
+  if (c.meta.usedBigPremise === true) p += 7;
   // Phase 3 HOOK TEMPLATE TUNING — flat selection-layer demotion for
   // generic-template hooks (entries with `genericHook=true`). The
   // per-intent scorers already apply a -4 inside scoreScrollStop /
