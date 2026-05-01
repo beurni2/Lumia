@@ -23,6 +23,9 @@
     },
     {
       "path": "./packages/integrations/openrouter-ai"
+    },
+    {
+      "path": "./packages/lumina-trends"
     }
   ]
 }

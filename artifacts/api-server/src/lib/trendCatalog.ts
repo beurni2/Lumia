@@ -907,14 +907,16 @@ export function scoreTrendFit(
   // Repeat penalty — `recentTrendIds` may be a Set OR an array;
   // both are O(1) for Set / O(n) for small arrays which is fine
   // here (recent set is bounded by the cache history depth). We
-  // narrow on `Array.isArray` rather than `instanceof Set` because
-  // TypeScript can't narrow a `readonly string[] | ReadonlySet<string>`
-  // union via the latter (Set's structural overlap with the readonly
-  // array primitive type confuses the type narrower).
+  // narrow via the structural `'has' in` test rather than
+  // `Array.isArray` because the latter returns `arg is any[]` (NOT
+  // `readonly any[]`) and TypeScript fails to narrow the false
+  // branch back to `ReadonlySet<string>` from a
+  // `readonly string[] | ReadonlySet<string>` union.
   if (recentTrendIds) {
-    const isRepeat = Array.isArray(recentTrendIds)
-      ? recentTrendIds.includes(trend.id)
-      : recentTrendIds.has(trend.id);
+    const isRepeat =
+      "has" in recentTrendIds
+        ? recentTrendIds.has(trend.id)
+        : recentTrendIds.includes(trend.id);
     if (isRepeat) score -= 2;
   }
 
