@@ -291,3 +291,16 @@ export function getVoiceCluster(id: VoiceClusterId): VoiceCluster {
   }
   return c;
 }
+
+/** PHASE Y10 — single source of truth for the 4-cluster taxonomy
+ *  membership check. Reads off the same `VOICE_CLUSTERS` registry
+ *  the rest of the module is built from, so a future taxonomy
+ *  addition (5th cluster) automatically widens this guard with no
+ *  duplicated tuple to maintain. Used by `hybridIdeator` to drop
+ *  legacy / corrupt voiceClusterId strings on the way INTO the
+ *  cross-batch histogram (cache parse) AND on the way OUT (cache
+ *  write) so the recent-voice channel can never be poisoned by a
+ *  non-cluster string. */
+export function isVoiceClusterId(s: string): s is VoiceClusterId {
+  return _byId.has(s as VoiceClusterId);
+}

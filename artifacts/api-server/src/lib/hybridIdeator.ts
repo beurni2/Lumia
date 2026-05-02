@@ -109,6 +109,17 @@ import {
 } from "./coreDomainAnchorCatalog";
 import { extractAnchorAndAction } from "./scenarioFingerprint";
 import {
+  isVoiceClusterId as _isVoiceClusterId,
+  type VoiceClusterId,
+} from "./voiceClusters.js";
+// PHASE Y10 — `isVoiceClusterId` is the single source of truth for
+// the 4-cluster taxonomy membership (lives in `voiceClusters.ts`
+// next to the type itself + the `VOICE_CLUSTERS` registry it reads
+// off). Imported under the `_` alias here to mark it as a guard
+// helper for the cache parse / write paths below (architect-fix:
+// avoids a duplicated literal tuple that could silently under-
+// accept a future taxonomy addition).
+import {
   resolveArchetypeLoose,
   type Archetype,
   type ArchetypeFamily,
@@ -2308,6 +2319,25 @@ type CachedBatchEntry = {
    * can't false-match a fresh fp downstream.
    */
   scenarioFingerprint?: string;
+  /**
+   * PHASE Y10 — voice cluster id (`dry_deadpan` | `chaotic_confession`
+   * | `quiet_realization` | `overdramatic_reframe`) the cohesive
+   * author resolved at cache-write time. Persisted so the next
+   * regen's `loadMemory` can build the `recentVoiceClusters`
+   * histogram directly off the envelope without a derivation path
+   * (the chosen cluster is path-dependent on the
+   * `(salt, coreId, recipeIdx)` triple — re-deriving from the cached
+   * `idea.hook` text would be both expensive AND lossy after Llama
+   * polish). Same non-breaking JSONB pattern as
+   * `scenarioFingerprint` above — legacy entries written before Y10
+   * shipped (and Llama / Claude fallback wraps that pick a voice
+   * outside the 4-cluster taxonomy) read back as undefined and
+   * contribute nothing to the cross-batch voice rotation. Tolerantly
+   * parsed below against the 4-id union — any other string silently
+   * drops to undefined so a corrupt envelope can't poison the
+   * recent voice histogram with a non-cluster string.
+   */
+  voiceClusterId?: VoiceClusterId;
 };
 
 /**
@@ -2327,13 +2357,23 @@ type CachedEnvelope = {
 };
 
 /**
- * How many *prior* batches we keep beyond the current one. With
- * count=3 picks per batch and ~20 scenario families, retaining the
- * last 5 batches (current + 4 history) excludes at most ~15 unique
- * families from a regen — well under the 20-family pool, so the
- * pattern engine still has plenty of room to fill the 3 picks.
+ * How many *prior* batches we keep beyond the current one. PHASE Y10
+ * lifted this from 4 → 6 so the cross-batch freshness windows
+ * (anchors, scenario fingerprints, voice clusters) span the LAST 7
+ * BATCHES (current + 6 history) the creator has been shown. The HARD
+ * hook exclusion in `buildExclusion` widens with the same window —
+ * with count=3 picks per batch that's ~21 unique hooks excluded,
+ * which mathematically prevents an identical 3-hook batch from
+ * re-appearing across the user-visible window.
+ *
+ * FAMILY exclusion stays at depth 1 (`immediatePrior`, see
+ * `buildExclusion`) because the family pool is only ~20 entries —
+ * extending family exclusion to depth 7 would shrink the pattern
+ * engine's candidate pool below the 3-pick threshold. Older-batch
+ * family repetition is handled SOFTLY by the novelty-context
+ * penalties.
  */
-const MAX_HISTORY_BATCHES = 4;
+const MAX_HISTORY_BATCHES = 6;
 
 /**
  * Parse the entries inside a single batch. Accepts either the
@@ -2362,6 +2402,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         legacyComedyScoreTotal?: unknown;
         viralFeelScoreTotal?: unknown;
         scenarioFingerprint?: unknown;
+        voiceClusterId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2535,6 +2576,18 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         typeof sfRaw === "string" && /^sf_[0-9a-f]{12}$/.test(sfRaw)
           ? sfRaw
           : undefined;
+      // PHASE Y10 — voice cluster id tolerant parse: only adopt
+      // strings matching one of the 4 known `VoiceClusterId` values
+      // (see voiceClusters.ts). Anything else (legacy entries pre-
+      // Y10 / Llama / Claude wraps without a cluster id / corruption
+      // / future-rename drift) silently drops to undefined so the
+      // recentVoiceClusters histogram built from the envelope can't
+      // be poisoned by a non-cluster string downstream.
+      const vcRaw = wrapper.voiceClusterId;
+      const voiceClusterId: VoiceClusterId | undefined =
+        typeof vcRaw === "string" && _isVoiceClusterId(vcRaw)
+          ? vcRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -2556,6 +2609,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         legacyComedyScoreTotal,
         viralFeelScoreTotal,
         scenarioFingerprint,
+        voiceClusterId,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2650,18 +2704,19 @@ type ExclusionSet = {
  * "no identical 3-hook batch in the last N batches" without
  * exhausting the family pool:
  *
- *   - `allHistory` (depth N=5) → contributes excluded HOOK texts.
- *     Every hook the creator has been shown in the last 5 batches
- *     becomes off-limits, which mathematically prevents an
- *     identical 3-hook batch from re-appearing.
+ *   - `allHistory` (depth N=7 — PHASE Y10 widened from 5) →
+ *     contributes excluded HOOK texts. Every hook the creator has
+ *     been shown in the last 7 batches becomes off-limits, which
+ *     mathematically prevents an identical 3-hook batch from
+ *     re-appearing across the user-visible window.
  *
  *   - `immediatePrior` (depth 1) → contributes excluded FAMILIES
  *     and styles. Family exclusion only spans the immediately
- *     previous batch — extending it to depth 5 would shrink the
+ *     previous batch — extending it to depth 7 would shrink the
  *     pattern engine's candidate pool below the 3-pick threshold
  *     after a few regens (the pattern engine has ~20 families;
- *     5 batches × ~3 unique families each = ~12 excluded → only
- *     ~8 left, often not enough to satisfy the per-batch axis
+ *     7 batches × ~3 unique families each = ~17 excluded → only
+ *     ~3 left, often not enough to satisfy the per-batch axis
  *     guards). Older-batch family repetition is handled SOFTLY by
  *     the novelty-context penalties below.
  */
@@ -2864,6 +2919,24 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // strict `/^sf_[0-9a-f]{12}$/` regex so a corrupt envelope can't
     // poison the recent fp set.
     scenarioFingerprint: c.meta.scenarioFingerprint,
+    // PHASE Y10 — persist the cohesive author's resolved voice
+    // cluster id on the cache envelope so the next regen's
+    // `loadMemory` can build the `recentVoiceClusters` histogram
+    // directly off the envelope without a derivation path. Source:
+    // `meta.voiceClusterId` — a flat optional field on the
+    // CandidateMeta union (set by `coreCandidateGenerator` for
+    // core_native picks; absent for PatternMeta + Llama / Claude
+    // fallback wraps which don't necessarily pick from the 4-cluster
+    // taxonomy). Same non-breaking JSONB pattern as the rest of the
+    // cache fields — undefined flows through cleanly and the next
+    // regen's histogram build just skips that entry. tryParseEntries
+    // above guards the read side with a 4-id whitelist so a corrupt
+    // envelope can't poison the recent voice histogram.
+    voiceClusterId:
+      typeof c.meta.voiceClusterId === "string" &&
+      _isVoiceClusterId(c.meta.voiceClusterId)
+        ? c.meta.voiceClusterId
+        : undefined,
   }));
 }
 
@@ -3210,7 +3283,10 @@ export async function runHybridIdeator(
     priorBatches,
   );
   // PHASE X2 — PART 4 — collect normalized premise sentences from
-  // the last-5 visible batches' cached `idea.premise` fields. Set
+  // the last-7 visible batches' cached `idea.premise` fields (PHASE
+  // Y10 widened from 5 → 7 batches; the slice is the shared
+  // freshness window also feeding `recentAnchors`,
+  // `recentScenarioFingerprints`, and `recentVoiceClusters` below). Set
   // is empty for cold-start creators and for legacy entries
   // written before the premise field was persisted (the field is
   // optional on Idea — Layer-1 candidates don't carry it; only
@@ -3221,9 +3297,9 @@ export async function runHybridIdeator(
   // because exact-premise duplication is a sharper signal — a
   // creator notices a verbatim premise repeat across 5 batches,
   // not just the immediate prior).
-  const last5BatchesForPremises = priorBatches.slice(0, 5);
+  const last7BatchesForFreshness = priorBatches.slice(0, 7);
   const recentPremises = new Set<string>();
-  for (const batch of last5BatchesForPremises) {
+  for (const batch of last7BatchesForFreshness) {
     for (const e of batch) {
       const p = e.idea.premise;
       if (typeof p === "string" && p.length > 0) {
@@ -3235,7 +3311,8 @@ export async function runHybridIdeator(
   // PHASE Y7 — anchor freshness memory. Probe each cached idea's
   // whatToShow / hook against the catalog vocabulary via
   // `extractAnchorAndAction`. Window matches `recentPremises` (last
-  // 5 visible batches) so the two channels stay aligned. Empty set
+  // 7 visible batches — PHASE Y10 widened from 5 → 7) so all
+  // freshness channels stay aligned. Empty set
   // for cold-start creators OR for batches whose ideas don't carry
   // a recognizable catalog anchor (Layer-1 Llama / Claude fallback
   // wraps don't necessarily ship catalog vocabulary — the probe
@@ -3249,7 +3326,7 @@ export async function runHybridIdeator(
     const actionVocab = new Set<string>(
       Object.values(FAMILY_ACTIONS).map((a) => a.bare),
     );
-    for (const batch of last5BatchesForPremises) {
+    for (const batch of last7BatchesForFreshness) {
       for (const e of batch) {
         const probe = extractAnchorAndAction(e.idea, anchorVocab, actionVocab);
         if (probe.anchor) recentAnchors.add(probe.anchor.toLowerCase());
@@ -3261,8 +3338,9 @@ export async function runHybridIdeator(
   // CachedBatchEntry to persist the fp directly on the envelope; see
   // `tryParseEntries` for the strict `/^sf_[0-9a-f]{12}$/` tolerant
   // parse + `toCacheEntries` for the write side). Window matches
-  // `recentAnchors` / `recentPremises` (last 5 visible batches) so all
-  // three freshness channels stay aligned. Empty set for cold-start
+  // `recentAnchors` / `recentPremises` (last 7 visible batches — PHASE
+  // Y10 widened from 5 → 7) so all freshness channels stay aligned.
+  // Empty set for cold-start
   // creators (no batch json), for batches whose entries predate Y6's
   // fingerprint write, and for entries from Llama / Claude fallback
   // wraps (no fp computation path). Threaded into
@@ -3274,10 +3352,35 @@ export async function runHybridIdeator(
   // mode anchor freshness alone misses ("ghosted my to-do list" and
   // "abandoned my checklist" share an fp via the synonym map).
   const recentScenarioFingerprints = new Set<string>();
-  for (const batch of last5BatchesForPremises) {
+  for (const batch of last7BatchesForFreshness) {
     for (const e of batch) {
       if (e.scenarioFingerprint) {
         recentScenarioFingerprints.add(e.scenarioFingerprint);
+      }
+    }
+  }
+  // PHASE Y10 — voice cluster freshness memory. Build a HISTOGRAM
+  // (Map<VoiceClusterId, number>) of voice cluster usages across the
+  // same last-7-batches window the other freshness channels read
+  // from. Reads `e.voiceClusterId` off each cached entry (Y6 wrote
+  // it; see `tryParseEntries` + `toCacheEntries`). Coerces only
+  // valid `VoiceClusterId` values (drops unknowns silently — same
+  // tolerant pattern as the fingerprint loop). Threaded into
+  // `generateCoreCandidates` via `noveltyContext.recentVoiceClusters`
+  // below. With only 4 voice clusters, a Set-based exclusion would
+  // starve the picker after 1-2 batches; using a histogram lets the
+  // resolver pick the LEAST-RECENTLY-USED cluster every recipe
+  // (preserves family-bias as tiebreak). Empty Map for cold-start
+  // creators (no batch json) and for entries written before Y6
+  // started persisting voiceClusterId — the resolver no-ops on an
+  // empty histogram and falls through to the existing salt-rotated
+  // family-biased table.
+  const recentVoiceClusters = new Map<VoiceClusterId, number>();
+  for (const batch of last7BatchesForFreshness) {
+    for (const e of batch) {
+      const v = e.voiceClusterId;
+      if (typeof v === "string" && _isVoiceClusterId(v)) {
+        recentVoiceClusters.set(v, (recentVoiceClusters.get(v) ?? 0) + 1);
       }
     }
   }
@@ -3302,7 +3405,7 @@ export async function runHybridIdeator(
   // catalog revision) silently drop; same tolerant pattern as
   // `parsePremiseStyleId` above.
   const recentMechanismsForSeeding = new Set<string>();
-  for (const batch of last5BatchesForPremises) {
+  for (const batch of last7BatchesForFreshness) {
     for (const e of batch) {
       const cid = e.idea.premiseCoreId;
       if (typeof cid === "string" && cid.length > 0) {
@@ -3485,16 +3588,27 @@ export async function runHybridIdeator(
       recentAnchors,
       // PHASE Y8 — scenario fingerprint dedup channel: O(1) Set.has
       // HARD-REJECT in `coreCandidateGenerator`'s recipe loop against
-      // the `sf_<12hex>` codes harvested above from the last-5-
-      // batches' cached entries. Recipes whose freshly-authored idea
-      // fingerprints land in this set are dropped with reason
-      // `scenario_repeat` and the iterator advances. Empty set for
-      // cold-start (no batch json) — the gate stays quiet and every
-      // recipe ships, which is the correct behavior for a creator
-      // with no history. Pairs with the in-batch fp tracker inside
-      // `coreCandidateGenerator` (mirrors `usedAnchorsThisBatch`)
+      // the `sf_<12hex>` codes harvested above from the last-7-
+      // batches' cached entries (PHASE Y10 widened the window). Recipes
+      // whose freshly-authored idea fingerprints land in this set are
+      // dropped with reason `scenario_repeat` and the iterator advances.
+      // Empty set for cold-start (no batch json) — the gate stays quiet
+      // and every recipe ships, which is the correct behavior for a
+      // creator with no history. Pairs with the in-batch fp tracker
+      // inside `coreCandidateGenerator` (mirrors `usedAnchorsThisBatch`)
       // for full coverage across cross-batch + intra-batch dedup.
       recentScenarioFingerprints,
+      // PHASE Y10 — voice cluster freshness channel. Histogram of
+      // voice cluster usages across the last 7 visible batches.
+      // Threaded into `resolveVoiceCluster` (see coreCandidateGenerator)
+      // which picks the LEAST-RECENTLY-USED cluster from the family-
+      // biased rotation table. Empty Map for cold-start creators — the
+      // resolver no-ops on an empty histogram and falls through to the
+      // existing salt-rotated family-biased table. Family bias (the
+      // family's curated default appears 3x in the rotation table) is
+      // preserved as the natural tiebreak when multiple clusters share
+      // the min recency count.
+      recentVoiceClusters,
     },
     regenerateSalt,
     recentPremises,

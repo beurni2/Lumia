@@ -95,9 +95,9 @@ export type CoreNoveltyContext = {
    *  `hybridIdeator.buildRecipeAnchorMemory`. */
   recentAnchors?: ReadonlySet<string>;
   /** PHASE Y8 — `sf_<12hex>` scenario fingerprints shipped in the
-   *  last 5 visible batches. O(1) HARD-REJECT signal in the recipe
-   *  loop — when a freshly authored idea's
-   *  `result.scenarioFingerprint` lands in this set, the recipe
+   *  last 7 visible batches (PHASE Y10 widened from 5). O(1)
+   *  HARD-REJECT signal in the recipe loop — when a freshly authored
+   *  idea's `result.scenarioFingerprint` lands in this set, the recipe
    *  is dropped with reason `scenario_repeat` and the iterator
    *  advances. Empty set / undefined for cold-start creators —
    *  the gate stays quiet and every recipe ships, which is the
@@ -108,6 +108,30 @@ export type CoreNoveltyContext = {
    *  `usedFingerprintsThisBatch` tracker below for full coverage
    *  across cross-batch + intra-batch dedup. */
   recentScenarioFingerprints?: ReadonlySet<string>;
+  /** PHASE Y10 — voice cluster usage HISTOGRAM across the last 7
+   *  visible batches (current + 6 history). Map key is the
+   *  `VoiceClusterId`; value is the integer count of times that
+   *  cluster shipped in the window. Threaded into the per-recipe
+   *  `resolveVoiceCluster` picker which selects the cluster with
+   *  the LOWEST recent count from the family-biased rotation
+   *  table. Family bias (the family's curated default appears 3x
+   *  in the rotation table) is preserved as the natural tiebreak
+   *  when multiple clusters share the min count.
+   *
+   *  Why a histogram (not a Set): there are only 4 voice clusters
+   *  AND each batch ships ~3 ideas → after 1-2 batches a Set-based
+   *  exclusion would mark every cluster recent and starve the
+   *  picker. The histogram lets the resolver keep rotating
+   *  smoothly even at steady state, always preferring the LEAST-
+   *  USED cluster.
+   *
+   *  Empty Map / undefined for cold-start creators (no batch json)
+   *  and for entries written before Y6 started persisting
+   *  `voiceClusterId` on cache entries — the resolver no-ops on an
+   *  empty histogram and falls through to the existing salt-
+   *  rotated family-biased table. Built by
+   *  `hybridIdeator.loadMemory`. */
+  recentVoiceClusters?: ReadonlyMap<VoiceClusterId, number>;
 };
 
 export type GenerateCoreCandidatesInput = {
@@ -235,13 +259,26 @@ const ALL_VOICE_CLUSTERS: readonly VoiceClusterId[] = [
 /** PHASE Y7 — pure, deterministic voice cluster resolver. See the
  *  block comment above for the priority chain. Exported for unit
  *  testing the cold-start rotation distribution + the taste-pinned
- *  override. */
+ *  override.
+ *
+ *  PHASE Y10 — accepts an optional `recentVoiceClusters` HISTOGRAM
+ *  (Map<VoiceClusterId, number>) summing voice cluster usages
+ *  across the last 7 visible batches. When non-empty, the resolver
+ *  walks the salt-rotated biased table and picks the FIRST cluster
+ *  whose recent count equals the MIN over the 4 clusters — i.e.
+ *  the LEAST-RECENTLY-USED cluster wins, with the family's curated
+ *  bias acting as the natural tiebreak (the family default
+ *  appears 3x in the table → wins ties at the salt-rotated start).
+ *  When undefined OR empty (cold-start), behavior is bit-for-bit
+ *  identical to pre-Y10: the salt-rotated index of the biased
+ *  table wins directly. */
 export function resolveVoiceCluster(input: {
   family: Family;
   tasteCalibration?: TasteCalibration | null;
   salt: number;
   coreId: string;
   recipeIdx: number;
+  recentVoiceClusters?: ReadonlyMap<VoiceClusterId, number>;
 }): VoiceClusterId {
   const tone = input.tasteCalibration?.preferredTone;
   if (tone && tone in TONE_TO_VOICE_CLUSTER) {
@@ -257,10 +294,33 @@ export function resolveVoiceCluster(input: {
     biasedTable.push(c, c);
     if (c === familyDefault) biasedTable.push(c);
   }
-  const idx =
+  const startIdx =
     djb2(`${input.salt}|${input.coreId}|${input.recipeIdx}|voice`) %
     biasedTable.length;
-  return biasedTable[idx]!;
+  // PHASE Y10 — history-aware picking. If the caller supplied a
+  // non-empty `recentVoiceClusters` histogram, walk the salt-rotated
+  // table and return the FIRST cluster whose recent-count equals
+  // the MIN across all 4 clusters. The walk preserves the salt-
+  // rotation order (so behavior is deterministic per (salt, coreId,
+  // recipeIdx)) and the family-bias 3x weighting (so the family's
+  // curated default wins ties at the start position). When the
+  // histogram is undefined or empty, skip the walk and return the
+  // direct salt-rotated index — bit-for-bit identical to pre-Y10.
+  const hist = input.recentVoiceClusters;
+  if (hist && hist.size > 0) {
+    let minCount = Infinity;
+    for (const c of ALL_VOICE_CLUSTERS) {
+      const n = hist.get(c) ?? 0;
+      if (n < minCount) minCount = n;
+    }
+    for (let i = 0; i < biasedTable.length; i++) {
+      const c = biasedTable[(startIdx + i) % biasedTable.length]!;
+      if ((hist.get(c) ?? 0) === minCount) return c;
+    }
+    // Unreachable — biasedTable always contains all 4 clusters and
+    // minCount is one of those 4 values. Fall through defensively.
+  }
+  return biasedTable[startIdx]!;
 }
 
 // ---------------------------------------------------------------- //
@@ -431,6 +491,13 @@ export function generateCoreCandidates(
   // a creator with no history.
   const recentScenarioFingerprints =
     input.noveltyContext?.recentScenarioFingerprints ?? new Set<string>();
+  // PHASE Y10 — voice cluster usage histogram across the last 7
+  // visible batches. Empty map for cold-start creators; the resolver
+  // no-ops on an empty histogram and falls through to the pre-Y10
+  // salt-rotated family-biased table.
+  const recentVoiceClusters =
+    input.noveltyContext?.recentVoiceClusters ??
+    new Map<VoiceClusterId, number>();
   const tasteCalibration = input.tasteCalibration ?? null;
   const seedFingerprints = loadSeedHookFingerprints();
   const cap = Math.max(0, Math.trunc(input.count));
@@ -513,12 +580,17 @@ export function generateCoreCandidates(
       // start creators get voice diversity across recipes for the
       // same core. Taste-pinned creators get the same cluster every
       // recipe via the priority-1 short-circuit in resolveVoiceCluster.
+      // PHASE Y10 — when `recentVoiceClusters` is non-empty (creator
+      // has visible history), the resolver picks the LEAST-RECENTLY-
+      // USED cluster from the salt-rotated biased table. Cold-start
+      // creators get the pre-Y10 behavior unchanged.
       const voiceId = resolveVoiceCluster({
         family: core.family,
         tasteCalibration,
         salt,
         coreId: core.id,
         recipeIdx: attempts,
+        recentVoiceClusters,
       });
       const voice = getVoiceCluster(voiceId);
       attempts++;
