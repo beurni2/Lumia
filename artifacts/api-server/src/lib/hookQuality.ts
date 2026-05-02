@@ -602,3 +602,67 @@ export function scoreHookQualityDetailed(
     contradiction,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* PHASE Y9-A — `hookQualityBoost` selection-layer band.              */
+/* ------------------------------------------------------------------ */
+/*                                                                    */
+/* Mirrors the SAME magnitude band as `premiseComedyBoost`            */
+/* (+7 max, -2 floor, 0 default for `undefined`) but reads the Y8     */
+/* 0-100 `scoreHookQuality` total instead of the Phase 6E 0-10        */
+/* `premiseComedyScore.total`. The boost band is a bucket-discrete    */
+/* function of the score so QA can read off "candidate at score 67    */
+/* gets +3 base boost" without re-running selectionPenalty:           */
+/*                                                                    */
+/*   score >= 90 → +7 (top of band — the "captivating + vivid +       */
+/*                     tight + concrete + contradiction" hook the     */
+/*                     Y8 scorer rewards on every axis)               */
+/*   score 80-89 → +6                                                 */
+/*   score 70-79 → +5                                                 */
+/*   score 60-69 → +3 (median floor — Y8 boot assert at floor 40 is   */
+/*                     enforced by `voiceClusters.ts`, but the BOOST  */
+/*                     band's positive side starts at 60 so a hook    */
+/*                     must be clearly above median to earn promotion */
+/*                     pressure at selection)                         */
+/*   score 50-59 → 0  (neutral — same posture as a pre-Y9-A non-      */
+/*                     premise candidate)                             */
+/*   score 40-49 → -1 (demote band — recipe loop usually filters      */
+/*                     these out before selection sees them, but the  */
+/*                     defensive demote keeps the math degradation    */
+/*                     clean if a stale candidate slips through)      */
+/*   score <  40 → -2 (deep demote band — the Y8 boot assert refuses  */
+/*                     to ship a voice cluster whose worst hook       */
+/*                     scores below this floor; this branch is        */
+/*                     defensive for the same self-healing reason as  */
+/*                     `premiseComedyBoost`'s `total < 5 → 0` branch) */
+/*   undefined  → 0  (defensive collapse — non-core_native            */
+/*                     candidates whose meta omits `hookQualityScore` */
+/*                     get the neutral 0 a legacy hook gets, exactly  */
+/*                     mirroring `premiseComedyBoost(undefined)`)     */
+/*                                                                    */
+/* The band INTENTIONALLY ladders sub-linearly across the 60-90       */
+/* range (60→+3, 70→+5, 80→+6, 90→+7) instead of linearly so the      */
+/* difference between a "median" and a "premium" hook is the          */
+/* dominant signal, while the difference between a "premium" and a    */
+/* "perfect" hook is a tiebreaker. Mirrors the `premiseComedyBoost`   */
+/* design (10→+7, 9→+6, 8→+5, 7→+4 — same +1 ladder per point at      */
+/* the top) so the migration is a strict "more signal, same ranking  */
+/* magnitude" upgrade.                                                */
+/*                                                                    */
+/* Wire site: `selectionPenalty` in `ideaScorer.ts` reads             */
+/* `c.meta.hookQualityScore` (set by `coreCandidateGenerator` on     */
+/* core_native candidates) and falls back to                          */
+/* `premiseComedyBoost(c.meta.premiseComedyScore?.total)` when the    */
+/* hookQuality score is absent (pattern_variation + claude_fallback). */
+/* The fallback path lands in the EXACT SAME boost magnitude as       */
+/* pre-Y9-A for those non-core paths — Y9-A is core_native-only.      */
+export function hookQualityBoost(score: number | undefined): number {
+  if (score === undefined) return 0;
+  if (score >= 90) return 7;
+  if (score >= 80) return 6;
+  if (score >= 70) return 5;
+  if (score >= 60) return 3;
+  if (score >= 50) return 0;
+  if (score >= 40) return -1;
+  return -2;
+}

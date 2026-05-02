@@ -31,6 +31,18 @@ import {
   // picker walk's HARD reject can call the scorer without forcing a
   // new ideaScorer.ts → patternIdeator.ts runtime import cycle).
   premiseComedyBoost,
+} from "./patternIdeator.js";
+import {
+  // PHASE Y9-A — selection-layer scaled boost reading the Y8 5-dim
+  // 0-100 `scoreHookQuality` total. Replaces `premiseComedyBoost`
+  // ONLY for `core_native` candidates (which carry
+  // `hookQualityScore`); pattern_variation + claude_fallback
+  // candidates fall back to `premiseComedyBoost` reading the older
+  // 0-10 `premiseComedyScore.total` — zero change for those paths.
+  // Lives in `hookQuality.ts` next to the scorer it consumes.
+  hookQualityBoost,
+} from "./hookQuality.js";
+import {
   // Phase 6F (LEGACY COMEDY SCORING) — selection-layer scaled boost
   // mirroring `premiseComedyBoost` for legacy hooks. Lighter band
   // (10→+5..5→-3) preserves spec PART 6 tie-bias: a premium premise
@@ -3249,7 +3261,29 @@ export function selectionPenalty(
     // satisfy "heavily penalize repeated mechanism" before the
     // D-lite cap existed. PHASE Y4: bumped to -5 to flip the
     // post-cap arithmetic.)
-    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 5;
+    // PHASE Y9-A — path-aware demote skip. The Y4 -5 per-axis style
+    // demote is SUBSUMED for `core_native` candidates by Y8's
+    // `recentScenarioFingerprints` HARD-REJECT inside
+    // `coreCandidateGenerator` (a recipe whose fingerprint matches a
+    // recent fingerprint is rejected at recipe-build time, well
+    // before selection sees it) PLUS the recipe loop's best-of-N
+    // hookQuality picker (the candidate that reaches selection is
+    // ALREADY the best-quality novel-fingerprint candidate for its
+    // core). Stacking Y4's soft demote on top of the upstream hard-
+    // reject + quality picker creates an "axis novelty overrides
+    // quality" failure mode that the rest of the system is designed
+    // to AVOID — a recent style with a fresh fingerprint is exactly
+    // a "new take on a familiar shell," which the system should
+    // accept and even reward (the +2 fresh-axis boost below stays
+    // armed for true novel axes; only the punitive demote is gated).
+    // Pattern_variation + claude_fallback paths have NO upstream
+    // hard-reject and NO quality picker, so they keep the demote.
+    if (
+      c.meta.source !== "core_native" &&
+      (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false)
+    ) {
+      p -= 5;
+    }
     // Phase 6C (PREMISE-FIRST SELECTION) — symmetric +2 boost when this
     // candidate's `meta.premiseStyleId` is NOT in the last-3-batches
     // fine-grained set AND the set is non-empty (i.e. we have history
@@ -3290,7 +3324,16 @@ export function selectionPenalty(
   // `metaPremiseStyleId` / `metaTrendId` above.
   const cPremCoreCross = metaPremiseCoreId(c.meta);
   if (cPremCoreCross) {
-    if (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false) p -= 5;
+    // PHASE Y9-A — same path-aware demote skip as the style axis
+    // above. See `recentPremiseStyleIds` block for the full
+    // rationale; this is the per-axis core demote, gated for
+    // core_native by the same Y8-subsumes-Y4 argument.
+    if (
+      c.meta.source !== "core_native" &&
+      (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false)
+    ) {
+      p -= 5;
+    }
     // Symmetric +2 fresh-core boost when this candidate's core id is
     // NOT in the last-3-batches set AND the set is non-empty (cold-
     // start abstains so brand-new accounts don't inflate every
@@ -3325,7 +3368,16 @@ export function selectionPenalty(
     // top hook — many premium repeats shared executionId without
     // sharing premiseStyleId, so the only fired lever was -2 and
     // the capped boost (+3) still won.
-    if (ctx.recentExecutionIds?.has(cExecId) ?? false) p -= 5;
+    // PHASE Y9-A — same path-aware demote skip as the style + core
+    // axes above. See `recentPremiseStyleIds` block for the full
+    // rationale; this is the per-axis execution demote, gated for
+    // core_native by the same Y8-subsumes-Y4 argument.
+    if (
+      c.meta.source !== "core_native" &&
+      (ctx.recentExecutionIds?.has(cExecId) ?? false)
+    ) {
+      p -= 5;
+    }
     // Phase 6D — symmetric +2 boost when this candidate's executionId
     // is NOT in the last-3-batches set AND the set is non-empty (i.e.
     // we have history to compare against — first-batch cold-start
@@ -3407,7 +3459,19 @@ export function selectionPenalty(
   const coreRecent =
     cPremCoreCross !== undefined &&
     (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false);
-  if (styleRecent && execRecent) {
+  // PHASE Y9-A — path-aware combo demote skip. The Y4 PART 2 +
+  // PART 3 combo demotes (-4 same-shell + extra -4 near-shell) are
+  // SUBSUMED for `core_native` candidates by Y8's hard-reject +
+  // recipe-loop quality picker for the SAME reason as the per-axis
+  // demotes above. A core_native candidate that reaches selection
+  // with all three axes recent has, by construction, a NOVEL
+  // scenario fingerprint (Y8 hard-rejects fingerprint repeats) AND
+  // is the best-quality recipe for its core (recipe loop best-of-N
+  // by hookQualityScore) — stacking -8 on top of that is the
+  // "axis novelty overrides quality" failure mode the path-gating
+  // is designed to prevent. Pattern_variation + claude_fallback
+  // keep both combo demotes intact.
+  if (c.meta.source !== "core_native" && styleRecent && execRecent) {
     p -= 4;
     if (coreRecent) {
       p -= 4;
@@ -3566,7 +3630,24 @@ export function selectionPenalty(
     // `executionId` so the cap simply doesn't apply, which matches
     // the cross-batch -2 lever's no-fire behavior on the same
     // entries (both levers gate on the fine-grained tag presence).
-    const baseBoost = premiseComedyBoost(c.meta.premiseComedyScore?.total);
+    // PHASE Y9-A — path-aware boost source. core_native candidates
+    // (which carry `hookQualityScore` set by the cohesive author
+    // recipe loop) read the Y8 5-dim 0-100 hookQualityBoost band
+    // (90+ → +7, 80-89 → +6, 70-79 → +5, 60-69 → +3, 50-59 → 0,
+    // 40-49 → -1, <40 → -2). Pattern_variation + claude_fallback
+    // candidates (no hookQualityScore) keep the Phase 6E
+    // `premiseComedyBoost` band reading the older 0-10 single-axis
+    // `premiseComedyScore.total` — ZERO change in boost magnitude
+    // for those paths, so back-compat with the Y3 D-lite cap math
+    // and the Phase 6F `legacyComedyBoost` tie-bias is preserved.
+    // The Y3 D-lite cap (`Math.min(baseBoost, 3)` on recent-repeat)
+    // applies uniformly to the resolved baseBoost regardless of
+    // source — the cap is an anti-runaway guard on the boost
+    // MAGNITUDE, not on the scorer that produced it.
+    const baseBoost =
+      c.meta.hookQualityScore !== undefined
+        ? hookQualityBoost(c.meta.hookQualityScore)
+        : premiseComedyBoost(c.meta.premiseComedyScore?.total);
     const styleId = c.meta.premiseStyleId;
     const execId = c.meta.executionId;
     const isRecentRepeat =
