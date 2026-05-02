@@ -1,0 +1,162 @@
+PHASE Y3 — LOCAL PREMISECORE TAGGING + RUNAWAY BOOST CAP
+
+Goal:
+Make the dominant local candidate pool PremiseCore-aware without replacing the generator yet.
+
+Current problem:
+- PremiseCore works, but mostly only on Claude fallback.
+- Local candidates dominate final output.
+- Local candidates currently have no premiseCoreId.
+- Therefore core rotation / anti-loop penalties do not apply to the local winners.
+- Repeating hooks like “i ghosted my own to-do list” keep winning.
+
+This phase is a safe bridge toward full core-native generation later.
+
+---
+
+PART 1 — ADD premiseCoreId TO LOCAL CANDIDATES
+
+Add optional premiseCoreId to local candidate metadata.
+
+Use a high-confidence mapping:
+
+(premiseStyleId, executionId) → premiseCoreId
+
+Examples:
+- todo_termination + direct_failure → self_betrayal_resolution_decay
+- self_roast + direct_failure → self_betrayal_rule_break
+- object_personification + object_judgment → object_judges_you
+- social_mask + text_vs_real → social_mask_text_vs_real
+- adulting_chaos + grocery_optimism → adulting_chaos_grocery_optimism
+
+Only map when the relationship is clearly correct.
+
+Do NOT fake-tag uncertain candidates.
+
+---
+
+PART 2 — ADD HELPER
+
+Create helper:
+
+resolvePremiseCoreIdForLocalCandidate(meta): PremiseCoreId | undefined
+
+Inputs:
+- premiseStyleId
+- executionId
+- mechanism if available
+- hook text if needed only for exact high-confidence matches
+
+Rules:
+- deterministic
+- no LLM
+- no fuzzy matching
+- no broad guessing
+- return undefined if unsure
+
+---
+
+PART 3 — WIRE INTO LOCAL CANDIDATE ASSEMBLY
+
+When assembleCandidate builds PatternMeta:
+
+- call resolvePremiseCoreIdForLocalCandidate
+- attach premiseCoreId if resolved
+- preserve existing meta fields
+- do not alter hook text
+- do not alter scenario
+- do not alter scoring directly
+
+This should activate existing recentPremiseCoreIds penalties/boosts automatically.
+
+---
+
+PART 4 — CACHE + TELEMETRY
+
+Ensure premiseCoreId is written into cache for local candidates when present.
+
+Log:
+- localPremiseCoreTaggedCount
+- localPremiseCoreTaggedRate
+- mapped premiseCoreIds
+- unmapped count
+- top repeated unmapped hooks
+
+Public API must still strip premiseCoreId.
+
+---
+
+PART 5 — D-LITE RUNAWAY BOOST CAP
+
+Add a small guard against repeated premium premise dominance.
+
+If candidate has premiseStyleId in recentPremiseStyleIds OR executionId in recentExecutionIds:
+
+- cap premiseComedyBoost at +3
+
+Do NOT remove the boost.
+Do NOT affect fresh premise candidates.
+Do NOT affect legacy scoring.
+
+Goal:
+A previously used high-scoring premise cannot keep winning only because of +7 boost.
+
+---
+
+PART 6 — DO NOT CHANGE
+
+Do NOT:
+- replace local generator
+- add a new core-native generator yet
+- increase Claude calls
+- change UI
+- change DB schema
+- expose premiseCoreId publicly
+- rewrite Phase 5/6/7 systems
+- fake-tag all candidates
+
+This is metadata tagging + small dominance cap only.
+
+---
+
+PART 7 — QA
+
+Run the same QA pattern as before:
+
+- 10 regen batches
+- 5 normal batches
+- accumulated history enabled
+
+Report:
+- % local candidates with premiseCoreId
+- % final selected ideas with premiseCoreId
+- top hook repeat count
+- repeated premiseCore count
+- repeated premiseStyle count
+- post-worthy estimate
+- mismatch rate
+- unmapped top winners
+- latency/cost impact
+
+---
+
+SUCCESS CRITERIA
+
+- premiseCoreId coverage increases meaningfully, target 50–70% on regen batches
+- top hook repeat drops
+- repeated local winners rotate out more often
+- no increase in cost
+- no latency regression
+- no empty batches
+- public response unchanged
+
+---
+
+IMPORTANT
+
+This is NOT the final direct PremiseCore generator.
+
+This is a safe bridge:
+Y3 = tag current local winners with core IDs
+Y4 = build small core-native generator in parallel
+Y5 = promote core-native path only if it beats current local quality

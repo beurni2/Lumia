@@ -3827,6 +3827,43 @@ export async function runHybridIdeator(
       ? "mixed"
       : "pattern";
 
+  // PHASE Y3 (LOCAL premiseCoreId TAGGING) — telemetry on
+  // local-pool core-tagging coverage. Counts cover only the
+  // LOCAL pattern-pool candidates (Layer-1) since the Claude
+  // wrap path already ships premiseCoreId from the model. The
+  // `topUnmappedPremiseHooks` slice is the actionable signal for
+  // the next mapping-spec pass — premium entries that picker-walked
+  // through but the (premiseStyleId, executionId) pair didn't
+  // resolve to a core are exactly the candidates a future mapping
+  // expansion needs to absorb.
+  let localPremiseCoreTaggedCount = 0;
+  let localPremiseCoreUnmappedCount = 0;
+  const mappedCoreIds = new Set<string>();
+  const unmappedHookCounts = new Map<string, number>();
+  for (const c of localCandidates) {
+    if (c.meta.source !== "pattern_variation") continue;
+    if (c.meta.usedBigPremise !== true) continue;
+    const tag = (c.meta as { premiseCoreId?: string }).premiseCoreId;
+    if (typeof tag === "string" && tag.length > 0) {
+      localPremiseCoreTaggedCount += 1;
+      mappedCoreIds.add(tag);
+    } else if (c.meta.premiseStyleId && c.meta.executionId) {
+      localPremiseCoreUnmappedCount += 1;
+      const key = c.idea.hook.toLowerCase().trim();
+      unmappedHookCounts.set(key, (unmappedHookCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const localPremiseCount =
+    localPremiseCoreTaggedCount + localPremiseCoreUnmappedCount;
+  const localPremiseCoreTaggedRate =
+    localPremiseCount > 0
+      ? localPremiseCoreTaggedCount / localPremiseCount
+      : 0;
+  const topUnmappedPremiseHooks = Array.from(unmappedHookCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([hook, count]) => ({ hook, count }));
+
   logger.info(
     {
       source,
@@ -3839,6 +3876,12 @@ export async function runHybridIdeator(
       rewriteSucceeded: localResult.rewriteSucceeded,
       usedFallback,
       durationMs: Date.now() - startedAt,
+      // PHASE Y3 telemetry
+      localPremiseCoreTaggedCount,
+      localPremiseCoreTaggedRate,
+      localPremiseCoreUnmappedCount,
+      mappedPremiseCoreIds: Array.from(mappedCoreIds),
+      topUnmappedPremiseHooks,
     },
     "hybrid_ideator.served",
   );

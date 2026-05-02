@@ -43,6 +43,7 @@ import {
 } from "./viralPatternMemory";
 import { deriveStyleHints, deriveTone, type DerivedTone, type StyleProfile } from "./styleProfile";
 import type { Idea } from "./ideaGen";
+import { resolvePremiseCoreIdForLocalCandidate } from "./premiseCoreLocalMapping";
 import {
   resolveArchetype,
   type Archetype,
@@ -7847,6 +7848,32 @@ export type PatternMeta = {
    */
   executionId?: string;
   /**
+   * PHASE Y3 (LOCAL premiseCoreId TAGGING) — synthesized core id
+   * resolved from `(premiseStyleId, executionId)` via the
+   * `premiseCoreLocalMapping` deterministic lookup. Set ONLY when
+   * the picked entry carried `bigPremise === true` AND both
+   * `premiseStyleId` AND `executionId` AND the pair maps
+   * unambiguously to one core. Ambiguous pairs / legacy / Llama
+   * wraps leave this undefined — telemetry surfaces unmapped
+   * premium hooks via `localPremiseCoreUnmappedCount` /
+   * `topUnmappedPremiseHooks` on the `hybrid_ideator.served` log.
+   *
+   * Mirrored to `idea.premiseCoreId` in the same `assembleCandidate`
+   * pass so `buildNoveltyContext`'s existing `e.idea.premiseCoreId`
+   * read site (added in PHASE Y2 for Layer-3 Claude candidates)
+   * picks up local-tagged entries automatically — no envelope-shape
+   * change required, no separate cache-write site (the existing
+   * `c.idea` field in `toCacheEntries` carries the value through
+   * to JSONB cleanly).
+   *
+   * NOT a replacement for the Claude core-aware path — that path
+   * still picks cores from the full library and ships the chosen
+   * id directly. This is a bridge tag that lights up the existing
+   * `recentPremiseCoreIds` lever for Layer-1 majority candidates
+   * until a future core-native local generator lands.
+   */
+  premiseCoreId?: string;
+  /**
    * Phase 6E (PREMISE COMEDY SCORING + REJECTION) — full
    * PremiseComedyScore for the WINNING entry's hook, computed at
    * picker-walk time AFTER `validateHook` + `validateBigPremise` +
@@ -9884,6 +9911,28 @@ function assembleCandidate(
     // silent (NOT a defect to surface to logs at request scale).
   }
 
+  // PHASE Y3 (LOCAL premiseCoreId TAGGING) — resolve a core id from
+  // the picked entry's fine-grained `(premiseStyleId, executionId)`
+  // pair via the deterministic `premiseCoreLocalMapping` lookup.
+  // Returns undefined when:
+  //   (a) the entry is not bigPremise (legacy / scenario-shaped),
+  //   (b) either fine-grained tag is missing (the original 29
+  //       hand-written premise entries ship only the bucket id), OR
+  //   (c) the pair is intentionally unmapped (ambiguous between
+  //       cores — telemetry surfaces these as topUnmappedPremiseHooks
+  //       for a follow-up mapping pass).
+  // Mirrored to BOTH `idea.premiseCoreId` (cache-resident, picked up
+  // by `buildNoveltyContext`'s `e.idea.premiseCoreId` read site) AND
+  // `meta.premiseCoreId` (in-flight de-dup against Claude wraps in
+  // the same batch — mirrors hybridIdeator's existing meta.premiseCoreId
+  // mirroring at the Claude wrap site). Same value, two surfaces.
+  const localPremiseCoreId: string | undefined = sourceLanguagePhrasing.bigPremise
+    ? resolvePremiseCoreIdForLocalCandidate({
+        premiseStyleId: sourceLanguagePhrasing.premiseStyleId,
+        executionId: sourceLanguagePhrasing.executionId,
+      })
+    : undefined;
+
   const idea: Idea = {
     pattern: template.pattern,
     hook,
@@ -9915,6 +9964,13 @@ function assembleCandidate(
     // field above stays UNTOUCHED so existing UI paths and JSONB
     // cache readers continue to render without change.
     filmingGuide,
+    // PHASE Y3 — local-pool premiseCoreId tag (see resolution above).
+    // Spread-when-present so untagged candidates leave the field
+    // undefined rather than serialising explicit nulls into JSONB.
+    // `buildNoveltyContext` reads `e.idea.premiseCoreId` directly
+    // off the cache envelope — this assignment is what makes the
+    // existing recentPremiseCoreIds lever fire on Layer-1 entries.
+    ...(localPremiseCoreId ? { premiseCoreId: localPremiseCoreId } : {}),
   };
 
   return {
@@ -10088,6 +10144,18 @@ function assembleCandidate(
             // full breakdown for the PART 8 report.
             ...(pickedPremiseComedyScore !== undefined
               ? { premiseComedyScore: pickedPremiseComedyScore }
+              : {}),
+            // PHASE Y3 — mirror the local-resolved premiseCoreId onto
+            // PatternMeta so the in-flight Claude-wrap dedup at
+            // hybridIdeator (`recentCoreIds` rescue filter) sees
+            // local-tagged candidates the same way it sees
+            // Claude-tagged ones. Spread-when-present so unmapped /
+            // legacy entries leave the field undefined. The `idea`
+            // mirror above is what survives JSONB round-trip via
+            // toCacheEntries; this meta mirror is runtime-only for
+            // same-batch dedup.
+            ...(localPremiseCoreId
+              ? { premiseCoreId: localPremiseCoreId }
               : {}),
           }
         : {}),

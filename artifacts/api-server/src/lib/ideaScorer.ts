@@ -3342,7 +3342,48 @@ export function selectionPenalty(
   //                                               wins — exactly the spec
   //                                               PART 6 intent).
   if (c.meta.usedBigPremise === true) {
-    p += premiseComedyBoost(c.meta.premiseComedyScore?.total);
+    // PHASE Y3 (D-lite) — runaway premiseComedyBoost cap on
+    // recent-premise repeats.
+    //
+    // Rationale: Y2 telemetry showed the +7 fresh-premise boost
+    // overwhelms the -2 cross-batch (premiseStyleId, executionId)
+    // demotions, so the SAME high-score premium hook can win
+    // back-to-back batches even after the cross-batch lever fires.
+    // Capping the boost at +3 when the candidate's fine-grained
+    // (style OR execution) tag is already in the recent set keeps
+    // the premium-vs-legacy bias intact (a fresh premium still
+    // outscores a strong legacy: +7 vs legacy +5) while letting
+    // the cross-batch demote actually flip the decision on repeats:
+    //
+    //   Fresh premium score-10  : +7 (preferred over legacy +5)
+    //   Recent premium score-10 : min(+7, +3) -2 = +1 (loses to
+    //                              fresh legacy +5, wins vs neutral
+    //                              legacy 0 — exactly the spec
+    //                              intent: don't ban repeats, just
+    //                              stop them outscoring everything)
+    //   Fresh premium score-5   : -2 (unchanged — demote band
+    //                              already losing to legacy)
+    //   Recent premium score-5  : min(-2, +3) -2 = -4 (unchanged
+    //                              demote — `Math.min(-2, +3) === -2`)
+    //
+    // The cap fires on EITHER `premiseStyleId` OR `executionId`
+    // hitting recent — same OR-discipline as the existing -2 demote
+    // levers below. `meta.premiseStyleId` may be undefined on the
+    // 29 hand-written premise entries (no fine-grained tag); in
+    // that case only the `executionId` arm of the OR can fire,
+    // which is the right behavior — those entries also have no
+    // `executionId` so the cap simply doesn't apply, which matches
+    // the cross-batch -2 lever's no-fire behavior on the same
+    // entries (both levers gate on the fine-grained tag presence).
+    const baseBoost = premiseComedyBoost(c.meta.premiseComedyScore?.total);
+    const styleId = c.meta.premiseStyleId;
+    const execId = c.meta.executionId;
+    const isRecentRepeat =
+      (styleId !== undefined &&
+        (ctx.recentPremiseStyleIds?.has(styleId) ?? false)) ||
+      (execId !== undefined &&
+        (ctx.recentExecutionIds?.has(execId) ?? false));
+    p += isRecentRepeat ? Math.min(baseBoost, 3) : baseBoost;
   }
   // Phase 6F (LEGACY COMEDY SCORING + REJECTION) — selection-layer
   // scaled boost mirroring the Phase 6E premise wiring above for

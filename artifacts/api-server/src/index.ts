@@ -7,6 +7,8 @@ import {
 import { flags } from "./lib/featureFlags";
 import { startJobWorker, stopJobWorker } from "./lib/jobQueue";
 import { logger } from "./lib/logger";
+import { PREMISE_CORES } from "./lib/premiseCoreLibrary";
+import { validateLocalCoreMappingAgainst } from "./lib/premiseCoreLocalMapping";
 import {
   startNightlyScheduler,
   stopNightlyScheduler,
@@ -36,6 +38,16 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function boot() {
+  // PHASE Y3 drift check: assert every `premiseCoreId` in the local
+  // pattern-pool mapping table exists in `PREMISE_CORES`. Runs here
+  // (and not at module-load inside `premiseCoreLocalMapping`) because
+  // the mapping module deliberately has no runtime import on
+  // `premiseCoreLibrary` — that would close a 3-way cyclic import on
+  // the hot path. By boot() time the full module graph has settled,
+  // so reading `PREMISE_CORES` is safe. Throws on drift to refuse
+  // serving traffic with a stale mapping.
+  validateLocalCoreMappingAgainst(PREMISE_CORES);
+
   // Apply any pending schema migrations BEFORE accepting traffic so
   // route handlers never see a half-migrated schema. Advisory-lock
   // ensures concurrent boots serialize safely.
