@@ -1,0 +1,242 @@
+PHASE X2 — COMPLETE DEFAULT TASTE ENGINE
+
+Goal:
+Finish the Default Taste Engine before building the Premise Core Library.
+
+The system already has:
+- DefaultTasteProfile
+- premise-first prompt instruction
+- optional internal premise field
+- taste boost
+- public-response stripping
+- existing history-based anti-loop reuse
+
+Now complete the missing parts:
+1. hard comedy validation
+2. alignment guarantee
+3. domain/mechanism anti-loop tracking
+4. anti-copy guard from curated hooks
+
+Do NOT build the Premise Core Library yet.
+Do NOT touch UI.
+Do NOT rewrite Phase 5 / Phase 6 / Phase 7.
+This is a completion pass for Phase X only.
+
+---
+
+PART 1 — HARD COMEDY VALIDATION
+
+Add validation that rejects ideas if:
+
+- no clear contradiction
+- no tension between intention and reality
+- reads like an observation instead of a joke
+- safe / soft / generic tone
+- no specific behavior
+- hook is funny but scenario does not express the joke
+- scenario is visual but hook does not match it
+
+Required comedy signals:
+Each idea must have at least 2 of:
+- self-betrayal
+- intention_vs_action
+- confident_vs_collapse
+- denial_vs_reality
+- absurd escalation
+- self-as-other / relationship metaphor
+- identity exposure
+- specific embarrassing behavior
+
+Reject if it is merely “relatable” without comedy.
+
+---
+
+PART 2 — ALIGNMENT GUARANTEE
+
+Before returning an idea, verify:
+
+premise → hook → whatToShow → howToFilm
+
+All four must express the same comedic idea.
+
+Reject if:
+- hook says one thing but whatToShow shows another
+- whatToShow is generic and does not act out the premise
+- howToFilm does not match the action
+- premise is not visible in the scene
+
+Example:
+Premise:
+“I treat my to-do list like someone I’m avoiding.”
+
+Hook:
+“my to-do list and i are not speaking”
+
+whatToShow:
+Open list → stare → close it → put phone face-down
+
+howToFilm:
+Phone POV, hold pause, close app, hard cut
+
+That is aligned.
+
+Bad:
+Hook:
+“my to-do list and i are not speaking”
+
+whatToShow:
+Person lying in bed scrolling randomly
+
+That is mismatch.
+
+---
+
+PART 3 — DOMAIN + MECHANISM ANTI-LOOP
+
+Track recent history across last 5 visible ideas / batches:
+
+- domain
+- mechanism
+- tensionType
+- premiseStyleId
+- premise skeleton
+
+Domains:
+- sleep
+- money
+- food
+- social
+- work
+- relationships
+- health
+- habits
+- phone
+- family
+- identity
+- chores
+
+Mechanisms:
+- self_betrayal
+- self_as_other
+- absurd_escalation
+- identity_exposure
+- overdramatic_reframe
+- social_mask
+- productivity_theater
+- denial_loop
+- object_judgment
+
+Rules:
+- penalize repeated domain
+- heavily penalize repeated mechanism
+- reject exact same premise skeleton
+- regenerate must include at least 1 fresh domain or fresh mechanism when possible
+
+Goal:
+No more same idea shell repeating with different nouns.
+
+---
+
+PART 4 — ANTI-COPY GUARD FROM CURATED HOOKS
+
+Use the curated hooks as taste seed, not copy source.
+
+Create lightweight fingerprints from curated hooks:
+
+- normalized hook text
+- major noun pair
+- premise skeleton
+- mechanism
+- tensionType
+
+Reject generated hook if:
+- same phrasing
+- same sentence skeleton
+- same metaphor with different noun
+- near-duplicate of curated hook
+
+Allowed:
+same ComedyDNA, new execution.
+
+Example:
+Curated:
+“i ghosted my own to-do list”
+
+Reject:
+“i ghosted my own goals”
+
+Allow:
+“my goals are waiting for a reply from me”
+
+---
+
+PART 5 — VALIDATION BEHAVIOR
+
+Keep fail-open behavior safe.
+
+If an idea fails validation:
+- try another candidate
+- do not crash
+- do not loop forever
+- cap retries
+- if underfilled, return best valid candidates with clear logs
+
+Do NOT create a costly multi-LLM verifier yet unless already available cheaply.
+
+Prefer deterministic / heuristic validation first.
+
+---
+
+PART 6 — TELEMETRY
+
+Log rejection reasons:
+
+- no_contradiction
+- no_tension
+- generic_observation
+- hook_scenario_mismatch
+- filming_mismatch
+- repeated_domain
+- repeated_mechanism
+- copied_seed_hook
+- near_duplicate_premise
+- too_soft
+
+Add summary counters in QA.
+
+---
+
+PART 7 — QA
+
+Run 10 real batches with accumulated history.
+
+Report:
+
+- pass rate
+- rejection reason counts
+- repeated domain count
+- repeated mechanism count
+- hook/scenario mismatch count
+- copy/near-copy count
+- top 10 ideas
+- bottom 10 ideas
+- post-worthy estimate
+
+Success criteria:
+- hook + scenario + filming are aligned
+- no obvious copied hooks
+- fewer repeated idea shells
+- comedy feels stronger
+- no loading/crash regressions
+- no Phase 5/6/7 regressions
+
+---
+
+IMPORTANT
+
+This phase completes Default Taste Engine.
+
+After this passes, the next phase is:
+Premise Core Library.
+
+Do not start Premise Core Library in this pass.

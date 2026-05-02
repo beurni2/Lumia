@@ -73,6 +73,11 @@ import {
   type NoveltyContext,
   type ScoredCandidate,
 } from "./ideaScorer";
+// PHASE X2 — PART 4 — `recentPremises` set for the anti-copy
+// validator. Imported here (not in ideaScorer) because the
+// orchestrator owns the cache-history walk and needs the same
+// normalize function the validator uses internally.
+import { normalizeHookFingerprint } from "./comedyValidation";
 import {
   resolveArchetypeLoose,
   type Archetype,
@@ -3002,6 +3007,29 @@ export async function runHybridIdeator(
     // (batches 2+4+6) repeat hole that escapes both windows.
     priorBatches,
   );
+  // PHASE X2 — PART 4 — collect normalized premise sentences from
+  // the last-5 visible batches' cached `idea.premise` fields. Set
+  // is empty for cold-start creators and for legacy entries
+  // written before the premise field was persisted (the field is
+  // optional on Idea — Layer-1 candidates don't carry it; only
+  // Layer-3 Claude candidates that explicitly ride the premise-
+  // first prompt do). The validator no-ops on an empty set, so
+  // there is no harm in a sparse history. Window sized at 5
+  // batches per spec (wider than the last-3 mechanism window
+  // because exact-premise duplication is a sharper signal — a
+  // creator notices a verbatim premise repeat across 5 batches,
+  // not just the immediate prior).
+  const last5BatchesForPremises = priorBatches.slice(0, 5);
+  const recentPremises = new Set<string>();
+  for (const batch of last5BatchesForPremises) {
+    for (const e of batch) {
+      const p = e.idea.premise;
+      if (typeof p === "string" && p.length > 0) {
+        const fp = normalizeHookFingerprint(p);
+        if (fp.length > 0) recentPremises.add(fp);
+      }
+    }
+  }
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
   // subsequent `% 997` is always non-negative (JS keeps the sign of
   // the dividend, so a negative seedSalt would produce negative
@@ -3117,10 +3145,22 @@ export async function runHybridIdeator(
     // a future pre-scoring filter can consume the same field.
     recentHookSkeletons: noveltyContext.recentHookSkeletons,
     recentHookStrings: noveltyContext.recentHookStrings,
+    // PHASE X2 — PART 4 — anti-copy guard input. No-op for Layer-1
+    // candidates (no premise field) but threaded uniformly so
+    // wrapped Claude fallback candidates that happen to flow back
+    // into a re-scoring pass behave the same way.
+    recentPremises,
   });
 
   let usedFallback = false;
   let fallbackKeptCount = 0;
+  // PHASE X2 — PART 6 — captured from the fallback `filterAndRescore`
+  // call when the Claude path fires. Hoisted out of the try block
+  // so the validation_summary log below can surface fallback-path
+  // rejections separately from local-path rejections (the two sets
+  // tell different stories — local rejections argue for catalog
+  // gaps; fallback rejections argue for prompt drift).
+  let fallbackRejectionReasons: typeof localResult.rejectionReasons | undefined;
   let merged: ScoredCandidate[] = localResult.kept;
 
   // -------- Step 4a: first selection on local pool ----------------
@@ -3188,8 +3228,15 @@ export async function runHybridIdeator(
         // even though it doesn't ride the legacy skeleton catalog.
         recentHookSkeletons: noveltyContext.recentHookSkeletons,
         recentHookStrings: noveltyContext.recentHookStrings,
+        // PHASE X2 — PART 4 — Claude fallback IS the layer that
+        // emits `idea.premise`, so threading `recentPremises` here
+        // is what actually catches verbatim premise repeats across
+        // batches. Same set used on the local pool above for
+        // wiring symmetry.
+        recentPremises,
       });
       fallbackKeptCount = fallbackResult.kept.length;
+      fallbackRejectionReasons = fallbackResult.rejectionReasons;
       merged = [...merged, ...fallbackResult.kept].sort(
         (a, b) => b.score.total - a.score.total,
       );
@@ -3208,6 +3255,29 @@ export async function runHybridIdeator(
       );
     }
   }
+
+  // PHASE X2 — PART 6 — per-reason validation telemetry. Always
+  // fires (no gating on `usedFallback` or rejection counts) so we
+  // can see the steady-state baseline + the empty-rejection case
+  // ("zero rejections" is itself useful signal — it tells us the
+  // catalog is clearing the gates cleanly). `fallbackRejections`
+  // is undefined when the Claude path didn't fire; logged as
+  // `null` for grep-ability rather than omitted.
+  logger.info(
+    {
+      creatorId: input.creator?.id,
+      regenerate,
+      localKept: localResult.kept.length,
+      localRejected: localResult.rejected,
+      localHardRejected: localResult.hardRejected,
+      localRejections: localResult.rejectionReasons,
+      usedFallback,
+      fallbackKept: fallbackKeptCount,
+      fallbackRejections: fallbackRejectionReasons ?? null,
+      recentPremisesCount: recentPremises.size,
+    },
+    "hybrid_ideator.validation_summary",
+  );
 
   // -------- Step 4c: Layer 3 — Llama hook mutation ---------------
   // Pattern engine + scorer + selector have produced the best batch
@@ -3278,6 +3348,12 @@ export async function runHybridIdeator(
         families: final.map((c) => c.meta.scenarioFamily),
         topics: final.map((c) => c.meta.topicLane),
         visuals: final.map((c) => c.meta.visualActionPattern),
+        // PHASE X2 — PART 6 — surface the per-reason breakdown on
+        // the guards-failed log too so a single grep on the warn
+        // line tells the full story (no need to cross-reference
+        // a separate validation_summary entry by request id).
+        localRejections: localResult.rejectionReasons,
+        fallbackRejections: fallbackRejectionReasons ?? null,
       },
       "hybrid_ideator.guards_failed_shipping_best_effort",
     );

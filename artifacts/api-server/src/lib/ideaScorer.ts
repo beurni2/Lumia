@@ -105,6 +105,13 @@ import type {
 } from "./sceneObjectTaxonomy";
 // PHASE X — PART 1+2 — single-source-of-truth taste profile.
 import { scoreDefaultTaste } from "./defaultTasteProfile";
+// PHASE X2 — PART 1+2+4 — heuristic comedy / alignment / anti-copy gates.
+import {
+  validateComedy,
+  validateAntiCopy,
+  loadSeedHookFingerprints,
+  type ComedyRejectionReason,
+} from "./comedyValidation";
 
 // Phase 6E — re-exports of the comedy-scoring API. The function +
 // type live in `patternIdeator.ts` (so the picker walk can call the
@@ -1629,6 +1636,16 @@ export type FilterAndRescoreInput = {
    * inside the selector.
    */
   recentHookStrings?: ReadonlySet<string>;
+  /**
+   * PHASE X2 — PART 4 — normalized premise sentences (lowercase,
+   * punctuation stripped, whitespace collapsed) collected from the
+   * last-5 batches' cached `idea.premise` fields. Threaded into
+   * `validateAntiCopy` to reject candidates whose premise duplicates
+   * a recent batch's premise. Defaults to undefined for callers that
+   * don't have history (cold start, ad-hoc rescoring) — the
+   * validator no-ops on an absent / empty set.
+   */
+  recentPremises?: ReadonlySet<string>;
 };
 
 export type FilterAndRescoreResult = {
@@ -1636,7 +1653,29 @@ export type FilterAndRescoreResult = {
   rejected: number;
   hardRejected: number;
   rewriteSucceeded: number;
+  /**
+   * PHASE X2 — PART 6 — per-reason rejection counters from the
+   * comedy / alignment / anti-copy validators. Existing
+   * `rejected` / `hardRejected` counters remain authoritative for
+   * total counts; this map is a strictly additive breakdown for
+   * telemetry. Empty when no validator fired (the rescue path
+   * needs a stable shape; callers can `?.` into specific reasons).
+   */
+  rejectionReasons: Record<ComedyRejectionReason, number>;
 };
+
+function emptyRejectionReasons(): Record<ComedyRejectionReason, number> {
+  return {
+    no_contradiction: 0,
+    no_tension: 0,
+    generic_observation: 0,
+    too_soft: 0,
+    hook_scenario_mismatch: 0,
+    filming_mismatch: 0,
+    copied_seed_hook: 0,
+    near_duplicate_premise: 0,
+  };
+}
 
 export function filterAndRescore(
   input: FilterAndRescoreInput,
@@ -1646,6 +1685,14 @@ export function filterAndRescore(
   let hardRejected = 0;
   let rewriteSucceeded = 0;
   let rejected = 0;
+  // PHASE X2 — PART 6 — per-reason counters. Initialized with all
+  // keys at zero so downstream telemetry can read any reason
+  // unconditionally without `?? 0` checks.
+  const rejectionReasons = emptyRejectionReasons();
+  // Lazy-load the seed-hook fingerprint corpus once per
+  // filterAndRescore call. The loader memoizes at module scope so
+  // repeated calls within a process are O(1) after the first.
+  const seedFingerprints = loadSeedHookFingerprints();
 
   for (const c of input.candidates) {
     const hard = checkHardRejects(c.idea);
@@ -1754,6 +1801,43 @@ export function filterAndRescore(
     void rewriteAttempted; // retained for hard-floor branch above
     void isPremise;
 
+    // PHASE X2 — PART 1+2 — comedy + alignment validation. Cheap
+    // heuristic checks that fire AFTER scoring (so the per-axis
+    // breakdown is preserved for telemetry) and AFTER any rewrite
+    // (so the final assembled idea is what the validator sees).
+    // Vacuous-passes Layer-1 premise candidates on the comedy
+    // gate by design — the curated catalog IS the comedy ground
+    // truth and re-validating it would over-reject. The rescue
+    // path in `hybridIdeator.ts` handles the unlikely case where
+    // ALL candidates fail, so over-rejection cannot blank the
+    // batch (PART 5 fail-open).
+    {
+      const reason = validateComedy(idea, meta);
+      if (reason !== null) {
+        rejectionReasons[reason]++;
+        rejected++;
+        continue;
+      }
+    }
+    // PHASE X2 — PART 4 — anti-copy guard. Rejects LLM-generated
+    // hooks that exact-match a curated seed hook (Layer 1
+    // pattern_variation candidates ship the curated examples by
+    // design and are exempt). Also rejects any candidate whose
+    // premise sentence duplicates a recent batch's premise.
+    {
+      const reason = validateAntiCopy(
+        idea,
+        meta,
+        seedFingerprints,
+        input.recentPremises,
+      );
+      if (reason !== null) {
+        rejectionReasons[reason]++;
+        rejected++;
+        continue;
+      }
+    }
+
     if (score.total < 6) {
       rejected++;
       continue;
@@ -1777,7 +1861,7 @@ export function filterAndRescore(
     return 0;
   });
 
-  return { kept, rejected, hardRejected, rewriteSucceeded };
+  return { kept, rejected, hardRejected, rewriteSucceeded, rejectionReasons };
 }
 
 // -----------------------------------------------------------------------------
@@ -2989,7 +3073,16 @@ export function selectionPenalty(
   // / hookSkeletonId / trendId.
   const cPremIdCross = metaPremiseStyleId(c.meta);
   if (cPremIdCross) {
-    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 2;
+    // PHASE X2 — PART 3 — bumped from -2 to -3 to satisfy spec
+    // "heavily penalize repeated mechanism." A single-style repeat
+    // on top of the bucket-level -2 above stacks to -5, comfortably
+    // below the typical 3-4pt premise-vs-alt spread so a fresh
+    // mechanism reliably wins selection across consecutive batches.
+    // The symmetric +2 fresh-vs-recent boost below is unchanged so
+    // the spread between repeat (-3) and fresh (+2) is now 5pt
+    // (was 4pt) — closer to the "heavily" semantics the spec calls
+    // for without overpowering the +3 PREMISE_PREFERENCE bonus.
+    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 3;
     // Phase 6C (PREMISE-FIRST SELECTION) — symmetric +2 boost when this
     // candidate's `meta.premiseStyleId` is NOT in the last-3-batches
     // fine-grained set AND the set is non-empty (i.e. we have history
