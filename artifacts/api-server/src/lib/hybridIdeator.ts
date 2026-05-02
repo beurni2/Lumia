@@ -88,6 +88,14 @@ import {
   getPremiseCoreById,
   selectPremiseCores,
 } from "./premiseCoreLibrary";
+// PHASE Y5 — SAFE PARALLEL deterministic core-native candidate generator.
+// Same supply-side seed source as the Y2 fallback path (selectPremiseCores
+// + recent-id / recent-mechanism + ≥1-fresh swap) but emitted as LOCAL
+// candidates that compete in `filterAndRescore` alongside the existing
+// pattern_variation pool. NO Claude / cost / API change. Pure deterministic
+// given (cores, regenerateSalt, noveltyContext, recentPremises). See
+// module header for the meta-shape contract + scorer-side semantics.
+import { generateCoreCandidates } from "./coreCandidateGenerator";
 import {
   resolveArchetypeLoose,
   type Archetype,
@@ -3016,6 +3024,27 @@ export async function runHybridIdeator(
         selectedRepeatedPremiseCoreCount: 0,
         selectedSameStyleExecutionCount: 0,
         selectedSameStyleExecutionCoreCount: 0,
+        // PHASE Y5 telemetry zero-defaults (cache replay never runs
+        // the core-native generator, so these counters are NA on
+        // this path — same discipline as the Y4 counters above).
+        coreNativeGeneratedCount: 0,
+        coreNativeKeptCount: 0,
+        coreNativeSelectedCount: 0,
+        coreNativeSelectedRate: 0,
+        localSelectedCount: 0,
+        topSelectedSources: [] as Array<{ source: string; count: number }>,
+        selectedPremiseCoreIds: [] as string[],
+        coreNativeRejectionReasons: {
+          no_contradiction: 0,
+          no_tension: 0,
+          generic_observation: 0,
+          too_soft: 0,
+          hook_scenario_mismatch: 0,
+          filming_mismatch: 0,
+          copied_seed_hook: 0,
+          near_duplicate_premise: 0,
+          schema_invalid: 0,
+        },
       },
       "hybrid_ideator.served",
     );
@@ -3217,8 +3246,69 @@ export async function runHybridIdeator(
   // or scenarioFamilies. This is the core of the regenerate fix —
   // the diversifier alone can't conjure freshness from a stale pool.
   const localCandidates = applyExclusion(rawCandidates, exclude);
+  // -------- PHASE Y5: SAFE PARALLEL core-native generation ---------
+  // Independent supply-side step from the Y2 fallback path (which is
+  // gated by `needFallback` and ALSO calls `selectPremiseCores` for
+  // its Claude prompt). This selection is unconditional and produces
+  // LOCAL candidates that compete head-to-head with `pattern_variation`
+  // in the same `filterAndRescore` pass — no forced slots, no replace,
+  // no cost. Validation gates (`validateComedy` + `validateAntiCopy`)
+  // are re-run inside the generator so a bad seed-execution pairing
+  // is dropped before it ever reaches the merged pool. Selector here
+  // re-uses the SAME recent-id / recent-mechanism sets so the supply
+  // side stays aligned with the existing demand-side -3 demotion in
+  // `selectionPenalty`.
+  const coreNativeSelection = selectPremiseCores({
+    count: desiredCount + 2,
+    recentCoreIds: recentPremiseCoreIdsForSeeding,
+    recentMechanisms: recentMechanismsForSeeding,
+    // Default rng (Math.random) — matches the existing Y2 call site
+    // wiring at L3305. The generator's own picks (style / execution /
+    // example) are seeded by `regenerateSalt` for determinism on
+    // regenerate; the core selection itself is allowed to vary across
+    // calls so the supply pool isn't pinned to one fixed slate.
+  });
+  const coreNativeResult = generateCoreCandidates({
+    cores: coreNativeSelection.cores,
+    count: desiredCount + 2,
+    noveltyContext: {
+      recentPremiseStyleIds: noveltyContext.recentPremiseStyleIds,
+      recentExecutionIds: noveltyContext.recentExecutionIds,
+    },
+    regenerateSalt,
+    recentPremises,
+  });
+  logger.info(
+    {
+      event: "phase_y5.core_native_generated",
+      region: input.region,
+      desiredCount,
+      seedCoreCount: coreNativeSelection.cores.length,
+      hasFreshCore: coreNativeSelection.hasFreshCore,
+      generatedCount: coreNativeResult.stats.generatedCount,
+      keptCount: coreNativeResult.stats.keptCount,
+      rejectedCount:
+        coreNativeResult.stats.generatedCount -
+        coreNativeResult.stats.keptCount,
+      rejectionReasons: coreNativeResult.stats.rejectionReasons,
+      seedCoreIds: coreNativeSelection.cores.map((c) => c.id),
+      keptCoreIds: coreNativeResult.candidates.map(
+        (c) => c.meta.premiseCoreId,
+      ),
+    },
+    "phase_y5.core_native_generated",
+  );
+  // Merge BEFORE `filterAndRescore`. Type widens naturally — both
+  // `PatternCandidate` (whose meta is `PatternMeta`) and the core-
+  // native shape (whose meta is the non-PatternMeta arm of
+  // `CandidateMeta`) coalesce to `{ idea: Idea; meta: CandidateMeta }`,
+  // which is exactly what `FilterAndRescoreInput.candidates` accepts.
+  const mergedLocalCandidates: { idea: Idea; meta: CandidateMeta }[] = [
+    ...localCandidates,
+    ...coreNativeResult.candidates,
+  ];
   const localResult = filterAndRescore({
-    candidates: localCandidates,
+    candidates: mergedLocalCandidates,
     profile,
     memory,
     recentScenarios: input.recentScenarios,
@@ -3234,7 +3324,10 @@ export async function runHybridIdeator(
     // PHASE X2 — PART 4 — anti-copy guard input. No-op for Layer-1
     // candidates (no premise field) but threaded uniformly so
     // wrapped Claude fallback candidates that happen to flow back
-    // into a re-scoring pass behave the same way.
+    // into a re-scoring pass behave the same way. PHASE Y5 — the
+    // core-native generator already self-validated against this set,
+    // but filter re-runs are idempotent: a candidate that passed
+    // anti-copy in the generator will pass it here too.
     recentPremises,
   });
 
@@ -3911,6 +4004,41 @@ export async function runHybridIdeator(
     }
   }
 
+  // -------- PHASE Y5 telemetry --------------------------------------
+  // Counts how many `core_native` candidates the parallel generator
+  // produced, how many survived `filterAndRescore`, how many won
+  // selection vs. `pattern_variation`, plus a top-3 source histogram
+  // and the selected core ids. Pure read-only — no behavior change.
+  // The cache-path served log mirrors zero defaults for these keys
+  // so dashboards never NPE on a `cache` reply.
+  const coreNativeGeneratedCount = coreNativeResult.stats.generatedCount;
+  let coreNativeKeptCount = 0;
+  for (const c of localResult.kept) {
+    if (c.meta.source === "core_native") coreNativeKeptCount += 1;
+  }
+  let coreNativeSelectedCount = 0;
+  let localSelectedCount = 0;
+  const sourceHist = new Map<string, number>();
+  const selectedPremiseCoreIds: string[] = [];
+  for (const c of final) {
+    const src = c.meta.source;
+    sourceHist.set(src, (sourceHist.get(src) ?? 0) + 1);
+    if (src === "core_native") coreNativeSelectedCount += 1;
+    if (src === "pattern_variation") localSelectedCount += 1;
+    const cId = (c.meta as { premiseCoreId?: string }).premiseCoreId;
+    if (typeof cId === "string" && cId.length > 0) {
+      selectedPremiseCoreIds.push(cId);
+    }
+  }
+  const coreNativeSelectedRate =
+    final.length > 0 ? coreNativeSelectedCount / final.length : 0;
+  const topSelectedSources: Array<{ source: string; count: number }> =
+    Array.from(sourceHist.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([s, n]) => ({ source: s, count: n }));
+  const coreNativeRejectionReasons = coreNativeResult.stats.rejectionReasons;
+
   logger.info(
     {
       source,
@@ -3935,6 +4063,15 @@ export async function runHybridIdeator(
       selectedRepeatedPremiseCoreCount,
       selectedSameStyleExecutionCount,
       selectedSameStyleExecutionCoreCount,
+      // PHASE Y5 telemetry (core-native parallel generator)
+      coreNativeGeneratedCount,
+      coreNativeKeptCount,
+      coreNativeSelectedCount,
+      coreNativeSelectedRate,
+      localSelectedCount,
+      topSelectedSources,
+      selectedPremiseCoreIds,
+      coreNativeRejectionReasons,
     },
     "hybrid_ideator.served",
   );

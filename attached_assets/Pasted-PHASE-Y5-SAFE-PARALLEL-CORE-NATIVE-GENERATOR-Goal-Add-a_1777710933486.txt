@@ -1,0 +1,238 @@
+PHASE Y5 — SAFE PARALLEL CORE-NATIVE GENERATOR
+
+Goal:
+Add a small, safe core-native candidate generator that runs alongside the existing local generator.
+
+Important:
+Do NOT replace the current generator.
+Do NOT remove existing local candidates.
+Do NOT increase Claude usage.
+Do NOT change public API or DB schema.
+
+PremiseCore remains the source of truth.
+This generator simply turns PremiseCore into local candidates.
+
+---
+
+1. New module
+
+Create:
+
+coreCandidateGenerator.ts
+
+Purpose:
+Generate deterministic local candidates from selected PremiseCores.
+
+Input:
+- selected PremiseCores
+- recent history / novelty context
+- desired count
+
+Output:
+- candidates compatible with existing scoring/selection pipeline
+
+---
+
+2. Candidate shape
+
+Generated candidates must match the existing PatternCandidate / candidate meta shape enough to pass through:
+
+- filterAndRescore
+- validateComedy
+- validateAntiCopy
+- selectWithNovelty
+- Y4 repeat penalties
+- Phase 6E / 6F / 7 scoring
+
+Each core-native candidate should include internally:
+
+- premiseCoreId
+- premise
+- domain
+- mechanism
+- premiseStyleId
+- executionId
+- hookIntent
+- hookLanguageStyle
+- videoPattern
+- source: "core_native"
+- usedBigPremise: true
+
+Public response must still strip:
+- premise
+- premiseCoreId
+- internal metadata
+
+---
+
+3. Generation rule
+
+For each selected PremiseCore:
+
+Generate one complete idea from:
+
+PremiseCore
+→ premise
+→ hook
+→ whatToShow
+→ howToFilm
+
+Strict rule:
+hook, whatToShow, and howToFilm must all express the same premise.
+
+Do NOT generate hook independently from scenario.
+Do NOT stitch unrelated fields together.
+
+---
+
+4. Domain selection
+
+Use core.compatibleDomains.
+
+Prefer fresh domains from recent history.
+
+Avoid:
+- repeating same domain too often
+- repeating same mechanism too often
+- repeating same premiseCoreId too often
+
+If no fresh domain exists, use best compatible fallback.
+
+---
+
+5. Local deterministic generation
+
+No new LLM calls.
+
+Use deterministic generation rules / curated phrase patterns derived from PremiseCore.generatorRule.
+
+Keep it simple:
+- short hook
+- visual whatToShow
+- practical howToFilm
+
+If deterministic generation is too weak for a core:
+- skip that core candidate
+- do not force it
+
+---
+
+6. Validation
+
+Before returning a core-native candidate, run existing deterministic validators:
+
+- comedy validation
+- alignment validation
+- anti-copy validation
+- hook validity
+- no exact hook repeat
+
+If candidate fails:
+- try at most 1–2 alternate executions
+- then drop it
+- never block the whole batch
+
+---
+
+7. Integration
+
+In hybridIdeator.ts:
+
+Existing flow stays.
+
+Add:
+
+selectedCores = selectPremiseCores(desiredCount + 2, context)
+
+coreCandidates = generateCoreCandidates(selectedCores, context)
+
+Then merge:
+
+mergedCandidates = [
+  ...existingLocalCandidates,
+  ...coreCandidates
+]
+
+Then run existing:
+- applyExclusion
+- filterAndRescore
+- selectWithNovelty
+- batch guards
+
+Do NOT give core candidates forced slots.
+Let them win on score.
+
+---
+
+8. Scoring
+
+Do not create a new scoring system.
+
+Core-native candidates should naturally score through existing:
+- PremiseComedyScore
+- ViralFeelScore
+- HookIntentScore
+- novelty penalties
+- Y4 repeat demotions
+
+---
+
+9. Telemetry
+
+Add to existing served logs:
+
+- coreNativeGeneratedCount
+- coreNativeKeptCount
+- coreNativeSelectedCount
+- coreNativeSelectedRate
+- localSelectedCount
+- topSelectedSources
+- selectedPremiseCoreIds
+
+Also log validation drop reasons for core-native candidates.
+
+---
+
+10. QA
+
+Run:
+
+- 10 regenerate batches
+- fresh non-demo creator
+- accumulated history
+- cache controlled
+- AI cap available
+
+Report:
+
+- coreNative generated / kept / selected
+- premiseCoreId coverage
+- top hook repeat count
+- hook-scenario mismatch count
+- post-worthy estimate
+- latency impact
+- cost impact
+- top 10 outputs
+- bottom 10 outputs
+
+---
+
+Success criteria:
+
+- core-native candidates are selected naturally
+- premiseCore coverage improves
+- top-hook repeats drop further
+- hook/scenario alignment improves
+- no empty batches
+- no cost increase
+- no public API change
+- existing local generator remains safe fallback
+
+---
+
+Important:
+This is a bridge phase.
+
+If core-native candidates are not better yet, local candidates may still win.
+Do not force them.
+The goal is safe parallel testing, not replacement.

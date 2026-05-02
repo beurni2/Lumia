@@ -212,7 +212,24 @@ function applyVisionBoost(
  * taxonomy entry; usually absent on Claude output).
  */
 export type CandidateMeta = PatternMeta | {
-  source: "llama_3_1" | "claude_fallback";
+  // PHASE Y5 — `core_native` is a third source (alongside the existing
+  // Layer-3 wraps) for deterministic local candidates born from
+  // PremiseCore selection. Same fallback-arm shape — the only thing
+  // the rest of the pipeline branches on is `meta.source ===
+  // "pattern_variation"` (rewrite, sort tiebreak), `meta.source ===
+  // "pattern_variation" || meta.usedBigPremise === true` (comedy
+  // gate vacuous-pass), and `meta.source !== "pattern_variation"`
+  // (anti-copy seed-hook gate). All three remain semantically
+  // correct for `core_native` candidates: NOT rewritten (wraps own
+  // their hook), loses ties (it's still a non-pattern-variation
+  // candidate so cost-neutral catalog wins where scores are equal),
+  // vacuous-passes the comedy gate via `usedBigPremise: true` (the
+  // mechanism is curated comedy by construction — same discipline
+  // as Claude premise wraps), and stays subject to seed-hook anti-
+  // copy (core.examples are NOT in the seed-fingerprint corpus —
+  // only `PREMISE_STYLE_DEFS[*].executions[*].example` is — so
+  // verbatim core example use does not trip `copied_seed_hook`).
+  source: "llama_3_1" | "claude_fallback" | "core_native";
   scenarioFamily?: string;
   scenario?: PatternMeta["scenario"];
   visualActionPattern?: VisualActionPattern;
