@@ -3131,16 +3131,29 @@ export function selectionPenalty(
   // / hookSkeletonId / trendId.
   const cPremIdCross = metaPremiseStyleId(c.meta);
   if (cPremIdCross) {
-    // PHASE X2 — PART 3 — bumped from -2 to -3 to satisfy spec
-    // "heavily penalize repeated mechanism." A single-style repeat
-    // on top of the bucket-level -2 above stacks to -5, comfortably
-    // below the typical 3-4pt premise-vs-alt spread so a fresh
-    // mechanism reliably wins selection across consecutive batches.
-    // The symmetric +2 fresh-vs-recent boost below is unchanged so
-    // the spread between repeat (-3) and fresh (+2) is now 5pt
-    // (was 4pt) — closer to the "heavily" semantics the spec calls
-    // for without overpowering the +3 PREMISE_PREFERENCE bonus.
-    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 3;
+    // PHASE Y4 — PART 1 — bumped from -3 to -5 so a same-style
+    // recent repeat dominates even the capped premium boost. With
+    // the Y3 D-lite cap fixing `premiseComedyBoost` at +3 on a
+    // recent (style OR execution) repeat, the previous -3 left a
+    // capped premium repeat at +3 - 3 = 0 — TIED with neutral
+    // legacy 0, so the picker's secondary axes (which favor the
+    // higher composite score) still selected the repeat. -5 drops
+    // that to -2, strictly below neutral 0, so neutral fresh
+    // candidates win whenever the pool offers them. The +2 fresh
+    // boost below is unchanged so the spread between repeat (-5)
+    // and fresh (+2) on this axis is now 7pt — comfortably above
+    // the typical 1-2pt composite-spread and the within-batch -8
+    // hard guard, both of which were sized for the original 4pt
+    // spread.
+    //
+    // (Earlier history retained for context — PHASE 6 EXPANSION:
+    // -2 was the original cross-batch demotion sized parallel to
+    // the bucket-level lever above so a same-id same-bucket
+    // repeat ate -4 total. PHASE X2 PART 3: bumped to -3 to
+    // satisfy "heavily penalize repeated mechanism" before the
+    // D-lite cap existed. PHASE Y4: bumped to -5 to flip the
+    // post-cap arithmetic.)
+    if (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false) p -= 5;
     // Phase 6C (PREMISE-FIRST SELECTION) — symmetric +2 boost when this
     // candidate's `meta.premiseStyleId` is NOT in the last-3-batches
     // fine-grained set AND the set is non-empty (i.e. we have history
@@ -3163,21 +3176,25 @@ export function selectionPenalty(
     }
   }
   // PHASE Y (PREMISE CORE LIBRARY) — cross-batch premise-core demotion.
-  // -3 when this Claude-fallback candidate's `meta.premiseCoreId`
-  // appeared anywhere in the last-3-batches core set
-  // (`recentPremiseCoreIds`, populated by `buildNoveltyContext` from
-  // each batch's `idea.premiseCoreId` field). Sized parallel to the
-  // style-level lever above (-3) so a same-core same-style cross-
-  // batch repeat eats -6 — comfortably below the typical 3-4pt Layer-3
-  // candidate spread so a fresh core reliably wins selection across
-  // consecutive batches without overpowering the +3 PREMISE_PREFERENCE
-  // bonus. Skipped silently when the candidate has no core id (every
-  // pattern-variation candidate, every pre-PHASE-Y legacy entry, and
-  // every Layer-3 emit on a batch that wasn't seeded with cores) —
-  // same discipline as `metaPremiseStyleId` / `metaTrendId` above.
+  // PHASE Y4 — bumped from -3 to -5 in parallel with the style + exec
+  // levers so a same-core same-style same-execution recent repeat
+  // (the "near-shell" case in PART 3 of the Y4 spec) is reliably
+  // demoted below neutral fresh candidates. The +2 fresh-core boost
+  // below is unchanged so the spread between repeat (-5) and fresh
+  // (+2) on this axis is now 7pt — symmetric with the style + exec
+  // levers, so the math on a triple-axis recent repeat is uniform.
+  //
+  // The lever still fires on EITHER cache-path candidates (where
+  // `meta.premiseCoreId` is mirrored from `idea.premiseCoreId` at
+  // wrap time) OR pattern-variation candidates that picked up a
+  // local-pool tag from `resolvePremiseCoreIdForLocalCandidate` (the
+  // PHASE Y3 tagger), so post-Y3 the lever has dense coverage rather
+  // than firing only on Layer-3-emit batches. Skipped silently when
+  // the candidate has no core id — same discipline as
+  // `metaPremiseStyleId` / `metaTrendId` above.
   const cPremCoreCross = metaPremiseCoreId(c.meta);
   if (cPremCoreCross) {
-    if (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false) p -= 3;
+    if (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false) p -= 5;
     // Symmetric +2 fresh-core boost when this candidate's core id is
     // NOT in the last-3-batches set AND the set is non-empty (cold-
     // start abstains so brand-new accounts don't inflate every
@@ -3203,7 +3220,16 @@ export function selectionPenalty(
   // `hookSkeletonId` / `trendId`.
   const cExecId = c.meta.executionId;
   if (cExecId) {
-    if (ctx.recentExecutionIds?.has(cExecId) ?? false) p -= 2;
+    // PHASE Y4 — PART 1 — bumped from -2 to -5 so the executionId
+    // repeat lever is symmetric with the style + core levers above
+    // and dominates the capped premium boost on its own (the +3
+    // D-lite cap leaves +3 - 5 = -2, strictly below neutral 0).
+    // This was the weakest of the three pre-Y4 levers and the
+    // primary reason the Y3 QA still surfaced 14× repeats of the
+    // top hook — many premium repeats shared executionId without
+    // sharing premiseStyleId, so the only fired lever was -2 and
+    // the capped boost (+3) still won.
+    if (ctx.recentExecutionIds?.has(cExecId) ?? false) p -= 5;
     // Phase 6D — symmetric +2 boost when this candidate's executionId
     // is NOT in the last-3-batches set AND the set is non-empty (i.e.
     // we have history to compare against — first-batch cold-start
@@ -3220,6 +3246,75 @@ export function selectionPenalty(
       !ctx.recentExecutionIds.has(cExecId)
     ) {
       p += 2;
+    }
+  }
+  // PHASE Y4 — PART 2 + PART 3 — combo cross-batch demotions.
+  //
+  // The per-axis levers above (-5 style / -5 exec / -5 core) already
+  // demote a triple-recent candidate by -15, but the spec calls
+  // out two specific combo cases that warrant additional pressure
+  // BEYOND the linear stack so they unambiguously lose to fresh
+  // neutral candidates even when the stacked positives (premium
+  // boost, fresh-other-axis +2 boosts on adjacent fields) are
+  // strong:
+  //
+  //   PART 2 — same (premiseStyleId, executionId) recent: extra -4
+  //     This is the "same idea-shell template" case. Style alone
+  //     is too coarse (50 ids cover the 200-execution catalog —
+  //     several executions per style); execution alone is too
+  //     fine (~200 ids — same execution rarely repeats). The
+  //     intersection is the natural "same shell" signal that
+  //     should not ship back-to-back. Stacked total on a same-
+  //     style + same-exec recent repeat:
+  //         -5 (style) + -5 (exec) + -4 (combo) = -14
+  //     vs the previous Y3 behavior:
+  //         -3 (style) + -2 (exec) = -5
+  //     The capped premium boost (+3) brings net to -11, well
+  //     below neutral fresh legacy 0.
+  //
+  //   PART 3 — same (premiseStyleId, executionId, premiseCoreId)
+  //   recent: an additional extra -4 ("near-shell").
+  //     This catches the strict near-duplicate where the candidate
+  //     re-uses the SAME conceptual core in the SAME shell — the
+  //     spec's "treat it as same idea shell, do not rely on exact
+  //     text only" requirement. Stacking math on a triple-recent
+  //     repeat:
+  //         -5 + -5 + -5 + -4 (PART 2) + -4 (PART 3) = -23
+  //     Even at the +3 capped premium boost the net is -20 —
+  //     guaranteed to lose to any fresh candidate, regardless of
+  //     legacy/premium scoring. Note PART 3 only fires WHEN PART 2
+  //     also fires (style + exec are a prerequisite for the
+  //     near-shell case), so the two extras are explicitly
+  //     additive rather than alternative.
+  //
+  // Both extras gate on the per-axis flags above evaluating to
+  // true — i.e. both require the candidate to actually CARRY the
+  // fine-grained id AND for that id to be in the recent set. This
+  // is intentional: a candidate with no premiseStyleId can't
+  // contribute to "same shell", and a candidate whose style isn't
+  // recent can't be a "shell repeat" by the spec's definition.
+  // The flags also short-circuit cleanly through `??` so the
+  // existing fail-quiet discipline for missing tags is preserved.
+  //
+  // Starvation safety (PART 5): these are SOFT penalties only — no
+  // hard rejects, no candidate removed from the pool. The selector
+  // still picks the highest-scored member of a fully-poisoned
+  // pool, so an empty-pool starvation case is impossible (the
+  // existing `final.length === 0` rescue path in `hybridIdeator`
+  // remains the ultimate floor).
+  const styleRecent =
+    cPremIdCross !== undefined &&
+    (ctx.recentPremiseStyleIds?.has(cPremIdCross) ?? false);
+  const execRecent =
+    cExecId !== undefined &&
+    (ctx.recentExecutionIds?.has(cExecId) ?? false);
+  const coreRecent =
+    cPremCoreCross !== undefined &&
+    (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false);
+  if (styleRecent && execRecent) {
+    p -= 4;
+    if (coreRecent) {
+      p -= 4;
     }
   }
   // Phase 6C (PREMISE-FIRST SELECTION) — premise PREFERENCE bonus.

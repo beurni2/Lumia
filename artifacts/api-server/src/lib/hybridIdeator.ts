@@ -3006,6 +3006,16 @@ export async function runHybridIdeator(
         creatorId: input.creator?.id,
         count: ideas.length,
         durationMs: Date.now() - startedAt,
+        // Y4 telemetry counters (PART 6 schema-consistency).
+        // Cache replay does not run selectionPenalty against a fresh
+        // novelty context, so these counters are not measurable on
+        // this path — emit 0 so downstream parsers don't NPE on the
+        // missing keys and so dashboard aggregations stay correct.
+        selectedRepeatedPremiseStyleCount: 0,
+        selectedRepeatedExecutionCount: 0,
+        selectedRepeatedPremiseCoreCount: 0,
+        selectedSameStyleExecutionCount: 0,
+        selectedSameStyleExecutionCoreCount: 0,
       },
       "hybrid_ideator.served",
     );
@@ -3864,6 +3874,43 @@ export async function runHybridIdeator(
     .slice(0, 3)
     .map(([hook, count]) => ({ hook, count }));
 
+  // PHASE Y4 telemetry — count how many SHIPPED ideas (post-selection)
+  // carry per-axis recent-repeat tags. Computed against the same
+  // `noveltyContext` recent sets that `selectionPenalty` reads, so
+  // these counters tell us "how many demoted candidates still won
+  // their slot" — exactly the signal needed to gauge whether the
+  // PART 1/2/3 demotes are biting hard enough to flip selection.
+  // Counters fire post-selection on `final[]`, NOT on the
+  // candidate pool, so the same idea can only contribute once
+  // per axis. Skipped silently when a tag is undefined (legacy /
+  // pattern entries without the relevant fine-grained id).
+  let selectedRepeatedPremiseStyleCount = 0;
+  let selectedRepeatedExecutionCount = 0;
+  let selectedRepeatedPremiseCoreCount = 0;
+  let selectedSameStyleExecutionCount = 0;
+  let selectedSameStyleExecutionCoreCount = 0;
+  const recentStyles = noveltyContext.recentPremiseStyleIds;
+  const recentExecs = noveltyContext.recentExecutionIds;
+  const recentCores = noveltyContext.recentPremiseCoreIds;
+  for (const c of final) {
+    const sId = (c.meta as { premiseStyleId?: string }).premiseStyleId;
+    const eId = c.meta.executionId;
+    const cId = (c.meta as { premiseCoreId?: string }).premiseCoreId;
+    const styleHit =
+      typeof sId === "string" && (recentStyles?.has(sId as never) ?? false);
+    const execHit =
+      typeof eId === "string" && (recentExecs?.has(eId) ?? false);
+    const coreHit =
+      typeof cId === "string" && (recentCores?.has(cId) ?? false);
+    if (styleHit) selectedRepeatedPremiseStyleCount += 1;
+    if (execHit) selectedRepeatedExecutionCount += 1;
+    if (coreHit) selectedRepeatedPremiseCoreCount += 1;
+    if (styleHit && execHit) {
+      selectedSameStyleExecutionCount += 1;
+      if (coreHit) selectedSameStyleExecutionCoreCount += 1;
+    }
+  }
+
   logger.info(
     {
       source,
@@ -3882,6 +3929,12 @@ export async function runHybridIdeator(
       localPremiseCoreUnmappedCount,
       mappedPremiseCoreIds: Array.from(mappedCoreIds),
       topUnmappedPremiseHooks,
+      // PHASE Y4 telemetry (selected-set repeat counters)
+      selectedRepeatedPremiseStyleCount,
+      selectedRepeatedExecutionCount,
+      selectedRepeatedPremiseCoreCount,
+      selectedSameStyleExecutionCount,
+      selectedSameStyleExecutionCoreCount,
     },
     "hybrid_ideator.served",
   );

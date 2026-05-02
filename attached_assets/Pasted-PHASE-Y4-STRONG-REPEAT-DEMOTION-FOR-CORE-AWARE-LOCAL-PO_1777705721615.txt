@@ -1,0 +1,161 @@
+PHASE Y4 — STRONG REPEAT DEMOTION FOR CORE-AWARE LOCAL POOL
+
+Goal:
+Fix top-hook dominance after Y3.
+
+Y3 successfully made the local pool PremiseCore-aware, but repeated high-scoring hooks still win because the current repeat penalty is too soft.
+
+Problem:
+D-lite currently results in something like:
+min(+7, +3) - 2 = +1
+
+That means repeated premium hooks still beat neutral fresh candidates.
+
+We need repeated idea shells to lose.
+
+---
+
+PART 1 — STRENGTHEN CROSS-BATCH REPEAT PENALTIES
+
+In selectionPenalty / novelty scoring:
+
+Increase cross-batch demotion for repeated:
+
+- premiseStyleId
+- executionId
+- premiseCoreId
+
+Current approximate penalties:
+- premiseStyleId repeat: around -2
+- executionId repeat: around -2
+- premiseCoreId repeat: around -3
+
+New target:
+
+- premiseStyleId repeat: -5
+- executionId repeat: -5
+- premiseCoreId repeat: -5
+
+These should stack when multiple repeat signals fire.
+
+---
+
+PART 2 — SAME STYLE + SAME EXECUTION = STRONG DEMOTION
+
+If candidate repeats both:
+
+- same premiseStyleId
+AND
+- same executionId
+
+from recent history:
+
+Apply an additional strong demotion.
+
+Suggested:
+- extra -4
+
+Goal:
+A same-style + same-execution candidate must lose to a fresh neutral candidate unless the pool is severely starved.
+
+---
+
+PART 3 — EXACT HOOK / NEAR-SHELL PROTECTION
+
+Keep existing exact-hook hard dedup.
+
+Add or strengthen near-shell protection if already available:
+
+If candidate shares:
+- same premiseStyleId
+- same executionId
+- same premiseCoreId
+
+with recent history:
+
+treat it as same idea shell and strongly demote.
+
+Do not rely on exact text only.
+
+---
+
+PART 4 — DO NOT CHANGE
+
+Do NOT:
+- change PremiseCore mapping table
+- expand the core library
+- change DefaultTasteProfile
+- increase Claude calls
+- add quotas
+- touch UI
+- change public API
+- change database schema
+
+This phase is selection pressure only.
+
+---
+
+PART 5 — STARVATION SAFETY
+
+If the candidate pool becomes too small after penalties:
+
+- still allow best available candidates
+- do not return empty batches
+- log starvation / best-effort selection
+
+Do not convert these penalties into hard rejects unless absolutely necessary.
+
+---
+
+PART 6 — TELEMETRY
+
+Add/extend telemetry:
+
+- repeatPenaltyAppliedCount
+- repeatedPremiseStyleCount
+- repeatedExecutionCount
+- repeatedPremiseCoreCount
+- sameStyleExecutionPenaltyCount
+- topHookRepeatCount in QA
+- finalSelectedCoreCoverage
+
+---
+
+PART 7 — QA
+
+Run the same Y3 QA:
+
+- 10 regen batches
+- 5 normal batches
+- accumulated history enabled
+
+Report:
+
+- top hook repeat count
+- premiseCoreId coverage
+- repeated premiseStyle count
+- repeated execution count
+- repeated premiseCore count
+- post-worthy estimate
+- mismatch rate
+- empty batch / underfill count
+- latency/cost impact
+
+---
+
+SUCCESS CRITERIA
+
+- top hook repeat drops meaningfully from 14×
+- repeated style/execution candidates stop dominating
+- premiseCoreId coverage remains healthy
+- no empty batches
+- no latency/cost increase
+- output feels fresher across regenerations
+
+---
+
+IMPORTANT
+
+This is not about making every idea new at all costs.
+
+It is about making repeated winners lose when fresh viable candidates exist.
