@@ -7525,6 +7525,18 @@ export type PatternMeta = {
    */
   scenarioFingerprint?: string;
   /**
+   * PHASE Y7 — voice cluster id resolved by `resolveVoiceCluster`
+   * for `core_native` candidates. Optional here because
+   * pattern_variation candidates don't go through the resolver
+   * (they pick voice via the existing pattern-arm mechanism).
+   * Declared on both arms of `CandidateMeta` for the same reason
+   * as `scenarioFingerprint` above — so the `core_native` author
+   * can spread its meta + add the field without the union
+   * widening to the pattern arm and erroring on an unknown
+   * property.
+   */
+  voiceClusterId?: import("./voiceClusters").VoiceClusterId;
+  /**
    * Reference to the source scenario so the rewriter can produce
    * alternative hook phrasings without a separate lookup table.
    * Optional so future non-pattern sources (e.g. Llama fallback)

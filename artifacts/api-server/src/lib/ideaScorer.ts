@@ -105,6 +105,7 @@ import type {
 } from "./sceneObjectTaxonomy";
 // PHASE X — PART 1+2 — single-source-of-truth taste profile.
 import { scoreDefaultTaste } from "./defaultTasteProfile";
+import type { VoiceClusterId } from "./voiceClusters";
 // PHASE X2 — PART 1+2+4 — heuristic comedy / alignment / anti-copy gates.
 import {
   validateComedy,
@@ -245,6 +246,17 @@ export type CandidateMeta = PatternMeta | {
    * else (Llama / Claude wraps don't compute one).
    */
   scenarioFingerprint?: string;
+  /**
+   * PHASE Y7 — voice cluster id selected by `resolveVoiceCluster`
+   * for `core_native` candidates. Telemetry-only in Y7 (surfaces
+   * in QA harness output to verify taste-pinned + cold-start
+   * voice rotation distribution); the voice itself was already
+   * applied at authoring time via the cohesive author's `voice`
+   * input. Optional everywhere else (Llama / Claude wraps don't
+   * select via this resolver — same discipline as
+   * `scenarioFingerprint`).
+   */
+  voiceClusterId?: VoiceClusterId;
   /**
    * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
    * (Phase 1 replacement for `scriptType`). Pattern-variation candidates
@@ -1976,6 +1988,21 @@ export type NoveltyContext = {
   recentStyles?: ReadonlySet<string>;
   recentTopics?: ReadonlySet<TopicLane>;
   recentVisualActions?: ReadonlySet<VisualActionPattern>;
+  /**
+   * PHASE Y7 — anchor freshness channel for the core_native recipe
+   * queue. Lowercased anchors (catalog vocabulary) shipped across
+   * the last visible batches. Built by `buildRecipeAnchorMemory` in
+   * `hybridIdeator` by probing each cached idea's whatToShow/hook
+   * via `extractAnchorAndAction` against the catalog's known-anchor
+   * set. Empty for cold-start creators or when no cached idea's
+   * text contains a known anchor (the probe is best-effort, not
+   * required). Threaded into `generateCoreCandidates` via the
+   * `CoreNoveltyContext.recentAnchors` field; `buildRecipeQueue`
+   * uses it as an O(1) freshness signal (Set.has) and falls back
+   * to the existing word-boundary `recentPremises` regex when
+   * empty / undefined for back-compat with cold-start creators.
+   */
+  recentAnchors?: ReadonlySet<string>;
   /**
    * Cross-batch demotion for hook openers — derived from the cached
    * hooks via `lookupHookOpener`. Without this dimension we'd ship

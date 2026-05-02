@@ -64,6 +64,10 @@ import {
   authorCohesiveIdea,
   type CohesiveAuthorRejectionReason,
 } from "./cohesiveIdeaAuthor.js";
+import type {
+  TasteCalibration,
+  PreferredTone,
+} from "./tasteCalibration.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -81,6 +85,14 @@ export type CoreNoveltyContext = {
   /** Premise-execution ids shipped in recent batches — same shape
    *  notes as `recentPremiseStyleIds`. */
   recentExecutionIds?: ReadonlySet<string>;
+  /** PHASE Y7 — lowercased anchors shipped in recent visible
+   *  batches. O(1) freshness signal for `buildRecipeQueue` —
+   *  catalog anchors NOT in this set get PROMOTED to the front
+   *  of the per-core queue. Falls back to the existing
+   *  `recentPremises` word-boundary regex when undefined OR
+   *  empty (back-compat with cold-start creators). Built by
+   *  `hybridIdeator.buildRecipeAnchorMemory`. */
+  recentAnchors?: ReadonlySet<string>;
 };
 
 export type GenerateCoreCandidatesInput = {
@@ -100,6 +112,16 @@ export type GenerateCoreCandidatesInput = {
    *  the front of the queue (anchors NOT substring-contained in
    *  any recent premise win the cycle order tiebreak). */
   recentPremises?: ReadonlySet<string>;
+  /** PHASE Y7 — taste calibration document for the requesting
+   *  creator (parsed via `parseTasteCalibration`). Drives
+   *  `resolveVoiceCluster` priority: when `preferredTone` is set
+   *  the resolver returns the matching `VoiceClusterId` for
+   *  every recipe (taste-pinned generation). Null / undefined
+   *  falls through to the cold-start salt rotation across all
+   *  4 clusters with a 2x bias toward the family's curated
+   *  default in `FAMILY_VOICE`. Parse failures must be coerced
+   *  to `null` upstream — the resolver does not retry parsing. */
+  tasteCalibration?: TasteCalibration | null;
 };
 
 /** Y6 widens the rejection-reason union with `construction_failed`
@@ -137,8 +159,24 @@ export type GenerateCoreCandidatesResult = {
 };
 
 // ---------------------------------------------------------------- //
-// Y6 family → voice cluster (deterministic; Y7 will replace with    //
-// taste-driven selection)                                           //
+// PHASE Y7 — voice cluster resolution                               //
+//                                                                   //
+// Resolution priority (first match wins):                           //
+//   1. `tasteCalibration.preferredTone` set     → direct map        //
+//      (taste-pinned: every recipe in the batch uses that voice)    //
+//   2. Cold-start fallback                      → salt-rotation     //
+//      across all 4 clusters indexed by                             //
+//      djb2(`${salt}|${coreId}|${recipeIdx}|voice`) % 8 against     //
+//      an 8-slot table where the family's curated `FAMILY_VOICE`    //
+//      cluster occupies 2 slots (2x bias) and the other 3 clusters  //
+//      occupy 2 slots each.                                         //
+//                                                                   //
+// Y6 collapsed to `dry_deadpan` for most families because the       //
+// static map pinned each family to one cluster and the catalog      //
+// distribution skewed toward families pinned to that cluster. Y7    //
+// keeps the curated FAMILY_VOICE intent (2x weight) but lets the    //
+// per-recipe rotation surface the other 3 clusters in cold-start    //
+// QA — by construction (no calibration data required).              //
 // ---------------------------------------------------------------- //
 
 type Family = PremiseCore["family"];
@@ -153,6 +191,51 @@ const FAMILY_VOICE: Record<Family, VoiceClusterId> = {
   dopamine_overthinking: "quiet_realization",
   identity_exposure: "dry_deadpan",
 };
+
+const TONE_TO_VOICE_CLUSTER: Record<PreferredTone, VoiceClusterId> = {
+  dry_subtle: "dry_deadpan",
+  chaotic: "chaotic_confession",
+  bold: "overdramatic_reframe",
+  self_aware: "quiet_realization",
+};
+
+const ALL_VOICE_CLUSTERS: readonly VoiceClusterId[] = [
+  "dry_deadpan",
+  "chaotic_confession",
+  "quiet_realization",
+  "overdramatic_reframe",
+];
+
+/** PHASE Y7 — pure, deterministic voice cluster resolver. See the
+ *  block comment above for the priority chain. Exported for unit
+ *  testing the cold-start rotation distribution + the taste-pinned
+ *  override. */
+export function resolveVoiceCluster(input: {
+  family: Family;
+  tasteCalibration?: TasteCalibration | null;
+  salt: number;
+  coreId: string;
+  recipeIdx: number;
+}): VoiceClusterId {
+  const tone = input.tasteCalibration?.preferredTone;
+  if (tone && tone in TONE_TO_VOICE_CLUSTER) {
+    return TONE_TO_VOICE_CLUSTER[tone];
+  }
+  // 9-slot biased rotation table: 2 slots per cluster (8) + 1 extra
+  // slot for the family's curated default → 3/9 vs 2/9 each for the
+  // others (~1.5x bias). Keeps the curated FAMILY_VOICE intent but
+  // never collapses diversity to a single voice.
+  const familyDefault = FAMILY_VOICE[input.family];
+  const biasedTable: VoiceClusterId[] = [];
+  for (const c of ALL_VOICE_CLUSTERS) {
+    biasedTable.push(c, c);
+    if (c === familyDefault) biasedTable.push(c);
+  }
+  const idx =
+    djb2(`${input.salt}|${input.coreId}|${input.recipeIdx}|voice`) %
+    biasedTable.length;
+  return biasedTable[idx]!;
+}
 
 // ---------------------------------------------------------------- //
 // Deterministic helpers                                             //
@@ -178,14 +261,30 @@ type Recipe = {
 
 /** Materialize the per-core recipe queue: every (domain, anchor)
  *  pair from the catalog, salt-rotated to a deterministic starting
- *  position, with anchors NOT substring-contained in any recent
- *  premise PROMOTED to the front (recency channel — same anchor as
- *  the last batch loses tiebreak, never gets HARD rejected). */
+ *  position, with FRESH anchors PROMOTED to the front (anchors NOT
+ *  shipped in recent batches AND NOT already used earlier in THIS
+ *  batch win the tiebreak; never HARD rejected — a stale anchor
+ *  still ships if the queue cycles back to it).
+ *
+ *  PHASE Y7 — freshness signal priority (first non-empty wins):
+ *    1. `recentAnchors` Set.has(lowercase anchor) — O(1) check
+ *       against catalog vocabulary harvested from cached ideas
+ *       in `hybridIdeator.buildRecipeAnchorMemory`.
+ *    2. `usedThisBatch` Set.has — in-flight tracker, mutated
+ *       by the main loop after each successful candidate so
+ *       sibling cores in the SAME batch see each others' picks.
+ *    3. Fallback: word-boundary `recentPremises` regex (Y6
+ *       behaviour, retained for back-compat when `recentAnchors`
+ *       is empty / undefined for cold-start creators).
+ *  Sources 1 + 2 stack — an anchor stale via either path loses
+ *  the tiebreak. Source 3 only fires when source 1 is empty. */
 function buildRecipeQueue(
   rows: readonly CoreDomainAnchorRow[],
   salt: number,
   coreId: string,
   recentPremises: ReadonlySet<string>,
+  recentAnchors: ReadonlySet<string>,
+  usedThisBatch: ReadonlySet<string>,
 ): Recipe[] {
   const all: Recipe[] = [];
   for (const row of rows) {
@@ -198,32 +297,58 @@ function buildRecipeQueue(
     }
   }
   if (all.length === 0) return all;
-  // Salt-rotated start position so cold-start (no recent premises)
-  // still rotates across batches.
+  // Salt-rotated start position so cold-start (no recent premises /
+  // anchors) still rotates across batches.
   const start = djb2(`${salt}|${coreId}|recipe`) % all.length;
   const rotated: Recipe[] = [];
   for (let i = 0; i < all.length; i++) {
     rotated.push(all[(start + i) % all.length]!);
   }
-  // Promote fresh anchors. An anchor is "stale" if its lowercase
-  // form appears as a WORD-BOUNDARY token in any recent premise.
-  // Word-boundary (vs raw substring) rules out the false-positive
-  // class the post-Y6 architect flagged: short anchors like `tab`
-  // would otherwise match inside `tablet`/`stable`/`table` and
-  // misclassify a fresh anchor as stale. Using \b on both sides
-  // means we only mark stale on a real token re-use.
-  if (recentPremises.size === 0) return rotated;
+  // Choose freshness probe. Y7 prefers the catalog-vocabulary anchor
+  // set (O(1) Set.has); falls back to the word-boundary regex over
+  // recent premises only when anchor memory is empty.
+  const useAnchorSet = recentAnchors.size > 0;
+  if (
+    !useAnchorSet &&
+    recentPremises.size === 0 &&
+    usedThisBatch.size === 0
+  ) {
+    return rotated;
+  }
   const fresh: Recipe[] = [];
   const stale: Recipe[] = [];
   for (const r of rotated) {
     const a = r.anchor.toLowerCase();
-    const escaped = a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(`\\b${escaped}\\b`);
     let isStale = false;
-    for (const pre of recentPremises) {
-      if (re.test(pre.toLowerCase())) {
+    // In-batch tracker first — even if cross-batch memory is empty
+    // (cold start) the in-batch lever still spreads anchors across
+    // sibling cores within a single generation pass.
+    if (usedThisBatch.has(a)) {
+      isStale = true;
+    } else {
+      // PHASE Y7 — primary cross-batch freshness probe via the
+      // catalog-vocabulary anchor set (O(1) Set.has). If the anchor
+      // memory is empty OR the anchor is missing from it (anchor
+      // memory is partial — Layer-1 / Claude-fallback ideas don't
+      // always carry catalog vocabulary, so `extractAnchorAndAction`
+      // returns undefined for them and they don't contribute to
+      // `recentAnchors`), ALSO consult the legacy `recentPremises`
+      // word-boundary regex as a secondary stale signal. Either
+      // probe finding the anchor stale is sufficient to demote it,
+      // closing the partial-memory blind spot the post-Y7 architect
+      // review flagged. Word-boundary (vs raw substring) rules out
+      // false positives like `tab` matching inside `tablet`.
+      if (useAnchorSet && recentAnchors.has(a)) {
         isStale = true;
-        break;
+      } else if (recentPremises.size > 0) {
+        const escaped = a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`\\b${escaped}\\b`);
+        for (const pre of recentPremises) {
+          if (re.test(pre.toLowerCase())) {
+            isStale = true;
+            break;
+          }
+        }
       }
     }
     (isStale ? stale : fresh).push(r);
@@ -261,6 +386,9 @@ export function generateCoreCandidates(
 ): GenerateCoreCandidatesResult {
   const salt = Math.trunc(input.regenerateSalt ?? 0);
   const recentPremises = input.recentPremises ?? new Set<string>();
+  const recentAnchors =
+    input.noveltyContext?.recentAnchors ?? new Set<string>();
+  const tasteCalibration = input.tasteCalibration ?? null;
   const seedFingerprints = loadSeedHookFingerprints();
   const cap = Math.max(0, Math.trunc(input.count));
 
@@ -271,6 +399,11 @@ export function generateCoreCandidates(
     number
   > = { ...EMPTY_REASONS };
   let generatedCount = 0;
+  // PHASE Y7 — in-batch anchor tracker. Mutated after each successful
+  // candidate so the next core's recipe queue demotes anchors already
+  // shipped earlier in THIS batch. Pairs with `recentAnchors` (cross-
+  // batch) for full freshness coverage.
+  const usedAnchorsThisBatch = new Set<string>();
 
   for (const core of input.cores) {
     if (candidates.length >= cap) {
@@ -292,10 +425,14 @@ export function generateCoreCandidates(
       continue;
     }
 
-    const voiceId = FAMILY_VOICE[core.family];
-    const voice = getVoiceCluster(voiceId);
-
-    const queue = buildRecipeQueue(rows, salt, core.id, recentPremises);
+    const queue = buildRecipeQueue(
+      rows,
+      salt,
+      core.id,
+      recentPremises,
+      recentAnchors,
+      usedAnchorsThisBatch,
+    );
 
     let kept = false;
     let attempts = 0;
@@ -303,6 +440,18 @@ export function generateCoreCandidates(
 
     for (const recipe of queue) {
       if (attempts >= RECIPES_PER_CORE_CAP) break;
+      // PHASE Y7 — voice resolves PER-RECIPE (not per-core) so cold-
+      // start creators get voice diversity across recipes for the
+      // same core. Taste-pinned creators get the same cluster every
+      // recipe via the priority-1 short-circuit in resolveVoiceCluster.
+      const voiceId = resolveVoiceCluster({
+        family: core.family,
+        tasteCalibration,
+        salt,
+        coreId: core.id,
+        recipeIdx: attempts,
+      });
+      const voice = getVoiceCluster(voiceId);
       attempts++;
       generatedCount++;
       const result = authorCohesiveIdea({
@@ -321,15 +470,21 @@ export function generateCoreCandidates(
         lastReason = r;
         continue;
       }
-      // Attach scenarioFingerprint to meta for served-log telemetry.
-      // Read by `hybridIdeator` via `(c.meta as { scenarioFingerprint?:
-      // string }).scenarioFingerprint` — same indirection used for
-      // `premiseCoreId` etc. Y8 will harden this into a proper field.
+      // Attach scenarioFingerprint + voiceClusterId to meta for
+      // served-log telemetry. Read by `hybridIdeator` and the QA
+      // harness via `(c.meta as { scenarioFingerprint?: string;
+      // voiceClusterId?: VoiceClusterId }).voiceClusterId` — same
+      // indirection used for `premiseCoreId` etc. Y8 will harden
+      // these into proper fields.
       const meta: CandidateMeta = {
         ...result.meta,
         scenarioFingerprint: result.scenarioFingerprint,
+        voiceClusterId: voiceId,
       };
       candidates.push({ idea: result.idea, meta });
+      // Mark anchor used so sibling cores demote it; lowercase to
+      // match the `recentAnchors` and `buildRecipeQueue` probe.
+      usedAnchorsThisBatch.add(recipe.anchor.toLowerCase());
       kept = true;
       break;
     }

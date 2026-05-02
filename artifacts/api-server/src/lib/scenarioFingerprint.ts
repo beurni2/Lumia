@@ -137,6 +137,16 @@ function canonicalize(tok: string): string {
   return SYNONYM_MAP[lemma] ?? lemma;
 }
 
+/** PHASE Y7 — exported wrapper around the internal `canonicalize`
+ *  pipeline (lowercase → lemma-strip → SYNONYM_MAP collapse).
+ *  Used by `coreDomainAnchorCatalog`'s boot-time distinctness
+ *  assert so the catalog and the fingerprinter share ONE
+ *  canonicalization rule (no drift between what the assert checks
+ *  and what the dedup actually produces). */
+export function canonicalizeToken(tok: string): string {
+  return canonicalize(tok.toLowerCase());
+}
+
 // ---------------------------------------------------------------- //
 // Tokenization                                                      //
 // ---------------------------------------------------------------- //

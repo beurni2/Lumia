@@ -34,6 +34,7 @@ import {
   type PremiseCore,
   type PremiseCoreFamily,
 } from "./premiseCoreLibrary.js";
+import { canonicalizeToken } from "./scenarioFingerprint.js";
 
 // ---------------------------------------------------------------- //
 // Canonical domain set                                              //
@@ -53,18 +54,62 @@ export type CanonicalDomain =
   | "study"
   | "content";
 
+// PHASE Y7 — every row MUST collapse to ≥5 DISTINCT
+// `canonicalizeToken` keys (post lemma + SYNONYM_MAP). The Y6
+// catalog had 6 rows that padded to 5 anchors via SYNONYM_MAP
+// synonyms of the same noun (e.g. `sleep: alarm/blanket/pillow/
+// snooze/lamp` → all 5 collapse to {`alarm`, `lamp`} = 2 distinct
+// keys), which made the recipe queue look like it was rotating
+// across 5 anchors but was really cycling 2 fingerprints. The
+// boot assert below enforces the new floor; `canonicalize` is
+// re-imported from `scenarioFingerprint` so the assert and the
+// dedup share one canonicalization rule.
 const CANONICAL_DOMAIN_ANCHORS: Record<CanonicalDomain, readonly string[]> = {
-  sleep: ["alarm", "blanket", "pillow", "snooze", "lamp"],
-  food: ["fridge", "snack", "leftovers", "fork", "groceries"],
-  money: ["card", "savings", "cart", "subscription", "receipt"],
-  phone: ["screen", "feed", "notification", "lockscreen", "thumb"],
+  // sleep: was alarm/blanket/pillow/snooze/lamp → 2 canonical
+  // (alarm, lamp). Replaced 3 alarm-collapsing anchors with
+  // visually-distinct sleep-adjacent props.
+  sleep: ["alarm", "lamp", "mattress", "slippers", "eyemask"],
+  // food: was fridge/snack/leftovers/fork/groceries → 3 canonical
+  // (fridge, fork, groceries — snack/leftovers both → fridge).
+  // Swap snack+leftovers for oven+plate (camera-distinct).
+  food: ["fridge", "fork", "groceries", "oven", "plate"],
+  // money: was card/savings/cart/subscription/receipt → 2 canonical
+  // (money, savings — 4 of 5 collapse). Rebuilt around money-
+  // adjacent objects/services that don't share the SYNONYM_MAP
+  // money key.
+  money: ["wallet", "savings", "venmo", "atm", "statement"],
+  // phone: was screen/feed/notification/lockscreen/thumb → 3
+  // canonical (phone, lockscreen, thumb). Swap 3 phone-collapsing
+  // anchors for camera-distinct phone-adjacent props.
+  phone: ["phone", "lockscreen", "thumb", "charger", "earbuds"],
+  // work: passes already (inbox/tasks/calendar/tab/doc → tasks
+  // collapses to `list` via SYNONYM_MAP; rest distinct = 5).
   work: ["inbox", "tasks", "calendar", "tab", "doc"],
-  fitness: ["gym", "treadmill", "yoga", "pushups", "shoes"],
-  dating: ["app", "thread", "profile", "match", "convo"],
+  // fitness: was gym/treadmill/yoga/pushups/shoes → 4 canonical
+  // (gym, yoga, pushup, shoe — treadmill collapses to gym). Swap
+  // treadmill for dumbbell.
+  fitness: ["gym", "yoga", "pushups", "shoes", "dumbbell"],
+  // dating: was app/thread/profile/match/convo → 4 canonical
+  // (phone, groupchat, match, convo — `profile` collapses to
+  // `match` via SYNONYM_MAP). Swap profile for swipe + drop
+  // convo for bio (more visually distinct).
+  dating: ["app", "thread", "profile", "swipe", "bio"],
+  // social: passes (groupchat/invite/rsvp/voicememo/table = 5
+  // distinct).
   social: ["groupchat", "invite", "rsvp", "voicememo", "table"],
-  home: ["dishes", "laundry", "junk", "mail", "vacuum"],
-  mornings: ["coffee", "shower", "mirror", "routine", "kettle"],
+  // home: was dishes/laundry/junk/mail/vacuum → 4 canonical
+  // (dishes, junk, mail, vacuum — laundry collapses to dishes).
+  // Swap laundry for sink.
+  home: ["dishes", "sink", "junk", "mail", "vacuum"],
+  // mornings: was coffee/shower/mirror/routine/kettle → 3
+  // canonical (coffee, mirror, kettle — shower+routine both →
+  // coffee). Swap shower+routine for toothbrush+towel.
+  mornings: ["coffee", "mirror", "kettle", "toothbrush", "towel"],
+  // study: passes (notes/textbook/flashcards/syllabus/highlighter
+  // = 5 distinct after lemmatization).
   study: ["notes", "textbook", "flashcards", "syllabus", "highlighter"],
+  // content: passes (lens/draft/ringlight/tripod/selfie = 5
+  // distinct).
   content: ["lens", "draft", "ringlight", "tripod", "selfie"],
 };
 
@@ -254,6 +299,20 @@ function canonicalizeAndPad(core: PremiseCore): CanonicalDomain[] {
   return out;
 }
 
+// PHASE Y7 — boot-time distinctness assert: every domain row MUST
+// resolve to ≥5 distinct `canonicalizeToken` keys. Catches the Y6
+// regression where SYNONYM_MAP collapsed multiple anchors to the
+// same key and the recipe queue silently shipped duplicates.
+for (const [domain, anchors] of Object.entries(CANONICAL_DOMAIN_ANCHORS)) {
+  const canonicalKeys = new Set<string>();
+  for (const a of anchors) canonicalKeys.add(canonicalizeToken(a));
+  if (canonicalKeys.size < 5) {
+    throw new Error(
+      `[coreDomainAnchorCatalog] domain '${domain}' has only ${canonicalKeys.size} distinct canonical keys (anchors=${JSON.stringify(anchors)}, keys=${JSON.stringify([...canonicalKeys])}); require ≥5`,
+    );
+  }
+}
+
 function buildCatalog(): Readonly<Record<string, readonly CoreDomainAnchorRow[]>> {
   const out: Record<string, readonly CoreDomainAnchorRow[]> = {};
   let totalTriples = 0;
@@ -328,5 +387,21 @@ export function getAllCatalogAnchors(): ReadonlySet<string> {
     }
   }
   _allAnchorsFlat = s;
+  return s;
+}
+
+/** PHASE Y7 — flat set of every action verb (bare form) the catalog
+ *  uses, for `extractAnchorAndAction` probing. Materialized lazily
+ *  on first call. Each `FAMILY_ACTIONS[family].bare` is unique per
+ *  family but we expose the union here so callers don't need to
+ *  iterate the FAMILY_ACTIONS map themselves. */
+let _allActionsFlat: ReadonlySet<string> | null = null;
+export function getAllCatalogActions(): ReadonlySet<string> {
+  if (_allActionsFlat) return _allActionsFlat;
+  const s = new Set<string>();
+  for (const a of Object.values(FAMILY_ACTIONS)) {
+    s.add(a.bare.toLowerCase());
+  }
+  _allActionsFlat = s;
   return s;
 }

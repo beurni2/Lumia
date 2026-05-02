@@ -178,6 +178,27 @@ export type HybridIdeatorResult = {
     /** Claude-fallback candidates that survived scoring. */
     fallbackKept: number;
   };
+  /**
+   * PHASE Y7 — additive QA telemetry surfaced per shipped idea.
+   * Mirrors the fields the served-log emits but exposed
+   * structurally so QA harnesses (and only QA harnesses) can
+   * assert anchor / voice / fingerprint diversity without
+   * scraping logs. Strictly additive — production callers
+   * (route layer, mobile app) ignore this field. Optional so
+   * cache replay paths (which don't have per-candidate meta
+   * available) can omit it.
+   */
+  qaTelemetry?: {
+    perIdea: Array<{
+      source: string;
+      voiceClusterId?: string;
+      scenarioFingerprint?: string;
+      anchor?: string;
+      premiseCoreId?: string;
+    }>;
+    scenarioFingerprintsThisBatch: string[];
+    coreNativeAnchorsUsed: string[];
+  };
 };
 
 // -----------------------------------------------------------------------------
@@ -3133,6 +3154,30 @@ export async function runHybridIdeator(
       }
     }
   }
+  // PHASE Y7 — anchor freshness memory. Probe each cached idea's
+  // whatToShow / hook against the catalog vocabulary via
+  // `extractAnchorAndAction`. Window matches `recentPremises` (last
+  // 5 visible batches) so the two channels stay aligned. Empty set
+  // for cold-start creators OR for batches whose ideas don't carry
+  // a recognizable catalog anchor (Layer-1 Llama / Claude fallback
+  // wraps don't necessarily ship catalog vocabulary — the probe
+  // silently misses on those, which is fine: false absence ≠ false
+  // staleness, the recipe queue just reverts to the salt-rotated
+  // start position for that anchor). Threaded into the recipe queue
+  // via `noveltyContext.recentAnchors` below.
+  const recentAnchors = new Set<string>();
+  {
+    const anchorVocab = getAllCatalogAnchors();
+    const actionVocab = new Set<string>(
+      Object.values(FAMILY_ACTIONS).map((a) => a.bare),
+    );
+    for (const batch of last5BatchesForPremises) {
+      for (const e of batch) {
+        const probe = extractAnchorAndAction(e.idea, anchorVocab, actionVocab);
+        if (probe.anchor) recentAnchors.add(probe.anchor.toLowerCase());
+      }
+    }
+  }
   // PHASE Y (PREMISE CORE LIBRARY) — collect the last-5-batches set
   // of `idea.premiseCoreId` values that have already shipped to this
   // creator. Used by `selectPremiseCores` below to demote recent
@@ -3293,9 +3338,26 @@ export async function runHybridIdeator(
     noveltyContext: {
       recentPremiseStyleIds: noveltyContext.recentPremiseStyleIds,
       recentExecutionIds: noveltyContext.recentExecutionIds,
+      // PHASE Y7 — anchor freshness channel: O(1) Set.has probe in
+      // `buildRecipeQueue` against the lowercased catalog
+      // vocabulary harvested above from the last-5-batches' cached
+      // ideas. Empty set for cold-start (no batch json) and for
+      // batches whose ideas don't carry catalog vocabulary; the
+      // queue then reverts to the Y6 word-boundary regex over
+      // `recentPremises` for back-compat (handled inside
+      // `buildRecipeQueue`).
+      recentAnchors,
     },
     regenerateSalt,
     recentPremises,
+    // PHASE Y7 — taste-pinned voice cluster. When the creator has
+    // set `preferredTone` in their calibration doc, every recipe
+    // in the batch is generated in the matching voice cluster.
+    // Cold-start creators get the salt-rotated cold-start fallback
+    // inside `resolveVoiceCluster` instead. Calibration was already
+    // parsed once at the top of this function (L3199); re-use it
+    // here instead of re-parsing.
+    tasteCalibration: calibration,
   });
   logger.info(
     {
@@ -4137,6 +4199,31 @@ export async function runHybridIdeator(
     "hybrid_ideator.served",
   );
 
+  // PHASE Y7 — build the per-idea QA telemetry array. We already
+  // walked `final` above for fingerprints + anchors; do one more
+  // bounded pass here (≤ batch size) to capture per-idea voice
+  // and source labels for the additive `qaTelemetry` surface.
+  const qaPerIdea = final.map((c) => {
+    const m = c.meta as {
+      source?: string;
+      voiceClusterId?: string;
+      scenarioFingerprint?: string;
+      premiseCoreId?: string;
+    };
+    let anchor: string | undefined;
+    if (m.source === "core_native") {
+      const probe = extractAnchorAndAction(c.idea, _allAnchors, _allActions);
+      if (probe.anchor) anchor = probe.anchor.toLowerCase();
+    }
+    return {
+      source: m.source ?? "unknown",
+      voiceClusterId: m.voiceClusterId,
+      scenarioFingerprint: m.scenarioFingerprint,
+      anchor,
+      premiseCoreId: m.premiseCoreId,
+    };
+  });
+
   return {
     ideas,
     source,
@@ -4144,6 +4231,11 @@ export async function runHybridIdeator(
     counts: {
       localKept: localShipped,
       fallbackKept: claudeShipped,
+    },
+    qaTelemetry: {
+      perIdea: qaPerIdea,
+      scenarioFingerprintsThisBatch,
+      coreNativeAnchorsUsed,
     },
   };
 }

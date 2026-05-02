@@ -252,6 +252,34 @@ function substitute(template: string, vars: SubVars): string {
   });
 }
 
+/** PHASE Y6 (extracted Y7) — terminal-position contradiction-beat
+ *  detector. Returns true iff the FINAL sentence (split on `.!?`)
+ *  of the lower-cased show contains either the action verb's bare
+ *  or past form via WORD-BOUNDARY regex. Word-boundary (vs raw
+ *  substring) avoids the `lie` ↔ `lies`/`belief` false-positive
+ *  class the Y6 architect-fix flagged. Final-sentence (vs anywhere
+ *  in the show) preserves the "ends on the contradiction" semantic
+ *  the cohesive author relies on. Exported for unit testing — the
+ *  authoring function is the only production caller.
+ *
+ *  - showLc: lower-cased whatToShow text
+ *  - actionBare / actionPast: catalog action verb + past-tense form
+ *    (raw, NOT escaped — function escapes them internally) */
+export function showEndsOnContradiction(
+  showLc: string,
+  actionBare: string,
+  actionPast: string,
+): boolean {
+  const parts = showLc.split(/[.!?]/).map((p) => p.trim()).filter(Boolean);
+  const lastSegment = parts[parts.length - 1] ?? showLc;
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const actionPastBoundary = new RegExp(`\\b${escape(actionPast)}\\b`);
+  const actionBareBoundary = new RegExp(`\\b${escape(actionBare)}\\b`);
+  return (
+    actionPastBoundary.test(lastSegment) || actionBareBoundary.test(lastSegment)
+  );
+}
+
 // ---------------------------------------------------------------- //
 // Core authoring function                                           //
 // ---------------------------------------------------------------- //
@@ -427,24 +455,16 @@ export function authorCohesiveIdea(
   // anywhere in the show). Word-boundary rules out short-action
   // substring false positives (e.g. `lie` matching inside `lies`
   // / `belief`).
-  const lastSegment = (() => {
-    const parts = showLc.split(/[.!?]/).map((p) => p.trim()).filter(Boolean);
-    return parts[parts.length - 1] ?? showLc;
-  })();
-  const actionPastBoundary = new RegExp(
-    `\\b${actionPast.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+  const showEndsContradiction = showEndsOnContradiction(
+    showLc,
+    actionBare,
+    actionPast,
   );
-  const actionBareBoundary = new RegExp(
-    `\\b${actionBare.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-  );
-  const showEndsOnContradiction =
-    actionPastBoundary.test(lastSegment) ||
-    actionBareBoundary.test(lastSegment);
   if (
     !hookLcContainsAnchor ||
     !showContainsAnchor ||
     !filmContainsAnchor ||
-    !showEndsOnContradiction
+    !showEndsContradiction
   ) {
     return { ok: false, reason: "construction_failed" };
   }
