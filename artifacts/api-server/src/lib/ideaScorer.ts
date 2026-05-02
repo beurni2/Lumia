@@ -31,18 +31,6 @@ import {
   // picker walk's HARD reject can call the scorer without forcing a
   // new ideaScorer.ts → patternIdeator.ts runtime import cycle).
   premiseComedyBoost,
-} from "./patternIdeator.js";
-import {
-  // PHASE Y9-A — selection-layer scaled boost reading the Y8 5-dim
-  // 0-100 `scoreHookQuality` total. Replaces `premiseComedyBoost`
-  // ONLY for `core_native` candidates (which carry
-  // `hookQualityScore`); pattern_variation + claude_fallback
-  // candidates fall back to `premiseComedyBoost` reading the older
-  // 0-10 `premiseComedyScore.total` — zero change for those paths.
-  // Lives in `hookQuality.ts` next to the scorer it consumes.
-  hookQualityBoost,
-} from "./hookQuality.js";
-import {
   // Phase 6F (LEGACY COMEDY SCORING) — selection-layer scaled boost
   // mirroring `premiseComedyBoost` for legacy hooks. Lighter band
   // (10→+5..5→-3) preserves spec PART 6 tie-bias: a premium premise
@@ -118,6 +106,14 @@ import type {
 // PHASE X — PART 1+2 — single-source-of-truth taste profile.
 import { scoreDefaultTaste } from "./defaultTasteProfile";
 import type { VoiceClusterId } from "./voiceClusters";
+// PHASE Y9-A — selection-layer scaled boost reading the Y8 5-dim
+// 0-100 `scoreHookQuality` total. Replaces `premiseComedyBoost`
+// ONLY for `core_native` candidates (which carry `hookQualityScore`);
+// pattern_variation + claude_fallback candidates fall back to
+// `premiseComedyBoost` reading the older 0-10 `premiseComedyScore.total`
+// — zero change in boost magnitude for those paths. Lives in
+// `hookQuality.ts` next to the scorer it consumes.
+import { hookQualityBoost } from "./hookQuality.js";
 // PHASE X2 — PART 1+2+4 — heuristic comedy / alignment / anti-copy gates.
 import {
   validateComedy,
@@ -3634,18 +3630,33 @@ export function selectionPenalty(
     // (which carry `hookQualityScore` set by the cohesive author
     // recipe loop) read the Y8 5-dim 0-100 hookQualityBoost band
     // (90+ → +7, 80-89 → +6, 70-79 → +5, 60-69 → +3, 50-59 → 0,
-    // 40-49 → -1, <40 → -2). Pattern_variation + claude_fallback
-    // candidates (no hookQualityScore) keep the Phase 6E
+    // 40-49 → -1, <40 → -2). All non-core_native paths
+    // (pattern_variation, claude_fallback) keep the Phase 6E
     // `premiseComedyBoost` band reading the older 0-10 single-axis
     // `premiseComedyScore.total` — ZERO change in boost magnitude
     // for those paths, so back-compat with the Y3 D-lite cap math
     // and the Phase 6F `legacyComedyBoost` tie-bias is preserved.
+    //
+    // Architect-fix: branching on `source === "core_native"` (NOT
+    // on `hookQualityScore !== undefined`) is the FORMAL back-
+    // compat guarantee. Today the two predicates are equivalent —
+    // only `coreCandidateGenerator` writes `hookQualityScore` —
+    // but a future code path that populates the field on a non-core
+    // candidate (e.g. a transitional cache shape, a Llama mutator
+    // that re-scores) would silently flip pattern_variation onto
+    // the upgraded curve and break the "ZERO change for those
+    // paths" guarantee. Source-aware branching makes the contract
+    // structural, not coincidental. The fallback also degrades
+    // safely on a defensive `core_native` candidate that somehow
+    // lacks `hookQualityScore` — `hookQualityBoost(undefined) === 0`
+    // is the same neutral collapse as `premiseComedyBoost(undefined)`.
+    //
     // The Y3 D-lite cap (`Math.min(baseBoost, 3)` on recent-repeat)
     // applies uniformly to the resolved baseBoost regardless of
     // source — the cap is an anti-runaway guard on the boost
     // MAGNITUDE, not on the scorer that produced it.
     const baseBoost =
-      c.meta.hookQualityScore !== undefined
+      c.meta.source === "core_native"
         ? hookQualityBoost(c.meta.hookQualityScore)
         : premiseComedyBoost(c.meta.premiseComedyScore?.total);
     const styleId = c.meta.premiseStyleId;
