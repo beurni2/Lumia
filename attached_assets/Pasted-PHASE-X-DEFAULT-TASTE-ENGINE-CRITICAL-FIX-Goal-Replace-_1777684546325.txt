@@ -1,0 +1,148 @@
+PHASE X — DEFAULT TASTE ENGINE (CRITICAL FIX)
+
+Goal:
+Replace generic idea generation with a strong default comedic taste derived from curated hooks.
+
+This must fix:
+- weak comedy
+- hook/scenario mismatch
+- repetitive idea loops
+
+---
+
+PART 1 — DEFINE DEFAULT TASTE PROFILE
+
+Create DefaultTasteProfile based on:
+
+Mechanisms:
+- self_betrayal (highest weight)
+- self_as_other
+- absurd_escalation
+- identity_exposure
+
+Tensions:
+- intention_vs_action (dominant)
+- confident_vs_collapse
+- planned_vs_actual
+- denial_vs_reality
+
+Joke Shapes:
+- contrast (dominant)
+- confession
+- escalation
+- metaphor
+
+Language:
+- lowercase
+- conversational
+- deadpan
+- short
+
+Targets:
+- high specificity
+- medium absurdity
+- high intensity
+- very low softness
+
+---
+
+PART 2 — PREMISE-FIRST GENERATION (MANDATORY)
+
+Refactor generation pipeline:
+
+OLD (REMOVE):
+hook → scenario → filming (independent)
+
+NEW (REQUIRED):
+ComedyDNA → Premise → derive everything
+
+Steps:
+
+1. sample ComedyDNA using DefaultTasteProfile weights
+2. generate ONE strong comedic premise
+3. derive:
+   - hook
+   - whatToShow
+   - howToFilm
+
+STRICT RULE:
+All outputs must come from SAME premise.
+
+If mismatch detected → reject.
+
+---
+
+PART 3 — COMEDY VALIDATION (HARD GATE)
+
+Reject any idea if:
+
+- no clear contradiction
+- no tension (intention vs reality)
+- reads as observation instead of joke
+- safe / generic tone
+- similar to last 5 ideas
+
+Only allow:
+strong, specific, tension-based comedy
+
+---
+
+PART 4 — ANTI-LOOP SYSTEM
+
+Track:
+- last 5 idea domains
+- last 5 mechanisms
+
+Penalize:
+- same domain repetition
+- same structure repetition
+
+Force variation across:
+- life domains (money, health, work, social, habits)
+- comedic mechanisms
+
+---
+
+PART 5 — ALIGNMENT GUARANTEE
+
+Before returning output:
+
+Verify:
+
+- hook matches premise
+- scenario expresses premise
+- filming executes scenario
+
+If any mismatch:
+→ regenerate
+
+---
+
+PART 6 — DO NOT COPY TRAINING HOOKS
+
+Implement anti-copy:
+
+- no same structure reuse
+- no same phrasing
+- no slight rewording
+
+Must generate NEW ideas using same DNA.
+
+---
+
+GOAL
+
+Outputs should feel:
+- original
+- funny enough to post
+- internally consistent
+- not repetitive
+
+---
+
+SUCCESS CRITERIA
+
+- hook + scenario + filming always aligned
+- no generic outputs
+- clear comedic premise per idea
+- noticeable increase in humor quality
