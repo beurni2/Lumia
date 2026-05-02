@@ -106,6 +106,10 @@ import type {
 // PHASE X — PART 1+2 — single-source-of-truth taste profile.
 import { scoreDefaultTaste } from "./defaultTasteProfile";
 import type { VoiceClusterId } from "./voiceClusters";
+// PHASE D1 — hook fingerprint for the cross-batch -1000 hard reject
+// in `selectionPenalty`. Same module as the scenario fingerprint so
+// the dep graph stays single-edge.
+import { canonicalizeHookForFingerprint } from "./scenarioFingerprint";
 // PHASE Y9-A — selection-layer scaled boost reading the Y8 5-dim
 // 0-100 `scoreHookQuality` total. Replaces `premiseComedyBoost`
 // ONLY for `core_native` candidates (which carry `hookQualityScore`);
@@ -2332,6 +2336,20 @@ export type NoveltyContext = {
    */
   recentHookStrings?: ReadonlySet<string>;
   /**
+   * PHASE D1 — Hook FINGERPRINT set (canonicalized via lemma +
+   * synonym + sort, see `scenarioFingerprint.canonicalizeHookForFingerprint`).
+   * Built in the SAME walk as `recentHookStrings` over the FULL
+   * visible cache history. Consumed by `selectionPenalty` for a
+   * -1000 cross-batch hard reject (mirrors the recentHookStrings
+   * lever). Catches near-duplicate hooks that share content but
+   * differ in stop-words, inflection, or punctuation — the failure
+   * class observed in the post-Y11 trash report where
+   * "my body quit. my brain kept screaming" appeared 4× across
+   * batches because the exact-string normalizer treated each cosmetic
+   * variant as a fresh hook. Empty for cold-start.
+   */
+  recentHookFingerprints?: ReadonlySet<string>;
+  /**
    * Phase 6 (BIG PREMISE LAYER) — cross-batch premise-style demotion.
    * Holds `bigPremiseStyle` ids drawn from the last-3 batches' cache
    * envelopes (any entry with a non-undefined `bigPremiseStyle` field
@@ -2787,6 +2805,36 @@ export function selectionPenalty(
         if (normalizeHookForDedup(b.idea.hook) === candNorm) {
           p -= 1000;
           break;
+        }
+      }
+    }
+  }
+  // PHASE D1 — Hook FINGERPRINT cross-batch hard reject. Same -1000
+  // magnitude as the exact-string lever above; runs as a SECOND
+  // independent gate so a near-duplicate hook (e.g. "my body quit.
+  // my brain kept screaming" vs "my body quit; my brain still
+  // screams") that escapes the exact-string normalizer still gets
+  // floored. Within-batch parity: harvest the fingerprint from
+  // `batchSoFar` on the fly so within-batch near-dupe protection
+  // matches the cross-batch behavior. Empty fingerprint (`""` for
+  // hooks that collapse to zero content tokens) is treated as "no
+  // contribution" and skipped — same discipline as the
+  // canonicalizer's contract.
+  if (
+    ctx.recentHookFingerprints !== undefined ||
+    batchSoFar.length > 0
+  ) {
+    const candFp = canonicalizeHookForFingerprint(c.idea.hook);
+    if (candFp.length > 0) {
+      if (ctx.recentHookFingerprints?.has(candFp)) {
+        p -= 1000;
+      } else if (batchSoFar.length > 0) {
+        for (const b of batchSoFar) {
+          const bfp = canonicalizeHookForFingerprint(b.idea.hook);
+          if (bfp.length > 0 && bfp === candFp) {
+            p -= 1000;
+            break;
+          }
         }
       }
     }

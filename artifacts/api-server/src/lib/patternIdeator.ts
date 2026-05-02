@@ -7431,11 +7431,55 @@ function buildShotPlan(template: Template, scenario: Scenario): string[] {
  * single-take holds. Char budget: ~280–420 (well inside the 20–500
  * schema window).
  */
+// PHASE D1 — de-template the `buildWhatToShow` directorial tail.
+// Pre-D1 the tail was a 2-option ternary (one for contrast, one
+// for non-contrast) — verbatim across every batch produced the
+// "Cut between what you said you'd do..." repetition observed in
+// the post-Y11 trash report (6+ identical tails in a 14-idea
+// window). Now: 4 alternatives per branch (8 total) rotated by a
+// stable djb2 over `(scenario.family, scenario.topicNoun, family-
+// of-template, hasContrast)`. Deterministic per-scenario so the
+// QA harness stays reproducible, but two ideas with different
+// (family, topic) draw different tails. Each phrasing preserves
+// the original directorial intent (cut-on-contradiction or hold-
+// the-beat) so downstream comedy validators stay green.
+const WHAT_TO_SHOW_TAILS_CONTRAST: readonly string[] = [
+  ` Cut between what you said you'd do and the contradiction — end on the deadpan, no music sting.`,
+  ` Hard cut on the reveal — same frame, opposite outcome, no audio bridge.`,
+  ` Two-shot match cut: setup beat, then the contradiction beat in identical framing.`,
+  ` Cut on the action, not after — the joke lands on the visual, not on the explanation.`,
+];
+const WHAT_TO_SHOW_TAILS_HOLD: readonly string[] = [
+  ` Hold the final beat for a full second before cutting — let the silence do the work.`,
+  ` Stay on the frame one beat past comfortable — the held silence is the punchline.`,
+  ` No edit on the last shot — the tension lands in the unbroken take.`,
+  ` Single take, end on a slow blink — no cut, no music, just the beat.`,
+];
+
 function buildWhatToShow(scenario: Scenario, template: Template): string {
-  const tail = template.hasContrast
-    ? ` Cut between what you said you'd do and the contradiction — end on the deadpan, no music sting.`
-    : ` Hold the final beat for a full second before cutting — let the silence do the work.`;
+  const pool = template.hasContrast
+    ? WHAT_TO_SHOW_TAILS_CONTRAST
+    : WHAT_TO_SHOW_TAILS_HOLD;
+  const idx =
+    djb2HashLocal(
+      `wts|${scenario.family}|${scenario.topicNoun}|${template.id}|${template.hasContrast ? "c" : "h"}`,
+    ) % pool.length;
+  const tail = pool[idx]!;
   return `${scenario.sceneBeat}${tail}`;
+}
+
+// PHASE D1 — local djb2 helper for the tail rotator. Same algorithm
+// as `scenarioFingerprint.djb2` and `coreCandidateGenerator.djb2`,
+// inlined here to avoid pulling either import into this builder
+// (keeps the dep graph between patternIdeator and the cohesive-
+// author / fingerprint modules empty — they're sibling layers,
+// not stacked).
+function djb2HashLocal(s: string): number {
+  let h = 5381 | 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
 }
 
 /**
@@ -10007,6 +10051,44 @@ function assembleCandidate(
     // existing recentPremiseCoreIds lever fire on Layer-1 entries.
     ...(localPremiseCoreId ? { premiseCoreId: localPremiseCoreId } : {}),
   };
+
+  // PHASE D1 — Hook ↔ scene anchor HARD invariant for the legacy
+  // pattern_variation path. The cohesive single-pass author
+  // (cohesiveIdeaAuthor.ts) already enforces this by construction
+  // (line 441 `hookLcContainsAnchor` check), but the legacy path
+  // historically composed hooks from one source (PREMISE_STYLE_DEFS
+  // examples) and scenes from another (SCENARIOS topicNoun) without
+  // verifying the noun overlap. Result observed in the post-Y11
+  // trash report: hooks like "the fridge knows i'm lying" shipped
+  // with scenes that never showed the fridge ("open the front door
+  // for morning sun, walk back to closet for hoodie"). Reject by
+  // returning null — `assembleCandidate`'s callers already treat
+  // null as a soft skip (no whole-batch failure), so the slot
+  // re-rolls into the next valid (template, scenario, language)
+  // combination from the Cartesian iter.
+  //
+  // The invariant: extract the bare noun from `scenario.topicNoun`
+  // (typically prefixed "the X" — strip the article) and require it
+  // appear in the hook lowercased OR in `whatToShow` lowercased.
+  // Word-boundary check via includes-on-spaces (the topicNoun
+  // vocabulary is short concrete nouns; substring match is safe
+  // here vs the regex word-boundary the cohesive author uses).
+  const topicBare = scenario.topicNoun
+    .toLowerCase()
+    .replace(/^(?:the|a|an|my|your)\s+/, "")
+    .trim();
+  if (topicBare.length > 0) {
+    const hookLc = idea.hook.toLowerCase();
+    const showLc = idea.whatToShow.toLowerCase();
+    const hookHasTopic = hookLc.includes(topicBare);
+    const showHasTopic = showLc.includes(topicBare);
+    // Spec: at minimum the SCENE must reference its own anchor (or
+    // the hook does). When NEITHER references it the candidate is a
+    // hook ↔ scene mismatch by construction — soft-skip via null.
+    if (!hookHasTopic && !showHasTopic) {
+      return null;
+    }
+  }
 
   return {
     idea,

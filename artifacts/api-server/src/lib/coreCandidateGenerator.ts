@@ -280,19 +280,37 @@ export function resolveVoiceCluster(input: {
   recipeIdx: number;
   recentVoiceClusters?: ReadonlyMap<VoiceClusterId, number>;
 }): VoiceClusterId {
+  // PHASE D1 — soften the prior priority-1 hard short-circuit
+  // (was: `if (tone) return TONE_TO_VOICE_CLUSTER[tone]` — a 1.00
+  // pin that collapsed every recipe to one voice cluster for any
+  // creator who picked a tone in onboarding, producing the voice
+  // monoculture observed in the post-Y11 14-trash-ideas user
+  // report). The pin is now folded into the same biased-table
+  // mechanism as `familyDefault` — preferred-tone cluster gets +5
+  // slots so it dominates (~50-57%) without monopolising. Other
+  // clusters keep enough representation that batch-level voice
+  // variety survives. The Y10 histogram-LRU walk below still runs
+  // unchanged and pushes underused clusters to the front.
   const tone = input.tasteCalibration?.preferredTone;
-  if (tone && tone in TONE_TO_VOICE_CLUSTER) {
-    return TONE_TO_VOICE_CLUSTER[tone];
-  }
-  // 9-slot biased rotation table: 2 slots per cluster (8) + 1 extra
-  // slot for the family's curated default → 3/9 vs 2/9 each for the
-  // others (~1.5x bias). Keeps the curated FAMILY_VOICE intent but
-  // never collapses diversity to a single voice.
+  const preferredFromTone: VoiceClusterId | undefined =
+    tone && tone in TONE_TO_VOICE_CLUSTER
+      ? TONE_TO_VOICE_CLUSTER[tone]
+      : undefined;
+  // Biased rotation table: 2 slots per cluster baseline (8 total).
+  // +1 slot for `familyDefault` (curated narrative bias).
+  // +5 slots for `preferredFromTone` when the creator's calibration
+  // pins a tone (taste bias — softer than the pre-D1 hard pin).
+  // - No tone:                       9 slots, family ~33%, others ~22%
+  // - Tone == family default:       14 slots, preferred ~57%, others ~14%
+  // - Tone != family default:       14 slots, preferred ~50%, family ~21%, others ~14%
   const familyDefault = FAMILY_VOICE[input.family];
   const biasedTable: VoiceClusterId[] = [];
   for (const c of ALL_VOICE_CLUSTERS) {
     biasedTable.push(c, c);
     if (c === familyDefault) biasedTable.push(c);
+    if (c === preferredFromTone) {
+      biasedTable.push(c, c, c, c, c);
+    }
   }
   const startIdx =
     djb2(`${input.salt}|${input.coreId}|${input.recipeIdx}|voice`) %

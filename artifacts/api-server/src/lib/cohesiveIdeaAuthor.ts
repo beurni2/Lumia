@@ -333,23 +333,44 @@ export function authorCohesiveIdea(
   );
 
   // ---- 3. whatToShow -------------------------------------------- //
-  // Construction precondition: contains anchorLc AND ends on the
-  // contradiction beat (verb form of action). Both verified
-  // structurally below — failure returns construction_failed.
-  const whatToShow = capChars(
-    `Open with the ${anchorLc} on screen. ` +
-      `Camera holds as i ${actionBare} the ${anchorLc} knowingly. ` +
-      `End beat: i ${actionPast} the ${anchorLc} and look straight to camera, deadpan.`,
-    500,
-  );
+  // PHASE D1 — Pre-D1 was ONE deterministic template per recipe,
+  // producing identical sentence shapes across batches (the
+  // "Open with the X on screen. Camera holds as i Y..." that
+  // appeared in the post-Y11 trash report). Now: a 4-shape pool
+  // rotated by djb2(`${core.id}|${anchor}|wts`). Each shape
+  // preserves the construction precondition (contains anchorLc
+  // AND ends on the contradiction beat — see the validator below).
+  const showShapes: ReadonlyArray<(a: string, ab: string, ap: string) => string> = [
+    (a, ab, ap) =>
+      `Open with the ${a} on screen. Camera holds as i ${ab} the ${a} knowingly. End beat: i ${ap} the ${a} and look straight to camera, deadpan.`,
+    (a, ab, ap) =>
+      `Wide on the ${a} — single static frame. Walk in, ${ab} the ${a} on purpose. Final beat: ${ap} the ${a}, no reaction shot, just the silence.`,
+    (a, ab, ap) =>
+      `Tight on the ${a} for a beat. Pull back as i ${ab} the ${a} deliberately. Cut hard the moment i ${ap} the ${a} — end on the held look.`,
+    (a, ab, ap) =>
+      `Hand-held into the ${a} scene. Pause, ${ab} the ${a} once, slow. Land the contradiction by ${ap} the ${a} on the final beat — direct to camera.`,
+  ];
+  const showIdx =
+    djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
+  const whatToShow = capChars(showShapes[showIdx]!(anchorLc, actionBare, actionPast), 500);
 
   // ---- 4. howToFilm --------------------------------------------- //
-  const howToFilm = capChars(
-    `Phone propped chest height, single take. ` +
-      `Frame yourself with the ${anchorLc} in shot. ` +
-      `Hard cut on the ${actionBare} beat — keep both you and the ${anchorLc} in frame as the contradiction lands.`,
-    400,
-  );
+  // PHASE D1 — same de-templating treatment. 4 phrasings rotated
+  // by `${core.id}|${anchor}|htf`. Anchor still appears verbatim
+  // so the construction precondition (filmContainsAnchor) holds.
+  const filmShapes: ReadonlyArray<(a: string, ab: string) => string> = [
+    (a, ab) =>
+      `Phone propped chest height, single take. Frame yourself with the ${a} in shot. Hard cut on the ${ab} beat — keep both you and the ${a} in frame as the contradiction lands.`,
+    (a, ab) =>
+      `Camera at counter height, you and the ${a} in the same frame the whole take. Single shot, no music. The ${ab} gesture is the punchline — let the geography do the work.`,
+    (a, ab) =>
+      `Wide-ish, the ${a} occupies the lower-third of the frame. One take, no edits. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} once, deliberately, then hold the look.`,
+    (a, ab) =>
+      `Locked-off on a tripod or shelf — frame so the ${a} is always visible. Walk in, ${ab} the ${a} on the beat, walk out without breaking the take.`,
+  ];
+  const filmIdx =
+    djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
+  const howToFilm = capChars(filmShapes[filmIdx]!(anchorLc, actionBare), 400);
 
   // ---- 5. shotPlan (3 beats keeps scoreFilmability max) --------- //
   const shotPlan: string[] = [
@@ -359,14 +380,43 @@ export function authorCohesiveIdea(
   ];
 
   // ---- 6. caption ----------------------------------------------- //
+  // PHASE D1 — 4 caption shapes rotated by core/anchor djb2.
+  // Same de-templating fix as whatToShow/howToFilm — pre-D1 the
+  // single shape produced verbatim repetition across batches
+  // (e.g. "the trick is to never look directly at the problem"
+  // observed twice in the post-Y11 14-idea screenshot set).
+  const captionShapes: ReadonlyArray<(a: string, ap: string, d: string) => string> = [
+    (a, ap, d) => `the ${a} thing again. ${ap} it. fine probably. ${d}.`,
+    (a, ap, d) => `${ap} the ${a}. lying about it now. ${d}, basically.`,
+    (a, ap, d) => `the ${a} won. ${d} update: i'm pretending it didn't.`,
+    (a, ap, d) => `me + ${a} = unresolved. ${d} edition. send help maybe.`,
+  ];
+  const capIdx = djb2(`${core.id}|${anchor}|cap`) % captionShapes.length;
   const caption = capChars(
-    `the ${anchorLc} thing again. ${actionPast} it. fine probably. ${humanize(domain)}.`,
+    captionShapes[capIdx]!(anchorLc, actionPast, humanize(domain)),
     140,
   );
 
   // ---- 7. whyItWorks -------------------------------------------- //
+  // PHASE D1 — 4 shape rotation. Each preserves the (mechanism,
+  // anchor, action, voice) signal so the field still reads as
+  // authored from the recipe rather than as a stock bullet list.
+  const whyShapes: ReadonlyArray<
+    (m: string, a: string, ab: string, v: string) => string
+  > = [
+    (m, a, ab, v) => `${m} → I ${ab} the ${a} → relatable contradiction in one beat (${v}).`,
+    (m, a, ab, v) => `${v}: the ${a} is the real subject — ${ab.toLowerCase()}-then-look reframes ${m.toLowerCase()} as the joke.`,
+    (m, a, ab, v) => `Lands because ${m.toLowerCase()} maps onto a tiny visible action (${ab} the ${a}) — recognition, not explanation. Voice: ${v}.`,
+    (m, a, ab, v) => `${m} compresses into one beat: ${ab} the ${a}, hold, cut. The ${v} voice keeps it specific instead of generic.`,
+  ];
+  const whyIdx = djb2(`${core.id}|${anchor}|why`) % whyShapes.length;
   const whyItWorks = capChars(
-    `${capitalize(humanize(core.mechanism))} → I ${actionBare} the ${anchorLc} → relatable contradiction in one beat (${voice.id}).`,
+    whyShapes[whyIdx]!(
+      capitalize(humanize(core.mechanism)),
+      anchorLc,
+      actionBare,
+      voice.id,
+    ),
     280,
   );
 

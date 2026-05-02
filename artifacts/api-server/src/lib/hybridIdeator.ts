@@ -107,7 +107,10 @@ import {
   getAllCatalogAnchors,
   FAMILY_ACTIONS,
 } from "./coreDomainAnchorCatalog";
-import { extractAnchorAndAction } from "./scenarioFingerprint";
+import {
+  canonicalizeHookForFingerprint,
+  extractAnchorAndAction,
+} from "./scenarioFingerprint";
 import {
   isVoiceClusterId as _isVoiceClusterId,
   type VoiceClusterId,
@@ -2040,6 +2043,13 @@ function buildNoveltyContext(
   // mid-string punctuation drift or re-emission via a different
   // code path.
   const recentHookStrings = new Set<string>();
+  // PHASE D1 — hook FINGERPRINT set (canonicalized via lemma +
+  // synonym + sort). Built in the same walk as `recentHookStrings`
+  // and threaded into `selectionPenalty` via the same -1000 hard-
+  // reject lever. Catches near-duplicate hooks (e.g. "my body quit.
+  // my brain kept screaming" vs "my body quit; my brain still
+  // screams") that the exact-string set would miss.
+  const recentHookFingerprints = new Set<string>();
   for (const batch of allBatchesForSessionCap) {
     for (const e of batch) {
       if (e.hookSkeletonId) {
@@ -2056,6 +2066,15 @@ function buildNoveltyContext(
       const h = e.idea?.hook;
       if (typeof h === "string" && h.length > 0) {
         recentHookStrings.add(normalizeHookForDedup(h));
+        // PHASE D1 — additionally harvest the stronger HOOK
+        // FINGERPRINT (lemma + synonym + sort) so the cross-batch
+        // -1000 hard reject in `selectionPenalty` catches near-
+        // duplicate hooks that share content but differ in stop-
+        // words / inflection / punctuation. The exact-string set
+        // above is a strict subset of what the fingerprint set
+        // catches — both are populated for belt-and-braces.
+        const hf = canonicalizeHookForFingerprint(h);
+        if (hf.length > 0) recentHookFingerprints.add(hf);
       }
     }
   }
@@ -2097,6 +2116,10 @@ function buildNoveltyContext(
     // history exists; cold-start callers see an empty Set which is
     // a no-op in the lookup path.
     recentHookStrings,
+    // PHASE D1 — hook FINGERPRINT set, populated in the same walk.
+    // Same -1000 hard-reject lever in `selectionPenalty`; catches
+    // near-duplicate hooks that exact-string dedup misses.
+    recentHookFingerprints,
     // Phase 6 (BIG PREMISE LAYER) — last-3 premise-style set drives
     // the -2 cross-batch demotion in `selectionPenalty`. Empty Set
     // for cold-start (caller treats as no contribution).

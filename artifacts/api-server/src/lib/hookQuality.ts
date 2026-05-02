@@ -536,6 +536,54 @@ function contradictionScore(hookLower: string): number {
 }
 
 // ---------------------------------------------------------------- //
+// PHASE D1 — AI-cliché demote band                                  //
+//                                                                   //
+// Negative-only score component (range -15..0) that demotes hooks   //
+// using the over-recycled AI-voice phrasings the post-Y11 user      //
+// report flagged: "my body quit", "my brain hates me", "i specialize//
+// in disappointing", "my brain filed for emotional bankruptcy",     //
+// "is unwell", "totally fine about", "knows i'm lying" + close      //
+// variants. NOT a hard reject — the cap of -15 keeps a hook with    //
+// genuinely-strong other axes still shippable, but it stops the     //
+// generic AI dialect from being the median pick. Frozen list; not   //
+// per-creator (the AI's own dialect is the same dialect for every   //
+// creator). Same discipline as the verb tier sets above.            //
+// ---------------------------------------------------------------- //
+
+// IMPORTANT: do NOT add user-blessed seed-exemplar shapes to this
+// list. The user's voiceClusters seedHookExemplars include
+// "i specialize in disappointing myself" — that shape is taste-
+// approved and must NOT be demoted even though the AI overuses
+// adjacent phrasings. The list below targets ONLY phrases observed
+// in the post-Y11 trash report that are absent from the user's
+// blessed seed corpus.
+const AI_CLICHE_PATTERNS: readonly RegExp[] = [
+  /\bmy body quit\b/,
+  /\bmy brain (?:hates?|filed|kept screaming)/,
+  /\bis unwell\b/,
+  /\bemotional bankruptcy\b/,
+  /\bfiled for (?:emotional|divorce|bankruptcy)/,
+  /\b(?:totally|completely) fine (?:about|with)\b/,
+  /\bknows i'?m lying\b/,
+  /\bruined my villain (?:arc|origin)/,
+  /\bvillain (?:arc|origin) (?:ruined|cancelled|over)/,
+  /\bmy own personal (?:hell|apocalypse|villain)/,
+  /\bsomeone please (?:help|stop|tell)/,
+  /\bnot a phase mom\b/,
+];
+
+function aiClicheScore(hookLower: string): number {
+  let demerits = 0;
+  for (const re of AI_CLICHE_PATTERNS) {
+    if (re.test(hookLower)) {
+      demerits += 8;
+      if (demerits >= 15) return -15;
+    }
+  }
+  return -demerits;
+}
+
+// ---------------------------------------------------------------- //
 // Public API                                                        //
 // ---------------------------------------------------------------- //
 
@@ -546,6 +594,11 @@ export type HookQualityBreakdown = {
   brevity: number;
   concrete: number;
   contradiction: number;
+  /** PHASE D1 — AI-cliché demote (range -15..0). Soft signal,
+   *  applied as a negative addend to `total`. Surfaced in the
+   *  breakdown so QA harness telemetry can identify which hooks
+   *  are bleeding score to the cliché list. */
+  aiCliche: number;
 };
 
 /** Score a hook on the Y8 punch scale. `family` is currently unused
@@ -573,6 +626,12 @@ export function scoreHookQualityDetailed(
   const brevity = brevityScore(lower);
   const concrete = concretenessScore(lower);
   const contradiction = contradictionScore(lower);
+  // PHASE D1 — negative-only AI-cliché demote. Applied as an
+  // addend to `total` (which can therefore drop below the 0..100
+  // raw range — the boost band in `hookQualityBoost` clamps the
+  // useful range and the recipe loop's quality floor (~40) treats
+  // any sub-floor candidate as a fail).
+  const aiCliche = aiClicheScore(lower);
 
   // PHASE Y8 — gaming guard. The EXPLICIT anthropomorph regex
   // (`my own`, `myself`, `itself`, etc.) is worth a full 25, big
@@ -594,12 +653,14 @@ export function scoreHookQualityDetailed(
   }
 
   return {
-    total: visceral + anthropomorph + brevity + concrete + contradiction,
+    total:
+      visceral + anthropomorph + brevity + concrete + contradiction + aiCliche,
     visceral,
     anthropomorph,
     brevity,
     concrete,
     contradiction,
+    aiCliche,
   };
 }
 

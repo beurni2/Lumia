@@ -191,6 +191,106 @@ export function computeScenarioFingerprint(input: FingerprintInput): string {
   return `sf_${h1}${h2}`;
 }
 
+// ---------------------------------------------------------------- //
+// PHASE D1 — Hook fingerprint                                       //
+//                                                                   //
+// Stronger normalization than `normalizeHookForDedup` (which only   //
+// lowercases + trims + strips trailing punctuation). The hook       //
+// fingerprint runs the same lemma + synonym + sort pipeline as the  //
+// scenario fingerprint, then djb2-hashes to a stable 12-hex string  //
+// prefixed `hf_`. Catches near-duplicate hooks that share content   //
+// but differ in stop-word filler / inflection / punctuation:        //
+//                                                                   //
+//   "my body quit. my brain kept screaming"                         //
+//   "my body quit and my brain still screaming"                     //
+//   "my body quit; my brain keeps screaming"                        //
+//                                                                   //
+// All three collapse to the same `hf_*` value, so the cross-batch   //
+// hard-reject in `selectionPenalty` (-1000) catches them as a set   //
+// instead of needing each surface variant to recur verbatim.        //
+// ---------------------------------------------------------------- //
+
+const HOOK_STOPWORDS: ReadonlySet<string> = new Set([
+  "a",
+  "an",
+  "the",
+  "i",
+  "im",
+  "my",
+  "me",
+  "to",
+  "and",
+  "or",
+  "but",
+  "of",
+  "for",
+  "in",
+  "on",
+  "at",
+  "is",
+  "am",
+  "are",
+  "was",
+  "were",
+  "it",
+  "its",
+  "be",
+  "been",
+  "being",
+  "this",
+  "that",
+  "these",
+  "those",
+  "so",
+  "as",
+  "do",
+  "does",
+  "did",
+  "have",
+  "has",
+  "had",
+  "now",
+  "just",
+  "still",
+  "again",
+  "yet",
+]);
+
+/** PHASE D1 — Stable canonical fingerprint of a hook string for the
+ *  Y10 freshness-window cross-batch hard reject. Pipeline:
+ *    1. lowercase + trim
+ *    2. tokenize on word chars (drops punctuation incl. `'`)
+ *    3. lemmatize each token (suffix-strip table — same as scenario fp)
+ *    4. drop stop-words (HOOK_STOPWORDS — high-frequency function words)
+ *    5. SYNONYM_MAP collapse (list/checklist/tasks → "list", etc.)
+ *    6. dedupe + sort (commutative on token order)
+ *    7. djb2 hash twice with seeds → 12 hex chars, prefix `hf_`
+ *
+ *  Empty hooks (or hooks that collapse to zero content tokens) return
+ *  the empty string `""` — caller treats that as "no fingerprint
+ *  contribution" so cold-start / malformed entries don't poison the
+ *  Set with a sentinel value that would silently match every other
+ *  empty-content hook.
+ */
+export function canonicalizeHookForFingerprint(hook: string): string {
+  if (!hook) return "";
+  const lowered = hook.toLowerCase().trim();
+  const matches = lowered.match(/[a-z][a-z0-9]{1,}/g);
+  if (!matches) return "";
+  const tokens: string[] = [];
+  for (const m of matches) {
+    const canon = canonicalize(m);
+    if (HOOK_STOPWORDS.has(canon)) continue;
+    tokens.push(canon);
+  }
+  if (tokens.length === 0) return "";
+  const unique = Array.from(new Set(tokens)).sort();
+  const joined = unique.join(" ");
+  const h1 = djb2(`hf|a|${joined}`).toString(16).padStart(8, "0");
+  const h2 = djb2(`hf|b|${joined}`).toString(16).padStart(8, "0").slice(0, 4);
+  return `hf_${h1}${h2}`;
+}
+
 /** Probe an idea's `whatToShow` (and `hook` as fallback) for an
  *  anchor + action pair using the catalog's known anchor list as a
  *  match probe. Returns the longest matching anchor + the first

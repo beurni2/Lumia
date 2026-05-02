@@ -209,32 +209,49 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
     }
   });
 
-  it("taste-pinned preferredTone STILL wins — Y10 only affects the cold-start arm", () => {
-    // Priority 1 (taste-pinned) short-circuit must stay unchanged.
-    // Even with a histogram marking `dry_deadpan` as freshly used,
-    // a `dry_subtle` tone pin must return `dry_deadpan` every time.
-    const hist = new Map<VoiceClusterId, number>([["dry_deadpan", 99]]);
-    for (let salt = 0; salt < 4; salt++) {
-      for (let recipeIdx = 0; recipeIdx < 4; recipeIdx++) {
-        const got = resolveVoiceCluster({
-          family: "self_betrayal",
-          tasteCalibration: {
-            preferredFormats: [],
-            preferredTone: "dry_subtle",
-            effortPreference: null,
-            privacyAvoidances: [],
-            preferredHookStyles: [],
-            completedAt: null,
-            skipped: false,
-          },
-          salt,
-          coreId: "core_taste",
-          recipeIdx,
-          recentVoiceClusters: hist,
-        });
-        expect(got).toBe("dry_deadpan");
-      }
+  it("PHASE D1 — taste-pinned preferredTone DOMINATES (~50%+) but does NOT monopolise", () => {
+    // Pre-D1 contract was a HARD 1.00 short-circuit on
+    // `TONE_TO_VOICE_CLUSTER[tone]` — a creator who pinned a tone in
+    // calibration got the same voice cluster on every single recipe,
+    // collapsing batch-level voice variety and producing the
+    // monoculture observed in the post-Y11 14-trash-ideas user
+    // report. PHASE D1 softens this to a +5-slot bias on the
+    // biased-table mechanism (alongside the existing +1 familyDefault
+    // bias). Resulting distribution targets:
+    //   - tone == family default:   preferred ~57%, others ~14%
+    //   - tone != family default:   preferred ~50%, family ~21%, others ~14%
+    // Test runs 200 deterministic salts WITHOUT history (so the
+    // Y10 LRU walk doesn't overrule the bias) and asserts
+    // dry_deadpan dominates with ≥40% but does NOT exceed ~75%
+    // (i.e. it's a softer-than-pre-D1 lever, not a removed lever).
+    const counts: Record<string, number> = {};
+    const N = 200;
+    for (let salt = 0; salt < N; salt++) {
+      const got = resolveVoiceCluster({
+        family: "self_betrayal", // family default: ALSO dry_deadpan
+        tasteCalibration: {
+          preferredFormats: [],
+          preferredTone: "dry_subtle", // → dry_deadpan
+          effortPreference: null,
+          privacyAvoidances: [],
+          preferredHookStyles: [],
+          completedAt: null,
+          skipped: false,
+        },
+        salt,
+        coreId: "core_taste",
+        recipeIdx: 0,
+      });
+      counts[got] = (counts[got] ?? 0) + 1;
     }
+    const dryDeadpanShare = (counts["dry_deadpan"] ?? 0) / N;
+    // D1 spec: preferred dominates but does not monopolise.
+    expect(dryDeadpanShare).toBeGreaterThanOrEqual(0.4);
+    expect(dryDeadpanShare).toBeLessThanOrEqual(0.75);
+    // At least 2 OTHER clusters must show up at all — that's the
+    // batch-level voice variety the D1 fix was meant to restore.
+    const others = Object.keys(counts).filter((k) => k !== "dry_deadpan");
+    expect(others.length).toBeGreaterThanOrEqual(2);
   });
 
   it("rotation across recipes for SAME core: histogram updates → different cluster picked", () => {
