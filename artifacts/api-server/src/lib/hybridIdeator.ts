@@ -126,6 +126,11 @@ import {
   type ViralPatternMemory,
 } from "./viralPatternMemory";
 import {
+  applyOnboardingSeed,
+  buildOnboardingSeed,
+  type OnboardingSeed,
+} from "./onboardingSeed";
+import {
   maybeMutateBatch,
   type MutationUsageContext,
 } from "./llamaHookMutator";
@@ -3076,12 +3081,23 @@ async function persistCache(
 
 async function loadMemory(
   input: HybridIdeatorInput,
+  onboardingSeed: OnboardingSeed | null,
 ): Promise<ViralPatternMemory> {
   if (input.viralPatternMemory) return input.viralPatternMemory;
   const cid = input.ctx?.creatorId ?? input.creator?.id;
-  if (!cid) return EMPTY_MEMORY;
+  if (!cid) {
+    // No creator id (curl bench path or brand-new account whose row
+    // hasn't been resolved yet). If the seed is available we still
+    // surface it — applyOnboardingSeed against EMPTY_MEMORY produces
+    // the cold-start synthetic snapshot that the prompt block knows
+    // how to render. Without a seed we fall back to the empty shape.
+    if (onboardingSeed) {
+      return applyOnboardingSeed(EMPTY_MEMORY, onboardingSeed, 0);
+    }
+    return EMPTY_MEMORY;
+  }
   try {
-    return await computeViralPatternMemory(cid);
+    return await computeViralPatternMemory(cid, { onboardingSeed });
   } catch {
     return EMPTY_MEMORY;
   }
@@ -3305,7 +3321,6 @@ export async function runHybridIdeator(
     : undefined;
 
   // -------- Step 3: Layer 1 + Layer 2 ----------------------------
-  const memory = await loadMemory(input);
   // Parse the persisted vision-style doc once at the orchestrator
   // boundary so both the local and fallback rescore paths see the
   // same `derivedStyleHints` snapshot. `parseVisionStyleDoc` is
@@ -3313,8 +3328,40 @@ export async function runHybridIdeator(
   // and `derivedStyleHints` is itself empty under the per-video
   // threshold, so for new creators / pre-v21 rows this is a strict
   // no-op — `filterAndRescore` short-circuits inside `applyVisionBoost`.
+  // PHASE Y9 — moved ABOVE loadMemory so the onboarding seed (which
+  // depends on visionDoc + calibration + profile) can be built and
+  // threaded into computeViralPatternMemory in a single load pass.
   const visionDoc = parseVisionStyleDoc(input.visionStyleJson ?? null);
   const derivedStyleHints = visionDoc.derivedStyleHints;
+  const calibrationForSeed = parseTasteCalibration(input.tasteCalibrationJson);
+  // Seed building is a pure function over already-parsed inputs —
+  // returns null when none of the three onboarding docs contributed
+  // anything (default style profile, no calibration, empty vision
+  // doc) so the load path falls through to the legacy behaviour-only
+  // memory pipeline unchanged.
+  const onboardingSeed = buildOnboardingSeed({
+    tasteCalibration: calibrationForSeed,
+    styleProfile: input.styleProfile ?? null,
+    visionStyleDoc: visionDoc,
+  });
+  const memory = await loadMemory(input, onboardingSeed);
+  if (memory.seededFromOnboarding === true && onboardingSeed) {
+    // Single info log per request when the seed actually got
+    // applied (cold-start OR warm-up merge — driven by the
+    // `seededFromOnboarding` flag the load helper stamps). Captures
+    // which onboarding sources contributed for ops debugging; the
+    // log fires only once per request so it's safe to leave on at
+    // INFO level.
+    logger.info(
+      {
+        creatorId: input.ctx?.creatorId ?? input.creator?.id ?? null,
+        seedSampleSize: onboardingSeed.sampleSize,
+        seedSources: onboardingSeed.sources,
+        memorySampleSize: memory.sampleSize,
+      },
+      "phase_y9.viral_memory_seeded_from_onboarding",
+    );
+  }
   // VOICE PROFILES spec — resolve the primary voice ONCE at the
   // orchestrator boundary so:
   //   1) generatePatternCandidates skips its hint-only fallback and
@@ -3328,7 +3375,9 @@ export async function runHybridIdeator(
   // built tolerantly above; rotationSeed falls back to a stable 0
   // when not regenerating (deterministic per-creator default
   // rotation between self_aware and dry_humor).
-  const calibration = parseTasteCalibration(input.tasteCalibrationJson);
+  // PHASE Y9 — reuse the parse from above (used to build the
+  // onboarding seed) so we don't double-parse the same jsonb blob.
+  const calibration = calibrationForSeed;
   // Vision tier — majority-mode aggregation of `deliveryStyle` across
   // the per-video signals. We deliberately ignore `unknown` (it's the
   // parser's null-stand-in for missing/malformed signals; counting it
@@ -3601,6 +3650,14 @@ export async function runHybridIdeator(
         regenerate,
         tasteCalibrationJson: input.tasteCalibrationJson,
         viralPatternMemory: memory,
+        // PHASE Y9 — pass through so a future caller that injects a
+        // pre-computed `viralPatternMemory: undefined` (forcing the
+        // ideator's own load path) still gets the seed applied.
+        // Today the orchestrator always pre-loads `memory` here so
+        // generateIdeas's own load branch is a no-op, but the field
+        // is forward-compatible with any path that bypasses the
+        // orchestrator's `loadMemory` step.
+        onboardingSeed,
         ctx: input.ctx,
         // PHASE Y — primary seed for Layer-3 generation. The prompt
         // builder in `ideaGen.ts` renders these via

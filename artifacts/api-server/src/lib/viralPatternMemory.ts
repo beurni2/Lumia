@@ -53,6 +53,11 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 
 import { db, schema } from "../db/client";
+import {
+  applyOnboardingSeed,
+  WARMUP_THRESHOLD,
+  type OnboardingSeed,
+} from "./onboardingSeed";
 
 /* ------------------------------------------------------------------ */
 /* Canonical taxonomies — single source of truth across the Evolution */
@@ -183,9 +188,20 @@ export type ViralPatternMemory = {
    * Sample size — informs the prompt block whether the memory is
    * confident enough to mention. With <3 weighted rows we omit the
    * block entirely (the noise would mislead the model more than
-   * help it).
+   * help it). PHASE Y9 — seeded memory bypasses this floor (see
+   * `seededFromOnboarding` and `renderViralMemoryPromptBlock`).
    */
   sampleSize: number;
+  /**
+   * PHASE Y9 — true when the four Records carry initial bias derived
+   * from the creator's onboarding documents (taste calibration,
+   * style profile, vision profile) rather than (or in addition to)
+   * behavioural feedback. Drives a different framing line in the
+   * prompt block ("Initial bias from onboarding…") and, in cold-
+   * start mode (totalRows === 0), bypasses the <3 sampleSize
+   * suppression so the prompt block actually renders.
+   */
+  seededFromOnboarding?: boolean;
 };
 
 export const EMPTY_MEMORY: ViralPatternMemory = {
@@ -202,6 +218,7 @@ export const EMPTY_MEMORY: ViralPatternMemory = {
   explorationTarget: { aligned: null, adjacent: [] },
   lastUpdatedAt: new Date(0).toISOString(),
   sampleSize: 0,
+  seededFromOnboarding: false,
 };
 
 /* ------------------------------------------------------------------ */
@@ -328,8 +345,17 @@ function filterRec(
  */
 export async function computeViralPatternMemory(
   creatorId: string | null | undefined,
+  opts: { onboardingSeed?: OnboardingSeed | null } = {},
 ): Promise<ViralPatternMemory> {
-  if (!creatorId) return EMPTY_MEMORY;
+  if (!creatorId) {
+    // No creator → no behavioural signal. If a seed was passed we
+    // still surface it (the cold-start cohort: the very first idea
+    // request from a brand-new account before any feedback exists).
+    if (opts.onboardingSeed) {
+      return applyOnboardingSeed(EMPTY_MEMORY, opts.onboardingSeed, 0);
+    }
+    return EMPTY_MEMORY;
+  }
 
   const WINDOW_DAYS = 60;
   const ROW_CAP = 50;
@@ -406,7 +432,16 @@ export async function computeViralPatternMemory(
   }
 
   const totalRows = feedbackRows.length + signalRows.length;
-  if (totalRows === 0) return EMPTY_MEMORY;
+  if (totalRows === 0) {
+    // PHASE Y9 — cold-start path. Behavioural aggregates are empty
+    // but onboarding may have given us calibrated preferences;
+    // surface those as the initial bias instead of falling through
+    // to EMPTY_MEMORY (which would suppress the prompt block).
+    if (opts.onboardingSeed) {
+      return applyOnboardingSeed(EMPTY_MEMORY, opts.onboardingSeed, 0);
+    }
+    return EMPTY_MEMORY;
+  }
 
   // Stored aggregates per dimension.
   const structures: Record<string, number> = {};
@@ -616,7 +651,7 @@ export async function computeViralPatternMemory(
       )
     : [];
 
-  return {
+  const aggregated: ViralPatternMemory = {
     structures: structuresClamped,
     hookStyles: hookStylesClamped,
     emotionalSpikes: emotionalSpikesClamped,
@@ -633,7 +668,18 @@ export async function computeViralPatternMemory(
     },
     lastUpdatedAt: new Date().toISOString(),
     sampleSize: totalRows,
+    seededFromOnboarding: false,
   };
+
+  // PHASE Y9 — warm-up merge. While behavioural signal is sparse
+  // (totalRows < WARMUP_THRESHOLD), zero-fill from the onboarding
+  // seed so dims the creator hasn't generated feedback for yet still
+  // get a calibrated bias. Once totalRows ≥ WARMUP_THRESHOLD the
+  // seed is dropped entirely — "behaviour beats stated preference".
+  if (opts.onboardingSeed && totalRows < WARMUP_THRESHOLD) {
+    return applyOnboardingSeed(aggregated, opts.onboardingSeed, totalRows);
+  }
+  return aggregated;
 }
 
 /* ------------------------------------------------------------------ */
@@ -709,7 +755,11 @@ export function renderViralMemoryPromptBlock(
   memory: ViralPatternMemory,
   batchSize: number = 8,
 ): string | null {
-  if (memory.sampleSize < 3) return null;
+  // PHASE Y9 — seeded memory bypasses the <3 sampleSize floor. The
+  // floor exists to suppress noisy snapshots built from too few
+  // feedback rows; an onboarding-derived seed is INTENTIONAL bias,
+  // not noise, so we render it even when the count is tiny.
+  if (!memory.seededFromOnboarding && memory.sampleSize < 3) return null;
 
   const fmt = (xs: string[]): string =>
     xs.length === 0 ? "(none yet)" : xs.join(", ");
@@ -800,9 +850,28 @@ export function renderViralMemoryPromptBlock(
     "  • QUALITY OVERRIDE — even a perfect-memory-match idea must be DROPPED if it has a weak hook, unclear payoff, non-instant-visual, repetitive surface, requires private/sensitive content, or isn't filmable today. Memory is a bias; quality is a gate.",
   ];
 
+  // PHASE Y9 — pick the framing line based on whether this snapshot
+  // is purely behavioural, purely onboarding-seeded, or a mix. A
+  // pure cold-start snapshot has seededFromOnboarding=true AND
+  // sampleSize equal to the seed's distinct-tag count (set in
+  // `applyOnboardingSeed` for the totalRows===0 branch); a mix has
+  // seededFromOnboarding=true AND sampleSize > 0 driven by real
+  // rows. The model behaves better when the framing is honest about
+  // which signal source is driving the bias — it stops pretending
+  // there's "recent behaviour" when there isn't any.
+  const isPureOnboardingSeed =
+    memory.seededFromOnboarding === true &&
+    memory.recentAcceptedPatterns.length === 0 &&
+    memory.recentRejectedPatterns.length === 0;
+  const framingLine = isPureOnboardingSeed
+    ? "Based on this creator's onboarding answers (calibration / style / vision), here's the INITIAL bias to lean into across four dimensions — feedback over time will refine this:"
+    : memory.seededFromOnboarding === true
+      ? `Based on this creator's recent ${memory.sampleSize} verdicts + actions PLUS their onboarding answers (used to fill gaps), what's earning YES / select / export vs NO / skip across four dimensions:`
+      : `Based on this creator's recent ${memory.sampleSize} verdicts + actions, what's earning YES / select / export vs NO / skip across four dimensions:`;
+
   return [
     "=== VIRAL PATTERN MEMORY (PATTERN-LEVEL, NOT TOPIC-LEVEL) ===",
-    `Based on this creator's recent ${memory.sampleSize} verdicts + actions, what's earning YES / select / export vs NO / skip across four dimensions:`,
+    framingLine,
     ...lines,
     ...extras,
     "",

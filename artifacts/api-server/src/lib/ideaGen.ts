@@ -103,6 +103,7 @@ import {
   renderViralMemoryPromptBlock,
   type ViralPatternMemory,
 } from "./viralPatternMemory";
+import type { OnboardingSeed } from "./onboardingSeed";
 // PHASE X — PART 2 (premise-first). The block sits in the SYSTEM
 // prompt above the existing trigger-reaction / pattern-first
 // scaffolding so the model writes a premise BEFORE picking a
@@ -614,6 +615,19 @@ export type GenerateIdeasInput = {
    * PHASE Y.
    */
   premiseCoreSeeds?: readonly PremiseCore[];
+  /**
+   * PHASE Y9 — onboarding-derived initial bias for the per-creator
+   * viral-pattern memory. Built once by `runHybridIdeator` (which
+   * has the parsed taste calibration / style profile / vision doc
+   * already) and threaded through so the cold-start
+   * `computeViralPatternMemory(creatorId, { onboardingSeed })` path
+   * can populate the four memory dimensions from the onboarding
+   * docs instead of returning EMPTY_MEMORY for brand-new creators.
+   * `null` means "no seed available" (e.g. curl call without
+   * onboarding state); `undefined` is the same — both fall through
+   * to behaviour-only memory.
+   */
+  onboardingSeed?: OnboardingSeed | null;
 };
 
 export async function generateIdeas(
@@ -690,6 +704,7 @@ export async function generateIdeas(
     try {
       viralPatternMemory = await computeViralPatternMemory(
         input.ctx.creatorId,
+        { onboardingSeed: input.onboardingSeed ?? null },
       );
     } catch (err) {
       logger.warn(
