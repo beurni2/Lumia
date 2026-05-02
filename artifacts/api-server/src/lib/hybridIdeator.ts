@@ -96,6 +96,18 @@ import {
 // given (cores, regenerateSalt, noveltyContext, recentPremises). See
 // module header for the meta-shape contract + scorer-side semantics.
 import { generateCoreCandidates } from "./coreCandidateGenerator";
+// PHASE Y6 — cohesive author surfaces a `scenarioFingerprint` on
+// every core_native candidate's meta + the catalog exposes the
+// distinct anchors used for served-log probing. The `extractAnchor`
+// + `_allActions` pair lets the served-log block recover which
+// catalog anchor each core_native idea actually shipped with
+// (without the meta carrying it directly — cost-neutral relative
+// to a probe over the small constant catalog).
+import {
+  getAllCatalogAnchors,
+  FAMILY_ACTIONS,
+} from "./coreDomainAnchorCatalog";
+import { extractAnchorAndAction } from "./scenarioFingerprint";
 import {
   resolveArchetypeLoose,
   type Archetype,
@@ -3044,7 +3056,14 @@ export async function runHybridIdeator(
           copied_seed_hook: 0,
           near_duplicate_premise: 0,
           schema_invalid: 0,
+          // Y6 — cohesive author construction-precondition counter.
+          construction_failed: 0,
         },
+        // PHASE Y6 telemetry zero-defaults (cache replay ships no
+        // core-native candidates so neither fingerprints nor anchors
+        // are measurable on this path).
+        scenarioFingerprintsThisBatch: [] as string[],
+        coreNativeAnchorsUsed: [] as string[],
       },
       "hybrid_ideator.served",
     );
@@ -4039,6 +4058,37 @@ export async function runHybridIdeator(
       .map(([s, n]) => ({ source: s, count: n }));
   const coreNativeRejectionReasons = coreNativeResult.stats.rejectionReasons;
 
+  // -------- PHASE Y6 telemetry --------------------------------------
+  // Cohesive single-pass author surfaces a `scenarioFingerprint`
+  // (sf_<12hex>) on every core_native candidate's meta. We surface
+  // them here so QA + Y8 (semantic dedup) can read them off the
+  // served-log without a DB scan. We also surface the distinct
+  // anchor nouns the author used this batch — coverage signal that
+  // the catalog rotation is actually rotating, not just shipping
+  // the same anchor cycle after cycle.
+  const scenarioFingerprintsThisBatch: string[] = [];
+  const coreNativeAnchorsUsedSet = new Set<string>();
+  // Catalog anchor probe is materialized lazily inside extractAnchor
+  // — we only call it on core_native candidates so the cost is
+  // bounded by `count` (≤ batch size).
+  const _allAnchors = getAllCatalogAnchors();
+  // Action probe set — small constant set of family-action bare
+  // verbs. Cheap to materialize per batch.
+  const _allActions = new Set<string>(
+    Object.values(FAMILY_ACTIONS).map((a) => a.bare),
+  );
+  for (const c of final) {
+    const sf = (c.meta as { scenarioFingerprint?: string }).scenarioFingerprint;
+    if (typeof sf === "string" && sf.length > 0) {
+      scenarioFingerprintsThisBatch.push(sf);
+    }
+    if (c.meta.source === "core_native") {
+      const probe = extractAnchorAndAction(c.idea, _allAnchors, _allActions);
+      if (probe.anchor) coreNativeAnchorsUsedSet.add(probe.anchor);
+    }
+  }
+  const coreNativeAnchorsUsed = Array.from(coreNativeAnchorsUsedSet).sort();
+
   logger.info(
     {
       source,
@@ -4072,6 +4122,17 @@ export async function runHybridIdeator(
       topSelectedSources,
       selectedPremiseCoreIds,
       coreNativeRejectionReasons,
+      // PHASE Y6 telemetry (cohesive single-pass author)
+      // - scenarioFingerprintsThisBatch: every shipped idea's
+      //   `meta.scenarioFingerprint` (sf_<12hex>) — Y8 will use
+      //   the cross-batch distribution for semantic dedup; Y6
+      //   surfaces it for QA inspection
+      // - coreNativeAnchorsUsed: distinct anchor nouns the cohesive
+      //   author rendered into core_native candidates this batch
+      //   (extracted from the meta-side fingerprint via the catalog
+      //   anchor probe)
+      scenarioFingerprintsThisBatch,
+      coreNativeAnchorsUsed,
     },
     "hybrid_ideator.served",
   );

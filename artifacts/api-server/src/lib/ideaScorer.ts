@@ -237,6 +237,15 @@ export type CandidateMeta = PatternMeta | {
   hookOpener?: HookOpener;
   scriptType?: ScriptType;
   /**
+   * PHASE Y6 — deterministic `sf_*` scenario fingerprint computed by
+   * `cohesiveIdeaAuthor` for `core_native` candidates. Telemetry-
+   * only in Y6 (surfaces in `hybrid_ideator.served`'s
+   * `scenarioFingerprintsThisBatch` field); Y8 will read it as the
+   * primary key for per-creator semantic dedup. Optional everywhere
+   * else (Llama / Claude wraps don't compute one).
+   */
+  scenarioFingerprint?: string;
+  /**
    * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
    * (Phase 1 replacement for `scriptType`). Pattern-variation candidates
    * always set both via `resolveIdeaCoreType`. Llama / Claude fallback

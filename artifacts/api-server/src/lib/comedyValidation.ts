@@ -230,6 +230,16 @@ export function normalizeHookFingerprint(s: string): string {
  * Lazily build the seed-hook fingerprint set from PREMISE_STYLE_DEFS
  * example hooks. Cached at module scope after first call so the
  * one-time scan (~200 examples) doesn't repeat per request.
+ *
+ * PHASE Y6 NOTE: the seed-hook fingerprint set is no longer
+ * consumed as an EXACT-MATCH anti-copy gate. `validateAntiCopy`
+ * computes Jaccard bigram similarity against the seed corpus
+ * directly (see `loadSeedHookBigrams` below). The fingerprint set
+ * is kept exported because (a) the cohesive author still passes
+ * it through to `validateAntiCopy` for backwards-compat call-site
+ * shape, and (b) telemetry / future debug paths may want the
+ * normalized-string form. Treat it as an OPAQUE corpus identifier
+ * post-Y6.
  */
 let _seedFingerprintsCache: ReadonlySet<string> | null = null;
 export function loadSeedHookFingerprints(): ReadonlySet<string> {
@@ -253,6 +263,107 @@ export function loadSeedHookFingerprints(): ReadonlySet<string> {
   _seedFingerprintsCache = out;
   return out;
 }
+
+// ---------------------------------------------------------------- //
+// PHASE Y6 — Seed-hook bigram set + Jaccard similarity              //
+// ---------------------------------------------------------------- //
+
+/** Tokenize a hook string for bigram-based Jaccard similarity.
+ *  Lowercases, COLLAPSES hyphenated compounds (`to-do` → `todo`) so
+ *  punctuation-only variants of the same hook hash to the same token
+ *  set, then strips remaining non-word chars (keeping spaces) and
+ *  splits on whitespace. Different policy from `tokenize` above — we
+ *  KEEP stopwords here because Jaccard is comparing surface phrasing
+ *  (where pronouns + articles are part of the voice fingerprint),
+ *  not semantic content overlap. The hyphen-collapse is the post-Y6-
+ *  architect fix: bigram-set Jaccard at 0.85 was missing common
+ *  near-copies like `to-do list` vs `todo list` because the hyphen
+ *  inserted a phantom token boundary; collapsing first means both
+ *  variants tokenize identically and trip the gate. */
+function jaccardTokens(s: string): string[] {
+  const cleaned = s
+    .toLowerCase()
+    .replace(/(\w)-(\w)/g, "$1$2")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return [];
+  return cleaned.split(/\s+/);
+}
+
+function bigramsOf(tokens: readonly string[]): Set<string> {
+  const out = new Set<string>();
+  if (tokens.length < 2) {
+    // Single-token hooks have no bigrams; fall back to the unigram
+    // so 1-word vs 1-word identical hooks still register as 1.0.
+    if (tokens.length === 1) out.add(tokens[0]!);
+    return out;
+  }
+  for (let i = 0; i < tokens.length - 1; i++) {
+    out.add(`${tokens[i]} ${tokens[i + 1]}`);
+  }
+  return out;
+}
+
+function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  if (union === 0) return 0;
+  return inter / union;
+}
+
+type SeedFingerprint = {
+  unigrams: Set<string>;
+  bigrams: Set<string>;
+  tokenCount: number;
+};
+
+let _seedBigramsCache: readonly SeedFingerprint[] | null = null;
+function loadSeedHookBigrams(): readonly SeedFingerprint[] {
+  if (_seedBigramsCache) return _seedBigramsCache;
+  const out: SeedFingerprint[] = [];
+  for (const id of Object.keys(PREMISE_STYLE_DEFS) as PremiseStyleId[]) {
+    const def = PREMISE_STYLE_DEFS[id];
+    const execs = (def as { executions?: ReadonlyArray<{ example?: string }> })
+      .executions;
+    if (!execs) continue;
+    for (const ex of execs) {
+      if (ex.example && typeof ex.example === "string") {
+        const tokens = jaccardTokens(ex.example);
+        out.push({
+          unigrams: new Set(tokens),
+          bigrams: bigramsOf(tokens),
+          tokenCount: tokens.length,
+        });
+      }
+    }
+  }
+  _seedBigramsCache = out;
+  return out;
+}
+
+/** PHASE Y6 — near-verbatim threshold. ≥0.85 catches "i ghosted my
+ *  own to-do list" vs "i ghosted my todo list" (true near-duplicates
+ *  — punctuation / synonym swap of the same hook) but allows "i
+ *  ghosted my own gym routine" (same scaffold, fresh anchor — the
+ *  whole point of voice training). 0.85 ≈ 5 of 6 bigrams identical
+ *  for a typical 6-word hook. */
+const SEED_HOOK_JACCARD_REJECT = 0.85;
+/** Length-aware fallback threshold. For short hooks (≤4 tokens) the
+ *  bigram set is so small that a single substitution drops Jaccard
+ *  well below 0.85 even though the hook reads as a near-verbatim
+ *  copy. Concrete math: a 4-token hook differing from a 4-token
+ *  seed by ONE word = 3 shared / 5 union tokens = 0.6 unigram
+ *  Jaccard. To actually catch that case (the architect's
+ *  "short-hook single substitution" corner) we set the unigram bar
+ *  to 0.6. False-positive risk: stays bounded because we only fire
+ *  when BOTH sides are short AND share ≥60% of words (and 60%
+ *  shared word overlap on a 4-word hook IS near-verbatim by any
+ *  reasonable reading — only one token differs). */
+const SHORT_HOOK_TOKEN_THRESHOLD = 4;
+const SHORT_HOOK_UNIGRAM_REJECT = 0.6;
 
 // ---------------------------------------------------------------- //
 // Public API                                                        //
@@ -375,19 +486,81 @@ export function validateComedy(
  * seed hook OR re-uses a premise sentence from recent history.
  * Pattern-variation candidates are exempt from the seed-hook check
  * because the catalog IS the seed corpus by design.
+ *
+ * PHASE Y6 — SEED-HOOK GATE FLIPPED FROM EXACT TO NEAR-VERBATIM.
+ * The original gate hard-rejected any non-`pattern_variation`
+ * candidate whose normalized hook fingerprint EXACT-matched a seed
+ * hook fingerprint. That made the 150 seed hooks function as an
+ * anti-copy blocklist — any voice-trained generator that happened
+ * to emit phrasing close to a seed got hard-rejected, even when the
+ * scenario (anchor, action) was completely fresh.
+ *
+ * Y6 reframes the seed corpus as VOICE TRAINING REFERENCE (see
+ * `voiceClusters.ts` `seedHookExemplars`). The gate now computes
+ * Jaccard similarity on TOKEN BIGRAMS between the candidate hook
+ * and each seed hook. Reject when similarity ≥ `SEED_HOOK_JACCARD_REJECT`
+ * (0.85). This catches:
+ *   - true near-duplicates: "i ghosted my own to-do list" vs
+ *     "i ghosted my todo list" → bigrams identical except for one
+ *     synonym → Jaccard ≈ 0.83-1.0 → rejected
+ * but ALLOWS:
+ *   - same scaffold + fresh anchor: "i ghosted my own to-do list"
+ *     vs "i ghosted my own gym routine" → 3 of 7 unique bigrams
+ *     overlap → Jaccard ≈ 0.43 → ships (this is the whole point
+ *     of voice training)
+ *   - same hook style + different mechanism: "this is where the
+ *     alarm broke me" vs "this is where my life collapsed" →
+ *     Jaccard ≈ 0.22 → ships
+ *
+ * Premise-dup check (`near_duplicate_premise`) is unchanged — that
+ * channel handles cross-batch recency, not seed-corpus similarity.
  */
 export function validateAntiCopy(
   idea: Idea,
   meta: ValidateComedyMeta,
-  seedFingerprints: ReadonlySet<string>,
+  // Kept for backwards-compat call-site shape — Y6 reads the
+  // seed-bigram corpus internally instead. Treat as opaque
+  // corpus-identity tag (see `loadSeedHookFingerprints` JSDoc).
+  _seedFingerprints: ReadonlySet<string>,
   recentPremises?: ReadonlySet<string>,
 ): ComedyRejectionReason | null {
   // Pattern-variation candidates ship the curated examples on
   // purpose — exempt from the copy check.
   if (meta.source !== "pattern_variation") {
-    const fp = normalizeHookFingerprint(idea.hook);
-    if (fp.length > 0 && seedFingerprints.has(fp)) {
-      return "copied_seed_hook";
+    const candTokens = jaccardTokens(idea.hook);
+    const candUnigrams = new Set(candTokens);
+    const candBigrams = bigramsOf(candTokens);
+    if (candBigrams.size > 0 || candUnigrams.size > 0) {
+      const seeds = loadSeedHookBigrams();
+      for (const seed of seeds) {
+        // Primary: bigram-set Jaccard (catches typical 6-word
+        // near-verbatims like "i ghosted my own to-do list" vs
+        // "i ghosted my own todo list" once hyphen-collapse in
+        // jaccardTokens normalizes "to-do" → "todo" — both
+        // tokenize to the same bigram set and Jaccard = 1.0).
+        if (
+          seed.bigrams.size > 0 &&
+          candBigrams.size > 0 &&
+          jaccard(candBigrams, seed.bigrams) >= SEED_HOOK_JACCARD_REJECT
+        ) {
+          return "copied_seed_hook";
+        }
+        // Length-aware fallback: when EITHER side is short
+        // (≤ SHORT_HOOK_TOKEN_THRESHOLD tokens) the bigram set
+        // gets so small that a single substitution drops Jaccard
+        // well below 0.85 even for an obvious near-copy. Cross-
+        // check unigram Jaccard at the slightly lower
+        // SHORT_HOOK_UNIGRAM_REJECT bar to catch this corner.
+        if (
+          (candTokens.length <= SHORT_HOOK_TOKEN_THRESHOLD ||
+            seed.tokenCount <= SHORT_HOOK_TOKEN_THRESHOLD) &&
+          seed.unigrams.size > 0 &&
+          candUnigrams.size > 0 &&
+          jaccard(candUnigrams, seed.unigrams) >= SHORT_HOOK_UNIGRAM_REJECT
+        ) {
+          return "copied_seed_hook";
+        }
+      }
     }
   }
   // Premise dup applies to ALL sources because duplicating the same
@@ -406,9 +579,10 @@ export function validateAntiCopy(
 // Test-only resets                                                  //
 // ---------------------------------------------------------------- //
 
-/** Reset the seed-fingerprint cache. Test-only — call between tests
- *  if `PREMISE_STYLE_DEFS` is mocked. Production code never calls
- *  this (the catalog is immutable at runtime). */
+/** Reset the seed-fingerprint + seed-bigram caches. Test-only —
+ *  call between tests if `PREMISE_STYLE_DEFS` is mocked. Production
+ *  code never calls this (the catalog is immutable at runtime). */
 export function _resetSeedFingerprintCacheForTests(): void {
   _seedFingerprintsCache = null;
+  _seedBigramsCache = null;
 }

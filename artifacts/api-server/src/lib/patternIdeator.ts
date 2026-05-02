@@ -7515,6 +7515,16 @@ export type PatternMeta = {
   hookStyle: HookStyle;
   hookPhrasingIndex: number;
   /**
+   * PHASE Y6 — deterministic `sf_*` scenario fingerprint. Optional
+   * here because pattern_variation candidates don't yet compute
+   * one (Y8 will extend the fingerprinter to cover the pattern
+   * arm). Declared on both arms of `CandidateMeta` so the
+   * `core_native` author can spread its meta + add the field
+   * without the union widening to the pattern arm and erroring on
+   * an unknown property.
+   */
+  scenarioFingerprint?: string;
+  /**
    * Reference to the source scenario so the rewriter can produce
    * alternative hook phrasings without a separate lookup table.
    * Optional so future non-pattern sources (e.g. Llama fallback)
