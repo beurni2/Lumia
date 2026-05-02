@@ -103,6 +103,8 @@ import type {
   SceneObjectTag,
   SceneEnvCluster,
 } from "./sceneObjectTaxonomy";
+// PHASE X — PART 1+2 — single-source-of-truth taste profile.
+import { scoreDefaultTaste } from "./defaultTasteProfile";
 
 // Phase 6E — re-exports of the comedy-scoring API. The function +
 // type live in `patternIdeator.ts` (so the picker walk can call the
@@ -1659,6 +1661,33 @@ export function filterAndRescore(
       c.meta,
       input.derivedStyleHints,
     );
+    // PHASE X — PART 1+2 — DefaultTaste boost. Pure additive lift
+    // (0..+4) for candidates whose premise mechanism + hook
+    // language style + premise-first path align with the
+    // `DefaultTasteProfile`. Applied AFTER the existing scoring
+    // so the per-axis breakdown (hookImpact / tension / etc.) is
+    // unchanged for telemetry, but `score.total` rises so the
+    // sort + greedy selector naturally favor on-taste candidates.
+    // The big lever is `PREMISE_FIRST_BONUS` (~+1.5) which fires
+    // any time `meta.usedBigPremise === true` — that's the
+    // "premise-first generation" lever from PHASE X PART 2:
+    // candidates born from the premise path now reliably beat
+    // template-only candidates of equal raw quality.
+    {
+      const tasteBoost = scoreDefaultTaste({
+        premiseStyleId:
+          (c.meta as { premiseStyleId?: PremiseStyleId }).premiseStyleId ??
+          null,
+        hookLanguageStyle:
+          (c.meta as { hookLanguageStyle?: HookLanguageStyle })
+            .hookLanguageStyle ?? null,
+        usedBigPremise:
+          (c.meta as { usedBigPremise?: boolean }).usedBigPremise ?? false,
+      });
+      if (tasteBoost > 0) {
+        score = { ...score, total: score.total + tasteBoost };
+      }
+    }
     let idea = c.idea;
     let meta = c.meta;
     let rewriteAttempted = false;

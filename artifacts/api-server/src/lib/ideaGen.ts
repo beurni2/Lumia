@@ -103,6 +103,11 @@ import {
   renderViralMemoryPromptBlock,
   type ViralPatternMemory,
 } from "./viralPatternMemory";
+// PHASE X — PART 2 (premise-first). The block sits in the SYSTEM
+// prompt above the existing trigger-reaction / pattern-first
+// scaffolding so the model writes a premise BEFORE picking a
+// pattern; the existing structure then derives off the premise.
+import { renderDefaultTastePromptBlock } from "./defaultTasteProfile";
 
 export const ideaSchema = z.object({
   /**
@@ -333,6 +338,28 @@ export const ideaSchema = z.object({
    * generous (catalog max is 4) — protects against catalog drift.
    */
   filmingGuide: z.array(z.string().min(1).max(220)).max(8).optional(),
+  /**
+   * PHASE X — PART 2 (premise-first generation). One short sentence
+   * naming the comedic PREMISE the idea is built on. The model is
+   * instructed to write this FIRST, then derive `hook`,
+   * `whatToShow`, and `howToFilm` from it — the alignment between
+   * those four fields is the whole point of premise-first.
+   *
+   * OPTIONAL because:
+   *   - Pre-PHASE-X cached candidates predate the field.
+   *   - The deterministic Layer-1 engine doesn't carry a single
+   *     "premise sentence" string today (its premise concept lives
+   *     in `meta.premiseStyleId` / `meta.bigPremiseStyle` instead),
+   *     and we don't want to back-fill cache entries.
+   *   - Test fixtures may omit.
+   *
+   * SERVER-INTERNAL: stripped from the public API response by the
+   * route layer (same pattern as `viralFeelScore` / `meta.*`),
+   * surfaced only in server logs + telemetry. Adding it to the
+   * schema lets us validate the LLM emitted one without breaking
+   * any downstream client.
+   */
+  premise: z.string().min(8).max(240).optional(),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 
@@ -699,6 +726,29 @@ export async function generateIdeas(
     "",
     "Your job: produce ideas a real creator can shoot today.",
     "",
+    // PHASE X — PART 2 (premise-first generation). Sits AT THE TOP
+    // of the system prompt, ABOVE trigger-reaction and pattern-
+    // first, because every other section now reads as derivation
+    // off the premise rather than independent fields. The
+    // DefaultTaste block injects mechanism + joke-shape + language
+    // bias so the premise the model picks is on-taste from the
+    // first beat.
+    "PREMISE-FIRST GENERATION (HARD, 100% of ideas — this is the FIRST step, BEFORE trigger-reaction, BEFORE pattern, BEFORE anything else):",
+    "  Step 0 — For each idea, BEFORE drafting any other field, write ONE sentence (8–40 words) naming the COMEDIC PREMISE. The premise is the JOKE shape itself: who is doing what to whom, the contradiction or self-betrayal that makes it funny, and the specific moment it lands. Emit it in the `premise` field.",
+    "    ✓ \"i swear i'm fine, said the woman re-watching her own apology video at 2am\" (self-as-other, confession, specific moment)",
+    "    ✓ \"the way i talk about my morning routine vs the way i actually do it\" (self-betrayal, contrast)",
+    "    ✓ \"every time i open the fridge it's the same three sad ingredients judging me\" (absurd escalation, identity exposure)",
+    "    ✗ \"a video about being tired\" (concept, not a premise — no comedic mechanism)",
+    "    ✗ \"morning routine fails\" (topic label, not a premise — no specific moment, no joke shape)",
+    "  Step 1 — DERIVE the rest of the idea from the premise:",
+    "    • `hook` — must be the spoken-word version of the premise's punch (the line you'd actually say first on camera). If the premise is about self-betrayal, the hook is the self-callout. If the premise is a confession, the hook IS the confession. The hook ↔ premise link must be obvious.",
+    "    • `trigger` + `reaction` — must enact the premise on screen. The trigger is the SPECIFIC ACTION inside the premise; the reaction is the visible payoff that makes the premise land.",
+    "    • `whatToShow` — must narrate the same premise beat-by-beat in plain English. If you can't write whatToShow without restating the premise, the premise wasn't sharp enough — go back to Step 0.",
+    "    • `howToFilm` — must describe the camera setup that captures THIS premise (single take vs cuts, where the phone goes, what's in frame). If the filming plan would work for any random idea, the premise wasn't specific enough.",
+    "  PREMISE GATE: after drafting the four derived fields, RE-READ the premise. If hook / trigger+reaction / whatToShow / howToFilm don't all unmistakably enact the SAME premise, REWRITE the weak field — never ship a misaligned set. If after one rewrite they still don't align, DROP the idea.",
+    "",
+    renderDefaultTastePromptBlock(),
+    "",
     "TRIGGER-REACTION STRUCTURE (HARD, 100% of ideas — apply this BEFORE picking a pattern, BEFORE writing the hook, BEFORE anything else):",
     "  Every idea must be built as Trigger → Reaction. If you can't name BOTH for an idea, DROP IT and pick a different angle. Do NOT try to fudge it.",
     "    • TRIGGER  = a SPECIFIC ACTION the creator does on screen. Use action verbs: open / check / read / scroll / sip / look / watch / find / notice / realize / hear / see / do. Concrete and observable.",
@@ -984,7 +1034,8 @@ export async function generateIdeas(
     "",
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
-    `{ "ideas": [ { pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `PREMISE-FIRST — emit `+"`premise`"+` (one sentence, 8–40 words, names the comedic mechanism + specific moment) as the FIRST field of every idea. Then DERIVE hook + trigger + reaction + whatToShow + howToFilm so they ALL enact the SAME premise. If the four derived fields don't all point at the same comedic beat, REWRITE the weakest field; if they still don't align, DROP the idea. Lean on the default-taste mechanisms above (self-betrayal, self-as-other, absurd escalation, identity exposure).`,
+    `{ "ideas": [ { premise, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
     `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
     `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, target ≤8 words (hard ceiling 10 if it still reads in <1s and feels natural). ANTI-NEUTRAL FILTER (final pass) — AUTO-REJECT openings "when you…" / "POV: you…" / "reading…" / "watching…" / "you open…" (they describe the situation; they don't create tension). PREFER thought-/reaction-voice openers: "why did I…" / "the way I…" / "I really just…" / "this just ruined…" / "I thought this was fine…". Every emitted hook must feel like a TEXT MESSAGE the creator would send a friend, not a caption. If after rewrite the hook still feels neutral, DROP THE WHOLE IDEA. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
@@ -1018,7 +1069,13 @@ export async function generateIdeas(
   // Haiku 4.5's 8192 output cap). For count=3 (Home) ~2880 — well
   // under cap; for count=10 ~8200 → clipped to 8190 (recovery
   // path absorbs any truncation).
-  const maxTokens = Math.min(600 + count * 760, 8190);
+  // PHASE X — PART 2 — bumped 760 → 820 per-idea to absorb the new
+  // `premise` field (~30–60 tokens of structured JSON per idea on
+  // top of the previous trigger / reaction / spike fields). Cap
+  // unchanged at 8190. For count=3 (Home) ~3060 — well under cap;
+  // for count=10 ~8800 → clipped to 8190 (recovery path absorbs
+  // any truncation as before).
+  const maxTokens = Math.min(600 + count * 820, 8190);
 
   let out: { ideas: Idea[] };
   try {
@@ -1149,7 +1206,7 @@ export async function generateIdeas(
       `  • setting already used: [${usedSettings || "none"}] → prefer NEW settings from {bed, couch, desk, bathroom, kitchen, car, outside, other}`,
       `  • emotionalSpike already used: [${usedSpikes || "none"}] → prefer NEW spikes from {embarrassment, regret, denial, panic, irony}`,
       `Return strictly:`,
-      `{ "ideas": [ { pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `{ "ideas": [ { premise, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
       `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
       `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
       `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + target ≤8 words (hard ceiling 10, only if still <1s and natural), then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,
@@ -1166,7 +1223,10 @@ export async function generateIdeas(
         schema: responseSchema,
         system,
         user: topUpUser,
-        maxTokens: Math.min(600 + deficit * 760, 8190),
+        // PHASE X — PART 2 — keep the top-up budget in sync with
+        // the main-call budget (820/idea) so the new `premise`
+        // field doesn't tip the truncation threshold here either.
+        maxTokens: Math.min(600 + deficit * 820, 8190),
       });
       const extra = topUp.ideas.slice(0, deficit).map(clip);
       ideas.push(...extra);

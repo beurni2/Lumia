@@ -295,11 +295,19 @@ router.post("/ideator/generate", async (req, res, next) => {
       "ideator.usage",
     );
 
+    // PHASE X — PART 2 — strip the server-internal `premise` field
+    // before returning. The field is used by Layer-2 scoring,
+    // server-side telemetry, and Claude-fallback validation, but
+    // is intentionally NOT surfaced to the mobile client (same
+    // pattern as `meta.viralFeelScore`). Keeping it off the wire
+    // also avoids client-side parse drift if the field shape ever
+    // changes server-side.
+    const publicIdeas = result.ideas.map(({ premise: _premise, ...rest }) => rest);
     res.json({
       region,
-      count: result.ideas.length,
+      count: publicIdeas.length,
       regenerate,
-      ideas: result.ideas,
+      ideas: publicIdeas,
     });
   } catch (err) {
     next(err);
