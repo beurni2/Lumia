@@ -7537,6 +7537,19 @@ export type PatternMeta = {
    */
   voiceClusterId?: import("./voiceClusters").VoiceClusterId;
   /**
+   * PHASE Y8 — `scoreHookQuality(hook, family)` 0-100 punch score
+   * computed inside the recipe-collect loop in
+   * `coreCandidateGenerator`. Optional here because pattern_variation
+   * candidates don't go through the cohesive recipe loop (the field
+   * stays unset on the pattern arm). Declared on both arms of
+   * `CandidateMeta` for the same reason as `scenarioFingerprint` /
+   * `voiceClusterId` above — so the `core_native` author can spread
+   * its meta + add the field without the union widening to the
+   * pattern arm and erroring on an unknown property. Telemetry-only
+   * consumer in Y8.
+   */
+  hookQualityScore?: number;
+  /**
    * Reference to the source scenario so the rewriter can produce
    * alternative hook phrasings without a separate lookup table.
    * Optional so future non-pattern sources (e.g. Llama fallback)

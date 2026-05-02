@@ -193,6 +193,12 @@ export type HybridIdeatorResult = {
       source: string;
       voiceClusterId?: string;
       scenarioFingerprint?: string;
+      /** PHASE Y8 — captivating-hook score (0-100) the
+       *  `coreCandidateGenerator` recipe loop wrote when collecting
+       *  passing recipes; the highest-scoring recipe per core is
+       *  the one that ships, so this is the WINNER's score. Only
+       *  populated for `core_native` candidates. */
+      hookQualityScore?: number;
       anchor?: string;
       premiseCoreId?: string;
     }>;
@@ -2277,6 +2283,26 @@ type CachedBatchEntry = {
    * corrupt envelope.
    */
   viralFeelScoreTotal?: number;
+  /**
+   * PHASE Y8 — scenario fingerprint (`sf_<12hex>`) computed by
+   * `cohesiveIdeaAuthor` over the candidate's
+   * `(mechanism, anchor, action)` triple, persisted on cache so the
+   * next regen's `loadMemory` can populate
+   * `recentScenarioFingerprints` directly off the envelope without a
+   * derivation path (the fp is path-dependent on the picker walk's
+   * exact (mechanism, anchor, action) — re-deriving from `idea.hook`
+   * + `idea.whatToShow` after Llama polish would lose the original
+   * action verb when the polish swapped it). Same non-breaking JSONB
+   * pattern as `viralFeelScoreTotal` above — legacy entries written
+   * before Y8 shipped (and Llama / Claude fallback wraps that don't
+   * compute one) read back as undefined and contribute nothing to the
+   * cross-batch dedup gate, which silently stays quiet for those
+   * entries rather than poisoning the recent set with a non-fp
+   * string. Tolerantly parsed below as `/^sf_[0-9a-f]{12}$/` — any
+   * other shape silently drops to undefined so a corrupt envelope
+   * can't false-match a fresh fp downstream.
+   */
+  scenarioFingerprint?: string;
 };
 
 /**
@@ -2330,6 +2356,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         premiseComedyScoreTotal?: unknown;
         legacyComedyScoreTotal?: unknown;
         viralFeelScoreTotal?: unknown;
+        scenarioFingerprint?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2486,6 +2513,23 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         vfsRaw <= 10
           ? vfsRaw
           : undefined;
+      // PHASE Y8 — scenario fingerprint tolerant parse: only adopt
+      // strings matching `sf_<12 lowercase hex>` (the exact shape
+      // emitted by `computeScenarioFingerprint` — `sf_` prefix + 8
+      // hex chars from djb2(seed-a) + 4 hex chars from djb2(seed-b)).
+      // Anything else (legacy entries / Llama/Claude wraps without a
+      // fp / corruption / future-rename drift) silently drops to
+      // undefined so the recentScenarioFingerprints Set built from
+      // the envelope can't false-match a fresh fp downstream — the
+      // hard-reject gate in `coreCandidateGenerator` would then
+      // erroneously kill a real candidate. Strict `/^sf_[0-9a-f]{12}$/`
+      // is the right discipline (same as how `parsePremiseStyleId`
+      // whitelists against the closed catalog set).
+      const sfRaw = wrapper.scenarioFingerprint;
+      const scenarioFingerprint: string | undefined =
+        typeof sfRaw === "string" && /^sf_[0-9a-f]{12}$/.test(sfRaw)
+          ? sfRaw
+          : undefined;
       out.push({
         idea: parsed.data,
         family:
@@ -2506,6 +2550,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         premiseComedyScoreTotal,
         legacyComedyScoreTotal,
         viralFeelScoreTotal,
+        scenarioFingerprint,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2797,6 +2842,23 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
       c.meta.viralFeelScore !== undefined
         ? c.meta.viralFeelScore.total
         : undefined,
+    // PHASE Y8 — persist the cohesive author's scenario fingerprint
+    // (`sf_<12hex>`) on the cache envelope so the next regen's
+    // `loadMemory` can populate `recentScenarioFingerprints` directly
+    // off the envelope without re-deriving from
+    // `(idea.whatToShow, idea.hook)` text after Llama polish. Source:
+    // `meta.scenarioFingerprint` — a flat optional field on the
+    // CandidateMeta union (set by `coreCandidateGenerator` for
+    // core_native picks; absent for PatternMeta + Llama / Claude
+    // fallback wraps, which the cross-batch fp gate intentionally
+    // skips since those candidates don't author through the
+    // (mechanism, anchor, action) recipe). Same non-breaking JSONB
+    // pattern as the rest of the cache fields above — undefined
+    // flows through cleanly and the next regen's harvest just skips
+    // that entry. tryParseEntries above guards the read side with a
+    // strict `/^sf_[0-9a-f]{12}$/` regex so a corrupt envelope can't
+    // poison the recent fp set.
+    scenarioFingerprint: c.meta.scenarioFingerprint,
   }));
 }
 
@@ -3178,6 +3240,31 @@ export async function runHybridIdeator(
       }
     }
   }
+  // PHASE Y8 — scenario fingerprint freshness memory. Flat read off
+  // each cached entry's `scenarioFingerprint` field (Y8 widened
+  // CachedBatchEntry to persist the fp directly on the envelope; see
+  // `tryParseEntries` for the strict `/^sf_[0-9a-f]{12}$/` tolerant
+  // parse + `toCacheEntries` for the write side). Window matches
+  // `recentAnchors` / `recentPremises` (last 5 visible batches) so all
+  // three freshness channels stay aligned. Empty set for cold-start
+  // creators (no batch json), for batches whose entries predate Y6's
+  // fingerprint write, and for entries from Llama / Claude fallback
+  // wraps (no fp computation path). Threaded into
+  // `generateCoreCandidates` via `noveltyContext.recentScenarioFingerprints`
+  // below; `coreCandidateGenerator` uses it as an O(1) HARD-REJECT
+  // signal — recipes whose freshly-authored idea fingerprints land
+  // in this set are dropped with reason `scenario_repeat`, the
+  // recipe iterator advances. Catches the structural-repeat failure
+  // mode anchor freshness alone misses ("ghosted my to-do list" and
+  // "abandoned my checklist" share an fp via the synonym map).
+  const recentScenarioFingerprints = new Set<string>();
+  for (const batch of last5BatchesForPremises) {
+    for (const e of batch) {
+      if (e.scenarioFingerprint) {
+        recentScenarioFingerprints.add(e.scenarioFingerprint);
+      }
+    }
+  }
   // PHASE Y (PREMISE CORE LIBRARY) — collect the last-5-batches set
   // of `idea.premiseCoreId` values that have already shipped to this
   // creator. Used by `selectPremiseCores` below to demote recent
@@ -3347,6 +3434,18 @@ export async function runHybridIdeator(
       // `recentPremises` for back-compat (handled inside
       // `buildRecipeQueue`).
       recentAnchors,
+      // PHASE Y8 — scenario fingerprint dedup channel: O(1) Set.has
+      // HARD-REJECT in `coreCandidateGenerator`'s recipe loop against
+      // the `sf_<12hex>` codes harvested above from the last-5-
+      // batches' cached entries. Recipes whose freshly-authored idea
+      // fingerprints land in this set are dropped with reason
+      // `scenario_repeat` and the iterator advances. Empty set for
+      // cold-start (no batch json) — the gate stays quiet and every
+      // recipe ships, which is the correct behavior for a creator
+      // with no history. Pairs with the in-batch fp tracker inside
+      // `coreCandidateGenerator` (mirrors `usedAnchorsThisBatch`)
+      // for full coverage across cross-batch + intra-batch dedup.
+      recentScenarioFingerprints,
     },
     regenerateSalt,
     recentPremises,
@@ -4140,7 +4239,11 @@ export async function runHybridIdeator(
     Object.values(FAMILY_ACTIONS).map((a) => a.bare),
   );
   for (const c of final) {
-    const sf = (c.meta as { scenarioFingerprint?: string }).scenarioFingerprint;
+    // PHASE Y8 — `scenarioFingerprint` is now a properly typed field
+    // on both arms of `CandidateMeta` (PatternMeta + the fallback
+    // arm), so the Y6-era `as { scenarioFingerprint?: string }` cast
+    // is no longer needed — read the field directly off the union.
+    const sf = c.meta.scenarioFingerprint;
     if (typeof sf === "string" && sf.length > 0) {
       scenarioFingerprintsThisBatch.push(sf);
     }
@@ -4204,12 +4307,12 @@ export async function runHybridIdeator(
   // bounded pass here (≤ batch size) to capture per-idea voice
   // and source labels for the additive `qaTelemetry` surface.
   const qaPerIdea = final.map((c) => {
-    const m = c.meta as {
-      source?: string;
-      voiceClusterId?: string;
-      scenarioFingerprint?: string;
-      premiseCoreId?: string;
-    };
+    // PHASE Y8 — `scenarioFingerprint`, `voiceClusterId`, AND
+    // `hookQualityScore` are now properly typed optional fields on
+    // both arms of `CandidateMeta` (see PatternMeta + the fallback
+    // arm in ideaScorer.ts), so the Y6/Y7-era cast can read them
+    // directly off the union with no `as` widening.
+    const m = c.meta;
     let anchor: string | undefined;
     if (m.source === "core_native") {
       const probe = extractAnchorAndAction(c.idea, _allAnchors, _allActions);
@@ -4219,8 +4322,9 @@ export async function runHybridIdeator(
       source: m.source ?? "unknown",
       voiceClusterId: m.voiceClusterId,
       scenarioFingerprint: m.scenarioFingerprint,
+      hookQualityScore: m.hookQualityScore,
       anchor,
-      premiseCoreId: m.premiseCoreId,
+      premiseCoreId: (m as { premiseCoreId?: string }).premiseCoreId,
     };
   });
 

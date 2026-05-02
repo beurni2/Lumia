@@ -68,6 +68,7 @@ import type {
   TasteCalibration,
   PreferredTone,
 } from "./tasteCalibration.js";
+import { scoreHookQuality } from "./hookQuality.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -93,6 +94,20 @@ export type CoreNoveltyContext = {
    *  empty (back-compat with cold-start creators). Built by
    *  `hybridIdeator.buildRecipeAnchorMemory`. */
   recentAnchors?: ReadonlySet<string>;
+  /** PHASE Y8 — `sf_<12hex>` scenario fingerprints shipped in the
+   *  last 5 visible batches. O(1) HARD-REJECT signal in the recipe
+   *  loop — when a freshly authored idea's
+   *  `result.scenarioFingerprint` lands in this set, the recipe
+   *  is dropped with reason `scenario_repeat` and the iterator
+   *  advances. Empty set / undefined for cold-start creators —
+   *  the gate stays quiet and every recipe ships, which is the
+   *  correct behavior for a creator with no history. Built by
+   *  `hybridIdeator.loadMemory` by reading `e.scenarioFingerprint`
+   *  off each cached batch entry (Y8 widened CachedBatchEntry to
+   *  persist the fp directly). Pairs with the in-batch
+   *  `usedFingerprintsThisBatch` tracker below for full coverage
+   *  across cross-batch + intra-batch dedup. */
+  recentScenarioFingerprints?: ReadonlySet<string>;
 };
 
 export type GenerateCoreCandidatesInput = {
@@ -128,12 +143,18 @@ export type GenerateCoreCandidatesInput = {
  *  (cohesive author returns this when its structural precondition —
  *  hook ↔ whatToShow ↔ howToFilm anchor present and contradiction
  *  beat present — fails) so dashboards can distinguish recipe-bug
- *  rejections from gate rejections. */
+ *  rejections from gate rejections. Y8 adds `scenario_repeat` for
+ *  the new fingerprint dedup gate — fired when a freshly authored
+ *  idea's `result.scenarioFingerprint` matches an entry in
+ *  `noveltyContext.recentScenarioFingerprints` (cross-batch) OR in
+ *  the in-batch `usedFingerprintsThisBatch` tracker (sibling cores
+ *  in the same batch). */
 export type CoreCandidateRejectionReason =
   | ComedyRejectionReason
   | "schema_invalid"
   | "construction_failed"
-  | "core_misconfigured";
+  | "core_misconfigured"
+  | "scenario_repeat";
 
 export type CoreCandidateAttempt = {
   coreId: string;
@@ -149,9 +170,14 @@ export type GenerateCoreCandidatesResult = {
     generatedCount: number;
     keptCount: number;
     /** Per-reason counters. Always full-shape so dashboards can
-     *  `.no_tension` etc. without `??`. */
+     *  `.no_tension` etc. without `??`. Y8 adds `scenario_repeat`
+     *  to the shape so the QA driver can read fp-dedup rejection
+     *  density off the same field. */
     rejectionReasons: Record<
-      ComedyRejectionReason | "schema_invalid" | "construction_failed",
+      | ComedyRejectionReason
+      | "schema_invalid"
+      | "construction_failed"
+      | "scenario_repeat",
       number
     >;
     perCoreAttempts: CoreCandidateAttempt[];
@@ -361,7 +387,10 @@ function buildRecipeQueue(
 // ---------------------------------------------------------------- //
 
 const EMPTY_REASONS: Record<
-  ComedyRejectionReason | "schema_invalid" | "construction_failed",
+  | ComedyRejectionReason
+  | "schema_invalid"
+  | "construction_failed"
+  | "scenario_repeat",
   number
 > = {
   no_contradiction: 0,
@@ -374,12 +403,20 @@ const EMPTY_REASONS: Record<
   near_duplicate_premise: 0,
   schema_invalid: 0,
   construction_failed: 0,
+  scenario_repeat: 0,
 };
 
-/** Spec — was 3 in Y5; Y6 walks 5 (domain, anchor) recipes per core
- *  before dropping. Still cheap (no Claude); raises kept-rate floor
- *  modestly across the cohesive author. */
-const RECIPES_PER_CORE_CAP = 5;
+/** Spec — was 3 in Y5; Y6 walked 5 (domain, anchor) recipes per
+ *  core before dropping; Y8 raises to 8 because the recipe iterator
+ *  now COLLECTS all passing candidates and ships the highest-
+ *  hookQualityScore one (Y6/Y7 shipped the FIRST passing recipe).
+ *  More attempts = a bigger choice set for the quality scorer to
+ *  pick from. The new fp dedup gate also rejects more recipes per
+ *  core (a creator on batch #20 has ~50 recent fps, so 1-3 of any
+ *  8 recipes can collide), so the wider window keeps the kept-rate
+ *  floor from regressing. Still cheap — every recipe is local
+ *  (no Claude / no DB). */
+const RECIPES_PER_CORE_CAP = 8;
 
 export function generateCoreCandidates(
   input: GenerateCoreCandidatesInput,
@@ -388,6 +425,12 @@ export function generateCoreCandidates(
   const recentPremises = input.recentPremises ?? new Set<string>();
   const recentAnchors =
     input.noveltyContext?.recentAnchors ?? new Set<string>();
+  // PHASE Y8 — cross-batch fp dedup channel. Empty set for cold-start
+  // creators; the hard-reject gate inside the recipe loop just stays
+  // quiet and every recipe ships, which is the correct behavior for
+  // a creator with no history.
+  const recentScenarioFingerprints =
+    input.noveltyContext?.recentScenarioFingerprints ?? new Set<string>();
   const tasteCalibration = input.tasteCalibration ?? null;
   const seedFingerprints = loadSeedHookFingerprints();
   const cap = Math.max(0, Math.trunc(input.count));
@@ -395,7 +438,10 @@ export function generateCoreCandidates(
   const candidates: CoreNativeCandidate[] = [];
   const perCoreAttempts: CoreCandidateAttempt[] = [];
   const reasons: Record<
-    ComedyRejectionReason | "schema_invalid" | "construction_failed",
+    | ComedyRejectionReason
+    | "schema_invalid"
+    | "construction_failed"
+    | "scenario_repeat",
     number
   > = { ...EMPTY_REASONS };
   let generatedCount = 0;
@@ -404,6 +450,15 @@ export function generateCoreCandidates(
   // shipped earlier in THIS batch. Pairs with `recentAnchors` (cross-
   // batch) for full freshness coverage.
   const usedAnchorsThisBatch = new Set<string>();
+  // PHASE Y8 — in-batch fp tracker. Same shape as
+  // `usedAnchorsThisBatch` above but for `sf_<12hex>` scenario
+  // fingerprints. Mutated after each successful candidate is
+  // PICKED (not after every passing candidate — only the
+  // ship-winner contributes to the in-batch dedup envelope, since
+  // the losers never leave the function). Stops sibling cores in
+  // the same batch from shipping two ideas with the same scenario
+  // fingerprint.
+  const usedFingerprintsThisBatch = new Set<string>();
 
   for (const core of input.cores) {
     if (candidates.length >= cap) {
@@ -434,9 +489,23 @@ export function generateCoreCandidates(
       usedAnchorsThisBatch,
     );
 
-    let kept = false;
     let attempts = 0;
     let lastReason: CoreCandidateRejectionReason | undefined;
+    // PHASE Y8 — the recipe iterator now COLLECTS up to
+    // RECIPES_PER_CORE_CAP passing candidates per core (Y6/Y7
+    // shipped the FIRST passing one) and downstream picks the
+    // highest hookQualityScore. The collect-then-pick pattern is
+    // what makes the user-added "every hook must be captivating"
+    // requirement enforceable — without it, the new fp dedup gate
+    // would silently degrade hook quality by funnelling the
+    // iterator toward bland synonym swaps.
+    const passing: {
+      idea: Idea;
+      meta: CandidateMeta;
+      sf: string | undefined;
+      anchorLower: string;
+      quality: number;
+    }[] = [];
 
     for (const recipe of queue) {
       if (attempts >= RECIPES_PER_CORE_CAP) break;
@@ -470,23 +539,66 @@ export function generateCoreCandidates(
         lastReason = r;
         continue;
       }
-      // Attach scenarioFingerprint + voiceClusterId to meta for
-      // served-log telemetry. Read by `hybridIdeator` and the QA
-      // harness via `(c.meta as { scenarioFingerprint?: string;
-      // voiceClusterId?: VoiceClusterId }).voiceClusterId` — same
-      // indirection used for `premiseCoreId` etc. Y8 will harden
-      // these into proper fields.
+      // PHASE Y8 — scenario fingerprint HARD-REJECT. Gate fires when
+      // either (a) the cross-batch envelope (last-5-batches harvested
+      // by hybridIdeator) already contains this fp, OR (b) a sibling
+      // core earlier in THIS batch shipped to the same fp. Both
+      // checks operate on the SAME fp output the cache writes will
+      // persist, so dedup is symmetric across the cross-batch +
+      // intra-batch boundaries.
+      const sf = result.scenarioFingerprint;
+      if (
+        sf &&
+        (recentScenarioFingerprints.has(sf) ||
+          usedFingerprintsThisBatch.has(sf))
+      ) {
+        reasons.scenario_repeat++;
+        lastReason = "scenario_repeat";
+        continue;
+      }
+      // PHASE Y8 — score the freshly-authored hook on the
+      // visceral / anthropomorph / brevity / concrete / contradiction
+      // axes. The score itself doesn't gate (any non-rejected recipe
+      // is eligible to ship); it only orders the per-core passing
+      // set so the SHIPPED candidate is the most captivating one
+      // the iterator found.
+      const quality = scoreHookQuality(result.idea.hook, core.family);
       const meta: CandidateMeta = {
         ...result.meta,
-        scenarioFingerprint: result.scenarioFingerprint,
+        scenarioFingerprint: sf,
         voiceClusterId: voiceId,
+        hookQualityScore: quality,
       };
-      candidates.push({ idea: result.idea, meta });
-      // Mark anchor used so sibling cores demote it; lowercase to
-      // match the `recentAnchors` and `buildRecipeQueue` probe.
-      usedAnchorsThisBatch.add(recipe.anchor.toLowerCase());
+      passing.push({
+        idea: result.idea,
+        meta,
+        sf,
+        anchorLower: recipe.anchor.toLowerCase(),
+        quality,
+      });
+    }
+
+    let kept = false;
+    if (passing.length > 0) {
+      // PHASE Y8 — pick highest quality. Ties broken by first-seen
+      // (deterministic — `passing` insertion order matches recipe
+      // queue order, which is itself salt-deterministic). Strict
+      // `>` so a quality tie keeps the earlier recipe; this matches
+      // the stable-sort discipline used in the existing pattern
+      // selector.
+      let best = passing[0]!;
+      for (let i = 1; i < passing.length; i++) {
+        const p = passing[i]!;
+        if (p.quality > best.quality) best = p;
+      }
+      candidates.push({ idea: best.idea, meta: best.meta });
+      usedAnchorsThisBatch.add(best.anchorLower);
+      if (best.sf) usedFingerprintsThisBatch.add(best.sf);
       kept = true;
-      break;
+      // Clear lastReason — a passing recipe was found (any earlier
+      // rejections were intermediate, not the final disposition for
+      // this core).
+      lastReason = undefined;
     }
 
     perCoreAttempts.push({ coreId: core.id, kept, attempts, lastReason });

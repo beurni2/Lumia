@@ -258,6 +258,21 @@ export type CandidateMeta = PatternMeta | {
    */
   voiceClusterId?: VoiceClusterId;
   /**
+   * PHASE Y8 — `scoreHookQuality(idea.hook, core.family)` deterministic
+   * 0-100 hook punch score computed inside the recipe-collect loop in
+   * `generateCoreCandidates`. The recipe iterator now COLLECTS up to
+   * `RECIPES_PER_CORE_CAP` passing candidates per core and ships the
+   * highest-scoring one (Y6/Y7 shipped the FIRST passing recipe); this
+   * field is the per-candidate score that drove the pick. Components:
+   * visceral verb (0-30), anthropomorph marker (0-25), brevity (0-20),
+   * concrete-anchor presence (0-15), contradiction beat (0-10). See
+   * `hookQuality.ts` for the table + scoring rules. Optional everywhere
+   * else (Llama / Claude wraps don't run through the cohesive recipe
+   * loop). Telemetry-only consumer in Y8 — surfaces in QA harness +
+   * served-log so we can verify the median ≥ 60 acceptance bar held.
+   */
+  hookQualityScore?: number;
+  /**
    * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
    * (Phase 1 replacement for `scriptType`). Pattern-variation candidates
    * always set both via `resolveIdeaCoreType`. Llama / Claude fallback
@@ -2003,6 +2018,34 @@ export type NoveltyContext = {
    * empty / undefined for back-compat with cold-start creators.
    */
   recentAnchors?: ReadonlySet<string>;
+  /**
+   * PHASE Y8 — scenario fingerprint freshness channel for the
+   * core_native dedup gate. `sf_<12hex>` codes computed by
+   * `cohesiveIdeaAuthor` over each shipped idea's
+   * `(mechanism, anchor, action)` triple. Covers the LAST 5 visible
+   * batches (window matches `recentAnchors` / `recentPremises`).
+   * Built by `hybridIdeator` by reading `e.scenarioFingerprint` off
+   * each cached batch entry (Y8 widens `CachedBatchEntry` to persist
+   * the fp directly — same non-breaking JSONB pattern as
+   * `premiseStyleId` / `executionId` / `voiceProfile`). Threaded
+   * into `generateCoreCandidates` via the
+   * `CoreNoveltyContext.recentScenarioFingerprints` field;
+   * `coreCandidateGenerator` uses it as an O(1) HARD-REJECT signal
+   * (Set.has) — recipes whose freshly-authored idea fingerprints
+   * land in this set are dropped with reason `scenario_repeat`,
+   * the recipe iterator advances. Empty set for cold-start
+   * creators (no prior batches) and for batches whose entries
+   * predate Y6's fingerprint write (no harvest contribution; the
+   * gate just stays quiet for those).
+   *
+   * Catches the structural-repeat failure mode Y7 left open:
+   * "i ghosted my own to-do list" (sf_abc123) and
+   * "i abandoned my checklist" (also sf_abc123 — synonym map
+   * collapses list/checklist + ghost/abandon are siblings under
+   * the lemma+canonicalize pipeline). Anchor freshness alone
+   * doesn't catch this because the anchors differ on the surface.
+   */
+  recentScenarioFingerprints?: ReadonlySet<string>;
   /**
    * Cross-batch demotion for hook openers — derived from the cached
    * hooks via `lookupHookOpener`. Without this dimension we'd ship
