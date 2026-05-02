@@ -1,0 +1,108 @@
+PHASE Y REVIEW — PREMISE CORE LIBRARY QA
+
+Goal:
+Validate whether the new 40-core Premise Core Library actually improves comedy, alignment, and variety.
+
+Important:
+Right now PremiseCore is active mainly in the Claude fallback path, not the normal local Layer-1 deterministic path.
+
+Do NOT change code yet.
+Do NOT wire PremiseCore into Layer-1 yet.
+First, run focused QA.
+
+---
+
+PART 1 — FORCED FALLBACK QA
+
+Force Claude fallback so PremiseCore is active.
+
+Generate:
+- 10 batches
+- 3–6 ideas per batch
+- accumulated history enabled if possible
+
+For each idea, log:
+
+- premiseCoreId
+- premiseCore family
+- premise
+- hook
+- whatToShow
+- howToFilm
+- domain
+- mechanism
+- premiseStyleId
+- videoPattern
+- rejection / keep status
+
+---
+
+PART 2 — QUALITY REVIEW
+
+Evaluate:
+
+1. Comedy quality
+- Is the idea actually funny?
+- Is there a clear comedic premise?
+- Does it feel new compared to previous outputs?
+
+2. Alignment
+- Does hook match premise?
+- Does whatToShow act out the premise?
+- Does howToFilm execute the same joke?
+
+3. Variety
+- Are cores rotating?
+- Are domains rotating?
+- Are mechanisms rotating?
+- Any same idea shell repeated?
+
+4. Taste fit
+- Does it match the curated default taste?
+- self-betrayal / self-as-other / absurd escalation / identity exposure should be visible.
+
+---
+
+PART 3 — COMPARE TO LOCAL PATH
+
+Generate 5 normal batches without forced fallback.
+
+Compare:
+
+- fallback PremiseCore ideas vs local Layer-1 ideas
+- which are funnier?
+- which are more aligned?
+- which feel more post-worthy?
+
+---
+
+PART 4 — REPORT
+
+Return:
+
+- top 10 strongest ideas
+- bottom 10 weakest ideas
+- repeated idea shells
+- mismatch examples
+- premiseCore family distribution
+- post-worthy estimate
+- recommendation:
+
+A. keep PremiseCore fallback-only
+B. wire PremiseCore into Layer-1 deterministic path
+C. tune core library before wiring
+D. add stronger validation before wiring
+
+---
+
+SUCCESS CRITERIA
+
+PremiseCore should produce:
+- funnier ideas
+- better hook/scenario alignment
+- more varied comedic premises
+- less looping
+- higher post-worthy rate
+
+Do not implement the recommendation yet.
+Only report findings.
