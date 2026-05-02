@@ -1,0 +1,209 @@
+PHASE Y — PREMISE CORE LIBRARY (40 ULTRA-REFINED CORES)
+
+Goal:
+Create a high-quality Premise Core Library that generates strong, funny, and aligned ideas.
+
+This library becomes the PRIMARY source of idea generation:
+PremiseCore → Premise → hook + whatToShow + howToFilm
+
+This must eliminate:
+- weak comedy
+- hook/scenario mismatch
+- repetitive idea loops
+
+---
+
+PART 1 — CORE STRUCTURE
+
+Create a new module:
+
+premiseCoreLibrary.ts
+
+Define:
+
+type PremiseCore = {
+  id: string
+  family: string
+
+  mechanism: string
+  tension: string
+  description: string
+
+  generatorRule: string
+
+  compatibleDomains: string[]
+  compatiblePremiseStyles: PremiseStyleId[]
+
+  examples: string[]        // 2–3 examples (DO NOT reuse directly)
+  antiCopyHints: string[]   // patterns that must NOT be repeated
+}
+
+---
+
+PART 2 — BUILD 40 ULTRA-REFINED CORES
+
+Create EXACTLY 40 cores.
+
+Organize into 8 families (5 cores each):
+
+1. self_betrayal
+2. self_as_relationship
+3. absurd_escalation
+4. confident_vs_real
+5. social_mask
+6. adulting_chaos (money/food/life)
+7. dopamine_overthinking (phone/brain loops)
+8. identity_exposure
+
+---
+
+PART 3 — QUALITY RULES (STRICT)
+
+Each core must:
+
+- represent a DISTINCT comedic idea engine
+- not overlap with another core
+- not be a reworded version of another core
+- produce multiple unique ideas (not one pattern)
+
+Each generatorRule must:
+
+- describe how to generate the premise
+- include contradiction or tension
+- avoid generic phrasing
+
+---
+
+PART 4 — EXAMPLE FORMAT
+
+Example core:
+
+{
+  id: "self_betrayal_rule_break",
+  family: "self_betrayal",
+
+  mechanism: "self_betrayal",
+  tension: "intention_vs_action",
+
+  description: "User declares a rule, then immediately breaks it.",
+
+  generatorRule: "Generate a situation where the user commits to a rule, then violates it within seconds in a casual or confident way.",
+
+  compatibleDomains: ["sleep", "money", "food", "phone", "work"],
+
+  examples: [
+    "i said one episode → season 4",
+    "i’m on a budget → 3am purchase"
+  ],
+
+  antiCopyHints: [
+    "do not reuse exact 'one episode' phrasing",
+    "avoid direct repetition of time-based punchlines"
+  ]
+}
+
+---
+
+PART 5 — INTEGRATION INTO GENERATION
+
+Modify idea generation pipeline:
+
+NEW FLOW:
+
+1. select PremiseCore (weighted by DefaultTasteProfile)
+2. select domain/scenario
+3. generate ONE premise using generatorRule
+4. derive:
+   - hook
+   - whatToShow
+   - howToFilm
+
+STRICT RULE:
+All outputs must come from SAME premise.
+
+No independent generation allowed.
+
+---
+
+PART 6 — ALIGNMENT REQUIREMENT
+
+Before returning:
+
+Verify:
+- hook expresses the premise
+- whatToShow visually acts out the premise
+- howToFilm executes the scenario
+
+If mismatch:
+→ regenerate
+
+---
+
+PART 7 — ANTI-LOOP INTEGRATION
+
+Track across last 5 ideas:
+
+- PremiseCore.id
+- domain
+- mechanism
+
+Rules:
+
+- reject repeating same core too frequently
+- heavily penalize repeating mechanism
+- ensure at least 1 fresh core in each batch
+
+---
+
+PART 8 — ANTI-COPY SAFETY
+
+Use:
+
+- antiCopyHints from each core
+- existing seed hook fingerprints
+
+Reject if:
+- generated hook matches example patterns
+- near-duplicate structure detected
+
+---
+
+PART 9 — TELEMETRY
+
+Log:
+
+- selected PremiseCore.id
+- rejection counts per core
+- repetition frequency
+- regeneration attempts
+
+---
+
+PART 10 — QA
+
+Run 10 batches and verify:
+
+- no repeated idea shells
+- hook/scenario alignment
+- noticeable improvement in comedy quality
+- variety across domains and mechanisms
+- no copy from examples
+
+---
+
+IMPORTANT
+
+- Do NOT expand beyond 40 cores
+- Do NOT add UI
+- Do NOT change Phase 5 / Phase 6 / Phase 7 logic
+- Do NOT remove DefaultTasteProfile — this library works WITH it
+
+---
+
+SUCCESS CRITERIA
+
+- each idea clearly comes from one PremiseCore
+- outputs feel original and funny
+- no mismatch between hook and scenario
+- reduced repetition
+- higher post-worthy rate

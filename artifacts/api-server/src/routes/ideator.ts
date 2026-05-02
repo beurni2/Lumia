@@ -302,7 +302,11 @@ router.post("/ideator/generate", async (req, res, next) => {
     // pattern as `meta.viralFeelScore`). Keeping it off the wire
     // also avoids client-side parse drift if the field shape ever
     // changes server-side.
-    const publicIdeas = result.ideas.map(({ premise: _premise, ...rest }) => rest);
+    // PHASE Y — strip `premiseCoreId` for the same reason: it's a
+    // server-side scoring/telemetry tag, not a client-facing field.
+    const publicIdeas = result.ideas.map(
+      ({ premise: _premise, premiseCoreId: _premiseCoreId, ...rest }) => rest,
+    );
     res.json({
       region,
       count: publicIdeas.length,

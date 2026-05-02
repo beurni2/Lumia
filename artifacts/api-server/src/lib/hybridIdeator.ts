@@ -78,6 +78,16 @@ import {
 // orchestrator owns the cache-history walk and needs the same
 // normalize function the validator uses internally.
 import { normalizeHookFingerprint } from "./comedyValidation";
+// PHASE Y (PREMISE CORE LIBRARY) — orchestrator owns the core-
+// selection step (anti-recent + family-rotation are cross-batch
+// concerns the picker can't see from inside `generateIdeas`). The
+// selected cores are passed via `premiseCoreSeeds` on the
+// GenerateIdeasInput; `formatPremiseCoresForPrompt` renders them
+// into the system prompt at the call site.
+import {
+  getPremiseCoreById,
+  selectPremiseCores,
+} from "./premiseCoreLibrary";
 import {
   resolveArchetypeLoose,
   type Archetype,
@@ -1685,6 +1695,26 @@ function buildNoveltyContext(
       if (e.executionId) recentExecutionIds.add(e.executionId);
     }
   }
+  // PHASE Y (PREMISE CORE LIBRARY) — cross-batch core-id set,
+  // parallel to `recentPremiseStyleIds` above and sourced from the
+  // same last-3-batches window. Read directly off `e.idea.premiseCoreId`
+  // (top-level idea field) — no cache-envelope shape change required.
+  // Layer-3 batches that weren't seeded with cores contribute nothing
+  // (the field stays absent on the embedded idea), and pattern-
+  // variation candidates have no core id by construction. The 40-id
+  // pool is small enough that the -3 cross-batch demotion lever in
+  // `selectionPenalty` keeps the picker rotating cores without
+  // starving the supply (typical batch ships ~3-5 cores; 3 batches ×
+  // ~4 cores = ~12 ids tracked, well under 40).
+  const recentPremiseCoreIds = new Set<string>();
+  for (const batch of last3Batches) {
+    for (const e of batch) {
+      const cid = e.idea.premiseCoreId;
+      if (typeof cid === "string" && cid.length > 0) {
+        recentPremiseCoreIds.add(cid);
+      }
+    }
+  }
   for (const e of prev) {
     if (e.family) {
       recentFamilies.add(e.family);
@@ -2016,6 +2046,12 @@ function buildNoveltyContext(
     // on the open-ended execution axis. Empty Set for cold-start
     // (caller treats as no contribution).
     recentExecutionIds,
+    // PHASE Y (PREMISE CORE LIBRARY) — last-3 premiseCoreId set drives
+    // the -3 cross-batch demotion + +2 fresh-core boost in
+    // `selectionPenalty`. Empty Set for cold-start (caller treats as
+    // no contribution); empty for batches that didn't ride the
+    // PHASE Y core-seeded fallback path.
+    recentPremiseCoreIds,
     // NOTE: `voiceStrongPreference` is intentionally NOT set here.
     // It's a callsite-provided flag (the orchestrator knows the
     // selection-source tier from `selectPrimaryVoiceProfile`) and
@@ -2807,10 +2843,19 @@ export function enforceTrendCap<
  * tie-breakers naturally prefer pattern_variation when scores match.
  */
 function wrapFallbackIdea(idea: Idea): { idea: Idea; meta: CandidateMeta } {
-  return {
-    idea,
-    meta: { source: "claude_fallback" },
-  };
+  // PHASE Y (PREMISE CORE LIBRARY) — mirror `idea.premiseCoreId` into
+  // meta so the cross-batch demotion lever in `selectionPenalty`
+  // (which reads via `metaPremiseCoreId(c.meta)`) sees the core
+  // tag without a per-variant guard. Same discipline as
+  // `bigPremiseStyle` / `premiseStyleId` mirroring on the catalog
+  // path. Absent on Layer-3 batches that weren't seeded with cores
+  // (the model emits no id, so the field stays undefined and the
+  // lever silently abstains for that wrap).
+  const meta: CandidateMeta = { source: "claude_fallback" };
+  if (typeof idea.premiseCoreId === "string" && idea.premiseCoreId.length > 0) {
+    (meta as { premiseCoreId?: string }).premiseCoreId = idea.premiseCoreId;
+  }
+  return { idea, meta };
 }
 
 // -----------------------------------------------------------------------------
@@ -3030,6 +3075,37 @@ export async function runHybridIdeator(
       }
     }
   }
+  // PHASE Y (PREMISE CORE LIBRARY) — collect the last-5-batches set
+  // of `idea.premiseCoreId` values that have already shipped to this
+  // creator. Used by `selectPremiseCores` below to demote recent
+  // cores at SELECTION time so the LLM never even sees a recently-
+  // shipped core in its seeded list (this is the SUPPLY-SIDE lever;
+  // the cross-batch -3/+2 demotion in `selectionPenalty` is the
+  // separate DEMAND-SIDE lever — they stack). Sized at 5 batches to
+  // match the `recentPremises` window above; the cores library
+  // selector already enforces ≥1 fresh-core swap when history is
+  // non-empty so the picker can't starve even if 4 of the 5
+  // remembered cores share a family with the active mechanism
+  // weights. Empty Set for cold-start creators (selector treats as
+  // no contribution and falls through to pure FAMILY_DEFAULT_TASTE_WEIGHT
+  // sampling).
+  const recentPremiseCoreIdsForSeeding = new Set<string>();
+  // Mechanism strings drawn from those same recent ids — derived
+  // here (not on the cache envelope) so the cache shape stays
+  // unchanged. Unknown ids (e.g. cores trimmed from a future
+  // catalog revision) silently drop; same tolerant pattern as
+  // `parsePremiseStyleId` above.
+  const recentMechanismsForSeeding = new Set<string>();
+  for (const batch of last5BatchesForPremises) {
+    for (const e of batch) {
+      const cid = e.idea.premiseCoreId;
+      if (typeof cid === "string" && cid.length > 0) {
+        recentPremiseCoreIdsForSeeding.add(cid);
+        const core = getPremiseCoreById(cid);
+        if (core) recentMechanismsForSeeding.add(core.mechanism);
+      }
+    }
+  }
   // `>>> 0` coerces the XOR result to an unsigned 32-bit int so the
   // subsequent `% 997` is always non-negative (JS keeps the sign of
   // the dividend, so a negative seedSalt would produce negative
@@ -3195,6 +3271,34 @@ export async function runHybridIdeator(
   if (needFallback) {
     usedFallback = true;
     try {
+      // PHASE Y (PREMISE CORE LIBRARY) — pick `desiredCount + 2` cores
+      // (small headroom so the LLM has room to drop one or two it
+      // can't make work without starving the batch) using the
+      // 5-batch recent-id + recent-mechanism sets built upstream.
+      // Selector enforces the ≥1-fresh-core swap when history is
+      // non-empty; cold-start creators fall through to pure
+      // FAMILY_DEFAULT_TASTE_WEIGHT sampling. Telemetry-only log
+      // immediately below so the QA driver can confirm cores
+      // actually flowed into the prompt on the fallback path.
+      const coreSelection = selectPremiseCores({
+        count: desiredCount + 2,
+        recentCoreIds: recentPremiseCoreIdsForSeeding,
+        recentMechanisms: recentMechanismsForSeeding,
+      });
+      logger.info(
+        {
+          event: "phase_y.premise_cores_selected",
+          region: input.region,
+          desiredCount,
+          seedCount: coreSelection.cores.length,
+          selectedCoreIds: coreSelection.cores.map((c) => c.id),
+          selectedFamilies: coreSelection.cores.map((c) => c.family),
+          recentCoreCount: recentPremiseCoreIdsForSeeding.size,
+          recentMechanismCount: recentMechanismsForSeeding.size,
+          hasFreshCore: coreSelection.hasFreshCore,
+        },
+        "phase_y.premise_cores_selected",
+      );
       const claudeResult = await generateIdeas({
         region: input.region,
         styleProfile: input.styleProfile,
@@ -3203,6 +3307,13 @@ export async function runHybridIdeator(
         tasteCalibrationJson: input.tasteCalibrationJson,
         viralPatternMemory: memory,
         ctx: input.ctx,
+        // PHASE Y — primary seed for Layer-3 generation. The prompt
+        // builder in `ideaGen.ts` renders these via
+        // `formatPremiseCoresForPrompt` above the existing premise-
+        // first instructions. When this field is omitted (legacy
+        // callers / tests), the prompt renders the empty string and
+        // collapses to the pre-PHASE-Y behavior.
+        premiseCoreSeeds: coreSelection.cores,
       });
       // Apply the same hook-exclusion to Claude's output so a
       // regenerate fallback can't ship a near-duplicate of the

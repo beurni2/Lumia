@@ -108,6 +108,19 @@ import {
 // scaffolding so the model writes a premise BEFORE picking a
 // pattern; the existing structure then derives off the premise.
 import { renderDefaultTastePromptBlock } from "./defaultTasteProfile";
+// PHASE Y — PREMISE CORE LIBRARY. When the caller (hybridIdeator)
+// pre-selects 1-N cores for this batch, we render them as a
+// SYSTEM-prompt block immediately above the premise-first
+// instructions and require the model to:
+//   (1) pick ONE core per idea from the list
+//   (2) write the `premise` USING that core's generatorRule
+//   (3) derive hook / whatToShow / howToFilm so they all enact the
+//       SAME premise (the existing PHASE X discipline)
+//   (4) emit the chosen core's id in `premiseCoreId`
+// The caller is the source of truth for selection; ideaGen never
+// imports the catalog directly so the cost-and-rotation policy
+// stays owned by hybridIdeator.
+import { formatPremiseCoresForPrompt, type PremiseCore } from "./premiseCoreLibrary";
 
 export const ideaSchema = z.object({
   /**
@@ -360,6 +373,24 @@ export const ideaSchema = z.object({
    * any downstream client.
    */
   premise: z.string().min(8).max(240).optional(),
+  /**
+   * PHASE Y — PREMISE CORE LIBRARY. The id of the PremiseCore the
+   * model picked for this idea. When the caller passes
+   * `premiseCoreSeeds` this MUST be one of the seeded cores'
+   * ids; the validator on the route side strips unknown ids
+   * defensively (we never block on it — telemetry-grade signal).
+   *
+   * OPTIONAL because:
+   *   - Layer-1 pattern-variation candidates don't run through
+   *     Layer-3 generation and therefore have no core id.
+   *   - Pre-PHASE-Y cached candidates predate the field.
+   *   - The Llama mutation polish step doesn't pick a fresh core.
+   *   - Test fixtures / admin tools may omit.
+   *
+   * SERVER-INTERNAL: stripped from the public API response by the
+   * route layer (same pattern as `premise` / `meta.viralFeelScore`).
+   */
+  premiseCoreId: z.string().min(1).max(120).optional(),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 
@@ -568,6 +599,21 @@ export type GenerateIdeasInput = {
     creatorId?: string | null;
     agentRunId?: string | null;
   };
+  /**
+   * PHASE Y — pre-selected PremiseCore seeds for this batch. When
+   * provided (and non-empty), the caller has already done weighted
+   * + anti-recent + family-rotating selection in `hybridIdeator`,
+   * and we render the cores into the SYSTEM prompt as the PRIMARY
+   * source for premise generation. The model is instructed to pick
+   * ONE core per idea, write the premise USING that core's
+   * generatorRule, then derive the rest.
+   *
+   * When omitted / empty, we fall back to the legacy premise-first
+   * behavior (model picks any premise on its own from the
+   * default-taste mechanism guidance) — same surface area as before
+   * PHASE Y.
+   */
+  premiseCoreSeeds?: readonly PremiseCore[];
 };
 
 export async function generateIdeas(
@@ -721,11 +767,27 @@ export async function generateIdeas(
         ].join("\n")
       : "";
 
+  // PHASE Y — PREMISE CORE LIBRARY block. Rendered ABOVE the
+  // PHASE X premise-first instructions when the caller pre-selected
+  // cores for this batch. Empty string (collapses to nothing in
+  // `[...].filter(Boolean)`) when no cores were seeded — same
+  // surface area as before PHASE Y.
+  const premiseCoreBlock =
+    input.premiseCoreSeeds && input.premiseCoreSeeds.length > 0
+      ? formatPremiseCoresForPrompt(input.premiseCoreSeeds)
+      : "";
+
   const system = [
     "You are Lumina's Ideator — a sharp, regionally-grounded short-form video strategist for English-speaking 1K–50K micro-creators.",
     "",
     "Your job: produce ideas a real creator can shoot today.",
     "",
+    // PHASE Y — sits at the very top of the premise-first stack so
+    // the model treats the seeded cores as the PRIMARY premise
+    // source. The block stays empty when no cores were passed,
+    // collapsing to no-op for the legacy path.
+    premiseCoreBlock,
+    premiseCoreBlock ? "" : null,
     // PHASE X — PART 2 (premise-first generation). Sits AT THE TOP
     // of the system prompt, ABOVE trigger-reaction and pattern-
     // first, because every other section now reads as derivation
@@ -1035,7 +1097,7 @@ export async function generateIdeas(
     `=== TASK ===`,
     `Produce ${count} ideas for tomorrow. Return strictly:`,
     `PREMISE-FIRST — emit `+"`premise`"+` (one sentence, 8–40 words, names the comedic mechanism + specific moment) as the FIRST field of every idea. Then DERIVE hook + trigger + reaction + whatToShow + howToFilm so they ALL enact the SAME premise. If the four derived fields don't all point at the same comedic beat, REWRITE the weakest field; if they still don't align, DROP the idea. Lean on the default-taste mechanisms above (self-betrayal, self-as-other, absurd escalation, identity exposure).`,
-    `{ "ideas": [ { premise, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+    `{ "ideas": [ { premise, premiseCoreId, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
     `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
     `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. Declare in `+"`emotionalSpike`"+`. If the emotion is weak/diffuse, DROP the idea.`,
     `HOOK CRAFT — for each idea, internally brainstorm 3–5 hook variations across the five formats (Behavior "the way I…" / Thought "why do I…" / Moment "that moment when…" / Contrast "what I say vs what I do" / Curiosity "this is where it went wrong"). Run each through the gates: emotion clear, TENSION present (something went wrong / expectation vs reality / internal contradiction), natural language, target ≤8 words (hard ceiling 10 if it still reads in <1s and feels natural). ANTI-NEUTRAL FILTER (final pass) — AUTO-REJECT openings "when you…" / "POV: you…" / "reading…" / "watching…" / "you open…" (they describe the situation; they don't create tension). PREFER thought-/reaction-voice openers: "why did I…" / "the way I…" / "I really just…" / "this just ruined…" / "I thought this was fine…". Every emitted hook must feel like a TEXT MESSAGE the creator would send a friend, not a caption. If after rewrite the hook still feels neutral, DROP THE WHOLE IDEA. SELECT the one you'd actually stop scrolling for and emit ONLY that one in `+"`hook`"+`.`,
@@ -1206,7 +1268,7 @@ export async function generateIdeas(
       `  • setting already used: [${usedSettings || "none"}] → prefer NEW settings from {bed, couch, desk, bathroom, kitchen, car, outside, other}`,
       `  • emotionalSpike already used: [${usedSpikes || "none"}] → prefer NEW spikes from {embarrassment, regret, denial, panic, irony}`,
       `Return strictly:`,
-      `{ "ideas": [ { premise, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
+      `{ "ideas": [ { premise, premiseCoreId, pattern, structure, hookStyle, hook, hookSeconds, trigger, reaction, emotionalSpike, triggerCategory, setting, whatToShow, howToFilm, script, shotPlan, caption, templateHint, contentType, videoLengthSec, filmingTimeMin, whyItWorks, payoffType, hasContrast, hasVisualAction, visualHook } ] }`,
       `TRIGGER-REACTION FIRST — every idea MUST have BOTH a clear `+"`trigger`"+` (specific on-screen action verb: open/check/read/scroll/sip/look/watch/find/notice/realize/hear/see/do) AND a clear `+"`reaction`"+` (visible emotional response on the creator's face/body). If you can't name both, DROP the idea.`,
       `EMOTIONAL SPIKE — every idea MUST hit ONE of {embarrassment, regret, denial, panic, irony}. If the emotion is weak/diffuse, DROP the idea.`,
       `HOOK CRAFT — internally brainstorm 3–5 hook variations across the five formats (Behavior / Thought / Moment / Contrast / Curiosity), gate them on emotion-clarity + TENSION (something went wrong / expectation vs reality / internal contradiction) + natural-language + target ≤8 words (hard ceiling 10, only if still <1s and natural), then SELECT the one you'd actually stop scrolling for and emit ONLY that.`,

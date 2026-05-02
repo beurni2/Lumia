@@ -315,6 +315,22 @@ export type CandidateMeta = PatternMeta | {
    */
   premiseStyleId?: PremiseStyleId;
   /**
+   * PHASE Y (PREMISE CORE LIBRARY) — id of the comedic-engine core
+   * the LLM picked when the orchestrator seeded this batch with
+   * cores. Same Layer-3-only discipline as `premiseStyleId` above:
+   * pattern-variation candidates NEVER set this (cores are a
+   * Claude-fallback-only signal — pattern-variation candidates ride
+   * the Layer-1 catalog and have no notion of cores), legacy cache
+   * entries written before PHASE Y shipped omit it, and the Llama
+   * mutation polish step doesn't pick a fresh core. Selector treats
+   * absent as "no contribution to the premise-core axis" (same
+   * discipline as `premiseStyleId` / `bigPremiseStyle` above).
+   * Mirrored from `idea.premiseCoreId` at fallback-wrap time so the
+   * cross-batch demotion lever in `selectionPenalty` can read it
+   * via the unified `c.meta.*` accessor without per-variant guards.
+   */
+  premiseCoreId?: string;
+  /**
    * Phase 6 EXPANSION — display label paired with `premiseStyleId`
    * (telemetry-only; never read by the selector). Cleared in lockstep
    * with `premiseStyleId` on the rewrite-clear path so stale labels
@@ -832,6 +848,23 @@ function metaBigPremiseStyle(m: CandidateMeta): BigPremiseStyle | undefined {
  */
 function metaPremiseStyleId(m: CandidateMeta): PremiseStyleId | undefined {
   return "premiseStyleId" in m ? m.premiseStyleId : undefined;
+}
+
+/**
+ * PHASE Y (PREMISE CORE LIBRARY) — premise-core id accessor mirroring
+ * `metaPremiseStyleId` above. Returns the persisted id when the meta
+ * variant carries one (Claude-fallback wraps that mirrored
+ * `idea.premiseCoreId` at wrap time when the batch was seeded with
+ * cores; undefined for pattern-variation candidates, the original
+ * hand-written premise entries that don't carry a core, and pre-PHASE-Y
+ * legacy cache entries). Downstream callers MUST treat undefined as
+ * "no contribution to the premise-core axis" — the bucket / style /
+ * execution levers still fire independently.
+ */
+function metaPremiseCoreId(m: CandidateMeta): string | undefined {
+  return "premiseCoreId" in m && typeof m.premiseCoreId === "string"
+    ? m.premiseCoreId
+    : undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -2271,6 +2304,31 @@ export type NoveltyContext = {
    * sets above.
    */
   recentExecutionIds?: ReadonlySet<string>;
+  /**
+   * PHASE Y (PREMISE CORE LIBRARY) — cross-batch premise-core demotion
+   * set. Holds `premiseCoreId` values drawn from the last-3 batches'
+   * cached ideas (read from `e.idea.premiseCoreId` directly — no cache-
+   * envelope shape change required). Used by `selectionPenalty` to
+   * apply a -3 cross-batch demotion when a candidate's
+   * `meta.premiseCoreId` is in this set, AND a +2 fresh-core boost
+   * when it is NOT in the set AND the set is non-empty (first-batch
+   * cold-start abstains so brand-new accounts don't inflate every
+   * Layer-3 pick by +2 with no novelty signal).
+   *
+   * Sized parallel to the style-level `recentPremiseStyleIds` lever
+   * above and STACKS with it: a candidate that re-uses BOTH the
+   * core AND the style eats -6 (-3 + -3); a fresh-core fresh-style
+   * Layer-3 emit gets +4 (+2 + +2) on top of any bucket / execution
+   * novelty.
+   *
+   * Empty / undefined for cold-start (no prior cache history) and
+   * for entries that didn't ship a PHASE Y core (pattern-variation
+   * candidates, the original hand-written premise entries, pre-PHASE-Y
+   * legacy cache entries, and Llama mutation polish wraps). Selector
+   * treats absent as "no contribution" — same discipline as the
+   * style / execution sets above.
+   */
+  recentPremiseCoreIds?: ReadonlySet<string>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -3100,6 +3158,35 @@ export function selectionPenalty(
       ctx.recentPremiseStyleIds !== undefined &&
       ctx.recentPremiseStyleIds.size > 0 &&
       !ctx.recentPremiseStyleIds.has(cPremIdCross)
+    ) {
+      p += 2;
+    }
+  }
+  // PHASE Y (PREMISE CORE LIBRARY) — cross-batch premise-core demotion.
+  // -3 when this Claude-fallback candidate's `meta.premiseCoreId`
+  // appeared anywhere in the last-3-batches core set
+  // (`recentPremiseCoreIds`, populated by `buildNoveltyContext` from
+  // each batch's `idea.premiseCoreId` field). Sized parallel to the
+  // style-level lever above (-3) so a same-core same-style cross-
+  // batch repeat eats -6 — comfortably below the typical 3-4pt Layer-3
+  // candidate spread so a fresh core reliably wins selection across
+  // consecutive batches without overpowering the +3 PREMISE_PREFERENCE
+  // bonus. Skipped silently when the candidate has no core id (every
+  // pattern-variation candidate, every pre-PHASE-Y legacy entry, and
+  // every Layer-3 emit on a batch that wasn't seeded with cores) —
+  // same discipline as `metaPremiseStyleId` / `metaTrendId` above.
+  const cPremCoreCross = metaPremiseCoreId(c.meta);
+  if (cPremCoreCross) {
+    if (ctx.recentPremiseCoreIds?.has(cPremCoreCross) ?? false) p -= 3;
+    // Symmetric +2 fresh-core boost when this candidate's core id is
+    // NOT in the last-3-batches set AND the set is non-empty (cold-
+    // start abstains so brand-new accounts don't inflate every
+    // Layer-3 pick by +2). Mirrors the +2 fresh-style boost above so
+    // the spread between repeat (-3) and fresh (+2) is 5pt per axis.
+    if (
+      ctx.recentPremiseCoreIds !== undefined &&
+      ctx.recentPremiseCoreIds.size > 0 &&
+      !ctx.recentPremiseCoreIds.has(cPremCoreCross)
     ) {
       p += 2;
     }
