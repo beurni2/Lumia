@@ -1,0 +1,222 @@
+Lumina — High-Level Product & System Assessment Report
+1. Executive Overview
+
+Lumina is an AI-powered creative system designed to generate short-form video ideas for micro-creators. Its core ambition is to remove the cognitive friction of ideation by delivering immediately usable, high-quality, post-worthy content concepts tailored to a creator’s style.
+
+The intended outcome is not just idea generation, but consistent creative output that feels native to the user’s voice and platform dynamics (TikTok, Reels, Shorts), enabling users to move from idea → execution without hesitation.
+
+At present, Lumina has evolved into a highly structured generation system with strong internal mechanics. However, despite architectural maturity, the output quality remains below expectations, particularly in humor, coherence, and originality.
+
+2. Vision of the Product
+2.1 Core Objective
+
+Lumina aims to function as:
+
+A decision-removal engine for short-form video creation
+
+It is designed to:
+
+Eliminate ideation fatigue
+Provide ideas that feel immediately filmable
+Maintain alignment between concept, execution, and platform behavior
+Improve creator consistency and output quality over time
+2.2 Intended User Experience
+
+The ideal experience is:
+
+User opens app → sees one idea → instantly understands it → films it
+
+Each idea should:
+
+Be clear within seconds
+Feel personally relevant
+Require no interpretation
+Be strong enough to publish without modification
+2.3 Nature of Output
+
+Each generated idea is expected to be a complete creative unit, including:
+
+A central premise
+A hook (opening line)
+A visual scenario (what to show)
+A filming plan (how to execute)
+
+These elements should form a single coherent concept, not a collection of loosely connected parts.
+
+3. Current System State
+
+Lumina’s backend has evolved into a multi-layered generation architecture with the following major components:
+
+3.1 Generation Layers
+Local Deterministic Generator
+Produces the majority of candidates
+Based on predefined patterns and templates
+Premise Core Library (40 cores)
+Encodes reusable comedic idea structures
+Intended as the conceptual foundation of ideas
+Core-Native Generator (Y5)
+Generates ideas directly from PremiseCore
+Runs in parallel with the local generator
+Claude Fallback Generator
+Higher-quality but limited usage path
+Used when local generation underperforms
+3.2 Candidate Processing Pipeline
+Generators → Merged Candidate Pool → Scoring → Selection → Output
+Multiple candidates are generated per cycle
+Candidates are merged into a single pool
+Selection is based on scoring and penalties
+Top-ranked ideas are returned
+3.3 Scoring & Control Systems
+Premise Comedy Scoring
+Evaluates humor quality
+Viral Feel Score
+Estimates platform performance potential
+Selection Penalties (Y4)
+Strong anti-repetition logic
+Penalizes repeated structures, styles, and cores
+Anti-Loop System
+Tracks recent outputs to enforce diversity
+3.4 Validation Systems
+Alignment checks (hook ↔ scenario ↔ filming)
+Anti-copy detection
+Hard rejection for low-quality outputs
+3.5 Personalization Infrastructure
+DefaultTasteProfile
+Early-stage user preference adaptation
+Pattern reinforcement mechanisms
+4. Observed System Characteristics
+4.1 Strengths
+High structural integrity
+Strong anti-repetition enforcement
+Effective alignment validation
+Robust candidate selection system
+Significant PremiseCore integration (up to ~90% coverage)
+4.2 Output Reality (Current)
+
+Despite system sophistication, generated ideas exhibit:
+
+Ideas are not coherent ❌
+Ideas are not aligned ❌
+Ideas are not varied ❌
+
+Specifically:
+
+Hooks and scenarios often feel disconnected
+Concepts lack clarity and immediacy
+Outputs feel generic or overly safe
+Repetition persists at the conceptual level
+Humor quality is inconsistent and often weak
+5. Overbuilt Areas
+
+The system currently exhibits signs of overengineering in the following areas:
+
+5.1 Multi-Layer Generation Redundancy
+Parallel generators (local, core-native, fallback)
+Overlapping responsibilities across layers
+Increased complexity in candidate merging and arbitration
+5.2 Excessive Scoring Systems
+Multiple independent scoring axes
+Heavy reliance on post-generation correction
+Scoring attempting to compensate for weak generation
+5.3 Complex Selection Mechanics
+Deep penalty stacking
+Multi-axis novelty enforcement
+High computational overhead for candidate comparison
+5.4 Abstracted Concept Layers
+PremiseCore
+PremiseStyle
+IdeaCoreType
+HookIntent
+HookLanguageStyle
+VideoPattern
+
+These layers are:
+
+Conceptually valid
+But operationally fragmented
+5.5 Indirect Use of Taste Data
+150 curated hooks exist
+Not directly governing generation
+Used as reference rather than enforcement
+6. Core Structural Issue
+
+The primary system issue can be summarized as:
+
+The system generates components and attempts to align them,
+instead of generating a single cohesive idea.
+
+This results in:
+
+Artificial coherence
+Surface-level alignment
+Weak conceptual integrity
+7. Real Final Product (Target State)
+7.1 Fundamental Shift
+
+The final product should operate on:
+
+Single-pass idea generation
+
+Instead of:
+
+Multi-layer assembly + post-hoc correction
+7.2 Core Output Unit
+
+Each idea should be generated as:
+
+One premise → fully expressed across all fields
+
+Where:
+
+Hook introduces the premise
+Scenario visualizes the premise
+Filming executes the premise
+
+All derived simultaneously.
+
+7.3 System Behavior
+
+The final system should:
+
+Generate fewer candidates
+Produce higher-quality ideas per candidate
+Reduce reliance on scoring corrections
+Eliminate internal competition between generators
+Maintain diversity through generation, not penalties
+7.4 Role of Supporting Systems
+
+In the final state:
+
+PremiseCore → conceptual seed only
+Taste profile → stylistic constraint
+Scoring → validation, not optimization
+Selection → minimal arbitration
+Personalization → adaptive filtering layer
+7.5 User-Facing Outcome
+
+The user should experience:
+
+One idea → immediate clarity → immediate action
+
+With:
+
+No interpretation required
+No ambiguity in execution
+No mismatch between concept and visuals
+Consistent quality across sessions
+8. Conclusion
+
+Lumina has successfully built a technically advanced generation system with strong internal safeguards, alignment checks, and diversity controls.
+
+However, the current architecture:
+
+Overemphasizes structure over substance
+Relies heavily on post-generation correction
+Produces outputs that lack coherence, alignment, and variation at the conceptual level
+
+The gap between system capability and output quality indicates that:
+
+The problem is no longer technical execution,
+but the way ideas are generated and defined.
+
+The final product must resolve this by aligning the system around a single, cohesive idea generation paradigm, where each output is inherently complete rather than assembled.
