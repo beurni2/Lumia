@@ -30,6 +30,16 @@ if (!baseURL || !apiKey) {
 export const claude = new Anthropic({
   baseURL,
   apiKey: apiKey ?? "missing",
+  // PHASE Y2 — without an explicit per-request timeout the SDK
+  // inherits its very-long default (~10min). When a single Claude
+  // call stalls (rate limit, network blip, model overload) the
+  // whole batch hangs. 60s is well above p99 for haiku JSON calls
+  // here (~2-8s observed) but short enough that a stalled call
+  // surfaces as a fast failure the caller's existing try/catch
+  // can degrade through (top-up → ship-best-effort, main →
+  // legacy/local fallback).
+  timeout: 60_000,
+  maxRetries: 1,
 });
 
 export const SWARM_MODEL = "claude-haiku-4-5";

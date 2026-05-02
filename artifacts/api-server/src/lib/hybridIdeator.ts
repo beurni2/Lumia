@@ -3264,7 +3264,19 @@ export async function runHybridIdeator(
   // For count=1|2 trigger 3 is vacuous (guards short-circuit at
   // batch.length<3), so the effective rule there is "fewer than 3
   // local candidates passed."
+  // PHASE Y2 — PART 1 — core-aware primary pass. The original
+  // `needFallback` triggers (short pool, underfilled selection, guard
+  // failure) still apply, but on every `regenerate=true` batch we
+  // ALSO run the Claude-with-cores call eagerly so the new
+  // PremiseCore library actually reaches the user (Y1 QA showed
+  // 97% of ideas bypassed cores because the deterministic local
+  // pattern catalog covered the desiredCount on its own — the
+  // fallback never fired). For regenerate=false (cheap pattern /
+  // cache path) the trigger is unchanged so we don't regress the
+  // sub-second normal-tap latency.
+  const layer1CoreAwareTriggered = regenerate;
   const needFallback =
+    layer1CoreAwareTriggered ||
     merged.length < 3 ||
     selection.batch.length < desiredCount ||
     !selection.guardsPassed;
@@ -3348,14 +3360,148 @@ export async function runHybridIdeator(
       });
       fallbackKeptCount = fallbackResult.kept.length;
       fallbackRejectionReasons = fallbackResult.rejectionReasons;
-      merged = [...merged, ...fallbackResult.kept].sort(
-        (a, b) => b.score.total - a.score.total,
+      // PHASE Y2 — PART 1 — pool-promotion rule. When the
+      // core-aware primary pass fired AND Claude returned enough
+      // valid candidates to fill the batch on its own, REPLACE the
+      // deterministic local pool entirely so core-tagged ideas win
+      // selection (the +2 fresh-core scorer lever isn't always
+      // enough to overcome the local pool's pattern-fit head-start
+      // — Y1 QA showed local-only pools winning even with cores
+      // selected and the fallback ran). For all other cases (Claude
+      // short-delivered, Claude failed, or the fallback fired for
+      // its original "local underfilled" reasons) keep the existing
+      // merge behavior so we never ship an empty / under-filled
+      // batch.
+      const claudeCanFillSolo =
+        layer1CoreAwareTriggered &&
+        fallbackResult.kept.length >= desiredCount;
+      const promotionReason: string = claudeCanFillSolo
+        ? "claude_only_core_aware"
+        : layer1CoreAwareTriggered
+          ? "merged_core_aware_short"
+          : "merged_local_underfilled";
+      if (claudeCanFillSolo) {
+        merged = [...fallbackResult.kept].sort(
+          (a, b) => b.score.total - a.score.total,
+        );
+      } else {
+        merged = [...merged, ...fallbackResult.kept].sort(
+          (a, b) => b.score.total - a.score.total,
+        );
+      }
+      logger.info(
+        {
+          event: "phase_y2.layer1_core_aware_used",
+          creatorId: input.creator?.id,
+          regenerate,
+          desiredCount,
+          claudeKept: fallbackResult.kept.length,
+          localKeptBefore: localResult.kept.length,
+          mergedSize: merged.length,
+          promotionReason,
+          coreTaggedInPool: merged.filter(
+            (c) =>
+              "premiseCoreId" in c.meta &&
+              typeof (c.meta as { premiseCoreId?: string }).premiseCoreId ===
+                "string",
+          ).length,
+        },
+        "phase_y2.layer1_core_aware_used",
       );
-      // Re-select on the merged pool — Claude may have unlocked
-      // axis variety the local pool lacked.
+      // Re-select on the (possibly replaced) pool — Claude may have
+      // unlocked axis variety the local pool lacked, and on the
+      // pool-promotion path the selector now picks exclusively from
+      // core-tagged candidates.
       selection = selectWithNovelty(merged, desiredCount, noveltyContext, {
         regenerate,
       });
+
+      // PHASE Y2 — PART 1c — core-priority swap. The +2 fresh-core
+      // scorer lever (ideaScorer L3186-3192) self-suppresses on
+      // cold-start (`recentPremiseCoreIds.size === 0`) so the very
+      // batches we most need to bootstrap core coverage on are also
+      // the ones where core-tagged Claude candidates carry ZERO
+      // selection bias against the local pattern pool. Y2 QA round-1
+      // showed 0/8 regen batches shipping a core-tagged idea even
+      // though Claude consistently returned 1-3 valid core candidates
+      // per batch. Post-process the selector's pick: any core-tagged
+      // candidate from `merged` that didn't make the cut is swapped
+      // in, displacing the lowest-scored NON-core pick first. Bounded
+      // by `desiredCount` so we never expand the batch, and silent on
+      // empty (no Claude cores in pool → unchanged behavior).
+      if (layer1CoreAwareTriggered) {
+        const getCoreId = (
+          c: ScoredCandidate,
+        ): string | undefined =>
+          (c.meta as { premiseCoreId?: string }).premiseCoreId;
+        const batchHas = new Set(selection.batch);
+        const inBatchCoreIds = new Set(
+          selection.batch
+            .map(getCoreId)
+            .filter((x): x is string => typeof x === "string"),
+        );
+        const missingCoreCandidates = merged
+          .filter((c) => {
+            const cid = getCoreId(c);
+            return (
+              typeof cid === "string" &&
+              !inBatchCoreIds.has(cid) &&
+              !batchHas.has(c)
+            );
+          })
+          .sort((a, b) => b.score.total - a.score.total);
+
+        if (missingCoreCandidates.length > 0) {
+          const newBatch = [...selection.batch];
+          const swapTargets = newBatch
+            .map((c, i) => ({ c, i }))
+            .filter(({ c }) => !getCoreId(c))
+            .sort((a, b) => a.c.score.total - b.c.score.total);
+          const swappedInIds: string[] = [];
+          for (const cand of missingCoreCandidates) {
+            const target = swapTargets.shift();
+            if (!target) break;
+            newBatch[target.i] = cand;
+            const cid = getCoreId(cand);
+            if (cid) swappedInIds.push(cid);
+          }
+          if (swappedInIds.length > 0) {
+            // PHASE Y2 — recompute `guardsPassed` after mutating
+            // `selection.batch`. Without this, downstream consumers
+            // (e.g. the `guards_failed_shipping_best_effort` warn
+            // path) read a STALE `guardsPassed=true` even when the
+            // swap newly violates a HARD guard (opener-cap, setting-
+            // cap, archetype-cap, etc.). Use the same
+            // `voiceStrongPreference` context as the original
+            // `selectWithNovelty` call so the guard semantics are
+            // consistent across the swap. `postCoreCount` is the
+            // count of UNIQUE post-swap core ids (using a Set so
+            // multiple Claude candidates sharing one premiseCoreId
+            // don't inflate the metric).
+            const newGuardsPassed = batchGuardsPass(newBatch, {
+              voiceStrongPreference: noveltyContext.voiceStrongPreference,
+            });
+            const postCoreIds = new Set([
+              ...inBatchCoreIds,
+              ...swappedInIds,
+            ]);
+            logger.info(
+              {
+                event: "phase_y2.core_priority_swap",
+                creatorId: input.creator?.id,
+                swappedIn: swappedInIds.length,
+                coreIdsAdded: swappedInIds,
+                preCoreCount: inBatchCoreIds.size,
+                postCoreCount: postCoreIds.size,
+                preSwapGuardsPassed: selection.guardsPassed,
+                postSwapGuardsPassed: newGuardsPassed,
+              },
+              "phase_y2.core_priority_swap",
+            );
+            selection = { batch: newBatch, guardsPassed: newGuardsPassed };
+          }
+        }
+      }
     } catch (err) {
       // Fallback failure is non-fatal — we still ship whatever local
       // candidates we have. If we ALSO have zero local, the catch

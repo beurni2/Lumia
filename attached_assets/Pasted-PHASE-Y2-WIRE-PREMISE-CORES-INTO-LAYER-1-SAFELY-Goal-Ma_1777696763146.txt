@@ -1,0 +1,193 @@
+PHASE Y2 — WIRE PREMISE CORES INTO LAYER-1 SAFELY
+
+Goal:
+Make PremiseCore the primary source for normal Layer-1 idea generation, not just Claude fallback.
+
+QA proved:
+- 97% of ideas bypass PremiseCore
+- only 2/75 ideas used cores
+- those 2 were the strongest ideas
+- local path is still causing repeats and hook/scenario mismatch
+
+So now we wire PremiseCore into the main local generation path.
+
+---
+
+CORE RULE
+
+Every new idea should originate from:
+
+PremiseCore
+→ Premise
+→ Hook
+→ WhatToShow
+→ HowToFilm
+
+No field-parallel stitching.
+
+---
+
+PART 1 — ROUTING CHANGE
+
+Current:
+- PremiseCore seeds are sent mainly to Claude fallback
+- Layer-1/local path mostly ignores them
+
+New:
+- Select premise cores before Layer-1 local generation
+- Pass premiseCoreSeeds into the Layer-1/local prompt/generator
+- Require each generated idea to use one selected PremiseCore
+
+Do NOT remove Claude fallback.
+Do NOT remove legacy fallback.
+Just make Layer-1 core-aware.
+
+---
+
+PART 2 — RESPONSE SHAPE
+
+Layer-1 generated ideas should include internal fields:
+
+- premiseCoreId
+- premise
+- domain
+- mechanism
+
+These stay server-internal.
+
+Public API must still strip:
+- premiseCoreId
+- premise
+- any internal metadata
+
+---
+
+PART 3 — PROMPT REQUIREMENTS
+
+Update Layer-1 prompt:
+
+For each idea:
+
+1. Choose one provided PremiseCore
+2. Generate a single comedic premise from that core
+3. Derive:
+   - hook
+   - whatToShow
+   - howToFilm
+
+Strict instruction:
+Hook, whatToShow, and howToFilm must express the SAME premise.
+
+Reject internally if:
+- hook names an object/domain not visible in whatToShow
+- whatToShow does not act out the premise
+- howToFilm does not execute the scene
+- premiseCoreId is missing
+
+---
+
+PART 4 — SAFETY / FALLBACK
+
+Fail open safely:
+
+If core-aware Layer-1 fails or underfills:
+- fall back to existing Layer-1 behavior
+- then Claude fallback if needed
+- never return empty batch
+- log fallback reason
+
+Do NOT create infinite retry loops.
+
+---
+
+PART 5 — ANTI-LOOP
+
+Use existing last-5 history.
+
+Penalize:
+- repeated premiseCoreId
+- repeated core family
+- repeated domain
+- repeated mechanism
+- repeated premise skeleton
+- exact hook repeat
+
+Regenerate=true should strongly prefer fresh cores.
+
+---
+
+PART 6 — VALIDATION
+
+Before shipping each idea, validate:
+
+- premiseCoreId present
+- premise present
+- hook matches premise
+- whatToShow matches premise
+- howToFilm matches whatToShow
+- no seed-hook copy
+- no exact hook repeat
+
+Reject or demote if mismatch.
+
+---
+
+PART 7 — TELEMETRY
+
+Log:
+
+- layer1_core_aware_used
+- premiseCoreId distribution
+- core family distribution
+- ideas generated with core
+- ideas missing core
+- fallback_to_legacy_layer1
+- hook_scenario_mismatch count
+- exact hook repeat count
+
+---
+
+PART 8 — QA
+
+Run the same 15-batch QA as before:
+
+- 10 forced/local/core-aware batches
+- 5 normal batches
+- accumulated history enabled
+
+Report:
+
+- % ideas with premiseCoreId
+- post-worthy estimate
+- repeated hook shells
+- hook/scenario mismatch rate
+- core family distribution
+- domain distribution
+- top 10 ideas
+- bottom 10 ideas
+- fallback usage
+
+---
+
+SUCCESS CRITERIA
+
+- premiseCoreId appears on majority of internal generated ideas
+- hook/scenario mismatch drops meaningfully
+- repeated hook shells drop meaningfully
+- post-worthy rate improves from 9% baseline
+- no empty batches
+- public response shape unchanged
+
+---
+
+IMPORTANT
+
+Do NOT:
+- change UI
+- change DB schema
+- remove Claude fallback
+- remove legacy fallback
+- expose premiseCoreId publicly
+- rewrite unrelated Phase 5/6/7 systems
+
+This is a safe routing/wiring pass only.
