@@ -77,6 +77,16 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       "the ${anchor} keeps ${ingForm} itself",
       "the ${anchor} and i had a moment",
       "i ${actionPast} the ${anchor} like a stranger",
+      // PHASE D3 — distilled from user-blessed corpus pattern
+      // `"i'll reply later" ... it's been 3 weeks` (quoted-promise
+      // → ellipsis → time-jump). Period beat + quote + concrete
+      // anchor + contradiction marker (`later` vs `still pending`).
+      "\"i'll ${action} the ${anchor} later\"... still pending",
+      // PHASE D3 — distilled from corpus pattern `i ghosted my own
+      // to-do list... it deserved it` (deadpan-action + period-beat
+      // verdict). Anchor as receiver + period beat + obviously-
+      // marker.
+      "${actionPast} the ${anchor} on the first try. obviously.",
     ],
     seedHookExemplars: [
       "i ghosted my own to-do list",
@@ -102,6 +112,16 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       "my ${anchor} discipline expired instantly",
       "one ${anchor} and the whole plan ended",
       "i ${actionPast} the ${anchor} in record time",
+      // PHASE D3 — distilled from corpus pattern `"i'm not into him"
+      // ... checks his story again` (verbal denial → contradicting
+      // action). Quote + period beat + repeated anchor + contradiction
+      // marker (`again`).
+      "\"i'm not into the ${anchor}\"... checks the ${anchor} again",
+      // PHASE D3 — distilled from corpus pattern `tried to quit
+      // sugar... ate cake within the hour` (quit-attempt + immediate
+      // failure). Period beat + concrete anchor + contradiction
+      // (`quit` vs `${actionPast} ... within the hour`).
+      "tried to quit the ${anchor}. ${actionPast} it within the hour.",
     ],
     seedHookExemplars: [
       "i checked one thing. ruined my day",
@@ -147,6 +167,16 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // bland-verb / no-marker / very-short template scored 30.
       // Add `itself` for explicit anthropomorph (now ~60).
       "the ${anchor} itself is the entire pattern",
+      // PHASE D3 — distilled from corpus pattern `the panic isn't
+      // the problem. i am.` (truism-reframe with period-beat
+      // self-indictment). Period beat + `itself` anthropomorph +
+      // contradiction (`isn't` vs `i am`).
+      "the ${anchor} itself isn't the problem. i am.",
+      // PHASE D3 — distilled from corpus pattern `breathing isn't
+      // recovery. it's panic with better lighting.` (truism-reframe
+      // shape: X isn't Y, it's Z). Period beat + contradiction
+      // (`isn't` vs `it's`).
+      "${ingForm} the ${anchor} isn't recovery. it's panic.",
     ],
     seedHookExemplars: [
       "this is where my life collapsed",
@@ -185,6 +215,16 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // Y8 verified: "apocalypse" in DRAMATIC_NOUNS, template
       // scores ~45.
       "the ${anchor} is a personal apocalypse now",
+      // PHASE D3 — distilled from corpus pattern `my fridge hired a
+      // lawyer about my snacking` (mundane object → bureaucratic
+      // personification). Anchor as actor + dramatic noun (`lawyer`)
+      // + `itself` anthropomorph credit.
+      "the ${anchor} itself hired a lawyer about my behavior",
+      // PHASE D3 — distilled from corpus pattern `said i'd eat clean
+      // this week. my fridge filed a restraining order.` (verbal
+      // commitment → bureaucratic-absurdity escalation). Period beat
+      // + anchor as actor + dramatic noun (`complaint`).
+      "said i'd ${action} the ${anchor}. it filed a complaint.",
     ],
   seedHookExemplars: [
       "a small task became my villain origin",

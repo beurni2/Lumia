@@ -1,30 +1,38 @@
 /**
- * PHASE D2 — corpus integrity + integration tests.
+ * PHASE D3 — corpus integrity + voice-training-reference wiring.
  *
- * - Corpus-side: every entry's anchor literally appears in its hook
- *   (the construction precondition the cohesive author depends on),
- *   every cluster has the boot-floor coverage (≥8), the deterministic
- *   pickers are stable across calls.
- * - Author-side: when the corpus gate trips and a hook is drawn,
- *   the resulting Idea's `hook` is the verbatim corpus hook AND the
- *   downstream `whatToShow` / `howToFilm` reference the corpus's
- *   anchor (not the recipe's catalog anchor).
+ * D2 RUNTIME-DRAW REVERTED. Corpus is no longer drawn at recipe
+ * time; instead it feeds into:
+ *   (a) the seed-hook bigram set consumed by `validateAntiCopy`'s
+ *       Jaccard 0.85 near-verbatim gate (each corpus hook becomes a
+ *       voice-training reference — generated hooks must stay in
+ *       voice without copying any corpus hook verbatim);
+ *   (b) the seed-hook fingerprint set (kept consistent with the
+ *       bigram set as opaque corpus identity post-Y6).
+ *
+ * Tests cover:
+ *   - corpus integrity (cluster validity, anchor-in-hook, per-cluster
+ *     boot-floor coverage);
+ *   - the D3 wiring — every corpus hook's normalized fingerprint is
+ *     present in `loadSeedHookFingerprints()` AND every corpus hook's
+ *     bigram set is one of the entries returned by the seed-bigram
+ *     loader (verified via Jaccard 1.0 self-match);
+ *   - cliché-allowlist discipline — no corpus hook trips the AI-
+ *     cliché demote axis (the curator must keep the cliché regex
+ *     list disjoint from the user's blessed shapes — same posture
+ *     as the cluster `seedHookExemplars`).
  */
 import { describe, it, expect } from "vitest";
 import {
   USER_BLESSED_HOOK_CORPUS,
   getCorpusHooksByCluster,
-  pickCorpusHook,
-  shouldDrawFromCorpus,
 } from "../userBlessedHookCorpus.js";
 import {
-  authorCohesiveIdea,
-  type CohesiveAuthorResult,
-} from "../cohesiveIdeaAuthor.js";
-
-type CohesiveIdea = Extract<CohesiveAuthorResult, { ok: true }>["idea"];
-import { getVoiceCluster, type VoiceClusterId } from "../voiceClusters.js";
-import { PREMISE_CORES } from "../premiseCoreLibrary.js";
+  loadSeedHookFingerprints,
+  normalizeHookFingerprint,
+} from "../comedyValidation.js";
+import { scoreHookQualityDetailed } from "../hookQuality.js";
+import { type VoiceClusterId } from "../voiceClusters.js";
 
 const CLUSTERS: readonly VoiceClusterId[] = [
   "dry_deadpan",
@@ -60,155 +68,41 @@ describe("USER_BLESSED_HOOK_CORPUS integrity", () => {
   });
 });
 
-describe("pickCorpusHook / shouldDrawFromCorpus determinism", () => {
-  it("pickCorpusHook returns byte-identical output for byte-identical input", () => {
-    const a = pickCorpusHook({ cluster: "dry_deadpan", salt: 42, key: "k" });
-    const b = pickCorpusHook({ cluster: "dry_deadpan", salt: 42, key: "k" });
-    expect(a).toEqual(b);
-    expect(a?.cluster).toBe("dry_deadpan");
-  });
-
-  it("shouldDrawFromCorpus is stable on a given (salt, key)", () => {
-    expect(shouldDrawFromCorpus({ salt: 7, key: "x" })).toBe(
-      shouldDrawFromCorpus({ salt: 7, key: "x" }),
-    );
-  });
-
-  it("shouldDrawFromCorpus fires roughly ~30% across many keys", () => {
-    let trips = 0;
-    const N = 1000;
-    for (let i = 0; i < N; i++) {
-      if (shouldDrawFromCorpus({ salt: 0, key: `k${i}` })) trips++;
+describe("PHASE D3 — corpus → seed-hook wiring", () => {
+  it("every corpus hook's normalized fingerprint is in loadSeedHookFingerprints()", () => {
+    const seeds = loadSeedHookFingerprints();
+    for (const e of USER_BLESSED_HOOK_CORPUS) {
+      const fp = normalizeHookFingerprint(e.hook);
+      expect(
+        seeds.has(fp),
+        `corpus hook missing from seed fingerprint set: '${e.hook}' → fp '${fp}'`,
+      ).toBe(true);
     }
-    // 30% target with ±10% tolerance — generous bounds, the goal is
-    // catching a regression that flipped the gate (always-on /
-    // always-off / inverted), not pinning the precise rate.
-    expect(trips).toBeGreaterThan(N * 0.2);
-    expect(trips).toBeLessThan(N * 0.4);
   });
 });
 
-describe("authorCohesiveIdea — corpus path integration", () => {
-  // Find a (core, voice, salt) where the corpus gate trips so we can
-  // verify the corpus path actually wires through to the Idea. We
-  // search across salts because the gate is deterministic; with the
-  // ~30% rate the first salt that hits is small.
-  function findCorpusHitInputs(): {
-    salt: number;
-    coreId: string;
-    voiceId: VoiceClusterId;
-    catalogAnchor: string;
-  } | null {
-    const core = PREMISE_CORES[0]!; // any core works for the gate
-    const voiceId: VoiceClusterId = "dry_deadpan";
-    const catalogAnchor = "alarm";
-    for (let salt = 0; salt < 200; salt++) {
-      const key = `${core.id}|${catalogAnchor}|${voiceId}`;
-      if (shouldDrawFromCorpus({ salt, key })) {
-        return { salt, coreId: core.id, voiceId, catalogAnchor };
-      }
-    }
-    return null;
-  }
-
-  it("a corpus-gate-tripping recipe ships an Idea whose hook is the verbatim corpus hook AND the corpus anchor propagates to scene + caption + script", () => {
-    // Search across the (core, voice, salt) space for an input that
-    // (a) trips the corpus gate AND (b) yields ok=true. We MUST find
-    // an ok corpus-path result to actually verify wiring through to
-    // the rendered Idea — settling for "any non-construction_failed
-    // outcome" leaves a regression hole (architect feedback D2).
-    const voiceId: VoiceClusterId = "dry_deadpan";
-    const voice = getVoiceCluster(voiceId);
-    const catalogAnchor = "alarm";
-    let okCorpusResult:
-      | {
-          salt: number;
-          coreId: string;
-          corpusAnchor: string;
-          corpusHook: string;
-          idea: CohesiveIdea;
-        }
-      | null = null;
-    outer: for (const core of PREMISE_CORES.slice(0, 12)) {
-      for (let salt = 0; salt < 400; salt++) {
-        const key = `${core.id}|${catalogAnchor}|${voiceId}`;
-        if (!shouldDrawFromCorpus({ salt, key })) continue;
-        const corpusHit = pickCorpusHook({ cluster: voiceId, salt, key });
-        if (!corpusHit) continue;
-        const r = authorCohesiveIdea({
-          core,
-          domain: "sleep",
-          anchor: catalogAnchor,
-          action: "abandon",
-          voice,
-          regenerateSalt: salt,
-          seedFingerprints: new Set<string>(),
-        });
-        if (r.ok) {
-          okCorpusResult = {
-            salt,
-            coreId: core.id,
-            corpusAnchor: corpusHit.anchor,
-            corpusHook: corpusHit.hook,
-            idea: r.idea,
-          };
-          break outer;
-        }
+describe("PHASE D3 — corpus respects AI-cliché allowlist discipline", () => {
+  // The Phase D1 AI-cliché demote (negative addend on
+  // `scoreHookQualityDetailed.aiCliche`) targets generic LLM tells
+  // (`in this economy`, `not gonna lie`, etc.). The user's blessed
+  // corpus is hand-authored voice — by curator policy it must NOT
+  // intersect the cliché regex list. This test enforces the policy:
+  // a future cliché-list addition that accidentally swallows a
+  // corpus hook fails CI before shipping a regression that demotes
+  // the user's own voice.
+  it("no corpus hook's hookQuality breakdown has a non-zero aiCliche penalty", () => {
+    const offenders: { hook: string; aiCliche: number }[] = [];
+    for (const e of USER_BLESSED_HOOK_CORPUS) {
+      const breakdown = scoreHookQualityDetailed(e.hook, "self_betrayal");
+      if (breakdown.aiCliche !== 0) {
+        offenders.push({ hook: e.hook, aiCliche: breakdown.aiCliche });
       }
     }
     expect(
-      okCorpusResult,
-      "no (core, salt) in search space produced an ok corpus-path Idea — wiring may be broken",
-    ).not.toBeNull();
-    const { corpusAnchor, corpusHook, idea } = okCorpusResult!;
-    const shipped = idea.hook.toLowerCase();
-    // Hook is the verbatim corpus hook (modulo capWords truncation).
-    const corpusPrefix = corpusHook
-      .toLowerCase()
-      .split(/\s+/)
-      .slice(0, voice.lengthTargetWords[1])
-      .join(" ");
-    expect(shipped).toBe(corpusPrefix);
-    // Anchor override propagates to ALL anchor-bearing scene + script fields.
-    const lc = corpusAnchor.toLowerCase();
-    expect(idea.whatToShow.toLowerCase()).toContain(lc);
-    expect(idea.howToFilm.toLowerCase()).toContain(lc);
-    expect(idea.hook.toLowerCase()).toContain(lc);
-  });
-
-  it("a NON-corpus-gate recipe still ships via the template path (no behavior change)", () => {
-    const core = PREMISE_CORES[0]!;
-    const voice = getVoiceCluster("dry_deadpan");
-    // Find a salt that does NOT trip the gate.
-    let salt = 0;
-    for (; salt < 200; salt++) {
-      if (
-        !shouldDrawFromCorpus({
-          salt,
-          key: `${core.id}|alarm|dry_deadpan`,
-        })
-      ) {
-        break;
-      }
-    }
-    const result = authorCohesiveIdea({
-      core,
-      domain: "sleep",
-      anchor: "alarm",
-      action: "abandon",
-      voice,
-      regenerateSalt: salt,
-      seedFingerprints: new Set<string>(),
-    });
-    if (result.ok) {
-      // Template path: the hook contains the catalog anchor (the
-      // template substitutes ${anchor} = "alarm").
-      expect(result.idea.hook.toLowerCase()).toContain("alarm");
-    } else {
-      // Template path may still hit comedy/antiCopy; the regression
-      // we guard against here is `construction_failed` from the
-      // anchor-substitution path silently breaking.
-      expect(result.reason).not.toBe("construction_failed");
-    }
+      offenders,
+      `cliché-list discipline violation — these blessed corpus hooks now trip an AI-cliché regex:\n${offenders
+        .map((o) => `  ${o.aiCliche.toFixed(0)}  "${o.hook}"`)
+        .join("\n")}`,
+    ).toEqual([]);
   });
 });

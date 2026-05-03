@@ -1,38 +1,47 @@
 /**
- * PHASE D2 — USER-BLESSED HOOK CORPUS
+ * PHASE D3 — USER-BLESSED HOOK CORPUS (voice-training reference)
  *
  * Hand-authored hook pool drawn from the user's curated 175-hook
  * seed corpus (attached_assets/1-just_5_more_minutes_in_bed... and
  * 1-my_no_more_soda_challenge...). Each entry is `{ hook, cluster,
  * anchor }`:
  *   - hook    : the verbatim authored hook string (lowercased,
- *               punctuation preserved). NEVER substituted — this
- *               is the source of truth.
+ *               punctuation preserved).
  *   - cluster : voice cluster the hook belongs to (one of the four
- *               in `voiceClusters.ts`). Determines which voice's
- *               cohesive-author pass can draw it.
+ *               in `voiceClusters.ts`).
  *   - anchor  : the single-token noun the hook revolves around
  *               (e.g. "bed", "phone", "list", "laundry", "boys").
  *               MUST appear literally in the hook (lowercase
  *               substring) — boot-time assert enforces.
  *
- * Used by `cohesiveIdeaAuthor.ts` step 1: when the per-recipe
- * corpus gate trips (~30% deterministic on salt), the author tries
- * to draw a corpus hook for the recipe's voice cluster. If a draw
- * succeeds, the corpus hook becomes the recipe's hook AND the
- * corpus anchor overrides the recipe's catalog anchor. All
- * downstream fields (whatToShow / howToFilm / shotPlan / caption /
- * whyItWorks) re-render around the corpus anchor, so the L491-518
- * construction precondition (hook ↔ scene anchor token equality)
- * still passes by construction.
+ * USAGE (post-D3 — D2 runtime corpus-draw branch reverted):
  *
- * Corpus anchors are NOT required to be in `coreDomainAnchorCatalog`
- * — the user's seed hooks are written about colloquial nouns ("bed",
- * "ex", "boundaries", "chips", "story") that the catalog's curated
- * 60-anchor object vocabulary does not cover. The corpus is a
- * parallel pool, not an extension of the catalog. Recipe rotation
- * (anchor diversity, fingerprint dedup) still flows through the
- * catalog; corpus hits inject HOOK diversity on top.
+ * The corpus is a TRAINING / VOICE-REFERENCE dataset, not a runtime
+ * draw pool. No corpus hook is ever shipped verbatim as the hook
+ * field of a generated Idea. Two consumption sites:
+ *
+ *   1. `comedyValidation.loadSeedHookBigrams()` folds every corpus
+ *      hook into the seed-bigram set so `validateAntiCopy`'s
+ *      Jaccard 0.85 near-verbatim gate treats each corpus hook as
+ *      a voice-training reference (generated hooks landing within
+ *      Jaccard 0.85 of any corpus hook are rejected as near-copies
+ *      — same discipline already applied to PREMISE_STYLE_DEFS
+ *      example hooks). This is the primary wiring.
+ *
+ *   2. `voiceClusters.ts hookTemplates` — distilled abstracted
+ *      templates per cluster (each marked `// PHASE D3 — distilled
+ *      from corpus pattern ...`) capture recurring corpus shapes
+ *      (`"quoted promise" + ellipsis + time-jump`, `"verbal denial"
+ *      + contradicting action`, `truism-reframe`, `mundane object
+ *      + bureaucratic-personification`) with placeholder substitution
+ *      so the generator's recipe loop produces fresh-anchor
+ *      variations of the user's voice without copying it.
+ *
+ * The cliché-allowlist discipline (D1) extends to this corpus by
+ * curator policy: no `aiClicheScore` regex may match any corpus
+ * hook. Enforced by a unit test (see __tests__/), not a boot
+ * assert (the cliché list lives in `hookQuality.ts` whose imports
+ * we don't want to widen here).
  *
  * No Claude. No DB. Pure / frozen at module load. Same discipline
  * as `voiceClusters.ts` and `coreDomainAnchorCatalog.ts`.
@@ -192,14 +201,14 @@ const RAW_CORPUS: readonly CorpusHookEntry[] = [
   { hook: 'it\'s okay to reply "k" and ruin their whole day', cluster: "dry_deadpan", anchor: "reply" },
   { hook: 'it\'s fine to eat cereal for dinner again', cluster: "dry_deadpan", anchor: "cereal" },
   { hook: 'you\'re allowed to doomscroll instead of journaling', cluster: "dry_deadpan", anchor: "doomscroll" },
-  { hook: 'i tried the "no phone in bed" rule... my brain filed a missing persons report', cluster: "overdramatic_reframe", anchor: "phone" },
+  { hook: 'i tried the "no phone in bed" rule... my brain hired a lawyer about it', cluster: "overdramatic_reframe", anchor: "phone" },
   { hook: 'said i\'d "eat clean this week"... my fridge just filed a restraining order', cluster: "overdramatic_reframe", anchor: "fridge" },
   { hook: 'i opened the family group chat... now i need therapy and a new identity', cluster: "overdramatic_reframe", anchor: "chat" },
   { hook: 'tried manifesting my dream life... the universe sent me a hoodie instead', cluster: "dry_deadpan", anchor: "manifesting" },
   { hook: 'i told my boss "i\'m a quick learner"... 6 months later i\'m still pretending', cluster: "chaotic_confession", anchor: "boss" },
   { hook: 'opened my ex\'s story... healing timeline just got deleted', cluster: "overdramatic_reframe", anchor: "story" },
   { hook: 'said i\'d "touch grass" today... my houseplants just laughed at me', cluster: "overdramatic_reframe", anchor: "grass" },
-  { hook: 'i tried the "quiet quitting" trend at home... my laundry filed for divorce', cluster: "overdramatic_reframe", anchor: "laundry" },
+  { hook: 'i tried the "quiet quitting" trend at home... my laundry served me with paperwork', cluster: "overdramatic_reframe", anchor: "laundry" },
   { hook: 'said i\'d cook at home this week... my uber eats driver now knows me by name', cluster: "chaotic_confession", anchor: "cook" },
   { hook: 'checked my step count... my apple watch is now filing for emotional damages', cluster: "overdramatic_reframe", anchor: "step" },
   { hook: 'opened my camera roll for memories... immediately needed emergency therapy', cluster: "overdramatic_reframe", anchor: "camera" },
@@ -298,41 +307,8 @@ export function getCorpusHooksByCluster(
   return _byClusterIndex.get(cluster) ?? [];
 }
 
-function djb2(s: string): number {
-  let h = 5381 | 0;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  }
-  return h >>> 0;
-}
-
-/**
- * Deterministic pick from the corpus pool for a given cluster.
- *
- * Returns `undefined` when the pool is empty (defense in depth —
- * boot-time assert keeps every cluster ≥8 so this should never
- * fire in practice).
- */
-export function pickCorpusHook(args: {
-  cluster: VoiceClusterId;
-  salt: number;
-  key: string;
-}): CorpusHookEntry | undefined {
-  const pool = getCorpusHooksByCluster(args.cluster);
-  if (pool.length === 0) return undefined;
-  const idx = djb2(`${args.salt}|${args.key}|corpus_pick`) % pool.length;
-  return pool[idx];
-}
-
-/**
- * Deterministic gate: should the cohesive author attempt a corpus
- * draw for this recipe? `~30%` true, salted on the recipe key so
- * regenerates rotate corpus vs template paths instead of pinning
- * one or the other for a given (core, anchor).
- */
-export function shouldDrawFromCorpus(args: {
-  salt: number;
-  key: string;
-}): boolean {
-  return djb2(`${args.salt}|${args.key}|corpus_gate`) % 100 < 30;
-}
+// PHASE D3 — `pickCorpusHook` and `shouldDrawFromCorpus` (the D2
+// runtime-draw helpers) intentionally removed. The corpus is now a
+// voice-training reference fed into the seed-bigram set + the
+// distilled `hookTemplates` per cluster, not a runtime draw pool.
+// See module-level JSDoc above for the full consumption surface.

@@ -33,6 +33,7 @@ import {
   type PremiseStyleId,
 } from "./patternIdeator.js";
 import type { Idea } from "./ideaGen.js";
+import { USER_BLESSED_HOOK_CORPUS } from "./userBlessedHookCorpus.js";
 
 // ---------------------------------------------------------------- //
 // Reasons enum                                                      //
@@ -260,6 +261,16 @@ export function loadSeedHookFingerprints(): ReadonlySet<string> {
       }
     }
   }
+  // PHASE D3 — fold the user's 159-hook blessed corpus into the seed
+  // fingerprint set so the post-Y6 Jaccard near-verbatim gate treats
+  // each corpus hook as a voice-training reference (generated hooks
+  // landing within Jaccard 0.85 are rejected as near-copies, which
+  // is the same discipline already applied to PREMISE_STYLE_DEFS
+  // examples). Pure additive — fingerprint set is consumed
+  // downstream as opaque corpus identity, never as an allowlist.
+  for (const e of USER_BLESSED_HOOK_CORPUS) {
+    out.add(normalizeHookFingerprint(e.hook));
+  }
   _seedFingerprintsCache = out;
   return out;
 }
@@ -324,6 +335,20 @@ let _seedBigramsCache: readonly SeedFingerprint[] | null = null;
 function loadSeedHookBigrams(): readonly SeedFingerprint[] {
   if (_seedBigramsCache) return _seedBigramsCache;
   const out: SeedFingerprint[] = [];
+  // PHASE D3 — fold USER_BLESSED_HOOK_CORPUS into the seed-bigram
+  // set first so the Jaccard 0.85 near-verbatim gate (in
+  // validateAntiCopy below) starts treating the user's 159 blessed
+  // hooks as voice-training references. Same shape and threshold as
+  // PREMISE_STYLE_DEFS examples — generated hooks must stay in
+  // voice (low Jaccard) but can't ship near-copies (high Jaccard).
+  for (const e of USER_BLESSED_HOOK_CORPUS) {
+    const tokens = jaccardTokens(e.hook);
+    out.push({
+      unigrams: new Set(tokens),
+      bigrams: bigramsOf(tokens),
+      tokenCount: tokens.length,
+    });
+  }
   for (const id of Object.keys(PREMISE_STYLE_DEFS) as PremiseStyleId[]) {
     const def = PREMISE_STYLE_DEFS[id];
     const execs = (def as { executions?: ReadonlyArray<{ example?: string }> })

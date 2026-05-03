@@ -44,10 +44,6 @@ import type { VoiceCluster } from "./voiceClusters.js";
 import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
 import { FAMILY_ACTIONS } from "./coreDomainAnchorCatalog.js";
 import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
-import {
-  pickCorpusHook,
-  shouldDrawFromCorpus,
-} from "./userBlessedHookCorpus.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -304,33 +300,7 @@ export function authorCohesiveIdea(
     actionBare === famAction.bare ? famAction.past : pastTense(actionBare);
   const actionIng =
     actionBare === famAction.bare ? famAction.ing : ingForm(actionBare);
-
-  // ---- 1. Hook --------------------------------------------------- //
-  // PHASE D2 — corpus-draw gate. ~30% of recipes (deterministic on
-  // `${core.id}|${anchor}|${voice.id}`) attempt a draw from the
-  // user's blessed 159-hook corpus first. When the draw succeeds
-  // the corpus hook becomes the recipe's hook AND the corpus's
-  // authored anchor noun OVERRIDES the recipe's catalog anchor —
-  // all downstream fields (whatToShow / howToFilm / shotPlan /
-  // caption / whyItWorks) re-render around the corpus anchor so
-  // the L513-520 construction precondition (hook ↔ scene anchor
-  // token equality) still holds by construction. Falls through to
-  // the existing template-substitution path on miss (gate fails OR
-  // corpus pool empty for the cluster).
-  const corpusKey = `${core.id}|${anchor}|${voice.id}`;
-  const corpusHit = shouldDrawFromCorpus({
-    salt: regenerateSalt,
-    key: corpusKey,
-  })
-    ? pickCorpusHook({
-        cluster: voice.id,
-        salt: regenerateSalt,
-        key: corpusKey,
-      })
-    : undefined;
-
-  const effectiveAnchor = corpusHit ? corpusHit.anchor : anchor;
-  const anchorLc = effectiveAnchor.toLowerCase();
+  const anchorLc = anchor.toLowerCase();
 
   const subs: SubVars = {
     anchor: anchorLc,
@@ -341,23 +311,24 @@ export function authorCohesiveIdea(
     contradiction: `${actionPast} the ${anchorLc}`,
   };
 
-  let hook: string;
-  if (corpusHit) {
-    // Corpus path: use the authored hook verbatim. NO substitution
-    // (the corpus hook has no `${...}` placeholders by design).
-    // Cap to cluster's max word count so the hook field's downstream
-    // schema/length checks behave identically to the template path.
-    hook = capWords(corpusHit.hook, voice.lengthTargetWords[1]);
-  } else {
-    const tplIdx = pickIndex(
-      regenerateSalt,
-      `${core.id}|${anchor}|${voice.id}|tpl`,
-      voice.hookTemplates.length,
-    );
-    const tpl = voice.hookTemplates[tplIdx]!;
-    const hookRaw = substitute(tpl, subs);
-    hook = capWords(hookRaw, voice.lengthTargetWords[1]);
-  }
+  // ---- 1. Hook --------------------------------------------------- //
+  // PHASE D3 — pure template-substitution path (D2 corpus-draw
+  // branch reverted). The user's 159-hook blessed corpus is now a
+  // VOICE TRAINING REFERENCE only — fed into the seed-bigram set
+  // consumed by `validateAntiCopy`'s Jaccard near-verbatim gate (so
+  // generated hooks must stay in the corpus's voice without copying
+  // it verbatim) and into the per-cluster `seedHookExemplars` pool
+  // expansion in `voiceClusters.ts`. No corpus hook is ever shipped
+  // as the rendered idea's hook field.
+  const tplIdx = pickIndex(
+    regenerateSalt,
+    `${core.id}|${anchor}|${voice.id}|tpl`,
+    voice.hookTemplates.length,
+  );
+  const tpl = voice.hookTemplates[tplIdx]!;
+  const hookRaw = substitute(tpl, subs);
+  const hookCapped = capWords(hookRaw, voice.lengthTargetWords[1]);
+  const hook = hookCapped;
   const hookLower = hook.toLowerCase();
 
   // ---- 2. premise ------------------------------------------------ //
