@@ -49,6 +49,8 @@ import { type Idea } from "./ideaGen.js";
 import {
   loadSeedHookFingerprints,
   type ComedyRejectionReason,
+  type AntiCopyMatch,
+  type AntiCopySeedSource,
 } from "./comedyValidation.js";
 import type { PremiseCore } from "./premiseCoreLibrary.js";
 import type { CandidateMeta } from "./ideaScorer.js";
@@ -185,6 +187,31 @@ export type CoreCandidateAttempt = {
   kept: boolean;
   attempts: number;
   lastReason?: CoreCandidateRejectionReason;
+  /** PHASE D4 — when `lastReason === "copied_seed_hook"`, the
+   *  reject-source metadata for the LAST recipe that tripped the
+   *  gate (which sub-pool the matched seed came from + its hash +
+   *  the Jaccard score + which gate fired). Lets the QA driver
+   *  introspect specific reject events without a separate log
+   *  scan. Optional — every other rejection reason omits it. */
+  antiCopyMatch?: AntiCopyMatch;
+};
+
+/** PHASE D4 — per-batch aggregate of `copied_seed_hook` rejections
+ *  broken down by which reference pool matched. Closes the D3 honest
+ *  gap (post-D3 the corpus + style_defs combined raised the seed
+ *  pool from ~200 to ~359; without this breakdown we couldn't tell
+ *  whether the corpus expansion over-rejects in practice). Pure
+ *  additive — consumers that don't read it ignore the field. */
+export type AntiCopyRejectsTelemetry = {
+  /** Per-source counters. Always full-shape so dashboards can
+   *  read `.corpus` / `.style_defs` without `??`. */
+  bySource: Record<AntiCopySeedSource, number>;
+  /** Bounded sample of individual reject events (capped at
+   *  `ANTI_COPY_SAMPLE_CAP` per batch) so the QA driver can see
+   *  WHICH specific seeds are doing the rejecting + at what
+   *  Jaccard. Order is insertion order (recipe iteration order,
+   *  itself salt-deterministic). */
+  samples: AntiCopyMatch[];
 };
 
 export type GenerateCoreCandidatesResult = {
@@ -204,6 +231,13 @@ export type GenerateCoreCandidatesResult = {
       | "scenario_repeat",
       number
     >;
+    /** PHASE D4 — additive `copied_seed_hook` reject-source
+     *  breakdown. The reason counter on `rejectionReasons.copied_seed_hook`
+     *  always equals `bySource.corpus + bySource.style_defs` for
+     *  this batch (invariant — every `copied_seed_hook` rejection
+     *  flows through the detailed validator and contributes to
+     *  exactly one source bucket). */
+    antiCopyRejects: AntiCopyRejectsTelemetry;
     perCoreAttempts: CoreCandidateAttempt[];
   };
 };
@@ -496,6 +530,13 @@ const EMPTY_REASONS: Record<
  *  (no Claude / no DB). */
 const RECIPES_PER_CORE_CAP = 8;
 
+/** PHASE D4 — cap on `antiCopyRejects.samples` size per batch.
+ *  Bounded so the structured-log payload stays small even on
+ *  pathologically reject-heavy batches; aggregate counts on
+ *  `bySource` are unbounded and remain accurate. 20 ≈ 2×
+ *  RECIPES_PER_CORE_CAP × per-batch-core count headroom. */
+const ANTI_COPY_SAMPLE_CAP = 20;
+
 export function generateCoreCandidates(
   input: GenerateCoreCandidatesInput,
 ): GenerateCoreCandidatesResult {
@@ -529,6 +570,14 @@ export function generateCoreCandidates(
     | "scenario_repeat",
     number
   > = { ...EMPTY_REASONS };
+  // PHASE D4 — per-batch reject-source roll-up. Mutated whenever
+  // the cohesive author returns a `copied_seed_hook` rejection
+  // carrying an `antiCopyMatch`. `samples` is capped to keep the
+  // log payload bounded across very-deep iterator runs.
+  const antiCopyRejects: AntiCopyRejectsTelemetry = {
+    bySource: { corpus: 0, style_defs: 0 },
+    samples: [],
+  };
   let generatedCount = 0;
   // PHASE Y7 — in-batch anchor tracker. Mutated after each successful
   // candidate so the next core's recipe queue demotes anchors already
@@ -576,6 +625,10 @@ export function generateCoreCandidates(
 
     let attempts = 0;
     let lastReason: CoreCandidateRejectionReason | undefined;
+    // PHASE D4 — last `copied_seed_hook` reject-source for this
+    // core. Cleared on any successful pick (matches the existing
+    // `lastReason = undefined` discipline below).
+    let lastAntiCopyMatch: AntiCopyMatch | undefined;
     // PHASE Y8 — the recipe iterator now COLLECTS up to
     // RECIPES_PER_CORE_CAP passing candidates per core (Y6/Y7
     // shipped the FIRST passing one) and downstream picks the
@@ -627,6 +680,19 @@ export function generateCoreCandidates(
         const r = result.reason as CohesiveAuthorRejectionReason;
         reasons[r] = (reasons[r] ?? 0) + 1;
         lastReason = r;
+        // PHASE D4 — when the cohesive author surfaces
+        // `antiCopyMatch` (only on `copied_seed_hook` rejections),
+        // accumulate per-source counts AND attach the match to the
+        // per-attempt entry so the QA driver can introspect the
+        // last reject event for this core. Sample list capped at
+        // ANTI_COPY_SAMPLE_CAP per batch.
+        if (result.antiCopyMatch) {
+          antiCopyRejects.bySource[result.antiCopyMatch.source] += 1;
+          if (antiCopyRejects.samples.length < ANTI_COPY_SAMPLE_CAP) {
+            antiCopyRejects.samples.push(result.antiCopyMatch);
+          }
+          lastAntiCopyMatch = result.antiCopyMatch;
+        }
         continue;
       }
       // PHASE Y8 — scenario fingerprint HARD-REJECT. Gate fires when
@@ -687,11 +753,20 @@ export function generateCoreCandidates(
       kept = true;
       // Clear lastReason — a passing recipe was found (any earlier
       // rejections were intermediate, not the final disposition for
-      // this core).
+      // this core). PHASE D4 — clear lastAntiCopyMatch on the same
+      // discipline so the per-attempt telemetry doesn't carry a
+      // stale anti-copy match from an intermediate rejection.
       lastReason = undefined;
+      lastAntiCopyMatch = undefined;
     }
 
-    perCoreAttempts.push({ coreId: core.id, kept, attempts, lastReason });
+    perCoreAttempts.push({
+      coreId: core.id,
+      kept,
+      attempts,
+      lastReason,
+      ...(lastAntiCopyMatch ? { antiCopyMatch: lastAntiCopyMatch } : {}),
+    });
   }
 
   return {
@@ -700,6 +775,7 @@ export function generateCoreCandidates(
       generatedCount,
       keptCount: candidates.length,
       rejectionReasons: reasons,
+      antiCopyRejects,
       perCoreAttempts,
     },
   };

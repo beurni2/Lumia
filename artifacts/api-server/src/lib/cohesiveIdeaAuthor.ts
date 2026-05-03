@@ -31,7 +31,8 @@
 import { ideaSchema, type Idea } from "./ideaGen.js";
 import {
   validateComedy,
-  validateAntiCopy,
+  validateAntiCopyDetailed,
+  type AntiCopyMatch,
   type ComedyRejectionReason,
 } from "./comedyValidation.js";
 import {
@@ -81,6 +82,15 @@ export type CohesiveAuthorResult =
   | {
       ok: false;
       reason: CohesiveAuthorRejectionReason;
+      /** PHASE D4 — reject-source telemetry. Only populated when
+       *  `reason === "copied_seed_hook"`. Identifies which seed
+       *  reference pool (`corpus` vs `style_defs`) the matched
+       *  seed came from, plus its stable hash + the Jaccard score
+       *  + which gate fired. Pure additive overlay — every other
+       *  rejection reason omits it. Consumed by
+       *  `coreCandidateGenerator`'s recipe loop to roll up per-
+       *  source counts on `stats.antiCopyRejects`. */
+      antiCopyMatch?: AntiCopyMatch;
     };
 
 // ---------------------------------------------------------------- //
@@ -549,13 +559,26 @@ export function authorCohesiveIdea(
   });
   if (comedyReason) return { ok: false, reason: comedyReason };
 
-  const copyReason = validateAntiCopy(
+  // PHASE D4 — call the detailed variant so we can propagate
+  // `antiCopyMatch` (source pool + seed hash + Jaccard + gate) up
+  // to the recipe loop's per-source telemetry roll-up. Pure
+  // additive — when the gate doesn't fire (`reason === null`) the
+  // call shape is byte-identical to the back-compat path.
+  const copyResult = validateAntiCopyDetailed(
     parsed.data,
     { source: meta.source, usedBigPremise: true },
     seedFingerprints,
     input.recentPremises,
   );
-  if (copyReason) return { ok: false, reason: copyReason };
+  if (copyResult.reason) {
+    return {
+      ok: false,
+      reason: copyResult.reason,
+      ...(copyResult.antiCopyMatch
+        ? { antiCopyMatch: copyResult.antiCopyMatch }
+        : {}),
+    };
+  }
 
   // ---- 16. Scenario fingerprint --------------------------------- //
   const scenarioFingerprint = computeScenarioFingerprint({

@@ -325,10 +325,57 @@ function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
   return inter / union;
 }
 
+/** PHASE D4 — opaque per-seed identity tag used by the reject-source
+ *  telemetry overlay. Kept short (8 hex chars = 32 bits) because it's
+ *  log/metric noise, not a cryptographic identifier — collisions are
+ *  acceptable for telemetry aggregation. Pure deterministic djb2. */
+function djb2Hex8(s: string): string {
+  let h = 5381 | 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  }
+  return (h >>> 0).toString(16).padStart(8, "0").slice(0, 8);
+}
+
+/** PHASE D4 — which reference pool a near-verbatim Jaccard match was
+ *  drawn from. `corpus` = `USER_BLESSED_HOOK_CORPUS` (D3, ~159 hooks);
+ *  `style_defs` = `PREMISE_STYLE_DEFS[*].executions[*].example`
+ *  (~200 hooks). Surfaced on the validateAntiCopy reject metadata so
+ *  downstream telemetry can break `copied_seed_hook` rejections down
+ *  by which sub-pool over-rejects in practice — closes the D3 honest
+ *  gap. */
+export type AntiCopySeedSource = "corpus" | "style_defs";
+
+/** PHASE D4 — full reject-source metadata for a `copied_seed_hook`
+ *  rejection. Pure additive overlay — only attached to the reject
+ *  result when the gate fires. */
+export type AntiCopyMatch = {
+  /** Which reference pool the matched seed came from. */
+  source: AntiCopySeedSource;
+  /** Stable 8-char djb2 hex of the matched seed hook. Used to
+   *  identify which specific seed is doing the rejecting without
+   *  logging the full hook text (telemetry hygiene). */
+  hash: string;
+  /** Jaccard similarity in [0, 1] at the time of the match. ≥
+   *  `SEED_HOOK_JACCARD_REJECT` (0.85) for the bigram gate, or ≥
+   *  `SHORT_HOOK_UNIGRAM_REJECT` (0.6) for the short-hook unigram
+   *  fallback. */
+  jaccard: number;
+  /** Which of the two gates fired: the long-hook bigram gate or
+   *  the short-hook unigram fallback. */
+  gate: "bigram" | "unigram";
+};
+
 type SeedFingerprint = {
   unigrams: Set<string>;
   bigrams: Set<string>;
   tokenCount: number;
+  /** PHASE D4 — reject-source telemetry tag. Cheap to carry around
+   *  on every seed entry (bounded by the ~359 entry pool size); the
+   *  `validateAntiCopyDetailed` path attaches these to its
+   *  `AntiCopyMatch` result on a hit. */
+  source: AntiCopySeedSource;
+  hash: string;
 };
 
 let _seedBigramsCache: readonly SeedFingerprint[] | null = null;
@@ -341,12 +388,19 @@ function loadSeedHookBigrams(): readonly SeedFingerprint[] {
   // hooks as voice-training references. Same shape and threshold as
   // PREMISE_STYLE_DEFS examples — generated hooks must stay in
   // voice (low Jaccard) but can't ship near-copies (high Jaccard).
+  // PHASE D4 — each entry is now tagged with its source pool +
+  // a stable djb2 hash so reject metadata can identify which
+  // sub-pool is doing the rejecting. Iteration order preserved
+  // (corpus first, then style_defs) so per-source counts are
+  // stable across calls.
   for (const e of USER_BLESSED_HOOK_CORPUS) {
     const tokens = jaccardTokens(e.hook);
     out.push({
       unigrams: new Set(tokens),
       bigrams: bigramsOf(tokens),
       tokenCount: tokens.length,
+      source: "corpus",
+      hash: djb2Hex8(e.hook),
     });
   }
   for (const id of Object.keys(PREMISE_STYLE_DEFS) as PremiseStyleId[]) {
@@ -361,6 +415,8 @@ function loadSeedHookBigrams(): readonly SeedFingerprint[] {
           unigrams: new Set(tokens),
           bigrams: bigramsOf(tokens),
           tokenCount: tokens.length,
+          source: "style_defs",
+          hash: djb2Hex8(ex.example),
         });
       }
     }
@@ -540,7 +596,27 @@ export function validateComedy(
  * Premise-dup check (`near_duplicate_premise`) is unchanged — that
  * channel handles cross-batch recency, not seed-corpus similarity.
  */
-export function validateAntiCopy(
+/** PHASE D4 — full reject result with optional reject-source
+ *  metadata. Returned from `validateAntiCopyDetailed` so callers
+ *  that want telemetry can read which sub-pool matched + the
+ *  Jaccard score + a stable seed identity hash, without changing
+ *  the legacy `validateAntiCopy` shape (which still returns just
+ *  the reason for back-compat with the ideaScorer call site +
+ *  the existing test surface). `antiCopyMatch` is ONLY populated
+ *  when `reason === "copied_seed_hook"` — `near_duplicate_premise`
+ *  and the null pass-through never carry a match. */
+export type ValidateAntiCopyResult = {
+  reason: ComedyRejectionReason | null;
+  antiCopyMatch?: AntiCopyMatch;
+};
+
+/** PHASE D4 — internal detailed implementation. Returns the
+ *  rejection reason AND, on a `copied_seed_hook` hit, the matched
+ *  seed's source / hash / Jaccard / gate. The legacy
+ *  `validateAntiCopy` is now a thin wrapper that drops the match
+ *  metadata for back-compat. New telemetry-aware call sites should
+ *  use this variant instead. */
+export function validateAntiCopyDetailed(
   idea: Idea,
   meta: ValidateComedyMeta,
   // Kept for backwards-compat call-site shape — Y6 reads the
@@ -548,7 +624,7 @@ export function validateAntiCopy(
   // corpus-identity tag (see `loadSeedHookFingerprints` JSDoc).
   _seedFingerprints: ReadonlySet<string>,
   recentPremises?: ReadonlySet<string>,
-): ComedyRejectionReason | null {
+): ValidateAntiCopyResult {
   // Pattern-variation candidates ship the curated examples on
   // purpose — exempt from the copy check.
   if (meta.source !== "pattern_variation") {
@@ -563,12 +639,19 @@ export function validateAntiCopy(
         // "i ghosted my own todo list" once hyphen-collapse in
         // jaccardTokens normalizes "to-do" → "todo" — both
         // tokenize to the same bigram set and Jaccard = 1.0).
-        if (
-          seed.bigrams.size > 0 &&
-          candBigrams.size > 0 &&
-          jaccard(candBigrams, seed.bigrams) >= SEED_HOOK_JACCARD_REJECT
-        ) {
-          return "copied_seed_hook";
+        if (seed.bigrams.size > 0 && candBigrams.size > 0) {
+          const j = jaccard(candBigrams, seed.bigrams);
+          if (j >= SEED_HOOK_JACCARD_REJECT) {
+            return {
+              reason: "copied_seed_hook",
+              antiCopyMatch: {
+                source: seed.source,
+                hash: seed.hash,
+                jaccard: j,
+                gate: "bigram",
+              },
+            };
+          }
         }
         // Length-aware fallback: when EITHER side is short
         // (≤ SHORT_HOOK_TOKEN_THRESHOLD tokens) the bigram set
@@ -580,10 +663,20 @@ export function validateAntiCopy(
           (candTokens.length <= SHORT_HOOK_TOKEN_THRESHOLD ||
             seed.tokenCount <= SHORT_HOOK_TOKEN_THRESHOLD) &&
           seed.unigrams.size > 0 &&
-          candUnigrams.size > 0 &&
-          jaccard(candUnigrams, seed.unigrams) >= SHORT_HOOK_UNIGRAM_REJECT
+          candUnigrams.size > 0
         ) {
-          return "copied_seed_hook";
+          const j = jaccard(candUnigrams, seed.unigrams);
+          if (j >= SHORT_HOOK_UNIGRAM_REJECT) {
+            return {
+              reason: "copied_seed_hook",
+              antiCopyMatch: {
+                source: seed.source,
+                hash: seed.hash,
+                jaccard: j,
+                gate: "unigram",
+              },
+            };
+          }
         }
       }
     }
@@ -594,10 +687,23 @@ export function validateAntiCopy(
   if (idea.premise && recentPremises && recentPremises.size > 0) {
     const pfp = normalizeHookFingerprint(idea.premise);
     if (pfp.length > 0 && recentPremises.has(pfp)) {
-      return "near_duplicate_premise";
+      return { reason: "near_duplicate_premise" };
     }
   }
-  return null;
+  return { reason: null };
+}
+
+/** Back-compat wrapper. Drops the D4 reject-source metadata and
+ *  returns just the reason (or null on pass). New call sites that
+ *  want telemetry should use `validateAntiCopyDetailed` directly. */
+export function validateAntiCopy(
+  idea: Idea,
+  meta: ValidateComedyMeta,
+  seedFingerprints: ReadonlySet<string>,
+  recentPremises?: ReadonlySet<string>,
+): ComedyRejectionReason | null {
+  return validateAntiCopyDetailed(idea, meta, seedFingerprints, recentPremises)
+    .reason;
 }
 
 // ---------------------------------------------------------------- //

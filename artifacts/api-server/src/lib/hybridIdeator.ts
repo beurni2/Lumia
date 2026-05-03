@@ -3657,6 +3657,16 @@ export async function runHybridIdeator(
         coreNativeResult.stats.generatedCount -
         coreNativeResult.stats.keptCount,
       rejectionReasons: coreNativeResult.stats.rejectionReasons,
+      // PHASE D4 — additive reject-source telemetry. Breaks down
+      // `copied_seed_hook` rejections by which reference pool
+      // (`corpus` vs `style_defs`) the matched seed came from, so
+      // we can SEE whether the D3 corpus expansion (~200 → ~359
+      // ref pool) over-rejects in practice. Aggregate counts on
+      // `bySource`; bounded `samples` array carries individual
+      // (hash, jaccard, gate) tuples for the QA driver. Always
+      // present — `bySource` defaults to `{ corpus: 0, style_defs: 0 }`
+      // for cold-start / no-reject batches.
+      antiCopyRejects: coreNativeResult.stats.antiCopyRejects,
       seedCoreIds: coreNativeSelection.cores.map((c) => c.id),
       keptCoreIds: coreNativeResult.candidates.map(
         (c) => c.meta.premiseCoreId,
