@@ -170,11 +170,14 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const isRefresh = mode === "refresh";
   // step 0 = format, 1 = tone, 2 = hook, 3 = confirmation
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  // PHASE Z3 — format and hookStyles are arrays (≤3). Tone stays a
-  // single nullable enum because the server schema persists it as
-  // a scalar; see the file-header comment.
+  // PHASE Z3/Z4 — all three multi-step axes are now arrays (≤3).
+  // Z4 widened tone from a single nullable enum to an array; the
+  // server keeps the scalar `preferredTone` field in sync as
+  // `tones[0] ?? null` so every existing server consumer that reads
+  // the scalar (coreCandidateGenerator, hybridIdeator, ideaScorer,
+  // patternIdeator, getToneGuidance) stays unchanged.
   const [formats, setFormats] = useState<PreferredFormat[]>([]);
-  const [tone, setTone] = useState<PreferredTone | null>(null);
+  const [tones, setTones] = useState<PreferredTone[]>([]);
   const [hookStyles, setHookStyles] = useState<PreferredHookStyle[]>([]);
 
   // Single in-flight latch: blocks double-tap from re-running the
@@ -201,16 +204,20 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const fireSaveSideEffects = useCallback(
     (
       chosenFormats: PreferredFormat[],
-      chosenTone: PreferredTone,
+      chosenTones: PreferredTone[],
       chosenHooks: PreferredHookStyle[],
     ) => {
       const doc: TasteCalibrationDoc = {
         ...EMPTY_CALIBRATION,
-        // PHASE Z3 — both arrays may carry 1..3 entries. Server zod
-        // schema (`z.array(...).default([])`) accepts this without
-        // any change; downstream consumers already iterate.
+        // PHASE Z3/Z4 — all three arrays may carry 1..3 entries.
+        // For tone we ALSO send the back-compat scalar so a
+        // pre-Z4 server (or one that hasn't redeployed yet)
+        // still sees a populated `preferredTone`. The Z4 server
+        // re-derives the scalar from `preferredTones[0]` on save
+        // so both sides agree regardless of which one ships first.
         preferredFormats: chosenFormats,
-        preferredTone: chosenTone,
+        preferredTone: chosenTones.length > 0 ? chosenTones[0] : null,
+        preferredTones: chosenTones,
         preferredHookStyles: chosenHooks,
         skipped: false,
       };
@@ -276,15 +283,38 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
     setStep(1);
   }, [busy, formats.length]);
 
-  const handleTonePick = useCallback(
+  // PHASE Z4 — multi-select toggle for the tone step. Same
+  // mechanics as the format/hook handlers: append/remove with a
+  // cap of MULTI_SELECT_MAX. Cap-reaching tap auto-advances; 1-2
+  // selections require the Continue tap below.
+  const handleToneToggle = useCallback(
     (v: PreferredTone) => {
       if (busy) return;
       lightHaptic();
-      setTone(v);
-      setStep(2);
+      setTones((prev) => {
+        const already = prev.includes(v);
+        if (already) {
+          return prev.filter((x) => x !== v);
+        }
+        if (prev.length >= MULTI_SELECT_MAX) return prev;
+        const next = [...prev, v];
+        if (next.length === MULTI_SELECT_MAX) {
+          // Auto-advance on the cap-reaching tap.
+          setStep(2);
+        }
+        return next;
+      });
     },
     [busy],
   );
+
+  // Continue button on the tone step — fires when the user is
+  // happy with 1 or 2 selections (3 auto-advances above).
+  const handleToneContinue = useCallback(() => {
+    if (busy || tones.length === 0) return;
+    lightHaptic();
+    setStep(2);
+  }, [busy, tones.length]);
 
   // PHASE Z3 — multi-select toggle for the hook step. Mirrors the
   // format handler: append/remove with a cap of 3. The cap-reaching
@@ -293,9 +323,9 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const handleHookToggle = useCallback(
     (v: PreferredHookStyle) => {
       if (busy) return;
-      // Defensive: format and tone should always be set by the
+      // Defensive: format and tones should always be set by the
       // time we land on step 2; bail without persisting half-state.
-      if (formats.length === 0 || tone === null) return;
+      if (formats.length === 0 || tones.length === 0) return;
       lightHaptic();
       setHookStyles((prev) => {
         const already = prev.includes(v);
@@ -311,14 +341,14 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
           if (!saveFiredRef.current) {
             saveFiredRef.current = true;
             setBusy(true);
-            fireSaveSideEffects(formats, tone, next);
+            fireSaveSideEffects(formats, tones, next);
             setStep(3);
           }
         }
         return next;
       });
     },
-    [busy, formats, tone, fireSaveSideEffects],
+    [busy, formats, tones, fireSaveSideEffects],
   );
 
   // Continue button on the hook step — fires the terminal save
@@ -328,13 +358,14 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const handleHookContinue = useCallback(() => {
     if (busy) return;
     if (saveFiredRef.current) return;
-    if (formats.length === 0 || tone === null || hookStyles.length === 0) return;
+    if (formats.length === 0 || tones.length === 0 || hookStyles.length === 0)
+      return;
     saveFiredRef.current = true;
     setBusy(true);
     lightHaptic();
-    fireSaveSideEffects(formats, tone, hookStyles);
+    fireSaveSideEffects(formats, tones, hookStyles);
     setStep(3);
-  }, [busy, formats, tone, hookStyles, fireSaveSideEffects]);
+  }, [busy, formats, tones, hookStyles, fireSaveSideEffects]);
 
   const handleSkip = useCallback(() => {
     // Same synchronous one-shot guard as the hook pick — the two
@@ -392,14 +423,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // multi-select prompt now, so the wording is unified across the
   // initial / refresh paths in the JSX itself).
 
-  if (step === 3 && formats.length > 0 && tone && hookStyles.length > 0) {
+  if (
+    step === 3 &&
+    formats.length > 0 &&
+    tones.length > 0 &&
+    hookStyles.length > 0
+  ) {
     return (
       <ConfirmationCard
-        // PHASE Z3 — chip arrays may carry 1..3 entries each; the
-        // confirmation card flexWrap-renders them in the order the
-        // user picked them.
+        // PHASE Z3/Z4 — all three chip arrays may carry 1..3
+        // entries each; the confirmation card flexWrap-renders
+        // them in the order the user picked them.
         formatLabels={formats.map((f) => FORMAT_SUMMARY[f])}
-        toneLabel={TONE_SUMMARY[tone]}
+        toneLabels={tones.map((t) => TONE_SUMMARY[t])}
         hookLabels={hookStyles.map((h) => HOOK_SUMMARY[h])}
         // PHASE Y14 — confirmation kicker mirrors the entry framing:
         // a refresh closes with "Refreshed" so the creator knows the
@@ -450,12 +486,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       {step === 1 ? (
         <>
           <Text style={styles.heroTitle}>What tone do you naturally land on?</Text>
-          <Text style={styles.heroSub}>Tap one — no wrong answer.</Text>
-          <SingleSelect
+          <Text style={styles.heroSub}>Tap up to 3 — your range, not just one note.</Text>
+          <MultiSelect
             choices={TONE_CHOICES}
-            value={tone}
-            onChange={handleTonePick}
+            values={tones}
+            onToggle={handleToneToggle}
             disabled={busy}
+            max={MULTI_SELECT_MAX}
+          />
+          <ContinueButton
+            visible={tones.length > 0 && tones.length < MULTI_SELECT_MAX}
+            onPress={handleToneContinue}
+            disabled={busy}
+            label={`Continue (${tones.length}/${MULTI_SELECT_MAX}) →`}
           />
         </>
       ) : null}
@@ -500,12 +543,12 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
 
 function ConfirmationCard({
   formatLabels,
-  toneLabel,
+  toneLabels,
   hookLabels,
   kickerLabel,
 }: {
   formatLabels: string[];
-  toneLabel: string;
+  toneLabels: string[];
   hookLabels: string[];
   kickerLabel: string;
 }) {
@@ -556,9 +599,11 @@ function ConfirmationCard({
               <Text style={styles.confirmChipText}>{label}</Text>
             </View>
           ))}
-          <View key={`t-${toneLabel}`} style={styles.confirmChip}>
-            <Text style={styles.confirmChipText}>{toneLabel}</Text>
-          </View>
+          {toneLabels.map((label) => (
+            <View key={`t-${label}`} style={styles.confirmChip}>
+              <Text style={styles.confirmChipText}>{label}</Text>
+            </View>
+          ))}
           {hookLabels.map((label) => (
             <View key={`h-${label}`} style={styles.confirmChip}>
               <Text style={styles.confirmChipText}>{label}</Text>

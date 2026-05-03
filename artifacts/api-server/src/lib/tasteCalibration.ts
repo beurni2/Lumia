@@ -76,7 +76,21 @@ export type PreferredHookStyle = z.infer<typeof preferredHookStyleEnum>;
 
 export const tasteCalibrationSchema = z.object({
   preferredFormats: z.array(preferredFormatEnum).default([]),
+  // PHASE Z4 — `preferredTone` is the SCALAR back-compat field that
+  // every existing server consumer (coreCandidateGenerator,
+  // hybridIdeator, ideaScorer, patternIdeator, getToneGuidance)
+  // already reads. It MUST keep its scalar shape so we don't have
+  // to widen each downstream callsite. The route handler keeps it
+  // in sync with `preferredTones[0]` on every save (see
+  // `routes/tasteCalibration.ts`). Pre-Z4 clients that only POST
+  // the scalar still work; pre-Z4 docs in the JSONB column still
+  // parse cleanly because the new array field has `.default([])`.
   preferredTone: preferredToneEnum.nullable().default(null),
+  // PHASE Z4 — multi-select tone array (≤3). Mobile sends 1-3
+  // entries here; the route normalizes both fields so server-side
+  // consumers can read either the scalar (back-compat) or the
+  // array (future consumers that want all picked tones).
+  preferredTones: z.array(preferredToneEnum).max(3).default([]),
   effortPreference: effortPreferenceEnum.nullable().default(null),
   privacyAvoidances: z.array(privacyAvoidanceEnum).default([]),
   preferredHookStyles: z.array(preferredHookStyleEnum).default([]),

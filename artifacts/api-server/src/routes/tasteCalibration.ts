@@ -110,8 +110,27 @@ router.post("/taste-calibration", async (req, res, next) => {
     // trust client clocks. For a skipped save we leave it null —
     // the row's existence is enough to suppress the re-prompt.
     const doc = parsed.data;
+    // PHASE Z4 — normalize the dual tone fields so server-side
+    // consumers can rely on EITHER reading shape and they always
+    // agree. Three input cases this handles:
+    //   1. Pre-Z4 client (scalar only)  → mirror scalar into the
+    //      array as a single-element list.
+    //   2. Z4+ client (array only)       → mirror array[0] into the
+    //      scalar (or null when the array is empty / skipped).
+    //   3. Z4+ client (both fields set)  → array wins, scalar is
+    //      re-derived as array[0] so they can't drift.
+    const normalizedTones =
+      doc.preferredTones.length > 0
+        ? doc.preferredTones
+        : doc.preferredTone
+          ? [doc.preferredTone]
+          : [];
+    const normalizedTone =
+      normalizedTones.length > 0 ? normalizedTones[0] : null;
     const persisted = {
       ...doc,
+      preferredTone: normalizedTone,
+      preferredTones: normalizedTones,
       completedAt: doc.skipped ? null : new Date().toISOString(),
     };
 

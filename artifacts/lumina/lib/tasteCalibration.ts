@@ -37,7 +37,12 @@ export type PreferredHookStyle =
 
 export type TasteCalibration = {
   preferredFormats: PreferredFormat[];
+  // PHASE Z4 — `preferredTone` is the SCALAR back-compat mirror;
+  // server normalizes it to `preferredTones[0] ?? null` on every
+  // save so existing server consumers (which read the scalar) stay
+  // unchanged. UI source-of-truth is `preferredTones`.
   preferredTone: PreferredTone | null;
+  preferredTones: PreferredTone[];
   effortPreference: EffortPreference | null;
   privacyAvoidances: PrivacyAvoidance[];
   preferredHookStyles: PreferredHookStyle[];
@@ -52,6 +57,7 @@ export type CalibrationResponse = {
 export const EMPTY_CALIBRATION: TasteCalibration = {
   preferredFormats: [],
   preferredTone: null,
+  preferredTones: [],
   effortPreference: null,
   privacyAvoidances: [],
   preferredHookStyles: [],

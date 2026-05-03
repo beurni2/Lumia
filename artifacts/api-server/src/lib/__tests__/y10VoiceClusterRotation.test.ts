@@ -232,6 +232,7 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
         tasteCalibration: {
           preferredFormats: [],
           preferredTone: "dry_subtle", // → dry_deadpan
+          preferredTones: ["dry_subtle"],
           effortPreference: null,
           privacyAvoidances: [],
           preferredHookStyles: [],

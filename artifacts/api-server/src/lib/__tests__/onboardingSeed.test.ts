@@ -28,6 +28,7 @@ import type { TasteCalibration } from "../tasteCalibration";
 const baseCal = (overrides: Partial<TasteCalibration> = {}): TasteCalibration => ({
   preferredFormats: [],
   preferredTone: null,
+  preferredTones: [],
   effortPreference: null,
   privacyAvoidances: [],
   preferredHookStyles: [],
