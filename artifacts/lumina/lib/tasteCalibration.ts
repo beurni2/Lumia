@@ -10,7 +10,11 @@
 
 import { customFetch } from "@workspace/api-client-react";
 
-import { resetTasteOnboarding } from "@/lib/tasteOnboardingState";
+import {
+  clearHasCompletedTasteOnboardingForStaleRefresh,
+  getLastTasteOnboardingCompletedAtMs,
+  resetTasteOnboarding,
+} from "@/lib/tasteOnboardingState";
 
 export type PreferredFormat = "mini_story" | "reaction" | "pov" | "mixed";
 export type PreferredTone =
@@ -202,4 +206,136 @@ export function needsCalibration(cal: TasteCalibration | null): boolean {
   if (cal.skipped === true) return false;
   if (cal.completedAt) return false;
   return true;
+}
+
+/* ----------------------------------------------------------------- */
+/* Calibration staleness — refresh-prompt resurface                  */
+/* ----------------------------------------------------------------- */
+
+/**
+ * PHASE Y13 — staleness threshold for the "refresh your taste
+ * calibration" prompt. Mirrors the server-side constant in
+ * `artifacts/api-server/src/lib/tasteCalibration.ts` so client gate
+ * and any future server job apply the same window.
+ *
+ * 90 days picked because:
+ *   • Long enough that a creator who completed once and is happy
+ *     never sees a re-prompt during normal use (most users won't
+ *     hit 90 days of active app time without their feedback already
+ *     re-shaping the implicit memory layer to match their drift).
+ *   • Short enough that a creator whose taste materially shifts
+ *     over a season gets a chance to re-pin the EXPLICIT layer
+ *     (preferredTone, hookStyles) which the implicit memory cannot
+ *     overwrite — the calibration `preferredTone` is a hard
+ *     short-circuit in `resolveVoiceCluster`, so a stale tone pin
+ *     can persistently mis-target every batch even when the
+ *     implicit memory is fresh.
+ */
+export const CALIBRATION_STALE_DAYS = 90;
+
+/**
+ * Pure predicate — true when the document is a COMPLETED (non-
+ * skipped) calibration whose `completedAt` is older than
+ * `staleDays`. Returns false for null/missing/skipped/half-state
+ * docs (those are handled by `needsCalibration`, not this gate).
+ */
+export function isCalibrationStale(
+  cal: TasteCalibration | null,
+  staleDays: number = CALIBRATION_STALE_DAYS,
+  now: Date = new Date(),
+): boolean {
+  if (!cal) return false;
+  if (cal.skipped) return false;
+  if (!cal.completedAt) return false;
+  const completed = Date.parse(cal.completedAt);
+  if (!Number.isFinite(completed)) return false;
+  const ageMs = now.getTime() - completed;
+  const staleMs = staleDays * 24 * 60 * 60 * 1000;
+  return ageMs > staleMs;
+}
+
+/* ----------------------------------------------------------------- */
+/* Once-per-process stale-check latch                                */
+/* ----------------------------------------------------------------- */
+
+/**
+ * One-shot gate so `runStaleCalibrationCheck()` performs at most
+ * one network fetch + one local-flag reset per JS process. The
+ * staleness window is measured in days; checking it once per cold
+ * start is more than sufficient and keeps Home's mount path free
+ * of a recurring server round-trip.
+ */
+let staleCheckRanThisProcess = false;
+
+export function clearStaleCheckLatchForTests(): void {
+  staleCheckRanThisProcess = false;
+}
+
+/**
+ * PHASE Y13 — refresh-prompt resurface helper.
+ *
+ * Idempotent, fail-open. Call once at app/Home cold start. If the
+ * server-side calibration doc is stale (completed > N days ago and
+ * not skipped), wipes the LOCAL `hasCompletedTasteOnboarding`
+ * sticky flag so the existing Home gate (which keys off that flag
+ * + ideasViewedCount) re-fires the calibration modal naturally on
+ * the next behaviour trigger.
+ *
+ * Why reset the local flag instead of pushing the modal directly:
+ *   • The Home gate already enforces the "wait until the user has
+ *     seen ≥2 ideas" behaviour rule. Pushing the modal directly
+ *     here would fire on EVERY cold start regardless of whether
+ *     the user just opened the app — too aggressive.
+ *   • Resetting the local flag lets the existing trigger machinery
+ *     (focus + dwell + scroll counters, suppression window, once-
+ *     per-process latch) handle the prompt the same way it handles
+ *     a first-time user. One code path, one set of guards.
+ *
+ * Why a once-per-process latch:
+ *   • Staleness is measured in DAYS — checking more than once per
+ *     cold start is wasted work.
+ *   • A second fetch on the same process would re-reset the flag
+ *     after the user just completed the refresh, undoing the
+ *     `markTasteOnboardingCompleted` write from <TasteCalibration />.
+ *
+ * Errors are swallowed — the next cold start retries.
+ */
+export async function runStaleCalibrationCheck(): Promise<void> {
+  if (staleCheckRanThisProcess) return;
+  staleCheckRanThisProcess = true;
+  // Capture a same-process timestamp BEFORE the network fetch so
+  // we can detect a concurrent local completion that lands while
+  // the fetch is in flight. See lost-update guard below.
+  const checkStartedAtMs = Date.now();
+  try {
+    const cal = await fetchTasteCalibration();
+    if (!isCalibrationStale(cal)) return;
+    // PHASE Y13 lost-update guard — `<TasteCalibration />`'s Save
+    // path calls `markTasteOnboardingCompleted` BEFORE its
+    // fire-and-forget POST hits the server. If the user happened
+    // to open /calibration via deep-link, MvpOnboarding, or the
+    // Profile dev tool DURING this fetch's round-trip and saved
+    // before our response landed, the local flag is now true and
+    // the local mirror timestamp is newer than `checkStartedAtMs`
+    // — even though the SERVER doc we just fetched still shows
+    // the old `completedAt` (the POST hasn't propagated yet, or
+    // is still in flight). Without this guard, we'd silently flip
+    // the freshly-set local flag back to false and trigger a
+    // re-prompt on the next behaviour beat — undoing the user's
+    // just-completed calibration. Skipping the wipe in this case
+    // is the safe choice: the cal IS now fresh; the next cold
+    // start will re-evaluate against the propagated server doc.
+    const lastLocalCompletedAtMs = await getLastTasteOnboardingCompletedAtMs();
+    if (lastLocalCompletedAtMs > checkStartedAtMs) return;
+    // Narrow clear: only the completion flag, NOT the ideas-viewed
+    // counter or the pending-* coordination flags. Using
+    // `resetTasteOnboarding()` here would (a) zero the counter so
+    // a user with 50 dwells already past count≥2 would have to
+    // re-accumulate two views before the gate fires, and (b) wipe
+    // unrelated visible-adaptation flags that have nothing to do
+    // with staleness. The narrow helper keeps surface area honest.
+    await clearHasCompletedTasteOnboardingForStaleRefresh();
+  } catch {
+    // Fail-open — refresh prompt is a soft surface; never block.
+  }
 }

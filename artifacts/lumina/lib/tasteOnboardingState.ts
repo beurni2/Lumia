@@ -56,6 +56,17 @@ const KEY_IDEAS_VIEWED = "lumina:ideasViewedCount";
 //     The next Home focus shows a small Yes/No "Better match?" row.
 const KEY_PENDING_POST_CAL_REFRESH = "lumina:pendingPostCalibrationRefresh";
 const KEY_PENDING_BETTER_MATCH_PROMPT = "lumina:pendingBetterMatchPrompt";
+// PHASE Y13 — local mirror of `Date.now()` at the moment the user
+// last hit Save in <TasteCalibration />. Written by
+// `markTasteOnboardingCompleted` alongside the completion flag,
+// read by `runStaleCalibrationCheck` as a same-process lost-update
+// guard: if the user completed calibration WHILE the staleness
+// fetch was in flight, the stale-check has a way to detect that
+// and skip the flag wipe (otherwise it would silently revert a
+// fresh completion). Stored as decimal-string ms; missing/invalid
+// reads back as 0 (treated as "never completed locally", the
+// guard's safe-default).
+const KEY_LAST_COMPLETED_AT_MS = "lumina:tasteOnboardingLastCompletedAtMs";
 
 // Cap the persisted counter at a small number — the gate predicate
 // is `>= 2`, so anything beyond ~5 is wasted bytes. Cap also
@@ -71,6 +82,10 @@ let memoCount: number | null = null;
 // state without waiting for AsyncStorage to settle.
 let memoPendingPostCalRefresh: boolean | null = null;
 let memoPendingBetterMatchPrompt: boolean | null = null;
+// PHASE Y13 — `null` = not yet read; otherwise ms-since-epoch (0
+// when never completed locally). Same memoization discipline as
+// the booleans above so the stale-refresh guard read is cheap.
+let memoLastCompletedAtMs: number | null = null;
 
 // Single-writer queue. Same rationale as `yesSwipeCounter.ts`:
 // JS is single-threaded, so awaiting the lock before each
@@ -152,10 +167,86 @@ export async function getHasCompletedTasteOnboarding(): Promise<boolean> {
 export async function markTasteOnboardingCompleted(): Promise<void> {
   await withLock(async () => {
     memoHasCompleted = true;
+    // PHASE Y13 — stamp the local "last completed at" mirror in
+    // the SAME lock-guarded write as the flag, so any subsequent
+    // reader (notably `runStaleCalibrationCheck`'s lost-update
+    // guard) sees a consistent (flag=true, ts=now) pair. Failures
+    // are swallowed individually so a transient AsyncStorage hiccup
+    // on one key can't block the other.
+    const nowMs = Date.now();
+    memoLastCompletedAtMs = nowMs;
     try {
       await AsyncStorage.setItem(KEY_HAS_COMPLETED, "1");
     } catch {
       /* swallow — non-critical UX surface */
+    }
+    try {
+      await AsyncStorage.setItem(KEY_LAST_COMPLETED_AT_MS, String(nowMs));
+    } catch {
+      /* swallow — guard read defaults to 0 on failure */
+    }
+  });
+}
+
+/**
+ * PHASE Y13 — local "last completed at" mirror reader.
+ *
+ * Returns the ms-since-epoch timestamp captured by the most recent
+ * `markTasteOnboardingCompleted` call, or 0 if the user has never
+ * completed calibration on this install (or the value is missing
+ * / unreadable). Used by `runStaleCalibrationCheck` as a same-
+ * process lost-update guard:
+ *   • Stale-check captures `Date.now()` BEFORE its network fetch.
+ *   • After the fetch, it reads this timestamp.
+ *   • If `lastCompletedAtMs > captureMs`, the user completed
+ *     calibration DURING the round-trip — skip the flag wipe so
+ *     we don't silently revert a fresh completion.
+ *
+ * Returning 0 on read failure is the right default: it's treated
+ * by the guard as "no recent local completion", so the stale
+ * branch proceeds as if no race occurred. A spurious wipe is the
+ * harmless failure mode (the next `markTasteOnboardingCompleted`
+ * fixes it); a spurious skip would leave the user stuck with a
+ * stale calibration. Choose the cheaper failure.
+ */
+export async function getLastTasteOnboardingCompletedAtMs(): Promise<number> {
+  return withLock(async () => {
+    if (memoLastCompletedAtMs !== null) return memoLastCompletedAtMs;
+    try {
+      const raw = await AsyncStorage.getItem(KEY_LAST_COMPLETED_AT_MS);
+      const parsed = raw === null ? 0 : Number.parseInt(raw, 10);
+      memoLastCompletedAtMs = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    } catch {
+      memoLastCompletedAtMs = 0;
+    }
+    return memoLastCompletedAtMs;
+  });
+}
+
+/**
+ * PHASE Y13 — narrow clear for the stale-refresh path.
+ *
+ * Wipes ONLY the `hasCompletedTasteOnboarding` sticky flag, leaving
+ * `ideasViewedCount`, `pendingPostCalibrationRefresh`, and
+ * `pendingBetterMatchPrompt` intact. This is intentionally narrower
+ * than `resetTasteOnboarding()` (which is the dev/QA "back to fresh
+ * install" lever): for the stale-refresh case we want the existing
+ * counter to keep counting (a user with 50 dwells already past the
+ * count≥2 threshold should re-fire the gate immediately on the next
+ * Home focus, not have to re-accumulate two more views), and we
+ * want the pending-* coordination flags untouched (they belong to
+ * unrelated visible-adaptation flows that have nothing to do with
+ * staleness).
+ *
+ * Idempotent — calling on an already-cleared flag is a no-op.
+ */
+export async function clearHasCompletedTasteOnboardingForStaleRefresh(): Promise<void> {
+  await withLock(async () => {
+    memoHasCompleted = false;
+    try {
+      await AsyncStorage.removeItem(KEY_HAS_COMPLETED);
+    } catch {
+      /* swallow — next cold start retries the stale check */
     }
   });
 }
@@ -283,12 +374,14 @@ export async function resetTasteOnboarding(): Promise<void> {
     memoCount = 0;
     memoPendingPostCalRefresh = false;
     memoPendingBetterMatchPrompt = false;
+    memoLastCompletedAtMs = 0;
     try {
       await AsyncStorage.multiRemove([
         KEY_HAS_COMPLETED,
         KEY_IDEAS_VIEWED,
         KEY_PENDING_POST_CAL_REFRESH,
         KEY_PENDING_BETTER_MATCH_PROMPT,
+        KEY_LAST_COMPLETED_AT_MS,
       ]);
     } catch {
       /* swallow */

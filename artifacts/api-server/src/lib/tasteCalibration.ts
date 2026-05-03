@@ -100,6 +100,41 @@ export function parseTasteCalibration(
   return parsed.success ? parsed.data : null;
 }
 
+/**
+ * PHASE Y13 — calibration staleness predicate.
+ *
+ * Returns true when a completed (non-skipped) calibration document
+ * is older than `staleDays` (default 90 d), so the client can
+ * re-surface the Quick Tune prompt for users whose taste may have
+ * drifted since they first answered. Returns false for:
+ *   • null / missing docs (handled by `needsCalibration` instead)
+ *   • skipped docs (the user explicitly said "no thanks")
+ *   • docs with no `completedAt` (half-state — `needsCalibration`
+ *     covers this)
+ *   • completed docs younger than the staleness window
+ *
+ * Pure / synchronous. Mirrors the mobile-side helper in
+ * `artifacts/lumina/lib/tasteCalibration.ts` so server jobs (e.g. a
+ * future "remind to recalibrate" notification) and the client gate
+ * apply the same threshold.
+ */
+export const DEFAULT_CALIBRATION_STALE_DAYS = 90;
+
+export function isCalibrationStale(
+  cal: TasteCalibration | null,
+  staleDays: number = DEFAULT_CALIBRATION_STALE_DAYS,
+  now: Date = new Date(),
+): boolean {
+  if (!cal) return false;
+  if (cal.skipped) return false;
+  if (!cal.completedAt) return false;
+  const completed = Date.parse(cal.completedAt);
+  if (!Number.isFinite(completed)) return false;
+  const ageMs = now.getTime() - completed;
+  const staleMs = staleDays * 24 * 60 * 60 * 1000;
+  return ageMs > staleMs;
+}
+
 // ---------------------------------------------------------------- //
 // Format → distribution bias.
 //

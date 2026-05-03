@@ -69,6 +69,7 @@ import {
   isCalibrationGateSuppressed,
   isCalibrationPromptedThisProcess,
   markCalibrationPromptedThisProcess,
+  runStaleCalibrationCheck,
 } from "@/lib/tasteCalibration";
 import {
   consumePendingBetterMatchPrompt,
@@ -290,6 +291,19 @@ export default function HomeScreen() {
   useEffect(() => {
     void loadIdeas();
   }, [loadIdeas]);
+
+  // PHASE Y13 — refresh-prompt resurface. Once per cold start,
+  // check the server calibration doc; if `completedAt` is older
+  // than CALIBRATION_STALE_DAYS (90 d) and the doc isn't skipped,
+  // wipe the local `hasCompletedTasteOnboarding` sticky flag so
+  // the existing Quick Tune gate below fires the calibration
+  // modal naturally on the next behaviour trigger (count >= 2).
+  // Idempotent + fail-open: any error is swallowed and retried on
+  // the next cold start. Runs in parallel with `loadIdeas` since
+  // they don't depend on each other.
+  useEffect(() => {
+    void runStaleCalibrationCheck();
+  }, []);
 
   /* ---------- Quick Tune (taste-onboarding) gate ----------- */
 
