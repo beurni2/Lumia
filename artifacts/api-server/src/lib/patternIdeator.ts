@@ -3378,6 +3378,13 @@ export const VIDEO_PATTERNS = [
   "confidence_collapse",
   "deadpan_statement",
   "cut_before_end",
+  // PHASE Z5c — POV-driven relatable mini-sketch. Sits between
+  // `pov_internal` (inner monologue + contradiction) and
+  // `micro_story` (everyday scene + takeaway): a 4-beat sketch
+  // shot from the creator's POV that lands a relatable behavior
+  // without needing voiceover. Appended at end to preserve
+  // existing id ordering / salt-rotation behavior.
+  "pov_relatable_sketch",
 ] as const;
 export type VideoPattern = (typeof VIDEO_PATTERNS)[number];
 
@@ -3535,6 +3542,19 @@ export const PATTERN_DEFS: Record<VideoPattern, VideoPatternDef> = {
     cameraStyle: "single moving or static frame, hard cut on the anticipation peak",
     typicalDuration: "short",
   },
+  // PHASE Z5c — POV-driven relatable mini-sketch
+  pov_relatable_sketch: {
+    id: "pov_relatable_sketch",
+    beats: [
+      "open from your POV walking into the everyday situation",
+      "show your hands doing the small specific behavior the hook names",
+      "cut to your face for a brief unspoken acknowledgment",
+      "land on the result staying exactly the same, no fix",
+    ],
+    pacing: "medium",
+    cameraStyle: "handheld POV, hands in frame, single cut to face on landing",
+    typicalDuration: "medium",
+  },
 };
 
 /**
@@ -3566,13 +3586,13 @@ export const PATTERN_DEFS: Record<VideoPattern, VideoPatternDef> = {
  */
 export const PATTERN_BY_FAMILY: Record<IdeaCoreFamily, readonly VideoPattern[]> = {
   // overthinking — quiet rumination + recursive thought
-  emotional_loop: ["pov_internal", "loop_behavior", "silent_reaction"],
+  emotional_loop: ["pov_internal", "loop_behavior", "silent_reaction", "pov_relatable_sketch"],
   // exact spec match
   failure_contradiction: ["before_after", "micro_story", "confidence_collapse"],
   // overthinking, decision-flavored
   decision_paralysis: ["pov_internal", "loop_behavior", "delayed_reaction"],
   // social_behavior
-  social_friction: ["montage_repeat", "pov_internal", "micro_story"],
+  social_friction: ["montage_repeat", "pov_internal", "micro_story", "pov_relatable_sketch"],
   // exact spec match
   time_distortion: ["loop_behavior", "montage_repeat"],
   // identity_conflict
@@ -3595,7 +3615,7 @@ export const PATTERN_BY_FAMILY: Record<IdeaCoreFamily, readonly VideoPattern[]> 
   // catch-up.
   memory_glitch: ["loop_behavior", "silent_reaction", "delayed_reaction"],
   // avoidance
-  ritual_disruption: ["micro_story", "deadpan_statement", "before_after"],
+  ritual_disruption: ["micro_story", "deadpan_statement", "before_after", "pov_relatable_sketch"],
   // micro_win
   anti_climax: ["cut_before_end", "deadpan_statement", "silent_reaction"],
 };
@@ -3603,7 +3623,8 @@ export const PATTERN_BY_FAMILY: Record<IdeaCoreFamily, readonly VideoPattern[]> 
 /**
  * VideoPattern × HookIntent compatibility.
  *
- * Spec PART 5 lists compat for 10 of 12 patterns:
+ * Spec PART 5 lists compat for 10 of 13 patterns
+ * (Z5c added `pov_relatable_sketch` under `relatable`):
  *   - scroll_stop : silent_reaction, deadpan_statement, object_pov
  *   - compulsion  : escalation, cut_before_end, delayed_reaction
  *   - relatable   : micro_story, loop_behavior, pov_internal,
@@ -3643,6 +3664,8 @@ export const PATTERN_X_INTENT_COMPAT: Record<HookIntent, readonly VideoPattern[]
     "montage_repeat",
     "before_after",
     "confidence_collapse",
+    // PHASE Z5c
+    "pov_relatable_sketch",
   ],
 };
 
@@ -4216,6 +4239,14 @@ export const PREMISE_STYLE_IDS = [
   "fridge_judgment",
   "dream_disappointment",
   "weekly_wipeout",
+  // PHASE Z5b — 4 new fine-grained PremiseStyleIds. Each maps to an
+  // existing parentBucket so all bucket-level novelty levers / cache
+  // / validators remain unchanged. Appended at END to preserve all
+  // pre-existing id ordering (no salt-rotation drift on existing ids).
+  "self_roast_escalation",
+  "expectation_subversion",
+  "quiet_punchline",
+  "spiral_confession",
 ] as const;
 export type PremiseStyleId = (typeof PREMISE_STYLE_IDS)[number];
 
@@ -4982,6 +5013,65 @@ export const PREMISE_STYLE_DEFS: Record<PremiseStyleId, PremiseStyleDef> = {
     ],
     parentBucket: "self_roast",
   },
+  // ---------------------------------------------------------------- //
+  // PHASE Z5b — 4 new fine-grained styles                            //
+  // ---------------------------------------------------------------- //
+  self_roast_escalation: {
+    label: "Self-Roast Escalator",
+    purpose: "Self-roast that scales beat by beat.",
+    transformLogic: ["start with a small admission", "let each beat raise the stakes"],
+    worksBestWith: ["failure_contradiction", "emotional_loop", "identity_drift"],
+    hookShapes: ["i started small. ended X", "each Y was worse than the last"],
+    executions: [
+      { id: "escalation", pattern: "self-roast scales each beat", example: "i started small. ended exposing my whole personality" },
+      { id: "self_drag", pattern: "each beat worse than the last", example: "every excuse i made got worse on contact" },
+      { id: "delusion_admission", pattern: "growing pattern named", example: "the disappointment compounded faster than rent" },
+      { id: "physical_stakes", pattern: "body keeps escalating with words", example: "my shoulders rose with every confession" },
+    ],
+    parentBucket: "self_roast",
+  },
+  expectation_subversion: {
+    label: "Expectation Subversion Switch",
+    purpose: "Set up one outcome, land the opposite.",
+    transformLogic: ["set up the expected payoff", "land an opposite payoff"],
+    worksBestWith: ["failure_contradiction", "anti_climax", "decision_paralysis"],
+    hookShapes: ["expected X. got Y.", "the Z arrived disguised as a W"],
+    executions: [
+      { id: "whiplash_pivot", pattern: "setup then opposite landing", example: "expected a breakdown. got a casual nap" },
+      { id: "expectation_collapse", pattern: "build hope then redirect", example: "thought today would help. it had other plans" },
+      { id: "delusion_admission", pattern: "honest about the flip", example: "the win arrived disguised as a problem" },
+      { id: "ironic_confidence", pattern: "expect easy, get hard", example: "easy task. wildly inconvenient outcome" },
+    ],
+    parentBucket: "contrast_duality",
+  },
+  quiet_punchline: {
+    label: "Quiet Punchline Lander",
+    purpose: "Understated landing carries the joke.",
+    transformLogic: ["build a small scene", "land with the smallest possible line"],
+    worksBestWith: ["anti_climax", "ritual_disruption", "emotional_loop"],
+    hookShapes: ["X happened. mostly to me.", "and that was the Y of my Z"],
+    executions: [
+      { id: "understatement", pattern: "tiny final line lands hard", example: "things happened. mostly badly" },
+      { id: "delusion_admission", pattern: "soft admission as punchline", example: "and that was the highlight of my week" },
+      { id: "self_drag", pattern: "low-volume self-drag", example: "the bar was on the floor. i tripped" },
+      { id: "direct_failure", pattern: "quiet flat failure note", example: "the plan went how plans usually go" },
+    ],
+    parentBucket: "self_roast",
+  },
+  spiral_confession: {
+    label: "Spiral Confession Cascade",
+    purpose: "Open spiraling admission as identity.",
+    transformLogic: ["name the spiral as a recurring self", "narrate it from inside"],
+    worksBestWith: ["emotional_loop", "memory_glitch", "time_distortion"],
+    hookShapes: ["the spiral has X", "i am narrating my own Y"],
+    executions: [
+      { id: "pattern_naming", pattern: "name the spiral as identity", example: "the spiral has its own opening hours" },
+      { id: "delusion_admission", pattern: "honest mid-spiral confession", example: "i am narrating my own collapse in real time" },
+      { id: "self_drag", pattern: "third-person witness to spiral", example: "watched myself spiral and took notes" },
+      { id: "time_marker", pattern: "spiral has a schedule", example: "the spiral checks in promptly at midnight" },
+    ],
+    parentBucket: "identity_framing",
+  },
 };
 
 /**
@@ -5012,8 +5102,11 @@ export const PREMISE_STYLE_LABELS: Record<PremiseStyleId, string> =
  * → fallback to the unchanged family/intent path.
  *
  * DIVERSITY AUDIT (verified by QA driver in T005):
- *   - every one of the 12 patterns appears in ≥1 style's compat list
- *     (loop_behavior is the floor at 5 occurrences = 10%)
+ *   - every one of the 12 originally-audited patterns appears in
+ *     ≥1 style's compat list (loop_behavior is the floor at 5
+ *     occurrences = 10%). Z5c's `pov_relatable_sketch` is intentionally
+ *     not added to per-style compat maps in this phase (additive at
+ *     the family/intent pool level only).
  *   - no pattern dominates >40% of style mappings
  *     (deadpan_statement = 19/50 = 38% is the ceiling)
  *
@@ -5084,6 +5177,12 @@ export const PREMISESTYLE_TO_PATTERN_MAP: Record<
   main_character_meltdown: ["confidence_collapse", "before_after", "delayed_reaction"],
   comic_relief_cataclysm: ["micro_story", "deadpan_statement", "delayed_reaction"],
   three_am_spiral: ["pov_internal", "loop_behavior", "deadpan_statement"],
+
+  // PHASE Z5b — 4 new styles
+  self_roast_escalation: ["escalation", "deadpan_statement", "silent_reaction"],
+  expectation_subversion: ["before_after", "delayed_reaction", "cut_before_end"],
+  quiet_punchline: ["deadpan_statement", "silent_reaction", "delayed_reaction"],
+  spiral_confession: ["pov_internal", "loop_behavior", "deadpan_statement"],
 };
 
 /**
@@ -5167,6 +5266,12 @@ export const PREMISE_PATTERN_SYNERGY_MAP: Record<
   main_character_meltdown: { confidence_collapse: 1, before_after: 1 },
   comic_relief_cataclysm: { delayed_reaction: 1, micro_story: 1 },
   three_am_spiral: { pov_internal: 1, loop_behavior: 1 },
+
+  // PHASE Z5b — 4 new styles
+  self_roast_escalation: { escalation: 1, silent_reaction: 1 },
+  expectation_subversion: { before_after: 1, delayed_reaction: 1 },
+  quiet_punchline: { deadpan_statement: 1, silent_reaction: 1 },
+  spiral_confession: { pov_internal: 1, loop_behavior: 1 },
 };
 
 /**
@@ -5248,6 +5353,12 @@ export const PREMISESTYLE_TO_HOOKINTENT_PREFERENCE: Record<
   main_character_meltdown: ["scroll_stop", "compulsion"],
   comic_relief_cataclysm: ["relatable", "scroll_stop"],
   three_am_spiral: ["relatable", "compulsion"],
+
+  // PHASE Z5b — 4 new styles
+  self_roast_escalation: ["relatable", "scroll_stop"],
+  expectation_subversion: ["scroll_stop", "compulsion"],
+  quiet_punchline: ["relatable", "scroll_stop"],
+  spiral_confession: ["relatable", "compulsion"],
 };
 
 /**
@@ -5324,6 +5435,12 @@ export const PREMISESTYLE_TO_HOOKLANGUAGE_PREFERENCE: Record<
   main_character_meltdown: ["matter_of_fact", "absurd_claim", "comparison"],
   comic_relief_cataclysm: ["confession", "observation", "matter_of_fact"],
   three_am_spiral: ["time_stamp", "confession", "observation"],
+
+  // PHASE Z5b — 4 new styles
+  self_roast_escalation: ["confession", "escalation_hook", "matter_of_fact"],
+  expectation_subversion: ["comparison", "anti_hook", "matter_of_fact"],
+  quiet_punchline: ["matter_of_fact", "anti_hook", "observation"],
+  spiral_confession: ["confession", "observation", "escalation_hook"],
 };
 
 /**
@@ -6034,6 +6151,10 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "cart_autopsy",
         "lazy_genius",
         "todo_termination",
+        // PHASE Z5b
+        "self_roast_escalation",
+        "quiet_punchline",
+        "spiral_confession",
       ],
       "relatable",
       ["self_aware", "soft_confessional", "dry_humor"],
@@ -6327,6 +6448,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "main_character_meltdown",
         "dopamine_denial",
         "social_battery_sabotage",
+        // PHASE Z5b
+        "spiral_confession",
       ],
       "compulsion",
       ["dry_humor", "deadpan", "self_aware"],
@@ -6756,6 +6879,10 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "cart_autopsy",
         "lazy_genius",
         "todo_termination",
+        // PHASE Z5b
+        "self_roast_escalation",
+        "quiet_punchline",
+        "spiral_confession",
       ],
       "relatable",
       ["self_aware", "soft_confessional", "dry_humor"],
@@ -6807,6 +6934,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "metaphor_mayhem",
         "cringe_trigger",
         "boundary_backfire",
+        // PHASE Z5b
+        "expectation_subversion",
       ],
       "scroll_stop",
       ["dry_humor", "deadpan", "blunt"],
@@ -7317,6 +7446,8 @@ export const HOOK_PHRASINGS_BY_LANGUAGE_STYLE: Record<
         "metaphor_mayhem",
         "cringe_trigger",
         "boundary_backfire",
+        // PHASE Z5b
+        "expectation_subversion",
       ],
       "scroll_stop",
       ["dry_humor", "deadpan", "blunt"],

@@ -77,7 +77,7 @@ type MechanismName = keyof typeof MECHANISM_WEIGHTS;
 // `hypocrisy_hyperdrive` (self_betrayal + identity_exposure)
 // should out-rank single-mechanism styles.
 
-const MECHANISM_TO_STYLES: Record<MechanismName, readonly PremiseStyleId[]> = {
+export const MECHANISM_TO_STYLES: Record<MechanismName, readonly PremiseStyleId[]> = {
   self_betrayal: [
     "self_roast_reactor",
     "self_destruction_speedrun",
@@ -88,6 +88,8 @@ const MECHANISM_TO_STYLES: Record<MechanismName, readonly PremiseStyleId[]> = {
     "todo_termination",
     "boundary_backfire",
     "procrastination_paradox",
+    // PHASE Z5b
+    "self_roast_escalation",
   ],
   self_as_other: [
     "duality_clash",
@@ -106,6 +108,8 @@ const MECHANISM_TO_STYLES: Record<MechanismName, readonly PremiseStyleId[]> = {
     "metaphor_mayhem",
     "contrast_catastrophe",
     "weekly_wipeout",
+    // PHASE Z5b
+    "expectation_subversion",
   ],
   identity_exposure: [
     "pattern_exposure",
@@ -117,6 +121,9 @@ const MECHANISM_TO_STYLES: Record<MechanismName, readonly PremiseStyleId[]> = {
     "confidence_crash",
     "cart_autopsy",
     "fomo_fracture",
+    // PHASE Z5b
+    "quiet_punchline",
+    "spiral_confession",
   ],
 };
 
