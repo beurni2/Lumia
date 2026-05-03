@@ -47,6 +47,7 @@ import { InlineToast } from "@/components/feedback/InlineToast";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { IdeaCard, type IdeaCardData } from "@/components/IdeaCard";
 import { IdeaFeedback } from "@/components/IdeaFeedback";
+import { TodaysPickHero } from "@/components/TodaysPickHero";
 import { lumina } from "@/constants/colors";
 import { type Bundle } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
@@ -851,71 +852,117 @@ export default function HomeScreen() {
             {betterMatchVisible ? (
               <BetterMatchPrompt onAnswer={handleBetterMatch} />
             ) : null}
-            {ideas.map((idea, i) => (
+            {ideas.map((idea, i) => {
+              // PHASE Z2 — "Today's pick" hero treatment.
+              // The Z1 willingness ranker already sorted the
+              // batch by (pickerEligible desc, willingnessScore
+              // desc), so ideas[0] IS today's best pick. Render
+              // it through the dedicated hero component (large
+              // primary "Film this now" button, "Or open in
+              // editor" text-link secondary, "Today's pick"
+              // kicker), and render ideas[1+] through the
+              // existing card+chip layout below an "Other
+              // ideas for today" section header.
+              //
               // Ideator responses don't carry a stable `id`, so
               // fall back to a positional+hook-prefix key. The
               // hook prefix lets React preserve cell identity
               // across regenerate when the same idea happens to
               // come back, while the index prevents collisions
               // among same-prefix ideas.
-              <View
-                key={
-                  idea.id ??
-                  `${i}-${(idea.hook ?? "idea").slice(0, 24)}`
-                }
-              >
-                <Pressable
-                  onPress={() => openCreate(idea)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open creation flow for ${idea.hook}`}
-                  style={({ pressed }) => [
-                    pressed ? styles.cardPressed : null,
-                  ]}
-                >
-                  <IdeaCard
+              const key =
+                idea.id ?? `${i}-${(idea.hook ?? "idea").slice(0, 24)}`;
+              const navigateFilmNow = () =>
+                router.push({
+                  pathname: "/film-this-now",
+                  params: { idea: JSON.stringify(idea) },
+                });
+
+              if (i === 0) {
+                return (
+                  <View key={key}>
+                    <TodaysPickHero
+                      idea={idea}
+                      onFilmNow={navigateFilmNow}
+                      // openCreate fires the canonical `selected`
+                      // ideator signal — keep it as the hero's
+                      // secondary CTA handler so signal accounting
+                      // is unchanged from the Z1 baseline.
+                      onOpenCreate={() => openCreate(idea)}
+                      fitsYourStyle={adaptedAt !== null}
+                    />
+                    {/* IdeaFeedback stays as a sibling so the hero
+                        block + verdict pills behave identically to
+                        the smaller cards. */}
+                    <IdeaFeedback
+                      idea={idea}
+                      region={region ?? undefined}
+                      onSubmit={handleIdeaVerdict}
+                    />
+                    {/* "Other ideas for today" section header —
+                        only renders when there's at least one more
+                        idea after the hero. Sits between hero and
+                        rest so the visual hierarchy reads
+                        unambiguously. */}
+                    {ideas.length > 1 ? (
+                      <Text style={styles.otherIdeasHeading}>
+                        Other ideas for today
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              }
+
+              return (
+                <View key={key}>
+                  <Pressable
+                    onPress={() => openCreate(idea)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open creation flow for ${idea.hook}`}
+                    style={({ pressed }) => [
+                      pressed ? styles.cardPressed : null,
+                    ]}
+                  >
+                    <IdeaCard
+                      idea={idea}
+                      index={i + 1}
+                      // Visible-adaptation pill — only set during the
+                      // brief window after Quick Tune so the user
+                      // can see this batch was tuned to their answers.
+                      fitsYourStyle={adaptedAt !== null}
+                    />
+                  </Pressable>
+                  {/* Lightweight per-idea feedback row — sits as a
+                      sibling to the card pressable, not a wrapper, so
+                      voting never accidentally navigates into the
+                      create flow. Hidden once the user has voted (the
+                      component reads its own AsyncStorage cache). */}
+                  <IdeaFeedback
                     idea={idea}
-                    index={i + 1}
-                    // Visible-adaptation pill — only set during the
-                    // brief window after Quick Tune so the user
-                    // can see this batch was tuned to their answers.
-                    fitsYourStyle={adaptedAt !== null}
+                    region={region ?? undefined}
+                    onSubmit={handleIdeaVerdict}
                   />
-                </Pressable>
-                {/* Lightweight per-idea feedback row — sits as a
-                    sibling to the card pressable, not a wrapper, so
-                    voting never accidentally navigates into the
-                    create flow. Hidden once the user has voted (the
-                    component reads its own AsyncStorage cache). */}
-                <IdeaFeedback
-                  idea={idea}
-                  region={region ?? undefined}
-                  onSubmit={handleIdeaVerdict}
-                />
-                {/* PHASE Z1 — "Film this now" secondary CTA. Sits
-                    as a sibling to the card pressable (NOT inside
-                    it) so its tap target never conflicts with the
-                    primary card → /create navigation. Routes to
-                    the lightweight Film-This-Now timeline screen
-                    which lays the idea out as a 0-8s shotlist
-                    instead of opening the full creation flow. */}
-                <Pressable
-                  onPress={() =>
-                    router.push({
-                      pathname: "/film-this-now",
-                      params: { idea: JSON.stringify(idea) },
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Film ${idea.hook} now`}
-                  style={({ pressed }) => [
-                    styles.filmNowBtn,
-                    pressed ? styles.filmNowBtnPressed : null,
-                  ]}
-                >
-                  <Text style={styles.filmNowBtnText}>Film this now →</Text>
-                </Pressable>
-              </View>
-            ))}
+                  {/* PHASE Z1 — "Film this now" secondary CTA. Sits
+                      as a sibling to the card pressable (NOT inside
+                      it) so its tap target never conflicts with the
+                      primary card → /create navigation. Routes to
+                      the lightweight Film-This-Now timeline screen
+                      which lays the idea out as a 0-8s shotlist
+                      instead of opening the full creation flow. */}
+                  <Pressable
+                    onPress={navigateFilmNow}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Film ${idea.hook} now`}
+                    style={({ pressed }) => [
+                      styles.filmNowBtn,
+                      pressed ? styles.filmNowBtnPressed : null,
+                    ]}
+                  >
+                    <Text style={styles.filmNowBtnText}>Film this now →</Text>
+                  </Pressable>
+                </View>
+              );
+            })}
           </Animated.View>
         ) : null}
 
@@ -1254,6 +1301,21 @@ const styles = StyleSheet.create({
     color: lumina.firefly,
     fontSize: 13,
     letterSpacing: 0.4,
+  },
+  // PHASE Z2 — section heading between the hero block and the
+  // remaining cards. Quiet uppercase kicker so it reads as a
+  // visual divider, not a competing headline. Top margin
+  // breathes the hero away from the rest; bottom margin is
+  // small so the next card sits close to its label.
+  otherIdeasHeading: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    marginTop: 22,
+    marginBottom: 2,
+    marginLeft: 2,
   },
   // Inline explainer for the partial-batch case (1 or 2 ideas
   // landed instead of 3). Same surface treatment as a tip block

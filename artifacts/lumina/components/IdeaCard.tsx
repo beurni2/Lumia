@@ -99,6 +99,7 @@ export function IdeaCard({
   index,
   highlight,
   fitsYourStyle,
+  suppressKicker,
 }: {
   idea: IdeaCardData;
   index?: number;
@@ -112,6 +113,17 @@ export function IdeaCard({
    * — most renders should never show this pill.
    */
   fitsYourStyle?: boolean;
+  /**
+   * PHASE Z2 — when true, suppress the "idea N" / "first idea"
+   * kicker text. Used by `<TodaysPickHero>` so the hero's own
+   * "Today's pick" kicker doesn't compete with IdeaCard's
+   * fallback "first idea" label (kicker text defaults to "first
+   * idea" when `index` is absent — passing `index` would have
+   * been worse since "idea 1" also conflicts with the hero
+   * promotion). The kicker row itself is preserved when other
+   * elements (`patternBadge`, `fitsBadge`) need to render in it.
+   */
+  suppressKicker?: boolean;
 }) {
   // Surface contract drift loudly in development. If the ideator
   // ever stops returning the body fields we expect, we want to
@@ -147,15 +159,26 @@ export function IdeaCard({
   // model declared a pattern (post-v2-prompt batches).
   const patternLabel = idea.pattern ? PATTERN_LABELS[idea.pattern] : null;
 
+  // Skip the kicker row entirely when there's nothing to put in
+  // it — happens in the Z2 hero case where the kicker text is
+  // suppressed AND there's no pattern badge / fits-style pill to
+  // anchor. Otherwise we'd render an empty 10-px-tall row with
+  // unwanted bottom margin above the hook.
+  const showKickerRow =
+    !suppressKicker || patternLabel !== null || fitsYourStyle === true;
+
   return (
     <View
       style={[styles.card, highlight ? styles.cardHighlight : null]}
       accessibilityRole="summary"
     >
+      {showKickerRow ? (
       <View style={styles.kickerRow}>
-        <Text style={styles.cardKicker}>
-          {index ? `idea ${index}` : "first idea"}
-        </Text>
+        {!suppressKicker ? (
+          <Text style={styles.cardKicker}>
+            {index ? `idea ${index}` : "first idea"}
+          </Text>
+        ) : null}
         {patternLabel ? (
           <View style={styles.patternBadge}>
             <Text style={styles.patternBadgeText}>{patternLabel}</Text>
@@ -170,6 +193,7 @@ export function IdeaCard({
           </View>
         ) : null}
       </View>
+      ) : null}
       <Text style={styles.cardHook}>{idea.hook}</Text>
 
       {/* PHASE Z1 — "Why this fits you" trust line. Composed
