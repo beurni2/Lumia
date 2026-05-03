@@ -95,7 +95,10 @@ import {
 // pattern_variation pool. NO Claude / cost / API change. Pure deterministic
 // given (cores, regenerateSalt, noveltyContext, recentPremises). See
 // module header for the meta-shape contract + scorer-side semantics.
-import { generateCoreCandidates } from "./coreCandidateGenerator";
+import {
+  generateCoreCandidates,
+  type AntiCopyRejectsTelemetry,
+} from "./coreCandidateGenerator";
 // PHASE Y6 — cohesive author surfaces a `scenarioFingerprint` on
 // every core_native candidate's meta + the catalog exposes the
 // distinct anchors used for served-log probing. The `extractAnchor`
@@ -223,6 +226,19 @@ export type HybridIdeatorResult = {
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
+    /**
+     * PHASE D5-QA — additive surface for the reject-source telemetry
+     * D4 already aggregates inside `coreCandidateGenerator`. Lets the
+     * D5-QA harness (and only QA harnesses) read aggregate counts +
+     * bounded sample tuples directly off the orchestrator result
+     * instead of scraping the structured `phase_y5.core_native_generated`
+     * log. Optional so the cache replay path (which doesn't run
+     * core-native generation) can omit it. Production callers ignore
+     * this field, same as the rest of `qaTelemetry`.
+     */
+    coreNative?: {
+      antiCopyRejects: AntiCopyRejectsTelemetry;
+    };
   };
 };
 
@@ -4544,6 +4560,15 @@ export async function runHybridIdeator(
       perIdea: qaPerIdea,
       scenarioFingerprintsThisBatch,
       coreNativeAnchorsUsed,
+      // PHASE D5-QA — surface the D4 reject-source aggregate on the
+      // orchestrator result so the d5Qa.ts harness can read it
+      // structurally. `coreNativeResult.stats.antiCopyRejects` is
+      // ALWAYS populated (defaults `{ corpus:0, style_defs:0 }, []`
+      // for cold-start / no-reject batches), so consumers can rely
+      // on the field without null checks.
+      coreNative: {
+        antiCopyRejects: coreNativeResult.stats.antiCopyRejects,
+      },
     },
   };
 }
