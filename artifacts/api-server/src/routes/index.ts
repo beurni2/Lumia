@@ -20,6 +20,12 @@ import visionStyleRouter from "./visionStyle";
 import ideaFeedbackRouter from "./ideaFeedback";
 import tasteCalibrationRouter from "./tasteCalibration";
 import enhancementsRouter from "./enhancements";
+// PHASE Z1-QA — dev-gated willingness ranker effectiveness
+// report. Mounted only outside production (defense-in-depth
+// re-check at handler entry too). Intended to be merged-and-
+// removed in the same cycle the Z1 measurement window closes —
+// same pattern D5-QA used.
+import z1QaRouter from "./z1Qa";
 
 const router: IRouter = Router();
 
@@ -58,6 +64,13 @@ router.use(enhancementsRouter);
 //     5-question onboarding bias for the ideator). Pure additive;
 //     skipped state is honoured so we never re-prompt.
 router.use(tasteCalibrationRouter);
+
+// PHASE Z1-QA — dev-only. The route handler also 404s in
+// production as defense-in-depth, but skipping the mount here
+// keeps the production router table free of any Z1-QA path.
+if (process.env.NODE_ENV !== "production") {
+  router.use(z1QaRouter);
+}
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //
