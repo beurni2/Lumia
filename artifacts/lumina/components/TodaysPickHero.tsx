@@ -39,7 +39,8 @@
  *     so it IS today's pick).
  */
 
-import React from "react";
+import { useRouter } from "expo-router";
+import React, { useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { lumina } from "@/constants/colors";
@@ -64,12 +65,41 @@ export function TodaysPickHero({
    *  "Fits your style" pill window. */
   fitsYourStyle?: boolean;
 }) {
+  const router = useRouter();
+
+  // PHASE Z3 — kicker row tap opens the dedicated /pick-for-you
+  // screen. We pass the same JSON-encoded idea payload that
+  // /film-this-now and /create receive, so the dedicated screen
+  // does ZERO new fetches. This handler stays inside the hero
+  // (rather than threaded through props) because navigation here
+  // is presentation-side: no ideator signal fires for "examined
+  // the pick". The Home screen's signal accounting is unchanged.
+  const openDedicatedScreen = useCallback(() => {
+    router.push({
+      pathname: "/pick-for-you",
+      params: { idea: JSON.stringify(idea) },
+    });
+  }, [router, idea]);
+
   return (
     <View style={styles.heroBlock} accessibilityLabel="Today's pick">
-      <View style={styles.kicker}>
+      {/* Kicker row is now tappable — opens the dedicated full-screen
+          surface. The label gets a small "→" affordance so the
+          user knows there's more behind it; tap target is the whole
+          row, padded by `kicker` for comfort. */}
+      <Pressable
+        onPress={openDedicatedScreen}
+        accessibilityRole="button"
+        accessibilityLabel="Open today's pick on its own screen"
+        style={({ pressed }) => [
+          styles.kicker,
+          pressed ? styles.kickerPressed : null,
+        ]}
+      >
         <View style={styles.kickerDot} />
         <Text style={styles.kickerLabel}>Today's pick</Text>
-      </View>
+        <Text style={styles.kickerArrow}>→</Text>
+      </Pressable>
 
       {/* The card itself — reuse the canonical IdeaCard with
           highlight=true so the teal border affordance the
@@ -134,6 +164,23 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
     marginLeft: 2,
+    // Pressable padding so the tap target reaches a comfortable
+    // ~44pt height without inflating the visual height of the
+    // kicker row. paddingVertical extends the hit area beyond
+    // what the dot+text would otherwise allow.
+    paddingVertical: 6,
+    paddingRight: 8,
+    alignSelf: "flex-start",
+  },
+  kickerPressed: {
+    opacity: 0.65,
+  },
+  kickerArrow: {
+    fontFamily: fontFamily.bodyBold,
+    color: lumina.firefly,
+    fontSize: 12,
+    marginLeft: 2,
+    letterSpacing: 0.4,
   },
   // Tiny solid-teal dot before the kicker label so the
   // promotion reads as a single graphical unit rather than

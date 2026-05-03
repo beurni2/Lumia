@@ -3,19 +3,29 @@
  * AFTER the Style Profile reveal OR after the user has viewed 2-3
  * ideas on Home. Tap-only, ~10 seconds end to end, no typing.
  *
- * Three single-select steps with auto-advance (no Next button):
- *   step 0 → format
- *   step 1 → tone
- *   step 2 → hook style
+ * Three steps with auto-advance behaviour (PHASE Z3 — format and
+ * hook now allow up to 3 selections; tone remains single-select):
+ *   step 0 → format     (multi, ≤3, Continue button OR auto-adv on 3rd)
+ *   step 1 → tone       (single, auto-advance on tap)
+ *   step 2 → hook style (multi, ≤3, Continue button OR auto-adv on 3rd)
  *   step 3 → confirmation card with fade + scale, ~800 ms, then
  *            onComplete()
  *
- * Hook style is single-select on this surface (the persisted shape
- * still carries `preferredHookStyles: PreferredHookStyle[]` so the
- * server zod schema is unchanged — we just send a 1-element array).
- * Multi-select would require a Next button, which the spec
- * explicitly forbids ("auto advances (no next button)"); making
- * hook single-select is the smallest change that honours that.
+ * Multi-select rules (PHASE Z3):
+ *   • Persisted shape was always `preferredFormats: PreferredFormat[]`
+ *     and `preferredHookStyles: PreferredHookStyle[]` — server zod
+ *     schema is unchanged, we just stop constraining ourselves to a
+ *     1-element array.
+ *   • Tone stays single because the server stores `preferredTone:
+ *     PreferredTone | null` (a single nullable enum); switching it
+ *     to an array would force a server schema migration and updates
+ *     to every consumer (e.g. TONE_GUIDANCE[cal.preferredTone]).
+ *     The "additive only, ZERO migrations" discipline keeps tone
+ *     single-select on this surface.
+ *   • Multi steps render a "Continue →" pill when ≥1 selected.
+ *     Tapping the 3rd selection auto-advances (max reached) so the
+ *     "no Next button if I already know" UX still feels tight for
+ *     decisive users.
  *
  * Save side effects fire SYNCHRONOUSLY when the hook step's choice
  * is tapped (i.e. as we transition into step 3) so the fire-and-
@@ -129,6 +139,13 @@ const HOOK_SUMMARY: Record<PreferredHookStyle, string> = {
   contrast_hook: "“say vs do”",
 };
 
+// PHASE Z3 — multi-select cap. We allow the user to tap up to 3
+// options on the format and hook steps. The 3rd tap auto-advances
+// (matches the original "no Next button if I'm decisive" feel);
+// 1 or 2 selections require a Continue tap. Persisted shape is
+// already an array so this is a UI-only widening.
+const MULTI_SELECT_MAX = 3;
+
 // Confirmation animation budget. Spec calls for "fade + slight
 // scale, ~800 ms" — we split that into a fast intro (220 ms fade
 // + scale-up overshoot) and a hold so the user can read the three
@@ -153,9 +170,12 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const isRefresh = mode === "refresh";
   // step 0 = format, 1 = tone, 2 = hook, 3 = confirmation
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  const [format, setFormat] = useState<PreferredFormat | null>(null);
+  // PHASE Z3 — format and hookStyles are arrays (≤3). Tone stays a
+  // single nullable enum because the server schema persists it as
+  // a scalar; see the file-header comment.
+  const [formats, setFormats] = useState<PreferredFormat[]>([]);
   const [tone, setTone] = useState<PreferredTone | null>(null);
-  const [hookStyle, setHookStyle] = useState<PreferredHookStyle | null>(null);
+  const [hookStyles, setHookStyles] = useState<PreferredHookStyle[]>([]);
 
   // Single in-flight latch: blocks double-tap from re-running the
   // save side effects when the hook step's choice fires twice in
@@ -179,15 +199,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // home-screen's visible-adaptation effect on the next focus.
   // Fired exactly once when the user picks their hook style.
   const fireSaveSideEffects = useCallback(
-    (chosenFormat: PreferredFormat, chosenTone: PreferredTone, chosenHook: PreferredHookStyle) => {
+    (
+      chosenFormats: PreferredFormat[],
+      chosenTone: PreferredTone,
+      chosenHooks: PreferredHookStyle[],
+    ) => {
       const doc: TasteCalibrationDoc = {
         ...EMPTY_CALIBRATION,
-        preferredFormats: [chosenFormat],
+        // PHASE Z3 — both arrays may carry 1..3 entries. Server zod
+        // schema (`z.array(...).default([])`) accepts this without
+        // any change; downstream consumers already iterate.
+        preferredFormats: chosenFormats,
         preferredTone: chosenTone,
-        // Persisted shape is still an array — server zod schema is
-        // unchanged. The Quick Tune just constrains itself to a
-        // single-element selection so each step can auto-advance.
-        preferredHookStyles: [chosenHook],
+        preferredHookStyles: chosenHooks,
         skipped: false,
       };
       successHaptic();
@@ -214,15 +238,43 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
     [],
   );
 
-  const handleFormatPick = useCallback(
+  // PHASE Z3 — multi-select toggle for the format step. Tapping a
+  // selected item removes it; tapping a new one appends, capped at
+  // MULTI_SELECT_MAX. Auto-advance fires the moment the user
+  // reaches the cap so decisive users keep the original "tap and
+  // go" rhythm.
+  const handleFormatToggle = useCallback(
     (v: PreferredFormat) => {
       if (busy) return;
       lightHaptic();
-      setFormat(v);
-      setStep(1);
+      setFormats((prev) => {
+        const already = prev.includes(v);
+        if (already) {
+          return prev.filter((x) => x !== v);
+        }
+        if (prev.length >= MULTI_SELECT_MAX) {
+          // At cap — ignore the new tap (the option also renders
+          // visually disabled below, this is defense in depth).
+          return prev;
+        }
+        const next = [...prev, v];
+        if (next.length === MULTI_SELECT_MAX) {
+          // Auto-advance on the cap-reaching tap.
+          setStep(1);
+        }
+        return next;
+      });
     },
     [busy],
   );
+
+  // Continue button on the format step — fires when the user is
+  // happy with 1 or 2 selections (3 auto-advances above).
+  const handleFormatContinue = useCallback(() => {
+    if (busy || formats.length === 0) return;
+    lightHaptic();
+    setStep(1);
+  }, [busy, formats.length]);
 
   const handleTonePick = useCallback(
     (v: PreferredTone) => {
@@ -234,31 +286,55 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
     [busy],
   );
 
-  const handleHookPick = useCallback(
+  // PHASE Z3 — multi-select toggle for the hook step. Mirrors the
+  // format handler: append/remove with a cap of 3. The cap-reaching
+  // tap fires the save side effects directly (same one-shot guard
+  // as the prior single-tap path) and transitions to confirmation.
+  const handleHookToggle = useCallback(
     (v: PreferredHookStyle) => {
-      // Double-tap latch: the hook step's tap is the one that
-      // fires the save POST and arms the post-cal refresh flag.
-      // We only ever want that to happen once per session, so
-      // bail immediately if a previous tap already started the
-      // confirmation transition. The ref check is the real
-      // guarantee — `busy` state lags by a render and would let
-      // a same-frame double-press through.
-      if (saveFiredRef.current) return;
+      if (busy) return;
       // Defensive: format and tone should always be set by the
-      // time we land on step 2, but if a developer tool or
-      // unexpected re-render skipped the earlier steps, bail
-      // without firing the side effects rather than persisting a
-      // half-empty doc.
-      if (format === null || tone === null) return;
-      saveFiredRef.current = true;
-      setBusy(true);
+      // time we land on step 2; bail without persisting half-state.
+      if (formats.length === 0 || tone === null) return;
       lightHaptic();
-      setHookStyle(v);
-      fireSaveSideEffects(format, tone, v);
-      setStep(3);
+      setHookStyles((prev) => {
+        const already = prev.includes(v);
+        if (already) {
+          return prev.filter((x) => x !== v);
+        }
+        if (prev.length >= MULTI_SELECT_MAX) return prev;
+        const next = [...prev, v];
+        if (next.length === MULTI_SELECT_MAX) {
+          // Cap reached — fire the terminal save side effects on
+          // this same synchronous tick, guarded by the one-shot
+          // ref so a duplicate event can't double-fire.
+          if (!saveFiredRef.current) {
+            saveFiredRef.current = true;
+            setBusy(true);
+            fireSaveSideEffects(formats, tone, next);
+            setStep(3);
+          }
+        }
+        return next;
+      });
     },
-    [format, tone, fireSaveSideEffects],
+    [busy, formats, tone, fireSaveSideEffects],
   );
+
+  // Continue button on the hook step — fires the terminal save
+  // side effects when the user is happy with 1 or 2 selections.
+  // Uses the same one-shot guard as the cap-reaching auto-advance
+  // path so the two terminal entry points can't both fire.
+  const handleHookContinue = useCallback(() => {
+    if (busy) return;
+    if (saveFiredRef.current) return;
+    if (formats.length === 0 || tone === null || hookStyles.length === 0) return;
+    saveFiredRef.current = true;
+    setBusy(true);
+    lightHaptic();
+    fireSaveSideEffects(formats, tone, hookStyles);
+    setStep(3);
+  }, [busy, formats, tone, hookStyles, fireSaveSideEffects]);
 
   const handleSkip = useCallback(() => {
     // Same synchronous one-shot guard as the hook pick — the two
@@ -312,16 +388,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const step0Title = isRefresh
     ? "Your taste profile is 30+ days old — let's refresh it"
     : "What format feels most like you?";
-  const step0Sub = isRefresh
-    ? "Quick re-check so your ideas keep matching your voice. Tap one — same as before."
-    : "Tap one — no wrong answer.";
+  // PHASE Z3 — step0 sub-copy is rendered inline below (it's a
+  // multi-select prompt now, so the wording is unified across the
+  // initial / refresh paths in the JSX itself).
 
-  if (step === 3 && format && tone && hookStyle) {
+  if (step === 3 && formats.length > 0 && tone && hookStyles.length > 0) {
     return (
       <ConfirmationCard
-        formatLabel={FORMAT_SUMMARY[format]}
+        // PHASE Z3 — chip arrays may carry 1..3 entries each; the
+        // confirmation card flexWrap-renders them in the order the
+        // user picked them.
+        formatLabels={formats.map((f) => FORMAT_SUMMARY[f])}
         toneLabel={TONE_SUMMARY[tone]}
-        hookLabel={HOOK_SUMMARY[hookStyle]}
+        hookLabels={hookStyles.map((h) => HOOK_SUMMARY[h])}
         // PHASE Y14 — confirmation kicker mirrors the entry framing:
         // a refresh closes with "Refreshed" so the creator knows the
         // re-pin landed; initial flow keeps the original "Got it".
@@ -344,12 +423,26 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       {step === 0 ? (
         <>
           <Text style={styles.heroTitle}>{step0Title}</Text>
-          <Text style={styles.heroSub}>{step0Sub}</Text>
-          <SingleSelect
+          {/* PHASE Z3 — sub-copy reflects the new multi-select cap so
+              the user knows up front they can pick more than one. */}
+          <Text style={styles.heroSub}>
+            {isRefresh
+              ? "Tap up to 3 — same as before, your favorites."
+              : "Tap up to 3 — pick whatever feels true."}
+          </Text>
+          <MultiSelect
             choices={FORMAT_CHOICES}
-            value={format}
-            onChange={handleFormatPick}
+            values={formats}
+            onToggle={handleFormatToggle}
             disabled={busy}
+            max={MULTI_SELECT_MAX}
+          />
+          <ContinueButton
+            visible={formats.length > 0 && formats.length < MULTI_SELECT_MAX}
+            onPress={handleFormatContinue}
+            disabled={busy}
+            // Tiny counter so the user knows they can pick more.
+            label={`Continue (${formats.length}/${MULTI_SELECT_MAX}) →`}
           />
         </>
       ) : null}
@@ -370,12 +463,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       {step === 2 ? (
         <>
           <Text style={styles.heroTitle}>Which opener feels most like you?</Text>
-          <Text style={styles.heroSub}>Tap one — no wrong answer.</Text>
-          <SingleSelect
+          <Text style={styles.heroSub}>Tap up to 3 — your go-to openers.</Text>
+          <MultiSelect
             choices={HOOK_CHOICES}
-            value={hookStyle}
-            onChange={handleHookPick}
+            values={hookStyles}
+            onToggle={handleHookToggle}
             disabled={busy}
+            max={MULTI_SELECT_MAX}
+          />
+          <ContinueButton
+            visible={hookStyles.length > 0 && hookStyles.length < MULTI_SELECT_MAX}
+            onPress={handleHookContinue}
+            disabled={busy}
+            label={`Continue (${hookStyles.length}/${MULTI_SELECT_MAX}) →`}
           />
         </>
       ) : null}
@@ -399,14 +499,14 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
 /* =================== Confirmation card =================== */
 
 function ConfirmationCard({
-  formatLabel,
+  formatLabels,
   toneLabel,
-  hookLabel,
+  hookLabels,
   kickerLabel,
 }: {
-  formatLabel: string;
+  formatLabels: string[];
   toneLabel: string;
-  hookLabel: string;
+  hookLabels: string[];
   kickerLabel: string;
 }) {
   // Reanimated shared values: opacity 0→1 over 220 ms (snappy fade
@@ -446,18 +546,24 @@ function ConfirmationCard({
         <Text style={styles.confirmTitle}>
           Making your ideas more:
         </Text>
+        {/* PHASE Z3 — chips render in flexWrap as a single cluster
+            (format chips, then tone, then hook) so 1..3 entries per
+            category land cleanly on small screens without per-group
+            dot separators that get awkward when one group has 3. */}
         <View style={styles.confirmChips}>
-          <View style={styles.confirmChip}>
-            <Text style={styles.confirmChipText}>{formatLabel}</Text>
-          </View>
-          <Text style={styles.confirmDot}>•</Text>
-          <View style={styles.confirmChip}>
+          {formatLabels.map((label) => (
+            <View key={`f-${label}`} style={styles.confirmChip}>
+              <Text style={styles.confirmChipText}>{label}</Text>
+            </View>
+          ))}
+          <View key={`t-${toneLabel}`} style={styles.confirmChip}>
             <Text style={styles.confirmChipText}>{toneLabel}</Text>
           </View>
-          <Text style={styles.confirmDot}>•</Text>
-          <View style={styles.confirmChip}>
-            <Text style={styles.confirmChipText}>{hookLabel}</Text>
-          </View>
+          {hookLabels.map((label) => (
+            <View key={`h-${label}`} style={styles.confirmChip}>
+              <Text style={styles.confirmChipText}>{label}</Text>
+            </View>
+          ))}
         </View>
       </Animated.View>
     </View>
@@ -465,6 +571,112 @@ function ConfirmationCard({
 }
 
 /* =================== Sub-components =================== */
+
+/**
+ * MultiSelect — PHASE Z3.
+ *
+ * Tap to toggle, capped at `max`. Once the cap is reached, the
+ * unselected options render in the disabled style (and `onToggle`
+ * is also defended against the over-cap case in the caller). The
+ * accessibility role is "checkbox" rather than "radio" so screen
+ * readers announce the multi-select semantics.
+ */
+function MultiSelect<T extends string>({
+  choices,
+  values,
+  onToggle,
+  disabled,
+  max,
+}: {
+  choices: Choice<T>[];
+  values: T[];
+  onToggle: (v: T) => void;
+  disabled?: boolean;
+  max: number;
+}) {
+  const atCap = values.length >= max;
+  return (
+    <View style={styles.choices}>
+      {choices.map((c) => {
+        const selected = values.includes(c.value);
+        // Cap-locked: an unselected option is non-interactive once
+        // the user has hit the cap, but a selected option always
+        // remains tappable so it can be removed.
+        const capLocked = atCap && !selected;
+        const fullyDisabled = disabled || capLocked;
+        return (
+          <Pressable
+            key={c.value}
+            onPress={() => onToggle(c.value)}
+            disabled={fullyDisabled}
+            style={({ pressed }) => [
+              styles.choice,
+              selected ? styles.choiceSelected : null,
+              pressed && !fullyDisabled && !selected ? styles.choicePressed : null,
+              fullyDisabled ? styles.choiceDisabled : null,
+            ]}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: selected, disabled: fullyDisabled }}
+            accessibilityLabel={c.label}
+          >
+            <Text
+              style={[
+                styles.choiceLabel,
+                selected ? styles.choiceLabelSelected : null,
+              ]}
+            >
+              {c.label}
+            </Text>
+            {c.sub ? <Text style={styles.choiceSub}>{c.sub}</Text> : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * ContinueButton — PHASE Z3.
+ *
+ * Small filled-teal pill that appears below a multi-select once
+ * the user has at least one selection but hasn't reached the cap
+ * (the cap-reaching tap auto-advances, so Continue would be
+ * redundant in that state). Hidden via `visible` rather than
+ * unmounted so the layout doesn't jump as the user toggles.
+ */
+function ContinueButton({
+  visible,
+  onPress,
+  disabled,
+  label,
+}: {
+  visible: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  if (!visible) {
+    // Reserve no space when hidden — the layout below (Skip link)
+    // sits naturally against the choices when there's nothing to
+    // continue from yet.
+    return null;
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.continueBtn,
+        pressed && !disabled ? styles.continueBtnPressed : null,
+        disabled ? styles.continueBtnDisabled : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={styles.continueBtnLabel}>{label}</Text>
+    </Pressable>
+  );
+}
 
 function SingleSelect<T extends string>({
   choices,
@@ -592,6 +804,31 @@ const styles = StyleSheet.create({
   skipLabel: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+    letterSpacing: 0.4,
+  },
+  /* ---- Continue button (PHASE Z3 multi-select advance) ---- */
+  continueBtn: {
+    backgroundColor: lumina.firefly,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+    marginBottom: 6,
+    alignSelf: "stretch",
+  },
+  continueBtnPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
+  },
+  continueBtnDisabled: {
+    opacity: 0.45,
+  },
+  continueBtnLabel: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#0A0824",
     fontSize: 14,
     letterSpacing: 0.4,
   },
