@@ -229,6 +229,96 @@ const RAW_CORPUS: readonly CorpusHookEntry[] = [
   { hook: 'i said "tonight is my self-care night"... 47 minutes later i\'m stress-eating ice cream in the dark', cluster: "chaotic_confession", anchor: "night" },
   { hook: 'i joined the "no contact" challenge with my situationship... my thumbs have other plans', cluster: "chaotic_confession", anchor: "thumbs" },
   { hook: 'tried being low-maintenance... my lash appointment bill said "lmao nice try girl"', cluster: "overdramatic_reframe", anchor: "lash" },
+
+  // ---- PHASE D14 — second user-blessed corpus expansion (+74) ----- //
+  // Source: attached_assets/1-my_just_one_thing_store_run_just_*.txt
+  // (76 numbered hook lines authored by the user — file uses two
+  // distinct "17-..." entries, hence 76 not 75; 2 skipped for
+  // cliché-allowlist discipline — "...my phone knows im lying when
+  // i say im fine" trips /\bknows i'?m lying\b/, "...metabolism
+  // filed for divorce" trips /\bfiled for (?:emotional|divorce|
+  // bankruptcy)/). Cluster assignment: deadpan-stare beats →
+  // dry_deadpan; real-time admission/escalation → chaotic_confession;
+  // tiny inconvenience catastrophized → overdramatic_reframe; soft
+  // introspective notice ("i quietly realized..." / truism reframe)
+  // → quiet_realization. Distribution restores cluster balance:
+  // post-D14 floor ~35 per cluster (was 29), pool 159 → 233. Y11
+  // discipline preserved — additive only, no schema/cache/Claude/
+  // migration changes.
+  { hook: 'my "just one thing" store run just cost me $92', cluster: "dry_deadpan", anchor: "store" },
+  { hook: 'my situationship hit me with "lol"... after i caught feelings', cluster: "overdramatic_reframe", anchor: "situationship" },
+  { hook: 'i put on gym clothes at 7am... by 7:45 i was back in bed', cluster: "dry_deadpan", anchor: "gym" },
+  { hook: 'adulting tried to warn me... but i ignored it and ordered takeout', cluster: "overdramatic_reframe", anchor: "takeout" },
+  { hook: 'started a side hustle for extra cash... now i have zero free time', cluster: "dry_deadpan", anchor: "hustle" },
+  { hook: 'i confessed my love drunk... then sobered up and pretended it was a joke', cluster: "chaotic_confession", anchor: "love" },
+  { hook: 'i still pay for my ex\'s spotify... two years later', cluster: "chaotic_confession", anchor: "spotify" },
+  { hook: 'i told my therapist everything... then never went back', cluster: "chaotic_confession", anchor: "therapist" },
+  { hook: 'i faked being sick... to avoid my own birthday party', cluster: "chaotic_confession", anchor: "birthday" },
+  { hook: 'my gym app just roasted my 2026 fitness goals', cluster: "overdramatic_reframe", anchor: "gym" },
+  { hook: 'my boss emailed... said "we need to talk"', cluster: "dry_deadpan", anchor: "boss" },
+  { hook: 'dating apps know im lonely but keep matching me with red flags', cluster: "quiet_realization", anchor: "dating" },
+  { hook: 'my coffee order costs more than my childhood allowance', cluster: "overdramatic_reframe", anchor: "coffee" },
+  { hook: 'hustle culture called... it said take a break', cluster: "overdramatic_reframe", anchor: "hustle" },
+  { hook: 'my rent just ate my entire paycheck alive', cluster: "overdramatic_reframe", anchor: "rent" },
+  { hook: 'my dating profile is 100% honest and still gets zero matches', cluster: "dry_deadpan", anchor: "dating" },
+  { hook: 'fitness app said i only burned 47 calories today', cluster: "dry_deadpan", anchor: "fitness" },
+  { hook: 'my group chat called an emergency meeting about me', cluster: "overdramatic_reframe", anchor: "chat" },
+  { hook: 'meal prepping sounded way better in my head', cluster: "quiet_realization", anchor: "meal" },
+  { hook: 'my therapist said "tell me about your mother" and i talked about taxes', cluster: "chaotic_confession", anchor: "taxes" },
+  { hook: 'hustle culture promised me freedom not 3am anxiety', cluster: "quiet_realization", anchor: "hustle" },
+  { hook: 'my amazon cart knows more about me than my mom', cluster: "overdramatic_reframe", anchor: "cart" },
+  { hook: 'being a functioning adult is 90% pretending', cluster: "quiet_realization", anchor: "adult" },
+  { hook: 'crypto taught me money can disappear faster than my motivation', cluster: "quiet_realization", anchor: "crypto" },
+  { hook: 'my plants are the only living things i can keep alive', cluster: "quiet_realization", anchor: "plants" },
+  { hook: 'quiet quitting my own life goals', cluster: "dry_deadpan", anchor: "goals" },
+  { hook: 'my bank app knows when im sad shopping', cluster: "overdramatic_reframe", anchor: "bank" },
+  { hook: 'being 30 is just 20 but with more back pain', cluster: "quiet_realization", anchor: "back" },
+  { hook: 'delivery apps have ruined my cooking ambition', cluster: "quiet_realization", anchor: "cooking" },
+  { hook: 'self care is just expensive avoidance', cluster: "quiet_realization", anchor: "care" },
+  { hook: 'my camera roll is 80% screenshots of things i\'ll never do', cluster: "dry_deadpan", anchor: "camera" },
+  { hook: 'adult friendships are just "we should catch up" texts', cluster: "quiet_realization", anchor: "friendships" },
+  { hook: 'my airpods overheard my therapy and now push therapy ads', cluster: "overdramatic_reframe", anchor: "airpods" },
+  { hook: 'work emails at 11pm should be illegal', cluster: "dry_deadpan", anchor: "emails" },
+  { hook: 'my mental health app just charged me for ghosting me', cluster: "overdramatic_reframe", anchor: "app" },
+  { hook: 'grocery store trips are basically therapy with receipts', cluster: "quiet_realization", anchor: "grocery" },
+  { hook: 'side hustle turned into main struggle', cluster: "dry_deadpan", anchor: "hustle" },
+  { hook: 'my fridge light is the only thing glowing in my life', cluster: "dry_deadpan", anchor: "fridge" },
+  { hook: 'dating in 2026 is just trauma bonding with extra steps', cluster: "quiet_realization", anchor: "dating" },
+  { hook: 'my calendar is full and my soul is empty', cluster: "dry_deadpan", anchor: "calendar" },
+  { hook: 'coffee is the only personality trait i have left', cluster: "dry_deadpan", anchor: "coffee" },
+  { hook: 'my inner child called... said grow up', cluster: "overdramatic_reframe", anchor: "child" },
+  { hook: 'my savings goal moved the finish line again', cluster: "overdramatic_reframe", anchor: "savings" },
+  { hook: 'being online is my full-time job with no pay', cluster: "quiet_realization", anchor: "online" },
+  { hook: 'my ex\'s spotify playlist still knows me better', cluster: "quiet_realization", anchor: "spotify" },
+  { hook: 'holiday shopping budget called it quits', cluster: "overdramatic_reframe", anchor: "shopping" },
+  { hook: 'my motivation left without saying goodbye', cluster: "overdramatic_reframe", anchor: "motivation" },
+  { hook: 'my echo dot heard my crying and suggested sad songs', cluster: "overdramatic_reframe", anchor: "echo" },
+  { hook: '2026 me is already disappointed in 2025 me', cluster: "quiet_realization", anchor: "disappointed" },
+  { hook: 'dating apps said my vibe was "unavailable"', cluster: "overdramatic_reframe", anchor: "vibe" },
+  { hook: 'my car insurance laughed at my driving record', cluster: "overdramatic_reframe", anchor: "insurance" },
+  { hook: 'grocery prices just humbled me', cluster: "overdramatic_reframe", anchor: "grocery" },
+  { hook: 'work from home became work from bed', cluster: "dry_deadpan", anchor: "home" },
+  { hook: 'my ex texted "happy for you"', cluster: "chaotic_confession", anchor: "ex" },
+  { hook: 'my mental health said "not today"', cluster: "overdramatic_reframe", anchor: "health" },
+  { hook: 'alarm clock and i are done', cluster: "dry_deadpan", anchor: "alarm" },
+  { hook: 'dating in 2026 is pay to play', cluster: "dry_deadpan", anchor: "dating" },
+  { hook: 'savings goal hit the snooze button', cluster: "overdramatic_reframe", anchor: "savings" },
+  { hook: 'life update: still figuring it out', cluster: "dry_deadpan", anchor: "life" },
+  { hook: 'quietly realizing my glow up was just good lighting', cluster: "quiet_realization", anchor: "lighting" },
+  { hook: 'i quietly realized i\'m the stable friend now', cluster: "quiet_realization", anchor: "friend" },
+  { hook: 'quiet realization i\'m becoming my parents', cluster: "quiet_realization", anchor: "parents" },
+  { hook: 'quietly accepting my dating app era is over', cluster: "quiet_realization", anchor: "dating" },
+  { hook: 'i realized i\'m not "figuring it out" anymore', cluster: "quiet_realization", anchor: "figuring" },
+  { hook: 'my independence just became loneliness with taxes', cluster: "quiet_realization", anchor: "independence" },
+  { hook: 'i quietly realized i\'m the group chat dad', cluster: "quiet_realization", anchor: "dad" },
+  { hook: 'my dream job became "at least i have benefits"', cluster: "quiet_realization", anchor: "job" },
+  { hook: 'my "one day" plans became "maybe never"', cluster: "quiet_realization", anchor: "plans" },
+  { hook: 'i quietly realized i\'m allergic to commitment', cluster: "quiet_realization", anchor: "commitment" },
+  { hook: 'i realized i\'m not "bad with money" i\'m broke', cluster: "quiet_realization", anchor: "money" },
+  { hook: 'quietly realizing my friends are all married now', cluster: "quiet_realization", anchor: "friends" },
+  { hook: 'my confidence just became delusional', cluster: "quiet_realization", anchor: "confidence" },
+  { hook: 'quiet realization my "chill" is actually anxiety', cluster: "quiet_realization", anchor: "chill" },
+  { hook: 'my "figuring things out" phase is a lifestyle', cluster: "quiet_realization", anchor: "phase" },
 ];
 
 // ---------------------------------------------------------------- //
