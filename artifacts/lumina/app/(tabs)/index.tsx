@@ -294,7 +294,8 @@ export default function HomeScreen() {
 
   // PHASE Y13 — refresh-prompt resurface. Once per cold start,
   // check the server calibration doc; if `completedAt` is older
-  // than CALIBRATION_STALE_DAYS (90 d) and the doc isn't skipped,
+  // than CALIBRATION_STALE_DAYS (30 d after Y14, was 90 d) and
+  // the doc isn't skipped,
   // wipe the local `hasCompletedTasteOnboarding` sticky flag so
   // the existing Quick Tune gate below fires the calibration
   // modal naturally on the next behaviour trigger (count >= 2).

@@ -218,20 +218,17 @@ export function needsCalibration(cal: TasteCalibration | null): boolean {
  * `artifacts/api-server/src/lib/tasteCalibration.ts` so client gate
  * and any future server job apply the same window.
  *
- * 90 days picked because:
- *   • Long enough that a creator who completed once and is happy
- *     never sees a re-prompt during normal use (most users won't
- *     hit 90 days of active app time without their feedback already
- *     re-shaping the implicit memory layer to match their drift).
- *   • Short enough that a creator whose taste materially shifts
- *     over a season gets a chance to re-pin the EXPLICIT layer
- *     (preferredTone, hookStyles) which the implicit memory cannot
- *     overwrite — the calibration `preferredTone` is a hard
- *     short-circuit in `resolveVoiceCluster`, so a stale tone pin
- *     can persistently mis-target every batch even when the
- *     implicit memory is fresh.
+ * PHASE Y14 — tightened 90 → 30 days. The Y13 90-day window was a
+ * conservative first pass; field feedback showed creator taste
+ * materially shifts on a much shorter cycle (a single content-
+ * format A/B run, a tone-pivot week, a niche change). 30 days
+ * catches drift while the EXPLICIT pin (preferredTone, hookStyles)
+ * still matters for `resolveVoiceCluster`'s hard short-circuit,
+ * which the implicit memory cannot overwrite. The behavior gate
+ * (count >= 2 ideas viewed + once-per-process latch) keeps the
+ * prompt from feeling pushy at the new tighter cadence.
  */
-export const CALIBRATION_STALE_DAYS = 90;
+export const CALIBRATION_STALE_DAYS = 30;
 
 /**
  * Pure predicate — true when the document is a COMPLETED (non-

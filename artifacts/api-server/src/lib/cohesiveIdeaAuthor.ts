@@ -32,6 +32,7 @@ import { ideaSchema, type Idea } from "./ideaGen.js";
 import {
   validateComedy,
   validateAntiCopyDetailed,
+  computeSeedHash,
   type AntiCopyMatch,
   type ComedyRejectionReason,
 } from "./comedyValidation.js";
@@ -78,6 +79,14 @@ export type CohesiveAuthorResult =
       idea: Idea;
       meta: CandidateMeta;
       scenarioFingerprint: string;
+      /** PHASE D15-alt — surfaces a `style_defs_self` self-recipe
+       *  exemption event so the recipe loop can roll it under the
+       *  new bySource bucket. Only populated when the unigram-
+       *  fallback gate detected a match against the candidate's
+       *  ORIGINATING execution example and passed it through
+       *  (reason: null + source: "style_defs_self"). For genuine
+       *  passes (no gate fired) this stays undefined. */
+      antiCopyMatch?: AntiCopyMatch;
     }
   | {
       ok: false;
@@ -464,6 +473,22 @@ export function authorCohesiveIdea(
     : undefined;
   const executions = styleDef?.executions ?? [];
   const executionId = executions.length > 0 ? executions[0]!.id : "default";
+  // PHASE D15-alt — compute the originating seed hash from the SAME
+  // example string `loadSeedHookBigrams` hashes when it folds
+  // PREMISE_STYLE_DEFS entries into the seed-bigram pool. Threaded
+  // into the anti-copy meta so the unigram-fallback gate can
+  // recognise a self-recipe match (4-token style_defs seed like
+  // "the dishes won again" trips the 0.6 unigram bar against any
+  // single-word substitution of itself) and exempt it instead of
+  // counting it as plagiarism. Long-hook bigram gate stays in
+  // force; only the short-hook unigram fallback honours the hash.
+  const originatingExample =
+    executions.length > 0 && typeof executions[0]!.example === "string"
+      ? (executions[0]!.example as string)
+      : undefined;
+  const originatingSeedHash = originatingExample
+    ? computeSeedHash(originatingExample)
+    : undefined;
 
   // ---- 11. Assemble Idea + structural fields -------------------- //
   const draft: Idea = {
@@ -564,9 +589,17 @@ export function authorCohesiveIdea(
   // to the recipe loop's per-source telemetry roll-up. Pure
   // additive — when the gate doesn't fire (`reason === null`) the
   // call shape is byte-identical to the back-compat path.
+  // PHASE D15-alt — also pass `originatingSeedHash` so the
+  // unigram-fallback gate can exempt a self-recipe match. When
+  // exempt, the result carries `reason: null` AND a
+  // `style_defs_self`-tagged antiCopyMatch for telemetry.
   const copyResult = validateAntiCopyDetailed(
     parsed.data,
-    { source: meta.source, usedBigPremise: true },
+    {
+      source: meta.source,
+      usedBigPremise: true,
+      ...(originatingSeedHash ? { originatingSeedHash } : {}),
+    },
     seedFingerprints,
     input.recentPremises,
   );
@@ -592,6 +625,14 @@ export function authorCohesiveIdea(
     idea: parsed.data,
     meta,
     scenarioFingerprint,
+    // PHASE D15-alt — surface the self-exemption event (if any)
+    // on the ok:true path so the recipe loop can roll it under
+    // the new `style_defs_self` bySource bucket without losing
+    // visibility into how often the circularity fires. Genuine
+    // passes (no gate triggered) still omit the field.
+    ...(copyResult.antiCopyMatch
+      ? { antiCopyMatch: copyResult.antiCopyMatch }
+      : {}),
   };
 }
 

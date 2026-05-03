@@ -236,7 +236,16 @@ export type GenerateCoreCandidatesResult = {
      *  always equals `bySource.corpus + bySource.style_defs` for
      *  this batch (invariant — every `copied_seed_hook` rejection
      *  flows through the detailed validator and contributes to
-     *  exactly one source bucket). */
+     *  exactly one of those two source buckets).
+     *
+     *  PHASE D15-alt — `bySource.style_defs_self` is a TELEMETRY-
+     *  ONLY counter for self-recipe exemptions: the unigram-
+     *  fallback gate matched the candidate's ORIGINATING execution
+     *  example and the validator passed it through (D5 circularity
+     *  fix). These events are NOT rejections and therefore do NOT
+     *  appear in `rejectionReasons.copied_seed_hook`; the bucket
+     *  tracks them separately so the QA driver can see how often
+     *  the circularity is being hit. */
     antiCopyRejects: AntiCopyRejectsTelemetry;
     perCoreAttempts: CoreCandidateAttempt[];
   };
@@ -575,7 +584,11 @@ export function generateCoreCandidates(
   // carrying an `antiCopyMatch`. `samples` is capped to keep the
   // log payload bounded across very-deep iterator runs.
   const antiCopyRejects: AntiCopyRejectsTelemetry = {
-    bySource: { corpus: 0, style_defs: 0 },
+    // PHASE D15-alt — `style_defs_self` is the telemetry-only
+    // bucket for self-recipe exemptions. Always zero-initialised
+    // alongside the two reject buckets so dashboards can read all
+    // three keys without optional-chaining.
+    bySource: { corpus: 0, style_defs: 0, style_defs_self: 0 },
     samples: [],
   };
   let generatedCount = 0;
@@ -718,6 +731,18 @@ export function generateCoreCandidates(
       // is eligible to ship); it only orders the per-core passing
       // set so the SHIPPED candidate is the most captivating one
       // the iterator found.
+      // PHASE D15-alt — when the cohesive author surfaces an
+      // antiCopyMatch on the ok:true path, that's a self-recipe
+      // exemption event (source: "style_defs_self"). Roll it under
+      // its dedicated bySource bucket and append to samples so the
+      // D4 telemetry surface still sees it. Pure additive — passes
+      // without an exemption (the common case) skip this branch.
+      if (result.antiCopyMatch) {
+        antiCopyRejects.bySource[result.antiCopyMatch.source] += 1;
+        if (antiCopyRejects.samples.length < ANTI_COPY_SAMPLE_CAP) {
+          antiCopyRejects.samples.push(result.antiCopyMatch);
+        }
+      }
       const quality = scoreHookQuality(result.idea.hook, core.family);
       const meta: CandidateMeta = {
         ...result.meta,

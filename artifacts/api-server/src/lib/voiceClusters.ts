@@ -87,6 +87,24 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // verdict). Anchor as receiver + period beat + obviously-
       // marker.
       "${actionPast} the ${anchor} on the first try. obviously.",
+      // PHASE D15 — distilled from D14 corpus pattern `the dishes
+      // won, i lost, status quo` (X-and-i + still-here + period-
+      // beat verdict). Explicit anthropomorph (`the X and i`) +
+      // contradiction (`still`) + period beat. Renders ~67.
+      "the ${anchor} and i are still here. barely.",
+      // PHASE D15 — distilled from D14 corpus pattern `i ghosted
+      // my own discipline. it filed a missing person report.`
+      // (action + period-beat noticing of object reaction).
+      // Period beat + bland-but-tonal "it didn't notice" coda;
+      // earns its score from MID verb + brevity + period beat.
+      // Renders ~58.
+      "i ${actionPast} the ${anchor}. it didn't notice.",
+      // PHASE D15 — distilled from D14 corpus pattern `my "just
+      // one thing" store run just cost me $92` (mundane action
+      // reframed as the only routine). MID verb (ing-form
+      // family verb) + concrete anchor + `still` contradiction.
+      // Renders ~55.
+      "${ingForm} the ${anchor} is my only hobby still",
     ],
     seedHookExemplars: [
       "i ghosted my own to-do list",
@@ -122,6 +140,21 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // failure). Period beat + concrete anchor + contradiction
       // (`quit` vs `${actionPast} ... within the hour`).
       "tried to quit the ${anchor}. ${actionPast} it within the hour.",
+      // PHASE D15 — distilled from D14 corpus pattern `i told my
+      // therapist everything... then never went back` (over-share
+      // confession → quiet retreat). Period beat + "then" pivot +
+      // concrete anchor. Renders ~55.
+      "i told the ${anchor} everything. then ${actionPast} it.",
+      // PHASE D15 — distilled from D14 corpus pattern `i confessed
+      // to the group chat... then sobered up and pretended it was
+      // a joke` (admission → walk-back). Explicit `myself`
+      // anthropomorph + period beat + concrete anchor. Renders ~80.
+      "i confessed to the ${anchor}. then ${actionPast} myself.",
+      // PHASE D15 — distilled from D14 corpus pattern `still
+      // doomscrolling at 2am again` (still-ing + time-stamp +
+      // again loop confession). MID verb + brevity sweet spot +
+      // double contradiction (`still` + `again`). Renders ~58.
+      "still ${ingForm} the ${anchor} at midnight again",
     ],
     seedHookExemplars: [
       "i checked one thing. ruined my day",
@@ -177,6 +210,22 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // shape: X isn't Y, it's Z). Period beat + contradiction
       // (`isn't` vs `it's`).
       "${ingForm} the ${anchor} isn't recovery. it's panic.",
+      // PHASE D15 — distilled from D14 corpus pattern `i quietly
+      // realized i'm the stable friend now... rip` (soft self-
+      // identification noticing). `itself` explicit anthropomorph
+      // + concrete anchor + brevity sweet spot. Renders ~57.
+      "quietly realized the ${anchor} itself is the personality",
+      // PHASE D15 — distilled from D14 corpus pattern `my dream
+      // job became "at least i have benefits"` (aspirational
+      // reframe → resigned consolation; quoted-coda shape).
+      // `itself` explicit anthropomorph + concrete anchor +
+      // `again` contradiction. Renders ~66.
+      "the ${anchor} itself became \"at least i tried\" again",
+      // PHASE D15 — distilled from D14 corpus pattern `quiet
+      // realization my chill is actually anxiety wearing a hat`
+      // (truism reframe: X is actually Y). `itself` explicit
+      // anthropomorph + concrete anchor. Renders ~57.
+      "quiet realization: the ${anchor} itself is anxiety now",
     ],
     seedHookExemplars: [
       "this is where my life collapsed",
@@ -225,6 +274,24 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // commitment → bureaucratic-absurdity escalation). Period beat
       // + anchor as actor + dramatic noun (`complaint`).
       "said i'd ${action} the ${anchor}. it filed a complaint.",
+      // PHASE D15 — distilled from D14 corpus pattern `my phone
+      // knows when i'm pretending to be productive` (object-as-
+      // omniscient-witness shape, with the cliché-allowlisted
+      // "knows i'm lying" phrasing replaced by HIGH-tier verb
+      // `faking`). HIGH verb (fake) + concrete anchor + brevity
+      // sweet spot. Renders ~60.
+      "my ${anchor} knows when i'm faking it",
+      // PHASE D15 — distilled from D14 corpus pattern `my rent
+      // just ate my whole paycheck alive` (mundane bill →
+      // predator-eating-victim escalation). Implicit anthropomorph
+      // (`the X ate`) + MID verb + concrete anchor. Renders ~57.
+      "the ${anchor} just ate my entire week alive",
+      // PHASE D15 — distilled from D14 corpus pattern `my amazon
+      // cart knows me better than my own therapist` (object-knows-
+      // creator-better-than-X shape). Explicit `my own` +
+      // HIGH verb (`fake`) + concrete + `again` contradiction.
+      // Renders ~92 (premium-band template).
+      "my own ${anchor} knows i'm faking it again",
     ],
   seedHookExemplars: [
       "a small task became my villain origin",

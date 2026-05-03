@@ -25,12 +25,16 @@
 
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { TasteCalibration } from "@/components/onboarding/TasteCalibration";
+import {
+  TasteCalibration,
+  type TasteCalibrationMode,
+} from "@/components/onboarding/TasteCalibration";
 import { cosmic } from "@/constants/colors";
+import { fetchTasteCalibration } from "@/lib/tasteCalibration";
 
 export default function CalibrationModal() {
   const router = useRouter();
@@ -38,6 +42,35 @@ export default function CalibrationModal() {
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 28 : insets.top + 12;
   const bottomInset = isWeb ? 32 : insets.bottom + 32;
+
+  // PHASE Y14 — derive mode from the server doc on mount. A doc
+  // with `completedAt` set and not skipped means the creator
+  // previously finished calibration and the Home stale-refresh
+  // path (or a Profile reset) re-routed them here — that's the
+  // "refresh" framing. Anything else (no doc, half-state, skipped,
+  // never-completed) is the "initial" first-time framing. We
+  // start in "initial" so the modal's first paint never blocks on
+  // the network — the worst case if the fetch lands late is the
+  // user briefly sees first-time copy and then the refresh copy
+  // swaps in (rare and visually subtle: only step 0 differs).
+  const [mode, setMode] = useState<TasteCalibrationMode>("initial");
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const cal = await fetchTasteCalibration();
+        if (cancelled) return;
+        if (cal && !cal.skipped && cal.completedAt) {
+          setMode("refresh");
+        }
+      } catch {
+        // Fail-open — keep the default "initial" framing on error.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleDone = useCallback(() => {
     // Replace, not back — back would put the user on Home with the
@@ -57,7 +90,7 @@ export default function CalibrationModal() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <TasteCalibration onComplete={handleDone} />
+        <TasteCalibration onComplete={handleDone} mode={mode} />
       </ScrollView>
     </View>
   );

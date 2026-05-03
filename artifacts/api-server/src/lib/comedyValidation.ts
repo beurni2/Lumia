@@ -328,13 +328,29 @@ function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
 /** PHASE D4 — opaque per-seed identity tag used by the reject-source
  *  telemetry overlay. Kept short (8 hex chars = 32 bits) because it's
  *  log/metric noise, not a cryptographic identifier — collisions are
- *  acceptable for telemetry aggregation. Pure deterministic djb2. */
+ *  acceptable for telemetry aggregation. Pure deterministic djb2.
+ *
+ *  PHASE D15-alt — exported as `computeSeedHash` so the cohesive
+ *  author can compute the SAME hash on its originating execution
+ *  example string and pass it down through `ValidateComedyMeta`'s
+ *  `originatingSeedHash`. The unigram-fallback gate then uses
+ *  `meta.originatingSeedHash === seed.hash` to detect a self-recipe
+ *  match and exempt it from rejection (the same seed that the
+ *  recipe was substituted FROM cannot meaningfully "copy" itself
+ *  — that's a circularity, not plagiarism). */
 function djb2Hex8(s: string): string {
   let h = 5381 | 0;
   for (let i = 0; i < s.length; i++) {
     h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   }
   return (h >>> 0).toString(16).padStart(8, "0").slice(0, 8);
+}
+
+/** PHASE D15-alt — public alias of the internal `djb2Hex8` so the
+ *  cohesive author can compute the originating seed hash without
+ *  duplicating the algorithm. Same byte output for identical input. */
+export function computeSeedHash(s: string): string {
+  return djb2Hex8(s);
 }
 
 /** PHASE D4 — which reference pool a near-verbatim Jaccard match was
@@ -344,7 +360,13 @@ function djb2Hex8(s: string): string {
  *  downstream telemetry can break `copied_seed_hook` rejections down
  *  by which sub-pool over-rejects in practice — closes the D3 honest
  *  gap. */
-export type AntiCopySeedSource = "corpus" | "style_defs";
+/** PHASE D15-alt — added `style_defs_self` to mark a unigram-
+ *  fallback match where the matched seed IS the originating
+ *  example the recipe was substituted from. These cases are not
+ *  rejections (the gate exempts them) but the per-source counter
+ *  still rolls them under their own bucket so the D4 telemetry
+ *  retains visibility into how often the circularity fires. */
+export type AntiCopySeedSource = "corpus" | "style_defs" | "style_defs_self";
 
 /** PHASE D4 — full reject-source metadata for a `copied_seed_hook`
  *  rejection. Pure additive overlay — only attached to the reject
@@ -453,6 +475,21 @@ const SHORT_HOOK_UNIGRAM_REJECT = 0.6;
 export type ValidateComedyMeta = {
   source?: string;
   usedBigPremise?: boolean | null | undefined;
+  /** PHASE D15-alt — the 8-char djb2 hash of the originating
+   *  PREMISE_STYLE_DEFS execution example string the recipe was
+   *  derived from, when known. Set ONLY by `cohesiveIdeaAuthor`
+   *  for Layer-1 deterministic recipe candidates. The unigram-
+   *  fallback gate uses this to detect a self-recipe match
+   *  (`originatingSeedHash === seed.hash` while `seed.source ===
+   *  "style_defs"`) and exempt it: the same example the recipe
+   *  was substituted FROM cannot meaningfully copy itself — that
+   *  was the D5-flagged circularity (4-token style_defs seeds like
+   *  `"the dishes won again"` were both seeding the loop AND
+   *  filtering its output through the unigram fallback). The
+   *  long-hook bigram gate is intentionally NOT exempt: a
+   *  bigram-Jaccard ≥ 0.85 against any seed (including the
+   *  originator) IS a true near-verbatim and ships unchanged. */
+  originatingSeedHash?: string;
 };
 
 /**
@@ -667,6 +704,33 @@ export function validateAntiCopyDetailed(
         ) {
           const j = jaccard(candUnigrams, seed.unigrams);
           if (j >= SHORT_HOOK_UNIGRAM_REJECT) {
+            // PHASE D15-alt — self-recipe exemption. When the
+            // matched seed IS the originating style_defs example
+            // the recipe was substituted from, the "rejection" is
+            // pure circularity (D5 root cause: 4-token style_defs
+            // seeds like "the dishes won again" both seed the
+            // recipe loop AND filter its output via this very
+            // unigram fallback, so single-word swaps of a 4-word
+            // template against its OWN seed are guaranteed to
+            // trip the 0.6 unigram bar). Pass-through with a
+            // telemetry-only `style_defs_self` source tag so
+            // bySource still records the event without inflating
+            // the rejection counter. Cross-template style_defs
+            // matches and corpus matches stay rejected.
+            if (
+              seed.source === "style_defs" &&
+              meta.originatingSeedHash === seed.hash
+            ) {
+              return {
+                reason: null,
+                antiCopyMatch: {
+                  source: "style_defs_self",
+                  hash: seed.hash,
+                  jaccard: j,
+                  gate: "unigram",
+                },
+              };
+            }
             return {
               reason: "copied_seed_hook",
               antiCopyMatch: {

@@ -104,7 +104,7 @@ export function parseTasteCalibration(
  * PHASE Y13 — calibration staleness predicate.
  *
  * Returns true when a completed (non-skipped) calibration document
- * is older than `staleDays` (default 90 d), so the client can
+ * is older than `staleDays` (default 30 d), so the client can
  * re-surface the Quick Tune prompt for users whose taste may have
  * drifted since they first answered. Returns false for:
  *   • null / missing docs (handled by `needsCalibration` instead)
@@ -118,7 +118,14 @@ export function parseTasteCalibration(
  * future "remind to recalibrate" notification) and the client gate
  * apply the same threshold.
  */
-export const DEFAULT_CALIBRATION_STALE_DAYS = 90;
+// PHASE Y14 — tightened 90 → 30 days. The Y13 90-day window was
+// chosen as a conservative first-pass to never re-prompt a happy
+// creator, but feedback showed taste materially shifts on a much
+// shorter cycle (a single content-format A/B run, a tone-pivot
+// week). 30 days catches drift while the explicit pin still
+// matters; the once-per-process latch + count>=2 behavior gate
+// keep the prompt from feeling pushy.
+export const DEFAULT_CALIBRATION_STALE_DAYS = 30;
 
 export function isCalibrationStale(
   cal: TasteCalibration | null,

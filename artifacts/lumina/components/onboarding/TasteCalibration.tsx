@@ -61,8 +61,25 @@ import {
   markTasteOnboardingCompleted,
 } from "@/lib/tasteOnboardingState";
 
+/**
+ * PHASE Y14 — `mode` distinguishes the first-time onboarding flow
+ * ("initial", default — preserves the prior copy verbatim) from the
+ * 30-day-stale refresh re-surface ("refresh" — branded copy that
+ * tells the returning creator WHY they're seeing the modal again so
+ * the prompt doesn't read as a duplicate of their first session).
+ *
+ * Default is "initial" so every existing call site (MvpOnboarding,
+ * the dev-tool reset path) keeps the prior copy without an opt-in.
+ * The /calibration route opt-IN derives mode from the server doc
+ * (completedAt set + not skipped → refresh), so the user's entry
+ * path determines the framing without the route having to know
+ * which gate fired.
+ */
+export type TasteCalibrationMode = "initial" | "refresh";
+
 type Props = {
   onComplete: () => void;
+  mode?: TasteCalibrationMode;
 };
 
 type Choice<T extends string> = { value: T; label: string; sub?: string };
@@ -132,7 +149,8 @@ function successHaptic() {
   }
 }
 
-export function TasteCalibration({ onComplete }: Props) {
+export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
+  const isRefresh = mode === "refresh";
   // step 0 = format, 1 = tone, 2 = hook, 3 = confirmation
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [format, setFormat] = useState<PreferredFormat | null>(null);
@@ -273,12 +291,30 @@ export function TasteCalibration({ onComplete }: Props) {
   // Tiny step kicker — keeps the user oriented without adding a
   // progress bar (which the spec doesn't ask for). Hidden on the
   // confirmation step so the "Got it" beat reads cleanly.
+  // PHASE Y14 — refresh-mode rebrands the kicker so a returning
+  // creator immediately reads this as "we're checking in" not
+  // "you missed onboarding". Step labels stay 1-of-3 so the
+  // progress affordance is identical.
+  const kickerPrefix = isRefresh ? "Quick refresh" : "Quick tune";
   const stepKicker = useMemo(() => {
-    if (step === 0) return "Quick tune · 1 of 3";
-    if (step === 1) return "Quick tune · 2 of 3";
-    if (step === 2) return "Quick tune · 3 of 3";
+    if (step === 0) return `${kickerPrefix} · 1 of 3`;
+    if (step === 1) return `${kickerPrefix} · 2 of 3`;
+    if (step === 2) return `${kickerPrefix} · 3 of 3`;
     return null;
-  }, [step]);
+  }, [step, kickerPrefix]);
+
+  // PHASE Y14 — refresh-mode question copy. The first step doubles
+  // as the "why are you seeing this again" surface (the only step
+  // whose hero text differs from the initial flow). Steps 1 and 2
+  // keep the initial-flow copy because the question text is
+  // identical regardless of whether this is a first sit-down or a
+  // 30-day check-in — only the framing on step 0 needs to change.
+  const step0Title = isRefresh
+    ? "Your taste profile is 30+ days old — let's refresh it"
+    : "What format feels most like you?";
+  const step0Sub = isRefresh
+    ? "Quick re-check so your ideas keep matching your voice. Tap one — same as before."
+    : "Tap one — no wrong answer.";
 
   if (step === 3 && format && tone && hookStyle) {
     return (
@@ -286,6 +322,10 @@ export function TasteCalibration({ onComplete }: Props) {
         formatLabel={FORMAT_SUMMARY[format]}
         toneLabel={TONE_SUMMARY[tone]}
         hookLabel={HOOK_SUMMARY[hookStyle]}
+        // PHASE Y14 — confirmation kicker mirrors the entry framing:
+        // a refresh closes with "Refreshed" so the creator knows the
+        // re-pin landed; initial flow keeps the original "Got it".
+        kickerLabel={isRefresh ? "Refreshed" : "Got it"}
       />
     );
   }
@@ -303,8 +343,8 @@ export function TasteCalibration({ onComplete }: Props) {
 
       {step === 0 ? (
         <>
-          <Text style={styles.heroTitle}>What format feels most like you?</Text>
-          <Text style={styles.heroSub}>Tap one — no wrong answer.</Text>
+          <Text style={styles.heroTitle}>{step0Title}</Text>
+          <Text style={styles.heroSub}>{step0Sub}</Text>
           <SingleSelect
             choices={FORMAT_CHOICES}
             value={format}
@@ -362,10 +402,12 @@ function ConfirmationCard({
   formatLabel,
   toneLabel,
   hookLabel,
+  kickerLabel,
 }: {
   formatLabel: string;
   toneLabel: string;
   hookLabel: string;
+  kickerLabel: string;
 }) {
   // Reanimated shared values: opacity 0→1 over 220 ms (snappy fade
   // in), scale 0.94 → 1.02 → 1.0 (subtle overshoot) over 360 ms.
@@ -400,7 +442,7 @@ function ConfirmationCard({
   return (
     <View style={styles.confirmStage}>
       <Animated.View style={[styles.confirmCard, animatedStyle]}>
-        <Text style={styles.confirmKicker}>Got it</Text>
+        <Text style={styles.confirmKicker}>{kickerLabel}</Text>
         <Text style={styles.confirmTitle}>
           Making your ideas more:
         </Text>
