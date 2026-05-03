@@ -20,7 +20,6 @@ import visionStyleRouter from "./visionStyle";
 import ideaFeedbackRouter from "./ideaFeedback";
 import tasteCalibrationRouter from "./tasteCalibration";
 import enhancementsRouter from "./enhancements";
-import d5QaRouter from "./d5Qa";
 
 const router: IRouter = Router();
 
@@ -59,17 +58,6 @@ router.use(enhancementsRouter);
 //     5-question onboarding bias for the ideator). Pure additive;
 //     skipped state is honoured so we never re-prompt.
 router.use(tasteCalibrationRouter);
-
-// ---------------------------------------------------------------- //
-// PHASE D5-QA — ephemeral dev-gated harness for D4 anti-copy       //
-// reject-source telemetry. Mounted ONLY in non-production builds.  //
-// The router itself has a defense-in-depth handler-entry check     //
-// that 404s in production. Removed in the same commit that ships   //
-// D5 tuning — same merged-and-removed discipline as Y11.           //
-// ---------------------------------------------------------------- //
-if (process.env.NODE_ENV !== "production") {
-  router.use(d5QaRouter);
-}
 
 // ---------------------------------------------------------------- //
 // Archived routes (Phase 1 freeze)                                 //
