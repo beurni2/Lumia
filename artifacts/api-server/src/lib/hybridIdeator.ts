@@ -70,9 +70,15 @@ import {
   scoreNovelty,
   selectionPenalty,
   type CandidateMeta,
+  type IdeaScore,
   type NoveltyContext,
   type ScoredCandidate,
 } from "./ideaScorer";
+// PHASE Z1 — willingness ranker + trust-line composer. Pure
+// deterministic, no Claude / DB. See lib/willingnessScorer.ts +
+// lib/whyThisFitsYou.ts for the scoring rubric and template set.
+import { scoreWillingness } from "./willingnessScorer";
+import { composeWhyThisFitsYou } from "./whyThisFitsYou";
 // PHASE X2 — PART 4 — `recentPremises` set for the anti-copy
 // validator. Imported here (not in ideaScorer) because the
 // orchestrator owns the cache-history walk and needs the same
@@ -4128,6 +4134,62 @@ export async function runHybridIdeator(
     return ideas.filter((i) => ideaSchema.safeParse(i).success);
   }
 
+  /**
+   * PHASE Z1 — willingness annotation + reorder. Pure deterministic
+   * pass over the surviving candidates: stamp each `c.idea` with
+   * `willingnessScore` / `pickerEligible` / `whyThisFitsYou`, then
+   * sort the array so picker-eligible candidates come first and
+   * within each tier they're ordered by descending willingnessScore.
+   *
+   * The mutation is on `c.idea` (not a new wrapper) so every
+   * downstream consumer (cache write, source label counters,
+   * `final.map(c => c.idea)`) sees the annotated idea with no
+   * additional plumbing. Cache entries naturally carry the fields
+   * forward — pre-Z1 cached batches simply lack them and re-render
+   * fine on the mobile side (the schema fields are optional).
+   */
+  function annotateAndSortByWillingness<
+    T extends { idea: Idea; score: IdeaScore; meta: CandidateMeta },
+  >(candidates: T[]): T[] {
+    for (const c of candidates) {
+      const w = scoreWillingness({ idea: c.idea, score: c.score, meta: c.meta });
+      const why = composeWhyThisFitsYou({
+        voiceClusterId: c.meta.voiceClusterId,
+        ideaCoreFamily: (c.meta as { ideaCoreFamily?: string }).ideaCoreFamily,
+        scenarioFingerprint: c.meta.scenarioFingerprint,
+        hook: c.idea.hook,
+      });
+      c.idea = {
+        ...c.idea,
+        willingnessScore: w.total,
+        pickerEligible: w.pickerEligible,
+        whyThisFitsYou: why,
+      };
+    }
+    // Sort key: (pickerEligible desc, willingnessScore desc).
+    // EDGE-PROTECTION SCOPE (architect-noted, intentional
+    // fail-open): the `pickerEligible` floor only guarantees
+    // a sharp candidate sorts ahead of a safe one WHEN AT
+    // LEAST ONE candidate is eligible. In the degenerate
+    // batch where every candidate fails the floor (every
+    // hookQualityScore < 50 OR every aiClicheScore > 0), the
+    // tier collapses and ordering falls back to willingness
+    // among the all-ineligible set — a "safe boring" idea
+    // can technically sort first there. This is intentional
+    // fail-open: shipping nothing is strictly worse than
+    // shipping the best of a bad batch, and an all-ineligible
+    // batch already signals an upstream-pipeline issue the
+    // willingness ranker shouldn't try to mask.
+    return [...candidates].sort((a, b) => {
+      const aE = a.idea.pickerEligible === true ? 1 : 0;
+      const bE = b.idea.pickerEligible === true ? 1 : 0;
+      if (aE !== bE) return bE - aE;
+      const aW = typeof a.idea.willingnessScore === "number" ? a.idea.willingnessScore : 0;
+      const bW = typeof b.idea.willingnessScore === "number" ? b.idea.willingnessScore : 0;
+      return bW - aW;
+    });
+  }
+
   if (final.length === 0) {
     // Last-ditch rescue: ship the unfiltered top of the local pool so
     // the user almost never sees an empty page. This is rare — pattern
@@ -4170,6 +4232,13 @@ export async function runHybridIdeator(
       rescueSource.slice(0, desiredCount),
       (_c, i) => -i,
     );
+    // PHASE Z1 — rescue path intentionally does NOT carry
+    // willingness annotation: rescue candidates haven't been
+    // through `filterAndRescore` so they have no `IdeaScore` to
+    // feed the willingness scorer, and rescue ships are rare
+    // (only when `final.length === 0`). Cards will render fine
+    // without `willingnessScore` / `whyThisFitsYou` — those
+    // schema fields are optional on the public idea.
     const ideasOnly = gate(rescueSlice.map((c) => c.idea));
     logger.warn(
       {
@@ -4305,6 +4374,13 @@ export async function runHybridIdeator(
   // downstream reference (cache write, source label counters)
   // consistent with the post-cap state.
   final = enforceTrendCap(final, (c) => c.score.total);
+  // PHASE Z1 — annotate willingnessScore + whyThisFitsYou on every
+  // shipped idea AND reorder so picker-eligible / high-willingness
+  // candidates surface first. Pure deterministic, no I/O. The
+  // reorder happens AFTER trend-cap so trend semantics are
+  // preserved (cap operates on `score.total`, ranker on the
+  // separate `willingnessScore` axis).
+  final = annotateAndSortByWillingness(final);
   const ideas = gate(final.map((c) => c.idea));
   // Persist as entries so the next regenerate has family +
   // templateId for HARD exclusion, not just hook strings.

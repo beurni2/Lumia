@@ -65,6 +65,17 @@ export type IdeaCardData = {
   // Optional because pre-Evolution-Engine cached batches lack them.
   structure?: string;
   hookStyle?: string;
+  // PHASE Z1 — willingness ranker overlay. Three additive optional
+  // fields the server stamps onto every freshly-shipped idea (see
+  // api-server/src/lib/willingnessScorer.ts +
+  // api-server/src/lib/whyThisFitsYou.ts). Pre-Z1 cached batches
+  // lack them and the card simply hides the trust line — no
+  // crashes, no empty states. The server has already SORTED the
+  // ideas array by (pickerEligible desc, willingnessScore desc),
+  // so Home renders them in array order without any client work.
+  willingnessScore?: number;
+  pickerEligible?: boolean;
+  whyThisFitsYou?: string;
 };
 
 // User-facing labels for the four canonical patterns + transitional
@@ -160,6 +171,17 @@ export function IdeaCard({
         ) : null}
       </View>
       <Text style={styles.cardHook}>{idea.hook}</Text>
+
+      {/* PHASE Z1 — "Why this fits you" trust line. Composed
+          server-side from voice cluster + scenario fingerprint
+          (deterministic, no Claude). Italic + dimmer than the
+          hook so it reads as a quiet aside, not another headline.
+          Hidden when absent (pre-Z1 cached batches). */}
+      {idea.whyThisFitsYou ? (
+        <Text style={styles.whyFitsLine} accessibilityLabel="Why this fits you">
+          {idea.whyThisFitsYou}
+        </Text>
+      ) : null}
 
       {/* PRIMARY trust block — the user-facing "Hook / What to
           show / How to film" structure. These three blocks are
@@ -299,6 +321,19 @@ const styles = StyleSheet.create({
   cardHook: {
     ...type.subhead,
     color: "#FFFFFF",
+    marginBottom: 14,
+  },
+  // PHASE Z1 — quiet italic trust line under the hook. Same font
+  // family as body text but italic + slightly dimmer so it
+  // disappears into the card's background hierarchy rather than
+  // competing with the hook or the "What to show" block.
+  whyFitsLine: {
+    ...type.body,
+    fontStyle: "italic",
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -8,
     marginBottom: 14,
   },
   cardLabel: {

@@ -298,6 +298,15 @@ export default function ReviewScreen() {
   // change, and we want the latest value inside the async
   // handleSave closure without it appearing in the dep array.
   const savedUrisRef = useRef<Set<string>>(new Set());
+  // PHASE Z1 — fire `exported` ideator signal exactly once on
+  // the first successful gallery save for this screen instance.
+  // We dedupe with a separate boolean ref (NOT savedUrisRef)
+  // because savedUrisRef is per-uri and a multi-clip save would
+  // otherwise fire the signal twice for the same idea. Cleared
+  // never — the ref is screen-scoped and dies with the unmount,
+  // which is the desired lifecycle (a fresh /review visit for
+  // the same idea SHOULD re-fire once on its first save).
+  const exportedSignalFiredRef = useRef<boolean>(false);
 
   // List of clip URIs we'll attempt to save, in canonical order.
   // Driven by `clip` + `extraClips`; filtered to non-empty
@@ -542,6 +551,21 @@ export default function ReviewScreen() {
         savedUrisRef.current.add(uri);
       }
       setSaveState("success");
+      // PHASE Z1 — web QA path also fires the `exported` signal
+      // so end-to-end Playwright runs exercise the same
+      // attribution path real-device saves do.
+      if (!exportedSignalFiredRef.current && idea?.hook) {
+        exportedSignalFiredRef.current = true;
+        submitIdeatorSignal({
+          ideaHook: idea.hook,
+          signalType: "exported",
+          ideaPattern: idea.pattern,
+          emotionalSpike: idea.emotionalSpike,
+          payoffType: idea.payoffType,
+          structure: idea.structure,
+          hookStyle: idea.hookStyle,
+        });
+      }
       return;
     }
     try {
@@ -582,6 +606,25 @@ export default function ReviewScreen() {
         savedUrisRef.current.add(uri);
       }
       setSaveState("success");
+      // PHASE Z1 — fire-and-forget `exported` signal on the
+      // first successful save. Server weights this heavier than
+      // a verdict tap (see api-server/src/lib/viralPatternMemory.ts)
+      // because actually exporting the video is the strongest
+      // intent signal short of the `posted` confirmation. The
+      // dedupe ref above guarantees one signal per /review
+      // mount no matter how many retries / partial saves happen.
+      if (!exportedSignalFiredRef.current && idea?.hook) {
+        exportedSignalFiredRef.current = true;
+        submitIdeatorSignal({
+          ideaHook: idea.hook,
+          signalType: "exported",
+          ideaPattern: idea.pattern,
+          emotionalSpike: idea.emotionalSpike,
+          payoffType: idea.payoffType,
+          structure: idea.structure,
+          hookStyle: idea.hookStyle,
+        });
+      }
     } catch (err) {
       // Note: any URIs added to savedUrisRef BEFORE the throw
       // remain — we don't roll the set back, because the
@@ -594,7 +637,7 @@ export default function ReviewScreen() {
           : "Couldn't save to your gallery. Try again.",
       );
     }
-  }, [saveableUris]);
+  }, [saveableUris, idea]);
 
   // "Save to gallery" appears as the first action inside the
   // success block too — so the user can re-save (e.g. they

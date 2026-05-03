@@ -392,6 +392,32 @@ export const ideaSchema = z.object({
    * route layer (same pattern as `premise` / `meta.viralFeelScore`).
    */
   premiseCoreId: z.string().min(1).max(120).optional(),
+
+  /**
+   * PHASE Z1 — willingness ranker fields. All three are OPTIONAL
+   * and ADDITIVE: they ride on the public idea so the route layer
+   * doesn't need to widen the response shape, the cache shape
+   * doesn't change (cached pre-Z1 batches simply lack them, and
+   * the mobile renderer no-ops when absent), and the orchestrator
+   * gate (which uses `ideaSchema.safeParse`) still passes.
+   *
+   * `willingnessScore` (0-100) — final ranker score for "most
+   * likely to film today". Used by the route layer to sort the
+   * public ideas array before serving. See `lib/willingnessScorer.ts`.
+   *
+   * `pickerEligible` — hard edge floor. False when the hook fails
+   * the picker's edge gate (`hookQualityScore < 50` OR aiCliche hit).
+   * Ineligible candidates STILL ship in the batch (so the user can
+   * see them) but sort behind eligible ones, so the surfaced top
+   * never contains a "safe boring" winner.
+   *
+   * `whyThisFitsYou` — one-sentence trust line composed from
+   * voiceClusterId + scenarioFingerprint by `lib/whyThisFitsYou.ts`.
+   * Pure deterministic template — no Claude cost.
+   */
+  willingnessScore: z.number().min(0).max(100).optional(),
+  pickerEligible: z.boolean().optional(),
+  whyThisFitsYou: z.string().min(1).max(280).optional(),
 });
 export type Idea = z.infer<typeof ideaSchema>;
 

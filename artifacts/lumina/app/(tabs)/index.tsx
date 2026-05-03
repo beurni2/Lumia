@@ -891,6 +891,29 @@ export default function HomeScreen() {
                   region={region ?? undefined}
                   onSubmit={handleIdeaVerdict}
                 />
+                {/* PHASE Z1 — "Film this now" secondary CTA. Sits
+                    as a sibling to the card pressable (NOT inside
+                    it) so its tap target never conflicts with the
+                    primary card → /create navigation. Routes to
+                    the lightweight Film-This-Now timeline screen
+                    which lays the idea out as a 0-8s shotlist
+                    instead of opening the full creation flow. */}
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/film-this-now",
+                      params: { idea: JSON.stringify(idea) },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Film ${idea.hook} now`}
+                  style={({ pressed }) => [
+                    styles.filmNowBtn,
+                    pressed ? styles.filmNowBtnPressed : null,
+                  ]}
+                >
+                  <Text style={styles.filmNowBtnText}>Film this now →</Text>
+                </Pressable>
               </View>
             ))}
           </Animated.View>
@@ -1205,6 +1228,32 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.99 }],
+  },
+  // PHASE Z1 — secondary "Film this now" CTA per card. Sized
+  // smaller than the primary card so it reads as an action chip
+  // rather than competing with the card itself. Sits as a
+  // sibling row under IdeaFeedback.
+  filmNowBtn: {
+    alignSelf: "stretch",
+    backgroundColor: "rgba(0,255,204,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.32)",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 4,
+    alignItems: "center",
+  },
+  filmNowBtnPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  filmNowBtnText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 13,
+    letterSpacing: 0.4,
   },
   // Inline explainer for the partial-batch case (1 or 2 ideas
   // landed instead of 3). Same surface treatment as a tip block
