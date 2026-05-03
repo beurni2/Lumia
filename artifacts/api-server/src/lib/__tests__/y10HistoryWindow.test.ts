@@ -81,17 +81,18 @@ describe("Y10 — history window expansion: types + structural contract", () => 
     expect(ctxNoVoice.recentVoiceClusters).toBeUndefined();
   });
 
-  it("CoreNoveltyContext.recentVoiceClusters allows all 4 voice cluster ids (taxonomy contract)", () => {
-    // The Y6 taxonomy is exactly 4 clusters. The histogram type must
-    // accept all 4 as keys.
-    const allFour: VoiceClusterId[] = [
+  it("CoreNoveltyContext.recentVoiceClusters allows every voice cluster id (taxonomy contract)", () => {
+    // Z5a expanded the taxonomy from 4 to 5 (added high_energy_rant).
+    // The histogram type must accept every registered cluster as key.
+    const allClusters: VoiceClusterId[] = [
       "dry_deadpan",
       "chaotic_confession",
       "quiet_realization",
       "overdramatic_reframe",
+      "high_energy_rant",
     ];
     const hist = new Map<VoiceClusterId, number>();
-    for (const c of allFour) hist.set(c, 1);
-    expect(hist.size).toBe(4);
+    for (const c of allClusters) hist.set(c, 1);
+    expect(hist.size).toBe(5);
   });
 });

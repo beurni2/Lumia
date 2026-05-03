@@ -29,28 +29,32 @@ import { resolveVoiceCluster } from "../coreCandidateGenerator.js";
 import type { VoiceClusterId } from "../voiceClusters.js";
 
 describe("Y10 — 7-batch window behavioral contract", () => {
-  it("histogram with 21 total uses (7 batches × 3 ideas) saturates evenly → all-equal fallthrough", () => {
-    // Worst-case steady state: 7 full batches, each with 3 ideas
-    // distributed evenly across the 4 clusters. With 21 total
-    // shippings and 4 buckets, the histogram should be roughly
-    // balanced. Construct an EXACTLY-equal distribution to verify
-    // the resolver falls through to the salt-rotated start (the
-    // pre-Y10 behavior).
+  it("histogram saturates evenly → all-equal fallthrough matches cold-start salt-rotated baseline", () => {
+    // Worst-case steady state: enough batches that every cluster has
+    // been used the same number of times. Construct an EXACTLY-equal
+    // distribution and verify the resolver falls through to the
+    // salt-rotated start (the pre-Y10 behavior — i.e. the histogram
+    // has NO observable effect).
+    // Z5a: 5-cluster pool, all tied at the same count to preserve the
+    // true parity-with-cold-start semantics. (Total = 25, evenly
+    // spread across the new 5-cluster taxonomy.)
     const balanced = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 5],
       ["chaotic_confession", 5],
       ["quiet_realization", 5],
-      ["overdramatic_reframe", 6],
-    ]);
-    // Total = 21, but `overdramatic_reframe` is 1 above the others,
-    // so the resolver must pick one of the 3 at count=5.
-    const cold = new Set<VoiceClusterId>([
-      "dry_deadpan",
-      "chaotic_confession",
-      "quiet_realization",
+      ["overdramatic_reframe", 5],
+      ["high_energy_rant", 5],
     ]);
     for (let salt = 0; salt < 8; salt++) {
-      const got = resolveVoiceCluster({
+      const baseline = resolveVoiceCluster({
+        family: "self_betrayal",
+        tasteCalibration: null,
+        salt,
+        coreId: "core_w",
+        recipeIdx: 0,
+        // No histogram — pure cold-start path.
+      });
+      const withBalanced = resolveVoiceCluster({
         family: "self_betrayal",
         tasteCalibration: null,
         salt,
@@ -58,7 +62,7 @@ describe("Y10 — 7-batch window behavioral contract", () => {
         recipeIdx: 0,
         recentVoiceClusters: balanced,
       });
-      expect(cold.has(got)).toBe(true);
+      expect(withBalanced).toBe(baseline);
     }
   });
 
@@ -69,10 +73,13 @@ describe("Y10 — 7-batch window behavioral contract", () => {
     // separation, supply a histogram representing 8 batches' worth
     // of usage (24 ideas) — the resolver must still process it
     // correctly, picking the min-count cluster.
+    // Z5a: high_energy_rant added at non-min count so overdramatic_reframe
+    // remains the unique min.
     const overflow = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 8],
       ["chaotic_confession", 7],
       ["quiet_realization", 6],
+      ["high_energy_rant", 5],
       ["overdramatic_reframe", 3], // ← min, even at 8-batch overflow
     ]);
     const got = resolveVoiceCluster({
@@ -94,9 +101,11 @@ describe("Y10 — 7-batch window behavioral contract", () => {
       ["dry_deadpan", 2],
       ["chaotic_confession", 1],
     ]);
+    // Z5a: cold set widened to include high_energy_rant (count==0 → also a valid pick).
     const cold = new Set<VoiceClusterId>([
       "quiet_realization",
       "overdramatic_reframe",
+      "high_energy_rant",
     ]);
     for (let salt = 0; salt < 8; salt++) {
       for (let recipeIdx = 0; recipeIdx < 4; recipeIdx++) {
@@ -245,6 +254,8 @@ describe("Y10 — resolveVoiceCluster cold-start parity regression", () => {
       "chaotic_confession",
       "quiet_realization",
       "overdramatic_reframe",
+      // Z5a: fifth cluster joined the cold-start rotation pool.
+      "high_energy_rant",
     ]).toContain(anchor);
     const anchor2 = resolveVoiceCluster({
       family: "self_betrayal",

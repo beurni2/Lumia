@@ -35,7 +35,18 @@ export type VoiceClusterId =
   | "dry_deadpan"
   | "chaotic_confession"
   | "quiet_realization"
-  | "overdramatic_reframe";
+  | "overdramatic_reframe"
+  // PHASE Z5a — fifth voice cluster. INTERNAL-FIRST exposure: not
+  // wired into FAMILY_VOICE (no family defaults to it) and not wired
+  // into TONE_TO_VOICE_CLUSTER (no Quick Tune `preferredTone` enum
+  // value maps to it — the calibration enum stays at 4 tones, no
+  // schema migration). It surfaces ONLY through the cold-start salt-
+  // rotation arm of `resolveVoiceCluster` (≈18% of cold-start picks
+  // for any family, dropping to ≈12.5% when the creator has pinned a
+  // tone). All Y8 boot-floor invariants apply unchanged: ≥8 templates
+  // each scoring ≥40 against TEST_FILL, ≥3 seedHookExemplars,
+  // lengthTargetWords ⊂ [2, 10].
+  | "high_energy_rant";
 
 export type VoiceCluster = {
   readonly id: VoiceClusterId;
@@ -298,6 +309,52 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       "this absolutely demolished my whole vibe",
       "scientists could write entire papers about my chaos",
       "a single notification flatlined my entire week",
+    ],
+  },
+  {
+    // PHASE Z5a — fifth voice cluster. Manic-exclamation cadence:
+    // panic-volume, run-on, repetition-coded confession. The joke is
+    // the energy, not the words. Distinct from `chaotic_confession`
+    // (which is a self-aware admission, conversational register) by
+    // its loud / interrupted / capitalised cadence and its reliance
+    // on shouted contradictions (`AGAIN`, `BUT`, `STILL`) over
+    // narrative confession beats. All templates verified to render
+    // ≥40 on `scoreHookQuality` against TEST_FILL (action='abandon',
+    // anchor='list'). Internal-first: no FAMILY_VOICE entry, no
+    // TONE_TO_VOICE_CLUSTER entry — surfaces via cold-start
+    // salt-rotation only.
+    id: "high_energy_rant",
+    tonalSignature:
+      "manic exclamation cadence — panic-volume, run-on confession with shouted contradictions; the joke is the energy, not the words",
+    lengthTargetWords: [5, 10],
+    softnessCeiling: 0.85,
+    hookTemplates: [
+      // explicit `itself` + family ing-form → ~73
+      "WHY does the ${anchor} keep ${ingForm} itself",
+      // mid-sentence period beat (". i") + concrete + MID verb → ~55
+      "i CANNOT stop ${ingForm} the ${anchor}. i CANNOT",
+      // double `again` repetition + period beat + MID verb → ~58
+      "i ${actionPast} the ${anchor} AGAIN. AGAIN!!!",
+      // explicit `to me` + period-into-lowercase + concrete → ~70
+      "someone explain the ${anchor} to me. NOW",
+      // family ing-form + `again` + period beat + concrete → ~58
+      "the ${anchor} is ${ingForm} me. AGAIN.",
+      // `but` contradiction + ing-form + concrete → ~51
+      "i can't keep ${ingForm} the ${anchor}!! BUT I WILL",
+      // implicit anthropomorph (`the X broke me`) + MID verb → ~57
+      "the ${anchor} broke me!! and I'M NOT FINE",
+      // explicit `my own` + family ing-form + concrete → ~73
+      "my own ${anchor} is ${ingForm} me back!!",
+      // `but` contradiction + family bare verb + concrete → ~55
+      "i SAID i'd ${action} the ${anchor} but NO",
+      // triple-anchor repetition + `again` + period beat → ~50
+      "the ${anchor}. the ${anchor}!! AGAIN the ${anchor}",
+    ],
+    seedHookExemplars: [
+      "WAIT i did it AGAIN are you kidding me",
+      "why am i like this WHY am i LIKE THIS",
+      "the dishes? AGAIN the dishes?? are you serious",
+      "i'm SO not okay about this and i just realized",
     ],
   },
 ] as const;

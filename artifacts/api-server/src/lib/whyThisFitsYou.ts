@@ -58,6 +58,16 @@ const TEMPLATES_BY_CLUSTER: Readonly<
     "Your voice does overdramatic-but-honest really well, and this hook is built for it.",
     "This leans into the reframe-the-trivial-as-tragedy shape your taste keeps picking.",
   ],
+  // PHASE Z5a — fifth voice cluster trust-line pool. Same anti-boring
+  // discipline (no `safe` / `easy`); leans on the cadence personality
+  // marker (`panic-volume`, `run-on`, `manic`, `unhinged`) to mirror
+  // the cluster's tonal signature without quoting the cluster id.
+  high_energy_rant: [
+    "Fits you because the panic-volume rant cadence — caps, repetition, run-on — is the register your hooks land in.",
+    "Picked for you because the manic-confession shape, said too loud, is exactly your taste.",
+    "Your voice does unhinged-monologue really well, and this hook is built around that delivery.",
+    "This leans into the breathless-rant cadence your sharpest hooks have used.",
+  ],
 };
 
 const FALLBACK_TEMPLATES: readonly string[] = [

@@ -292,11 +292,21 @@ const TONE_TO_VOICE_CLUSTER: Record<PreferredTone, VoiceClusterId> = {
   self_aware: "quiet_realization",
 };
 
+// PHASE Z5a — high_energy_rant added to the rotation pool. Appended
+// at the END so the salt-rotated table preserves slot order for the
+// first 4 clusters (the new cluster only adds 2 trailing slots,
+// minimising shift in cold-start picks). Intentionally NOT added to
+// FAMILY_VOICE or TONE_TO_VOICE_CLUSTER above — internal-first
+// surfacing via cold-start rotation only (no Quick Tune enum value
+// pins to it). The biased table now has 10 base slots (5 × 2),
+// 11 with familyDefault bonus, 16 with a tone-pinned creator —
+// see the slot-share comments in `resolveVoiceCluster`.
 const ALL_VOICE_CLUSTERS: readonly VoiceClusterId[] = [
   "dry_deadpan",
   "chaotic_confession",
   "quiet_realization",
   "overdramatic_reframe",
+  "high_energy_rant",
 ];
 
 /** PHASE Y7 — pure, deterministic voice cluster resolver. See the

@@ -27,11 +27,19 @@ import {
 } from "../coreCandidateGenerator.js";
 import type { VoiceClusterId } from "../voiceClusters.js";
 
+// PHASE Z5a — fifth cluster `high_energy_rant` added to the pool.
+// Tests below that pin specific cold/hot cluster expectations have
+// been widened to either include the new cluster in the histogram
+// (when its presence would change the min-count outcome) or to
+// include it in the cold set (when its count==0 makes it a valid
+// pick alongside the other count==0 clusters). Tests that only
+// assert determinism / parity are unchanged.
 const ALL_CLUSTERS: readonly VoiceClusterId[] = [
   "dry_deadpan",
   "chaotic_confession",
   "quiet_realization",
   "overdramatic_reframe",
+  "high_energy_rant",
 ];
 
 describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
@@ -104,7 +112,9 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
     }
   });
 
-  it("two hot clusters → resolver picks one of the OTHER 2 (the cold ones)", () => {
+  it("two hot clusters → resolver picks one of the OTHER cold clusters", () => {
+    // Z5a: cold set widened to 3 (quiet_realization, overdramatic_reframe,
+    // high_energy_rant), all at count==0 → all valid picks.
     const hist = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 4],
       ["chaotic_confession", 3],
@@ -112,6 +122,7 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
     const cold = new Set<VoiceClusterId>([
       "quiet_realization",
       "overdramatic_reframe",
+      "high_energy_rant",
     ]);
     for (let salt = 0; salt < 8; salt++) {
       for (let recipeIdx = 0; recipeIdx < 8; recipeIdx++) {
@@ -129,12 +140,15 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
   });
 
   it("three hot, one cold → resolver always returns the cold cluster", () => {
-    // Steady-state stress test: 3 of 4 clusters at high count, 1 at
+    // Steady-state stress test: 4 of 5 clusters at high count, 1 at
     // 0. The resolver MUST pick the 0-count cluster every time.
+    // Z5a: high_energy_rant added at high count so overdramatic_reframe
+    // remains the unique min.
     const hist = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 7],
       ["chaotic_confession", 9],
       ["quiet_realization", 6],
+      ["high_energy_rant", 8],
       // overdramatic_reframe omitted → 0
     ]);
     for (let salt = 0; salt < 8; salt++) {
@@ -152,14 +166,17 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
     }
   });
 
-  it("all 4 hot at unequal counts → resolver picks the lowest-count cluster", () => {
+  it("all clusters hot at unequal counts → resolver picks the lowest-count cluster", () => {
     // Even at full saturation (every cluster has been used recently),
     // the resolver must keep rotating: the LEAST-USED cluster wins.
+    // Z5a: high_energy_rant added at non-min count so quiet_realization
+    // remains the unique min.
     const hist = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 5],
       ["chaotic_confession", 4],
       ["quiet_realization", 2], // ← min
       ["overdramatic_reframe", 6],
+      ["high_energy_rant", 3],
     ]);
     for (let salt = 0; salt < 8; salt++) {
       for (let recipeIdx = 0; recipeIdx < 8; recipeIdx++) {
@@ -176,16 +193,18 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
     }
   });
 
-  it("all 4 equal counts → resolver falls through to salt-rotated start (parity with cold-start)", () => {
+  it("all clusters equal counts → resolver falls through to salt-rotated start (parity with cold-start)", () => {
     // When every cluster has the same recent count, the min-walk
     // returns the FIRST cluster in the salt-rotated table — which
     // is the same cluster the cold-start branch would return. So
     // the histogram should have NO observable effect.
+    // Z5a: high_energy_rant added at the same count so all 5 are tied.
     const histEq = new Map<VoiceClusterId, number>([
       ["dry_deadpan", 3],
       ["chaotic_confession", 3],
       ["quiet_realization", 3],
       ["overdramatic_reframe", 3],
+      ["high_energy_rant", 3],
     ]);
     for (let salt = 0; salt < 8; salt++) {
       for (let recipeIdx = 0; recipeIdx < 8; recipeIdx++) {
