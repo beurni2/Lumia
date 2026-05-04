@@ -1,0 +1,133 @@
+You are implementing Phase Z5 — POV / relatable skit hook corpus expansion for Lumina.
+
+Context:
+We are expanding the deterministic hook/scenario catalog with two reviewed POV/relatable skit batches. These hooks are meant to strengthen the `pov_relatable_sketch` lane, improve filmability, and increase everyday creator-style skit variety.
+
+Architecture rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO Claude-cost dependency for this phase.
+- Additive corpus/catalog expansion only.
+- Preserve existing cache shape, route response shape, and ideator output keys.
+- Keep all existing boot-time asserts passing.
+- Keep Vitest + TypeScript clean.
+- Do not remove or weaken existing hook-quality, anti-copy, diversity, or novelty gates.
+
+Likely files/areas:
+- Hook corpus / blessed hook examples catalog.
+- POV / video pattern catalog if applicable.
+- Hook metadata/tag maps if applicable.
+- PremiseStyle / HookIntent alignment only if required.
+- Tests for catalog validity, hook validation, duplicate rejection, and boot-time floors.
+
+Goal:
+Import the finalized cleaned POV/relatable skit hooks from Batch 1 and Batch 2 as corpus/reference examples or scenario-backed hook seeds, depending on the current catalog structure.
+
+These should be tagged/treated as:
+- category: `POV/relatable skits`
+- pattern: `pov_relatable_sketch`
+- likely settings: bedroom, kitchen, desk, work, public, grocery, car, phone, bathroom/mirror, gym, classroom, meeting, apartment
+- common topic lanes: daily_routine, food_home, work_productivity, social_texting, dating, family_roommate, errands_adulting, creator_social, health_wellness, physical_comedy
+- common emotional spikes: embarrassment, panic, denial, irony, regret
+- common voice/style alignment: chaotic_confession, dry_deadpan, quiet_realization, overdramatic_reframe
+- risk level: mostly safe, but mark bank/app/private-data-related hooks carefully as requiring fake/demo screens only
+
+Implementation requirements:
+1. Import only the finalized cleaned versions I provide, not raw files blindly.
+2. Remove duplicates and near-duplicates before import.
+3. Strip labels like `hook:`, `Hook example:`, and inconsistent numbering from hook text.
+4. Preserve original item numbers in metadata where possible for traceability.
+5. Standardize each item as:
+   - originalNumber
+   - hook
+   - scenario / whatToShow
+   - category: `POV/relatable skits`
+   - pattern: `pov_relatable_sketch`
+   - topicLane
+   - setting
+   - emotionalSpike
+   - voiceCluster or compatibleVoiceClusters if the current schema supports it
+   - riskLevel / safetyNotes if the current schema supports it
+6. Keep scenarios as filmability references. They do not need to be user-facing unless the current idea author uses scenario examples directly.
+7. Do NOT allow the engine to overuse the literal `pov:` opener.
+   - Preserve/strengthen opener diversity caps.
+   - It is okay for examples to include `pov:`, but generated output should not become repetitive.
+8. If the catalog has Jaccard/anti-copy checks against the blessed corpus, make sure these new examples are included in that rejection/reference floor appropriately.
+9. Make sure every imported hook passes existing `validateHook`, hook quality floors, and anti-copy/duplicate checks.
+10. Add or update tests proving:
+   - all new hooks validate
+   - no duplicate hook texts exist
+   - no unsubstituted placeholders exist
+   - no hook exceeds accepted length rules unless the system already has approved POV exceptions
+   - boot-time catalog asserts pass
+   - TypeScript compiles
+
+Batch 1 notes:
+Batch 1 was reviewed as a strong raw POV/relatable skit batch. It should not be imported fully raw. Use the finalized cleaned list only. Avoid importing weak duplicates or old versions that were replaced by your cleaned edits.
+
+Batch 1 strongest anchors:
+- pov: you open linkedin and your cereal tastes unemployed
+- pov: you hear a bag of chips and suddenly have questions
+- pov: your friend says quick favor and your soul packs a bag
+- pov: you said one drink and now the Uber driver knows your lore
+- pov: the gifted kid just encountered a basic minor inconvenience
+- pov: you heard a noise at 3am and became Rambo
+- pov: you’re rotting in bed but the doorbell rings
+- pov: you told a joke and nobody laughed in the chat
+- pov: you’re listening to your own voice note
+- pov: you’re eating a snack and your dog hears a molecule
+
+Batch 2 notes:
+Batch 2 is approved after cleanup. It is stronger than Batch 1 for scene specificity and expands public embarrassment, work/school, family/roommate, creator behavior, errands/adulting, wellness, and physical comedy.
+
+Batch 2 cleanup requirements:
+- Remove duplicate hooks.
+- Fix numbering errors.
+- Remove `hook:` and `Hook example:` prefixes.
+- Standardize all entries as Hook + Scenario.
+- Keep scenarios attached as filmability references.
+- Preserve original item numbers where possible.
+
+Batch 2 strongest anchors:
+- pov: the elevator got quiet right after your stomach joined the meeting
+- pov: you held the door but they were 40 feet away
+- pov: you walked into a spiderweb in front of everyone
+- pov: you thought the pull door was a push
+- pov: you bumped into a mannequin and said sorry
+- pov: your camera turned on before your personality did
+- pov: your roommate said they cleaned and meant one spoon
+- pov: your draft was hilarious at midnight and illegal by morning
+- pov: one comment looked shady and you opened a federal case
+- pov: you tried to film one take and became a hostage to your own face
+- pov: your sleeve caught the door handle and activated rage mode
+- pov: your mirror hyped you up and the front camera reported the truth
+- pov: you unmuted to talk and forgot every word
+- pov: you volunteered once and got adopted by responsibility
+- pov: self-checkout needed a manager for your bananas
+
+Safety requirements:
+- For any bank, analytics, messages, email, school, work, or private-data-adjacent hooks, scenarios must use fake/demo screens only.
+- Do not encourage users to show real bank balances, private chats, addresses, IDs, medical info, salary, work-confidential data, or real personal documents.
+- If a hook involves a real app screen, use mock UI or cropped/non-sensitive framing.
+
+Final validation expectations:
+- Run API/server test suite.
+- Run TypeScript checks for api-server and mobile if touched.
+- Run existing catalog boot-time assert path.
+
+Report back with:
+1. Files changed.
+2. Count of hooks added.
+3. Count of duplicates removed.
+4. Count of finalized cleaned hooks imported.
+5. Tests run and pass/fail.
+6. Confirmation no migrations/API changes/validator loosening occurred.
+
+Definition of done:
+- Finalized cleaned Batch 1 + Batch 2 POV/relatable skit hooks are added as deterministic corpus/catalog assets.
+- All new hooks validate.
+- No near-duplicate pollution.
+- Opener diversity remains protected.
+- All tests and TypeScript pass.
+- No production behavior breaks.
