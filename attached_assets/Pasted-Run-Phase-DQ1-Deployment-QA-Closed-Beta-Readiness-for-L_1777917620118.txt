@@ -1,0 +1,221 @@
+Run Phase DQ1 — Deployment QA / Closed Beta Readiness for Lumina.
+
+Context:
+Core idea engine pre-launch quality work is now stable:
+- Z5 corpus expansion complete: hook corpus is 532 hooks.
+- Scenario catalog is 253.
+- Z5.5 template output polish complete.
+- Z5.6 Always-On Hero Quality Ranker + Adaptive First-Session Boost complete.
+- Z5.6b Hero Threshold + Payoff Sharpening complete.
+- Hero pass rate improved from 33.3% to 75.0%.
+- Avg hero score improved from 64.3 to 72.3.
+- Returning payoff clarity improved from 5.0/12 to 8.0/12.
+- Caption synergy improved from 0.7/8 to 5.2/8.
+- Safety failures remain 0.
+- 269/269 tests pass.
+- TypeScript clean.
+- Server boots clean.
+- Zero migrations, zero API changes, zero validator loosening.
+
+Goal:
+Determine whether Lumina is ready for closed beta deployment/testing.
+
+This is QA only unless a critical blocker is found.
+
+Hard rules:
+- ZERO migrations unless an existing migration issue is discovered and explicitly reported.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- No new feature work during deployment QA.
+- Do not tune the idea engine during this phase unless a critical launch blocker is found.
+- Preserve all Z5/Z5.5/Z5.6/Z5.6b behavior.
+
+QA scope:
+
+1. Environment readiness
+Check:
+- required environment variables
+- Clerk auth config
+- Replit AI Integrations availability
+- PostgreSQL connection
+- server boot
+- mobile app env references
+- API base URL wiring
+- OpenAPI/client generation status if applicable
+
+2. Database readiness
+Check:
+- migrations status
+- current schema compatibility
+- required tables exist:
+  - creators
+  - importedVideos
+  - trendBriefs
+  - videos
+  - ideaFeedback
+  - ideatorSignal
+  - usageCounters
+  - errorEvents
+  - any required auth/user mapping tables
+- no pending migrations
+- no destructive schema drift
+
+3. API readiness
+Smoke test critical routes:
+- health route
+- auth/session creator route if applicable
+- ideator generate route
+- taste calibration save/load
+- idea feedback / ideator_signal write path
+- imported video / style profile route if applicable
+- create/review/export route path if applicable
+- error logging route if applicable
+
+4. Mobile app readiness
+Run:
+- TypeScript check for mobile
+- Expo/app build sanity if available
+- route navigation sanity
+- onboarding flow sanity
+- calibration flow
+- Home idea card rendering
+- Film-This-Now screen
+- Create flow
+- Review/save/export flow
+- empty/error/loading states
+- refresh/regenerate state
+- fewer-than-3-ideas fallback UI
+
+5. Full user journey QA
+Run through at least 3 mock closed-beta user journeys:
+
+Journey A — Cold-start user:
+- sign in / create user
+- onboarding
+- taste calibration
+- generate first batch
+- open idea
+- Film-This-Now
+- create/review/save/export
+- send feedback/select/export signal
+
+Journey B — Returning user:
+- existing calibration/history
+- generate batch
+- verify hero quality/top-card
+- make another / refresh
+- select/export
+- verify signal writes
+
+Journey C — Edge-case user:
+- incomplete calibration
+- no imported videos or minimal input
+- slow generation / refresh
+- fewer than 3 ideas if simulated
+- network/API error state
+- retry flow
+
+6. Idea engine final smoke
+Generate:
+- 5 cold-start/calibrated batches
+- 5 returning/profiled batches
+Verify:
+- no malformed artifacts
+- no safety failures
+- no exact duplicate hooks in a batch
+- no repeated weak hooks
+- top-card hero score healthy
+- no private-data-dependent top cards
+- literal pov opener not overused
+- Claude fallback behavior expected
+- local path behavior expected
+
+7. Signal loop verification
+Verify these actions write correctly:
+- shown
+- selected
+- liked/disliked if present
+- make another / refresh if present
+- exported
+- skipped if present
+Confirm ideator_signal payload includes enough context for future mining:
+- hook
+- idea id or fingerprint
+- topic/premise metadata if available
+- voice/style metadata if available
+- source
+- timestamp
+- user/creator id
+
+8. Observability and failure handling
+Check:
+- Pino logs meaningful generation errors
+- errorEvents records critical API failures
+- frontend displays useful error messages
+- no raw stack traces to users
+- slow generation state is clear
+- fallback/fewer-than-3 UI is understandable
+
+9. Performance sanity
+Measure:
+- API boot time
+- generate latency normal path
+- generate latency regenerate/fallback path
+- mobile screen responsiveness
+- cache hit behavior
+- no obvious memory spike or runaway loop
+
+10. Security/privacy sanity
+Verify:
+- no real private data required for film ideas
+- bank/private-message concepts require fake/demo/cropped screens
+- auth required where expected
+- no sensitive logs
+- no secrets in repo
+- no API keys exposed client-side
+- no confidential data in test fixtures
+
+Validation commands:
+Run:
+- pnpm --filter @workspace/api-server exec vitest run
+- pnpm --filter @workspace/api-server exec tsc --noEmit
+- pnpm --filter lumina exec tsc --noEmit, or the correct mobile TypeScript command
+- any existing lint/build command that is currently expected to pass
+- API server boot check
+- mobile app start/build sanity if available
+
+Report format:
+1. Executive result:
+   - READY FOR CLOSED BETA
+   - READY WITH MINOR NOTES
+   - NOT READY
+
+2. Summary table:
+   - API tests
+   - API TypeScript
+   - mobile TypeScript
+   - server boot
+   - database readiness
+   - auth readiness
+   - full user journey
+   - idea engine smoke
+   - signal loop
+   - performance
+   - privacy/security
+
+3. Blockers:
+List P0/P1 issues only.
+
+4. Non-blocking notes:
+List P2/P3 issues.
+
+5. Files changed:
+Deployment QA should ideally not change production files unless fixing critical issues.
+
+6. Commands run:
+Include pass/fail.
+
+7. Recommendation:
+- deploy closed beta
+- fix blockers then retest
+- run one more specific QA phase

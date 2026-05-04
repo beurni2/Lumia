@@ -47,3 +47,9 @@ id = "-M0A8gaVWyE3jB3e6WWQm"
 uri = "file://.local/z55_normal_path_output_qa_report.md"
 type = "text"
 title = "Z5.5 Normal-Path Output QA Report"
+
+[[outputs]]
+id = "g7mMe_BKv-CqzFnaCN-FQ"
+uri = "file://.local/dq1_deployment_qa_report.md"
+type = "text"
+title = "DQ1 Deployment QA Report"
