@@ -1404,7 +1404,7 @@ export function scoreIdea(
     captionStrength +
     freshness +
     Math.round(hookIntentScore * 0.5) +
-    Math.round(heroQuality * 0.02);
+    Math.round(heroQuality * 0.06);
   return {
     total,
     hookImpact,
@@ -1433,6 +1433,34 @@ const VAGUE_HOOK_RX: readonly RegExp[] = [
   /\beverything\s+(went|falls?|fell)\s+(wrong|apart)\b/i,
   /\bnothing\s+will\s+ever\s+be\s+the\s+same\b/i,
 ];
+
+const AWKWARD_PHRASE_RX: readonly RegExp[] = [
+  /\bis\s+(?:faking|exposing|ghosting|betraying|mocking)\s+me\s+back\s*!*$/i,
+  /\bmy\s+own\s+\w+\s+is\s+(?:faking|exposing|ghosting|betraying)\s+me\s+back\b/i,
+  /\bmy\s+body\s+quit\.?\s*my\s+brain\s+kept\s+(?:screaming|yelling|crying)\b/i,
+  /\bwatched\s+myself\s+fake\b/i,
+];
+
+const WEAK_HOOK_SKELETON_RX: readonly RegExp[] = [
+  /\bmy\s+body\s+quit\b/i,
+  /\bbrain\s+kept\s+(?:screaming|yelling|crying|going)\b/i,
+  /^(?:it|this)\s+(?:just\s+)?happened\s*\.?\s*$/i,
+  /\b(?:life|world|everything)\s+(?:collapsed|imploded|exploded|shattered)\b/i,
+];
+
+const HERO_OBJECT_NOUNS: ReadonlySet<string> = new Set([
+  "app", "phone", "alarm", "fridge", "scale", "mirror", "cart",
+  "email", "notification", "calendar", "coffee", "text", "dm",
+  "uber", "lyft", "spotify", "netflix", "tinder", "instagram",
+  "receipt", "bill", "draft", "laundry", "playlist", "microwave",
+  "oven", "shower", "wallet", "inbox", "snap", "venmo",
+]);
+
+const OBJECT_ANTHROPOMORPHISM_RX =
+  /\b(?:the\s+)?(app|phone|alarm|fridge|scale|mirror|cart|email|notification|calendar|coffee|text|dm|uber|lyft|spotify|netflix|tinder|instagram|receipt|bill|draft|laundry|playlist|microwave|oven|shower|wallet|inbox|snap|venmo)\s+(?:knows?|keeps?|won'?t|is\s+(?:lying|judging|watching|ghosting|faking|exposing|betraying|mocking|testing))\b/i;
+
+const CAPTION_COMEDY_RX =
+  /\b(?:always|never|every\s+time|wins?|still|literally|again|somehow|apparently|honestly|every\s+single)\b/i;
 
 const AI_SPEAK_RX: readonly RegExp[] = [
   /\b(leverage|utilize|embark|commence|albeit|moreover|furthermore|nevertheless)\b/i,
@@ -1546,12 +1574,26 @@ export function scoreHeroQuality(
   if (hookWords.length <= 8) hookPunch += 3;
   if (SPECIFIC_NOUN_RX.test(hook)) hookPunch += 3;
   if (resolvedHookImpact >= 1) hookPunch += 3;
+  if (OBJECT_ANTHROPOMORPHISM_RX.test(hookLower)) hookPunch += 2;
   for (const rx of VAGUE_HOOK_RX) {
     if (rx.test(hook)) {
       hookPunch = Math.max(0, hookPunch - 4);
       break;
     }
   }
+  for (const rx of AWKWARD_PHRASE_RX) {
+    if (rx.test(hook)) {
+      hookPunch = Math.max(0, hookPunch - 4);
+      break;
+    }
+  }
+  for (const rx of WEAK_HOOK_SKELETON_RX) {
+    if (rx.test(hook)) {
+      hookPunch = Math.max(0, hookPunch - 3);
+      break;
+    }
+  }
+  hookPunch = Math.min(12, hookPunch);
 
   // 2. filmNowEase (0-10)
   let filmNowEase = 0;
@@ -1571,12 +1613,23 @@ export function scoreHeroQuality(
   if (idea.hasContrast) payoffClarity += 3;
   if (idea.payoffType === "punchline" || idea.payoffType === "reveal")
     payoffClarity += 3;
+  else if (
+    idea.payoffType === "reaction" ||
+    idea.payoffType === "transformation"
+  )
+    payoffClarity += 1;
   if (
     idea.emotionalSpike === "embarrassment" ||
     idea.emotionalSpike === "irony" ||
     idea.emotionalSpike === "denial"
   )
     payoffClarity += 3;
+  else if (
+    idea.emotionalSpike === "panic" ||
+    idea.emotionalSpike === "regret"
+  )
+    payoffClarity += 2;
+  payoffClarity = Math.min(12, payoffClarity);
 
   // 4. comedicSpecificity (0-12)
   let comedicSpecificity = 0;
@@ -1626,7 +1679,10 @@ export function scoreHeroQuality(
 
   // 10. captionSynergy (0-8)
   const shared = heroSharedWordCount(hook, idea.caption);
-  const captionSynergy = shared >= 2 ? 8 : shared === 1 ? 4 : 0;
+  let captionSynergy = shared >= 2 ? 4 : shared === 1 ? 2 : 0;
+  if (CAPTION_COMEDY_RX.test(idea.caption)) captionSynergy += 2;
+  if (SPECIFIC_NOUN_RX.test(idea.caption)) captionSynergy += 2;
+  captionSynergy = Math.min(8, captionSynergy);
 
   const total =
     hookPunch +
@@ -4229,6 +4285,19 @@ export function selectionPenalty(
   // for any candidate that somehow slipped through (e.g. a Llama
   // mutation that re-introduced a banned prefix on rewrite).
   if (lookupBannedHookPrefix(c.idea.hook)) p -= 5;
+  // Phase Z5.6b — payoff-clarity floor. Penalize ideas with no clear
+  // payoff signal so personalization cannot promote a vague-payoff
+  // idea purely on taste fit. Reads idea fields directly (no score
+  // dependency). The -2 penalty is sized to break ties — a strong
+  // taste-fit idea with clear payoff still wins easily over a weak
+  // taste-fit idea with clear payoff, but a strong taste-fit idea
+  // with NO payoff loses to an average taste-fit idea WITH payoff.
+  const hasPayoffSignal =
+    c.idea.hasVisualAction ||
+    c.idea.hasContrast ||
+    c.idea.payoffType === "punchline" ||
+    c.idea.payoffType === "reveal";
+  if (!hasPayoffSignal) p -= 2;
   // Phase Z5.6 — adaptive first-session boost. When the creator has
   // low/no signal history, boost broad-safe lanes and cap risky ones
   // to ensure first batches feel immediately filmable and relatable.

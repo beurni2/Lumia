@@ -361,6 +361,267 @@ describe("Phase Z5.6 — First-session boost in selectionPenalty", () => {
   });
 });
 
+describe("Phase Z5.6b — Awkward phrase penalty", () => {
+  it("penalizes 'faking me back' template-visible phrasing", () => {
+    const clean = scoreHeroQuality(mkIdea({ hook: "i just checked my bank app" }));
+    const awkward = scoreHeroQuality(
+      mkIdea({ hook: "my own draft is faking me back!!" }),
+    );
+    expect(clean.hookPunch).toBeGreaterThan(awkward.hookPunch);
+  });
+
+  it("penalizes 'my body quit. my brain kept screaming'", () => {
+    const clean = scoreHeroQuality(mkIdea({ hook: "the alarm won again" }));
+    const weak = scoreHeroQuality(
+      mkIdea({ hook: "my body quit. my brain kept screaming" }),
+    );
+    expect(clean.hookPunch).toBeGreaterThan(weak.hookPunch);
+    expect(clean.total).toBeGreaterThan(weak.total);
+  });
+
+  it("penalizes 'watched myself fake' phrasing", () => {
+    const clean = scoreHeroQuality(mkIdea({ hook: "the fridge knows i'm lying" }));
+    const awkward = scoreHeroQuality(
+      mkIdea({ hook: "watched myself fake the ringlight live" }),
+    );
+    expect(clean.hookPunch).toBeGreaterThan(awkward.hookPunch);
+  });
+});
+
+describe("Phase Z5.6b — Weak hook skeleton penalty", () => {
+  it("penalizes 'my body quit' skeleton", () => {
+    const strong = scoreHeroQuality(mkIdea({ hook: "i just checked my bank app again" }));
+    const weak = scoreHeroQuality(
+      mkIdea({ hook: "my body quit on me at the gym" }),
+    );
+    expect(strong.hookPunch).toBeGreaterThan(weak.hookPunch);
+  });
+
+  it("penalizes 'brain kept screaming' skeleton", () => {
+    const strong = scoreHeroQuality(mkIdea({ hook: "the app ghosted itself again" }));
+    const weak = scoreHeroQuality(
+      mkIdea({ hook: "my brain kept screaming the whole time" }),
+    );
+    expect(strong.hookPunch).toBeGreaterThan(weak.hookPunch);
+  });
+});
+
+describe("Phase Z5.6b — Payoff clarity expansion", () => {
+  it("gives partial credit for reaction payoff type", () => {
+    const reaction = scoreHeroQuality(
+      mkIdea({ payoffType: "reaction", hasVisualAction: false, hasContrast: false, emotionalSpike: "panic" }),
+    );
+    expect(reaction.payoffClarity).toBeGreaterThan(0);
+  });
+
+  it("gives partial credit for panic/regret spikes", () => {
+    const panic = scoreHeroQuality(
+      mkIdea({ emotionalSpike: "panic", payoffType: "reaction", hasVisualAction: false, hasContrast: false }),
+    );
+    const regret = scoreHeroQuality(
+      mkIdea({ emotionalSpike: "regret", payoffType: "reaction", hasVisualAction: false, hasContrast: false }),
+    );
+    expect(panic.payoffClarity).toBeGreaterThan(0);
+    expect(regret.payoffClarity).toBeGreaterThan(0);
+  });
+
+  it("still gives max credit for punchline + embarrassment", () => {
+    const best = scoreHeroQuality(
+      mkIdea({
+        payoffType: "punchline",
+        emotionalSpike: "embarrassment",
+        hasVisualAction: true,
+        hasContrast: true,
+      }),
+    );
+    expect(best.payoffClarity).toBe(12);
+  });
+
+  it("returning profile with reaction+regret scores higher than before", () => {
+    const returning = scoreHeroQuality(
+      mkIdea({
+        payoffType: "reaction",
+        emotionalSpike: "regret",
+        hasVisualAction: true,
+        hasContrast: false,
+      }),
+    );
+    expect(returning.payoffClarity).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe("Phase Z5.6b — Caption synergy expansion", () => {
+  it("rewards captions with comedy amplifier words", () => {
+    const comedy = scoreHeroQuality(
+      mkIdea({
+        hook: "i just opened the app",
+        caption: "the app always wins somehow",
+      }),
+    );
+    const plain = scoreHeroQuality(
+      mkIdea({
+        hook: "i just opened the app",
+        caption: "life is interesting today",
+      }),
+    );
+    expect(comedy.captionSynergy).toBeGreaterThan(plain.captionSynergy);
+  });
+
+  it("rewards captions with specific nouns", () => {
+    const concrete = scoreHeroQuality(
+      mkIdea({
+        hook: "why did i even try",
+        caption: "the alarm clock is undefeated",
+      }),
+    );
+    const vague = scoreHeroQuality(
+      mkIdea({
+        hook: "why did i even try",
+        caption: "things just happen sometimes",
+      }),
+    );
+    expect(concrete.captionSynergy).toBeGreaterThan(vague.captionSynergy);
+  });
+});
+
+describe("Phase Z5.6b — Object anthropomorphism bonus", () => {
+  it("boosts hookPunch for 'the fridge knows' pattern", () => {
+    const anthropomorphic = scoreHeroQuality(
+      mkIdea({ hook: "the fridge knows i'm lying" }),
+    );
+    const plain = scoreHeroQuality(
+      mkIdea({ hook: "the fridge opened at midnight" }),
+    );
+    expect(anthropomorphic.hookPunch).toBeGreaterThan(plain.hookPunch);
+  });
+});
+
+describe("Phase Z5.6b — Hero weight increase", () => {
+  it("hero quality contributes meaningfully to IdeaScore total", () => {
+    const strong = scoreHeroQuality(
+      mkIdea({
+        hook: "i just checked my bank app at 2am",
+        hasVisualAction: true,
+        hasContrast: true,
+        payoffType: "punchline",
+        emotionalSpike: "embarrassment",
+        setting: "bed",
+      }),
+    );
+    const contribution = Math.round(strong.total * 0.06);
+    expect(contribution).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("Phase Z5.6b — Payoff floor in selectionPenalty", () => {
+  it("penalizes ideas with no payoff signal", () => {
+    const noPayoff = mkIdea({
+      hasVisualAction: false,
+      hasContrast: false,
+      payoffType: "transformation",
+      pattern: "mini_story",
+      structure: "social_awareness",
+      hookStyle: "the_way_i",
+      setting: "outside",
+      hook: "the way something kind of happened to me in a vague sort of way today",
+    });
+    const withPayoff = mkIdea({
+      hasVisualAction: true,
+      hasContrast: true,
+      payoffType: "punchline",
+      pattern: "contrast",
+      structure: "expectation_vs_reality",
+      hookStyle: "internal_thought",
+      setting: "bed",
+      hook: "i just checked my bank app at 2am and now i can't sleep",
+    });
+    const penNoPayoff = selectionPenalty({ idea: noPayoff, meta: mkMeta() }, []);
+    const penWithPayoff = selectionPenalty({ idea: withPayoff, meta: mkMeta() }, []);
+    expect(penWithPayoff).toBeGreaterThan(penNoPayoff);
+  });
+});
+
+describe("Phase Z5.6b — Returning profile payoff protection", () => {
+  it("personalization cannot promote low-payoff over high-payoff", () => {
+    const lowPayoff = mkIdea({
+      hasVisualAction: false,
+      hasContrast: false,
+      payoffType: "transformation",
+      emotionalSpike: "regret",
+    });
+    const highPayoff = mkIdea({
+      hasVisualAction: true,
+      hasContrast: true,
+      payoffType: "punchline",
+      emotionalSpike: "embarrassment",
+    });
+    const lowHero = scoreHeroQuality(lowPayoff);
+    const highHero = scoreHeroQuality(highPayoff);
+    expect(highHero.payoffClarity).toBeGreaterThan(lowHero.payoffClarity);
+    expect(highHero.total).toBeGreaterThan(lowHero.total);
+  });
+});
+
+describe("Phase Z5.6b — Safety still hard-pass", () => {
+  it("safety confidence unchanged for safe ideas", () => {
+    const safe = scoreHeroQuality(mkIdea());
+    expect(safe.safetyConfidence).toBe(10);
+  });
+
+  it("safety confidence still penalizes private data", () => {
+    const unsafe = scoreHeroQuality(
+      mkIdea({
+        trigger: "checking my bank balance",
+        whatToShow: "the bank balance on screen",
+      }),
+    );
+    expect(unsafe.safetyConfidence).toBeLessThan(10);
+  });
+});
+
+describe("Phase Z5.6b — Regex negative controls (no false positives)", () => {
+  it("does NOT penalize 'my playlist is bringing me back' as awkward", () => {
+    const legit = scoreHeroQuality(mkIdea({ hook: "my playlist is bringing me back" }));
+    const awkward = scoreHeroQuality(mkIdea({ hook: "my own draft is faking me back!!" }));
+    expect(legit.hookPunch).toBeGreaterThan(awkward.hookPunch);
+  });
+
+  it("does NOT penalize 'this happened when i opened my bank app' as weak skeleton", () => {
+    const legit = scoreHeroQuality(mkIdea({ hook: "this happened when i opened my bank app" }));
+    expect(legit.hookPunch).toBeGreaterThan(0);
+  });
+
+  it("does NOT give anthropomorphism bonus for 'my mom knows i'm lying'", () => {
+    const human = scoreHeroQuality(mkIdea({ hook: "my mom knows i'm lying" }));
+    const object = scoreHeroQuality(mkIdea({ hook: "the fridge knows i'm lying" }));
+    expect(object.hookPunch).toBeGreaterThan(human.hookPunch);
+  });
+
+  it("does NOT penalize 'still editing the video at this hour' as awkward", () => {
+    const legit = scoreHeroQuality(mkIdea({ hook: "i'm still editing the video at this hour" }));
+    expect(legit.hookPunch).toBeGreaterThan(0);
+  });
+});
+
+describe("Phase Z5.6b — First-session boost unchanged", () => {
+  it("still returns 1.0 for cold start", () => {
+    expect(computeFirstSessionBoostFactor(0, false)).toBe(1.0);
+  });
+
+  it("still returns 0 with taste calibration", () => {
+    expect(computeFirstSessionBoostFactor(0, true)).toBe(0);
+    expect(computeFirstSessionBoostFactor(2, true)).toBe(0);
+  });
+
+  it("still decays with batch history", () => {
+    const f0 = computeFirstSessionBoostFactor(0, false);
+    const f1 = computeFirstSessionBoostFactor(1, false);
+    const f4 = computeFirstSessionBoostFactor(4, false);
+    expect(f0).toBeGreaterThan(f1);
+    expect(f4).toBe(0);
+  });
+});
+
 describe("Phase Z5.6 — No API shape changes", () => {
   it("heroQuality lives on IdeaScore (internal), not on Idea schema", async () => {
     const { ideaSchema } = await import("../ideaGen.js");

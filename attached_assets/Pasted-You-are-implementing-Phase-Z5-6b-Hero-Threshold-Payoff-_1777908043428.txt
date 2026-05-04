@@ -1,0 +1,162 @@
+You are implementing Phase Z5.6b — Hero Threshold + Payoff Sharpening for Lumina.
+
+Context:
+Phase Z5.6 shipped successfully:
+- Always-On Hero Quality Ranker implemented.
+- Adaptive First-Session Boost implemented.
+- 234/234 tests pass.
+- TypeScript clean.
+- Server clean.
+- Zero migrations, zero API changes, zero validator loosening.
+
+QA results:
+Cold-start / first-session:
+- Avg top-card hero score: 65.7 / 100
+- Hero idea pass rate ≥70: 33.3%
+- Filmability: 25.1 / 30
+- Payoff clarity: 8.0 / 12
+- Safety failures: 0
+
+Returning / personalized:
+- Avg top-card hero score: 63.0 / 100
+- Hero idea pass rate ≥70: 33.3%
+- Filmability: 25.7 / 30
+- Payoff clarity: 5.0 / 12
+- Safety failures: 0
+- First-session boost correctly dropped to 0.0 when calibration existed.
+
+Issue:
+Z5.6 is technically correct, but not yet launch-wow quality. Hero pass rate is too low, payoff clarity is too weak for returning profiles, and some awkward/template-visible hooks are still surviving.
+
+Goal:
+Improve top-card and hero-candidate quality without changing architecture.
+
+Hard rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- No broad rewrite.
+- Keep existing hero ranker architecture.
+- Keep first-session boost adaptive.
+- Preserve personalization for calibrated users.
+- Keep all tests and TypeScript passing.
+
+Primary targets:
+- Hero pass rate should increase from 33.3% to at least 70% across QA profiles.
+- Avg top-card hero score should be >=72 if candidate pool allows.
+- Top-card payoff clarity should be >=8/12.
+- Safety failures must remain 0.
+- Filmability must remain >=24/30.
+- No malformed artifacts.
+- No repeated weak hook across profiles.
+
+Implementation scope:
+
+1. Increase hero-quality influence on top-card ordering.
+Current hero quality is folded into IdeaScore.total at conservative 0.02x and willingness scorer as bounded boost.
+Review whether this is too weak.
+Increase carefully so clearly better hero candidates can outrank technically valid but plain candidates.
+Do not let it overpower personalization completely.
+
+2. Add stronger payoff-clarity weighting.
+Reward ideas with:
+- clear expectation reversal
+- visible comedic event
+- object/app betrayal
+- self-contradiction
+- small action escalating
+- concrete ending beat
+- caption that sharpens the joke
+
+Penalize ideas where:
+- hook is dramatic but not funny
+- scene is only a reaction
+- payoff is vague
+- caption does not clarify the joke
+- hook and scene do not connect tightly
+
+3. Penalize awkward/template-visible hook phrasing.
+Add soft penalties for unnatural phrases seen in QA:
+- “faking me back”
+- “exposing me back”
+- “spiraling me back”
+- “my body quit. my brain kept screaming”
+- “still faking the gym at this hour”
+- vague collapse language without a concrete event
+
+Do not create overly broad bans. Use targeted soft penalties.
+
+4. Add weak-hook suppression.
+If a hook repeatedly appears as a bottom-scored output in QA or matches a known weak skeleton, it should be deprioritized.
+Examples:
+- “my body quit. my brain kept screaming”
+- vague body/brain panic without specific scene
+- generic “life collapsed” style hooks
+
+5. Improve returning-profile payoff.
+Returning profiles had payoffClarity 5.0/12.
+Investigate why personalized/calibrated profiles are getting weaker payoff despite better voice fit.
+Adjust scoring so personalization cannot promote low-payoff ideas over stronger, still-compatible ideas.
+
+6. Preserve first-session boost behavior.
+The first-session boost correctly:
+- factor=1.0 for cold start
+- factor=0.0 when taste calibration exists
+Keep this behavior unless there is a clear reason to make fading more gradual.
+
+7. Caption synergy.
+Caption synergy is low. Do not overcorrect.
+Add light reward for captions that:
+- sharpen the twist
+- add a second joke
+- clarify contradiction
+- avoid simply repeating the hook
+
+8. Tests.
+Add/update tests for:
+- top-card hero weighting
+- weak-hook penalty
+- awkward phrase penalty
+- payoff clarity boost
+- returning profile does not promote low-payoff ideas purely from personalization
+- safety remains hard pass
+- first-session boost still drops correctly with calibration
+- no API shape changes
+
+9. QA after implementation.
+Rerun:
+QA Pass A — Cold-start / first-session
+QA Pass B — Returning / personalized
+
+Report:
+- profiles tested
+- average top-card hero score
+- hero idea pass rate
+- hook strength
+- filmability
+- payoff clarity
+- freshness
+- voice fit
+- safety failures
+- top 5 ideas
+- weakest 5 ideas
+- repeated weak hooks
+- cases where personalization overpowered payoff quality
+- whether deployment QA can begin
+
+Success criteria:
+- Hero pass rate >=70%, or explain exactly why candidate pool prevents this.
+- Avg top-card hero score >=72, or clear improvement from 65.7/63.0.
+- Returning payoff clarity improves materially from 5.0/12.
+- No safety failures.
+- No malformed artifacts.
+- No exact duplicate hooks.
+- No repeated weak bottom hook across profiles.
+- Tests and TypeScript pass.
+
+Definition of done:
+- Hero quality layer feels launch-ready.
+- Top-card ideas are more likely to create “wow.”
+- Personalization still works.
+- First-session boost still works.
+- All validation passes.

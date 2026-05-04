@@ -142,7 +142,7 @@ export function scoreWillingness(input: {
   const tasteFit = deriveTasteFit(score);
   const freshness = deriveFreshness(score);
   const hookStrength = deriveHookStrength(meta);
-  const heroBoost = Math.min(15, Math.round((score.heroQuality ?? 0) * 0.15));
+  const heroBoost = Math.min(20, Math.round((score.heroQuality ?? 0) * 0.25));
   const base = filmability + tasteFit + freshness + hookStrength + heroBoost;
   const edgeFactor = deriveEdgeFactor(idea.hook, meta);
   const total = Math.round(base * (0.5 + 0.5 * edgeFactor));
