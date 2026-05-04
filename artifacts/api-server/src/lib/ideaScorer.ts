@@ -588,6 +588,16 @@ export type IdeaScore = {
    * a "good" hook moved.
    */
   hookIntentScore: number;
+  /**
+   * Phase Z5.6 — hero quality score (0-100). Additive overlay across
+   * 10 dimensions: hookPunch, filmNowEase, payoffClarity,
+   * comedicSpecificity, scenarioCoherence, voiceNaturalness,
+   * safetyConfidence, freshness, lowEffortSetting, captionSynergy.
+   * Folded into `total` at 0.02x weight (0-2 additive) for light
+   * selection influence; the willingness ranker reads it at higher
+   * weight for top-card ordering.
+   */
+  heroQuality: number;
 };
 
 // -----------------------------------------------------------------------------
@@ -1384,6 +1394,8 @@ export function scoreIdea(
   // [0..10] from the legacy axes, so total floor / ceiling stays at
   // [0..15] — downstream selectors compare by total descending so
   // the absolute scale doesn't matter.
+  const hq = scoreHeroQuality(idea, hookImpact, freshness);
+  const heroQuality = hq.total;
   const total =
     hookImpact +
     tension +
@@ -1391,7 +1403,8 @@ export function scoreIdea(
     personalFit +
     captionStrength +
     freshness +
-    Math.round(hookIntentScore * 0.5);
+    Math.round(hookIntentScore * 0.5) +
+    Math.round(heroQuality * 0.02);
   return {
     total,
     hookImpact,
@@ -1402,6 +1415,244 @@ export function scoreIdea(
     freshness,
     scrollStopScore,
     hookIntentScore,
+    heroQuality,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Phase Z5.6 — Hero Quality Scorer (always-on additive overlay)
+// -----------------------------------------------------------------------------
+
+const VAGUE_HOOK_RX: readonly RegExp[] = [
+  /\blife\s+(collapsed|fell apart|changed|imploded)\b/i,
+  /\bmoment\s+everything\s+(changed|shifted|broke)\b/i,
+  /\bthings\s+got\s+(crazy|wild|insane|intense)\b/i,
+  /\bcan'?t\s+believe\s+this\s+happened\b/i,
+  /\bmy\s+life\s+is\s+(chaos|over|done|a\s+mess)\b/i,
+  /\bthis\s+went\s+wrong\b/i,
+  /\beverything\s+(went|falls?|fell)\s+(wrong|apart)\b/i,
+  /\bnothing\s+will\s+ever\s+be\s+the\s+same\b/i,
+];
+
+const AI_SPEAK_RX: readonly RegExp[] = [
+  /\b(leverage|utilize|embark|commence|albeit|moreover|furthermore|nevertheless)\b/i,
+  /\b(delve|illuminate|pivotal|transformative|paradigm|synergy|holistic)\b/i,
+  /\b(craft(?:ing|ed)?|curate[ds]?|elevat(?:e|ing|ed)|empower|resonate)\b/i,
+  /\bin\s+this\s+(?:digital|modern)\s+(?:age|era|landscape)\b/i,
+];
+
+const PRIVATE_DATA_RX: readonly RegExp[] = [
+  /\b(?:bank\s+balance|salary|paycheck|credit\s+score|account\s+balance)\b/i,
+  /\b(?:medical\s+(?:record|result|report|info))\b/i,
+  /\b(?:social\s+security|license\s+plate|passport\s+number)\b/i,
+  /\b(?:real\s+(?:name|number|password))\b/i,
+  /\b(?:confidential|classified|private\s+document)\b/i,
+];
+
+const SPECIFIC_NOUN_RX =
+  /\b(?:app|phone|text|notification|bank|ex|mom|dad|boss|uber|lyft|amazon|venmo|cashier|checkout|grocery|alarm|email|dm|snap|tinder|instagram|tiktok|spotify|netflix|mirror|scale|receipt|bill|menu|calendar|gym|fridge|closet|drawer|wallet|purse|laundry|trash|dishes|microwave|oven|coffee|tea|shower)\b/i;
+
+const ACTION_VERB_RX =
+  /\b(?:open(?:s|ed|ing)?|check(?:s|ed|ing)?|read(?:s|ing)?|scroll(?:s|ed|ing)?|watch(?:es|ed|ing)?|find(?:s|ing)?|notice[ds]?|realize[ds]?|hear[ds]?|see[ns]?|look(?:s|ed|ing)?|grab(?:s|bed|bing)?|pick(?:s|ed|ing)?|pull(?:s|ed|ing)?|tap(?:s|ped|ping)?|swipe[ds]?|click(?:s|ed|ing)?|send(?:s|ing)?|delete[ds]?|walk(?:s|ed|ing)?|sit(?:s|ting)?|stand(?:s|ing)?|stare[ds]?)\b/i;
+
+const PHYSICAL_REACTION_RX =
+  /\b(?:face|eyes|blink|laugh|stare|freeze|frown|smile|smirk|sigh|gasp|wince|cringe|nod|shake|shrug|jaw|lip|eyebrow|squint|grimace|gulp|swallow|pause|silence|deadpan|blank|stone)\b/i;
+
+const HERO_LOW_EFFORT_SETTINGS: ReadonlySet<string> = new Set([
+  "bed",
+  "couch",
+  "desk",
+  "car",
+]);
+const HERO_MEDIUM_EFFORT_SETTINGS: ReadonlySet<string> = new Set([
+  "bathroom",
+  "kitchen",
+]);
+
+const HERO_STOP_WORDS: ReadonlySet<string> = new Set([
+  "i","me","my","a","an","the","is","am","are","was","were","be","been",
+  "being","have","has","had","do","does","did","will","would","shall",
+  "should","can","could","may","might","must","to","of","in","for","on",
+  "with","at","by","from","up","about","into","through","during","before",
+  "after","above","below","between","out","off","over","under","again",
+  "further","then","once","here","there","when","where","why","how","all",
+  "both","each","few","more","most","other","some","such","no","nor","not",
+  "only","own","same","so","than","too","very","just","because","as",
+  "until","while","that","this","it","its","but","and","or","if","what",
+  "which","who","whom","these","those","your","you","we","they","them",
+  "their","he","she","him","her","his",
+]);
+
+function heroContentWords(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !HERO_STOP_WORDS.has(w)),
+  );
+}
+
+function heroSharedWordCount(a: string, b: string): number {
+  const wa = heroContentWords(a);
+  const wb = heroContentWords(b);
+  let count = 0;
+  for (const w of wa) if (wb.has(w)) count++;
+  return count;
+}
+
+export type HeroQualityBreakdown = {
+  total: number;
+  hookPunch: number;
+  filmNowEase: number;
+  payoffClarity: number;
+  comedicSpecificity: number;
+  scenarioCoherence: number;
+  voiceNaturalness: number;
+  safetyConfidence: number;
+  freshness: number;
+  lowEffortSetting: number;
+  captionSynergy: number;
+  isHero: boolean;
+};
+
+/**
+ * Phase Z5.6 — always-on hero quality scorer. Pure deterministic
+ * function scoring an idea across 10 dimensions (0-100 total).
+ * NO AI, NO DB. Reads only fields already on the `Idea` object.
+ *
+ * When called from `scoreIdea`, the caller can forward the already-
+ * computed hookImpact and freshness axes so the hero scorer doesn't
+ * recompute them. When called standalone (tests, willingness scorer),
+ * omit those params — the scorer derives hookImpact internally via
+ * `scoreHookImpact` and defaults freshness to a neutral midpoint.
+ */
+export function scoreHeroQuality(
+  idea: Idea,
+  hookImpactAxis?: 0 | 1 | 2,
+  freshnessAxis?: 0 | 1,
+): HeroQualityBreakdown {
+  const hook = idea.hook;
+  const hookLower = hook.toLowerCase().trim();
+  const hookWords = hookLower.split(/\s+/);
+
+  const resolvedHookImpact =
+    hookImpactAxis !== undefined ? hookImpactAxis : scoreHookImpact(hook);
+
+  // 1. hookPunch (0-12)
+  let hookPunch = 0;
+  if (/^(?:i\s|my\s|me\s|when\s+i\s|when\s+my\s)/i.test(hookLower))
+    hookPunch += 3;
+  if (hookWords.length <= 8) hookPunch += 3;
+  if (SPECIFIC_NOUN_RX.test(hook)) hookPunch += 3;
+  if (resolvedHookImpact >= 1) hookPunch += 3;
+  for (const rx of VAGUE_HOOK_RX) {
+    if (rx.test(hook)) {
+      hookPunch = Math.max(0, hookPunch - 4);
+      break;
+    }
+  }
+
+  // 2. filmNowEase (0-10)
+  let filmNowEase = 0;
+  if (
+    HERO_LOW_EFFORT_SETTINGS.has(idea.setting) ||
+    HERO_MEDIUM_EFFORT_SETTINGS.has(idea.setting)
+  )
+    filmNowEase += 4;
+  const shotCount = Array.isArray(idea.shotPlan) ? idea.shotPlan.length : 0;
+  if (shotCount <= 2) filmNowEase += 3;
+  if (typeof idea.filmingTimeMin === "number" && idea.filmingTimeMin <= 5)
+    filmNowEase += 3;
+
+  // 3. payoffClarity (0-12)
+  let payoffClarity = 0;
+  if (idea.hasVisualAction) payoffClarity += 3;
+  if (idea.hasContrast) payoffClarity += 3;
+  if (idea.payoffType === "punchline" || idea.payoffType === "reveal")
+    payoffClarity += 3;
+  if (
+    idea.emotionalSpike === "embarrassment" ||
+    idea.emotionalSpike === "irony" ||
+    idea.emotionalSpike === "denial"
+  )
+    payoffClarity += 3;
+
+  // 4. comedicSpecificity (0-12)
+  let comedicSpecificity = 0;
+  if (SPECIFIC_NOUN_RX.test(hook)) comedicSpecificity += 4;
+  if (ACTION_VERB_RX.test(idea.trigger)) comedicSpecificity += 4;
+  if (PHYSICAL_REACTION_RX.test(idea.reaction)) comedicSpecificity += 4;
+
+  // 5. scenarioCoherence (0-10)
+  let scenarioCoherence = 0;
+  if (heroSharedWordCount(hook, idea.whatToShow) >= 1) scenarioCoherence += 5;
+  if (idea.trigger.length >= 10 && idea.reaction.length >= 10)
+    scenarioCoherence += 5;
+
+  // 6. voiceNaturalness (0-10)
+  let voiceNaturalness = 0;
+  if (/^[a-z]/.test(hook.trim())) voiceNaturalness += 3;
+  let hasAiSpeak = false;
+  for (const rx of AI_SPEAK_RX) {
+    if (rx.test(hook) || rx.test(idea.script)) {
+      hasAiSpeak = true;
+      break;
+    }
+  }
+  if (!hasAiSpeak) voiceNaturalness += 4;
+  if (/['']\w|n't|gonna|gotta|wanna|kinda|sorta|y'all|ain't|'cause|'til/i.test(hook))
+    voiceNaturalness += 3;
+
+  // 7. safetyConfidence (0-10)
+  let safetyConfidence = 10;
+  const fullText = `${hook} ${idea.trigger} ${idea.whatToShow}`;
+  for (const rx of PRIVATE_DATA_RX) {
+    if (rx.test(fullText)) {
+      safetyConfidence -= 5;
+      break;
+    }
+  }
+
+  // 8. freshness (0-8)
+  const freshness =
+    freshnessAxis !== undefined ? (freshnessAxis === 1 ? 8 : 0) : 4;
+
+  // 9. lowEffortSetting (0-8)
+  let lowEffortSetting = 0;
+  if (HERO_LOW_EFFORT_SETTINGS.has(idea.setting)) lowEffortSetting = 8;
+  else if (HERO_MEDIUM_EFFORT_SETTINGS.has(idea.setting))
+    lowEffortSetting = 4;
+
+  // 10. captionSynergy (0-8)
+  const shared = heroSharedWordCount(hook, idea.caption);
+  const captionSynergy = shared >= 2 ? 8 : shared === 1 ? 4 : 0;
+
+  const total =
+    hookPunch +
+    filmNowEase +
+    payoffClarity +
+    comedicSpecificity +
+    scenarioCoherence +
+    voiceNaturalness +
+    safetyConfidence +
+    freshness +
+    lowEffortSetting +
+    captionSynergy;
+
+  return {
+    total,
+    hookPunch,
+    filmNowEase,
+    payoffClarity,
+    comedicSpecificity,
+    scenarioCoherence,
+    voiceNaturalness,
+    safetyConfidence,
+    freshness,
+    lowEffortSetting,
+    captionSynergy,
+    isHero: total >= 70,
   };
 }
 
@@ -2484,10 +2735,41 @@ export type NoveltyContext = {
    * style / execution sets above.
    */
   recentPremiseCoreIds?: ReadonlySet<string>;
+  /**
+   * Phase Z5.6 — adaptive first-session boost factor (0-1). When > 0,
+   * `selectionPenalty` applies additive boosts to broad-safe lanes
+   * (POV, self-callout, expectation-vs-reality, denial-loop,
+   * routine-contradiction, internal-thought hook style) and additive
+   * demotions to risky lanes (small-panic structure, panic spike,
+   * high-lift filming). Computed by `computeFirstSessionBoostFactor`
+   * based on batch history depth and taste calibration presence.
+   * Fades to 0 as the creator accumulates signal, at which point
+   * personalization takes full control.
+   */
+  firstSessionBoostFactor?: number;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
 export const EMPTY_NOVELTY_CONTEXT: NoveltyContext = {};
+
+/**
+ * Phase Z5.6 — compute the adaptive first-session boost factor (0-1).
+ * Returns 1.0 for brand-new creators (no batches), decays with batch
+ * history depth, and drops to 0 when taste calibration exists (the
+ * user has explicitly stated preferences — personalization should
+ * dominate). Pure function, no DB/AI.
+ */
+export function computeFirstSessionBoostFactor(
+  batchHistoryDepth: number,
+  hasTasteCalibration: boolean,
+): number {
+  if (hasTasteCalibration) return 0;
+  if (batchHistoryDepth === 0) return 1.0;
+  if (batchHistoryDepth === 1) return 0.7;
+  if (batchHistoryDepth === 2) return 0.4;
+  if (batchHistoryDepth === 3) return 0.15;
+  return 0;
+}
 
 function metaTopicLane(m: CandidateMeta): TopicLane | undefined {
   return m.topicLane;
@@ -3947,5 +4229,38 @@ export function selectionPenalty(
   // for any candidate that somehow slipped through (e.g. a Llama
   // mutation that re-introduced a banned prefix on rewrite).
   if (lookupBannedHookPrefix(c.idea.hook)) p -= 5;
+  // Phase Z5.6 — adaptive first-session boost. When the creator has
+  // low/no signal history, boost broad-safe lanes and cap risky ones
+  // to ensure first batches feel immediately filmable and relatable.
+  // The factor decays with batch history depth (see
+  // `computeFirstSessionBoostFactor`). Returns 0 for creators with
+  // taste calibration so personalization fully controls their output.
+  const fsb = ctx.firstSessionBoostFactor ?? 0;
+  if (fsb > 0) {
+    if (c.idea.pattern === "pov") p += Math.round(3 * fsb);
+    const safeStructures: ReadonlySet<string> = new Set([
+      "expectation_vs_reality",
+      "self_callout",
+      "denial_loop",
+      "routine_contradiction",
+    ]);
+    if (safeStructures.has(c.idea.structure)) p += Math.round(2 * fsb);
+    if (c.idea.hookStyle === "internal_thought") p += Math.round(2 * fsb);
+    if (
+      c.idea.setting === "bed" ||
+      c.idea.setting === "couch" ||
+      c.idea.setting === "desk" ||
+      c.idea.setting === "car"
+    )
+      p += Math.round(2 * fsb);
+    if (c.idea.hook.trim().split(/\s+/).length <= 8) p += Math.round(1 * fsb);
+    if (c.idea.structure === "small_panic") p -= Math.round(3 * fsb);
+    if (c.idea.emotionalSpike === "panic") p -= Math.round(2 * fsb);
+    if (
+      typeof c.idea.filmingTimeMin === "number" &&
+      c.idea.filmingTimeMin > 10
+    )
+      p -= Math.round(3 * fsb);
+  }
   return p;
 }

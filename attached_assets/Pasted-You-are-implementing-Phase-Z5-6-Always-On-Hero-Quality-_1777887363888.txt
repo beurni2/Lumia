@@ -1,0 +1,334 @@
+You are implementing Phase Z5.6 — Always-On Hero Quality Ranker + Adaptive First-Session Boost for Lumina.
+
+Context:
+Lumina is preparing for launch/testing. The goal is not merely stable output. Every generated batch should contain at least one idea that feels funny, specific, filmable, and creator-native enough that a user might actually film it today.
+
+Recent state:
+- Z5 corpus expansion complete.
+- Hook corpus is now 532 hooks.
+- Scenario catalog is 253.
+- POV/relatable skits and Surprise Twist Endings added.
+- Z5.5 Template Output Polish complete.
+- Normal-path QA passed:
+  - source=pattern
+  - usedFallback=false
+  - no malformed artifacts
+  - no safety failures
+  - no unexpected fallback
+  - no literal pov overuse
+  - no within-batch duplicate hooks
+- 210/210 tests passing.
+- TypeScript clean.
+- Server boots clean.
+- No migrations/API changes/validator loosening.
+
+Goal:
+Add an always-on hero-quality scoring/ranking overlay so every generation favors ideas that are:
+- funny
+- specific
+- filmable
+- natural
+- coherent
+- safe
+- low-effort to shoot
+- strong enough to be the top card
+
+Also add an adaptive first-session/cold-start boost that makes new users’ first few batches especially broad, safe, funny, and immediately filmable.
+
+Important architecture distinction:
+1. Always-On Hero Quality Ranker:
+   - Applies to every generation.
+   - Improves top-card quality for all users.
+   - Does not replace personalization or willingness ranking.
+   - Acts as an additive quality overlay.
+
+2. Adaptive First-Session Boost:
+   - Applies only when user signal is low or absent.
+   - Stronger for first generation, cold-start, demo/no-history, low-feedback users.
+   - Gradually yields to personalization once user behavior exists.
+
+Hard rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO broad architecture rewrite.
+- Additive scoring/ranking/polish only.
+- Preserve existing route response shape.
+- Preserve existing cache shape.
+- Preserve existing corpus integrity.
+- Preserve existing willingness ranker, signal loop, novelty guards, anti-copy, and validators.
+- Do not weaken any quality floor.
+- Keep all tests and TypeScript passing.
+
+Core product standard:
+Every 3-idea batch should try to contain at least one “hero idea.”
+
+Hero idea definition:
+- hookStrength >= 4
+- filmability >= 4
+- funny/payoff >= 4
+- freshness >= 3.7
+- voiceFit >= 4
+- safety pass
+- no private-data dependency
+- no high-lift setup
+- specific, natural hook
+- clear comedic event or contradiction
+- coherent hook + scene + shot plan + caption
+- filmable in bedroom, kitchen, desk, couch, car, phone, mirror, simple public setting, or similar low-effort setup
+
+Implementation scope:
+
+1. Add an always-on hero quality score.
+Create an additive internal score or equivalent overlay. Suggested dimensions:
+- hookPunch
+- filmNowEase
+- payoffClarity
+- comedicSpecificity
+- scenarioCoherence
+- voiceNaturalness
+- safetyConfidence
+- freshness
+- lowEffortSetting
+- captionSynergy
+
+This score should help ranking/selecting candidates in every generation, especially for top-card ordering.
+
+2. Preserve existing rankers and gates.
+Do not replace the willingness ranker.
+Do not bypass diversity/novelty gates.
+Do not loosen hook validators.
+Do not reduce anti-copy sensitivity.
+The hero score should be an additive overlay that helps choose the strongest already-valid candidates.
+
+3. Improve top-card quality.
+The first displayed idea should usually be the strongest combination of:
+- hook punch
+- filmability
+- payoff clarity
+- voice fit
+- scenario coherence
+- safety
+- freshness
+
+Do not let a technically valid but plain idea outrank a funnier, more filmable idea.
+
+Penalize top-card candidates with:
+- vague hooks
+- generic AI-speak
+- abstract concepts
+- unclear payoff
+- hook/scene mismatch
+- high-lift setup
+- private-data-heavy scene
+- repeated skeletons
+- weak caption synergy
+
+Examples of vague/generic hooks to penalize:
+- “this is where my life collapsed”
+- “the moment everything changed”
+- “things got crazy”
+- “i can’t believe this happened”
+- “my life is chaos”
+- “this went wrong fast”
+
+4. Add adaptive first-session/cold-start boost.
+When user history is low or absent, apply stronger weighting toward broad launch-safe lanes:
+- POV/relatable skits
+- Surprise twist endings
+- Self-deprecating escalation
+- Chaotic confession
+- Dry deadpan
+- Quiet realization
+
+Keep these available but capped:
+- overdramatic_reframe
+- high_energy_rant
+
+High-energy rant should be rare unless the user explicitly selected it or has signals supporting it.
+
+Cold-start boost should favor:
+- broad relatability
+- obvious comedic payoff
+- low-effort filming
+- safe everyday topics
+- short hook
+- clear physical action
+- no private-data dependency
+
+5. Make the boost adaptive.
+As user signal increases, personalization should gain weight.
+
+Signals that should reduce first-session boost strength:
+- exported ideas
+- selected ideas
+- likes
+- dislikes
+- skips
+- make-another
+- taste calibration
+- prior batch history
+- ideator_signal history
+
+Returning users should not be forced into generic launch-safe lanes if their behavior shows a different preference.
+
+Principle:
+Global hero quality is always-on.
+First-session broad-safe bias fades as personalization confidence grows.
+
+6. Batch composition guidance.
+For a 3-idea batch, prefer:
+- 1 hero idea: strongest funny/filmable/top-card candidate
+- 1 taste-aligned idea: closest to creator’s known calibration/signals
+- 1 exploratory idea: different but still valid, safe, and filmable
+
+Preserve existing diversity guards.
+
+7. Improve payoff scoring.
+Reward ideas where:
+- ordinary expectation flips
+- object/app betrays user
+- creator contradicts themselves
+- small action escalates
+- physical action is obvious
+- caption sharpens the joke
+- scenario creates a real comedic event, not just a reaction
+
+Penalize ideas where:
+- the hook sounds decent but the scenario has no comedic turn
+- the payoff is only a generic reaction
+- the scene is just “person reacts”
+- the caption does not add anything
+- the joke depends on private data
+- the idea is too high-lift or requires multiple actors/crowds/special locations
+
+8. Safety for first-session/top-card ideas.
+Do not promote top-card ideas that rely on:
+- real bank balances
+- real private messages
+- real medical info
+- addresses, IDs, license plates
+- salary/confidential work data
+- dangerous or unsafe situations
+- workplace-confidential details
+- real private documents
+
+Private-data-adjacent ideas should either be:
+- clearly framed with fake/demo/cropped screens, or
+- deprioritized for first-session/top-card placement.
+
+9. Tests.
+Add or update tests for:
+- hero quality score calculation
+- top-card ordering
+- vague-hook penalty
+- high-lift-scene penalty
+- payoff clarity boost
+- first-session boost activation
+- first-session boost fading/reducing with user signals
+- personalization still able to outrank generic launch-safe ideas when user signal exists
+- high_energy_rant cap unless selected/supported
+- no API shape changes
+- existing corpus/hash/integrity tests still passing
+- existing Z5/Z5.5 tests still passing
+
+10. QA after implementation.
+Run two QA passes.
+
+QA Pass A — Cold-start / first-session:
+- Use 5–8 mock low-signal profiles.
+- Generate normal-path batches, regenerate=false.
+- Confirm first-session boost behavior.
+
+QA Pass B — Returning/personalized:
+- Use 5–8 mock profiles with taste calibration and simulated signal history.
+- Confirm personalization still controls output and is not overpowered by launch-safe bias.
+
+Suggested mock profiles:
+1. Dry relatable creator
+2. Chaotic confession creator
+3. Quiet realization creator
+4. Overdramatic creator
+5. POV skit creator
+6. Surprise twist creator
+7. High-energy creator
+8. Balanced default creator
+
+For each profile, capture:
+- source
+- usedFallback
+- counts
+- top idea hook
+- all 3 hooks
+- scene/title
+- shot plan/howToFilm
+- caption
+- whyThisFitsYou
+- available metadata
+- hero score if exposed internally
+- whether top idea is a hero idea
+
+Score each idea:
+- hook strength 1–5
+- filmability 1–5
+- funny/relatable payoff 1–5
+- freshness 1–5
+- voice fit 1–5
+- safety pass/fail
+- would film today yes/no
+
+Success criteria:
+Cold-start / first-session:
+- At least 7/8 profiles have a hero idea in first batch.
+- Average top-card hook strength >= 4.0.
+- Average top-card filmability >= 4.2.
+- Average top-card funny/payoff >= 4.0.
+- Average top-card voice fit >= 4.0.
+- 0 safety failures.
+- 0 malformed artifacts.
+- 0 exact duplicate hooks.
+- No top-card vague hooks.
+- No top-card private-data-dependent ideas.
+- Literal `pov:` should not dominate.
+
+Returning/personalized:
+- Personalization remains visible.
+- User-selected/preferred voice/style can outrank generic launch-safe lanes.
+- No profile gets a clearly mismatched voice.
+- High-energy profile gets high-energy flavor without all 3 ideas becoming rants.
+- Quiet/dry profiles do not get overwhelmed by chaotic/high-energy ideas.
+- 0 safety failures.
+- 0 malformed artifacts.
+
+Validation:
+Run:
+- pnpm --filter @workspace/api-server exec vitest run
+- pnpm --filter @workspace/api-server exec tsc --noEmit
+- API server boot check
+- Any existing catalog boot-time assert path
+
+Report back:
+1. Files changed
+2. What scoring/ranking overlay was added
+3. How first-session boost activates
+4. How first-session boost fades/reduces with user signal
+5. Test count and pass/fail
+6. TypeScript result
+7. Cold-start QA result
+8. Returning/personalized QA result
+9. Top 5 generated outputs
+10. Weakest 5 generated outputs
+11. Whether deployment QA can begin
+12. Confirmation:
+   - no migrations
+   - no API changes
+   - no validator loosening
+   - additive overlay only
+
+Definition of done:
+- Always-on Hero Quality Ranker implemented.
+- Adaptive First-Session Boost implemented.
+- Existing architecture remains intact.
+- Tests pass.
+- TypeScript clean.
+- QA proves first-session output feels stronger while returning-user personalization still works.

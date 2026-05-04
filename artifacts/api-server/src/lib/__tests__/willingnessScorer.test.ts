@@ -47,6 +47,7 @@ function mkScore(overrides: Partial<IdeaScore> = {}): IdeaScore {
     freshness: 1,
     scrollStopScore: 8,
     hookIntentScore: 8,
+    heroQuality: 60,
     ...overrides,
   };
 }

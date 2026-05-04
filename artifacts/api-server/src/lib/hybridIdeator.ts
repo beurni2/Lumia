@@ -69,6 +69,7 @@ import {
   normalizeHookForDedup,
   scoreNovelty,
   selectionPenalty,
+  computeFirstSessionBoostFactor,
   type CandidateMeta,
   type IdeaScore,
   type NoveltyContext,
@@ -3326,6 +3327,15 @@ export async function runHybridIdeator(
     // repeats; this third tier closes the every-other-batch
     // (batches 2+4+6) repeat hole that escapes both windows.
     priorBatches,
+  );
+  // Phase Z5.6 — thread the adaptive first-session boost factor into
+  // the novelty context so `selectionPenalty` can apply broad-safe
+  // lane boosts for cold-start creators. The factor decays with batch
+  // history depth and drops to 0 when taste calibration exists.
+  noveltyContext.firstSessionBoostFactor = computeFirstSessionBoostFactor(
+    priorBatches.length,
+    input.tasteCalibrationJson != null &&
+      input.tasteCalibrationJson !== undefined,
   );
   // PHASE X2 — PART 4 — collect normalized premise sentences from
   // the last-7 visible batches' cached `idea.premise` fields (PHASE
