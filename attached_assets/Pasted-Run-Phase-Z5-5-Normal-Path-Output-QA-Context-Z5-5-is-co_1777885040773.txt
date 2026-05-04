@@ -1,0 +1,85 @@
+Run Phase Z5.5 Normal-Path Output QA.
+
+Context:
+Z5.5 is complete:
+- 210/210 tests pass.
+- TypeScript clean.
+- “Shop chef eat student” artifact fixed.
+- Reaction repetition fixed.
+- Caption-tail repetition fixed.
+- Hook skeleton repetition improved with bigram Jaccard penalty.
+- howToFilm desk variants added.
+- No migrations, no API changes, no validator loosening.
+
+Goal:
+Run a normal-path output QA without forcing Claude fallback.
+
+Important:
+The previous QA used `regenerate: true`, which always forces fallback by design. This QA must evaluate the default user path.
+
+Hard rules:
+- ZERO production behavior changes.
+- QA only.
+- Do not tune anything unless a critical bug appears.
+- Do not loosen validators.
+- Do not change corpus or ranking during this pass.
+
+Run conditions:
+1. Generate at least 5 batches of 3 ideas.
+2. Use default generation behavior.
+3. Do NOT set `regenerate: true` unless running a separate refresh-specific control sample.
+4. Capture:
+   - source
+   - usedFallback
+   - counts
+   - cache status if available
+   - number of local candidates generated
+   - number passing local gates
+   - fallback reason if fallback occurs
+5. Use safe demo/mock creator profiles only.
+6. Avoid real private data.
+
+Score each idea on:
+- hook strength, 1–5
+- filmability, 1–5
+- funny/relatable payoff, 1–5
+- freshness, 1–5
+- voice fit, 1–5
+- safety/privacy pass/fail
+
+Special checks:
+- malformed artifacts count
+- repeated reaction endings
+- repeated caption tails
+- repeated hook skeletons
+- exact duplicate hooks
+- exact duplicate howToFilm
+- literal `pov:` overuse
+- safety/privacy issues
+- anti-copy corpus rejects
+- style_defs rejects
+- whether local deterministic generation is carrying enough of the load
+
+Pass criteria:
+- 0 malformed artifacts
+- 0 safety failures
+- no exact duplicate hooks
+- no exact duplicate howToFilm in the 5-batch sample
+- average filmability ≥ 4.0
+- average hook strength ≥ 3.8
+- average funny/relatable payoff ≥ 3.7
+- average freshness ≥ 3.7
+- average voice fit ≥ 3.8
+- local/default path should not fallback unexpectedly unless clearly explained
+
+Report:
+1. Executive result: PASS / PASS WITH NOTES / FAIL
+2. Batches generated and ideas reviewed
+3. source / usedFallback breakdown
+4. average scores
+5. top 5 outputs
+6. bottom 5 outputs
+7. repetition analysis
+8. fallback analysis
+9. whether deployment QA can begin
+10. commands run and validation status
