@@ -35,3 +35,9 @@ id = "W_o7zuarI5yfcEmOsDNPv"
 uri = "file://.local/quality-samples/SAMPLES.md"
 type = "text"
 title = "Lumina Ideator — Quality Sample v3 (final pre-MVP)"
+
+[[outputs]]
+id = "VoNvOGKfgczvJUvxDxK_K"
+uri = "file://.local/z5_post_expansion_qa_report.md"
+type = "text"
+title = "Z5 Post-Expansion Output QA Report"

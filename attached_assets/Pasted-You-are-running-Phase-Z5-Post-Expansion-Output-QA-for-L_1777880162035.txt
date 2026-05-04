@@ -1,0 +1,204 @@
+You are running Phase Z5 Post-Expansion Output QA for Lumina.
+
+Context:
+Z5 corpus expansion is complete:
+- Corpus grew from 233 → 532 hooks.
+- Z5 added 299 hooks across POV/relatable skits and Surprise Twist Endings.
+- Scenario catalog total is now 253.
+- All 299 Z5 hooks are folded into anti-copy Jaccard guard via existing loadSeedHookBigrams() wiring.
+- Current validation: 194/194 tests pass, tsc clean, API server boots clean.
+
+Goal:
+Run a focused QA evaluation to verify whether the expanded corpus improves generated idea quality in actual ideator output.
+
+This is NOT a feature phase.
+This is NOT a migration phase.
+This is NOT a validator-loosening phase.
+This is QA only.
+
+Hard rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO production behavior changes unless a critical bug is discovered and explicitly isolated.
+- Do not tune ranking, scoring, corpus, or generation logic during the first pass.
+- Do not delete or weaken any tests.
+- Keep any QA harness temporary unless there is already an approved QA location.
+- If adding temporary QA files, name them clearly with `z5` / `qa` and remove or isolate them according to existing repo discipline.
+
+QA objective:
+Generate and inspect at least 5 fresh idea batches after the Z5 corpus expansion to determine whether output quality improved.
+
+Run conditions:
+1. Use deterministic/local generation where possible.
+2. Capture whether Claude fallback was used.
+3. Prefer fixed creator/profile seeds if the system supports it, so output is reproducible.
+4. If cache interferes, bypass/clear cache only in a safe local/dev QA way.
+5. Do not hit production data.
+6. Do not use real private user data.
+
+For each of 5 batches, capture:
+- batch number
+- creator/profile seed or mock profile used
+- source
+- usedFallback
+- counts returned by hybrid ideator if available
+- idea count
+- hook
+- scene/title
+- shot plan / howToFilm
+- caption if generated
+- whyThisFitsYou
+- ranking metadata if available
+- topic lane / voice cluster / premise family / hook style if available
+- any validation warnings/errors
+
+Evaluate each idea on this scorecard:
+
+1. Hook strength, 1–5
+- 5 = scroll-stopping, specific, emotionally loaded, natural
+- 4 = strong, minor polish needed
+- 3 = usable but plain
+- 2 = generic or predictable
+- 1 = reject
+
+2. Filmability, 1–5
+- 5 = can be filmed today in under 30 minutes with bedroom/kitchen/desk/car/phone setup
+- 4 = easy, minor setup
+- 3 = filmable but not immediate
+- 2 = requires too much setup/acting/props
+- 1 = not realistically filmable
+
+3. Funny / relatable payoff, 1–5
+- 5 = genuinely funny or painfully relatable
+- 4 = clear comedic tension
+- 3 = mildly relatable
+- 2 = weak payoff
+- 1 = no payoff
+
+4. Freshness / non-repetition, 1–5
+- 5 = does not feel like same pattern with new skin
+- 4 = somewhat fresh
+- 3 = acceptable
+- 2 = repetitive
+- 1 = obvious duplicate pattern
+
+5. Voice fit, 1–5
+- 5 = matches creator/taste/voice strongly
+- 4 = mostly aligned
+- 3 = neutral
+- 2 = mismatched tone
+- 1 = wrong voice
+
+6. Safety / privacy, pass/fail
+Fail if the idea asks the user to show:
+- real bank balances
+- real private messages
+- real medical info
+- addresses, IDs, license plates
+- salary or confidential work data
+- real private documents
+- dangerous or unsafe situations
+
+Private-data-adjacent ideas are acceptable only if clearly framed as fake/demo/cropped/mock screens.
+
+Special Z5 checks:
+- Does the output overuse literal `pov:`?
+- Do generated ideas repeat scenario endings like “deadpan stare,” “deadpan glare,” “shrug,” “dead stare,” or “soul-crushing stare”?
+- Do outputs feel more filmable after POV expansion?
+- Do outputs show stronger twist/payoff freshness after Surprise Twist expansion?
+- Are hooks accidentally near-verbatim copies of new corpus entries?
+- Are hooks being rejected by anti-copy too aggressively because of the expanded corpus?
+- Are certain clusters overrepresented?
+- Is `high_energy_rant` appearing too often or not at all, if applicable?
+- Does the top-ranked idea actually feel like the most filmable one?
+
+Batch-level pass criteria:
+For each batch:
+- At least 1 idea should score 4+ on Hook strength.
+- At least 1 idea should score 4+ on Funny/relatable payoff.
+- Average Filmability should be ≥ 4.
+- No safety/privacy failures.
+- No obvious near-verbatim corpus reuse.
+- No batch should feel like 3 versions of the same joke.
+- Literal `pov:` opener should not dominate the batch.
+
+Overall pass criteria across 5 batches:
+- Average hook strength ≥ 3.8.
+- Average filmability ≥ 4.0.
+- Average funny/relatable payoff ≥ 3.7.
+- Average freshness ≥ 3.7.
+- Average voice fit ≥ 3.8.
+- 0 safety failures.
+- 0 severe duplicate / near-copy issues.
+- At least 3 of 5 batches must contain one idea that feels “would film today.”
+
+Output report format:
+Return a concise QA report with:
+
+1. Executive result:
+PASS / PASS WITH NOTES / FAIL
+
+2. Summary metrics:
+- total batches generated
+- total ideas reviewed
+- average hook strength
+- average filmability
+- average funny/relatable payoff
+- average freshness
+- average voice fit
+- fallback usage count
+- safety failures
+- near-copy warnings
+
+3. Best outputs:
+List the top 5 generated ideas with:
+- hook
+- why it worked
+- scores
+
+4. Weak outputs:
+List the bottom 5 generated ideas with:
+- hook
+- issue
+- likely cause
+- recommended fix
+
+5. Repetition analysis:
+- repeated openers
+- repeated settings
+- repeated topics
+- repeated scenario endings
+- repeated hook structures
+
+6. Z5 impact read:
+Answer:
+- Did POV expansion noticeably improve filmability?
+- Did Surprise Twist expansion noticeably improve payoff freshness?
+- Did the corpus expansion create any anti-copy overblocking?
+- Did output quality improve enough to continue corpus expansion?
+
+7. Recommended next action:
+Choose one:
+- Continue to next corpus category.
+- Tune metadata/tagging only.
+- Adjust opener diversity.
+- Adjust scenario-ending language.
+- Investigate anti-copy overblocking.
+- Pause catalog work and move toward deployment QA.
+
+Important:
+Do not make ranking/scoring changes unless there is a critical clear bug.
+This QA is meant to observe, not tune.
+
+Validation after QA:
+Run:
+- relevant API tests
+- TypeScript checks if any QA code touched typed files
+- server boot check if catalog/module loading was touched
+
+Report:
+- commands run
+- pass/fail
+- any files created
+- whether temporary QA files were removed or kept
