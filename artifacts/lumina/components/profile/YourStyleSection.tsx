@@ -76,6 +76,8 @@ const TONE_LABELS_CAL: Record<PreferredTone, string> = {
   chaotic: "Chaotic energy",
   bold: "Confident",
   self_aware: "Self-aware",
+  // PHASE Z5.8 — 5th Quick Tune tone option.
+  high_energy_rant: "High-energy rant",
 };
 
 const HOOK_LABELS_VIRAL: Record<string, string> = {
@@ -91,6 +93,8 @@ const HOOK_LABELS_CAL: Record<PreferredHookStyle, string> = {
   thought_hook: "“why do I…”",
   curiosity_hook: "“this is where it went wrong…”",
   contrast_hook: "“what I say vs what I do”",
+  // PHASE Z5.8 — 5th opener option (optional step).
+  pov_hook: "POV opener",
 };
 
 const EMOTIONAL_SPIKE_LABELS: Record<string, string> = {

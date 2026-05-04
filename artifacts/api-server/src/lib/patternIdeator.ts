@@ -3836,13 +3836,22 @@ export type VoiceProfile = (typeof VOICE_PROFILES)[number];
  * never-3-identical rule is RELAXED when strongPreference=true).
  */
 export const CALIBRATION_TONE_TO_VOICE: Record<
-  "dry_subtle" | "chaotic" | "bold" | "self_aware",
+  // PHASE Z5.8 — high_energy_rant added as a 5th calibration tone.
+  // Maps to the existing `chaotic` VoiceProfile here in the
+  // patternIdeator priority chain (a separate, more granular
+  // mapping in `coreCandidateGenerator.TONE_TO_VOICE_CLUSTER`
+  // points it at the `high_energy_rant` voice CLUSTER, which is
+  // a finer-grained taxonomy used downstream of voice profiles).
+  // Both mappings agree on the rant's "loud, expressive" register
+  // — `chaotic` is the closest VoiceProfile peer.
+  "dry_subtle" | "chaotic" | "bold" | "self_aware" | "high_energy_rant",
   VoiceProfile
 > = {
   dry_subtle: "dry_humor",
   chaotic: "chaotic",
   bold: "blunt",
   self_aware: "self_aware",
+  high_energy_rant: "chaotic",
 };
 
 /**
@@ -3936,11 +3945,15 @@ export const DEFAULT_ALLOWED_VOICES: readonly VoiceProfile[] = [
  * source schema and passes the literal here.
  */
 export type VoiceSignalInputs = {
+  // PHASE Z5.8 — calibrationTone widened to include the 5th
+  // Quick Tune option (high_energy_rant). Maps to `chaotic`
+  // VoiceProfile in CALIBRATION_TONE_TO_VOICE above.
   calibrationTone?:
     | "dry_subtle"
     | "chaotic"
     | "bold"
     | "self_aware"
+    | "high_energy_rant"
     | null;
   hintsTone?:
     | "dry"

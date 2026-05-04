@@ -21,7 +21,9 @@ export type PreferredTone =
   | "dry_subtle"
   | "chaotic"
   | "bold"
-  | "self_aware";
+  | "self_aware"
+  // PHASE Z5.8 — fifth tone option mirrors server enum.
+  | "high_energy_rant";
 export type EffortPreference = "zero_effort" | "low_effort" | "structured";
 export type PrivacyAvoidance =
   | "avoid_messages"
@@ -33,7 +35,21 @@ export type PreferredHookStyle =
   | "behavior_hook"
   | "thought_hook"
   | "curiosity_hook"
-  | "contrast_hook";
+  | "contrast_hook"
+  // PHASE Z5.8 — fifth opener option mirrors server enum.
+  | "pov_hook";
+
+// PHASE Z5.8 — six situation / topic-lane buckets surfaced on the
+// new third Quick Tune screen. Mirrors `situationEnum` on the
+// server. Persisted on the JSONB doc; downstream ideator
+// consumption is not yet wired up.
+export type Situation =
+  | "food_home"
+  | "dating_texting"
+  | "work_school"
+  | "social_awkwardness"
+  | "health_wellness"
+  | "creator_social";
 
 export type TasteCalibration = {
   preferredFormats: PreferredFormat[];
@@ -46,6 +62,10 @@ export type TasteCalibration = {
   effortPreference: EffortPreference | null;
   privacyAvoidances: PrivacyAvoidance[];
   preferredHookStyles: PreferredHookStyle[];
+  // PHASE Z5.8 — required topic-lane multi-select (≤4). Persisted
+  // additively; the server's zod schema defaults missing fields to
+  // [] so older client payloads still accept on save.
+  selectedSituations: Situation[];
   completedAt: string | null;
   skipped: boolean;
 };
@@ -61,6 +81,7 @@ export const EMPTY_CALIBRATION: TasteCalibration = {
   effortPreference: null,
   privacyAvoidances: [],
   preferredHookStyles: [],
+  selectedSituations: [],
   completedAt: null,
   skipped: false,
 };

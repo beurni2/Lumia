@@ -1,44 +1,37 @@
 /**
  * Taste Calibration — the lightweight Quick Tune that surfaces
  * AFTER the Style Profile reveal OR after the user has viewed 2-3
- * ideas on Home. Tap-only, ~10 seconds end to end, no typing.
+ * ideas on Home. Tap-only, ~15 seconds end to end, no typing.
  *
- * Three steps with auto-advance behaviour (PHASE Z3 — format and
- * hook now allow up to 3 selections; tone remains single-select):
- *   step 0 → format     (multi, ≤3, Continue button OR auto-adv on 3rd)
- *   step 1 → tone       (single, auto-advance on tap)
- *   step 2 → hook style (multi, ≤3, Continue button OR auto-adv on 3rd)
- *   step 3 → confirmation card with fade + scale, ~800 ms, then
- *            onComplete()
+ * PHASE Z5.8 — closed-beta layout: FOUR screens (3 required + 1
+ * optional). The third "situations" screen is new; tone gains a
+ * high_energy_rant fifth option, opener gains a pov_hook fifth.
  *
- * Multi-select rules (PHASE Z3):
- *   • Persisted shape was always `preferredFormats: PreferredFormat[]`
- *     and `preferredHookStyles: PreferredHookStyle[]` — server zod
- *     schema is unchanged, we just stop constraining ourselves to a
- *     1-element array.
- *   • Tone stays single because the server stores `preferredTone:
- *     PreferredTone | null` (a single nullable enum); switching it
- *     to an array would force a server schema migration and updates
- *     to every consumer (e.g. TONE_GUIDANCE[cal.preferredTone]).
- *     The "additive only, ZERO migrations" discipline keeps tone
- *     single-select on this surface.
- *   • Multi steps render a "Continue →" pill when ≥1 selected.
- *     Tapping the 3rd selection auto-advances (max reached) so the
- *     "no Next button if I already know" UX still feels tight for
- *     decisive users.
+ *   step 0 → format     (required, multi ≤3, Continue blocked at 0)
+ *   step 1 → tone       (required, multi ≤3, Continue blocked at 0)
+ *   step 2 → situations (required, multi ≤4, Continue blocked at 0)
+ *   step 3 → opener     (OPTIONAL, multi ≤3, "Skip for now" link)
+ *   step 4 → confirmation card (~800 ms fade + scale)
  *
- * Save side effects fire SYNCHRONOUSLY when the hook step's choice
- * is tapped (i.e. as we transition into step 3) so the fire-and-
- * forget POST is in flight while the confirmation animation plays.
- * That matches the "user must SEE the system adapt" UX principle —
- * by the time the 800 ms confirmation finishes, the home screen's
- * post-cal effect can already trigger a regenerate against the
- * fresh server-side bias.
+ * Multi-select rules:
+ *   • Persisted shape stays additive — `selectedSituations` is the
+ *     only new field (server zod default = []) so older docs still
+ *     parse and the route response shape is unchanged.
+ *   • Required screens (0, 1, 2) DO NOT render the "Skip for now"
+ *     link — only the opener (step 3) keeps it. This is the
+ *     closed-beta "minimum viable taste signal" guarantee.
+ *   • Continue is the ONLY exit on required screens; the button is
+ *     not rendered until the user has at least one selection
+ *     (matches the prior implicit "Continue blocked at 0" rule).
+ *   • Cap-reaching tap auto-advances on every multi step (3 for
+ *     format/tone/opener; 4 for situations).
  *
- * Skip stays a small persistent link below the question. It keeps
- * its old contract (suppress + same-process latch + skipped POST)
- * and DOES NOT arm the post-cal refresh flag — Skip means "ask me
- * later", not "you've adapted to nothing".
+ * Save side effects fire SYNCHRONOUSLY when the OPTIONAL opener
+ * step terminates (either via cap-reaching tap, Continue, or Skip)
+ * so the fire-and-forget POST is in flight while the confirmation
+ * animation plays. Skip writes the SAME doc the user built across
+ * the three required screens — it just leaves preferredHookStyles
+ * empty (Skip means "no opener pin", not "discard everything").
  */
 
 import * as Haptics from "expo-haptics";
@@ -59,11 +52,11 @@ import {
   EMPTY_CALIBRATION,
   markCalibrationPromptedThisProcess,
   saveTasteCalibration,
-  skipTasteCalibration,
   suppressCalibrationGate,
   type PreferredFormat,
   type PreferredHookStyle,
   type PreferredTone,
+  type Situation,
   type TasteCalibration as TasteCalibrationDoc,
 } from "@/lib/tasteCalibration";
 import {
@@ -106,6 +99,8 @@ const TONE_CHOICES: Choice<PreferredTone>[] = [
   { value: "chaotic", label: "Chaotic / expressive", sub: "why is everything happening at once 😭" },
   { value: "bold", label: "Confident / bold", sub: "I already know how this ends" },
   { value: "self_aware", label: "Awkward / self-aware", sub: "I shouldn't have done that 💀" },
+  // PHASE Z5.8 — fifth tone. Loud + ranty energy.
+  { value: "high_energy_rant", label: "High-energy rant", sub: "ok BUT WHY does this happen every single time 🔥" },
 ];
 
 const HOOK_CHOICES: Choice<PreferredHookStyle>[] = [
@@ -113,6 +108,21 @@ const HOOK_CHOICES: Choice<PreferredHookStyle>[] = [
   { value: "thought_hook", label: '"Why do I…"', sub: "Thought hooks" },
   { value: "curiosity_hook", label: '"This is where it went wrong…"', sub: "Curiosity hooks" },
   { value: "contrast_hook", label: '"What I say vs what I do"', sub: "Contrast hooks" },
+  // PHASE Z5.8 — fifth opener. POV / second-person scene.
+  { value: "pov_hook", label: '"POV: you\'re…"', sub: "POV hooks" },
+];
+
+// PHASE Z5.8 — six situation / topic-lane buckets. The label is
+// the chip the creator taps; the sub-line gives a concrete example
+// of the kind of moment that lane covers, in the same "show what
+// it feels like" register the other Quick Tune steps use.
+const SITUATION_CHOICES: Choice<Situation>[] = [
+  { value: "food_home", label: "Food & home", sub: "kitchen, fridge, eating, chores, cleaning" },
+  { value: "dating_texting", label: "Dating & texting", sub: "talking stage, texts, situationships, exes" },
+  { value: "work_school", label: "Work & school", sub: "deadlines, meetings, classes, assignments" },
+  { value: "social_awkwardness", label: "Social awkwardness", sub: "small talk, parties, eye contact, group chats" },
+  { value: "health_wellness", label: "Health & wellness", sub: "sleep, gym, mental load, the doctor said…" },
+  { value: "creator_social", label: "Creator / online life", sub: "filming, posting, comments, the algorithm" },
 ];
 
 // Short summary chips shown on the confirmation card. Kept
@@ -131,20 +141,40 @@ const TONE_SUMMARY: Record<PreferredTone, string> = {
   chaotic: "Chaotic energy",
   bold: "Confident voice",
   self_aware: "Self-aware humor",
+  // PHASE Z5.8 — chip copy for the new tone option.
+  high_energy_rant: "High-energy rant",
 };
 const HOOK_SUMMARY: Record<PreferredHookStyle, string> = {
   behavior_hook: "“the way I…”",
   thought_hook: "“why do I…”",
   curiosity_hook: "“where it went wrong…”",
   contrast_hook: "“say vs do”",
+  // PHASE Z5.8 — chip copy for the new opener option.
+  pov_hook: "“POV: you’re…”",
+};
+// PHASE Z5.8 — situation chip copy. Short, punchy versions of the
+// MultiSelect labels — the confirmation card flexWraps these with
+// the format / tone / opener chips so the user reads back a single
+// summary cluster.
+const SITUATION_SUMMARY: Record<Situation, string> = {
+  food_home: "Food & home",
+  dating_texting: "Dating & texting",
+  work_school: "Work & school",
+  social_awkwardness: "Social awkwardness",
+  health_wellness: "Health & wellness",
+  creator_social: "Creator / online life",
 };
 
 // PHASE Z3 — multi-select cap. We allow the user to tap up to 3
-// options on the format and hook steps. The 3rd tap auto-advances
-// (matches the original "no Next button if I'm decisive" feel);
-// 1 or 2 selections require a Continue tap. Persisted shape is
-// already an array so this is a UI-only widening.
+// options on the format / tone / opener steps. The 3rd tap auto-
+// advances (matches the original "no Next button if I'm decisive"
+// feel); 1 or 2 selections require a Continue tap.
 const MULTI_SELECT_MAX = 3;
+// PHASE Z5.8 — situations get a wider cap (4) because topic lanes
+// are intentionally broader than format / tone — a creator who
+// makes both food AND dating content is a normal case, and the
+// downstream consumer (when wired) will need that breadth.
+const SITUATIONS_MAX = 4;
 
 // Confirmation animation budget. Spec calls for "fade + slight
 // scale, ~800 ms" — we split that into a fast intro (220 ms fade
@@ -168,16 +198,19 @@ function successHaptic() {
 
 export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   const isRefresh = mode === "refresh";
-  // step 0 = format, 1 = tone, 2 = hook, 3 = confirmation
-  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  // PHASE Z3/Z4 — all three multi-step axes are now arrays (≤3).
-  // Z4 widened tone from a single nullable enum to an array; the
+  // PHASE Z5.8 — 5 step indices: 0=format, 1=tone, 2=situations,
+  // 3=opener (optional), 4=confirmation.
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
+  // PHASE Z3/Z4/Z5.8 — four multi-step axes (formats / tones /
+  // situations are required ≥1; hookStyles is optional ≥0). Z4
+  // widened tone from a single nullable enum to an array; the
   // server keeps the scalar `preferredTone` field in sync as
   // `tones[0] ?? null` so every existing server consumer that reads
   // the scalar (coreCandidateGenerator, hybridIdeator, ideaScorer,
   // patternIdeator, getToneGuidance) stays unchanged.
   const [formats, setFormats] = useState<PreferredFormat[]>([]);
   const [tones, setTones] = useState<PreferredTone[]>([]);
+  const [situations, setSituations] = useState<Situation[]>([]);
   const [hookStyles, setHookStyles] = useState<PreferredHookStyle[]>([]);
 
   // Single in-flight latch: blocks double-tap from re-running the
@@ -200,11 +233,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // handleSave (suppress + latch + mark-complete + fire-and-forget
   // POST) PLUS the new pending-post-cal-refresh flag that wakes the
   // home-screen's visible-adaptation effect on the next focus.
-  // Fired exactly once when the user picks their hook style.
+  //
+  // PHASE Z5.8 — fired exactly once when the OPTIONAL opener step
+  // terminates (cap-reaching tap, Continue, or "Skip for now"). The
+  // three required arrays are always populated; `chosenHooks` may
+  // be empty (Skip path). The doc is never written with `skipped:
+  // true` from this component anymore — required taste signal has
+  // already been collected, so a "skip the opener pin" decision
+  // becomes a normal completed save with `preferredHookStyles: []`.
   const fireSaveSideEffects = useCallback(
     (
       chosenFormats: PreferredFormat[],
       chosenTones: PreferredTone[],
+      chosenSituations: Situation[],
       chosenHooks: PreferredHookStyle[],
     ) => {
       const doc: TasteCalibrationDoc = {
@@ -219,6 +260,10 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         preferredTone: chosenTones.length > 0 ? chosenTones[0] : null,
         preferredTones: chosenTones,
         preferredHookStyles: chosenHooks,
+        // PHASE Z5.8 — required topic lanes (1..4 entries by the
+        // time we get here; 0 is impossible because step 2's
+        // Continue is gated on length>=1 and there is no Skip).
+        selectedSituations: chosenSituations,
         skipped: false,
       };
       successHaptic();
@@ -316,16 +361,55 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
     setStep(2);
   }, [busy, tones.length]);
 
-  // PHASE Z3 — multi-select toggle for the hook step. Mirrors the
-  // format handler: append/remove with a cap of 3. The cap-reaching
-  // tap fires the save side effects directly (same one-shot guard
-  // as the prior single-tap path) and transitions to confirmation.
+  // PHASE Z5.8 — multi-select toggle for the new situations step.
+  // Same mechanics as the other multi handlers but with cap=4
+  // (SITUATIONS_MAX). Cap-reaching tap auto-advances; 1..3
+  // selections require the Continue tap below. NO Skip on this
+  // step — it is required.
+  const handleSituationToggle = useCallback(
+    (v: Situation) => {
+      if (busy) return;
+      lightHaptic();
+      setSituations((prev) => {
+        const already = prev.includes(v);
+        if (already) {
+          return prev.filter((x) => x !== v);
+        }
+        if (prev.length >= SITUATIONS_MAX) return prev;
+        const next = [...prev, v];
+        if (next.length === SITUATIONS_MAX) {
+          // Auto-advance on the cap-reaching tap.
+          setStep(3);
+        }
+        return next;
+      });
+    },
+    [busy],
+  );
+
+  const handleSituationContinue = useCallback(() => {
+    if (busy || situations.length === 0) return;
+    lightHaptic();
+    setStep(3);
+  }, [busy, situations.length]);
+
+  // PHASE Z3 — multi-select toggle for the opener (hook) step.
+  // PHASE Z5.8 — moved to step 3, optional. Mirrors the format
+  // handler: append/remove with a cap of 3. The cap-reaching tap
+  // fires the terminal save side effects directly (one-shot
+  // guarded) and transitions to the confirmation step.
   const handleHookToggle = useCallback(
     (v: PreferredHookStyle) => {
       if (busy) return;
-      // Defensive: format and tones should always be set by the
-      // time we land on step 2; bail without persisting half-state.
-      if (formats.length === 0 || tones.length === 0) return;
+      // Defensive: required arrays must be populated before we
+      // land here. If they aren't, bail without persisting a
+      // partial doc — the user can navigate back through the flow.
+      if (
+        formats.length === 0 ||
+        tones.length === 0 ||
+        situations.length === 0
+      )
+        return;
       lightHaptic();
       setHookStyles((prev) => {
         const already = prev.includes(v);
@@ -341,56 +425,67 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
           if (!saveFiredRef.current) {
             saveFiredRef.current = true;
             setBusy(true);
-            fireSaveSideEffects(formats, tones, next);
-            setStep(3);
+            fireSaveSideEffects(formats, tones, situations, next);
+            setStep(4);
           }
         }
         return next;
       });
     },
-    [busy, formats, tones, fireSaveSideEffects],
+    [busy, formats, tones, situations, fireSaveSideEffects],
   );
 
-  // Continue button on the hook step — fires the terminal save
+  // Continue button on the opener step — fires the terminal save
   // side effects when the user is happy with 1 or 2 selections.
   // Uses the same one-shot guard as the cap-reaching auto-advance
   // path so the two terminal entry points can't both fire.
   const handleHookContinue = useCallback(() => {
     if (busy) return;
     if (saveFiredRef.current) return;
-    if (formats.length === 0 || tones.length === 0 || hookStyles.length === 0)
+    if (
+      formats.length === 0 ||
+      tones.length === 0 ||
+      situations.length === 0 ||
+      hookStyles.length === 0
+    )
       return;
     saveFiredRef.current = true;
     setBusy(true);
     lightHaptic();
-    fireSaveSideEffects(formats, tones, hookStyles);
-    setStep(3);
-  }, [busy, formats, tones, hookStyles, fireSaveSideEffects]);
+    fireSaveSideEffects(formats, tones, situations, hookStyles);
+    setStep(4);
+  }, [busy, formats, tones, situations, hookStyles, fireSaveSideEffects]);
 
+  // PHASE Z5.8 — Skip on the OPTIONAL opener step. Persists the
+  // same doc the user built across the three required screens
+  // (formats / tones / situations) with `preferredHookStyles: []`
+  // and `skipped: false`. The user did NOT skip calibration — they
+  // skipped the opener pin, which is a normal "I don't have a
+  // preference" signal. Routes through the same one-shot guard +
+  // confirmation flow as the Continue / cap-reaching paths so the
+  // user gets the same celebratory beat regardless of how they
+  // exit the opener step.
   const handleSkip = useCallback(() => {
-    // Same synchronous one-shot guard as the hook pick — the two
-    // terminal paths are mutually exclusive, so a single shared
-    // ref is the right primitive.
+    if (busy) return;
     if (saveFiredRef.current) return;
+    if (
+      formats.length === 0 ||
+      tones.length === 0 ||
+      situations.length === 0
+    )
+      return;
     saveFiredRef.current = true;
     setBusy(true);
-    // Same race-prevention as the previous handler — suppress and
-    // latch synchronously so the immediate Home re-focus can't
-    // out-race the navigation. Skip does NOT mark completion (so
-    // the next cold start can re-prompt) and does NOT arm the
-    // post-cal refresh (Skip didn't change anything we should
-    // celebrate).
-    suppressCalibrationGate();
-    markCalibrationPromptedThisProcess();
-    void skipTasteCalibration().catch(() => {});
-    onComplete();
-  }, [busy, onComplete]);
+    lightHaptic();
+    fireSaveSideEffects(formats, tones, situations, []);
+    setStep(4);
+  }, [busy, formats, tones, situations, fireSaveSideEffects]);
 
-  // Confirmation step lives below — when we land on step 3 we
+  // Confirmation step lives below — when we land on step 4 we
   // schedule the auto-dismiss timer ourselves so the parent's
   // onComplete() runs after the animation has had time to land.
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 4) return;
     const t = setTimeout(onComplete, CONFIRMATION_TOTAL_MS);
     return () => clearTimeout(t);
   }, [step, onComplete]);
@@ -398,15 +493,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // Tiny step kicker — keeps the user oriented without adding a
   // progress bar (which the spec doesn't ask for). Hidden on the
   // confirmation step so the "Got it" beat reads cleanly.
+  //
   // PHASE Y14 — refresh-mode rebrands the kicker so a returning
   // creator immediately reads this as "we're checking in" not
-  // "you missed onboarding". Step labels stay 1-of-3 so the
-  // progress affordance is identical.
+  // "you missed onboarding".
+  // PHASE Z5.8 — kicker now spans 4 steps; the optional opener
+  // step is suffixed " · optional" so a creator who scans the
+  // kicker first knows Skip is available there (and only there).
   const kickerPrefix = isRefresh ? "Quick refresh" : "Quick tune";
   const stepKicker = useMemo(() => {
-    if (step === 0) return `${kickerPrefix} · 1 of 3`;
-    if (step === 1) return `${kickerPrefix} · 2 of 3`;
-    if (step === 2) return `${kickerPrefix} · 3 of 3`;
+    if (step === 0) return `${kickerPrefix} · 1 of 4`;
+    if (step === 1) return `${kickerPrefix} · 2 of 4`;
+    if (step === 2) return `${kickerPrefix} · 3 of 4`;
+    if (step === 3) return `${kickerPrefix} · 4 of 4 · optional`;
     return null;
   }, [step, kickerPrefix]);
 
@@ -423,19 +522,23 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // multi-select prompt now, so the wording is unified across the
   // initial / refresh paths in the JSX itself).
 
+  // PHASE Z5.8 — confirmation lives at step 4. Required arrays
+  // are guaranteed populated (the only way to reach step 4 is
+  // through the opener step's terminal handlers, all of which
+  // gate on length>=1 for formats / tones / situations). The
+  // hookStyles array MAY be empty (Skip path) — the confirmation
+  // card simply renders no opener chips in that case.
   if (
-    step === 3 &&
+    step === 4 &&
     formats.length > 0 &&
     tones.length > 0 &&
-    hookStyles.length > 0
+    situations.length > 0
   ) {
     return (
       <ConfirmationCard
-        // PHASE Z3/Z4 — all three chip arrays may carry 1..3
-        // entries each; the confirmation card flexWrap-renders
-        // them in the order the user picked them.
         formatLabels={formats.map((f) => FORMAT_SUMMARY[f])}
         toneLabels={tones.map((t) => TONE_SUMMARY[t])}
+        situationLabels={situations.map((s) => SITUATION_SUMMARY[s])}
         hookLabels={hookStyles.map((h) => HOOK_SUMMARY[h])}
         // PHASE Y14 — confirmation kicker mirrors the entry framing:
         // a refresh closes with "Refreshed" so the creator knows the
@@ -473,6 +576,10 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
             disabled={busy}
             max={MULTI_SELECT_MAX}
           />
+          {/* PHASE Z5.8 — required-step Continue is rendered as soon
+              as ≥1 selection lands (the cap-reaching tap auto-
+              advances independently). The button itself is the only
+              exit; there is no Skip on this step. */}
           <ContinueButton
             visible={formats.length > 0 && formats.length < MULTI_SELECT_MAX}
             onPress={handleFormatContinue}
@@ -503,10 +610,42 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         </>
       ) : null}
 
+      {/* PHASE Z5.8 — NEW required step: situations / topic lanes.
+          Cap is 4 (SITUATIONS_MAX) instead of 3. NO Skip — Continue
+          is the only exit and is gated on length>=1. */}
       {step === 2 ? (
         <>
+          <Text style={styles.heroTitle}>Which moments do you make about?</Text>
+          <Text style={styles.heroSub}>
+            Tap up to 4 — the scenes your ideas should live in.
+          </Text>
+          <MultiSelect
+            choices={SITUATION_CHOICES}
+            values={situations}
+            onToggle={handleSituationToggle}
+            disabled={busy}
+            max={SITUATIONS_MAX}
+          />
+          <ContinueButton
+            visible={
+              situations.length > 0 && situations.length < SITUATIONS_MAX
+            }
+            onPress={handleSituationContinue}
+            disabled={busy}
+            label={`Continue (${situations.length}/${SITUATIONS_MAX}) →`}
+          />
+        </>
+      ) : null}
+
+      {/* PHASE Z5.8 — opener step moved from index 2 to 3 and is
+          now the only OPTIONAL screen. Skip-for-now link below is
+          gated on this step alone. */}
+      {step === 3 ? (
+        <>
           <Text style={styles.heroTitle}>Which opener feels most like you?</Text>
-          <Text style={styles.heroSub}>Tap up to 3 — your go-to openers.</Text>
+          <Text style={styles.heroSub}>
+            Tap up to 3 — or skip if nothing fits.
+          </Text>
           <MultiSelect
             choices={HOOK_CHOICES}
             values={hookStyles}
@@ -523,18 +662,25 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         </>
       ) : null}
 
-      <Pressable
-        onPress={handleSkip}
-        disabled={busy}
-        style={({ pressed }) => [
-          styles.skip,
-          pressed && !busy ? styles.skipPressed : null,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Skip for now"
-      >
-        <Text style={styles.skipLabel}>Skip for now</Text>
-      </Pressable>
+      {/* PHASE Z5.8 — Skip link is rendered ONLY on the optional
+          opener step (step 3). The three required screens (0, 1, 2)
+          intentionally have no escape hatch — the closed-beta needs
+          a minimum viable taste signal before the user lands back
+          on Home. */}
+      {step === 3 ? (
+        <Pressable
+          onPress={handleSkip}
+          disabled={busy}
+          style={({ pressed }) => [
+            styles.skip,
+            pressed && !busy ? styles.skipPressed : null,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Skip for now"
+        >
+          <Text style={styles.skipLabel}>Skip for now</Text>
+        </Pressable>
+      ) : null}
     </Animated.View>
   );
 }
@@ -544,11 +690,15 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
 function ConfirmationCard({
   formatLabels,
   toneLabels,
+  // PHASE Z5.8 — situation chips render between tone and opener.
+  // Always at least one entry by contract (required step gates).
+  situationLabels,
   hookLabels,
   kickerLabel,
 }: {
   formatLabels: string[];
   toneLabels: string[];
+  situationLabels: string[];
   hookLabels: string[];
   kickerLabel: string;
 }) {
@@ -589,10 +739,12 @@ function ConfirmationCard({
         <Text style={styles.confirmTitle}>
           Making your ideas more:
         </Text>
-        {/* PHASE Z3 — chips render in flexWrap as a single cluster
-            (format chips, then tone, then hook) so 1..3 entries per
-            category land cleanly on small screens without per-group
-            dot separators that get awkward when one group has 3. */}
+        {/* PHASE Z3/Z5.8 — chips render in flexWrap as a single
+            cluster (format → tone → situations → opener) so 1..3
+            entries per category land cleanly on small screens
+            without per-group dot separators that get awkward when
+            one group has 3. The opener group renders nothing if
+            the user took the Skip path. */}
         <View style={styles.confirmChips}>
           {formatLabels.map((label) => (
             <View key={`f-${label}`} style={styles.confirmChip}>
@@ -601,6 +753,11 @@ function ConfirmationCard({
           ))}
           {toneLabels.map((label) => (
             <View key={`t-${label}`} style={styles.confirmChip}>
+              <Text style={styles.confirmChipText}>{label}</Text>
+            </View>
+          ))}
+          {situationLabels.map((label) => (
+            <View key={`s-${label}`} style={styles.confirmChip}>
               <Text style={styles.confirmChipText}>{label}</Text>
             </View>
           ))}

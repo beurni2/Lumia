@@ -71,6 +71,12 @@ const CALIBRATION_HOOK_TO_MEMORY: Record<string, HookStyle> = {
   thought_hook: "why_do_i",
   curiosity_hook: "curiosity",
   contrast_hook: "contrast",
+  // PHASE Z5.8 — POV ("POV: you're…") openers map to the
+  // `internal_thought` HookStyle in the memory taxonomy. POVs put
+  // the viewer inside a moment / head, which is the closest
+  // semantic fit among the five HOOK_STYLES values. Additive seed
+  // — does not change weights for the prior four mappings.
+  pov_hook: "internal_thought",
 };
 
 /**

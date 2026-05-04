@@ -255,6 +255,9 @@ describe("Y10 — resolveVoiceCluster history-aware rotation", () => {
           effortPreference: null,
           privacyAvoidances: [],
           preferredHookStyles: [],
+          // PHASE Z5.8 — additive default keeps this Y10 test
+          // structurally parseable against the new schema.
+          selectedSituations: [],
           completedAt: null,
           skipped: false,
         },

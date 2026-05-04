@@ -32,6 +32,9 @@ const baseCal = (overrides: Partial<TasteCalibration> = {}): TasteCalibration =>
   effortPreference: null,
   privacyAvoidances: [],
   preferredHookStyles: [],
+  // PHASE Z5.8 — required-default for the new situations field;
+  // existing tests don't exercise it, so [] is the right baseline.
+  selectedSituations: [],
   completedAt: "2026-04-01T00:00:00.000Z",
   skipped: false,
   ...overrides,

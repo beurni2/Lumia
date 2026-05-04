@@ -290,17 +290,23 @@ const TONE_TO_VOICE_CLUSTER: Record<PreferredTone, VoiceClusterId> = {
   chaotic: "chaotic_confession",
   bold: "overdramatic_reframe",
   self_aware: "quiet_realization",
+  // PHASE Z5.8 — closed-beta Quick Tune surfaces high_energy_rant
+  // as a fifth tone option. The Z5a "internal-first, no enum pin"
+  // posture is superseded by the explicit beta spec; the cluster
+  // now participates in the same priority-1 tone-bias slot bonus
+  // as the other four (D1-softened: +5 slots, ~50–57% share, never
+  // monoculture). Z5a registration / template / cold-start coverage
+  // remains untouched.
+  high_energy_rant: "high_energy_rant",
 };
 
-// PHASE Z5a — high_energy_rant added to the rotation pool. Appended
-// at the END so the salt-rotated table preserves slot order for the
-// first 4 clusters (the new cluster only adds 2 trailing slots,
-// minimising shift in cold-start picks). Intentionally NOT added to
-// FAMILY_VOICE or TONE_TO_VOICE_CLUSTER above — internal-first
-// surfacing via cold-start rotation only (no Quick Tune enum value
-// pins to it). The biased table now has 10 base slots (5 × 2),
-// 11 with familyDefault bonus, 16 with a tone-pinned creator —
-// see the slot-share comments in `resolveVoiceCluster`.
+// PHASE Z5a/Z5.8 — high_energy_rant rotation pool. Z5a added it
+// internal-first (cold-start surfacing only); Z5.8 promoted it to
+// a Quick Tune tone enum value, so it now also participates in the
+// tone-bias slot bonus through TONE_TO_VOICE_CLUSTER above. The
+// biased table still has 10 base slots (5 × 2), 11 with familyDefault
+// bonus, 16 with a tone-pinned creator — see the slot-share
+// comments in `resolveVoiceCluster`.
 const ALL_VOICE_CLUSTERS: readonly VoiceClusterId[] = [
   "dry_deadpan",
   "chaotic_confession",

@@ -145,9 +145,14 @@ router.post("/taste-calibration", async (req, res, next) => {
         skipped: persisted.skipped,
         formats: persisted.preferredFormats.length,
         tone: persisted.preferredTone,
+        tones: persisted.preferredTones.length,
         effort: persisted.effortPreference,
         avoidances: persisted.privacyAvoidances.length,
         hookStyles: persisted.preferredHookStyles.length,
+        // PHASE Z5.8 — situations are persisted but not yet
+        // consumed by the ideator; logging the count keeps the
+        // gap visible for the post-beta wire-up task.
+        situations: persisted.selectedSituations.length,
       },
       "[taste-calibration] saved",
     );

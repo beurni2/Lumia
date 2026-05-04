@@ -18,9 +18,13 @@
  *   4. Cold-start salt-rotation surfaces the cluster at least once
  *      across a sweep of (salt, recipeIdx) — proves it joined the
  *      rotation pool and isn't a dead entry in the union type.
- *   5. Internal-first invariant: NO `preferredTone` enum value pins
- *      to high_energy_rant — the calibration enum is unchanged, so
- *      the cluster cannot win the priority-1 tone-bias short-circuit.
+ *   5. PHASE Z5.8 — high_energy_rant IS now a `preferredTone` enum
+ *      value (closed-beta Quick Tune); when pinned it participates
+ *      in the same +5 slot tone-bias as the other 4 tones. The Z5a
+ *      "internal-first" posture is superseded by the explicit beta
+ *      spec. We pin the new contract: pinning `high_energy_rant`
+ *      gives the cluster a dominant share (>40%) without
+ *      monopolising (D1 soft-pin).
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -158,17 +162,20 @@ describe("Z5a — high_energy_rant cluster registration", () => {
     expect(hits).toBeGreaterThanOrEqual(20);
   });
 
-  it("internal-first: no preferredTone short-circuits to high_energy_rant", () => {
-    // Sweep all 4 calibration tone values × many salts; the
-    // tone-bias adds +5 slots for the mapped cluster. None of the
-    // 4 tone enum values map to high_energy_rant, so the cluster's
-    // share with ANY tone pinned should be ≤ its no-tone share —
-    // it never gets the +5 bias. We assert the weaker contract
-    // that high_energy_rant's share with a tone pinned never
-    // exceeds 30% (it can't, since its slot share is 2/16 = 12.5%
-    // when a tone is pinned). 30% leaves wide margin for hash skew.
-    const tones = ["dry_subtle", "chaotic", "bold", "self_aware"] as const;
-    for (const tone of tones) {
+  it("PHASE Z5.8 — non-rant tone pins keep high_energy_rant share bounded", () => {
+    // Sweep the 4 NON-RANT calibration tone values × many salts.
+    // With a non-rant tone pinned, high_energy_rant gets only its
+    // 2-slot baseline share (2/16 = 12.5%) — no +5 bias. We assert
+    // the cluster's share never exceeds 30% (wide margin for hash
+    // skew) so a future regression that wires the +5 bias to the
+    // wrong cluster would surface here.
+    const nonRantTones = [
+      "dry_subtle",
+      "chaotic",
+      "bold",
+      "self_aware",
+    ] as const;
+    for (const tone of nonRantTones) {
       const calibration: TasteCalibration = {
         preferredFormats: [],
         preferredTone: tone,
@@ -176,6 +183,7 @@ describe("Z5a — high_energy_rant cluster registration", () => {
         effortPreference: null,
         privacyAvoidances: [],
         preferredHookStyles: [],
+        selectedSituations: [],
         completedAt: null,
         skipped: false,
       };
@@ -193,5 +201,38 @@ describe("Z5a — high_energy_rant cluster registration", () => {
       }
       expect(hits / N).toBeLessThanOrEqual(0.3);
     }
+  });
+
+  it("PHASE Z5.8 — pinning preferredTone='high_energy_rant' makes the cluster dominant", () => {
+    // The Z5.8 enum promotion wires the same priority-1 tone-bias
+    // (+5 slots) as the other 4 tones. With a self_betrayal family
+    // and rant pinned, the slot share becomes ~7/16 = 43.75% before
+    // the histogram-LRU walk. We assert >= 40% across a salt sweep
+    // — that's the dominance contract Quick Tune promises a creator
+    // who picks "high-energy rant".
+    const calibration: TasteCalibration = {
+      preferredFormats: [],
+      preferredTone: "high_energy_rant",
+      preferredTones: ["high_energy_rant"],
+      effortPreference: null,
+      privacyAvoidances: [],
+      preferredHookStyles: [],
+      selectedSituations: [],
+      completedAt: null,
+      skipped: false,
+    };
+    let hits = 0;
+    const N = 400;
+    for (let salt = 0; salt < N; salt++) {
+      const got = resolveVoiceCluster({
+        family: "self_betrayal",
+        tasteCalibration: calibration,
+        salt,
+        coreId: "z58_rant_pin",
+        recipeIdx: 0,
+      });
+      if (got === "high_energy_rant") hits++;
+    }
+    expect(hits / N).toBeGreaterThanOrEqual(0.4);
   });
 });

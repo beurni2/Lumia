@@ -38,6 +38,12 @@ export const preferredToneEnum = z.enum([
   "chaotic",
   "bold",
   "self_aware",
+  // PHASE Z5.8 — fifth tone option surfaced in the closed-beta
+  // Quick Tune. Maps to the existing `high_energy_rant` voice
+  // cluster (registered in Z5a) via TONE_TO_VOICE_CLUSTER. Adding
+  // a new enum value is additive — old persisted docs without
+  // this value parse cleanly.
+  "high_energy_rant",
 ]);
 export type PreferredTone = z.infer<typeof preferredToneEnum>;
 
@@ -62,8 +68,31 @@ export const preferredHookStyleEnum = z.enum([
   "thought_hook",
   "curiosity_hook",
   "contrast_hook",
+  // PHASE Z5.8 — fifth opener option surfaced in the closed-beta
+  // Quick Tune. POV hooks ("POV: you're…") map to the
+  // `internal_thought` HookStyle in the memory taxonomy via
+  // CALIBRATION_HOOK_TO_MEMORY (onboardingSeed.ts).
+  "pov_hook",
 ]);
 export type PreferredHookStyle = z.infer<typeof preferredHookStyleEnum>;
+
+// PHASE Z5.8 — TOPIC LANES / situations.
+// Six creator-friendly situation buckets surfaced in the closed-beta
+// Quick Tune. Stored on the calibration doc as `selectedSituations`
+// for now; downstream ideator consumption is intentionally NOT
+// wired up in this phase (gap reported to spec — situations land in
+// the JSONB but the prompt block / generator does not yet read
+// them). The persistence path is the contract this phase ships;
+// downstream wiring is a separate task.
+export const situationEnum = z.enum([
+  "food_home",
+  "dating_texting",
+  "work_school",
+  "social_awkwardness",
+  "health_wellness",
+  "creator_social",
+]);
+export type Situation = z.infer<typeof situationEnum>;
 
 // ---------------------------------------------------------------- //
 // The persisted document. Two shapes are valid:
@@ -94,6 +123,13 @@ export const tasteCalibrationSchema = z.object({
   effortPreference: effortPreferenceEnum.nullable().default(null),
   privacyAvoidances: z.array(privacyAvoidanceEnum).default([]),
   preferredHookStyles: z.array(preferredHookStyleEnum).default([]),
+  // PHASE Z5.8 — multi-select situations / topic lanes (≤4). New
+  // REQUIRED Quick Tune screen. Persisted on the JSONB doc;
+  // downstream consumers (ideator prompt, voice cluster picker)
+  // do NOT yet read this field — see `situationEnum` doc above.
+  // Default is `[]` so pre-Z5.8 docs still parse cleanly (additive
+  // schema change, no migration).
+  selectedSituations: z.array(situationEnum).max(4).default([]),
   // ISO-8601 timestamp; null when `skipped: true`.
   completedAt: z.string().datetime().nullable().default(null),
   skipped: z.boolean().default(false),
@@ -288,6 +324,12 @@ const HOOK_STYLE_GUIDANCE: Record<PreferredHookStyle, string> = {
     'Prefer "this is where it went wrong" / "the moment I realised…" Curiosity-archetype hooks as the SELECT-step tiebreaker (tune up to ~40% of the batch toward this archetype).',
   contrast_hook:
     'Prefer "what I say vs what I do" / "expectation vs reality" Contrast-archetype hooks as the SELECT-step tiebreaker (tune up to ~40% of the batch toward this archetype).',
+  // PHASE Z5.8 — POV-archetype hooks. Maps to the model's
+  // "internal-thought / second-person scene" framing — the viewer
+  // is invited into a moment in someone's head, e.g. "POV: you're
+  // pretending to listen". Same tiebreaker share as the others.
+  pov_hook:
+    "Prefer \"POV: you're…\" / \"POV: when you…\" POV-archetype hooks as the SELECT-step tiebreaker (tune up to ~40% of the batch toward this archetype). Frame as a second-person moment the viewer steps into.",
 };
 
 const TONE_GUIDANCE: Record<PreferredTone, string> = {
@@ -299,6 +341,10 @@ const TONE_GUIDANCE: Record<PreferredTone, string> = {
     "Tone: CONFIDENT / BOLD — favour direct statements, confident contrast, no hedging. Hooks land like a verdict, not a question.",
   self_aware:
     'Tone: AWKWARD / SELF-AWARE — favour embarrassment, regret, self-callout (the "I shouldn\'t have done that 💀" register). Hook should feel like the creator catching themselves.',
+  // PHASE Z5.8 — fifth tone. Loud, ranty, fast-paced energy. Pairs
+  // with the high_energy_rant voice cluster via TONE_TO_VOICE_CLUSTER.
+  high_energy_rant:
+    "Tone: HIGH-ENERGY RANT — favour escalating, ranty, fast-paced delivery; the energy carries the hook. ALL-CAPS bursts and exclamation are fine where they amplify the rant; avoid flat / understated captions.",
 };
 
 const EFFORT_GUIDANCE: Record<EffortPreference, string> = {
