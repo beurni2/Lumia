@@ -1,0 +1,163 @@
+Implement Phase UX1 — Action Conversion Layer before closed beta.
+
+Context:
+Lumina’s idea engine and personalization stack are now strong:
+- Z5 corpus expansion complete: 532 hooks.
+- Scenario catalog: 253.
+- Z5.5 template polish complete.
+- Z5.6/Z5.6b hero quality and payoff sharpening complete.
+- Z5.7 retention novelty complete.
+- Z5.8 Quick Tune calibration upgrade complete.
+- Z5.8b selectedSituations consumption complete.
+- Required onboarding screens now collect and consume format, tone, and situations.
+- Opener is optional.
+- Deployment QA passed: READY WITH MINOR NOTES.
+- Full loop works end-to-end.
+- 331/331 tests pass.
+- Server clean.
+- Zero migrations, zero API changes, zero validator loosening.
+
+Goal:
+Shift the product experience from “Lumina gives ideas” to “Lumina helps me film this right now.”
+
+The idea card and Film-This-Now screen should reduce filming hesitation, lower embarrassment, and make each generated idea feel immediately actionable.
+
+Hard rules:
+- No migrations unless absolutely necessary.
+- No API breaking changes.
+- Prefer deriving new UI labels from existing idea fields.
+- Preserve route response shape if possible.
+- Keep tests and TypeScript passing.
+- Do not touch core ranking/scoring unless needed to expose already-computable metadata.
+- No validator loosening.
+- Avoid overbuilding.
+
+Feature 1 — Make Film This Now the primary CTA
+- Every idea card should have a prominent primary button:
+  “Film This Now”
+- It should be visually stronger than secondary actions.
+- Secondary actions can remain if already present:
+  Save
+  Make another
+  Not for me
+  Details
+- But Film This Now must clearly be the main next step.
+
+Feature 2 — Add filming-confidence labels
+Add lightweight labels to idea cards and Film-This-Now where derivable with high confidence:
+- No face needed
+- No talking required
+- Text overlay works
+- Can film alone
+- Bedroom easy
+- Desk easy
+- Car easy
+- No public filming
+- Low cringe
+- 10–20 sec shoot
+- No props needed
+
+Use existing fields where possible:
+- setting
+- shotPlan
+- howToFilm
+- whatToShow
+- filmingGuide
+- pattern
+- format
+- trigger/reaction
+- voice/style metadata
+- selectedSituations if helpful
+
+If uncertain, do not show the label. Do not fabricate.
+
+Feature 3 — Add action-conversion metadata if easy
+If feasible without API breakage, compute or derive:
+- estimatedShootTime
+- difficultyLabel
+- embarrassmentRisk: low/medium/high
+- faceRequired: boolean/unknown
+- voiceRequired: boolean/unknown
+- publicFilmingRequired: boolean
+- canFilmAlone: boolean
+- wouldFilmToday: likely/unlikely/unknown
+
+If API shape cannot change safely, derive these client-side from existing fields and report that limitation.
+
+Feature 4 — Improve Film-This-Now screen layout
+Make the screen practical and direct.
+
+Recommended layout:
+1. Hook / overlay line
+2. Setup
+3. Shot steps
+4. Action / reaction beat
+5. Caption
+6. Time required
+7. Difficulty
+8. Confidence labels
+
+Example structure:
+Setup:
+“Sit at your desk. Hold your phone like you just received bad news.”
+
+Shot 1:
+“Open with the hook.”
+
+Shot 2:
+“Show the object/app/scene.”
+
+Shot 3:
+“React to the reveal.”
+
+Action:
+“Slowly close the laptop like it hurt your feelings.”
+
+Caption:
+“My budget and I are not on speaking terms.”
+
+Time:
+“12 seconds”
+
+Difficulty:
+“Bedroom easy”
+
+Labels:
+No public filming · Can film alone · Text overlay works
+
+Feature 5 — Rename generated batch area if appropriate
+If current UI says generic “Ideas,” consider:
+- “Your Daily 3”
+- “Today’s 3”
+- “Pick one to film”
+
+Only do this if it fits current UI without churn.
+
+Feature 6 — Optional visible learning microcopy
+If signal submission is already happening, optionally show tiny learning feedback after user action:
+- “Noted — more dry deadpan.”
+- “We’ll avoid ideas like this.”
+- “More low-effort filming.”
+- “Got it — more creator-life ideas.”
+
+Keep this subtle. Do not overbuild.
+
+QA:
+- Verify idea cards render correctly on small iPhone viewport.
+- Verify Film This Now button is obvious.
+- Verify tapping Film This Now opens the correct screen.
+- Verify labels do not overflow.
+- Verify no misleading labels appear.
+- Verify Film-This-Now screen is clear and scrollable.
+- Verify skip/not-for-me/save/select actions still work.
+- Verify signal writes still happen.
+- Run mobile TypeScript.
+- Run API TypeScript/tests if backend touched.
+
+Report:
+- files changed
+- UI changes made
+- metadata/label derivation logic
+- whether API shape changed
+- screenshots or QA notes if possible
+- tests/typechecks run

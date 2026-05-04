@@ -942,23 +942,31 @@ export default function HomeScreen() {
                     region={region ?? undefined}
                     onSubmit={handleIdeaVerdict}
                   />
-                  {/* PHASE Z1 — "Film this now" secondary CTA. Sits
-                      as a sibling to the card pressable (NOT inside
-                      it) so its tap target never conflicts with the
-                      primary card → /create navigation. Routes to
-                      the lightweight Film-This-Now timeline screen
-                      which lays the idea out as a 0-8s shotlist
-                      instead of opening the full creation flow. */}
+                  {/* PHASE UX1 — "Film this now" PROMOTED to the
+                      primary CTA on every non-hero card. Was a
+                      quiet outline chip in Phase Z1; in UX1 we
+                      lift it to the same filled-teal style the
+                      hero card uses (`TodaysPickHero.primaryBtn`)
+                      so filming is unambiguously the obvious
+                      next move on every card, not just the top
+                      pick. Sits as a sibling to the card
+                      pressable so its tap target never conflicts
+                      with the primary card → /create navigation
+                      (which becomes the SECONDARY action — power
+                      users keep one-tap access via the card body
+                      tap). */}
                   <Pressable
                     onPress={navigateFilmNow}
                     accessibilityRole="button"
                     accessibilityLabel={`Film ${idea.hook} now`}
                     style={({ pressed }) => [
-                      styles.filmNowBtn,
-                      pressed ? styles.filmNowBtnPressed : null,
+                      styles.filmNowPrimaryBtn,
+                      pressed ? styles.filmNowPrimaryBtnPressed : null,
                     ]}
                   >
-                    <Text style={styles.filmNowBtnText}>Film this now →</Text>
+                    <Text style={styles.filmNowPrimaryBtnText}>
+                      Film this now →
+                    </Text>
                   </Pressable>
                 </View>
               );
@@ -1276,10 +1284,36 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     transform: [{ scale: 0.99 }],
   },
-  // PHASE Z1 — secondary "Film this now" CTA per card. Sized
-  // smaller than the primary card so it reads as an action chip
-  // rather than competing with the card itself. Sits as a
-  // sibling row under IdeaFeedback.
+  // PHASE UX1 — promoted primary "Film this now" CTA per
+  // non-hero card. Visually matches `TodaysPickHero.primaryBtn`
+  // (filled-teal, larger tap target) so the action-conversion
+  // path is the obvious next step on EVERY card, not just the
+  // top pick. The previous secondary chip styling (kept below
+  // as `filmNowBtn` for any code that still references it)
+  // read as "optional" — UX1 explicitly inverts that hierarchy.
+  filmNowPrimaryBtn: {
+    alignSelf: "stretch",
+    backgroundColor: lumina.firefly,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 4,
+    alignItems: "center",
+  },
+  filmNowPrimaryBtnPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
+  },
+  filmNowPrimaryBtnText: {
+    fontFamily: fontFamily.bodyBold,
+    color: "#0A0824",
+    fontSize: 15,
+    letterSpacing: 0.4,
+  },
+  // PHASE Z1 (legacy, retained for reference) — quieter outline
+  // variant. No active call sites after UX1; kept so any future
+  // surface that wants the secondary affordance has it ready.
   filmNowBtn: {
     alignSelf: "stretch",
     backgroundColor: "rgba(0,255,204,0.10)",

@@ -32,6 +32,10 @@ import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import {
+  deriveActionConversion,
+  deriveConfidenceLabels,
+} from "@/lib/actionConversion";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 
 // Idea payload shape — same JSON-encoded blob Home pushes into
@@ -255,6 +259,57 @@ export default function FilmThisNowScreen() {
           </View>
         ) : null}
 
+        {/* PHASE UX1 — Action Conversion footer. Time +
+            difficulty + confidence labels in a tight,
+            scannable block right above the primary CTA so the
+            user sees "this is small, fast, and private" at the
+            exact moment they're deciding to tap "Start
+            filming". All three values are derived purely from
+            fields the server already ships — see
+            `lib/actionConversion.ts`. Each row is HIDDEN when
+            its underlying signal is missing (legacy cached
+            ideas / Llama wraps); the section header itself is
+            suppressed when nothing inside it would render. */}
+        {(() => {
+          const ac = deriveActionConversion(idea);
+          const labels = deriveConfidenceLabels(idea, 4);
+          const timeLine =
+            ac.estimatedShootSec !== null
+              ? `${Math.round(ac.estimatedShootSec)} seconds on camera`
+              : ac.filmingTimeMin !== null
+                ? `~${ac.filmingTimeMin} min start to finish`
+                : null;
+          const hasAnything =
+            timeLine !== null || ac.difficultyLabel !== null || labels.length > 0;
+          if (!hasAnything) return null;
+          return (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>PLAN</Text>
+              {timeLine !== null ? (
+                <View style={styles.planRow}>
+                  <Text style={styles.planRowLabel}>Time</Text>
+                  <Text style={styles.planRowValue}>{timeLine}</Text>
+                </View>
+              ) : null}
+              {ac.difficultyLabel !== null ? (
+                <View style={styles.planRow}>
+                  <Text style={styles.planRowLabel}>Difficulty</Text>
+                  <Text style={styles.planRowValue}>{ac.difficultyLabel}</Text>
+                </View>
+              ) : null}
+              {labels.length > 0 ? (
+                <View style={styles.planChipRow}>
+                  {labels.map((chip, idx) => (
+                    <View key={idx} style={styles.planChip}>
+                      <Text style={styles.planChipText}>{chip}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          );
+        })()}
+
         <Pressable
           onPress={handleStartFilming}
           style={({ pressed }) => [
@@ -375,6 +430,50 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 13,
+  },
+  // PHASE UX1 — Plan footer block. Two-column rows for Time +
+  // Difficulty (label on left, value on right) plus a flex-wrap
+  // chip row for confidence labels. Quiet visual rank so the
+  // primary "Start filming" CTA below stays unambiguously the
+  // dominant element on the screen.
+  planRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
+  },
+  planRowLabel: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    letterSpacing: 0.6,
+  },
+  planRowValue: {
+    fontFamily: fontFamily.bodyBold,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 14,
+  },
+  planChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 12,
+  },
+  planChip: {
+    backgroundColor: "rgba(0,255,204,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(0,255,204,0.30)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  planChipText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: lumina.firefly,
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   primaryBtn: {
     marginTop: 24,

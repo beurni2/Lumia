@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
+import { deriveConfidenceLabels } from "@/lib/actionConversion";
 import { deriveWhyThisWorksLines } from "@/lib/whyThisWorks";
 
 // Mirrors the ideator response shape from the server (only the
@@ -76,6 +77,35 @@ export type IdeaCardData = {
   willingnessScore?: number;
   pickerEligible?: boolean;
   whyThisFitsYou?: string;
+  // PHASE UX1 — Action Conversion Layer additive optionals.
+  // These fields are ALREADY shipped by the server today (see
+  // `ideaSchema` in `api-server/src/lib/ideaGen.ts`); the route
+  // layer only strips `premise` + `premiseCoreId`, so every
+  // freshly-generated idea already includes them on the wire.
+  // They were absent from `IdeaCardData` only because the card
+  // didn't render them. Promoting to optional here lets the
+  // shared `deriveConfidenceLabels` / `deriveActionConversion`
+  // helpers in `lib/actionConversion.ts` read them WITHOUT
+  // changing the API response shape, the route, the cache
+  // shape, or any zod schema. Cached pre-UX1 batches simply
+  // lack the fields and the derivation no-ops gracefully.
+  setting?:
+    | "bed"
+    | "couch"
+    | "desk"
+    | "bathroom"
+    | "kitchen"
+    | "car"
+    | "outside"
+    | "other";
+  script?: string;
+  shotPlan?: string[];
+  trigger?: string;
+  reaction?: string;
+  hasContrast?: boolean;
+  hasVisualAction?: boolean;
+  triggerCategory?: string;
+  contentType?: string;
 };
 
 // User-facing labels for the four canonical patterns + transitional
@@ -251,6 +281,27 @@ export function IdeaCard({
         </>
       ) : null}
 
+      {/* PHASE UX1 — Action Conversion Layer chip strip.
+          Lightweight confidence labels derived purely from
+          fields the server already ships (see
+          `lib/actionConversion.ts`). Capped at 3 chips so the
+          card stays scannable on a small iPhone viewport.
+          Renders nothing when the helper returns 0 chips
+          (legacy cached batches lacking `setting` etc.). */}
+      {(() => {
+        const chips = deriveConfidenceLabels(idea, 3);
+        if (chips.length === 0) return null;
+        return (
+          <View style={styles.chipRow} accessibilityLabel="Filming confidence labels">
+            {chips.map((chip, idx) => (
+              <View key={idx} style={styles.chip}>
+                <Text style={styles.chipText}>{chip}</Text>
+              </View>
+            ))}
+          </View>
+        );
+      })()}
+
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>15–30s video</Text>
         {shootLine ? (
@@ -325,8 +376,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.8,
   },
-  metaRow: {
+  // PHASE UX1 — wraps a row of derived confidence labels
+  // ("Bedroom easy", "No talking required", "12s shoot", etc.)
+  // above the existing meta row. flexWrap so 3 chips never
+  // overflow on a small iPhone viewport. Quiet visual rank
+  // (low-opacity background, dim border) so the chips read as
+  // metadata, not as buttons.
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
     marginTop: 14,
+  },
+  chip: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  chipText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  metaRow: {
+    marginTop: 10,
     gap: 4,
   },
   metaPill: {
