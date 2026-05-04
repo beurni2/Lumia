@@ -19,6 +19,7 @@
 import type { Idea } from "./ideaGen";
 import type { StyleProfile } from "./styleProfile";
 import type { ViralPatternMemory } from "./viralPatternMemory";
+import { retentionSelectionBonus } from "./retentionNoveltyScorer";
 import {
   HOOK_PHRASINGS_BY_STYLE,
   getEntryIntent,
@@ -2803,6 +2804,8 @@ export type NoveltyContext = {
    * personalization takes full control.
    */
   firstSessionBoostFactor?: number;
+  retentionMemory?: ViralPatternMemory;
+  retentionProfile?: import("./retentionNoveltyScorer.js").RetentionProfile;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -4330,6 +4333,9 @@ export function selectionPenalty(
       c.idea.filmingTimeMin > 10
     )
       p -= Math.round(3 * fsb);
+  }
+  if (ctx.retentionMemory && ctx.retentionProfile) {
+    p += retentionSelectionBonus(c, ctx.retentionMemory, ctx.retentionProfile);
   }
   return p;
 }

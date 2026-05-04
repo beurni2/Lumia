@@ -106,6 +106,10 @@ import {
   generateCoreCandidates,
   type AntiCopyRejectsTelemetry,
 } from "./coreCandidateGenerator";
+import {
+  buildRetentionProfile,
+  applyBatchComposition,
+} from "./retentionNoveltyScorer";
 // PHASE Y6 — cohesive author surfaces a `scenarioFingerprint` on
 // every core_native candidate's meta + the catalog exposes the
 // distinct anchors used for served-log probing. The `extractAnchor`
@@ -3535,6 +3539,11 @@ export async function runHybridIdeator(
   // rotation between self_aware and dry_humor).
   // PHASE Y9 — reuse the parse from above (used to build the
   // onboarding seed) so we don't double-parse the same jsonb blob.
+  const retentionProfile = buildRetentionProfile(last3Batches);
+  if (retentionProfile.batchDepth >= 2 && memory.sampleSize >= 3) {
+    noveltyContext.retentionMemory = memory;
+    noveltyContext.retentionProfile = retentionProfile;
+  }
   const calibration = calibrationForSeed;
   // Vision tier — majority-mode aggregation of `deliveryStyle` across
   // the per-video signals. We deliberately ignore `unknown` (it's the
@@ -4106,6 +4115,18 @@ export async function runHybridIdeator(
     );
   }
   selection = { ...selection, batch: mutationResult.batch };
+
+  // -------- Step 4c: batch composition (hero/taste/novelty) -------
+  if (noveltyContext.retentionMemory && noveltyContext.retentionProfile) {
+    selection = {
+      ...selection,
+      batch: applyBatchComposition(
+        selection.batch,
+        noveltyContext.retentionMemory,
+        noveltyContext.retentionProfile,
+      ),
+    };
+  }
 
   // -------- Step 5: ship final batch, persist --------------------
   let final = selection.batch;

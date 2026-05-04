@@ -1,0 +1,238 @@
+You are implementing Phase Z5.7 — Sustainable Retention Novelty Loop for Lumina.
+
+Context:
+Lumina’s idea engine and deployment readiness are now strong:
+- DQ1 Deployment QA passed: READY WITH MINOR NOTES.
+- Core loop verified end-to-end: sign in → calibrate → generate → review → film → export → signal.
+- Deployment prep cleanup is done.
+- Z5 corpus expansion complete: 532 hooks.
+- Scenario catalog: 253.
+- Z5.5 template output polish complete.
+- Z5.6 Always-On Hero Quality Ranker + Adaptive First-Session Boost complete.
+- Z5.6b Hero Threshold + Payoff Sharpening complete.
+- Hero pass rate improved from 33.3% to 75.0%.
+- Avg hero score improved from 64.3 to 72.3.
+- Returning payoff clarity improved from 5.0/12 to 8.0/12.
+- Caption synergy improved from 0.7/8 to 5.2/8.
+- Safety failures remain 0.
+- 269/269 tests pass.
+- TypeScript clean.
+- Server boots clean.
+- Zero migrations, zero API changes, zero validator loosening.
+
+Goal:
+Add a sustainable retention novelty layer so returning users continue receiving fresh, high-quality, personally relevant ideas over repeated sessions.
+
+This phase should prevent:
+- same joke, new skin
+- repeated hook skeletons
+- repeated settings
+- repeated topic lanes
+- repeated premise families
+- repeated visual actions
+- overfitting to one successful pattern
+- exploration becoming random or low-quality
+
+Hard rules:
+- ZERO migrations unless absolutely impossible; prefer existing JSONB / existing ideator_signal / lastIdeaBatchJson / batch history structures.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO broad architecture rewrite.
+- Additive scoring/ranking/selection overlay only.
+- Preserve Hero Quality Ranker.
+- Preserve Adaptive First-Session Boost.
+- Preserve willingness ranker.
+- Preserve anti-copy and validators.
+- Preserve route response shape and cache shape.
+- Keep tests and TypeScript passing.
+
+Core retention principle:
+For returning users, every 3-idea batch should aim for:
+1. One hero idea:
+   - strongest funny/filmable/safe candidate
+2. One taste-aligned idea:
+   - strongly matches calibration/signals/history
+3. One controlled novelty idea:
+   - meaningfully fresh from recent batches but still high-quality, safe, and filmable
+
+Do not force this composition if it would lower quality severely. Treat it as a soft selection preference.
+
+Implementation scope:
+
+1. Add retention novelty scoring.
+Create an additive scoring/penalty overlay using existing history/signal data where available.
+
+Suggested dimensions:
+- recentHookSkeletonPenalty
+- recentSettingPenalty
+- recentTopicLanePenalty
+- recentPremiseFamilyPenalty
+- recentVisualActionPenalty
+- recentVoiceClusterPenalty
+- recentEmotionalSpikePenalty
+- recentAnchorPenalty
+- overfitPenalty
+- explorationValue
+- signalAlignmentScore
+- fatigueRiskScore
+
+2. Use recent history.
+Use existing available history sources:
+- creators.lastIdeaBatchJson
+- ideator_signal
+- readBatchHistory()
+- recent hook exclusion sets
+- any existing rolling 5-batch novelty data
+
+Do not add a new table unless absolutely necessary.
+
+Track and penalize repeated:
+- hook skeleton
+- opener
+- setting
+- topic lane
+- premise family
+- premise core
+- visual action
+- anchor/domain
+- emotional spike
+- voice cluster
+- caption shape if available
+
+3. Balance reinforcement and exploration.
+Signal-aware behavior:
+- Increase weight for patterns users exported, selected, liked, or made another from.
+- Decrease weight for patterns users disliked, skipped, or ignored.
+- Preserve 20–35% exploration depending on confidence.
+- Confidence should increase with more signals.
+- Exploration should be adjacent, not random.
+
+Example:
+If user exports dating/self-roast mini-stories:
+- Boost dating/self-roast.
+- Still test adjacent social awkwardness, group chat, confidence failure, public embarrassment.
+- Do not suddenly jump to unrelated corporate finance or extreme high-energy rants unless supported.
+
+4. Prevent overfitting.
+If a user repeatedly likes one pattern, do not let all 3 ideas in every batch become that same pattern.
+
+Apply a soft overfit penalty if:
+- same premise family appears too often
+- same setting repeats too often
+- same emotional spike dominates
+- same hook skeleton repeats
+- same visual action repeats
+- same topic lane dominates last 2–5 batches
+
+Soft penalty only. Do not hard-ban quality candidates unless they are near-duplicates or already blocked by existing guards.
+
+5. Batch composition.
+For 3-idea batches, prefer:
+- Card 1: Hero idea
+- Card 2: Taste-aligned idea
+- Card 3: Controlled novelty idea
+
+For larger batches, preserve a similar mix:
+- 50–65% taste-aligned
+- 20–35% controlled novelty
+- 10–15% broad-safe/high-confidence wildcard
+
+Do not let novelty outrank quality. Novelty must pass hero/quality/safety floors.
+
+6. Define novelty distance.
+A novelty idea should differ from recent ideas on at least 2–3 of:
+- setting
+- topic lane
+- premise family
+- visual action
+- emotional spike
+- hook skeleton
+- anchor/domain
+- voice cluster
+
+But it should still align with at least 1–2 known taste preferences.
+
+7. Integrate with Hero Quality Ranker.
+Retention novelty should not replace hero quality.
+
+Final selection should balance:
+- heroQuality
+- willingnessScore
+- signalAlignment
+- noveltyDistance
+- fatigueRisk
+- safety
+- diversity guards
+
+If a novel idea is low-quality, it should not be selected just because it is novel.
+
+8. Tests.
+Add tests for:
+- repeated setting penalty from recent batches
+- repeated topic lane penalty from recent batches
+- repeated hook skeleton penalty across sessions
+- repeated premise family penalty
+- exported/liked pattern gets boosted
+- disliked/skipped pattern gets deweighted
+- overfit penalty prevents all 3 cards from same pattern
+- controlled novelty slot selects adjacent fresh idea
+- novelty does not override safety/quality floors
+- first-session users are not harmed by returning-user novelty logic
+- calibrated returning users still get taste-aligned ideas
+- no API shape changes
+
+9. QA.
+Run three QA passes.
+
+QA A — Returning user with repeated exports:
+- Simulate user repeatedly exporting one pattern.
+- Confirm that pattern is boosted.
+- Confirm not all 3 ideas are the same pattern.
+- Confirm at least 1 controlled novelty idea appears.
+
+QA B — Returning user with dislikes/skips:
+- Simulate repeated dislikes/skips for one pattern.
+- Confirm that pattern is deweighted.
+- Confirm quality remains high.
+
+QA C — Long-session fatigue:
+- Simulate 5–10 sequential batches.
+- Confirm no obvious same-joke/new-skin fatigue.
+- Track repeated settings/topics/premise families/hook skeletons.
+- Confirm hero idea remains present.
+
+Success criteria:
+- 0 safety failures.
+- 0 malformed artifacts.
+- No near-duplicate hooks across simulated recent sessions.
+- No 3-card batch with all ideas from same premise family/topic/setting unless unavoidable.
+- Exported/liked pattern visibly boosts ranking.
+- Disliked/skipped pattern visibly deweights ranking.
+- Controlled novelty appears in returning-user batches.
+- Hero quality remains healthy:
+  - top-card hero score average >=72
+  - hero pass rate >=70%
+- Returning-user freshness improves without reducing filmability below target.
+- Tests and TypeScript pass.
+
+Report back:
+1. Files changed
+2. Scoring/penalty overlays added
+3. Data sources used for history/signals
+4. How exploration percentage is determined
+5. How overfitting is prevented
+6. Test count and pass/fail
+7. TypeScript result
+8. QA A/B/C results
+9. Example before/after batch composition
+10. Confirmation:
+   - no migrations
+   - no API changes
+   - no validator loosening
+   - additive overlay only
+
+Definition of done:
+- Returning users get better personalization without repetition fatigue.
+- Every batch still prioritizes hero quality.
+- The system explores enough to keep ideas fresh.
+- Signal learning improves output without trapping users in one pattern.
