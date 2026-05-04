@@ -1,0 +1,84 @@
+Implement Phase UX2 — Low-Cringe Filming Modes.
+
+Context:
+UX1 Action Conversion Layer is complete:
+- client-side actionConversion.ts derives confidence labels conservatively
+- idea cards show confidence chips
+- Film This Now is primary CTA
+- Film-This-Now screen has PLAN block with time, difficulty, confidence labels
+- zero backend touch
+- Lumina TypeScript clean
+- api-server tests 331/331 passing
+
+Goal:
+Help creators who feel awkward filming by letting them request ideas and filming instructions that reduce face/voice/public filming anxiety.
+
+Hard rules:
+- Avoid backend changes if possible.
+- No migrations.
+- No API breaking changes.
+- No validator loosening.
+- Prefer extending actionConversion.ts and existing client-side UI.
+- Keep labels conservative: hide when uncertain.
+- Keep TypeScript clean.
+- Do not overbuild.
+
+Scope:
+1. Add lightweight filming comfort chips on Home or Film-This-Now:
+   - No face
+   - No voice
+   - Text overlay
+   - Bedroom easy
+   - Optional if easy: Car only, Hands only
+
+2. Derive filming-mode compatibility from existing idea fields:
+   - setting
+   - script
+   - shotPlan
+   - trigger
+   - reaction
+   - howToFilm
+   - whatToShow
+   - contentType
+   - hasVisualAction
+   - triggerCategory
+
+3. When a comfort chip is active:
+   - Prefer or visually highlight ideas matching that mode if client-side ordering is safe.
+   - At minimum, adapt Film-This-Now instructions to show a “No-face version” or “No-voice version” when compatible.
+   - Do not claim compatibility unless confident.
+
+4. Film-This-Now adaptations:
+   If No face:
+   - Use hands/object/screen shots.
+   - Avoid “look at camera” language when possible.
+   - Suggest crop below face or over-the-shoulder shot.
+
+   If No voice:
+   - Use text overlay instead of spoken hook.
+   - Replace “say this” with “put this as overlay.”
+   - Emphasize caption/on-screen text.
+
+   If Text overlay:
+   - Show the hook as overlay text.
+   - Keep shot steps visual.
+
+5. Safety:
+   - For screen/app ideas, remind fake/demo/cropped screens only if relevant.
+   - Never encourage showing real private messages, bank balances, IDs, medical info, salary, or confidential work.
+
+6. QA:
+   - Home renders on small iPhone viewport.
+   - Comfort chips select/deselect cleanly.
+   - Film-This-Now adapts when No face / No voice active.
+   - Labels do not overclaim.
+   - Existing Film This Now CTA still works.
+   - TypeScript clean.
+
+Report:
+- files changed
+- filters added
+- derivation logic
+- whether any backend changes were made
+- QA notes
+- typecheck result

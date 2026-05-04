@@ -416,3 +416,224 @@ export function deriveConfidenceLabels(
 
   return labels.slice(0, maxChips);
 }
+
+/* ----------------------------------------------------------------
+ * PHASE UX2 — Low-Cringe Filming Modes
+ *
+ * Opt-in comfort modes the user can toggle inside Film-This-Now
+ * to get filming instructions adapted to their face/voice/setting
+ * anxieties. Layered ON TOP of UX1 derivation — no new server
+ * fields, no new API surface, no new persisted state. The mode
+ * lives entirely in screen-local React state; if the user backs
+ * out of Film-This-Now and re-opens it, they re-pick a mode (or
+ * none). Persistence is intentionally deferred until beta
+ * feedback shows it's needed.
+ * ---------------------------------------------------------------- */
+
+/** The four comfort modes shipped in UX2. Curated per the spec —
+ *  optional "Car only" and "Hands only" are intentionally NOT
+ *  included because they overlap with `bedroom_easy`/`no_face`
+ *  without adding new actionable instructions. */
+export type ComfortMode = "no_face" | "no_voice" | "text_overlay" | "bedroom_easy";
+
+/** Iterable list for the toggle chip row. Order is the order the
+ *  user sees in the UI — no_face first because it's the most
+ *  common anxiety in beta interviews. */
+export const COMFORT_MODES: readonly ComfortMode[] = [
+  "no_face",
+  "no_voice",
+  "text_overlay",
+  "bedroom_easy",
+];
+
+/** Display labels for the chips. Short + plain English so the
+ *  chips read as a quick toggle, not a dropdown. */
+export const COMFORT_MODE_LABELS: Record<ComfortMode, string> = {
+  no_face: "No face",
+  no_voice: "No voice",
+  text_overlay: "Text overlay",
+  bedroom_easy: "Bedroom easy",
+};
+
+/** Strict compatibility check — returns `true` ONLY when we can
+ *  confidently say the idea works in the given comfort mode.
+ *  Conservative-by-default per the UX2 hard rule "do not claim
+ *  compatibility unless confident." Used by Film-This-Now to
+ *  badge the adaptation block as "match" vs "mismatch."
+ *
+ *  We deliberately keep these heuristics narrow and rule-based
+ *  rather than fuzzy/probabilistic — the cost of overclaiming
+ *  compatibility (creator films a no-face version of a reaction
+ *  idea and it falls flat) is much higher than the cost of
+ *  marking a borderline-compatible idea as "mismatch" (creator
+ *  still sees the tips and can decide to try anyway). */
+export function matchesComfortMode(
+  idea: IdeaCardData,
+  mode: ComfortMode,
+): boolean {
+  const pattern = idea.pattern;
+  const hasVisualAction = pick(idea, "hasVisualAction") === true;
+  const scriptRaw = pick(idea, "script");
+  const scriptLen =
+    typeof scriptRaw === "string" ? scriptRaw.trim().length : 0;
+  const payoffType = idea.payoffType;
+  const setting = pick(idea, "setting");
+
+  switch (mode) {
+    case "no_face":
+      // Reaction patterns are face-on by definition. POV /
+      // contrast / mini_story can all be filmed without a face
+      // BUT only when the idea is anchored on a visible action
+      // (hasVisualAction) — otherwise the no-face version is a
+      // talking head with no head, which is just empty frames.
+      if (pattern === "reaction") return false;
+      if (
+        (pattern === "pov" ||
+          pattern === "contrast" ||
+          pattern === "mini_story") &&
+        hasVisualAction
+      ) {
+        return true;
+      }
+      return false;
+
+    case "no_voice":
+      // Hard rejects: long script (50+ chars implies real
+      // dialogue) + delivered-line payoff types.
+      if (scriptLen >= 50) return false;
+      if (payoffType === "punchline" || payoffType === "reaction") return false;
+      // Confident match: visual-leaning pattern + visual-leaning
+      // payoff + a caption that can carry the line + a visible
+      // action so the silent version isn't just empty frames
+      // (gating on hasVisualAction prevents claiming "no voice
+      // works" for talking-head ideas with nothing else to see).
+      if (
+        (pattern === "contrast" || pattern === "mini_story") &&
+        (payoffType === "reveal" || payoffType === "transformation") &&
+        nonEmpty(idea.caption) &&
+        hasVisualAction
+      ) {
+        return true;
+      }
+      return false;
+
+    case "text_overlay":
+      // Needs a caption (the overlay copy) AND a pattern where
+      // overlay reads naturally (contrast / mini_story) AND a
+      // payoff that doesn't depend on a spoken delivery —
+      // punchline and reaction payoffs land worse on overlay
+      // than in voice, so we don't claim text-overlay-works for
+      // those even when the caption + pattern look right.
+      if (!nonEmpty(idea.caption)) return false;
+      if (payoffType === "punchline" || payoffType === "reaction") return false;
+      if (pattern === "contrast" || pattern === "mini_story") return true;
+      return false;
+
+    case "bedroom_easy":
+      // Strict literal — only `bed`. Couch is similar but the
+      // chip says "Bedroom" so we don't want to overclaim. Also
+      // gate on script length: a "bedroom easy" idea that
+      // demands 100+ chars of dialogue is no longer a one-quiet-
+      // take shoot, so it shouldn't earn the chip even if the
+      // setting matches.
+      if (setting !== "bed") return false;
+      if (scriptLen >= 100) return false;
+      return true;
+  }
+}
+
+/** Coaching-tip pools per mode. Each entry is a single short
+ *  sentence the creator can act on without further translation.
+ *  Curated, not LLM-generated, so beta releases are deterministic
+ *  and we never ship tips that contradict the idea fields. */
+const COMFORT_TIPS_BY_MODE: Record<ComfortMode, readonly string[]> = {
+  no_face: [
+    "Tilt the phone down — show your hands, your desk, or your screen",
+    "Try an over-the-shoulder shot with your back to the camera",
+    "Crop below the chin so your face never enters frame",
+  ],
+  no_voice: [
+    "Put the hook on the first frame as bold overlay text",
+    "Let the caption carry the punchline — keep it short",
+    "Use ambient sound or trending audio instead of a voiceover",
+  ],
+  text_overlay: [
+    "Open with the hook as a 1-2 sec full-screen text card",
+    "Add a short text label on each shot beat",
+    "Treat the caption as the closing line",
+  ],
+  bedroom_easy: [
+    "Prop the phone on a pillow or nightstand",
+    "Soft lamp light — skip the overheads",
+    "One quiet take, no need to move around",
+  ],
+};
+
+/** Detect whether the idea references a screen / app / private
+ *  digital surface. Used to gate the safety note on no_face /
+ *  no_voice / text_overlay (modes where the creator is most
+ *  likely to film their phone screen instead of their face).
+ *  Bedroom_easy doesn't trigger the safety note because the
+ *  setting itself is the framing, not a digital surface. */
+const SCREEN_CONTENT_RX =
+  /\b(screen|phone screen|inbox|email|message|notification|dm|text message|chat window|wallet|balance|account|bank|paystub|salary|medical|prescription|passport|driver|license|password|work email|slack|teams|zoom|gmail|whatsapp|messenger)\b/i;
+
+function detectScreenSafetyContext(idea: IdeaCardData): boolean {
+  const shotPlanRaw = pick(idea, "shotPlan");
+  const shotPlanText = Array.isArray(shotPlanRaw)
+    ? (shotPlanRaw as unknown[])
+        .filter((s): s is string => typeof s === "string")
+        .join(" ")
+    : "";
+  const blob = [
+    idea.whatToShow,
+    idea.howToFilm,
+    pick(idea, "script"),
+    shotPlanText,
+  ]
+    .filter((s): s is string => typeof s === "string" && s.length > 0)
+    .join(" ");
+  if (blob.length === 0) return false;
+  return SCREEN_CONTENT_RX.test(blob);
+}
+
+/** Per-mode safety copy — a single sentence the screen renders
+ *  when `detectScreenSafetyContext` fires. Wording is the same
+ *  across screen-relevant modes so the creator gets a consistent
+ *  rule no matter which comfort mode they picked. `bedroom_easy`
+ *  has no safety note (no digital-surface framing). */
+const SAFETY_NOTE_BY_MODE: Partial<Record<ComfortMode, string>> = {
+  no_face:
+    "If you film a screen, use a demo or crop tightly. Don't show real messages, balances, IDs, work email, or anything personal you wouldn't post.",
+  no_voice:
+    "If overlays show a screen, use a demo or crop tightly. Never show real bank, ID, salary, medical, or work-confidential info.",
+  text_overlay:
+    "If overlays show a screen, use a demo or crop tightly. Never show real bank, ID, salary, medical, or work-confidential info.",
+};
+
+/** Adaptation result for a single (idea, mode) pair. Tips are
+ *  always returned (the user opted in — they want help) but
+ *  `fits` lets the UI mark the block as a confident match vs a
+ *  "you can try, but this idea isn't ideal for that mode" hint.
+ *  `safetyNote` is `null` unless the screen-context regex fires
+ *  AND the mode has a safety note registered. */
+export type ComfortAdaptation = {
+  mode: ComfortMode;
+  fits: "match" | "mismatch";
+  tips: string[];
+  safetyNote: string | null;
+};
+
+export function getComfortAdaptation(
+  idea: IdeaCardData,
+  mode: ComfortMode,
+): ComfortAdaptation {
+  const fits: "match" | "mismatch" = matchesComfortMode(idea, mode)
+    ? "match"
+    : "mismatch";
+  const tips = [...COMFORT_TIPS_BY_MODE[mode]];
+  const safetyNote = detectScreenSafetyContext(idea)
+    ? SAFETY_NOTE_BY_MODE[mode] ?? null
+    : null;
+  return { mode, fits, tips, safetyNote };
+}

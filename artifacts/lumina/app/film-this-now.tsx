@@ -33,8 +33,12 @@ import { type IdeaCardData } from "@/components/IdeaCard";
 import { lumina } from "@/constants/colors";
 import { fontFamily, type } from "@/constants/typography";
 import {
+  COMFORT_MODE_LABELS,
+  COMFORT_MODES,
+  type ComfortMode,
   deriveActionConversion,
   deriveConfidenceLabels,
+  getComfortAdaptation,
 } from "@/lib/actionConversion";
 import { submitIdeatorSignal } from "@/lib/ideatorSignal";
 
@@ -66,6 +70,19 @@ export default function FilmThisNowScreen() {
   }, [params.idea]);
 
   const [copyConfirm, setCopyConfirm] = useState<string | null>(null);
+
+  // PHASE UX2 — opt-in low-cringe comfort mode. Single-select:
+  // tap a chip to activate, re-tap to clear, tap a different
+  // chip to switch. Lives in screen-local state (no AsyncStorage)
+  // — persistence intentionally deferred until beta interviews
+  // show creators want it carried across sessions. Resets to
+  // null when navigating to a different idea because params.idea
+  // changes the entire screen mount.
+  const [comfortMode, setComfortMode] = useState<ComfortMode | null>(null);
+  const adaptation = useMemo(
+    () => (comfortMode && idea ? getComfortAdaptation(idea, comfortMode) : null),
+    [comfortMode, idea],
+  );
 
   // Copy-to-clipboard with a 1.5s confirmation toast. We keep
   // the toast purely local to this screen — no signal fires for
@@ -182,6 +199,89 @@ export default function FilmThisNowScreen() {
         <Text style={styles.title}>{idea.hook}</Text>
         {idea.whyThisFitsYou ? (
           <Text style={styles.whyFits}>{idea.whyThisFitsYou}</Text>
+        ) : null}
+
+        {/* PHASE UX2 — comfort-mode toggle row. Sits high in the
+            screen so creators with face/voice/setting anxiety
+            see it BEFORE they read the beats and decide "this
+            isn't for me today." Single-select with tap-to-
+            deselect (which is NOT radio semantics — radios can't
+            unselect) so each chip is `accessibilityRole="button"`
+            with `accessibilityState.selected`, the conventional
+            React Native toggle-chip pattern. The container has
+            no role; just an `accessibilityLabel` to anchor the
+            row for screen readers. */}
+        <View
+          style={styles.comfortRow}
+          accessible={false}
+          accessibilityLabel="Filming comfort mode"
+        >
+          {COMFORT_MODES.map((m) => {
+            const active = comfortMode === m;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => setComfortMode(active ? null : m)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${COMFORT_MODE_LABELS[m]}${
+                  active ? ", selected" : ""
+                }`}
+                style={({ pressed }) => [
+                  styles.comfortChip,
+                  active ? styles.comfortChipActive : null,
+                  pressed ? styles.comfortChipPressed : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.comfortChipText,
+                    active ? styles.comfortChipTextActive : null,
+                  ]}
+                >
+                  {COMFORT_MODE_LABELS[m]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Adaptation block — only renders when a mode is
+            active. Tone is teal/match when matchesComfortMode is
+            true, dim/mismatch when false (creator can still try
+            but we tell them it's not the most natural fit so
+            they're not surprised). Safety note appears only when
+            `detectScreenSafetyContext` fires AND the active mode
+            has a registered safety note. */}
+        {adaptation ? (
+          <View
+            style={[
+              styles.adaptBlock,
+              adaptation.fits === "match"
+                ? styles.adaptBlockMatch
+                : styles.adaptBlockMismatch,
+            ]}
+            accessibilityLabel={`Comfort adaptation, ${COMFORT_MODE_LABELS[adaptation.mode]}, ${
+              adaptation.fits === "match"
+                ? "good fit for this idea"
+                : "less ideal fit for this idea"
+            }`}
+          >
+            <Text style={styles.adaptKicker}>
+              ADAPTED — {COMFORT_MODE_LABELS[adaptation.mode].toUpperCase()}
+              {adaptation.fits === "mismatch" ? " · less ideal fit" : ""}
+            </Text>
+            {adaptation.tips.map((tip, i) => (
+              <Text key={i} style={styles.adaptTip}>
+                {`• ${tip}`}
+              </Text>
+            ))}
+            {adaptation.safetyNote !== null ? (
+              <Text style={styles.adaptSafety}>
+                {`⚠  ${adaptation.safetyNote}`}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
 
         {/* Beat 1 — the hook. Always renders because every idea
@@ -430,6 +530,85 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     color: lumina.firefly,
     fontSize: 13,
+  },
+  // PHASE UX2 — Comfort-mode toggle chip row + adaptation block.
+  // The chip row uses flexWrap so on a small iPhone viewport the
+  // 4 chips wrap to two rows comfortably. Active chips are
+  // filled-teal so the selection is unambiguous; inactive chips
+  // are quiet outlined so the row reads as "optional opt-in"
+  // rather than mandatory configuration.
+  comfortRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  comfortChip: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  comfortChipActive: {
+    backgroundColor: "rgba(0,255,204,0.18)",
+    borderColor: "rgba(0,255,204,0.55)",
+  },
+  comfortChipPressed: {
+    opacity: 0.7,
+  },
+  comfortChipText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  comfortChipTextActive: {
+    fontFamily: fontFamily.bodyBold,
+    color: lumina.firefly,
+  },
+  // Adaptation block — teal-tinted when the chosen mode is a
+  // confident fit for this idea; dim-neutral when not. The body
+  // (tips + optional safety note) reads identically; only the
+  // visual rank shifts so the creator knows whether they're
+  // working with the grain of the idea or against it.
+  adaptBlock: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+  },
+  adaptBlockMatch: {
+    backgroundColor: "rgba(0,255,204,0.08)",
+    borderColor: "rgba(0,255,204,0.32)",
+  },
+  adaptBlockMismatch: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  adaptKicker: {
+    fontFamily: fontFamily.bodyBold,
+    color: lumina.firefly,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  adaptTip: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,255,255,0.88)",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  adaptSafety: {
+    fontFamily: fontFamily.bodyMedium,
+    color: "rgba(255,213,128,0.92)",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
   },
   // PHASE UX1 — Plan footer block. Two-column rows for Time +
   // Difficulty (label on left, value on right) plus a flex-wrap
