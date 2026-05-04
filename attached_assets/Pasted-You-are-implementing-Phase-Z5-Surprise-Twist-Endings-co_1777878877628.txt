@@ -1,0 +1,409 @@
+You are implementing Phase Z5 — Surprise Twist Endings corpus expansion for Lumina.
+
+Context:
+We are adding a new reviewed hook/scenario batch: “Surprise twist endings — Batch 3.”
+
+This batch is intended to strengthen:
+- expectation_subversion
+- everyday_reversal
+- quiet_punchline
+- object/app betrayal
+- self-roast escalation
+- filmable twist payoff structures
+
+This is NOT a POV-only batch. Some hooks may imply POV/relatable skit filming, but the primary category is:
+category: Surprise twist endings
+
+Architecture rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO Claude-cost dependency.
+- Additive corpus/catalog expansion only.
+- Preserve existing cache shape, route response shape, and ideator output keys.
+- Preserve all existing boot-time asserts.
+- Preserve existing anti-copy, hook-quality, diversity, and novelty gates.
+- Keep Vitest + TypeScript clean.
+
+Goal:
+Import the finalized cleaned Surprise Twist Endings Batch 3 hooks into the deterministic hook corpus / scenario catalog structure, depending on the current codebase layout.
+
+Important:
+Do NOT import the raw Batch 3 file blindly. Use the finalized cleaned version after review.
+
+Batch 3 source:
+- User provided a 100-item “Surprise twist endings” batch.
+- Several items were approved as-is or with light formatting cleanup.
+- Several items were rewritten and must replace the raw versions.
+- Preserve original item numbers in metadata where possible for traceability.
+
+Implementation requirements:
+1. Add Batch 3 hooks as deterministic corpus/catalog assets.
+2. Standardize every item as:
+   - originalNumber
+   - hook
+   - scenario / whatToShow
+   - category: `Surprise twist endings`
+   - style/pattern: `expectation_subversion` or closest existing equivalent
+   - secondary style when applicable: `quiet_punchline`, `everyday_reversal`, `object_betrayal`, `self_roast_escalation`
+   - topicLane
+   - setting
+   - emotionalSpike
+   - compatibleVoiceClusters if supported
+   - riskLevel / safetyNotes if supported
+3. Keep scenarios as filmability references. They do not need to be consumed at runtime unless the current architecture already uses scenario examples.
+4. Run all existing hook validation, boot-time assert, duplicate, placeholder, and fingerprint checks.
+5. Ensure all new hooks are automatically included in anti-copy / Jaccard / fingerprint wiring if that is how `userBlessedHookCorpus.ts` works.
+6. Add or update tests to prove:
+   - new corpus size is pinned
+   - all Batch 3 hooks validate
+   - no duplicate hook text exists
+   - no unsubstituted placeholders exist
+   - no scenario catalog count drift occurs
+   - pre-existing corpus entries remain untouched
+   - boot-time catalog asserts pass
+   - TypeScript compiles
+
+Critical cleanup rule — repetitive scenario endings:
+The current corpus/scenario examples overuse phrases like:
+- “deadpan glare”
+- “deadpan shrug”
+- “dead stare”
+- “deadpan stare”
+- “soul-crush stare”
+- “soul-leaving-body stare”
+- “camera glare”
+- “shrug at camera”
+
+Before finalizing the scenario catalog, normalize these repetitive endings.
+
+Do NOT let every scenario end with the same “deadpan stare / shrug / glare” language.
+
+Replace repeated endings with more varied, visual, creator-native payoff actions.
+
+Examples of better scenario endings:
+- close the laptop gently like it hurt your feelings
+- stare at the item like it committed fraud
+- slowly put the object back and pretend nothing happened
+- whisper “noted” to absolutely no one
+- walk away with fake dignity
+- smile like the situation did not just win
+- nod like this was the plan all along
+- freeze mid-action while the realization loads
+- lower the phone like it betrayed you personally
+- sit down slowly and accept the consequences
+- delete the draft like evidence
+- close the fridge with respect
+- back out of the room like a witness
+- pretend to check your phone to survive
+- silently return to bed
+- look at the calendar like it started the fight
+- hold the receipt like a legal document
+- stare at the notification like it knows too much
+- put the snack down, then immediately pick it back up
+- restart the app like that will change reality
+
+Scenario language rules:
+- Keep each scenario short and filmable.
+- Avoid using the same ending phrase more than a few times in the whole imported batch.
+- Prefer specific physical actions over generic reaction words.
+- Keep scenes low-effort: bedroom, kitchen, desk, couch, car, grocery, phone, mirror, meeting, apartment.
+- Do not require crowds, actors, unsafe situations, real private data, or elaborate setups.
+
+Safety requirements:
+- Any bank, analytics, email, text, dating app, work, school, or private-data-adjacent scenario must use fake/demo screens only.
+- Do not encourage showing real bank balances, private chats, addresses, IDs, salary, medical details, confidential work data, or real personal documents.
+- If a hook involves a real app screen, use mock UI, cropped non-sensitive framing, or fictional props.
+- Avoid unsafe/high-stakes scenarios as raw material. No real fire, real harassment, real privacy invasion, or real dangerous stunts.
+
+Formatting cleanup:
+- Rename/label the batch clearly as:
+  `Surprise twist endings — Batch 3`
+- Remove incorrect/leftover labels like:
+  `BATCH 1`
+  `POV/relatable skits`
+  `Hook:`
+  `WHAT TO SHOW`
+  extra punctuation, duplicate periods, malformed quote marks.
+- Standardize to:
+  Hook:
+  Scenario:
+- Preserve original item numbers where possible.
+
+Use the reviewed keep list from Batch 3, but replace the following raw original numbers with the finalized rewrites below:
+
+#5 rewrite:
+Hook:
+i opened my budget and watched my delusion get itemized
+Scenario:
+Open a budget spreadsheet confidently. Add rent, food, subscriptions, and one “tiny treat.” Watch the total destroy your optimism. End by closing the laptop gently like it hurt your feelings.
+
+#11 rewrite:
+Hook:
+my meal prep started looking at me weird by wednesday
+Scenario:
+Show perfect containers lined up on Sunday. Cut to Wednesday opening one with suspicion. The food looks questionable, you look betrayed, and takeout starts sounding like self-respect.
+
+#12 rewrite:
+Hook:
+they said low maintenance and ordered like rent was optional
+Scenario:
+Start with them saying “I’m super low maintenance.” Cut to the date pointing at the most expensive menu items while you stare at the bill. End with a silent wallet check.
+
+#21 rewrite:
+Hook:
+i walked in confident and immediately switched to manual legs
+Scenario:
+Walk into a room with full main-character energy. Notice people can see you. Your walk turns stiff and unnatural, your arms stop working, and you pretend to check your phone to survive.
+
+#22 rewrite:
+Hook:
+you thought the date was going perfectly until they said “my ex would love you”
+Scenario:
+Show laughing, good eye contact, and the date going well. Then they casually mention their ex mid-conversation. Cut to your smile freezing while your soul exits politely.
+
+#24 rewrite:
+Hook:
+your first impression was perfect until your friends started live-commenting
+Scenario:
+You meet someone new and act charming. Your phone buzzes with friends roasting your outfit, handshake, or awkward laugh in the group chat. Keep smiling while the notifications keep arriving.
+
+#25 rewrite:
+Hook:
+you finally cooked a flawless meal and the smoke alarm demanded credit
+Scenario:
+Plate the meal proudly like a chef. Take one bite, then the smoke alarm starts screaming from something tiny you forgot on the stove. Wave a towel like this was part of the recipe.
+
+#26 rewrite:
+Hook:
+the gym win felt real until your headphones launched across the room
+Scenario:
+Finish a set and feel powerful. You stand up too fast, your headphones fly off, and one rolls under equipment. Crawl after it while pretending this is part of the workout.
+
+#27 rewrite:
+Hook:
+your grand romantic gesture became a solo performance
+Scenario:
+You rehearse a cute speech or text with confidence. Cut to them not answering, leaving you holding flowers, a note, or a fully planned moment alone. Call it a rehearsal and walk away with fake dignity.
+
+#29 rewrite:
+Hook:
+the online order looked perfect until it arrived in doll size
+Scenario:
+Open the package excitedly. Pull out something absurdly tiny compared to what the picture promised. Hold it up in silence like the website committed fraud.
+
+#32 rewrite:
+Hook:
+the group project was saved until the teacher opened the doc
+Scenario:
+Everyone pretends progress is happening. The teacher/professor joins the shared doc and the cursor starts moving near the empty sections. The group chat goes silent instantly.
+
+#33 rewrite:
+Hook:
+your confident walk turned legendary because your shoe betrayed you
+Scenario:
+Walk down the hallway like you’re in a music video. One shoe squeaks, slips, or catches weirdly. Keep walking with fake dignity while your confidence leaves first.
+
+#34 rewrite:
+Hook:
+you thought it was a promotion cake until your name was spelled wrong
+Scenario:
+Boss brings out a cake and you start glowing like it is your moment. Cut to the cake showing someone else’s name or a wildly wrong spelling. Clap for yourself anyway.
+
+#35 rewrite:
+Hook:
+the surprise party you planned started before the birthday person arrived
+Scenario:
+Everyone hides in the room. The door opens and everybody yells “surprise” at a random roommate, neighbor, or delivery person. Slowly lower the balloon as the room processes the mistake.
+
+#37 rewrite:
+Hook:
+the healthy meal prep lasted until your emotions ordered pizza
+Scenario:
+Show salad, containers, and responsible eating energy. Then one stressful text or minor inconvenience happens. Cut to pizza arriving while the meal prep watches from the fridge.
+
+#39 rewrite:
+Hook:
+the road trip playlist was perfect until shuffle exposed your feelings
+Scenario:
+Everyone is vibing in the car. Shuffle suddenly plays a deeply embarrassing heartbreak song or voice memo. Reach for skip too late while everyone slowly looks over.
+
+#40 rewrite:
+Hook:
+your confident coffee order ended with a drink from another timeline
+Scenario:
+Say your order smoothly like a pro. Barista calls a name that is not yours and hands you something completely different. Accept it anyway like conflict is illegal.
+
+#41 rewrite:
+Hook:
+you thought the fitting room was locked until the curtain disagreed
+Scenario:
+Try on an outfit confidently. The curtain or door cracks open at the worst possible second. Grab it closed and stare at the curtain like it broke a contract.
+
+#42 rewrite:
+Hook:
+your presentation was flawless until the last slide exposed your camera roll energy
+Scenario:
+Give a confident presentation. Last slide accidentally shows a meme, unfinished note, or placeholder title you forgot to delete. Say “any questions?” while sweating politely.
+
+#45 rewrite:
+Hook:
+you beat the final boss and remembered your real deadline
+Scenario:
+Celebrate a huge gaming win. Then a calendar reminder pops up: assignment/work due in one hour. Your victory face collapses into professional panic.
+
+#47 rewrite:
+Hook:
+your anonymous feedback stopped feeling anonymous real fast
+Scenario:
+Type honest feedback into a form. Later, a manager/teacher says, “Can we talk about your feedback?” Smile like you did not just write a manifesto.
+
+#48 rewrite:
+Hook:
+your love letter was poetic until autocorrect got creative
+Scenario:
+Write a sweet message with confidence. Autocorrect changes one key word into something embarrassing. You notice after sending, right as the read receipt appears.
+
+#49 rewrite:
+Hook:
+the team-building game revealed you are not built for trust
+Scenario:
+Team-building activity starts. Someone says “trust fall” or “partner exercise.” Your face drops. Overthink every movement until the activity becomes emotionally athletic.
+
+#50 rewrite:
+Hook:
+you thought it was a drill until your snack got left behind
+Scenario:
+A fire drill or building alarm starts. You act calm walking out, then realize your food, coffee, or phone charger is still inside. Stare back like you lost family.
+
+#53 rewrite:
+Hook:
+everything was going according to plan until one tiny task became the final boss
+Scenario:
+Show a perfect productive day montage. Then one simple task appears: printer, password reset, drawer, return label, or appointment form. The whole day starts orbiting that one task.
+
+#54 rewrite:
+Hook:
+you waved at your neighbor and accidentally started a weekly obligation
+Scenario:
+You give one polite wave. Cut to the neighbor now stopping you every time with updates, favors, or long stories. Hide behind the curtain when footsteps pass.
+
+#58 rewrite:
+Hook:
+you tried reverse psychology and accidentally got exactly what you asked for
+Scenario:
+Text something like “don’t worry about replying” while hoping they reply. They actually do not reply. Stare at the message like science betrayed you.
+
+#60 rewrite:
+Hook:
+you gave your plant one pep talk and it chose drama
+Scenario:
+Water the plant and say something motivational. Cut to one leaf dramatically drooping later. Watch it like it is emotionally manipulating you.
+
+#85 rewrite:
+Hook:
+i called this my glow up while wearing yesterday’s hoodie at 3pm
+Scenario:
+Show old motivational “new era” energy or a mirror pep talk. Cut to you in the same hoodie, in bed, eating cereal or scrolling. End with “progress is internal.”
+
+#87 rewrite:
+Hook:
+i said “this time i’ll stick to the plan” and the plan asked for proof
+Scenario:
+Write a strict schedule with confidence. Cut to hour two: already off-track, snacks out, phone in hand, and the schedule untouched. Add “restart tomorrow.”
+
+#88 rewrite:
+Hook:
+my dating profile says outdoorsy and my couch would like a word
+Scenario:
+Edit profile with “love hiking” or “always outside.” Cut to you on the couch, blinds closed, watching outdoor videos instead of going outside. Label it an aspirational bio.
+
+#91 rewrite:
+Hook:
+my hair looked perfect until outside loaded
+Scenario:
+Mirror check looks flawless. Step outside. Wind, humidity, or static instantly destroys everything. Look at your reflection in a window like nature had a vendetta.
+
+#92 rewrite:
+Hook:
+i tried being consistent and day two filed a complaint
+Scenario:
+Day one is perfect: gym, journal, water, clean room. Cut to day two: snooze, snacks, excuses, and zero momentum. Quietly move the plan to next week.
+
+#93 rewrite:
+Hook:
+i pay for spotify premium and still let five songs raise me
+Scenario:
+Show premium subscription proudly. Cut to the same tiny playlist repeating for the hundredth time. Skip every new song and call it taste.
+
+#94 rewrite:
+Hook:
+i said i’d sleep early and tiktok introduced a witness
+Scenario:
+Put phone down responsibly. One video appears with “part two.” Cut to 3am, comments open, deep in a stranger’s story, eyes glowing from the screen.
+
+#96 rewrite:
+Hook:
+i said i was turning my life around and took the scenic route
+Scenario:
+Give a motivational speech to camera. Cut to the same old habits five minutes later. Nod like the turnaround is technically in progress.
+
+#97 rewrite:
+Hook:
+you asked how their day was and accidentally opened the extended cut
+Scenario:
+Send a casual “how was your day?” Cut to paragraphs, voice notes, screenshots, and emotional context flooding in. Lower the phone like you became customer support.
+
+#99 rewrite:
+Hook:
+one polite complaint turned into a corporate side quest
+Scenario:
+Send a calm “small suggestion” email. Cut to a meeting invite, follow-up form, manager loop-in, and you regretting having standards.
+
+#100 rewrite:
+Hook:
+you said maybe later and they started planning a shared calendar
+Scenario:
+Reply “maybe later” to a casual date or hangout idea. Cut to them sending times, locations, outfit ideas, and a calendar invite. Whisper, “that was not a yes.”
+
+Do not use the raw originals for these replaced items:
+#5, #11, #12, #21, #22, #24, #25, #26, #27, #29,
+#32, #33, #34, #35, #37, #39, #40, #41, #42, #45,
+#47, #48, #49, #50, #53, #54, #58, #60, #85, #87,
+#88, #91, #92, #93, #94, #96, #97, #99, #100
+
+For the remaining Batch 3 items:
+- Use the reviewed keep items from the user’s Batch 3 file.
+- Apply light formatting cleanup.
+- If any scenario repeats “deadpan glare / shrug / dead stare” style endings, rewrite the scenario ending using varied physical actions.
+- If any item still feels too unsafe, unrealistic, or high-lift, flag it instead of importing blindly.
+
+Final validation expectations:
+Run:
+- API/server tests
+- TypeScript checks
+- catalog boot-time assert path
+- duplicate/fingerprint integrity checks
+
+Report back:
+1. Files changed
+2. Previous corpus count
+3. New corpus count
+4. Batch 3 hooks added
+5. Scenario catalog entries added/updated
+6. Duplicates removed
+7. Scenario ending repetitions normalized
+8. Tests run and pass/fail
+9. Confirmation:
+   - no migrations
+   - no API changes
+   - no validator loosening
+   - additive overlay only
+
+Definition of done:
+- Surprise Twist Endings Batch 3 is added cleanly.
+- Original numbers are preserved in metadata where possible.
+- Raw weak/risky versions are replaced by approved rewrites.
+- Repetitive scenario language is diversified.
+- Safety notes are respected.
+- All tests and TypeScript pass.

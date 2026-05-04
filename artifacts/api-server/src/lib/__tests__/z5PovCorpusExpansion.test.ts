@@ -1,18 +1,20 @@
 /**
- * PHASE Z5 — POV/relatable skit corpus expansion tests.
+ * PHASE Z5 — corpus expansion tests (Batches 1-3).
  *
- * Pins the additive contract for the 200-hook Z5 corpus expansion:
+ * Pins the additive contract for the Z5 corpus expansions:
+ *   Batch 1+2: 200 POV/relatable skit hooks (233 → 433)
+ *   Batch 3:    99 Surprise twist ending hooks (433 → 532)
  *
- *   1. Corpus size grew by exactly 200 (233 → 433).
+ *   1. Corpus size pinned at 532.
  *   2. No duplicate hook texts exist across entire corpus.
- *   3. Every new hook's anchor appears in its hook (boot-time assert parity).
- *   4. Every new hook's cluster is one of the 4 valid voice clusters.
+ *   3. Every entry's anchor appears in its hook (boot-time assert parity).
+ *   4. Every entry's cluster is one of the 4 valid voice clusters.
  *   5. Per-cluster boot-floor (≥8) still holds with new distribution.
  *   6. No unsubstituted placeholders (${...}, {{...}}, [PLACEHOLDER]).
- *   7. All new hooks are wired into the seed-hook fingerprint set
- *      (anti-copy bigram seeding).
- *   8. POV scenario catalog loads and has non-trivial scenario count.
- *   9. No scenario has unsubstituted placeholders.
+ *   7. All Z5 hooks are wired into the seed-hook fingerprint set.
+ *   8. Pre-Z5 baseline (first 233) integrity hash.
+ *   9. Pre-Batch-3 baseline (first 433) integrity hash.
+ *  10. Scenario catalog pinned at 253 entries.
  */
 import { describe, it, expect } from "vitest";
 import crypto from "crypto";
@@ -35,10 +37,13 @@ const CLUSTERS: readonly VoiceClusterId[] = [
 ];
 
 const PRE_Z5_COUNT = 233;
-const Z5_ADDITION = 200;
+const Z5_BATCH12_ADDITION = 200;
+const Z5_BATCH3_ADDITION = 99;
+const Z5_ADDITION = Z5_BATCH12_ADDITION + Z5_BATCH3_ADDITION;
 const EXPECTED_TOTAL = PRE_Z5_COUNT + Z5_ADDITION;
+const PRE_BATCH3_COUNT = PRE_Z5_COUNT + Z5_BATCH12_ADDITION;
 
-describe("Z5 — POV/relatable skit corpus expansion", () => {
+describe("Z5 — corpus expansion (Batches 1-3)", () => {
   it(`corpus grew to exactly ${EXPECTED_TOTAL} entries`, () => {
     expect(USER_BLESSED_HOOK_CORPUS.length).toBe(EXPECTED_TOTAL);
   });
@@ -100,6 +105,17 @@ describe("Z5 — POV/relatable skit corpus expansion", () => {
     );
   });
 
+  it("pre-Batch-3 baseline (first 433 entries) is unchanged", () => {
+    const pre = USER_BLESSED_HOOK_CORPUS.slice(0, PRE_BATCH3_COUNT);
+    const payload = pre
+      .map((e) => `${e.hook}|${e.cluster}|${e.anchor}`)
+      .join("\n");
+    const hash = crypto.createHash("sha256").update(payload).digest("hex");
+    expect(hash).toBe(
+      "0967e2756e1966ae96287ce0a6864909169f21f360ef7ed2a250afb649f6da77",
+    );
+  });
+
   it("all Z5 hooks are in the seed-hook fingerprint set", () => {
     const seeds = loadSeedHookFingerprints();
     const z5Hooks = USER_BLESSED_HOOK_CORPUS.slice(PRE_Z5_COUNT);
@@ -117,8 +133,8 @@ describe("Z5 — POV/relatable skit corpus expansion", () => {
 });
 
 describe("Z5 — POV scenario catalog integrity", () => {
-  it("has exactly 154 entries with scenarios", () => {
-    expect(POV_SCENARIO_CATALOG.length).toBe(154);
+  it("has exactly 253 entries with scenarios", () => {
+    expect(POV_SCENARIO_CATALOG.length).toBe(253);
   });
 
   it("every entry has a non-empty hook and scenario", () => {
