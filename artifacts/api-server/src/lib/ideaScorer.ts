@@ -119,6 +119,10 @@ import { canonicalizeHookForFingerprint } from "./scenarioFingerprint";
 // — zero change in boost magnitude for those paths. Lives in
 // `hookQuality.ts` next to the scorer it consumes.
 import { hookQualityBoost } from "./hookQuality.js";
+import {
+  scoreSituationAlignment,
+  type Situation,
+} from "./tasteCalibration.js";
 // PHASE X2 — PART 1+2+4 — heuristic comedy / alignment / anti-copy gates.
 import {
   validateComedy,
@@ -2806,6 +2810,18 @@ export type NoveltyContext = {
   firstSessionBoostFactor?: number;
   retentionMemory?: ViralPatternMemory;
   retentionProfile?: import("./retentionNoveltyScorer.js").RetentionProfile;
+  /**
+   * PHASE Z5.8b — multi-select content-lane situations the creator
+   * picked in the closed-beta Quick Tune (≤4 of the 6 Situation
+   * values). When non-empty, `selectionPenalty` adds an additive
+   * alignment delta in the +4 / +2 / 0 / -1 band via
+   * `scoreSituationAlignment` so the soft selector pushes first-batch
+   * picks toward the creator's stated content lanes WITHOUT hard-
+   * filtering everything else and WITHOUT overpowering the comedy /
+   * Hero / retention bands. Empty / undefined for cold-start
+   * creators and for anyone who skipped Quick Tune (no-op).
+   */
+  selectedSituations?: ReadonlySet<Situation>;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -4337,5 +4353,22 @@ export function selectionPenalty(
   if (ctx.retentionMemory && ctx.retentionProfile) {
     p += retentionSelectionBonus(c, ctx.retentionMemory, ctx.retentionProfile);
   }
+  // PHASE Z5.8b — situation alignment delta. Reads the creator's
+  // multi-select Quick Tune situations (`ctx.selectedSituations`)
+  // and the candidate's existing topicLane / setting / scenarioFamily
+  // signals. Returns 0 when no situations selected (cold-start or
+  // skipped Quick Tune). Capped at +4 / -1 by `scoreSituationAlignment`
+  // so this lever sits BELOW the comedy bands (+5..+7) and Hero
+  // Quality bands (0..+6) — Hero / comedy / retention still
+  // dominate selection. Applied last so all axes (including
+  // first-session boost decay and retention bonus) compose linearly.
+  p += scoreSituationAlignment(
+    {
+      topicLane: metaTopicLane(c.meta),
+      setting: c.idea.setting as Setting,
+      scenarioFamily: c.meta.scenarioFamily,
+    },
+    ctx.selectedSituations,
+  );
   return p;
 }

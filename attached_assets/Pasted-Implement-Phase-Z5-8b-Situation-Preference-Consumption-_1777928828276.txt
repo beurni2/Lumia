@@ -1,0 +1,179 @@
+Implement Phase Z5.8b — Situation Preference Consumption.
+
+Context:
+Phase Z5.8 is complete:
+- Quick Tune now has 4 screens.
+- First 3 screens are required: format, tone, situations.
+- Opener is optional.
+- Server supports high_energy_rant tone, pov_hook opener, 6-value situationEnum, and selectedSituations max 4 default [] inside tasteCalibrationJson.
+- Mobile mirrors Situation, PreferredTone, PreferredHookStyle, EMPTY_CALIBRATION.
+- selectedSituations is collected, logged, round-tripped, and shown in profile read-back.
+- Old calibration docs parse via default([]).
+- API envelope remains { calibration: ... }.
+- 310/310 API tests pass.
+- Mobile typecheck clean.
+- API typecheck clean for Z5.8-touched files.
+- Zero migrations, zero API shape changes, zero validator loosening.
+
+Known gap:
+selectedSituations is currently not consumed by candidate generation, scenario selection, scoring, or ranking. This means the new required situations screen does not yet influence first-batch personalization.
+
+Goal:
+Wire selectedSituations into the existing generation/scoring path as an additive preference signal so first-session ideas better match the user's selected content lanes.
+
+Hard rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO broad architecture rewrite.
+- Additive scoring/routing only.
+- Preserve Hero Quality Ranker.
+- Preserve Retention Novelty.
+- Preserve willingness ranker.
+- Preserve existing diversity/novelty/anti-copy gates.
+- Do not hard-filter all non-selected situations; use soft weighting so quality does not collapse.
+- Keep tests and TypeScript passing.
+
+Situation values:
+- food_home
+- dating_texting
+- work_school
+- social_awkwardness
+- health_wellness
+- creator_social
+
+Implementation requirements:
+
+1. Map selectedSituations to existing engine metadata.
+Find existing candidate fields that can correspond to situations, such as:
+- topicLane
+- domain
+- anchor
+- premiseFamily
+- premiseCore
+- pattern
+- setting
+- hookStyle
+- emotionalSpike
+- scenario tags if present
+
+Create a deterministic mapping, for example:
+food_home:
+- topic lanes: food_home, daily_routine, home, groceries, fridge, cooking, laundry, couch
+- settings: kitchen, bedroom, couch, apartment
+- anchors: fridge, snacks, groceries, laundry, leftovers, couch
+
+dating_texting:
+- topic lanes: dating, texting, social_texting
+- anchors: read receipts, voice note, story view, crush, group chat if appropriate
+- avoid private real screenshots; fake/demo only
+
+work_school:
+- topic lanes: work, school, productivity
+- settings: desk, meeting, classroom, laptop
+- anchors: email, meeting, assignment, spreadsheet, deadline
+
+social_awkwardness:
+- topic lanes: social, public_embarrassment, awkwardness
+- settings: elevator, grocery, public, party, restaurant
+- anchors: small talk, door, cashier, eye contact, stranger
+
+health_wellness:
+- topic lanes: wellness, gym, sleep, self_care
+- settings: gym, bed, bedroom, sidewalk
+- anchors: water, walk, stretching, meditation, fitness app, sleep
+
+creator_social:
+- topic lanes: creator, social_media, posting
+- settings: desk, phone, bedroom, ringlight
+- anchors: draft, comment, views, algorithm, caption, analytics, post
+
+2. Add a selected-situation alignment score.
+For each candidate, compute an additive score:
+- strong match to selected situation: positive boost
+- adjacent match: small positive boost
+- unrelated: neutral
+- clear mismatch only if many selected situations exist and candidate repeatedly falls outside them: small penalty
+
+Suggested range:
+- +4 strong match
+- +2 adjacent match
+- 0 neutral
+- -1 or -2 repeated mismatch / low relevance
+
+Keep this conservative enough that Hero Quality can still select a very strong candidate outside selected situations if needed.
+
+3. Integrate with selection/ranking.
+Add the situation alignment score into the existing selectionPenalty / IdeaScore / NoveltyContext path where taste calibration already influences ranking.
+Do not create a separate engine.
+Do not hard-filter unless candidate is unsafe or already rejected by existing gates.
+
+4. First-session behavior.
+For cold-start users with selectedSituations:
+- selectedSituations should meaningfully influence the first batch.
+- At least 1 of 3 ideas should strongly match a selected situation when candidate pool allows.
+- Ideally 2 of 3 should match selected or adjacent situations.
+- The batch should still preserve diversity and hero quality.
+
+5. Returning-user behavior.
+For returning users:
+- selectedSituations should combine with ideator_signal and retention novelty.
+- Actual behavior signals can override initial situation preferences over time.
+- Do not trap the user forever in initial situations if exports/skips suggest taste shift.
+
+6. Safety.
+Private-data-adjacent situation lanes must remain safe:
+- dating_texting must not require real private messages.
+- creator_social analytics/comments should use fake/demo/cropped framing.
+- work_school should not require confidential work/school data.
+- money/bank adjacent examples should use fake/demo screens only if they arise from food_home/adulting style candidates.
+
+7. Tests.
+Add/update tests for:
+- selectedSituations defaults to [] and old calibration docs still parse.
+- selectedSituations creates a positive alignment score for matching candidates.
+- selectedSituations does not hard-filter all other candidates.
+- cold-start with food_home gets at least one food/home-aligned idea when available.
+- cold-start with creator_social gets at least one creator/social-aligned idea when available.
+- dating_texting does not bypass privacy/safety restrictions.
+- returning-user signals can outweigh stale initial selectedSituations.
+- no API shape changes.
+
+8. QA.
+Run a small generation QA:
+Create 6 mock calibrated profiles, one for each situation.
+For each:
+- generate normal-path batch of 3 ideas
+- report selectedSituations
+- report top 3 hooks
+- report detected situation alignment
+- report whether at least 1 idea strongly matched the selected situation
+- report safety failures
+
+Success criteria:
+- 6/6 profiles get at least one selected-situation-aligned idea when candidate pool allows.
+- No safety failures.
+- Hero score remains healthy.
+- No malformed artifacts.
+- No duplicate hooks.
+- Tests pass.
+- TypeScript clean.
+
+Validation:
+Run:
+- API tests
+- API TypeScript for touched files
+- mobile TypeScript if shared types touched
+- server boot check
+
+Report back:
+1. files changed
+2. mapping added
+3. scoring/ranking integration point
+4. QA results by situation
+5. tests/typechecks run
+6. confirmation:
+   - no migrations
+   - no API changes
+   - no validator loosening
+   - additive only

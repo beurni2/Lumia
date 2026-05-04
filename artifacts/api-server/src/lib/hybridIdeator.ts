@@ -3341,6 +3341,24 @@ export async function runHybridIdeator(
     input.tasteCalibrationJson != null &&
       input.tasteCalibrationJson !== undefined,
   );
+  // PHASE Z5.8b — thread the creator's multi-select Quick Tune
+  // situations into the novelty context so `selectionPenalty` can
+  // apply the additive alignment delta (+4 strong / +2 adjacent /
+  // 0 neutral / -1 mismatch when ≥3 selected). Pure + additive: an
+  // empty Set (cold-start, skipped calibration, missing
+  // selectedSituations field on a legacy doc) is a silent no-op
+  // inside `scoreSituationAlignment`. We re-parse the calibration
+  // here rather than threading the parsed object so this lever stays
+  // co-located with the other novelty-context wiring; downstream
+  // `parseTasteCalibration` calls in this function (line ~3500)
+  // remain unchanged.
+  {
+    const calForSituations = parseTasteCalibration(input.tasteCalibrationJson);
+    const sitArr = calForSituations?.selectedSituations ?? [];
+    if (sitArr.length > 0) {
+      noveltyContext.selectedSituations = new Set(sitArr);
+    }
+  }
   // PHASE X2 — PART 4 — collect normalized premise sentences from
   // the last-7 visible batches' cached `idea.premise` fields (PHASE
   // Y10 widened from 5 → 7 batches; the slice is the shared

@@ -18,6 +18,7 @@
 import { z } from "zod";
 
 import type { FormatDistribution, Pattern } from "./formatDistribution";
+import type { Setting, TopicLane } from "./patternIdeator";
 
 // ---------------------------------------------------------------- //
 // Enums — kept narrow and explicit. Adding a new option requires a
@@ -423,4 +424,245 @@ export function tasteCalibrationPromptBlock(
     "These are starting biases, not hard constraints — except the BANNED items above (privacy bans are absolute).",
   );
   return lines.join("\n");
+}
+
+// ---------------------------------------------------------------- //
+// PHASE Z5.8b — situation alignment profiles.
+//
+// Each Situation maps to a "profile" of downstream signals the
+// ideator's existing scoring axes already carry:
+//
+//   • strongTopicLanes   — TopicLane values that are a perfect
+//                          content-lane match for this situation.
+//   • adjacentTopicLanes — TopicLane values that are a near-match
+//                          (related lane, partial overlap).
+//   • strongSettings     — Setting values that match the typical
+//                          physical environment of this situation.
+//   • familySubstrings   — substrings to match against the
+//                          candidate's `meta.scenarioFamily` for a
+//                          high-confidence content-family signal
+//                          (the most specific axis of the three).
+//
+// CONSUMED BY `selectionPenalty` (ideaScorer.ts) via the
+// `scoreSituationAlignment` helper below, ADDITIVELY only — the
+// boost band is intentionally narrow (0..+4) so it sits BELOW the
+// existing comedy bands (+5..+7) and Hero Quality boosts (0..+6),
+// preserving the "Hero / comedy ALWAYS dominate" invariant.
+//
+// NOT a hard filter: a candidate that matches no selected
+// situation just gets 0; the only penalty path is a -1 nudge when
+// the user picked ≥3 situations AND the candidate aligns with NONE
+// of them (strong stated preference + clear mismatch). Sized so
+// the sum cannot overpower comedy / hero / retention rankings.
+//
+// Pure / frozen at module load. NO DB. NO Claude. Same discipline
+// as the rest of this file.
+// ---------------------------------------------------------------- //
+
+export type SituationProfile = {
+  readonly strongTopicLanes: ReadonlyArray<TopicLane>;
+  readonly adjacentTopicLanes: ReadonlyArray<TopicLane>;
+  readonly strongSettings: ReadonlyArray<Setting>;
+  readonly adjacentSettings: ReadonlyArray<Setting>;
+  /** Lower-cased substrings matched against `scenarioFamily`. */
+  readonly familySubstrings: ReadonlyArray<string>;
+};
+
+export const SITUATION_PROFILES: Readonly<Record<Situation, SituationProfile>> =
+  Object.freeze({
+    food_home: {
+      strongTopicLanes: ["food_home"],
+      adjacentTopicLanes: ["daily_routine"],
+      strongSettings: ["kitchen"],
+      adjacentSettings: ["couch", "bed"],
+      familySubstrings: [
+        "coffee",
+        "fridge",
+        "snack",
+        "meal",
+        "dishes",
+        "dinner",
+        "mug",
+        "trash",
+        "laundry",
+        "cleaning",
+        "hydration",
+      ],
+    },
+    dating_texting: {
+      strongTopicLanes: ["social_texting"],
+      adjacentTopicLanes: [],
+      strongSettings: ["couch", "bed"],
+      adjacentSettings: ["outside"],
+      familySubstrings: [
+        "texting",
+        "breakup_text",
+        "group_chat",
+        "wrong_friend_text",
+        "wrong_chat_send",
+        "typing_dots",
+        "birthday_text",
+        "weekend_plans",
+      ],
+    },
+    work_school: {
+      strongTopicLanes: ["work_productivity"],
+      adjacentTopicLanes: [],
+      strongSettings: ["desk"],
+      adjacentSettings: ["car"],
+      familySubstrings: [
+        "email",
+        "work",
+        "meeting",
+        "productivity",
+        "study",
+        "password_reset",
+        "library",
+        "journaling",
+        "morning_pages",
+        "posture",
+        "wrong_year_form",
+        "colleague",
+      ],
+    },
+    social_awkwardness: {
+      strongTopicLanes: ["social_texting"],
+      adjacentTopicLanes: [],
+      strongSettings: ["outside"],
+      adjacentSettings: ["other", "couch"],
+      familySubstrings: [
+        "social_call",
+        "name_blank_party",
+        "wave_back",
+        "social_post",
+        "restaurant_pick",
+        "gym_avoid_coworker",
+        "meeting_collision",
+        "accent_pickup",
+        "voice_crack",
+        "sneeze_chain",
+        "compliment_freeze",
+        "loud_neighbor",
+        "tipping_internal",
+        "gift_received",
+        "concert_aftermath",
+      ],
+    },
+    health_wellness: {
+      strongTopicLanes: ["body_fitness"],
+      adjacentTopicLanes: ["daily_routine"],
+      strongSettings: ["bed", "bathroom"],
+      adjacentSettings: ["outside"],
+      familySubstrings: [
+        "gym",
+        "walk",
+        "sleep",
+        "hydration",
+        "skincare",
+        "fitness",
+        "mirror_pep",
+        "peak_was_yesterday",
+        "nap",
+        "bedtime",
+        "screen_time",
+        "morning",
+        "routine_witness",
+      ],
+    },
+    creator_social: {
+      strongTopicLanes: ["social_texting"],
+      adjacentTopicLanes: ["work_productivity", "daily_routine"],
+      strongSettings: ["desk"],
+      adjacentSettings: ["bed", "couch"],
+      familySubstrings: [
+        "social_post",
+        "old_photo_self",
+        "birthday_age_dread",
+      ],
+    },
+  });
+
+/**
+ * Per-candidate alignment delta against the creator's selected
+ * situations. ADDITIVE only:
+ *
+ *   +4  candidate strong-matches at least one selected situation
+ *       (topicLane ∈ strongTopicLanes OR
+ *        scenarioFamily contains a familySubstring OR
+ *        setting ∈ strongSettings AND topicLane ∈ strongTopicLanes)
+ *   +2  candidate adjacent-matches at least one selected situation
+ *       (topicLane ∈ adjacentTopicLanes OR
+ *        setting ∈ strongSettings OR
+ *        setting ∈ adjacentSettings)
+ *    0  no signal
+ *   -1  ≥3 situations selected AND candidate matches none of them
+ *       (strong stated preference + clear mismatch — gentle nudge,
+ *        NEVER a hard filter)
+ *
+ * Returns 0 for empty / undefined situation set so the lever is a
+ * no-op for cold-start creators and for anyone who skipped Quick
+ * Tune. Returns 0 when the candidate has no usable signals
+ * (Llama / Claude wraps without `meta.topicLane` AND without a
+ * recognized `scenarioFamily`) — same fail-quiet discipline as the
+ * rest of the soft scoring layer.
+ */
+export function scoreSituationAlignment(
+  candidate: {
+    readonly topicLane?: TopicLane;
+    readonly setting?: Setting;
+    readonly scenarioFamily?: string;
+  },
+  selectedSituations: ReadonlySet<Situation> | undefined,
+): number {
+  if (!selectedSituations || selectedSituations.size === 0) return 0;
+
+  const lane = candidate.topicLane;
+  const setting = candidate.setting;
+  const familyLower = candidate.scenarioFamily
+    ? candidate.scenarioFamily.toLowerCase()
+    : undefined;
+
+  // No usable axes → silent abstain. Llama / Claude wraps sometimes
+  // omit topicLane AND ship a free-form scenarioFamily that doesn't
+  // match any registered substring; treat as "no signal" rather than
+  // letting the ≥3 mismatch penalty fire on a candidate we can't
+  // even classify.
+  if (lane === undefined && setting === undefined && !familyLower) return 0;
+
+  let strongMatch = false;
+  let adjacentMatch = false;
+
+  for (const sit of selectedSituations) {
+    const profile = SITUATION_PROFILES[sit];
+    if (!profile) continue;
+
+    const laneStrong = lane !== undefined && profile.strongTopicLanes.includes(lane);
+    const settingStrong =
+      setting !== undefined && profile.strongSettings.includes(setting);
+    const familyStrong =
+      familyLower !== undefined &&
+      profile.familySubstrings.some((sub) => familyLower.includes(sub));
+
+    if (familyStrong || laneStrong || (settingStrong && laneStrong)) {
+      strongMatch = true;
+      break; // can't beat +4
+    }
+
+    const laneAdj =
+      lane !== undefined && profile.adjacentTopicLanes.includes(lane);
+    const settingAdj =
+      setting !== undefined && profile.adjacentSettings.includes(setting);
+    if (laneAdj || settingStrong || settingAdj) {
+      adjacentMatch = true;
+    }
+  }
+
+  if (strongMatch) return 4;
+  if (adjacentMatch) return 2;
+  // Mismatch nudge — only fires when the user picked ≥3 situations
+  // (strong stated preference) AND this candidate aligns with NONE.
+  // Bounded at -1 so the lever stays well below comedy / hero
+  // bands and never single-handedly deselects a strong candidate.
+  if (selectedSituations.size >= 3) return -1;
+  return 0;
 }
