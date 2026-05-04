@@ -1439,6 +1439,39 @@ export function normalizeHookForDedup(hook: string): string {
     .replace(/[.,!?;:]+$/, "");
 }
 
+/**
+ * PHASE Z5.5 — cold-start skeleton similarity guard.
+ * Extracts word bigrams from a hook for structural similarity comparison.
+ * Two hooks from the same template (e.g. "my own charger is spiraling me
+ * back!!" vs "my own keyboard is spiraling me back!!") share >80% of
+ * bigrams despite differing in the anchor noun. Returns the bigram set
+ * for Jaccard comparison. Strips punctuation, lowercases, and ignores
+ * hooks shorter than 4 words (too short for meaningful skeleton signal).
+ */
+export function hookWordBigrams(hook: string): Set<string> {
+  const words = hook
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
+  const bigrams = new Set<string>();
+  if (words.length < 4) return bigrams;
+  for (let i = 0; i < words.length - 1; i++) {
+    bigrams.add(`${words[i]}|${words[i + 1]}`);
+  }
+  return bigrams;
+}
+
+export function hookBigramJaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const x of a) {
+    if (b.has(x)) intersection++;
+  }
+  return intersection / (a.size + b.size - intersection);
+}
+
 function tryRewrite(
   idea: Idea,
   meta: CandidateMeta,
@@ -3000,6 +3033,29 @@ export function selectionPenalty(
     }
     const cHsid = metaHookSkeletonId(c.meta);
     if (cHsid && hookSkeletons.has(cHsid)) p -= 3;
+
+    // PHASE Z5.5 — cold-start hook skeleton similarity guard.
+    // Text-based bigram Jaccard catches hooks sharing the same
+    // template structure even without a hookSkeletonId (core-native
+    // candidates + cold-start creators with no cross-batch history).
+    // Threshold 0.45 catches "my own X is spiraling me back!!" vs
+    // "my own Y is spiraling me back!!" (Jaccard ~0.50 for 7-word
+    // hooks with 1 word changed) without penalizing genuinely
+    // distinct hooks (~0.1-0.2 typical). -5 penalty is strong enough
+    // to push the selector toward a structurally distinct alternative
+    // when one exists. Works even on empty ctx (cold-start).
+    if (batchSoFar.length > 0) {
+      const candBigrams = hookWordBigrams(c.idea.hook);
+      if (candBigrams.size > 0) {
+        for (const b of batchSoFar) {
+          const bBigrams = hookWordBigrams(b.idea.hook);
+          if (bBigrams.size > 0 && hookBigramJaccard(candBigrams, bBigrams) >= 0.45) {
+            p -= 5;
+            break;
+          }
+        }
+      }
+    }
 
     // Phase 6 (BIG PREMISE LAYER) — within-batch premise-style dup
     // demotion. Originally -3 PER DUPLICATE on the BUCKET-level

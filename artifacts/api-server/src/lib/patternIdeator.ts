@@ -7648,8 +7648,16 @@ const HOW_TO_FILM_BY_VISUAL_ACTION: Record<
     `Camera at couch level, far enough back that the blanket and the phone are both in frame. Single take. Stay seated through the whole beat — the not-getting-up is the joke.`,
   car_avoidance: () =>
     `Phone mounted on the dashboard pointing at the driver's seat. Hands stay on the wheel except for the one specific gesture (key, phone, list). Single take, engine sound on.`,
-  desk_avoidance: (s) =>
-    `Camera looking down at the desk from your seated POV — laptop, phone, and ${s.topicNoun} all in frame. Don't show your face; the desk surface does the work. One take.`,
+  desk_avoidance: (s) => {
+    const variants = [
+      `Camera looking down at the desk from your seated POV — laptop, phone, and ${s.topicNoun} all in frame. Don't show your face; the desk surface does the work. One take.`,
+      `Lock the phone on a stack of books pointing at the desk. Frame the keyboard, the ${s.topicNoun}, and your hands — no face, just the evidence. Single take, natural light.`,
+      `Overhead angle: mount the phone above the desk so the ${s.topicNoun} and your hands fill the frame. The mess tells the story. One continuous shot, no edits.`,
+      `Eye-level from across the desk — prop the phone against a monitor so the ${s.topicNoun} and your posture are both in frame. Lean back on the beat. Single take.`,
+    ];
+    const idx = Math.abs(s.topicNoun.length * 7 + s.topicNoun.charCodeAt(0)) % variants.length;
+    return variants[idx]!;
+  },
   social_awkward_walkaway: () =>
     `Two angles: wide of the hallway for the encounter (8 sec), hard cut to tight on your face for the cringe walk back (4 sec). Cut on the wave, not after.`,
   face_reaction_deadpan: () =>

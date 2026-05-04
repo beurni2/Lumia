@@ -1,0 +1,146 @@
+You are implementing Phase Z5.5 — Template Output Polish for Lumina.
+
+Context:
+Z5 corpus expansion is complete and structurally healthy:
+- Corpus is now 532 hooks.
+- Scenario catalog is 253.
+- 194/194 tests pass.
+- TypeScript clean.
+- Server boots clean.
+- Anti-copy corpus rejects: 0 across QA.
+- Near-copy warnings: 0.
+- Safety failures: 0.
+
+However, Z5 Post-Expansion Output QA found pre-existing output-quality issues in the deterministic/fallback idea generation path:
+1. Repeated reaction endings:
+   - “deadpan stare” appeared in 8/15 generated ideas.
+   - Similar endings include “deadpan glare,” “dead stare,” “shrug,” “soul-crushing stare,” and “soul-leaving-body stare.”
+2. Repeated hook skeletons:
+   - “my own X is spiraling me back!!”
+   - “watched myself X the Y live”
+   - “i ghosted X”
+3. Repeated caption-tail patterns:
+   - “X. lying about it now. Y, basically.”
+   - “the X won. Y update: i'm pretending it didn't.”
+   - “the X thing again. Y it. fine probably. Z.”
+4. Exact duplicated howToFilm:
+   - “Camera looking down at the desk from your seated POV...” appeared twice.
+5. Corrupted/nonsensical script artifact:
+   - “Shop chef eat student” appeared twice in script LINE 3.
+6. Claude fallback triggered in 5/5 demo batches.
+
+Goal:
+Make a narrow, additive, test-covered output-polish pass that improves generated idea freshness and removes obvious template artifacts without changing product architecture.
+
+Hard rules:
+- ZERO migrations.
+- ZERO API breaking changes.
+- ZERO validator loosening.
+- ZERO broad ranking overhaul.
+- Do not remove existing quality gates.
+- Do not change route response shape.
+- Do not reduce anti-copy sensitivity.
+- Preserve corpus and scenario catalog integrity.
+- Keep all tests and TypeScript passing.
+
+Scope:
+1. Find and fix the source of “Shop chef eat student.”
+   - Treat this as P0.
+   - Add a regression test that fails if this exact phrase or similar malformed word-salad script lines appear.
+   - Search for related malformed template fragments or placeholder-like text.
+
+2. Diversify reaction endings.
+   - Identify the template/path producing:
+     “Slow blink, half-laugh, then deadpan stare at the X reveal”
+     or similar repeated reaction tails.
+   - Replace single repeated endings with a deterministic rotating pool of varied physical reactions.
+   - Examples:
+     - close the laptop gently like it hurt your feelings
+     - lower the phone like it betrayed you personally
+     - freeze mid-action while the realization loads
+     - walk away with fake dignity
+     - pretend to check your phone to survive
+     - put the item back and act like nothing happened
+     - sit down slowly and accept the consequences
+     - stare at the receipt like it is legally binding
+     - delete the draft like evidence
+     - close the fridge with respect
+   - Add a test that generated candidates do not overuse “deadpan stare/glare/shrug/dead stare” across a QA sample.
+
+3. Add caption-tail variation.
+   - Locate repeated caption tail templates:
+     - “lying about it now”
+     - “basically”
+     - “pretending it didn’t”
+     - “fine probably”
+   - Add deterministic variety or rotation caps so captions do not repeat the same tail skeleton in small samples.
+   - Do not make captions longer or more AI-like.
+
+4. Add cold-start skeleton diversity guard.
+   - QA found repeated skeletons even without cross-batch history:
+     - “my own X is spiraling me back!!”
+     - duplicate “i specialize in...”
+     - duplicate “i ghosted my...”
+   - Add an in-batch or request-level skeleton fingerprint cap that works even for cold-start/demo creators.
+   - This should prevent exact or near-identical hook skeleton reuse in the same QA run or generated batch.
+   - Keep this additive and conservative.
+
+5. Reduce repeated howToFilm templates.
+   - Identify repeated “Camera looking down at the desk from your seated POV...” template.
+   - Add small deterministic variants for desk/phone/work setups.
+   - Keep filmability clear and low-effort.
+
+6. Investigate fallback usage.
+   - Determine why Claude fallback triggered in 5/5 QA batches.
+   - Report whether local deterministic generation is failing due to:
+     - scoring gate too strict
+     - anti-copy rejects
+     - insufficient candidate diversity
+     - demo creator profile constraints
+     - cache/regenerate behavior
+     - template validation failures
+   - Do not change fallback policy unless there is an obvious bug.
+   - Provide counts and explanation.
+
+Testing requirements:
+- Add/update tests for:
+  1. No “Shop chef eat student” artifact.
+  2. Reaction ending diversity.
+  3. Caption-tail diversity.
+  4. Cold-start skeleton uniqueness.
+  5. howToFilm variation if touched.
+  6. Existing Z5 corpus size/hash/integrity still passing.
+- Run:
+  - pnpm --filter @workspace/api-server exec vitest run
+  - pnpm --filter @workspace/api-server exec tsc --noEmit
+  - API server boot check
+
+After implementation, rerun a mini output QA:
+- Generate 5 batches of 3 ideas with same or comparable demo creator setup.
+- Report:
+  - average hook strength
+  - average filmability
+  - average funny/relatable payoff
+  - average freshness
+  - average voice fit
+  - fallback usage
+  - repeated reaction endings count
+  - repeated caption tails count
+  - repeated hook skeletons count
+  - malformed artifacts count
+
+Success criteria:
+- 0 “Shop chef eat student” or malformed script artifacts.
+- “deadpan stare/glare/shrug/dead stare” style endings below 20% of sampled ideas.
+- No exact duplicated howToFilm in 5-batch QA sample.
+- No exact duplicate hooks in 5-batch QA sample.
+- No repeated hook skeleton more than once in 5-batch QA sample.
+- No safety failures.
+- Tests and TypeScript pass.
+- No migrations/API changes/validator loosening.
+
+Definition of done:
+- Template output polish completed.
+- QA metrics improve or at least repetition/artifact issues are demonstrably reduced.
+- All validation passes.
+- Agent reports files changed, tests run, output QA before/after comparison, and whether fallback usage was explained.

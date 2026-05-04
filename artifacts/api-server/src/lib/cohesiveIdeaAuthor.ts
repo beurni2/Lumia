@@ -354,8 +354,10 @@ export function authorCohesiveIdea(
   // Stitches (tension, anchor, action, mechanism, domain) through
   // core.generatorRule so the alignment edge `premise→hook` shares
   // ≥1 token (anchorLc appears in both). Capped 240 chars by schema.
+  // PHASE Z5.5 — premise uses core.tension instead of humanize(core.mechanism)
+  // to avoid word-salad like "shop chef eat student" leaking into the premise.
   const premise = capChars(
-    `${capitalize(core.tension)} — the ${anchorLc} beat lands when i ${actionBare} it (${humanize(domain)}, ${humanize(core.mechanism)}).`,
+    `${capitalize(core.tension)} — the ${anchorLc} beat lands when i ${actionBare} it (${humanize(domain)}).`,
     240,
   );
 
@@ -400,10 +402,20 @@ export function authorCohesiveIdea(
   const howToFilm = capChars(filmShapes[filmIdx]!(anchorLc, actionBare), 400);
 
   // ---- 5. shotPlan (3 beats keeps scoreFilmability max) --------- //
+  // PHASE Z5.5 — beat 3 rotated to avoid "deadpan look" repetition
+  const shotPlanBeat3: ReadonlyArray<(a: string) => string> = [
+    (a) => `Hold: let the ${a} reveal sit for one extra beat, no reaction.`,
+    (a) => `Hold: look at the ${a}, nod once, then cut.`,
+    (a) => `Hold: slow blink at the ${a}, then walk out of frame.`,
+    (a) => `Hold: stare at the ${a} like it owes you money, then cut.`,
+    (a) => `Hold: close your eyes at the ${a} moment, breathe, cut.`,
+    (a) => `Hold: gesture at the ${a} like presenting evidence, then cut.`,
+  ];
+  const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
   const shotPlan: string[] = [
     `Wide-ish: enter the frame with the ${anchorLc} visible.`,
     `Medium: ${actionBare} the ${anchorLc} on camera, deliberately.`,
-    `Hold: deadpan look at the ${anchorLc} reveal for one extra beat.`,
+    shotPlanBeat3[beat3Idx]!(anchorLc),
   ];
 
   // ---- 6. caption ----------------------------------------------- //
@@ -412,11 +424,20 @@ export function authorCohesiveIdea(
   // single shape produced verbatim repetition across batches
   // (e.g. "the trick is to never look directly at the problem"
   // observed twice in the post-Y11 14-idea screenshot set).
+  // PHASE Z5.5 — expanded from 4 to 10 caption shapes to reduce
+  // tail-pattern repetition ("lying about it now", "fine probably",
+  // "pretending it didn't" appeared across every small sample).
   const captionShapes: ReadonlyArray<(a: string, ap: string, d: string) => string> = [
     (a, ap, d) => `the ${a} thing again. ${ap} it. fine probably. ${d}.`,
     (a, ap, d) => `${ap} the ${a}. lying about it now. ${d}, basically.`,
     (a, ap, d) => `the ${a} won. ${d} update: i'm pretending it didn't.`,
     (a, ap, d) => `me + ${a} = unresolved. ${d} edition. send help maybe.`,
+    (a, ap, d) => `${ap} the ${a} and immediately regretted it. ${d} moment.`,
+    (a, ap, d) => `${a} 1, me 0. ${d} scoreboard is not great.`,
+    (a, ap, d) => `tried to ignore the ${a}. the ${a} did not ignore me. ${d}.`,
+    (a, ap, d) => `just ${ap} the ${a} like that was a normal thing to do. ${d} era.`,
+    (a, ap, d) => `the ${a} situation is evolving. i am not. ${d} report.`,
+    (a, ap, d) => `committed to the ${a}. commitment lasted 4 seconds. ${d}.`,
   ];
   const capIdx = djb2(`${core.id}|${anchor}|cap`) % captionShapes.length;
   const caption = capChars(
@@ -428,6 +449,7 @@ export function authorCohesiveIdea(
   // PHASE D1 — 4 shape rotation. Each preserves the (mechanism,
   // anchor, action, voice) signal so the field still reads as
   // authored from the recipe rather than as a stock bullet list.
+  // PHASE Z5.5 — whyItWorks uses core.tension instead of humanize(core.mechanism)
   const whyShapes: ReadonlyArray<
     (m: string, a: string, ab: string, v: string) => string
   > = [
@@ -439,7 +461,7 @@ export function authorCohesiveIdea(
   const whyIdx = djb2(`${core.id}|${anchor}|why`) % whyShapes.length;
   const whyItWorks = capChars(
     whyShapes[whyIdx]!(
-      capitalize(humanize(core.mechanism)),
+      capitalize(core.tension),
       anchorLc,
       actionBare,
       voice.id,
@@ -448,20 +470,42 @@ export function authorCohesiveIdea(
   );
 
   // ---- 8. trigger / reaction (filmable verbs + visible response) //
-  const trigger = capChars(
-    `Open the ${anchorLc} moment on camera, deliberately and out loud.`,
-    140,
-  );
-  const reaction = capChars(
-    `Slow blink, half-laugh, then deadpan stare at the ${anchorLc} reveal.`,
-    140,
-  );
+  // PHASE Z5.5 — rotating trigger pool replaces single hardcoded template
+  const triggerShapes: ReadonlyArray<(a: string, ab: string) => string> = [
+    (a, ab) => `Open the ${a} moment on camera, deliberately and out loud.`,
+    (a, ab) => `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one clear visible beat.`,
+    (a, ab) => `Show the ${a} on screen, then ${ab} it without hesitation.`,
+    (a, ab) => `Frame the ${a}, pause, then commit to the ${ab} beat.`,
+    (a, ab) => `Let the ${a} sit in frame for a beat before you ${ab} it.`,
+    (a, ab) => `Walk up to the ${a} and ${ab} it like you mean it.`,
+  ];
+  const trigIdx = djb2(`${core.id}|${anchor}|trg`) % triggerShapes.length;
+  const trigger = capChars(triggerShapes[trigIdx]!(anchorLc, actionBare), 140);
+
+  // PHASE Z5.5 — rotating reaction pool replaces single "deadpan stare" template
+  const reactionShapes: ReadonlyArray<(a: string) => string> = [
+    (a) => `Close the laptop gently like the ${a} hurt your feelings.`,
+    (a) => `Lower the phone like the ${a} betrayed you personally.`,
+    (a) => `Freeze mid-action while the ${a} realization loads.`,
+    (a) => `Walk away from the ${a} with fake dignity.`,
+    (a) => `Pretend to check your phone to survive the ${a} moment.`,
+    (a) => `Put the ${a} back and act like nothing happened.`,
+    (a) => `Sit down slowly and accept the ${a} consequences.`,
+    (a) => `Stare at the ${a} like it is legally binding.`,
+    (a) => `Nod once at the ${a} like you expected this betrayal.`,
+    (a) => `Blink twice at the ${a}, then carry on like a professional.`,
+  ];
+  const reactIdx = djb2(`${core.id}|${anchor}|rxn`) % reactionShapes.length;
+  const reaction = capChars(reactionShapes[reactIdx]!(anchorLc), 140);
 
   // ---- 9. script ------------------------------------------------ //
+  // PHASE Z5.5 — LINE 3 uses core.tension (human-readable) instead of
+  // core.mechanism (snake_case id). Pre-Z5.5 produced nonsensical
+  // output like "Shop chef eat student" from humanize("shop_chef_eat_student").
   const script = capChars(
     `LINE 1: ${hook}\n` +
       `LINE 2 (beat / cutaway): show the ${anchorLc} that contradicts line 1.\n` +
-      `LINE 3 (caption / mouthed): ${capitalize(humanize(core.mechanism))}.`,
+      `LINE 3 (caption / mouthed): ${capitalize(core.tension)}.`,
     800,
   );
 
