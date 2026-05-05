@@ -1,0 +1,99 @@
+I mostly agree with this assessment, but I would correct one important sentence:
+
+“None of them can produce broken output that ships.”
+
+That is too confident.
+
+The safer version is:
+
+They are unlikely to produce broken output if validators and live QA cover the new regional patterns — but regional language/slang can bypass current English-based quality assumptions.
+
+That distinction matters.
+
+My verdict by phase
+R4 — Voice cluster sampling bias
+
+Agree: very low risk.
+
+This only changes weighting across clusters that already exist and already pass. It does not create new language, new anchors, or new scenario templates.
+
+Risk:
+
+region gets too much chaotic/confessional
+region feels less varied
+batch tone feels slightly off
+
+Fix:
+
+change weights back
+
+This is safe.
+
+R2 — Claude prompt regional polish
+
+Mostly agree: low risk, but not zero.
+
+Because Claude output goes through validators, bad outputs should usually be rejected. But validators are still stronger for English/Western patterns than for regional phrasing.
+
+Risk:
+
+awkward Pidgin/Hinglish/Taglish
+stereotypes
+region jokes that are “safe” technically but cringe culturally
+higher rejection rate
+fallback gives weaker output
+
+Fix:
+
+prompt rollback
+keep regional slang light
+native/local review
+
+This is still a good early step because it is easy to A/B.
+
+R3 — Region-tagged anchor catalog
+
+Agree: medium risk and should be staged carefully.
+
+This is the sensitive one because anchors touch the whole idea chain:
+
+hook
+whatToShow
+howToFilm
+shotPlan
+contradiction
+fingerprint
+validator preconditions
+
+A bad anchor may not ship, but it can reduce yield, cause repetitive fallback, or create weird “technically valid but culturally off” ideas.
+
+Risk:
+
+low candidate yield in one region
+weak or stereotyped anchors
+anchor works in hook but not in scenario
+validators reject too much
+region batch becomes repetitive
+
+Fix:
+
+hand-vet anchors
+ship small anchor sets
+region-by-region rollout
+require 20-idea live QA per region
+The structural protections are real
+
+I agree these protections are valuable:
+
+Protection	Why it helps
+Validators unchanged	Prevents quality floor from dropping
+Recipe loop retries	Can recover from bad individual candidates
+Claude fallback	Prevents empty batch
+Western as control	Gives a stable baseline
+Rollback via config	Reduces deployment risk
+
+But they do not fully protect against cultural cringe.
+
+A sentence can pass validators and still feel fake to a Nigerian, Indian, or Filipino creator.
+
+That is the risk your current system cannot automatically detect yet.
