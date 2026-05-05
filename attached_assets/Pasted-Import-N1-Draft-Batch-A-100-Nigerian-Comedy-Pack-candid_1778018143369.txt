@@ -1,0 +1,60 @@
+Import N1 Draft Batch A — 100 Nigerian Comedy Pack candidate entries.
+
+Context:
+N1 dark infrastructure is complete:
+- languageStyle and slangIntensity exist in tasteCalibration JSONB.
+- nigerianHookPack.ts exists but is currently empty.
+- activation requires region === nigeria, languageStyle !== clean/null, non-empty pack, and LUMINA_NG_PACK_ENABLED=true.
+- recipe integration is intentionally not wired yet.
+- pack is dark and reversible.
+
+Important:
+These 100 entries are draft candidates, not final native-approved entries.
+
+Do not activate the pack for users.
+Do not wire coreCandidateGenerator yet unless explicitly asked.
+Do not set LUMINA_NG_PACK_ENABLED=true.
+Do not fake native review.
+
+Task:
+Add these 100 entries into NIGERIAN_HOOK_PACK as draft/import candidates if they satisfy the current type shape and boot asserts.
+
+If the existing boot assert requires reviewedBy to be a real approval stamp, use a safe inactive/draft approach instead of bypassing review:
+- either keep reviewedBy as "PENDING_NATIVE_REVIEW" only if the pack remains inactive,
+- or add a reviewStatus field only if it does not break the current architecture,
+- or import into a separate DRAFT_NIGERIAN_HOOK_PACK constant that is not eligible for activation.
+
+Do not loosen validators.
+Do not weaken boot asserts for activated entries.
+Do not allow entries with pending review to activate.
+
+For each entry, map:
+- hook
+- whatToShow / scenario
+- howToFilm
+- caption
+- anchor
+- domain
+- cluster
+- pidginLevel
+- privacyNote if relevant
+- reviewedBy pending/native-review placeholder only if inactive
+
+Run:
+- pack integrity tests
+- cross-region leak tests
+- TypeScript
+- existing vitest suite if touched files require it
+
+Report:
+1. how many entries imported
+2. how many passed structure checks
+3. how many failed and why
+4. any entries that need rewrite
+5. whether pack remains dark
+6. confirmation:
+   - not activated
+   - no recipe integration yet
+   - no env flag enabled
+   - no cross-region leak
+   - no validator loosening

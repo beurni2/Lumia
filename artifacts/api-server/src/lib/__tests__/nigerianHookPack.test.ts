@@ -24,6 +24,33 @@
 
 import { describe, expect, it } from "vitest";
 
+import { assertNigerianPackIntegrity, type NigerianPackEntry } from "../nigerianHookPack.js";
+
+describe("N1 production assert — sentinel rejection (defense in depth)", () => {
+  const goodBase: NigerianPackEntry = {
+    hook: "who send me make I tell them say I dey come",
+    whatToShow:
+      "Show a fake WhatsApp group chat. You stare at the dey-come message, type 'on the way,' and put the phone down.",
+    howToFilm: "Phone-level lock-off, soft daylight, one take.",
+    caption: "outside is now a subscription.",
+    anchor: "dey",
+    domain: "messaging",
+    pidginLevel: "light_pidgin",
+    reviewedBy: "AB 2026-05-05",
+  };
+
+  it("rejects an otherwise-valid entry that still carries the PENDING sentinel", () => {
+    const bad: NigerianPackEntry = { ...goodBase, reviewedBy: "PENDING_NATIVE_REVIEW" };
+    expect(() => assertNigerianPackIntegrity([bad])).toThrow(/PENDING_NATIVE_REVIEW/);
+  });
+
+  it("rejects sentinel even with surrounding whitespace", () => {
+    const bad: NigerianPackEntry = { ...goodBase, reviewedBy: "  PENDING_NATIVE_REVIEW  " };
+    expect(() => assertNigerianPackIntegrity([bad])).toThrow(/PENDING_NATIVE_REVIEW/);
+  });
+});
+
+
 import {
   NIGERIAN_HOOK_PACK,
   PACK_FIELD_BOUNDS,

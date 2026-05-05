@@ -231,6 +231,18 @@ export function assertNigerianPackIntegrity(
           `speaker must sign off.`,
       );
     }
+    // STRENGTHENED in N1 draft batch A: explicitly reject the draft
+    // sentinel so a draft entry cannot be promoted into the live
+    // pack without the reviewer overwriting the stamp. The literal
+    // is duplicated (instead of imported from the drafts module) to
+    // avoid a circular import on this hot boot path.
+    if (entry.reviewedBy.trim() === "PENDING_NATIVE_REVIEW") {
+      throw new Error(
+        `[nigerianHookPack] entry still carries the PENDING_NATIVE_REVIEW ` +
+          `sentinel: ${tag}. Drafts cannot be activated — a Nigerian native ` +
+          `speaker must replace the sentinel with their initials + date.`,
+      );
+    }
 
     if (
       entry.pidginLevel !== "light_pidgin" &&
@@ -389,6 +401,23 @@ export function getEligibleNigerianPackEntries(
   input: EligibilityInput,
   pool: readonly NigerianPackEntry[] = NIGERIAN_HOOK_PACK,
 ): readonly NigerianPackEntry[] {
+  // DEFENSE IN DEPTH (N1 draft batch A): refuse to ever return draft
+  // entries from this entrypoint. Drafts have a structurally
+  // compatible shape (Omit<NigerianPackEntry, "pidginLevel"|"reviewedBy">
+  // + extra fields) and TypeScript would not catch a misuse if a
+  // caller passed `DRAFT_NIGERIAN_HOOK_PACK` here via `as`. The
+  // reference check below catches that misuse at runtime. We avoid
+  // a top-level import of the drafts module to keep this hot path
+  // free of any side-effects from the drafts file's boot assert.
+  // The drafts module already runs its own boot assert at its own
+  // module load — no need to trigger it again here.
+  if (DRAFT_POOL_REF !== undefined && (pool as unknown) === DRAFT_POOL_REF) {
+    throw new Error(
+      "[nigerianHookPack] DRAFT_NIGERIAN_HOOK_PACK was passed to " +
+        "getEligibleNigerianPackEntries — drafts cannot be activated. " +
+        "Native reviewer must promote entries into NIGERIAN_HOOK_PACK first.",
+    );
+  }
   if (
     !canActivateNigerianPack({
       region: input.region,
@@ -410,6 +439,19 @@ export function getEligibleNigerianPackEntries(
 }
 
 const EMPTY: readonly NigerianPackEntry[] = Object.freeze([]);
+
+// Lazy reference holder for the drafts pool — populated by
+// `registerDraftPoolReference` (called from the drafts module). Kept
+// `undefined` when the drafts module hasn't been imported, so the
+// reference check is a cheap no-op for code paths that don't touch
+// drafts at all.
+let DRAFT_POOL_REF: object | undefined;
+
+/** Internal — called once at drafts module load so the live guard
+ *  can refuse the draft pool by reference. NOT for general use. */
+export function registerDraftPoolReference(ref: object): void {
+  DRAFT_POOL_REF = ref;
+}
 
 // ---------------------------------------------------------------- //
 // Deterministic prefix gate (mirror of R3's `region-prefix`

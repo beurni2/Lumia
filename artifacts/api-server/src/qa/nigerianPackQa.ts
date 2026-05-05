@@ -36,6 +36,11 @@ import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
 } from "../lib/nigerianHookPack.js";
+import {
+  DRAFT_NIGERIAN_HOOK_PACK,
+  isPotentiallyActivatable,
+  type DraftNigerianPackEntry,
+} from "../lib/nigerianHookPackDrafts.js";
 import type { LanguageStyle } from "../lib/tasteCalibration.js";
 
 const OUTPUT_PATH = resolve(
@@ -165,6 +170,31 @@ function md(rows: Row[]): string {
         `${wrongStyle.length === 0 ? "✓" : "✗ LEAK"}`,
     );
   }
+  lines.push("");
+  lines.push("## Draft Batch A inventory");
+  lines.push("");
+  lines.push(`- DRAFT_NIGERIAN_HOOK_PACK length: ${DRAFT_NIGERIAN_HOOK_PACK.length}`);
+  const tiers = { clean: 0, light_pidgin: 0, pidgin: 0 } as Record<
+    DraftNigerianPackEntry["pidginLevel"],
+    number
+  >;
+  let activatable = 0;
+  const clusters = new Map<string, number>();
+  const domains = new Map<string, number>();
+  for (const e of DRAFT_NIGERIAN_HOOK_PACK) {
+    tiers[e.pidginLevel]++;
+    if (isPotentiallyActivatable(e)) activatable++;
+    clusters.set(e.cluster, (clusters.get(e.cluster) ?? 0) + 1);
+    domains.set(e.domain, (domains.get(e.domain) ?? 0) + 1);
+  }
+  lines.push(
+    `- Tiers: clean=${tiers.clean} | light_pidgin=${tiers.light_pidgin} | pidgin=${tiers.pidgin}`,
+  );
+  lines.push(
+    `- Activation-eligible after promotion (light_pidgin + pidgin): ${activatable}`,
+  );
+  lines.push(`- Domains: ${[...domains.entries()].map(([d, n]) => `${d}=${n}`).join(", ")}`);
+  lines.push(`- Clusters (${clusters.size}): ${[...clusters.keys()].join(", ")}`);
   lines.push("");
   lines.push("## Next steps before activation");
   lines.push("");
