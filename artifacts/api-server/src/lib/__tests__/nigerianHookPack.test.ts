@@ -24,7 +24,18 @@
 
 import { describe, expect, it } from "vitest";
 
-import { assertNigerianPackIntegrity, type NigerianPackEntry } from "../nigerianHookPack.js";
+import {
+  NIGERIAN_HOOK_PACK,
+  PACK_FIELD_BOUNDS,
+  assertNigerianPackIntegrity,
+  canActivateNigerianPack,
+  getEligibleNigerianPackEntries,
+  isNigerianPackFeatureEnabled,
+  nigerianPackPrefixGate,
+  type NigerianPackEntry,
+} from "../nigerianHookPack.js";
+import type { Region } from "@workspace/lumina-trends";
+import type { LanguageStyle } from "../tasteCalibration.js";
 
 describe("N1 production assert — sentinel rejection (defense in depth)", () => {
   const goodBase: NigerianPackEntry = {
@@ -50,19 +61,6 @@ describe("N1 production assert — sentinel rejection (defense in depth)", () =>
   });
 });
 
-
-import {
-  NIGERIAN_HOOK_PACK,
-  PACK_FIELD_BOUNDS,
-  assertNigerianPackIntegrity,
-  canActivateNigerianPack,
-  getEligibleNigerianPackEntries,
-  isNigerianPackFeatureEnabled,
-  nigerianPackPrefixGate,
-  type NigerianPackEntry,
-} from "../nigerianHookPack.js";
-import type { Region } from "@workspace/lumina-trends";
-import type { LanguageStyle } from "../tasteCalibration.js";
 
 const VALID_LIGHT: NigerianPackEntry = {
   hook: "the way danfo conductor counts change",

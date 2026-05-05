@@ -171,7 +171,7 @@ function md(rows: Row[]): string {
     );
   }
   lines.push("");
-  lines.push("## Draft Batch A inventory");
+  lines.push("## Draft inventory (Batch A + Batch B)");
   lines.push("");
   lines.push(`- DRAFT_NIGERIAN_HOOK_PACK length: ${DRAFT_NIGERIAN_HOOK_PACK.length}`);
   const tiers = { clean: 0, light_pidgin: 0, pidgin: 0 } as Record<
