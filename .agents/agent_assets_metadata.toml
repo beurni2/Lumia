@@ -53,3 +53,9 @@ id = "g7mMe_BKv-CqzFnaCN-FQ"
 uri = "file://.local/dq1_deployment_qa_report.md"
 type = "text"
 title = "DQ1 Deployment QA Report"
+
+[[outputs]]
+id = "4GdUjmThim0QGeS88C7zM"
+uri = "file://.local/UX31_LIVE_QA.md"
+type = "text"
+title = "Phase UX3.1 — Post-fix LIVE-app QA Sample"
