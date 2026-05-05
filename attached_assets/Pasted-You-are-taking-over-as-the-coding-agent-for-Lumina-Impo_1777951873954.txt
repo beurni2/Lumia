@@ -1,0 +1,119 @@
+You are taking over as the coding agent for Lumina.
+
+Important:
+Do not start coding immediately.
+
+Your first job is to understand the product, inspect the current code path, and diagnose why scenario quality is still bad despite previous phases passing tests.
+
+Product context:
+Lumina is a mobile app for short-form creators. It generates 3 personalized, filmable video ideas with:
+- hook
+- what to show
+- how to film
+- caption
+- why this fits you
+- Film-This-Now steps
+- optional no-face/no-voice/text-overlay adaptations
+
+The product must feel like:
+“This app understands my humor and gives me something I can film right now.”
+
+It must not feel like:
+“A generic AI template swapped random nouns into a sentence.”
+
+Current state:
+The system has many completed quality layers:
+- 532 hook corpus
+- 253 scenario catalog
+- deterministic pattern engine
+- Claude fallback only when needed
+- anti-copy Jaccard guard
+- hook validators
+- Hero Quality Ranker
+- Adaptive First-Session Boost
+- payoff sharpening
+- retention novelty
+- 4-screen Quick Tune calibration
+- selectedSituations consumed by scoring
+- Film This Now primary CTA
+- confidence labels
+- low-cringe filming modes
+- scenario coherence guard
+- refresh excludeHooks support
+
+However, visual QA still shows severe scenario-authoring failures.
+
+Bad examples seen in the UI:
+1. “abandoning the fork is my only hobby still”
+2. “Hand-held — frame the fork center. Pause, abandon the fork once, slow.”
+3. “Land the contradiction by abandoned the fork on the final beat.”
+4. “ghosted the calendar on the first try. obviously.”
+5. “camera holds as i ghost the calendar knowingly.”
+6. “i checked the profile. mistake.”
+7. “i abandoned the thread AGAIN. AGAIN!!!”
+8. “i faked my own tab.”
+9. “spiral the lockscreen once, slow.”
+10. “WHY does the alarm keep abandoning itself.”
+11. “camera holds as i abandon the alarm knowingly.”
+12. “yesterday me booked chaos for today me’s calendar” attached to unrelated shopping cart, mug, or generic object scenes.
+
+This is a P0 pre-beta blocker.
+
+Your task in this first pass:
+Audit the codebase and produce a diagnosis.
+
+Do not implement yet unless the root cause is trivial and you can explain it first.
+
+Inspect the full generation path:
+- where candidates are created
+- where hooks are created
+- where whatToShow/howToFilm/shotPlan/script are authored
+- where scenarioCoherence runs
+- where validateComedy runs
+- how refresh/regenerate uses candidates
+- how mobile Film-This-Now renders/adapts scenario text
+
+Look especially at:
+- cohesiveIdeaAuthor.ts
+- scenarioCoherence.ts
+- hybridIdeator.ts
+- ideaScorer.ts
+- hook/scenario/template utilities
+- any files that contain phrase templates like “abandon”, “ghost”, “fake”, “spiral”, “overthink”, “knowingly”, “once, slow”, “land the contradiction”
+- Film-This-Now mobile helpers if relevant
+
+Answer these questions:
+
+1. Where exactly are the bad noun-swapped scenario phrases generated?
+2. Are they created locally, by fallback/Claude wrapping, or by mobile adaptation?
+3. Why did the UX3 scenario coherence guard fail to catch them?
+4. Why are hook anchors drifting from scenario objects?
+   Example: “yesterday me booked chaos for today me’s calendar” attaching to shopping cart or mug.
+5. Are existing tests too exact-string-based instead of pattern-based?
+6. Is the app displaying unrepaired raw fields even when repaired fields exist?
+7. What is the minimal safe fix?
+8. What files need to change?
+9. What tests must be added?
+10. What should not be changed?
+
+Hard rules:
+- No migrations.
+- No API breaking changes.
+- No validator loosening.
+- Preserve existing route shape unless an optional additive field is absolutely necessary.
+- Preserve Hero Quality, Retention Novelty, selectedSituations scoring, UX1, UX2, UX3 refresh reliability.
+- Keep TypeScript clean.
+- Keep tests passing.
+- Do not do a broad rewrite.
+
+Deliverable:
+Return a concise but complete diagnosis with:
+- root cause
+- file/function map
+- proposed UX3.1 implementation plan
+- tests to add
+- risk assessment
+- estimated scope
+
+Definition of good diagnosis:
+A human reading your report should understand why the app is still producing phrases like “abandon the fork once, slow” and exactly how you plan to stop that whole class of failures, not just that one phrase.
