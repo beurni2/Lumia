@@ -1,0 +1,98 @@
+Audit Lumina’s regional comedy and localization support.
+
+Do not implement anything yet.
+
+I want you to understand this product requirement clearly:
+
+Lumina should not generate the exact same hooks, scenarios, captions, and filming ideas for every region.
+
+The long-term vision is that Lumina understands that humor, language style, daily life, and creator culture differ by region.
+
+For example:
+- A creator in Nigeria may want ideas that can use Nigerian Pidgin, Nigerian social dynamics, WhatsApp/group chat behavior, transport stress, family/auntie/uncle dynamics, NEPA/light/data realities, local food/home situations, and day-to-day Nigerian creator life.
+- A creator in India may want ideas that can use Hinglish, Indian family/social dynamics, college/work pressure, commute/traffic/train realities, group chat culture, exams/study pressure, food delivery, hostel/roommate life, and day-to-day Indian creator life.
+- A creator in the US, UK, Ghana, South Africa, Philippines, etc. may each need different language rhythms, local references, daily-life anchors, and comedy expectations.
+
+This is not just translation.
+
+The goal is not:
+“Take the same English hook and translate it.”
+
+The goal is:
+“Generate ideas that feel culturally natural, locally relevant, and creator-native for that user’s region and language style.”
+
+Lumina’s core promise should remain:
+The user gets funny, personal, filmable ideas they would actually post.
+
+But region should eventually influence:
+- hook wording
+- scenario details
+- caption phrasing
+- daily-life anchors
+- situation/topic weighting
+- language style
+- slang intensity
+- cultural context
+- filming reality
+- what feels relatable or cringe in that region
+
+Important:
+Do not assume every user from a country wants the local dialect or slang.
+The app should eventually distinguish between:
+- region
+- language style
+- slang/local-language intensity
+- creator preference
+
+For example:
+A Nigerian creator may want:
+- clean English
+- English + light Pidgin
+- full Nigerian Pidgin style
+
+An Indian creator may want:
+- clean English
+- English + light Hinglish
+- stronger Hinglish style
+
+A user’s selected region should not force one language style automatically.
+
+The product should avoid fake, awkward, or stereotyped localization.
+Bad regional comedy is worse than no regional comedy.
+
+If Lumina is not confident in a regional wording style, it should prefer clean natural English with locally relevant scenario details rather than awkward slang.
+
+What I need from you now:
+Audit the current codebase and tell me whether Lumina currently supports this vision.
+
+Specifically answer:
+
+1. Where is region currently selected in the app?
+2. Where is region stored?
+3. Does region reach the ideator/backend generation input?
+4. Do hooks currently change by region?
+5. Do scenarios currently change by region?
+6. Do captions currently change by region?
+7. Does Film-This-Now change by region?
+8. Does Claude/fallback receive region context?
+9. Is there any existing regional corpus, regional scenario catalog, language-style config, or localization layer?
+10. Are all regions currently getting basically the same output?
+11. What parts of the current engine would need to become region-aware later?
+12. What risks do you see with adding regional comedy incorrectly?
+13. What is the smallest safe future plan to support this vision without overbuilding?
+
+Do not build anything yet.
+Do not add regional slang yet.
+Do not change prompts yet.
+Do not add a regional corpus yet.
+Do not change generation behavior yet.
+
+Return only:
+- current-state audit
+- gaps
+- risks
+- recommended future phases
+- files/areas involved
+- what should not be touched yet
+
+The goal is to understand the current state before deciding how to build regional comedy correctly.
