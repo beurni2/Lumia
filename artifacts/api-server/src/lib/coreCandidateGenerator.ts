@@ -194,7 +194,14 @@ export type CoreCandidateRejectionReason =
   | "template_stiffness_phrase"
   | "bad_grammar_by_past_participle"
   | "hook_topic_noun_drift"
-  | "verb_anchor_implausible";
+  | "verb_anchor_implausible"
+  // PHASE UX3.2 — Authored Scenario Planner rejection reasons.
+  // Same additive overlay pattern as UX3 + UX3.1 above; keeps the
+  // recipe loop's `lastReason` + per-reason counter map type-clean
+  // when the cohesive author surfaces a UX3.2 verdict.
+  | "impossible_physical_action_on_abstract"
+  | "placeholder_filming_phrase"
+  | "authored_domain_used_generic_template";
 
 export type CoreCandidateAttempt = {
   coreId: string;
@@ -563,7 +570,10 @@ const EMPTY_REASONS: Record<
   | "template_stiffness_phrase"
   | "bad_grammar_by_past_participle"
   | "hook_topic_noun_drift"
-  | "verb_anchor_implausible",
+  | "verb_anchor_implausible"
+  | "impossible_physical_action_on_abstract"
+  | "placeholder_filming_phrase"
+  | "authored_domain_used_generic_template",
   number
 > = {
   no_contradiction: 0,
@@ -589,6 +599,10 @@ const EMPTY_REASONS: Record<
   bad_grammar_by_past_participle: 0,
   hook_topic_noun_drift: 0,
   verb_anchor_implausible: 0,
+  // PHASE UX3.2 — Authored Scenario Planner additions.
+  impossible_physical_action_on_abstract: 0,
+  placeholder_filming_phrase: 0,
+  authored_domain_used_generic_template: 0,
 };
 
 /** Spec — was 3 in Y5; Y6 walked 5 (domain, anchor) recipes per
@@ -649,7 +663,10 @@ export function generateCoreCandidates(
     | "template_stiffness_phrase"
     | "bad_grammar_by_past_participle"
     | "hook_topic_noun_drift"
-    | "verb_anchor_implausible",
+    | "verb_anchor_implausible"
+    | "impossible_physical_action_on_abstract"
+    | "placeholder_filming_phrase"
+    | "authored_domain_used_generic_template",
     number
   > = { ...EMPTY_REASONS };
   // PHASE D4 — per-batch reject-source roll-up. Mutated whenever

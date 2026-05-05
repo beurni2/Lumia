@@ -304,6 +304,19 @@ export type CandidateMeta = PatternMeta | {
   ideaCoreFamily?: IdeaCoreFamily;
   energy?: Energy;
   /**
+   * PHASE UX3.2 — `authoredPlanId` is the domainId of the
+   * `AUTHORED_SCENARIO_PLANS` entry the cohesive author rendered
+   * from (one of: inbox / alarm / calendar / fridge / highlighter /
+   * gym / tab / profile / junk / mirror). Absent when the generic
+   * shape templates rendered. Telemetry-only — pipeline never
+   * branches on it. Surfaces in `qaTelemetry.perIdea` so the
+   * `authored_domain_used_generic_template` validator and
+   * `ux32LiveQa.ts` harness can verify which authoring path each
+   * shipped `core_native` candidate took. Optional everywhere —
+   * Llama / Claude wraps never set it.
+   */
+  authoredPlanId?: string;
+  /**
    * Archetype + family — IDEA ARCHETYPE spec axes. Llama / Claude
    * fallback wraps may set these via `resolveArchetypeLoose(scriptType)`
    * at wrap time; absent when scriptType isn't in the registered

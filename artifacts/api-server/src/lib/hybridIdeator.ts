@@ -259,6 +259,12 @@ export type HybridIdeatorResult = {
       hookQualityScore?: number;
       anchor?: string;
       premiseCoreId?: string;
+      /** PHASE UX3.2 — domainId of the authored scenario plan the
+       *  cohesive author rendered from. Present only when a
+       *  `core_native` candidate hit the AUTHORED_SCENARIO_PLANS
+       *  fast-path; absent for generic-template renders + all
+       *  Llama / Claude wraps. */
+      authoredPlanId?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -4843,6 +4849,13 @@ export async function runHybridIdeator(
       hookQualityScore: m.hookQualityScore,
       anchor,
       premiseCoreId: (m as { premiseCoreId?: string }).premiseCoreId,
+      // PHASE UX3.2 — surface the authored-plan domainId so QA
+      // harness + the `authored_domain_used_generic_template`
+      // validator can verify which authoring path each shipped
+      // `core_native` candidate took. Absent for non-`core_native`
+      // candidates and for `core_native` candidates whose anchor
+      // wasn't in the authored set.
+      authoredPlanId: (m as { authoredPlanId?: string }).authoredPlanId,
     };
   });
 

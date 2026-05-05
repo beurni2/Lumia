@@ -53,6 +53,12 @@ import {
   resolveAnchorAwareAction,
 } from "./coreDomainAnchorCatalog.js";
 import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
+import {
+  selectAuthoredPlan,
+  ABSTRACT_ANCHORS,
+  ABSTRACT_TO_CONCRETE_PROP,
+  type AuthoredScenarioPlan,
+} from "./authoredScenarioPlans.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -405,101 +411,186 @@ export function authorCohesiveIdea(
     240,
   );
 
-  // ---- 3. whatToShow -------------------------------------------- //
-  // PHASE D1 — Pre-D1 was ONE deterministic template per recipe,
-  // producing identical sentence shapes across batches (the
-  // "Open with the X on screen. Camera holds as i Y..." that
-  // appeared in the post-Y11 trash report). Now: a 4-shape pool
-  // rotated by djb2(`${core.id}|${anchor}|wts`). Each shape
-  // preserves the construction precondition (contains anchorLc
-  // AND ends on the contradiction beat — see the validator below).
-  // PHASE UX3.1 — full template rewrite. Pre-UX3.1 the pool leaked
-  // a stiffness vocabulary that the UX3 cleanup only partially
-  // caught (deliberately/scene/direct-to-camera) but missed
-  // sibling phrases (knowingly, once-slow, land-the-contradiction,
-  // with-intent, on-purpose, end-beat:, frame-the-X-center,
-  // hand-held — frame, look-straight-at-the-lens, deadpan-as-
-  // direction). Each shape below reads as a real shoot direction
-  // a creator could actually film while preserving the
-  // construction precondition (anchor present + final sentence
-  // ends on the action verb form, validated below).
-  const showShapes: ReadonlyArray<(a: string, ab: string, ap: string) => string> = [
-    (a, ab, ap) =>
-      `Camera on the ${a}, you in frame next to it. Beat 1: glance at the ${a}. Beat 2: shrug. Beat 3: i ${ap} the ${a}.`,
-    (a, ab, ap) =>
-      `Set the ${a} down where the camera can see it. Sit beside it for a second like you're thinking. Then ${ab} the ${a} and walk out of frame.`,
-    (a, ab, ap) =>
-      `Static wide of the ${a}. Step in, pick the ${a} up, put it back. One more beat — then ${ab} the ${a} for real this time.`,
-    (a, ab, ap) =>
-      `Phone propped low so the ${a} dominates the foreground. You enter behind it, hesitate, and ${ab} the ${a} — end on your face mid-realization.`,
-  ];
-  const showIdx =
-    djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
-  const whatToShow = capChars(showShapes[showIdx]!(anchorLc, actionBare, actionPast), 500);
+  // ---- 3. whatToShow / howToFilm / shotPlan / trigger / reaction //
+  //         / caption — AUTHORED PLAN PATH (PHASE UX3.2)            //
+  // ---------------------------------------------------------------- //
+  // PHASE UX3.2 — Authored Scenario Planner. For the 10 high-
+  // frequency anchors (inbox, alarm, calendar, fridge, highlighter,
+  // gym, tab, profile, junk, mirror) the cohesive author renders
+  // the scene from a hand-curated plan instead of stitching the
+  // generic shape templates. The plan supplies pre-rendered
+  // whatToShow / howToFilm / shotPlan / trigger / reaction /
+  // caption surfaces and the construction precondition's END-ON-
+  // VERB check is bypassed (the plan's payoff IS the curated
+  // contradiction beat — it's quality-controlled by hand, not
+  // shape-stitched).
+  //
+  // For abstract anchors NOT in the authored set (thread, tasks,
+  // rsvp, doc, yoga, swipe, bio, app, draft, syllabus,
+  // flashcards, wallpaper, lockscreen) the author falls back to
+  // the generic show/film templates BUT swaps the bare anchor
+  // for a concrete-prop phrase from `ABSTRACT_TO_CONCRETE_PROP`
+  // so the templates' physical "set down / pick up" verbs apply
+  // to a real shootable object instead of an abstraction.
+  const authoredPlan: AuthoredScenarioPlan | null =
+    selectAuthoredPlan(anchorLc);
 
-  // ---- 4. howToFilm --------------------------------------------- //
-  // PHASE D1 — same de-templating treatment. 4 phrasings rotated
-  // by `${core.id}|${anchor}|htf`. Anchor still appears verbatim
-  // so the construction precondition (filmContainsAnchor) holds.
-  const filmShapes: ReadonlyArray<(a: string, ab: string) => string> = [
-    (a, ab) =>
-      `Phone propped chest height, single take. Keep yourself and the ${a} in the same frame the whole time. Cut the second you ${ab} the ${a}.`,
-    (a, ab) =>
-      `Counter-height shelf shot, one continuous take. The ${a} stays visible from start to finish. The moment you ${ab} the ${a} is the cut.`,
-    (a, ab) =>
-      `Wide-ish framing — the ${a} sits in the lower third. No edits. Walk in, do the ${ab} beat once, then leave the frame.`,
-    (a, ab) =>
-      `Locked-off on tripod or shelf, the ${a} always in shot. Step in, ${ab} the ${a} on the beat, step out — single take, no music.`,
-  ];
-  const filmIdx =
-    djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
-  const howToFilm = capChars(filmShapes[filmIdx]!(anchorLc, actionBare), 400);
+  let whatToShow: string;
+  let howToFilm: string;
+  let shotPlan: string[];
+  let trigger: string;
+  let reaction: string;
+  let caption: string;
 
-  // ---- 5. shotPlan (3 beats keeps scoreFilmability max) --------- //
-  // PHASE UX3.1 — cleaned beat 2 ("with intent" stiffness removed)
-  // and beat 3 pool ("presenting evidence" cliche removed; all six
-  // entries now read as real human reactions a creator can perform).
-  const shotPlanBeat3: ReadonlyArray<(a: string) => string> = [
-    (a) => `Hold: let the ${a} sit in frame one more beat, no reaction.`,
-    (a) => `Hold: look at the ${a}, nod once like you accept this, then cut.`,
-    (a) => `Hold: slow blink at the ${a}, then walk out of frame.`,
-    (a) => `Hold: stare at the ${a} like it owes you money, then cut.`,
-    (a) => `Hold: close your eyes for a second, exhale, then cut.`,
-    (a) => `Hold: rest your hand on the ${a}, sigh once, then cut.`,
-  ];
-  const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
-  const shotPlan: string[] = [
-    `Wide-ish: enter the frame with the ${anchorLc} visible.`,
-    `Medium: ${actionBare} the ${anchorLc} in one clear gesture.`,
-    shotPlanBeat3[beat3Idx]!(anchorLc),
-  ];
+  if (authoredPlan) {
+    // ── Authored path ─────────────────────────────────────────── //
+    // Plan surfaces are byte-for-byte rendered (no templating);
+    // variants are picked by djb2 so the same plan re-used across
+    // cores still varies trigger/reaction/caption between batches.
+    const trigIdx =
+      djb2(`${core.id}|${anchor}|trg`) % authoredPlan.triggerVariants.length;
+    const reactIdx =
+      djb2(`${core.id}|${anchor}|rxn`) % authoredPlan.reactionVariants.length;
+    const capIdx =
+      djb2(`${core.id}|${anchor}|cap`) % authoredPlan.captionVariants.length;
+    whatToShow = capChars(authoredPlan.whatToShow, 500);
+    howToFilm = capChars(authoredPlan.howToFilm, 400);
+    shotPlan = [
+      authoredPlan.shotPlan[0],
+      authoredPlan.shotPlan[1],
+      authoredPlan.shotPlan[2],
+    ];
+    trigger = capChars(authoredPlan.triggerVariants[trigIdx]!, 140);
+    reaction = capChars(authoredPlan.reactionVariants[reactIdx]!, 140);
+    caption = capChars(authoredPlan.captionVariants[capIdx]!, 140);
+  } else {
+    // ── Generic path (with abstract-anchor prop substitution) ──── //
+    // For abstract anchors with no plan, render the showShapes /
+    // filmShapes templates against a CONCRETE PROP phrase that
+    // CONTAINS the anchor token (so showContainsAnchor /
+    // filmContainsAnchor preconditions still hold) instead of
+    // substituting the bare abstract noun directly.
+    const isAbstract = ABSTRACT_ANCHORS.has(anchorLc);
+    const renderNoun = isAbstract
+      ? (ABSTRACT_TO_CONCRETE_PROP[anchorLc] ?? anchorLc)
+      : anchorLc;
 
-  // ---- 6. caption ----------------------------------------------- //
-  // PHASE D1 — 4 caption shapes rotated by core/anchor djb2.
-  // Same de-templating fix as whatToShow/howToFilm — pre-D1 the
-  // single shape produced verbatim repetition across batches
-  // (e.g. "the trick is to never look directly at the problem"
-  // observed twice in the post-Y11 14-idea screenshot set).
-  // PHASE Z5.5 — expanded from 4 to 10 caption shapes to reduce
-  // tail-pattern repetition ("lying about it now", "fine probably",
-  // "pretending it didn't" appeared across every small sample).
-  const captionShapes: ReadonlyArray<(a: string, ap: string, d: string) => string> = [
-    (a, ap, d) => `the ${a} thing again. ${ap} it. fine probably. ${d}.`,
-    (a, ap, d) => `${ap} the ${a}. lying about it now. ${d}, basically.`,
-    (a, ap, d) => `the ${a} won. ${d} update: i'm pretending it didn't.`,
-    (a, ap, d) => `me + ${a} = unresolved. ${d} edition. send help maybe.`,
-    (a, ap, d) => `${ap} the ${a} and immediately regretted it. ${d} moment.`,
-    (a, ap, d) => `${a} 1, me 0. ${d} scoreboard is not great.`,
-    (a, ap, d) => `tried to ignore the ${a}. the ${a} did not ignore me. ${d}.`,
-    (a, ap, d) => `just ${ap} the ${a} like that was a normal thing to do. ${d} era.`,
-    (a, ap, d) => `the ${a} situation is evolving. i am not. ${d} report.`,
-    (a, ap, d) => `committed to the ${a}. commitment lasted 4 seconds. ${d}.`,
-  ];
-  const capIdx = djb2(`${core.id}|${anchor}|cap`) % captionShapes.length;
-  const caption = capChars(
-    captionShapes[capIdx]!(anchorLc, actionPast, humanize(domain)),
-    140,
-  );
+    // PHASE D1 — Pre-D1 was ONE deterministic template per recipe,
+    // producing identical sentence shapes across batches. Now: a
+    // 4-shape pool rotated by djb2(`${core.id}|${anchor}|wts`).
+    // PHASE UX3.1 — full template rewrite to drop stiffness
+    // vocabulary. Each shape preserves the construction
+    // precondition (contains anchorLc AND ends on the
+    // contradiction beat).
+    // PHASE UX3.2 — abstract anchors render against a concrete
+    // prop ("phone open to the inbox") instead of the bare
+    // abstract noun ("the inbox") so "set the X down" / "pick the
+    // X up" templates land on shootable objects.
+    const showShapes: ReadonlyArray<
+      (n: string, ab: string, ap: string) => string
+    > = [
+      (n, _ab, ap) =>
+        `Camera on the ${n}, you in frame next to it. Beat 1: glance at the ${n}. Beat 2: shrug. Beat 3: i ${ap} the ${anchorLc}.`,
+      (n, ab, _ap) =>
+        `Set the ${n} down where the camera can see it. Sit beside it for a second like you're thinking. Then ${ab} the ${anchorLc} and walk out of frame.`,
+      (n, ab, _ap) =>
+        `Static wide of the ${n}. Step in, pick the ${n} up, put it back. One more beat — then ${ab} the ${anchorLc} for real this time.`,
+      (n, ab, _ap) =>
+        `Phone propped low so the ${n} dominates the foreground. You enter behind it, hesitate, and ${ab} the ${anchorLc} — end on your face mid-realization.`,
+    ];
+    const showIdx =
+      djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
+    whatToShow = capChars(
+      showShapes[showIdx]!(renderNoun, actionBare, actionPast),
+      500,
+    );
+
+    const filmShapes: ReadonlyArray<(n: string, ab: string) => string> = [
+      (n, ab) =>
+        `Phone propped chest height, single take. Keep yourself and the ${n} in the same frame the whole time. Cut the second you ${ab} the ${anchorLc}.`,
+      (n, ab) =>
+        `Counter-height shelf shot, one continuous take. The ${n} stays visible from start to finish. The moment you ${ab} the ${anchorLc} is the cut.`,
+      (n, ab) =>
+        `Wide-ish framing — the ${n} sits in the lower third. No edits. Walk in, do the ${ab} beat on the ${anchorLc} once, then leave the frame.`,
+      (n, ab) =>
+        `Locked-off on tripod or shelf, the ${n} always in shot. Step in, ${ab} the ${anchorLc} on the beat, step out — single take, no music.`,
+    ];
+    const filmIdx =
+      djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
+    howToFilm = capChars(
+      filmShapes[filmIdx]!(renderNoun, actionBare),
+      400,
+    );
+
+    // shotPlan beat 3 pool (PHASE UX3.1 cleaned).
+    const shotPlanBeat3: ReadonlyArray<(a: string) => string> = [
+      (a) => `Hold: let the ${a} sit in frame one more beat, no reaction.`,
+      (a) => `Hold: look at the ${a}, nod once like you accept this, then cut.`,
+      (a) => `Hold: slow blink at the ${a}, then walk out of frame.`,
+      (a) => `Hold: stare at the ${a} like it owes you money, then cut.`,
+      (a) => `Hold: close your eyes for a second, exhale, then cut.`,
+      (a) => `Hold: rest your hand on the ${a}, sigh once, then cut.`,
+    ];
+    const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
+    shotPlan = [
+      `Wide-ish: enter the frame with the ${renderNoun} visible.`,
+      `Medium: ${actionBare} the ${anchorLc} in one clear gesture.`,
+      shotPlanBeat3[beat3Idx]!(anchorLc),
+    ];
+
+    // PHASE UX3.1 — trigger pool (filmable verbs).
+    const triggerShapes: ReadonlyArray<(a: string, ab: string) => string> = [
+      (a, _ab) => `Show the ${a} on camera, out loud, in one clear beat.`,
+      (a, ab) =>
+        `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one visible motion.`,
+      (a, ab) => `Open on the ${a}, then ${ab} it without hesitation.`,
+      (a, ab) => `Frame the ${a}, pause for a beat, then ${ab} it.`,
+      (a, ab) => `Let the ${a} sit in frame for one second before you ${ab} it.`,
+      (a, ab) => `Walk up to the ${a} and ${ab} it like nothing happened.`,
+    ];
+    const trigIdx = djb2(`${core.id}|${anchor}|trg`) % triggerShapes.length;
+    trigger = capChars(triggerShapes[trigIdx]!(anchorLc, actionBare), 140);
+
+    // PHASE Z5.5 — rotating reaction pool.
+    const reactionShapes: ReadonlyArray<(a: string) => string> = [
+      (a) => `Close the laptop gently like the ${a} hurt your feelings.`,
+      (a) => `Lower the phone like the ${a} betrayed you personally.`,
+      (a) => `Freeze mid-action while the ${a} realization loads.`,
+      (a) => `Walk away from the ${a} with fake dignity.`,
+      (a) => `Pretend to check your phone to survive the ${a} moment.`,
+      (a) => `Put the ${a} back and act like nothing happened.`,
+      (a) => `Sit down slowly and accept the ${a} consequences.`,
+      (a) => `Stare at the ${a} like it is legally binding.`,
+      (a) => `Nod once at the ${a} like you expected this betrayal.`,
+      (a) => `Blink twice at the ${a}, then carry on like a professional.`,
+    ];
+    const reactIdx = djb2(`${core.id}|${anchor}|rxn`) % reactionShapes.length;
+    reaction = capChars(reactionShapes[reactIdx]!(anchorLc), 140);
+
+    // PHASE D1/Z5.5 — caption pool.
+    const captionShapes: ReadonlyArray<
+      (a: string, ap: string, d: string) => string
+    > = [
+      (a, ap, d) => `the ${a} thing again. ${ap} it. fine probably. ${d}.`,
+      (a, ap, d) => `${ap} the ${a}. lying about it now. ${d}, basically.`,
+      (a, ap, d) => `the ${a} won. ${d} update: i'm pretending it didn't.`,
+      (a, ap, d) => `me + ${a} = unresolved. ${d} edition. send help maybe.`,
+      (a, ap, d) =>
+        `${ap} the ${a} and immediately regretted it. ${d} moment.`,
+      (a, ap, d) => `${a} 1, me 0. ${d} scoreboard is not great.`,
+      (a, ap, d) =>
+        `tried to ignore the ${a}. the ${a} did not ignore me. ${d}.`,
+      (a, ap, d) =>
+        `just ${ap} the ${a} like that was a normal thing to do. ${d} era.`,
+      (a, ap, d) => `the ${a} situation is evolving. i am not. ${d} report.`,
+      (a, ap, d) => `committed to the ${a}. commitment lasted 4 seconds. ${d}.`,
+    ];
+    const capIdx = djb2(`${core.id}|${anchor}|cap`) % captionShapes.length;
+    caption = capChars(
+      captionShapes[capIdx]!(anchorLc, actionPast, humanize(domain)),
+      140,
+    );
+  }
 
   // ---- 7. whyItWorks -------------------------------------------- //
   // PHASE D1 — 4 shape rotation. Each preserves the (mechanism,
@@ -524,37 +615,6 @@ export function authorCohesiveIdea(
     ),
     280,
   );
-
-  // ---- 8. trigger / reaction (filmable verbs + visible response) //
-  // PHASE UX3.1 — trigger pool rewritten to drop "with intent" /
-  // "commit to the X beat" stiffness; each entry reads as a
-  // physical action the creator performs on camera.
-  const triggerShapes: ReadonlyArray<(a: string, ab: string) => string> = [
-    (a, ab) => `Show the ${a} on camera, out loud, in one clear beat.`,
-    (a, ab) => `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one visible motion.`,
-    (a, ab) => `Open on the ${a}, then ${ab} it without hesitation.`,
-    (a, ab) => `Frame the ${a}, pause for a beat, then ${ab} it.`,
-    (a, ab) => `Let the ${a} sit in frame for one second before you ${ab} it.`,
-    (a, ab) => `Walk up to the ${a} and ${ab} it like nothing happened.`,
-  ];
-  const trigIdx = djb2(`${core.id}|${anchor}|trg`) % triggerShapes.length;
-  const trigger = capChars(triggerShapes[trigIdx]!(anchorLc, actionBare), 140);
-
-  // PHASE Z5.5 — rotating reaction pool replaces single "deadpan stare" template
-  const reactionShapes: ReadonlyArray<(a: string) => string> = [
-    (a) => `Close the laptop gently like the ${a} hurt your feelings.`,
-    (a) => `Lower the phone like the ${a} betrayed you personally.`,
-    (a) => `Freeze mid-action while the ${a} realization loads.`,
-    (a) => `Walk away from the ${a} with fake dignity.`,
-    (a) => `Pretend to check your phone to survive the ${a} moment.`,
-    (a) => `Put the ${a} back and act like nothing happened.`,
-    (a) => `Sit down slowly and accept the ${a} consequences.`,
-    (a) => `Stare at the ${a} like it is legally binding.`,
-    (a) => `Nod once at the ${a} like you expected this betrayal.`,
-    (a) => `Blink twice at the ${a}, then carry on like a professional.`,
-  ];
-  const reactIdx = djb2(`${core.id}|${anchor}|rxn`) % reactionShapes.length;
-  const reaction = capChars(reactionShapes[reactIdx]!(anchorLc), 140);
 
   // ---- 9. script ------------------------------------------------ //
   // PHASE Z5.5 — LINE 3 uses core.tension (human-readable) instead of
@@ -631,30 +691,21 @@ export function authorCohesiveIdea(
   // end on the contradiction beat (verb form of action). Surface a
   // construction failure rather than letting the comedy gate
   // discover it later.
+  // PHASE UX3.2 — when the AUTHORED plan path rendered the show /
+  // film / shotPlan, the END-ON-VERB check is bypassed. The
+  // plan's payoff sentence IS the curated contradiction beat (e.g.
+  // "Mute the alarm without sitting up. Stare at the ceiling.")
+  // — quality-controlled by hand, not stitched from action verbs.
+  // Anchor-presence checks still apply.
   const showLc = whatToShow.toLowerCase();
   const filmLc = howToFilm.toLowerCase();
   const hookLcContainsAnchor = hookLower.includes(anchorLc);
   const showContainsAnchor = showLc.includes(anchorLc);
   const filmContainsAnchor = filmLc.includes(anchorLc);
-  // Truly check the contradiction beat lives at the END of the
-  // scene, not anywhere — extract the FINAL SENTENCE (split on
-  // [.!?]) and look for the action verb there via word-boundary
-  // regex. The previous version also cropped to the last 8 words
-  // of that sentence, but the canonical end-beat template
-  // (`End beat: i ${actionPast} the ${anchorLc} and look straight
-  // to camera, deadpan.`) is 12 words and `${actionPast}` sits at
-  // word 4 — the crop chopped the verb out and tripped
-  // construction_failed for every candidate. Final-sentence
-  // word-boundary is the correct semantic of "ends on the
-  // contradiction" while still being terminal-position (not
-  // anywhere in the show). Word-boundary rules out short-action
-  // substring false positives (e.g. `lie` matching inside `lies`
-  // / `belief`).
-  const showEndsContradiction = showEndsOnContradiction(
-    showLc,
-    actionBare,
-    actionPast,
-  );
+  const showEndsContradiction =
+    authoredPlan !== null
+      ? true
+      : showEndsOnContradiction(showLc, actionBare, actionPast);
   if (
     !hookLcContainsAnchor ||
     !showContainsAnchor ||
@@ -680,12 +731,20 @@ export function authorCohesiveIdea(
   if (coherenceReason) return { ok: false, reason: coherenceReason };
 
   // ---- 14. Build meta ------------------------------------------- //
+  // PHASE UX3.2 — `authoredPlanId` is the plan's domainId (e.g.
+  // "inbox") when the authored plan path ran; absent when the
+  // generic shape templates rendered. Telemetry-only — pipeline
+  // never branches on it. Surfaces in qaTelemetry.perIdea so
+  // ux32LiveQa.ts and the new authored_domain_used_generic_template
+  // validator can verify which path each shipped core_native idea
+  // took.
   const meta: CandidateMeta = {
     source: "core_native",
     usedBigPremise: true,
     premiseCoreId: core.id,
     ...(premiseStyleId ? { premiseStyleId } : {}),
     executionId,
+    ...(authoredPlan ? { authoredPlanId: authoredPlan.domainId } : {}),
   };
 
   // ---- 15. Comedy + anti-copy gates ----------------------------- //

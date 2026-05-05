@@ -77,6 +77,10 @@ import {
   isVerbAnchorImplausible,
   FAMILY_ACTIONS,
 } from "./coreDomainAnchorCatalog.js";
+import {
+  ABSTRACT_ANCHORS,
+  getAuthoredAnchorSet,
+} from "./authoredScenarioPlans.js";
 
 export type ScenarioCoherenceReason =
   | "deliberate_template_artifact"
@@ -88,7 +92,11 @@ export type ScenarioCoherenceReason =
   | "template_stiffness_phrase"
   | "bad_grammar_by_past_participle"
   | "hook_topic_noun_drift"
-  | "verb_anchor_implausible";
+  | "verb_anchor_implausible"
+  // PHASE UX3.2 additions
+  | "impossible_physical_action_on_abstract"
+  | "placeholder_filming_phrase"
+  | "authored_domain_used_generic_template";
 
 const STOPWORDS = new Set<string>([
   "the","a","an","and","or","but","if","then","of","for","to","in","on","at","by",
@@ -321,6 +329,135 @@ export function validateScenarioCoherence(
   // (9) verb-anchor implausibility on rendered surfaces.
   if (findFirstImplausibleVerbAnchor(allRenderedLc) !== null) {
     return "verb_anchor_implausible";
+  }
+
+  // ── UX3.2 rules (NEW — fire AFTER the existing rules) ───────────
+
+  // (10) impossible physical action on an abstract anchor.
+  // The 19 abstract anchors (gym, inbox, calendar, profile, thread,
+  // tasks, mood, vibe, plan, deadline, week, morning, evening,
+  // mirror, rsvp, doc, yoga, swipe, bio, app, draft, syllabus,
+  // flashcards, wallpaper, lockscreen, junk) cannot literally be
+  // "set down" / "picked up" / "dodged" / "moved" / "dropped" by
+  // a creator on camera — they're concepts, screens, or places.
+  // Catches verbatim "set the inbox down" / "pick the gym up" /
+  // "dodge the calendar" patterns. The cohesive author's UX3.2
+  // generic-fallback path swaps the bare abstract noun for a
+  // concrete prop phrase ("phone open to the inbox") so this
+  // pattern shouldn't fire from the legitimate render path; this
+  // rule defends against pattern-engine candidates and any future
+  // regression that bypasses the prop-substitution branch.
+  // PHASE UX3.2 (post-architect-review) — the directional adverb
+  // (up|down|away|over|out|aside) is REQUIRED, not optional. The
+  // earlier optional form false-fired on the concrete-prop swap
+  // path: e.g. for the `gym` anchor, prop swap renders "Set the
+  // gym shoes by the door down where the camera can see it." which
+  // matched `set the gym` even though the actual direct object is
+  // the prop phrase ("gym shoes by the door"), not the bare anchor.
+  // Requiring the adverb guarantees the rule only fires when the
+  // anchor IS the direct object — which is the actual impossible
+  // construction we want to catch ("set the inbox down", "pick
+  // the gym up", "dodge the calendar away"). Generic-template
+  // emissions on the swap path are caught by rule 12 instead.
+  for (const abstractAnchor of ABSTRACT_ANCHORS) {
+    const escAnchor = abstractAnchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(
+      `\\b(set|pick|dodge|move|drop|grab|toss|throw|push|kick|carry|hold)\\s+(?:the\\s+)?${escAnchor}\\s+(up|down|away|over|out|aside)\\b`,
+    );
+    if (re.test(allRenderedLc)) {
+      return "impossible_physical_action_on_abstract";
+    }
+  }
+
+  // (11) placeholder / "Lean into the X beat" / "the reveal lands
+  // here" / "let the props carry the deadpan" filming phrases.
+  // These are the literal placeholder strings the pre-UX3.2
+  // film-this-now placeholder beat + ux31 comfortAdaptCopy emitted
+  // when the idea didn't actually have a concrete twist beat to
+  // describe. Caught here so neither the cached idea path nor any
+  // future template regression can ship them.
+  const PLACEHOLDER_PHRASES: ReadonlyArray<RegExp> = [
+    /\blean into the\s+\w+\s+beat\b/,
+    /\bthe\s+\w+(?:\s+\w+)?\s+lands here\b/,
+    /\blet the (?:contradiction|shift|reveal) (?:widen|breathe)\b/,
+    /\blet the props carry\b/,
+    /\bprops carry the deadpan\b/,
+    /\bend beat\s*:/,
+  ];
+  for (const re of PLACEHOLDER_PHRASES) {
+    if (re.test(allRenderedLc)) {
+      return "placeholder_filming_phrase";
+    }
+  }
+
+  // (12) authored domain shipped with a generic-template signature.
+  // Fires only when one of the 10 hand-curated authored anchors is
+  // BOTH the apparent topic AND appears INSIDE one of the generic
+  // shape-template signatures the cohesive author's GENERIC fallback
+  // emits when no authored plan was selected.
+  //
+  // The signatures below are SUBSTITUTION-PROOF: they all key off
+  // patterns the generic templates render with `${anchorLc}` (the
+  // bare authored anchor token) — which is preserved verbatim even
+  // when the abstract-anchor concrete-prop swap turns `${n}` into
+  // `phone showing the inbox`. This was the gap in the first cut:
+  // earlier signatures keyed off `${n}` patterns that never matched
+  // for abstract authored anchors because `${n}` had been swapped.
+  //
+  // Per-anchor anchored regexes (instead of one global regex with
+  // an alternation over all anchors) keep legacy fixtures from
+  // spuriously firing — the matched anchor token must also literally
+  // be present in the rule output.
+  const authoredAnchors = getAuthoredAnchorSet();
+  for (const a of authoredAnchors) {
+    const escAnchor = a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const sigs: ReadonlyArray<RegExp> = [
+      // L493 generic show shape 1: "...Beat 3: i ${ap} the ${anchorLc}."
+      new RegExp(`\\bbeat 3: i \\w+ the ${escAnchor}\\b`),
+      // L495 generic show shape 2: "...Then ${ab} the ${anchorLc} and walk out of frame."
+      new RegExp(`\\b\\w+ the ${escAnchor} and walk out of frame\\b`),
+      // L497 generic show shape 3: "...then ${ab} the ${anchorLc} for real this time."
+      new RegExp(`\\b\\w+ the ${escAnchor} for real this time\\b`),
+      // L499 generic show shape 4: "...${ab} the ${anchorLc} — end on your face mid-realization."
+      new RegExp(
+        `\\b\\w+ the ${escAnchor}\\s+[—–-]\\s+end on your face mid-realization\\b`,
+      ),
+      // L510 generic film shape 1: "...Cut the second you ${ab} the ${anchorLc}."
+      new RegExp(`\\bcut the second you \\w+ the ${escAnchor}\\b`),
+      // L512 generic film shape 2: "...The moment you ${ab} the ${anchorLc} is the cut."
+      new RegExp(
+        `\\bthe moment you \\w+ the ${escAnchor} is the cut\\b`,
+      ),
+      // L514 generic film shape 3: "...do the ${ab} beat on the ${anchorLc} once..."
+      new RegExp(`\\bdo the \\w+ beat on the ${escAnchor}\\b`),
+      // L516 generic film shape 4: "...${ab} the ${anchorLc} on the beat, step out..."
+      new RegExp(`\\b\\w+ the ${escAnchor} on the beat,\\s+step out\\b`),
+      // L537 generic shotPlan beat 2: "Medium: ${actionBare} the ${anchorLc} in one clear gesture."
+      new RegExp(
+        `\\bmedium:\\s+\\w+ the ${escAnchor} in one clear gesture\\b`,
+      ),
+      // L536 generic shotPlan beat 1: "Wide-ish: enter the frame with the ${renderNoun} visible."
+      // When concrete-prop swap fires, `renderNoun` is one of the
+      // ABSTRACT_TO_CONCRETE_PROP entries — and the authored anchor
+      // token can sit anywhere inside that prop phrase (head:
+      // "gym shoes by the door"; middle: "phone with the alarm
+      // ringing"; tail: "phone open to the calendar"). Two bounded
+      // `.{0,80}?` spans — one between `with` and the anchor, one
+      // between the anchor and `visible` — accept all three layouts
+      // while still requiring both the "wide-?ish: enter the frame
+      // with" preamble AND the "visible" sentence tail. False-fire
+      // risk is constrained by the literal preamble + tail (legacy
+      // fixtures with unrelated authored-anchor tokens elsewhere in
+      // the corpus don't carry that exact preamble + tail bracket).
+      new RegExp(
+        `\\bwide-?ish: enter the frame with .{0,80}?\\b${escAnchor}\\b.{0,80}?visible\\b`,
+      ),
+    ];
+    for (const re of sigs) {
+      if (re.test(allRenderedLc)) {
+        return "authored_domain_used_generic_template";
+      }
+    }
   }
 
   return null;

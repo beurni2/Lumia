@@ -56,44 +56,66 @@ type FullIdea = IdeaCardData & {
 };
 
 /**
- * PHASE UX3 — pure copy adapter for the timeline beats.
+ * PHASE UX3.2 — comfort adapter (concrete-instruction overlay).
  *
- * Rewrites face/voice-dependent prompt language inside derived
- * beat copy when the active comfort mode rules them out. The
- * substitutions are intentionally LITERAL string swaps (not
- * sentence-aware NLP) because the source strings come from
- * deterministic server-side templates we already control —
- * teaching the templates to avoid the phrases would be cleaner,
- * but a no-server-change UX3 budget rules that out for now.
- * Server templates can adopt comfort-aware phrasing in a future
- * pass; until then this client-side overlay keeps the surface
- * coherent for `no_face` / `no_voice` creators.
+ * Pre-UX3.2 this was a client-side regex phrase-swap table that
+ * rewrote face/voice prompt language in place ("direct to camera"
+ * → "hold the silence on the action"; "deadpan" → "let the props
+ * carry the deadpan"). The user QA verdict on UX3.1 flagged the
+ * "let the props carry the deadpan" output as unfilmable
+ * placeholder copy, and the swap pattern itself fundamentally
+ * cannot generate concrete alternate framings — it can only
+ * substring-rewrite existing copy.
+ *
+ * UX3.2 replacement: APPEND a concrete additional sentence
+ * describing the alternate filming setup (hands-only / over-
+ * shoulder / phone-on-tripod-pointed-at-prop for `no_face`;
+ * on-screen text card placement / caption-only delivery / music-
+ * led pacing for `no_voice`) so the creator gets a real
+ * instruction they can execute. Plus a narrow targeted swap of
+ * the literal "to camera" / "say it out loud" phrases — but
+ * crucially WITHOUT the banned UX3.1 placeholder substitutions
+ * ("let the props carry the deadpan" / "hold the silence" etc.).
  *
  * `comfortMode === null` is the identity case → returns the
  * source unchanged. Unknown modes also identity-return so
  * future server modes don't crash the screen.
  */
+const NO_FACE_APPENDIX =
+  "Hands-only or over-the-shoulder framing. Tripod or phone propped on a shelf, lens pointed at the prop — your hands enter and leave the frame, your face never has to.";
+const NO_VOICE_APPENDIX =
+  "On-screen text card carries the line — type it as a caption overlay timed to the beat. Let the music or ambient room sound lead pacing instead of voice.";
+
 function comfortAdaptCopy(
   text: string,
   comfortMode: ComfortMode | null,
 ): string {
   if (!text || !comfortMode) return text;
+  let body = text;
   if (comfortMode === "no_face") {
-    return text
-      .replace(/\bdirect to camera\b/gi, "hold the silence on the action")
-      .replace(/\bstraight to camera\b/gi, "hold the silence on the action")
-      .replace(/\blook (?:straight )?(?:at|into|to) (?:the )?camera\b/gi, "hold on the action")
+    // Targeted face-prompt removals — replace face-only directions
+    // with prop / hands directions. NO "let the props carry the
+    // deadpan" / "hold the silence" placeholder substitutions
+    // (those are the UX3.1 phrases the user rejected).
+    body = body
+      .replace(/\bdirect to camera\b/gi, "in frame on the prop")
+      .replace(/\bstraight to camera\b/gi, "in frame on the prop")
+      .replace(
+        /\blook (?:straight )?(?:at|into|to) (?:the )?camera\b/gi,
+        "stay on the prop",
+      )
       .replace(/\bto camera\b/gi, "in frame")
-      .replace(/\bdeadpan\b/gi, "let the props carry the deadpan")
-      .replace(/\bframe yourself\b/gi, "frame the scene")
+      .replace(/\bframe yourself\b/gi, "frame the prop")
       .replace(/\byou and the\b/gi, "the");
+    return `${body} ${NO_FACE_APPENDIX}`;
   }
   if (comfortMode === "no_voice") {
-    return text
-      .replace(/\bsay (?:this |it )?out loud\b/gi, "show it on caption")
+    body = body
+      .replace(/\bsay (?:this |it )?out loud\b/gi, "type it as caption")
       .replace(/\bout loud\b/gi, "on caption")
       .replace(/\bsay this\b/gi, "caption this")
       .replace(/\bsay it\b/gi, "caption it");
+    return `${body} ${NO_VOICE_APPENDIX}`;
   }
   return text;
 }
@@ -358,26 +380,38 @@ export default function FilmThisNowScreen() {
                 </View>
               ) : null}
 
-              {/* TWIST — actionEnd → twistEnd. Sourced from the
-                  emotionalSpike + payoffType pair when present;
-                  otherwise narrate the structural shift the idea
-                  implies. We never invent — the row hides
-                  entirely if both signals are absent. */}
-              {idea.emotionalSpike || idea.payoffType ? (
-                <View style={styles.beat}>
-                  <Text style={styles.beatTime}>
-                    {fmt(actionEnd)}&ndash;{fmt(twistEnd)}s
-                  </Text>
-                  <Text style={styles.beatLabel}>TWIST</Text>
-                  <Text style={styles.beatBody}>
-                    {idea.emotionalSpike && idea.payoffType
-                      ? `Lean into the ${idea.emotionalSpike} beat — the ${idea.payoffType.replace(/_/g, " ")} lands here.`
-                      : idea.emotionalSpike
-                        ? `Lean into the ${idea.emotionalSpike} beat — let the contradiction widen.`
-                        : `The ${idea.payoffType?.replace(/_/g, " ")} lands here — let the shift breathe before the payoff.`}
-                  </Text>
-                </View>
-              ) : null}
+              {/* TWIST — actionEnd → twistEnd. PHASE UX3.2 fix:
+                  pre-UX3.2 this beat synthesised "Lean into the
+                  ${spike} beat — the ${payoff} lands here." copy
+                  from the emotionalSpike + payoffType tags when
+                  no concrete twist source was present. The user
+                  QA verdict on UX3.1 flagged that placeholder
+                  pattern as unfilmable. UX3.2 sources twist copy
+                  from concrete idea fields ONLY (shotPlan beat 2
+                  → trigger → reaction tail) and HIDES the row
+                  entirely when no concrete source is available
+                  rather than emit a placeholder. */}
+              {(() => {
+                const sp = idea.shotPlan;
+                const twistSource =
+                  Array.isArray(sp) && sp.length >= 2 && sp[1]
+                    ? sp[1]
+                    : idea.trigger
+                      ? idea.trigger
+                      : null;
+                if (!twistSource) return null;
+                return (
+                  <View style={styles.beat}>
+                    <Text style={styles.beatTime}>
+                      {fmt(actionEnd)}&ndash;{fmt(twistEnd)}s
+                    </Text>
+                    <Text style={styles.beatLabel}>TWIST</Text>
+                    <Text style={styles.beatBody}>
+                      {comfortAdaptCopy(twistSource, comfortMode)}
+                    </Text>
+                  </View>
+                );
+              })()}
 
               {/* PAYOFF — twistEnd → payoffEnd. Reaction wins
                   when present; whyItWorks is the fallback. */}

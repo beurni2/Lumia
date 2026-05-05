@@ -1,0 +1,172 @@
+UX3.1 is not accepted as complete.
+
+The obvious malformed phrases are improved, but live QA still shows the core product problem:
+scenarios are mechanically valid but not human-filmable enough.
+
+Examples that still fail human QA:
+
+1. Hook: "my own inbox knows i'm faking it again"
+Scenario: "Set the inbox down where the camera can see it... dodge the inbox..."
+Problem: You do not set down/dodge an inbox. This should be an email/laptop avoidance scene.
+
+2. Hook: "my own junk is exposing me back!!"
+Scenario: "Static wide of the junk... expose the junk..."
+Problem: Generic noun-swap. No concrete human action.
+
+3. Hook: "WHY does the highlighter keep overthinking itself"
+Scenario: "overthink the highlighter"
+Problem: Highlighter does not overthink. The human should over-highlight notes/textbook.
+
+4. Hook: "the gym itself isn't the problem. i am."
+Scenario: "pick the gym up, put it back"
+Problem: Impossible physical action.
+
+5. Hook: "the alarm itself is the entire pattern"
+Scenario: "pick the alarm up, put it back... snooze the alarm"
+Problem: Too generic. Should be a snooze/blanket/phone scene.
+
+6. Film-This-Now beat:
+"Lean into the panic beat — the reveal lands here."
+Problem: Not a filming instruction. It is placeholder language.
+
+7. No-face adaptation:
+"let the props carry the deadpan"
+Problem: Awkward and not actionable.
+
+Conclusion:
+UX3.1 cleaned phrases but did not solve scenario authoring. We need UX3.2 — Authored Scenario Planner.
+
+Goal:
+Replace generic object+verb scenario templates with authored, domain-specific scenario plans for common anchors/domains.
+
+Hard rules:
+- No migrations.
+- No API breaking changes.
+- No validator loosening.
+- Preserve UX3 refresh/excludeHooks.
+- Preserve Hero/Retention/Calibration scoring.
+- Keep tests and TypeScript passing.
+- Do not only add more validators. Fix the authoring strategy.
+
+Core requirement:
+For high-frequency anchors/domains, generate scenarios from domain-authored plans, not generic "object in frame + verb object" templates.
+
+Build authored scenario planners for at least these domains:
+
+1. Inbox/email/work messages
+Good scene:
+Open inbox or fake inbox. Show unread count. Start replying, delete the reply, switch tabs, come back, mark nothing as read.
+Payoff:
+Close laptop halfway, then reopen it because avoidance failed.
+
+2. Alarm/sleep denial
+Good scene:
+Phone alarm rings. Hand snoozes. Alarm rings again. Hand slides phone under pillow/blanket while it keeps buzzing.
+Payoff:
+Blanket slowly covers phone.
+
+3. Calendar/plans/regret
+Good scene:
+Open calendar or fake group chat plan. Show commitment from yesterday. Present-self freezes. Type "rain check?" then hesitate.
+Payoff:
+Pull blanket higher or close calendar.
+
+4. Fridge/food denial
+Good scene:
+Open fridge. Look at leftovers/vegetables. Close fridge. Immediately open delivery app or grab snack.
+Payoff:
+Close fridge with respect like it won.
+
+5. Highlighter/study/school
+Good scene:
+Open notes/textbook. Highlight one sentence. Then another. Then the whole paragraph/page. Understand less.
+Payoff:
+Put highlighter down like it betrayed you.
+
+6. Gym/fitness avoidance
+Good scene:
+Put on gym shoes or open fitness app. Move toward door. Sit down to check phone. Still sitting there later.
+Payoff:
+Shoes stay on, workout never starts.
+
+7. Browser tab/fake productivity
+Good scene:
+Open laptop with work tab. Open another tab. Then another. Suddenly 12 tabs and no task completed.
+Payoff:
+Close one tab proudly like progress happened.
+
+8. Profile/story-view mistake
+Good scene:
+Open fake/demo profile/story. Accidentally tap or view something. Freeze. Close app too late.
+Payoff:
+Put phone down like evidence.
+
+9. Junk/room clutter
+Good scene:
+Camera shows clutter pile. Move one item. Reveal more clutter underneath. Put item back like the pile has structural integrity.
+Payoff:
+Walk away and call it "organized."
+
+10. Mirror/confidence betrayal
+Good scene:
+Walk into frame confident. Catch reflection. Pause. Lean closer. Immediately adjust lighting/hair or leave frame.
+Payoff:
+Turn off light or back away like the mirror got personal.
+
+Implementation:
+- Create a scenario planner that maps anchor/domain/topicLane to authored scenario plan.
+- Prefer authored scenario plan when anchor/domain matches.
+- Only fall back to generic templates if no authored family exists.
+- Generic fallback must not use impossible physical actions.
+- Remove/avoid "pick up {non-physical domain}" for domains like gym, inbox, calendar, thread, profile.
+- Remove abstract beats like "Lean into the panic beat" and replace with concrete action.
+- Replace no-face/no-voice adaptations with actual alternate instructions, not phrase swaps.
+
+Scenario quality floor:
+Every shipped scenario must answer:
+1. What object/screen/place is shown?
+2. What physical action happens?
+3. What changes or gets revealed?
+4. What is the final visual payoff?
+5. Why does this match the hook?
+
+Reject/repair if any answer is unclear.
+
+Tests:
+Add tests for the exact current failures:
+- inbox should not say set down/dodge inbox
+- gym should not say pick up gym
+- highlighter should not say overthink highlighter
+- alarm should use snooze/blanket/phone, not generic put back
+- no Film-This-Now beat should say "reveal lands here"
+- no no-face adaptation should say "props carry the deadpan"
+- every authored domain has concrete setup/action/twist/payoff
+
+QA:
+Generate live samples after fix for:
+- inbox
+- alarm
+- calendar
+- fridge
+- highlighter
+- gym
+- tab
+- profile
+- junk
+- mirror
+
+For each include:
+hook
+whatToShow
+howToFilm
+Film-This-Now 6 beats
+why it passes human filmability
+
+Success criteria:
+- 0 impossible actions
+- 0 generic object+verb noun swaps
+- 0 placeholder filming phrases
+- 0 hook/scenario mismatches
+- scenarios are understandable without explanation
+- tests pass
+- TypeScript clean
