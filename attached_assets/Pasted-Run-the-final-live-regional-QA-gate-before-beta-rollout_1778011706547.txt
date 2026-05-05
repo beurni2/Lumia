@@ -1,0 +1,75 @@
+Run the final live regional QA gate before beta rollout.
+
+Context:
+R4/R2/R3 regional beta support is shipped:
+- R4 voice-cluster regional bias
+- R2 Claude fallback prompt polish
+- R3 region-tagged anchor catalog
+- 557/557 tests pass
+- Typecheck clean for changed files
+- No migrations
+- No API breaking changes
+- No validator loosening
+- Claude remains fallback only
+- Western/undefined paths are byte-identical
+- Architect HIGH/MEDIUM findings fixed
+
+Important:
+Synthetic harnesses confirm wiring only. They do not approve beta rollout.
+
+Goal:
+Run live qualitative QA using the actual ideator path for each supported region:
+- western
+- nigeria
+- india
+- philippines
+
+Generate 20 live ideas per region.
+
+For each idea, report:
+- region
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source/path
+- usedFallback
+- region anchor used yes/no
+- detected region anchor if any
+- scenario coherence result
+- human-filmable yes/no
+- regional relevance yes/no
+- forced/stereotyped wording yes/no
+- safety issue yes/no
+- notes
+
+For each region, include 3 Film-This-Now examples:
+- setup
+- hook/overlay
+- action
+- twist/reveal
+- payoff
+- caption
+- comfort mode adaptation if relevant
+
+Acceptance criteria per region:
+- at least 18/20 human-filmable
+- 0 hook/scenario mismatches
+- 0 generic verb-object nonsense
+- 0 impossible actions
+- 0 safety failures
+- 0 forced/stereotyped phrasing
+- non-western regions should show region-relevant daily-life detail in at least 50–60% of ideas
+- western baseline should not regress
+- fallback trigger rate should not increase in a concerning way
+
+Also report:
+- kept-rate vs western baseline
+- fallback-trigger-rate delta vs western
+- region-anchor usage percentage
+- top repeated anchors/topics
+- any weak outputs
+- whether beta can launch in all regions
+
+Do not make code changes during this QA unless a P0 blocker is found.
+If any region fails, stop and report the failing examples before proposing fixes.
