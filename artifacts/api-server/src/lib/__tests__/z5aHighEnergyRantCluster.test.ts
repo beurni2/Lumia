@@ -184,6 +184,8 @@ describe("Z5a — high_energy_rant cluster registration", () => {
         privacyAvoidances: [],
         preferredHookStyles: [],
         selectedSituations: [],
+        languageStyle: null,
+        slangIntensity: 0,
         completedAt: null,
         skipped: false,
       };
@@ -218,6 +220,8 @@ describe("Z5a — high_energy_rant cluster registration", () => {
       privacyAvoidances: [],
       preferredHookStyles: [],
       selectedSituations: [],
+      languageStyle: null,
+      slangIntensity: 0,
       completedAt: null,
       skipped: false,
     };

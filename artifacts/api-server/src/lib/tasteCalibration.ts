@@ -64,6 +64,30 @@ export const privacyAvoidanceEnum = z.enum([
 ]);
 export type PrivacyAvoidance = z.infer<typeof privacyAvoidanceEnum>;
 
+// PHASE N1 — language-style dial for region-aware hook generation.
+// Currently consumed ONLY by the Nigerian Comedy Pack infrastructure
+// (see `lib/nigerianHookPack.ts`), which is dark behind the
+// `LUMINA_NG_PACK_ENABLED` env flag and ships with an empty pool.
+// Nothing in the cohesive author / pattern ideator / Claude prompt
+// currently reads this field — adding it now is purely additive
+// JSONB plumbing so the mobile picker and pack draw can land
+// independently. Default `null` keeps every pre-N1 calibration doc
+// byte-identical when re-parsed; default `null` also short-circuits
+// the pack-activation guard (`canActivateNigerianPack`) so cross-
+// region leak is impossible by construction.
+//
+// Future regions will widen the enum (e.g. `light_hinglish`,
+// `light_taglish`); the mobile UI surfaces options conditionally on
+// `region`, and the pack guard hard-couples each tier to its
+// region. Adding new enum values is additive — old docs continue
+// to parse cleanly because the field is `.nullable().default(null)`.
+export const languageStyleEnum = z.enum([
+  "clean",
+  "light_pidgin",
+  "pidgin",
+]);
+export type LanguageStyle = z.infer<typeof languageStyleEnum>;
+
 export const preferredHookStyleEnum = z.enum([
   "behavior_hook",
   "thought_hook",
@@ -131,6 +155,22 @@ export const tasteCalibrationSchema = z.object({
   // Default is `[]` so pre-Z5.8 docs still parse cleanly (additive
   // schema change, no migration).
   selectedSituations: z.array(situationEnum).max(4).default([]),
+  // PHASE N1 — additive language-style dial. Consumed ONLY by the
+  // Nigerian Comedy Pack pack-activation guard (dark behind the
+  // `LUMINA_NG_PACK_ENABLED` env flag, ships with an empty pool).
+  // `null` is the universal default — keeps every pre-N1 doc byte-
+  // identical on re-parse AND short-circuits pack activation so a
+  // creator on any region with any flag state behaves identically
+  // to pre-N1 unless they EXPLICITLY pick `light_pidgin` / `pidgin`
+  // AND the server-side flag is on AND the pack is non-empty.
+  languageStyle: languageStyleEnum.nullable().default(null),
+  // PHASE N1 — companion intensity dial (0 = none, 1 = light, 2 =
+  // full). Reserved for future per-tier weighting of pack draws;
+  // unused by the current activation guard but persisted on the doc
+  // so the mobile UI can land its picker before the engine wires
+  // in tier-aware pack selection. Default 0 = byte-identical for
+  // pre-N1 docs.
+  slangIntensity: z.number().int().min(0).max(2).default(0),
   // ISO-8601 timestamp; null when `skipped: true`.
   completedAt: z.string().datetime().nullable().default(null),
   skipped: z.boolean().default(false),

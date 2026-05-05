@@ -16,6 +16,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - `CLAUDE_API_KEY`: API key for Claude Haiku 4.5.
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI (used by Llama mutator).
 - `EXPO_PUBLIC_SHOW_POST_BETA_SURFACES`: Feature flag for beta surfaces (default: `false`).
+- `LUMINA_NG_PACK_ENABLED`: Nigerian Comedy Pack feature flag (default: `false`). Must be the literal string `"true"` to enable; only meaningful once the pack is populated and the integration site is wired (currently dark).
 
 ## Stack
 
@@ -42,6 +43,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Region Profile (R1 baseline + R4 voice bias + R2 fallback prompt):** `artifacts/api-server/src/lib/regionProfile.ts`
 - **Region Anchor Catalog (R3):** `artifacts/api-server/src/lib/regionAnchorCatalog.ts`
 - **Regional QA Harnesses (R1/R2/R3/R4):** `artifacts/api-server/src/qa/regionalR{1,2,3,4}Qa.ts` → outputs in `.local/REGIONAL_R{1,2,3,4}_QA.md`
+- **Nigerian Comedy Pack (N1, DARK):** `artifacts/api-server/src/lib/nigerianHookPack.ts` (atomic 8-field entries, empty pool, boot asserts, central activation guard); QA harness `artifacts/api-server/src/qa/nigerianPackQa.ts` → `.local/REGIONAL_N1_QA.md`
 
 ## Architecture decisions
 
@@ -50,6 +52,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Additive Development:** New features are layered as additive overlays, preserving existing functionality and minimizing schema/migration changes. Data changes are often pure TypeScript.
 - **Quality-First LLM Mutation:** Llama 3.1 hook mutation only replaces original content if it scores strictly better, preventing quality regressions.
 - **Layered Diversity & Novelty:** Utilizes multiple axes (script type, archetype, scene object tag, hook language style, voice profile, hook fingerprint, anchor, region) with tiered penalties and boosts to ensure diversity and freshness across generated ideas and batches.
+- **N1 Nigerian Comedy Pack (DARK INFRASTRUCTURE):** Pack ships EMPTY behind the `LUMINA_NG_PACK_ENABLED` env flag (default off). Activation requires ALL FOUR conditions via `canActivateNigerianPack`: `region === "nigeria"`, `languageStyle ∈ {"light_pidgin","pidgin"}`, flag on, `packLength > 0`. Cross-region leak is impossible by construction (non-nigeria short-circuits). Nigeria-clean and `null` languageStyle are byte-identical to pre-N1. The recipe-render path in `coreCandidateGenerator` is intentionally NOT wired in N1 — keeps byte-identity proof trivial. Pack entries are atomic (hook + whatToShow + howToFilm + caption + anchor + domain + pidginLevel + reviewedBy); the agent CANNOT author entries — `reviewedBy` (initials + date of a Nigerian native speaker) is a hard boot precondition. Mocking-spelling regex catches cartoonised vowel stretching, NEPA "light just took" cliché, yahoo/419 tropes, etc. Additive `languageStyle`/`slangIntensity` fields on `tasteCalibrationSchema` default to `null`/`0` so pre-N1 docs round-trip byte-identically.
 - **Staged Regional Beta (R1→R4→R2→R3):** Non-western regions (nigeria/india/philippines) get layered, additive overlays — R1 deterministic caption/howToFilm decoration, R4 voice-cluster +slot bias (+1/+2 per region), R2 Claude-fallback prompt polish (clean English default + anti-stereotype + privacy notes; the generic "code-switch to slang" line is dropped for non-western and the per-region block is the sole source of truth), R3 small curated region anchor catalog (6 anchors per region) prepended to recipe queue at deterministic 25% gate per (salt, coreId), capped at 3 prefix recipes so the catalog queue still gets ≥5 of the 8 per-core attempts. Western and undefined-region paths are byte-identical to pre-overlay baseline at every phase. **Live 20-idea-per-region QA is a manual gate before beta rollout** — the synthetic harnesses (`qa/regionalR{1,2,3,4}Qa.ts`) verify the wiring is correct but live Claude + cohesive-author output quality remains untested.
 
 ## Product
@@ -74,6 +77,7 @@ I prefer to develop iteratively and see changes frequently. Please ask before ma
 - **LLM Rate Limits:** Be mindful of daily quotas and per-minute rate limits for AI calls.
 - **Determinism:** Many ideator components rely on deterministic hashing and seeded randomness for reproducibility in QA and consistent user experience. Avoid introducing non-deterministic elements where determinism is expected.
 - **Additive Layers:** When adding new features, ensure they are additive and preserve the behavior of frozen upstream phases.
+- **N1 Pack Activation:** Never relax `canActivateNigerianPack` — all four AND-conditions are the cross-region leak guard. Never author Pidgin entries inside the pack — `reviewedBy` must be a real Nigerian native speaker stamp; the boot assert will refuse blank ones. The pre-existing typecheck errors in `retentionNoveltyScorer.test.ts` and `z57RetentionQa.test.ts` (`rewriteAttempted` / `"guilt"`) are unrelated to N1 and pre-date this phase.
 
 ## Pointers
 
