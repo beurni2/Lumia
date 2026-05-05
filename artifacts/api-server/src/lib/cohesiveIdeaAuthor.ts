@@ -60,6 +60,8 @@ import {
   ABSTRACT_TO_CONCRETE_PROP,
   type AuthoredScenarioPlan,
 } from "./authoredScenarioPlans.js";
+import { decorateForRegion } from "./regionProfile.js";
+import type { Region } from "@workspace/lumina-trends";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -91,6 +93,16 @@ export type CohesiveAuthorInput = {
    *  Jaccard ≥ 0.85 on bigrams; the cache is still keyed on the
    *  set passed in). */
   seedFingerprints: ReadonlySet<string>;
+  /** PHASE R1 — optional region for deterministic regional baseline
+   *  decoration. When supplied AND not `"western"`, the
+   *  `decorateForRegion` adapter appends light per-domain context
+   *  to `caption`, `howToFilm`, and `whyItWorks` AFTER all
+   *  validators have already passed on the BASE idea (so decoration
+   *  cannot CAUSE a rejection). Western and undefined both
+   *  short-circuit to identity — pre-R1 baseline is byte-identical
+   *  on those paths. See `regionProfile.ts` for the safety
+   *  contract decoration text is hand-vetted against. */
+  region?: Region;
 };
 
 export type CohesiveAuthorResult =
@@ -847,9 +859,59 @@ export function authorCohesiveIdea(
     action: actionBare,
   });
 
+  // ---- 17. PHASE R1 — regional baseline decoration -------------- //
+  // Apply AFTER all validators (comedy / anti-copy / scenario
+  // coherence) have already passed on the BASE idea above. The
+  // adapter is a no-op for `region === "western"` and
+  // `region === undefined`, so cold-start creators and the western
+  // baseline are byte-identical to pre-R1 by construction.
+  //
+  // Decoration touches ONLY the three free-text fields with no
+  // anchor / contradiction positional constraint downstream:
+  // `caption`, `howToFilm`, `whyItWorks`. Hook / premise /
+  // whatToShow / shotPlan / trigger / reaction are not touched, so
+  // the construction precondition (anchor presence + end-on-
+  // contradiction) and scenario fingerprint remain valid as
+  // computed above.
+  //
+  // Defense in depth: re-run the scenarioCoherence guard against
+  // the decorated idea so any future decoration regression is
+  // caught at author time rather than shipping silently. The R1
+  // copy in `regionProfile.ts` is hand-vetted against every active
+  // rule, so the re-check is expected to pass; if it ever fires
+  // we fail loud as a regression signal rather than degrading to
+  // a silent ship of bad copy.
+  const decoration = decorateForRegion({
+    region: input.region,
+    domain,
+    caption: parsed.data.caption,
+    howToFilm: parsed.data.howToFilm,
+    whyItWorks: parsed.data.whyItWorks,
+  });
+  const decoratedIdea: Idea =
+    decoration.decorated.length === 0
+      ? parsed.data
+      : {
+          ...parsed.data,
+          caption: decoration.caption,
+          howToFilm: decoration.howToFilm,
+          whyItWorks: decoration.whyItWorks,
+        };
+  if (decoration.decorated.length > 0) {
+    const postDecorReason = validateScenarioCoherence(decoratedIdea);
+    if (postDecorReason) {
+      // Regression signal: a regionProfile.ts entry slipped past
+      // hand-vetting and now trips a validator rule. Surface as a
+      // standard rejection so the recipe loop tries another recipe
+      // and the rejection is counted by reason in telemetry. This
+      // path should NEVER fire in steady state.
+      return { ok: false, reason: postDecorReason };
+    }
+  }
+
   return {
     ok: true,
-    idea: parsed.data,
+    idea: decoratedIdea,
     meta,
     scenarioFingerprint,
     // PHASE D15-alt — surface the self-exemption event (if any)

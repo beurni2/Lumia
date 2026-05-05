@@ -3828,6 +3828,13 @@ export async function runHybridIdeator(
     // parsed once at the top of this function (L3199); re-use it
     // here instead of re-parsing.
     tasteCalibration: calibration,
+    // PHASE R1 — thread the request region through to the cohesive
+    // author so each shipped core_native idea gets the deterministic
+    // regional baseline decoration applied to its caption /
+    // howToFilm / whyItWorks copy. `"western"` and `undefined`
+    // short-circuit to identity inside the adapter, so cold-start
+    // and western creators are byte-identical to pre-R1.
+    region: input.region,
   });
   logger.info(
     {

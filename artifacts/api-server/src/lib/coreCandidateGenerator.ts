@@ -71,6 +71,7 @@ import type {
   PreferredTone,
 } from "./tasteCalibration.js";
 import { scoreHookQuality } from "./hookQuality.js";
+import type { Region } from "@workspace/lumina-trends";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -163,6 +164,13 @@ export type GenerateCoreCandidatesInput = {
    *  default in `FAMILY_VOICE`. Parse failures must be coerced
    *  to `null` upstream — the resolver does not retry parsing. */
   tasteCalibration?: TasteCalibration | null;
+  /** PHASE R1 — optional region for deterministic regional
+   *  baseline decoration. Threaded straight through to
+   *  `authorCohesiveIdea`. `"western"` / `undefined` short-circuit
+   *  the decoration adapter to identity, so cold-start and western
+   *  creators are byte-identical to pre-R1. See
+   *  `regionProfile.ts` for the decoration safety contract. */
+  region?: Region;
 };
 
 /** Y6 widens the rejection-reason union with `construction_failed`
@@ -790,6 +798,12 @@ export function generateCoreCandidates(
         regenerateSalt: salt,
         recentPremises,
         seedFingerprints,
+        // PHASE R1 — pass through optional region for deterministic
+        // regional baseline decoration in the cohesive author.
+        // `undefined` / `"western"` short-circuit to identity inside
+        // the adapter, so cold-start and western creators are
+        // byte-identical to pre-R1.
+        ...(input.region ? { region: input.region } : {}),
       });
       if (!result.ok) {
         const r = result.reason as CohesiveAuthorRejectionReason;

@@ -1,0 +1,192 @@
+Implement R1 — Deterministic Regional Baseline for Multi-Region Beta.
+
+Context:
+Lumina will run beta across every supported region. Claude must remain fallback only. Regional comedy cannot depend on Claude. The deterministic engine needs a minimum region-aware baseline so users in different regions do not all receive the exact same hooks/scenarios/captions/Film-This-Now details.
+
+Current audit findings:
+- Region is selected in onboarding.
+- Supported bundles: western, india, philippines, nigeria.
+- Region is stored on creators.region and ideas.region.
+- Region reaches /api/ideator/generate and hybridIdeator.
+- Claude fallback receives region context.
+- Deterministic core is mostly region-blind:
+  - cohesiveIdeaAuthor has no region branch
+  - coreDomainAnchorCatalog has no region branch
+  - authoredScenarioPlans has no region branch
+  - scenarioCoherence is English-only
+  - voiceClusters are English-only
+  - Film-This-Now is region-blind
+- This is not enough for multi-region beta.
+
+Product requirement:
+Lumina should understand that humor, daily life, filming reality, and language rhythm differ by region.
+
+Claude should not be used as the main regionalization layer.
+Claude stays fallback only.
+
+Goal:
+Add a minimal deterministic region-aware baseline for beta.
+
+Hard rules:
+- No broad rewrite.
+- No API breaking changes.
+- No validator loosening.
+- No migration unless absolutely necessary.
+- Prefer existing creators.region.
+- Preserve Claude as fallback only.
+- Preserve Hero Quality, Retention Novelty, selectedSituations, situation scoring, UX1/UX2/UX3/UX3.3.
+- Preserve current western baseline quality.
+- Keep tests passing and TypeScript clean.
+- Avoid fake, heavy, stereotyped slang.
+- Do not force dialect based only on country.
+
+Supported region bundles for this phase:
+- western
+- nigeria
+- india
+- philippines
+
+Important language rule:
+Do not assume every user wants local dialect/slang.
+For R1, use clean English with light region-natural phrasing and local daily-life details.
+If existing UI already has a language-style choice, respect it.
+If not, do not add heavy slang yet.
+Use conservative local flavor only.
+
+Regional baseline should affect:
+1. scenario anchors
+2. daily-life details
+3. caption flavor lightly
+4. Film-This-Now scene details
+5. topic/domain weighting where safe
+
+Regional baseline should not:
+- translate everything
+- force Pidgin/Hinglish/Taglish
+- use stereotypes
+- break the English validator quality gates
+- depend on Claude
+
+Implement minimally:
+
+1. Add region profile config.
+Create a deterministic config for each region bundle with:
+- safeDailyAnchors
+- relatableContexts
+- lightPhrases
+- avoidStereotypes
+- comfortFilmingContexts
+- captionFlavorHints
+
+Examples:
+
+nigeria:
+- WhatsApp group plans
+- transport stress
+- data subscription
+- power/light interruptions if used carefully
+- market/errands
+- family/auntie/uncle dynamics, but avoid lazy stereotype overuse
+- school/work hustle
+- food/home situations
+- phone/bank alert only with fake/demo screen
+Light phrasing should be conservative, not forced full Pidgin.
+
+india:
+- group chat plans
+- college/work deadlines
+- commute/traffic/train/metro
+- family plans
+- exams/study pressure
+- hostel/roommate
+- food delivery
+- calendar/task pressure
+Light Hinglish only if safe and natural.
+
+philippines:
+- group chat plans
+- commute/traffic
+- family plans
+- school/work
+- food delivery
+- phone/data
+- friend/social plans
+- home/roommate situations
+Keep clean English with light local context unless language style exists.
+
+western:
+- preserve current baseline.
+
+2. Region-aware scenario detail injection.
+For deterministic scenarios, when region is available:
+- choose a local context only when compatible with the hook/anchor/topic
+- do not introduce unrelated region objects
+- do not override hook/scenario coherence
+- do not create multi-anchor mismatch
+- do not weaken scenario quality
+
+Example:
+calendar/plans hook:
+western: calendar / group chat / couch
+nigeria: WhatsApp group plan / transport stress / “we still moving?” style message
+india: group chat / commute or family plan / “chal?” style if safe
+philippines: group chat / commute/family plan
+
+3. Region-aware captions, light only.
+Captions may be lightly adjusted by region, but must remain natural.
+No forced heavy slang.
+No awkward dialect.
+
+4. Region-aware Film-This-Now details.
+If a scenario includes region-specific context, Film-This-Now should reflect it:
+- fake/demo WhatsApp group
+- fake calendar
+- fake delivery/cart screen
+- phone notification
+- commute/room/home setup
+Keep privacy-safe.
+
+5. Safety:
+For regional screen/chat/app ideas:
+- fake/demo/cropped screens only
+- no real private messages
+- no real bank balances
+- no IDs, salary, medical info, addresses
+- avoid sensitive cultural/political/religious assumptions
+
+6. QA:
+Generate at least 20 ideas per region:
+- western
+- nigeria
+- india
+- philippines
+
+For each region, report:
+- hooks
+- whatToShow
+- howToFilm
+- captions
+- Film-This-Now beats for 3 examples
+- region-specific details used
+- whether output still passes scenario quality
+- whether any wording feels forced/stereotyped
+
+Success criteria:
+- Each region has visibly different daily-life details in at least 60% of ideas.
+- Claude fallback is not required for regional flavor.
+- 0 safety failures.
+- 0 fake/awkward heavy slang.
+- 0 hook/scenario mismatches.
+- 0 generic verb-object nonsense.
+- Western baseline still passes current 20-idea quality bar.
+- Tests pass.
+- TypeScript clean.
+
+Report:
+1. files changed
+2. region config added
+3. where deterministic generation consumes region
+4. QA table by region
+5. examples of before/after regional detail
+6. confirmation Claude remains fallback only
+7. confirmation no migrations/API breaks/validator loosening
