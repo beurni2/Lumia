@@ -491,14 +491,23 @@ export default function HomeScreen() {
       regeneratingRef.current = true;
       setRegenerating(true);
       setErrorMsg(null);
-      // PHASE UX3 — 25s AbortController timeout. Server-side
-      // generation usually returns in 6-12s; the cap protects
-      // against a stuck Claude call leaving the user staring at
-      // a spinner indefinitely. The previous batch stays on
-      // screen no matter how this resolves (we never null out
-      // `ideas` on the failure path, see below).
+      // PHASE UX3 — AbortController timeout. Server-side generation
+      // usually returns in 6-12s; the cap protects against a stuck
+      // Claude call leaving the user staring at a spinner forever.
+      // The previous batch stays on screen no matter how this
+      // resolves (we never null out `ideas` on the failure path).
+      //
+      // PHASE UX3.3 — bumped 25s → 45s. UX3.3 added two new
+      // validator reason codes (`family_verb_leak_on_scene`,
+      // `meta_template_signature`) that cause the recipe loop to
+      // retry more often per core. Per-idea latency went up enough
+      // that `count: 3` regenerates were occasionally crossing the
+      // old 25s ceiling and surfacing "Refresh took too long" to
+      // users despite the server eventually returning a clean batch.
+      // 45s gives the recipe loop room to converge while still
+      // capping a genuinely-stuck Claude call.
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25_000);
+      const timeoutId = setTimeout(() => controller.abort(), 45_000);
       // PHASE UX3 — visible-hook exclusion list. Send the
       // current batch's hooks (lowercased + trimmed) so the
       // server can hard-reject exact repeats and soft-demote

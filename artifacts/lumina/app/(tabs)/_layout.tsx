@@ -51,6 +51,15 @@ function NativeTabLayout() {
 function ClassicTabLayout() {
   // The hive ring renders its own background, border, and orbs — we
   // strip every default tabBar style so it can float freely.
+  //
+  // PHASE UX3.3 — `earnings.tsx` is auto-discovered by expo-router's
+  // file-based router, so a bare conditional on the <Tabs.Screen>
+  // declaration only gates the OPTIONS override, NOT the route
+  // registration: the tab would still appear in the bar with default
+  // options. The documented way to hide a discovered tab is to ALWAYS
+  // declare the Screen and set `href: null` when it should be hidden
+  // (expo-router excludes `href: null` routes from `state.routes`,
+  // which the HiveTabRing reads to render orbs).
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
@@ -58,9 +67,13 @@ function ClassicTabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="studio" options={{ title: "Studio" }} />
-      {EARNINGS_VISIBLE && (
-        <Tabs.Screen name="earnings" options={{ title: "Earnings" }} />
-      )}
+      <Tabs.Screen
+        name="earnings"
+        options={{
+          title: "Earnings",
+          href: EARNINGS_VISIBLE ? undefined : null,
+        }}
+      />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
