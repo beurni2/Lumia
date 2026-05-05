@@ -210,6 +210,7 @@ async function runOneRegion(
   region: Region,
   creator: typeof schema.creators.$inferSelect,
   count: number,
+  excludeHooks: string[],
 ): Promise<RegionRun> {
   const styleProfile = styleProfileSchema.parse({});
   const t0 = Date.now();
@@ -219,8 +220,8 @@ async function runOneRegion(
       region,
       styleProfile,
       count,
-      regenerate: false,
-      excludeHooks: [],
+      regenerate: excludeHooks.length > 0,
+      excludeHooks,
       ctx: { creatorId: creator.id, agentRunId: null },
     });
     const perIdea = result.qaTelemetry?.perIdea ?? [];
@@ -375,11 +376,11 @@ function filmThisNow(idea: Idea): string {
   return lines.join("\n");
 }
 
-function renderRegionSection(o: RegionRun, COUNT_PER_REGION: number): string[] {
+function renderRegionSection(o: RegionRun, COUNT_PER_REGION: number, passLabel = "1"): string[] {
   const lines: string[] = [];
   lines.push("---");
   lines.push("");
-  lines.push(`## Region: \`${o.region}\``);
+  lines.push(`## Region: \`${o.region}\` — pass ${passLabel}`);
   lines.push("");
   if (!o.ok) {
     lines.push(`**RUN FAILED** after ${o.durationMs}ms — ${o.errMsg}`);
@@ -510,17 +511,33 @@ async function main(): Promise<void> {
     lines.length = 0;
   }
 
+  // Optional excludeHooks chaining: pass=2 reads /tmp/qa_hooks_<region>.json
+  // from a prior pass=1 run and feeds them as `excludeHooks` so the second
+  // batch produces distinct ideas (lets us hit count=20 across 2 invocations
+  // when the bash 120s/call budget can't fit a single count=20 run).
+  const passLabel = process.env.QA_PASS ?? "1";
+
   const allRuns: RegionRun[] = [];
   for (const region of targetRegions) {
-    console.error(`[liveBetaQa] running region=${region} count=${COUNT_PER_REGION}…`);
-    const o = await runOneRegion(region, demo, COUNT_PER_REGION);
+    const excludeFile = `/tmp/qa_hooks_${region}.json`;
+    const excludeHooks: string[] =
+      passLabel !== "1" && fs.existsSync(excludeFile)
+        ? (JSON.parse(fs.readFileSync(excludeFile, "utf8")) as string[])
+        : [];
+    console.error(
+      `[liveBetaQa] running region=${region} count=${COUNT_PER_REGION} pass=${passLabel} excludeHooks=${excludeHooks.length}…`,
+    );
+    const o = await runOneRegion(region, demo, COUNT_PER_REGION, excludeHooks);
     allRuns.push(o);
     console.error(
       `[liveBetaQa]   region=${region} ok=${o.ok} ideas=${o.ideas.length} ms=${o.durationMs} fallback=${o.usedFallback}`,
     );
+    // Persist this batch's hooks so a later pass can exclude them.
+    const accumulated = [...excludeHooks, ...o.ideas.map((i) => i.hook)];
+    fs.writeFileSync(excludeFile, JSON.stringify(accumulated), "utf8");
     // Flush this region's section immediately so a downstream timeout
     // can't wipe the work we already paid for.
-    const regionLines = renderRegionSection(o, COUNT_PER_REGION);
+    const regionLines = renderRegionSection(o, COUNT_PER_REGION, passLabel);
     fs.appendFileSync(outPath, regionLines.join("\n") + "\n", "utf8");
   }
 
