@@ -55,6 +55,49 @@ type FullIdea = IdeaCardData & {
   reaction?: string;
 };
 
+/**
+ * PHASE UX3 — pure copy adapter for the timeline beats.
+ *
+ * Rewrites face/voice-dependent prompt language inside derived
+ * beat copy when the active comfort mode rules them out. The
+ * substitutions are intentionally LITERAL string swaps (not
+ * sentence-aware NLP) because the source strings come from
+ * deterministic server-side templates we already control —
+ * teaching the templates to avoid the phrases would be cleaner,
+ * but a no-server-change UX3 budget rules that out for now.
+ * Server templates can adopt comfort-aware phrasing in a future
+ * pass; until then this client-side overlay keeps the surface
+ * coherent for `no_face` / `no_voice` creators.
+ *
+ * `comfortMode === null` is the identity case → returns the
+ * source unchanged. Unknown modes also identity-return so
+ * future server modes don't crash the screen.
+ */
+function comfortAdaptCopy(
+  text: string,
+  comfortMode: ComfortMode | null,
+): string {
+  if (!text || !comfortMode) return text;
+  if (comfortMode === "no_face") {
+    return text
+      .replace(/\bdirect to camera\b/gi, "hold the silence on the action")
+      .replace(/\bstraight to camera\b/gi, "hold the silence on the action")
+      .replace(/\blook (?:straight )?(?:at|into|to) (?:the )?camera\b/gi, "hold on the action")
+      .replace(/\bto camera\b/gi, "in frame")
+      .replace(/\bdeadpan\b/gi, "let the props carry the deadpan")
+      .replace(/\bframe yourself\b/gi, "frame the scene")
+      .replace(/\byou and the\b/gi, "the");
+  }
+  if (comfortMode === "no_voice") {
+    return text
+      .replace(/\bsay (?:this |it )?out loud\b/gi, "show it on caption")
+      .replace(/\bout loud\b/gi, "on caption")
+      .replace(/\bsay this\b/gi, "caption this")
+      .replace(/\bsay it\b/gi, "caption it");
+  }
+  return text;
+}
+
 export default function FilmThisNowScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -246,82 +289,115 @@ export default function FilmThisNowScreen() {
           })}
         </View>
 
-        {/* Adaptation block — only renders when a mode is
-            active. Tone is teal/match when matchesComfortMode is
-            true, dim/mismatch when false (creator can still try
-            but we tell them it's not the most natural fit so
-            they're not surprised). Safety note appears only when
-            `detectScreenSafetyContext` fires AND the active mode
-            has a registered safety note. */}
-        {adaptation ? (
-          <View
-            style={[
-              styles.adaptBlock,
-              adaptation.fits === "match"
-                ? styles.adaptBlockMatch
-                : styles.adaptBlockMismatch,
-            ]}
-            accessibilityLabel={`Comfort adaptation, ${COMFORT_MODE_LABELS[adaptation.mode]}, ${
-              adaptation.fits === "match"
-                ? "good fit for this idea"
-                : "less ideal fit for this idea"
-            }`}
-          >
-            <Text style={styles.adaptKicker}>
-              ADAPTED — {COMFORT_MODE_LABELS[adaptation.mode].toUpperCase()}
-              {adaptation.fits === "mismatch" ? " · less ideal fit" : ""}
-            </Text>
-            {adaptation.tips.map((tip, i) => (
-              <Text key={i} style={styles.adaptTip}>
-                {`• ${tip}`}
-              </Text>
-            ))}
-            {adaptation.safetyNote !== null ? (
-              <Text style={styles.adaptSafety}>
-                {`⚠  ${adaptation.safetyNote}`}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
+        {/* PHASE UX3 — 6-beat structure. Setup / Hook / Action /
+            Twist / Payoff / Caption with timestamps derived
+            proportionally from the idea's own `videoLengthSec`
+            (so a 12s idea doesn't pretend to be 18s). The split
+            is fixed-ratio against the total length:
+              Setup  : pre-roll (counts down from 0)
+              Hook   : 0 → hookSeconds (default 2)
+              Action : hookEnd → ~33% of total
+              Twist  : ~33% → ~66% of total
+              Payoff : ~66% → 100% of total
+            Captions appear AFTER the timeline beats so the
+            creator first internalizes the rhythm, then sees the
+            verbatim line. Comfort adaptation moves to AFTER
+            caption per spec — see further down. */}
+        {(() => {
+          // Beat 0 (Setup) is implicit pre-roll guidance — no
+          // timestamp. Beat 1 (Hook) lands at idea.hookSeconds.
+          // Beats 2/3/4 split the remainder into thirds so the
+          // ratio scales with videoLengthSec.
+          const hookSec = Math.max(0.5, hookEnd);
+          const remainder = Math.max(2, totalLen - hookSec);
+          const actionEnd = hookSec + remainder * (1 / 3);
+          const twistEnd = hookSec + remainder * (2 / 3);
+          const payoffEnd = totalLen;
+          const fmt = (n: number) =>
+            n < 10 ? n.toFixed(1).replace(/\.0$/, "") : n.toFixed(0);
+          return (
+            <>
+              {/* SETUP — preflight prompt; no timestamp. Adapts
+                  to comfortMode so a creator on `no_face` doesn't
+                  see "frame yourself in shot" guidance. */}
+              <View style={styles.beat}>
+                <Text style={styles.beatTime}>SETUP</Text>
+                <Text style={styles.beatLabel}>BEFORE YOU HIT RECORD</Text>
+                <Text style={styles.beatBody}>
+                  {comfortAdaptCopy(
+                    "Phone propped, single take. Frame yourself so the hook lands first, then say it straight to camera.",
+                    comfortMode,
+                  )}
+                </Text>
+              </View>
 
-        {/* Beat 1 — the hook. Always renders because every idea
-            has a hook by schema contract. */}
-        <View style={styles.beat}>
-          <Text style={styles.beatTime}>0&ndash;{hookEnd.toFixed(0)}s</Text>
-          <Text style={styles.beatLabel}>HOOK</Text>
-          <Text style={styles.beatBody}>{idea.hook}</Text>
-        </View>
+              {/* HOOK — 0 → hookSec. Schema-guaranteed field. */}
+              <View style={styles.beat}>
+                <Text style={styles.beatTime}>0&ndash;{fmt(hookSec)}s</Text>
+                <Text style={styles.beatLabel}>HOOK</Text>
+                <Text style={styles.beatBody}>{idea.hook}</Text>
+              </View>
 
-        {/* Beat 2 — what to show. Falls back to the trigger field
-            from the ideator response when whatToShow is missing
-            (cached pre-v2 batches). */}
-        {idea.whatToShow || idea.trigger ? (
-          <View style={styles.beat}>
-            <Text style={styles.beatTime}>
-              {hookEnd.toFixed(0)}&ndash;{Math.max(hookEnd + 3, 5).toFixed(0)}s
-            </Text>
-            <Text style={styles.beatLabel}>WHAT TO SHOW</Text>
-            <Text style={styles.beatBody}>
-              {idea.whatToShow ?? idea.trigger}
-            </Text>
-          </View>
-        ) : null}
+              {/* ACTION — hookSec → actionEnd. Whatever visible
+                  beat the show field describes; fallback to
+                  trigger for legacy cached ideas. comfortMode
+                  swaps "say this" / "to camera" copy hints into
+                  overlay/hands prompts when active. */}
+              {idea.whatToShow || idea.trigger ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>
+                    {fmt(hookSec)}&ndash;{fmt(actionEnd)}s
+                  </Text>
+                  <Text style={styles.beatLabel}>ACTION</Text>
+                  <Text style={styles.beatBody}>
+                    {comfortAdaptCopy(
+                      (idea.whatToShow ?? idea.trigger ?? "").toString(),
+                      comfortMode,
+                    )}
+                  </Text>
+                </View>
+              ) : null}
 
-        {/* Beat 3 — payoff / why-it-works. Reaction wins when
-            present (more concrete than whyItWorks); whyItWorks
-            is the fallback. */}
-        {idea.reaction || idea.whyItWorks ? (
-          <View style={styles.beat}>
-            <Text style={styles.beatTime}>
-              {Math.max(hookEnd + 3, 5).toFixed(0)}&ndash;
-              {totalLen.toFixed(0)}s
-            </Text>
-            <Text style={styles.beatLabel}>PAYOFF</Text>
-            <Text style={styles.beatBody}>
-              {idea.reaction ?? idea.whyItWorks}
-            </Text>
-          </View>
-        ) : null}
+              {/* TWIST — actionEnd → twistEnd. Sourced from the
+                  emotionalSpike + payoffType pair when present;
+                  otherwise narrate the structural shift the idea
+                  implies. We never invent — the row hides
+                  entirely if both signals are absent. */}
+              {idea.emotionalSpike || idea.payoffType ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>
+                    {fmt(actionEnd)}&ndash;{fmt(twistEnd)}s
+                  </Text>
+                  <Text style={styles.beatLabel}>TWIST</Text>
+                  <Text style={styles.beatBody}>
+                    {idea.emotionalSpike && idea.payoffType
+                      ? `Lean into the ${idea.emotionalSpike} beat — the ${idea.payoffType.replace(/_/g, " ")} lands here.`
+                      : idea.emotionalSpike
+                        ? `Lean into the ${idea.emotionalSpike} beat — let the contradiction widen.`
+                        : `The ${idea.payoffType?.replace(/_/g, " ")} lands here — let the shift breathe before the payoff.`}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* PAYOFF — twistEnd → payoffEnd. Reaction wins
+                  when present; whyItWorks is the fallback. */}
+              {idea.reaction || idea.whyItWorks ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>
+                    {fmt(twistEnd)}&ndash;{fmt(payoffEnd)}s
+                  </Text>
+                  <Text style={styles.beatLabel}>PAYOFF</Text>
+                  <Text style={styles.beatBody}>
+                    {comfortAdaptCopy(
+                      (idea.reaction ?? idea.whyItWorks ?? "").toString(),
+                      comfortMode,
+                    )}
+                  </Text>
+                </View>
+              ) : null}
+            </>
+          );
+        })()}
 
         {/* Shot plan — the model's bullet-list of the actual
             shots needed. Optional because pre-v2 cached batches
@@ -356,6 +432,50 @@ export default function FilmThisNowScreen() {
                 {copyConfirm ?? "Copy caption"}
               </Text>
             </Pressable>
+          </View>
+        ) : null}
+
+        {/* PHASE UX3 — Comfort adaptation block MOVED to AFTER
+            caption (was above the beats). Rationale: the
+            timeline beats above already adapt their copy to the
+            active comfortMode (`comfortAdaptCopy` swaps
+            face/voice prompts into overlay/hands prompts), so
+            this block is now a recap of WHY the timeline reads
+            the way it does, not a preamble. Only renders when a
+            mode is active. Tone is teal/match when matchesComfort-
+            Mode is true, dim/mismatch when false (creator can
+            still try but we tell them it's not the most natural
+            fit so they're not surprised). Safety note appears
+            only when `detectScreenSafetyContext` fires AND the
+            active mode has a registered safety note. */}
+        {adaptation ? (
+          <View
+            style={[
+              styles.adaptBlock,
+              adaptation.fits === "match"
+                ? styles.adaptBlockMatch
+                : styles.adaptBlockMismatch,
+            ]}
+            accessibilityLabel={`Comfort adaptation, ${COMFORT_MODE_LABELS[adaptation.mode]}, ${
+              adaptation.fits === "match"
+                ? "good fit for this idea"
+                : "less ideal fit for this idea"
+            }`}
+          >
+            <Text style={styles.adaptKicker}>
+              ADAPTED — {COMFORT_MODE_LABELS[adaptation.mode].toUpperCase()}
+              {adaptation.fits === "mismatch" ? " · less ideal fit" : ""}
+            </Text>
+            {adaptation.tips.map((tip, i) => (
+              <Text key={i} style={styles.adaptTip}>
+                {`• ${tip}`}
+              </Text>
+            ))}
+            {adaptation.safetyNote !== null ? (
+              <Text style={styles.adaptSafety}>
+                {`⚠  ${adaptation.safetyNote}`}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 

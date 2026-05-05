@@ -47,6 +47,14 @@ const bodySchema = z.object({
   // Allow a partial profile so curl callers don't have to spell out
   // every default. styleProfileSchema fills the rest.
   styleProfile: z.record(z.unknown()).optional(),
+  // PHASE UX3 — Refresh reliability: mobile sends the currently-
+  // visible hook texts (lowercased + trimmed) so the orchestrator
+  // can hard-reject exact repeats and soft-demote near-duplicates
+  // (bigram-Jaccard >= 0.5) when the user taps refresh. Capped at
+  // 20 entries — defends against a runaway client. Optional ⇒
+  // additive / non-breaking; legacy callers (curl, pre-UX3 mobile
+  // builds) flow through unchanged.
+  excludeHooks: z.array(z.string()).max(20).optional(),
 });
 
 router.post("/ideator/generate", async (req, res, next) => {
@@ -219,6 +227,11 @@ router.post("/ideator/generate", async (req, res, next) => {
           ideaRequestCountToday: usageToday.idea_request,
           llamaCallsLast2Min,
         },
+        // PHASE UX3 — visible-hook exclusion list from the mobile
+        // refresh tap. Hard-reject + soft-demote happens inside
+        // the orchestrator (see hybridIdeator). Empty / undefined
+        // when omitted — legacy non-breaking.
+        excludeHooks: body.excludeHooks,
       });
     } catch (err) {
       // Refund quota if the call failed before producing ideas, so a

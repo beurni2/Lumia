@@ -66,6 +66,8 @@ import {
 import { parseTasteCalibration } from "./tasteCalibration";
 import {
   filterAndRescore,
+  hookBigramJaccard,
+  hookWordBigrams,
   normalizeHookForDedup,
   scoreNovelty,
   selectionPenalty,
@@ -178,6 +180,28 @@ export type HybridIdeatorInput = GenerateIdeasInput & {
   creator?: Creator;
   /** Soft-penalty list of recently-used scenario families. */
   recentScenarios?: string[];
+  /**
+   * PHASE UX3 — visible-hook exclusion list from the mobile
+   * refresh tap. Lowercased + trimmed hook strings of whatever
+   * the creator can currently see on Home. The orchestrator
+   * applies a two-tier filter against the merged scored pool
+   * BEFORE selectWithNovelty:
+   *
+   *   - hard-reject any candidate whose normalized hook exactly
+   *     matches an entry (defends against deterministic local
+   *     pattern paths re-emitting the same hook on regenerate).
+   *   - soft-demote (`score.total - 8`) any candidate whose hook
+   *     bigram-Jaccard against ANY excluded hook is >= 0.5
+   *     (defends against trivial rephrases of the same idea —
+   *     same threshold the existing skeleton-similarity guard
+   *     uses, see `ideaScorer.hookBigramJaccard`).
+   *
+   * Optional / additive — when omitted or empty the filter is a
+   * no-op and the orchestrator behaves identically to pre-UX3.
+   * Capped at 20 by the route-layer Zod schema; we re-cap
+   * defensively here too in case a future caller bypasses Zod.
+   */
+  excludeHooks?: string[];
   /**
    * Per-creator usage snapshot for the Llama cost-control / anti-abuse
    * gates inside `maybeMutateBatch`. Optional — when absent, no gate
@@ -3069,6 +3093,65 @@ export function enforceTrendCap<
 }
 
 /**
+ * PHASE UX3 — visible-hook exclusion filter. Two-tier defense
+ * against the "I tapped refresh and got the same hook" failure
+ * mode reported on closed-beta dogfooding:
+ *
+ *   1. HARD-REJECT — exact lowercased+trimmed hook match against
+ *      any entry in `excludeHooks`. Drops the candidate from the
+ *      pool entirely (no rewrite, no demote — the same hook
+ *      coming back through deterministic local pattern paths is
+ *      a definitive duplicate, period).
+ *   2. SOFT-DEMOTE — bigram-Jaccard >= 0.5 against ANY excluded
+ *      hook. Keeps the candidate in the pool but subtracts 8
+ *      from `score.total` so the novelty selector below
+ *      naturally prefers a different candidate when one exists.
+ *      Same threshold the existing skeleton-similarity guard
+ *      uses (`hookBigramJaccard`); -8 is calibrated against the
+ *      0-100 score band so the demoted candidate STAYS competitive
+ *      with novel candidates near the bottom of the cut, but
+ *      LOSES to any novel candidate clustered around the median.
+ *
+ * Pure / synchronous / no I/O. No-op when the exclusion set is
+ * empty — same compile-time cost as the legacy path. Returns a
+ * fresh array; never mutates inputs (selectionPenalty downstream
+ * reads `score.total` and the score type is shared, so we MUST
+ * spread `c.score` before overriding `total`).
+ */
+function applyExcludeHooksFilter(
+  scored: ScoredCandidate[],
+  excludeHooks: ReadonlySet<string>,
+  excludeBigrams: ReadonlyArray<Set<string>>,
+): ScoredCandidate[] {
+  if (excludeHooks.size === 0) return scored;
+  const out: ScoredCandidate[] = [];
+  for (const c of scored) {
+    const hookKey = c.idea.hook.toLowerCase().trim();
+    if (excludeHooks.has(hookKey)) {
+      // Hard-reject: drop entirely.
+      continue;
+    }
+    let maxJacc = 0;
+    if (excludeBigrams.length > 0) {
+      const cBg = hookWordBigrams(c.idea.hook);
+      for (const xBg of excludeBigrams) {
+        const j = hookBigramJaccard(cBg, xBg);
+        if (j > maxJacc) maxJacc = j;
+      }
+    }
+    if (maxJacc >= 0.5) {
+      out.push({
+        ...c,
+        score: { ...c.score, total: c.score.total - 8 },
+      });
+    } else {
+      out.push(c);
+    }
+  }
+  return out;
+}
+
+/**
  * Wrap a Claude `Idea` as a scorer candidate. The fallback loses the
  * `scenarioFamily` we'd get from pattern_variation, so the scorer
  * tie-breakers naturally prefer pattern_variation when scores match.
@@ -3766,6 +3849,20 @@ export async function runHybridIdeator(
     recentPremises,
   });
 
+  // PHASE UX3 — exclusion sets built ONCE per orchestrator call
+  // and reused on both selection passes (local pool + post-merge
+  // pool). Hard-reject set is the lowercased + trimmed exact hook;
+  // bigram set is precomputed per excluded hook so the inner loop
+  // doesn't re-tokenize for every candidate.
+  const excludeHooksList: ReadonlyArray<string> = (input.excludeHooks ?? [])
+    .map((h) => h.toLowerCase().trim())
+    .filter((h) => h.length > 0)
+    .slice(0, 20);
+  const excludeHooksSet: ReadonlySet<string> = new Set(excludeHooksList);
+  const excludeBigramsList: ReadonlyArray<Set<string>> = excludeHooksList.map(
+    (h) => hookWordBigrams(h),
+  );
+
   let usedFallback = false;
   let fallbackKeptCount = 0;
   // PHASE X2 — PART 6 — captured from the fallback `filterAndRescore`
@@ -3776,6 +3873,12 @@ export async function runHybridIdeator(
   // gaps; fallback rejections argue for prompt drift).
   let fallbackRejectionReasons: typeof localResult.rejectionReasons | undefined;
   let merged: ScoredCandidate[] = localResult.kept;
+  // PHASE UX3 — apply visible-hook exclusion to the local pool
+  // BEFORE the first selection so a deterministic re-emission of
+  // a currently-visible hook never reaches selectWithNovelty.
+  // No-op when excludeHooksSet is empty (legacy callers / cold-
+  // start refresh).
+  merged = applyExcludeHooksFilter(merged, excludeHooksSet, excludeBigramsList);
 
   // -------- Step 4a: first selection on local pool ----------------
   // Run the novelty-aware selector on the local pool. If batch
@@ -3935,6 +4038,16 @@ export async function runHybridIdeator(
           (a, b) => b.score.total - a.score.total,
         );
       }
+      // PHASE UX3 — re-apply the exclusion filter on the merged
+      // pool so Claude-fallback candidates that happen to repeat a
+      // currently-visible hook (or a bigram-Jaccard-near rephrase)
+      // can't slip through the second selection pass below. Same
+      // sets reused — no extra tokenization.
+      merged = applyExcludeHooksFilter(
+        merged,
+        excludeHooksSet,
+        excludeBigramsList,
+      );
       logger.info(
         {
           event: "phase_y2.layer1_core_aware_used",

@@ -945,28 +945,33 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...type.display,
     color: "#FFFFFF",
-    marginBottom: 10,
-    fontSize: 26,
-    lineHeight: 32,
+    marginBottom: 12,
+    fontSize: 28,
+    lineHeight: 34,
   },
   heroSub: {
     ...type.body,
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 15,
-    lineHeight: 21,
-    marginBottom: 22,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 16,
+    lineHeight: 23,
+    // PHASE UX3 — extra breathing room between sub-copy and the
+    // first choice card so each Quick Tune step reads as a
+    // single deliberate question rather than a dense form.
+    marginBottom: 28,
   },
   choices: {
-    gap: 8,
-    marginBottom: 18,
+    // PHASE UX3 — taller gap + bigger cards = more "tap me"
+    // affordance on each choice. Padding + font bumps below.
+    gap: 12,
+    marginBottom: 22,
   },
   choice: {
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
   },
   choicePressed: {
     backgroundColor: "rgba(0,255,204,0.08)",
@@ -982,7 +987,9 @@ const styles = StyleSheet.create({
   choiceLabel: {
     fontFamily: fontFamily.bodyMedium,
     color: "rgba(255,255,255,0.92)",
-    fontSize: 15,
+    // PHASE UX3 — bumped one step for legibility on the larger
+    // card. choiceSub stays small so the visual hierarchy holds.
+    fontSize: 16,
   },
   choiceLabelSelected: {
     color: "#FFFFFF",
@@ -1012,13 +1019,19 @@ const styles = StyleSheet.create({
   /* ---- Continue button (PHASE Z3 multi-select advance) ---- */
   continueBtn: {
     backgroundColor: lumina.firefly,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    borderRadius: 14,
+    // PHASE UX3 — bottom-anchored CTA feel: taller pill + extra
+    // top margin so the button visually settles at the bottom
+    // of the step rather than crowding the choice cards above
+    // it. We don't truly absolute-position because MvpOnboarding
+    // owns the outer ScrollView, but the visual rank now reads
+    // as the dominant action on the step.
+    paddingVertical: 16,
+    paddingHorizontal: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
-    marginBottom: 6,
+    marginTop: 14,
+    marginBottom: 8,
     alignSelf: "stretch",
   },
   continueBtnPressed: {
@@ -1031,7 +1044,8 @@ const styles = StyleSheet.create({
   continueBtnLabel: {
     fontFamily: fontFamily.bodyBold,
     color: "#0A0824",
-    fontSize: 14,
+    // PHASE UX3 — match the larger pill from `continueBtn`.
+    fontSize: 15,
     letterSpacing: 0.4,
   },
   /* ---- Confirmation card ---- */

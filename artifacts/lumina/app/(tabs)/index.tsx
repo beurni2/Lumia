@@ -491,6 +491,23 @@ export default function HomeScreen() {
       regeneratingRef.current = true;
       setRegenerating(true);
       setErrorMsg(null);
+      // PHASE UX3 — 25s AbortController timeout. Server-side
+      // generation usually returns in 6-12s; the cap protects
+      // against a stuck Claude call leaving the user staring at
+      // a spinner indefinitely. The previous batch stays on
+      // screen no matter how this resolves (we never null out
+      // `ideas` on the failure path, see below).
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25_000);
+      // PHASE UX3 — visible-hook exclusion list. Send the
+      // current batch's hooks (lowercased + trimmed) so the
+      // server can hard-reject exact repeats and soft-demote
+      // near-duplicates (bigram-Jaccard >= 0.5). Capped at 20
+      // server-side; we cap at 20 here too defensively.
+      const excludeHooks: string[] = (ideas ?? [])
+        .map((i) => i.hook.toLowerCase().trim())
+        .filter((h) => h.length > 0)
+        .slice(0, 20);
       try {
         const fresh = await customFetch<IdeatorResponse>(
           "/api/ideator/generate",
@@ -500,7 +517,9 @@ export default function HomeScreen() {
               region,
               count: 3,
               regenerate: true,
+              excludeHooks,
             }),
+            signal: controller.signal,
           },
         );
         setIdeas(fresh.ideas);
@@ -518,6 +537,21 @@ export default function HomeScreen() {
         // Successful network round-trip — caller will see true.
         return true;
       } catch (err) {
+        // PHASE UX3 — AbortError surfaces a friendly timeout
+        // message and intentionally KEEPS the previous batch on
+        // screen (we never call setIdeas on the failure path).
+        // Same return-true contract as the structured-429 branch:
+        // the post-cal effect should not loop another silent
+        // refresh on a transient server hang.
+        const aborted =
+          controller.signal.aborted ||
+          (err instanceof Error && err.name === "AbortError");
+        if (aborted) {
+          setErrorMsg(
+            "Refresh took too long — your ideas are still here. Try again in a moment.",
+          );
+          return true;
+        }
         // Cost-control hard limit returns a structured 429 — surface
         // the server's `message` verbatim (no "HTTP 429: …" prefix
         // that buildErrorMessage would otherwise add).
@@ -538,6 +572,8 @@ export default function HomeScreen() {
         // regenerate the next time they refocus Home).
         return true;
       } finally {
+        // Cancel the timeout if the request returned naturally.
+        clearTimeout(timeoutId);
         // Release the synchronous mutex BEFORE the state setter so
         // any queued caller waiting on the next tick can proceed.
         regeneratingRef.current = false;
@@ -547,8 +583,10 @@ export default function HomeScreen() {
     // `regenerating` is intentionally NOT a dep — the mutex is the
     // ref above, and depending on the state would cause this
     // callback identity to churn mid-flight (which would re-fire
-    // the post-cal effect and other listeners).
-    [region],
+    // the post-cal effect and other listeners). PHASE UX3 — `ideas`
+    // IS a dep because we now read from it to compute excludeHooks
+    // for the request body.
+    [region, ideas],
   );
 
   // Refresh button passes no arg — keep it as a stable () => void

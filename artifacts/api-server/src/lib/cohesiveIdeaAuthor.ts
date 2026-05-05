@@ -37,6 +37,10 @@ import {
   type ComedyRejectionReason,
 } from "./comedyValidation.js";
 import {
+  validateScenarioCoherence,
+  type ScenarioCoherenceReason,
+} from "./scenarioCoherence.js";
+import {
   PREMISE_STYLE_DEFS,
   type PremiseStyleId,
 } from "./patternIdeator.js";
@@ -54,7 +58,13 @@ import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
 export type CohesiveAuthorRejectionReason =
   | ComedyRejectionReason
   | "schema_invalid"
-  | "construction_failed";
+  | "construction_failed"
+  // PHASE UX3 — scenario coherence guard reasons. Pure additive
+  // overlay onto the existing rejection-reason union; the recipe
+  // loop in `coreCandidateGenerator` rolls these into the same
+  // per-reason counter map (`stats.rejectionReasons`) it already
+  // uses for `validateComedy` / `validateAntiCopy` rejections.
+  | ScenarioCoherenceReason;
 
 export type CohesiveAuthorInput = {
   core: PremiseCore;
@@ -369,15 +379,22 @@ export function authorCohesiveIdea(
   // rotated by djb2(`${core.id}|${anchor}|wts`). Each shape
   // preserves the construction precondition (contains anchorLc
   // AND ends on the contradiction beat — see the validator below).
+  // PHASE UX3 — template-stiffness pass. The pre-UX3 pool leaked
+  // three failure phrases into shipped ideas: literal "deliberately"
+  // (verb-noun stiffness, validator rule 1), "the ${a} scene"
+  // template tail (rule 2), and "direct to camera" (rule 3 + bad
+  // fit for the no-face client mode). Each shape below rephrases
+  // those beats while preserving the construction precondition
+  // (anchor present + ends on the action verb).
   const showShapes: ReadonlyArray<(a: string, ab: string, ap: string) => string> = [
     (a, ab, ap) =>
-      `Open with the ${a} on screen. Camera holds as i ${ab} the ${a} knowingly. End beat: i ${ap} the ${a} and look straight to camera, deadpan.`,
+      `Open with the ${a} on screen. Camera holds as i ${ab} the ${a} knowingly. End beat: i ${ap} the ${a} and look straight at the lens, deadpan.`,
     (a, ab, ap) =>
       `Wide on the ${a} — single static frame. Walk in, ${ab} the ${a} on purpose. Final beat: ${ap} the ${a}, no reaction shot, just the silence.`,
     (a, ab, ap) =>
-      `Tight on the ${a} for a beat. Pull back as i ${ab} the ${a} deliberately. Cut hard the moment i ${ap} the ${a} — end on the held look.`,
+      `Tight on the ${a} for a beat. Pull back as i ${ab} the ${a} with intent. Cut hard the moment i ${ap} the ${a} — end on the held look.`,
     (a, ab, ap) =>
-      `Hand-held into the ${a} scene. Pause, ${ab} the ${a} once, slow. Land the contradiction by ${ap} the ${a} on the final beat — direct to camera.`,
+      `Hand-held — frame the ${a} center. Pause, ${ab} the ${a} once, slow. Land the contradiction by ${ap} the ${a} on the final beat — hold the silence.`,
   ];
   const showIdx =
     djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
@@ -393,7 +410,7 @@ export function authorCohesiveIdea(
     (a, ab) =>
       `Camera at counter height, you and the ${a} in the same frame the whole take. Single shot, no music. The ${ab} gesture is the punchline — let the geography do the work.`,
     (a, ab) =>
-      `Wide-ish, the ${a} occupies the lower-third of the frame. One take, no edits. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} once, deliberately, then hold the look.`,
+      `Wide-ish, the ${a} occupies the lower-third of the frame. One take, no edits. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} once with intent, then hold the look.`,
     (a, ab) =>
       `Locked-off on a tripod or shelf — frame so the ${a} is always visible. Walk in, ${ab} the ${a} on the beat, walk out without breaking the take.`,
   ];
@@ -414,7 +431,8 @@ export function authorCohesiveIdea(
   const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
   const shotPlan: string[] = [
     `Wide-ish: enter the frame with the ${anchorLc} visible.`,
-    `Medium: ${actionBare} the ${anchorLc} on camera, deliberately.`,
+    // PHASE UX3 — drop the literal "deliberately" stiffness.
+    `Medium: ${actionBare} the ${anchorLc} on camera with intent.`,
     shotPlanBeat3[beat3Idx]!(anchorLc),
   ];
 
@@ -472,7 +490,7 @@ export function authorCohesiveIdea(
   // ---- 8. trigger / reaction (filmable verbs + visible response) //
   // PHASE Z5.5 — rotating trigger pool replaces single hardcoded template
   const triggerShapes: ReadonlyArray<(a: string, ab: string) => string> = [
-    (a, ab) => `Open the ${a} moment on camera, deliberately and out loud.`,
+    (a, ab) => `Open the ${a} moment on camera with intent, out loud.`,
     (a, ab) => `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one clear visible beat.`,
     (a, ab) => `Show the ${a} on screen, then ${ab} it without hesitation.`,
     (a, ab) => `Frame the ${a}, pause, then commit to the ${ab} beat.`,
@@ -611,6 +629,15 @@ export function authorCohesiveIdea(
   if (!parsed.success) {
     return { ok: false, reason: "schema_invalid" };
   }
+
+  // ---- 13b. Scenario coherence guard --------------------------- //
+  // PHASE UX3 — defensive validators that catch failure modes the
+  // construction precondition above can't see (template-language
+  // leaks, hook↔show token absence, split-self temporal mismatch).
+  // Pure / synchronous; reasons fold into the same per-reason
+  // rejection telemetry consumed by the recipe loop above.
+  const coherenceReason = validateScenarioCoherence(parsed.data);
+  if (coherenceReason) return { ok: false, reason: coherenceReason };
 
   // ---- 14. Build meta ------------------------------------------- //
   const meta: CandidateMeta = {

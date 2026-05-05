@@ -1,0 +1,148 @@
+Implement Phase UX3 — Scenario Coherence + Refresh Reliability.
+
+Context:
+Lumina is pre-closed-beta. UX1 and UX2 shipped:
+- Film This Now is primary CTA
+- confidence labels added
+- low-cringe modes added
+- no backend changes in UX1/UX2
+- calibration and situation-aware scoring are live
+- Z5.7 retention novelty is live
+
+First visual QA feedback:
+1. Quick Tune screens feel too form-like / not immersive enough.
+2. Hooks are strong, but scenarios are weaker.
+3. Film-This-Now instructions are not detailed enough.
+4. Some hooks appear mismatched with scenarios.
+5. Repeated hooks still slightly happen.
+6. “Show 3 different new ideas” is too slow and sometimes fails.
+
+Goal:
+Improve scenario quality, Film-This-Now clarity, and refresh reliability before closed beta.
+
+Hard rules:
+- No migrations unless absolutely necessary.
+- No API breaking changes unless impossible.
+- No validator loosening.
+- Preserve hero quality, retention novelty, calibration, action conversion, and comfort modes.
+- Keep TypeScript clean.
+- Keep tests passing.
+- Avoid large architecture rewrite.
+
+Part 1 — Quick Tune visual polish
+Make the 4 Quick Tune screens feel more immersive and intentional.
+- Use more vertical space.
+- Make option cards feel larger and more tappable.
+- Add clear sticky bottom Continue button.
+- Required screens: Continue disabled until at least one selection.
+- Optional opener screen: Skip remains available.
+- Keep small iPhone viewport safe.
+- Preserve accessibility selected state.
+- Do not break save/load behavior.
+
+Part 2 — Scenario coherence guard
+Add or strengthen checks so hook, whatToShow, howToFilm, shotPlan, caption, and payoff are semantically aligned.
+
+Flag or penalize/rewrite scenarios with:
+- awkward generated phrasing
+- malformed action grammar
+- object/action mismatch
+- hook-scene mismatch
+- no visible action
+- no concrete payoff
+- generic reaction-only scenario
+- repeated template wording
+
+Examples to suppress or rewrite:
+- “overthink the mirror deliberately”
+- “abandon the thread once, slow”
+- “land the contradiction by abandoned the thread”
+- “the thread scene”
+- “direct to camera” when no-face mode is active
+- any scenario where the object/hook does not appear in the action
+
+Add tests for scenario coherence on known cases.
+
+Part 3 — Improve Film-This-Now instruction detail
+Film-This-Now should translate each idea into practical filming steps, not just repeat the scenario.
+
+Preferred structure:
+- Setup
+- 0–2s Hook / overlay
+- 2–6s Action
+- 6–12s Twist / reveal
+- 12–18s Payoff
+- Caption
+- Comfort adaptation if active
+
+If no-face/no-voice/text-overlay mode is active:
+- avoid “say this to camera”
+- use overlay text
+- use hands/object/screen shots
+- avoid face directions
+- show fake/demo/cropped screen warnings when needed
+
+Part 4 — Fix specific mismatch class
+For hooks like:
+“yesterday me booked chaos for today me’s calendar”
+
+The scenario should show:
+- past self agreed to a plan
+- present self regrets it
+- calendar/group chat is the evidence
+- user sends or drafts a rain-check message
+- payoff is hiding from their own schedule
+
+Do not attach generic group-chat abandonment scenarios unless they explicitly support the yesterday-vs-today contrast.
+
+Part 5 — Refresh reliability
+Investigate “Show 3 different new ideas” being slow or failing.
+
+Requirements:
+- Keep old ideas visible while refresh is loading.
+- Show clear loading copy.
+- Send current visible hooks/fingerprints as exclusions if possible.
+- Ensure regenerated batch avoids current visible hooks.
+- Add timeout/failure handling.
+- If remote/fallback path fails, use local deterministic alternatives when possible.
+- Never leave the user with empty state after refresh failure.
+- Log refresh failure reason clearly.
+
+Part 6 — Repetition guard on refresh
+When user requests 3 new ideas:
+- current visible hooks should be hard-excluded for that refresh request.
+- near-identical skeletons should be penalized.
+- repeated captions/scenarios should be avoided.
+- new batch should differ in at least 2 of:
+  hook skeleton
+  setting
+  topic lane
+  premise family
+  visual action
+  opener/pattern
+
+Part 7 — QA
+Run:
+- mobile TypeScript
+- API tests/typecheck if backend touched
+- app boot
+- refresh QA on small iPhone viewport
+- generate initial batch then refresh 5 times
+- verify no exact hook repeats across immediate refreshes
+- verify refresh failure fallback behavior
+- verify Film-This-Now no-face/no-voice adaptations
+- verify Quick Tune required/optional behavior still works
+
+Report:
+1. files changed
+2. Quick Tune visual changes
+3. scenario coherence changes
+4. Film-This-Now instruction changes
+5. refresh reliability changes
+6. repetition guard changes
+7. tests/typechecks run
+8. any API changes
+9. before/after examples for:
+   - yesterday me booked chaos...
+   - mirror drained the whole battery
+   - abandoned the thread AGAIN
