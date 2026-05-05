@@ -408,3 +408,257 @@ export function getAllCatalogActions(): ReadonlySet<string> {
   _allActionsFlat = s;
   return s;
 }
+
+// ---------------------------------------------------------------- //
+// PHASE UX3.1 — Anchor-aware verb override                          //
+// ---------------------------------------------------------------- //
+//
+// Family-action verbs (`abandon`, `ghost`, `spiral`, `fake`) are
+// abstract / relational and don't compose with every concrete
+// anchor in the catalog. Pre-UX3.1 these produced the screenshot-
+// grade nonsense:
+//   - "abandon the fork once, slow"
+//   - "ghost the calendar knowingly"
+//   - "spiral the lockscreen once, slow"
+//   - "fake my own tab"
+//
+// Fix: per-anchor fallback verb (single word, regular tenses) used
+// when the family verb is in `STIFF_FAMILY_VERBS` and the
+// (verb, anchor) pair is NOT in `VERB_ANCHOR_PLAUSIBLE`. Other
+// family verbs (`avoid`, `expose`, `perform`, `overthink`) compose
+// broadly enough that they pass through unchanged.
+//
+// Single-word verbs only — multi-word verbs would break the
+// `${actionBare} the ${anchor}` template grammar.
+
+/** Family verbs that need anchor-fitting overrides for most concrete
+ *  anchors (the `{family-verb} the {object}` construction reads as
+ *  template stiffness for these four). */
+const STIFF_FAMILY_VERBS: ReadonlySet<string> = new Set([
+  "abandon",
+  "ghost",
+  "spiral",
+  "fake",
+]);
+
+/** Per stiff family verb, the set of anchors where the verb DOES
+ *  read naturally. Membership = use the family verb. Non-membership
+ *  = swap to `ANCHOR_VERB_FALLBACK[anchor]`.
+ *
+ *  Conservative whitelist — when in doubt, swap. Empty set for
+ *  `spiral` because it's intransitive in natural English ("i
+ *  spiraled" not "i spiraled the X"). */
+const VERB_ANCHOR_PLAUSIBLE: Record<string, ReadonlySet<string>> = {
+  // `abandon` composes with concrete tasks/objects you actively
+  // walk away from. `fork` is intentionally NOT here — "abandon
+  // the fork" was the directive's first ship-blocker example.
+  abandon: new Set([
+    "draft", "plan", "groceries", "plate", "coffee", "textbook",
+    "syllabus", "tasks", "tab", "doc", "inbox", "yoga",
+    "gym", "pushups", "notes", "flashcards", "cart", "highlighter",
+  ]),
+  // `ghost` composes with people / messaging surfaces. PHASE UX3.1
+  // P0: REMOVED `calendar`, `tasks`, `inbox` — directive flagged
+  // "ghost the calendar" specifically as nonsense; `tasks`/`inbox`
+  // belong to the calendar/work cluster that drift with `ghost`
+  // the same way. The fallback table provides `dodge` for all
+  // three so the swap is non-destructive.
+  ghost: new Set([
+    "thread", "groupchat", "invite", "rsvp", "crush", "profile",
+    "app", "swipe", "bio", "voicememo",
+    "table", "gift", "dm", "message",
+  ]),
+  spiral: new Set([]),
+  // `fake` composes with personae/social surfaces. PHASE UX3.1 P0:
+  // REMOVED `tab`, `tasks`, `calendar`, `invite`, `rsvp`, `draft`,
+  // `swipe` — directive flagged "fake my own tab" specifically;
+  // the others are the same calendar/work-admin abstraction class.
+  fake: new Set([
+    "app", "profile", "bio", "crush", "thread", "selfie",
+    "caption", "groupchat", "gym", "yoga", "pushups",
+  ]),
+};
+
+/** Per-anchor fallback verb. Single-word, regular tenses where
+ *  possible. Picked for natural fit with `{verb} the {anchor}`. */
+const ANCHOR_VERB_FALLBACK: Record<string, FamilyAction> = {
+  // sleep
+  alarm:      { bare: "snooze", past: "snoozed",  ing: "snoozing" },
+  bed:        { bare: "leave",  past: "left",     ing: "leaving" },
+  mattress:   { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  slippers:   { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  eyemask:    { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  lamp:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // food
+  fridge:     { bare: "raid",   past: "raided",   ing: "raiding" },
+  fork:       { bare: "drop",   past: "dropped",  ing: "dropping" },
+  groceries:  { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  oven:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  plate:      { bare: "push",   past: "pushed",   ing: "pushing" },
+  pan:        { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // money
+  wallet:     { bare: "close",  past: "closed",   ing: "closing" },
+  savings:    { bare: "raid",   past: "raided",   ing: "raiding" },
+  venmo:      { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  atm:        { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  statement:  { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  coupon:     { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // phone
+  phone:      { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  lockscreen: { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  thumb:      { bare: "freeze", past: "froze",    ing: "freezing" },
+  charger:    { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  earbuds:    { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  wallpaper:  { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // work
+  inbox:      { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  tasks:      { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  calendar:   { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  tab:        { bare: "close",  past: "closed",   ing: "closing" },
+  doc:        { bare: "close",  past: "closed",   ing: "closing" },
+  keyboard:   { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // fitness
+  gym:        { bare: "skip",   past: "skipped",  ing: "skipping" },
+  yoga:       { bare: "skip",   past: "skipped",  ing: "skipping" },
+  pushups:    { bare: "skip",   past: "skipped",  ing: "skipping" },
+  shoes:      { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  dumbbell:   { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  bottle:     { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // dating
+  app:        { bare: "close",  past: "closed",   ing: "closing" },
+  thread:     { bare: "mute",   past: "muted",    ing: "muting" },
+  profile:    { bare: "close",  past: "closed",   ing: "closing" },
+  swipe:      { bare: "pause",  past: "paused",   ing: "pausing" },
+  bio:        { bare: "freeze", past: "froze",    ing: "freezing" },
+  crush:      { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  // social
+  groupchat:  { bare: "mute",   past: "muted",    ing: "muting" },
+  invite:     { bare: "decline",past: "declined", ing: "declining" },
+  rsvp:       { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  voicememo:  { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  table:      { bare: "leave",  past: "left",     ing: "leaving" },
+  gift:       { bare: "regift", past: "regifted", ing: "regifting" },
+  // home
+  dishes:     { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  sink:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  junk:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  mail:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  vacuum:     { bare: "skip",   past: "skipped",  ing: "skipping" },
+  couch:      { bare: "claim",  past: "claimed",  ing: "claiming" },
+  // mornings
+  coffee:     { bare: "abandon",past: "abandoned",ing: "abandoning" },
+  mirror:     { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  kettle:     { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  toothbrush: { bare: "skip",   past: "skipped",  ing: "skipping" },
+  towel:      { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  robe:       { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // study
+  notes:      { bare: "skim",   past: "skimmed",  ing: "skimming" },
+  textbook:   { bare: "close",  past: "closed",   ing: "closing" },
+  flashcards: { bare: "skip",   past: "skipped",  ing: "skipping" },
+  syllabus:   { bare: "skim",   past: "skimmed",  ing: "skimming" },
+  highlighter:{ bare: "ignore", past: "ignored",  ing: "ignoring" },
+  pen:        { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  // content
+  lens:       { bare: "dodge",  past: "dodged",   ing: "dodging" },
+  draft:      { bare: "abandon",past: "abandoned",ing: "abandoning" },
+  ringlight:  { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  tripod:     { bare: "ignore", past: "ignored",  ing: "ignoring" },
+  selfie:     { bare: "retake", past: "retook",   ing: "retaking" },
+  caption:    { bare: "delete", past: "deleted",  ing: "deleting" },
+};
+
+/** PHASE UX3.1 — Resolve the (bare, past, ing) tuple for a given
+ *  family-action + anchor pair. Swaps the family verb to a fitting
+ *  per-anchor verb when the family verb is stiffness-prone AND the
+ *  (verb, anchor) pair is not in the explicit plausible whitelist.
+ *
+ *  Pure / deterministic. Returns the input `famAction` when no
+ *  swap is warranted (non-stiff verb, or pair already plausible,
+ *  or anchor missing from fallback table — fail open). */
+export function resolveAnchorAwareAction(
+  famAction: FamilyAction,
+  anchor: string,
+): FamilyAction {
+  const verb = famAction.bare.toLowerCase();
+  if (!STIFF_FAMILY_VERBS.has(verb)) return famAction;
+  const anchorLc = anchor.toLowerCase();
+  const plausible = VERB_ANCHOR_PLAUSIBLE[verb];
+  if (plausible && plausible.has(anchorLc)) return famAction;
+  const fallback = ANCHOR_VERB_FALLBACK[anchorLc];
+  if (!fallback) return famAction;
+  return fallback;
+}
+
+/** PHASE UX3.1 — exported for `validateScenarioCoherence` so the
+ *  validator can also check (verb, anchor) plausibility on
+ *  pattern-engine candidates that bypass the cohesive author. */
+export function isVerbAnchorImplausible(
+  verb: string,
+  anchor: string,
+): boolean {
+  const v = verb.toLowerCase();
+  if (!STIFF_FAMILY_VERBS.has(v)) return false;
+  const a = anchor.toLowerCase();
+  const plausible = VERB_ANCHOR_PLAUSIBLE[v];
+  if (plausible && plausible.has(a)) return false;
+  // If we have a fallback for this anchor, the original pair is
+  // implausible. If we DON'T have a fallback, fail open (don't
+  // claim implausibility we can't repair).
+  return ANCHOR_VERB_FALLBACK[a] !== undefined;
+}
+
+// ---------------------------------------------------------------- //
+// PHASE UX3.1 — Semantic anchor groups (compatibility clusters)     //
+// ---------------------------------------------------------------- //
+//
+// Per the UX3.1 directive, the hook–scenario binding guard does NOT
+// require exact noun equality. Instead it enforces "same compatibility
+// cluster". Each cluster lists nouns (single tokens, lemma form) that
+// can be substituted for each other without breaking the scene.
+//
+// A noun may appear in MULTIPLE clusters (e.g. "groupchat" is both a
+// social-thread surface AND a calendar-coordination surface). The
+// validator passes when hook-cluster ∩ show-cluster is non-empty.
+//
+// The `null` cluster is implicit — if the hook contains zero
+// cluster-keyed nouns, we treat it as "abstract / big-premise" and
+// the noun-bind guard does not fire (we still need the existing
+// hook-anchor token-overlap rule from UX3 to pass).
+
+export const ANCHOR_CLUSTERS: ReadonlyArray<ReadonlySet<string>> = [
+  // calendar / scheduling
+  new Set(["calendar","schedule","plan","appointment","groupchat","invite","rsvp","tasks","inbox","doc","meeting"]),
+  // food / fridge / kitchen
+  new Set(["fridge","food","leftovers","groceries","takeout","snack","fork","plate","pan","oven","kettle","coffee","kitchen","dishes","sink"]),
+  // messaging / threads
+  new Set(["thread","message","text","groupchat","reply","unread","dm","voicememo","inbox","app"]),
+  // social profile / story
+  new Set(["profile","story","account","page","view","bio","app","selfie","caption","crush"]),
+  // sleep / alarm
+  new Set(["alarm","snooze","phone","bed","blanket","mattress","slippers","eyemask","lamp","robe","towel","mirror"]),
+  // shopping / cart
+  new Set(["cart","shopping","order","checkout","package","wallet","venmo","atm","statement","coupon","savings"]),
+  // mirror / bathroom / reflection
+  new Set(["mirror","reflection","bathroom","lighting","face","toothbrush","towel","robe"]),
+  // browser / tabs / fake productivity
+  new Set(["tab","browser","laptop","work","keyboard","doc","tasks","inbox","calendar"]),
+  // fitness / movement
+  new Set(["gym","yoga","pushups","shoes","dumbbell","bottle","fitness","workout"]),
+  // study
+  new Set(["notes","textbook","flashcards","syllabus","highlighter","pen","study"]),
+  // content / creator
+  new Set(["lens","draft","ringlight","tripod","selfie","caption","content","camera"]),
+];
+
+/** Returns the indexes of clusters that contain the given lowercased
+ *  noun. Empty array means the noun is not in any cluster (treated
+ *  as cluster-neutral). */
+export function clustersContaining(noun: string): number[] {
+  const n = noun.toLowerCase();
+  const out: number[] = [];
+  for (let i = 0; i < ANCHOR_CLUSTERS.length; i++) {
+    if (ANCHOR_CLUSTERS[i]!.has(n)) out.push(i);
+  }
+  return out;
+}

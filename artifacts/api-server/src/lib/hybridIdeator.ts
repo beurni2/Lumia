@@ -87,6 +87,7 @@ import { composeWhyThisFitsYou } from "./whyThisFitsYou";
 // orchestrator owns the cache-history walk and needs the same
 // normalize function the validator uses internally.
 import { normalizeHookFingerprint } from "./comedyValidation";
+import { validateScenarioCoherence } from "./scenarioCoherence";
 // PHASE Y (PREMISE CORE LIBRARY) — orchestrator owns the core-
 // selection step (anti-recent + family-rotation are cross-batch
 // concerns the picker can't see from inside `generateIdeas`). The
@@ -3713,7 +3714,43 @@ export async function runHybridIdeator(
   // HARD-exclude any candidate matching the previous batch's hooks
   // or scenarioFamilies. This is the core of the regenerate fix —
   // the diversifier alone can't conjure freshness from a stale pool.
-  const localCandidates = applyExclusion(rawCandidates, exclude);
+  const localCandidatesPreCoherence = applyExclusion(rawCandidates, exclude);
+  // PHASE UX3.1 — coherence guard on the pattern engine path.
+  // Pre-UX3.1 the validator only ran inside `cohesiveIdeaAuthor`
+  // (the core-native path), which let pattern-engine candidates
+  // ship with template-stiffness phrases, hook↔scenario noun-cluster
+  // mismatches ("yesterday me booked chaos for today me's calendar"
+  // attached to a mug/cart), and verb-anchor implausibilities
+  // ("abandon the fork", "ghost the calendar"). We now apply the
+  // SAME validator on the pattern path before merging into the
+  // local pool. Per-reason rejection counts surface in the
+  // validation_summary log under `coherenceRejections` so we can
+  // distinguish from the existing `localRejections` (scoring/anti-
+  // copy) channel.
+  const coherenceRejections: Record<string, number> = {};
+  const localCandidates = localCandidatesPreCoherence.filter((c) => {
+    const reason = validateScenarioCoherence(c.idea);
+    if (reason) {
+      coherenceRejections[reason] = (coherenceRejections[reason] ?? 0) + 1;
+      return false;
+    }
+    return true;
+  });
+  if (Object.keys(coherenceRejections).length > 0) {
+    logger.info(
+      {
+        event: "phase_ux3_1.pattern_coherence_filter",
+        creatorId: input.creator?.id,
+        regenerate,
+        preCount: localCandidatesPreCoherence.length,
+        postCount: localCandidates.length,
+        rejected:
+          localCandidatesPreCoherence.length - localCandidates.length,
+        coherenceRejections,
+      },
+      "phase_ux3_1.pattern_coherence_filter",
+    );
+  }
   // -------- PHASE Y5: SAFE PARALLEL core-native generation ---------
   // Independent supply-side step from the Y2 fallback path (which is
   // gated by `needFallback` and ALSO calls `selectPremiseCores` for
@@ -4179,6 +4216,19 @@ export async function runHybridIdeator(
   // catalog is clearing the gates cleanly). `fallbackRejections`
   // is undefined when the Claude path didn't fire; logged as
   // `null` for grep-ability rather than omitted.
+  // PHASE UX3.1 — surface coherence-filter rejections (pattern-engine
+  // path) on the SAME validation_summary log line so dashboards keyed
+  // on `localRejections` see the full local-side rejection picture in
+  // one grep. The dedicated `phase_ux3_1.pattern_coherence_filter`
+  // event above stays for per-event drill-down; this folds the same
+  // counts into the steady-state summary alongside scoring/anti-copy
+  // drops in `localRejections`. `null` (not undefined / omitted) when
+  // the filter found nothing — matches the `fallbackRejections` shape
+  // convention above.
+  const coherenceRejectionsForSummary =
+    Object.keys(coherenceRejections).length > 0
+      ? coherenceRejections
+      : null;
   logger.info(
     {
       creatorId: input.creator?.id,
@@ -4187,6 +4237,9 @@ export async function runHybridIdeator(
       localRejected: localResult.rejected,
       localHardRejected: localResult.hardRejected,
       localRejections: localResult.rejectionReasons,
+      coherenceRejections: coherenceRejectionsForSummary,
+      coherenceRejected:
+        localCandidatesPreCoherence.length - localCandidates.length,
       usedFallback,
       fallbackKept: fallbackKeptCount,
       fallbackRejections: fallbackRejectionReasons ?? null,
@@ -4280,7 +4333,14 @@ export async function runHybridIdeator(
         // the guards-failed log too so a single grep on the warn
         // line tells the full story (no need to cross-reference
         // a separate validation_summary entry by request id).
+        // PHASE UX3.1 — also surface coherence-filter map + scalar
+        // count so the guards-failed log carries the full local-side
+        // picture (parity with `hybrid_ideator.validation_summary`
+        // above; one grep on either line tells the same story).
         localRejections: localResult.rejectionReasons,
+        coherenceRejections: coherenceRejectionsForSummary,
+        coherenceRejected:
+          localCandidatesPreCoherence.length - localCandidates.length,
         fallbackRejections: fallbackRejectionReasons ?? null,
       },
       "hybrid_ideator.guards_failed_shipping_best_effort",

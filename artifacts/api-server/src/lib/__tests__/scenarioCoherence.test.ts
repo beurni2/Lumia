@@ -15,11 +15,17 @@ import {
 import type { Idea } from "../ideaGen";
 
 function makeIdea(overrides: Partial<Idea>): Idea {
+  // PHASE UX3.1 — baseline cleaned of every stiffness phrase the
+  // expanded validator now catches (knowingly / End beat: / with
+  // intent / look-straight-to-camera). Each override-based test
+  // below relies on its specific UX3 rule firing BEFORE the new
+  // UX3.1 stiffness rule, but the BASELINE itself must pass the
+  // full validator (returns null) — hence the clean prose.
   const base: Idea = {
     pattern: "contrast",
     hook: "the dishes won again today",
     hookSeconds: 1.5,
-    trigger: "Open the dishes moment on camera with intent.",
+    trigger: "Show the dishes on camera, out loud, in one clear beat.",
     reaction: "Stare at the dishes like they owe you rent.",
     emotionalSpike: "regret",
     structure: "routine_contradiction",
@@ -32,7 +38,7 @@ function makeIdea(overrides: Partial<Idea>): Idea {
       "LINE 3 (caption / mouthed): Self-betrayal lands here.",
     shotPlan: [
       "Wide-ish: enter the frame with the dishes visible.",
-      "Medium: ignore the dishes on camera with intent.",
+      "Medium: ignore the dishes in one clear gesture.",
       "Hold: stare at the dishes like they owe you money, then cut.",
     ],
     caption: "the dishes thing again. ignored it. fine probably. food.",
@@ -48,9 +54,9 @@ function makeIdea(overrides: Partial<Idea>): Idea {
     visualHook:
       "Camera holds on the dishes reveal as the contradiction lands.",
     whatToShow:
-      "Open with the dishes on screen. Camera holds as i ignore the dishes knowingly. End beat: i ignored the dishes and look straight to camera.",
+      "Camera on the dishes, you in frame next to them. Beat 1: glance at the dishes. Beat 2: shrug. Beat 3: i ignored the dishes.",
     howToFilm:
-      "Phone propped chest height, single take. Frame yourself with the dishes in shot. Hard cut on the ignore beat — keep both you and the dishes in frame as the contradiction lands.",
+      "Phone propped chest height, single take. Keep yourself and the dishes in the same frame the whole time. Cut the second you ignore the dishes.",
     premise: "Self-betrayal — the dishes beat lands when i ignore it (food).",
   };
   return { ...base, ...overrides };
@@ -118,10 +124,13 @@ describe("validateScenarioCoherence", () => {
   });
 
   it("accepts split-self hook when whatToShow names the temporal cue", () => {
+    // PHASE UX3.1 — cleaned of "End beat:" stiffness phrase the
+    // expanded validator now catches; replaced with neutral
+    // "Final beat:" framing.
     const idea = makeIdea({
       hook: "yesterday me booked the calendar today me has to live in",
       whatToShow:
-        "Open with yesterday's calendar on screen. Camera holds as today i open the calendar. End beat: opened the calendar.",
+        "Open with yesterday's calendar on screen. Camera holds as today i open the calendar. Final beat: opened the calendar.",
     });
     expect(validateScenarioCoherence(idea)).toBeNull();
   });
@@ -129,11 +138,12 @@ describe("validateScenarioCoherence", () => {
   it("accepts split-self hook when whatToShow uses a contrast marker", () => {
     // `rest` is the shared substantive token between hook and show
     // (so rule 4 passes); the `but` clause provides the contrast
-    // marker rule 5 looks for.
+    // marker rule 5 looks for. PHASE UX3.1 — cleaned of "End beat:"
+    // stiffness phrase that the expanded validator now catches.
     const idea = makeIdea({
       hook: "past me thought rest was earned, present me knows better",
       whatToShow:
-        "Open with the calendar on screen. Camera holds as i open the calendar but rest is already on the line. End beat: opened the calendar.",
+        "Open with the calendar on screen. Camera holds as i open the calendar but rest is already on the line. Final beat: opened the calendar.",
     });
     expect(validateScenarioCoherence(idea)).toBeNull();
   });

@@ -48,7 +48,10 @@ import type { PremiseCore } from "./premiseCoreLibrary.js";
 import type { CandidateMeta } from "./ideaScorer.js";
 import type { VoiceCluster } from "./voiceClusters.js";
 import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
-import { FAMILY_ACTIONS } from "./coreDomainAnchorCatalog.js";
+import {
+  FAMILY_ACTIONS,
+  resolveAnchorAwareAction,
+} from "./coreDomainAnchorCatalog.js";
 import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
 
 // ---------------------------------------------------------------- //
@@ -323,12 +326,43 @@ export function authorCohesiveIdea(
   // input.action override (if non-empty and different) wins for the
   // bare verb but we still derive past/ing through the helpers so
   // the substitution table stays internally consistent.
-  const famAction = FAMILY_ACTIONS[core.family];
-  const actionBare = (input.action || famAction.bare).toLowerCase();
-  const actionPast =
-    actionBare === famAction.bare ? famAction.past : pastTense(actionBare);
-  const actionIng =
-    actionBare === famAction.bare ? famAction.ing : ingForm(actionBare);
+  //
+  // PHASE UX3.1 — Anchor-aware verb override. Stiff family verbs
+  // (abandon/ghost/spiral/fake) get swapped to a fitting per-anchor
+  // verb when the (verb, anchor) pair is implausible. Eliminates
+  // "abandon the fork", "ghost the calendar", "spiral the
+  // lockscreen" classes of nonsense at render time. The swap fires
+  // BEFORE the SubVars table is built so every downstream
+  // substitution (hook, show, film, shotPlan, trigger, reaction,
+  // caption, whyItWorks, script) uses the swapped verb consistently.
+  const rawFamAction = FAMILY_ACTIONS[core.family];
+  const famAction = resolveAnchorAwareAction(rawFamAction, anchor);
+  // PHASE UX3.1 — bug fix: previously `input.action || famAction.bare`
+  // always lost the anchor-aware swap because every production caller
+  // (recipe loop, QA harness, tests) threads the catalog row's
+  // `exampleAction` through `input.action` — and that field is hard-
+  // wired to `FAMILY_ACTIONS[family].bare` (i.e. the RAW family verb).
+  // Result: the swap fired in `famAction` but was immediately discarded
+  // because `input.action === rawFamAction.bare` truthy-overrode it.
+  // Fix: only treat `input.action` as an explicit override when the
+  // caller passed something OTHER than the raw family verb. The default
+  // path now flows the swapped verb through to the SubVars table so
+  // every downstream surface (hook, show, film, shotPlan, trigger,
+  // reaction, caption, script, premise, whyItWorks) sees `dodge` /
+  // `snooze` / `drop` / `raid` instead of `abandon` / `ghost` / etc.
+  const rawFamilyBareLc = rawFamAction.bare.toLowerCase();
+  const callerOverrideLc = (input.action ?? "").toLowerCase();
+  const isExplicitOverride =
+    callerOverrideLc !== "" && callerOverrideLc !== rawFamilyBareLc;
+  const actionBare = isExplicitOverride
+    ? callerOverrideLc
+    : famAction.bare.toLowerCase();
+  const actionPast = isExplicitOverride
+    ? pastTense(actionBare)
+    : famAction.past;
+  const actionIng = isExplicitOverride
+    ? ingForm(actionBare)
+    : famAction.ing;
   const anchorLc = anchor.toLowerCase();
 
   const subs: SubVars = {
@@ -379,22 +413,25 @@ export function authorCohesiveIdea(
   // rotated by djb2(`${core.id}|${anchor}|wts`). Each shape
   // preserves the construction precondition (contains anchorLc
   // AND ends on the contradiction beat — see the validator below).
-  // PHASE UX3 — template-stiffness pass. The pre-UX3 pool leaked
-  // three failure phrases into shipped ideas: literal "deliberately"
-  // (verb-noun stiffness, validator rule 1), "the ${a} scene"
-  // template tail (rule 2), and "direct to camera" (rule 3 + bad
-  // fit for the no-face client mode). Each shape below rephrases
-  // those beats while preserving the construction precondition
-  // (anchor present + ends on the action verb).
+  // PHASE UX3.1 — full template rewrite. Pre-UX3.1 the pool leaked
+  // a stiffness vocabulary that the UX3 cleanup only partially
+  // caught (deliberately/scene/direct-to-camera) but missed
+  // sibling phrases (knowingly, once-slow, land-the-contradiction,
+  // with-intent, on-purpose, end-beat:, frame-the-X-center,
+  // hand-held — frame, look-straight-at-the-lens, deadpan-as-
+  // direction). Each shape below reads as a real shoot direction
+  // a creator could actually film while preserving the
+  // construction precondition (anchor present + final sentence
+  // ends on the action verb form, validated below).
   const showShapes: ReadonlyArray<(a: string, ab: string, ap: string) => string> = [
     (a, ab, ap) =>
-      `Open with the ${a} on screen. Camera holds as i ${ab} the ${a} knowingly. End beat: i ${ap} the ${a} and look straight at the lens, deadpan.`,
+      `Camera on the ${a}, you in frame next to it. Beat 1: glance at the ${a}. Beat 2: shrug. Beat 3: i ${ap} the ${a}.`,
     (a, ab, ap) =>
-      `Wide on the ${a} — single static frame. Walk in, ${ab} the ${a} on purpose. Final beat: ${ap} the ${a}, no reaction shot, just the silence.`,
+      `Set the ${a} down where the camera can see it. Sit beside it for a second like you're thinking. Then ${ab} the ${a} and walk out of frame.`,
     (a, ab, ap) =>
-      `Tight on the ${a} for a beat. Pull back as i ${ab} the ${a} with intent. Cut hard the moment i ${ap} the ${a} — end on the held look.`,
+      `Static wide of the ${a}. Step in, pick the ${a} up, put it back. One more beat — then ${ab} the ${a} for real this time.`,
     (a, ab, ap) =>
-      `Hand-held — frame the ${a} center. Pause, ${ab} the ${a} once, slow. Land the contradiction by ${ap} the ${a} on the final beat — hold the silence.`,
+      `Phone propped low so the ${a} dominates the foreground. You enter behind it, hesitate, and ${ab} the ${a} — end on your face mid-realization.`,
   ];
   const showIdx =
     djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
@@ -406,33 +443,34 @@ export function authorCohesiveIdea(
   // so the construction precondition (filmContainsAnchor) holds.
   const filmShapes: ReadonlyArray<(a: string, ab: string) => string> = [
     (a, ab) =>
-      `Phone propped chest height, single take. Frame yourself with the ${a} in shot. Hard cut on the ${ab} beat — keep both you and the ${a} in frame as the contradiction lands.`,
+      `Phone propped chest height, single take. Keep yourself and the ${a} in the same frame the whole time. Cut the second you ${ab} the ${a}.`,
     (a, ab) =>
-      `Camera at counter height, you and the ${a} in the same frame the whole take. Single shot, no music. The ${ab} gesture is the punchline — let the geography do the work.`,
+      `Counter-height shelf shot, one continuous take. The ${a} stays visible from start to finish. The moment you ${ab} the ${a} is the cut.`,
     (a, ab) =>
-      `Wide-ish, the ${a} occupies the lower-third of the frame. One take, no edits. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} once with intent, then hold the look.`,
+      `Wide-ish framing — the ${a} sits in the lower third. No edits. Walk in, do the ${ab} beat once, then leave the frame.`,
     (a, ab) =>
-      `Locked-off on a tripod or shelf — frame so the ${a} is always visible. Walk in, ${ab} the ${a} on the beat, walk out without breaking the take.`,
+      `Locked-off on tripod or shelf, the ${a} always in shot. Step in, ${ab} the ${a} on the beat, step out — single take, no music.`,
   ];
   const filmIdx =
     djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
   const howToFilm = capChars(filmShapes[filmIdx]!(anchorLc, actionBare), 400);
 
   // ---- 5. shotPlan (3 beats keeps scoreFilmability max) --------- //
-  // PHASE Z5.5 — beat 3 rotated to avoid "deadpan look" repetition
+  // PHASE UX3.1 — cleaned beat 2 ("with intent" stiffness removed)
+  // and beat 3 pool ("presenting evidence" cliche removed; all six
+  // entries now read as real human reactions a creator can perform).
   const shotPlanBeat3: ReadonlyArray<(a: string) => string> = [
-    (a) => `Hold: let the ${a} reveal sit for one extra beat, no reaction.`,
-    (a) => `Hold: look at the ${a}, nod once, then cut.`,
+    (a) => `Hold: let the ${a} sit in frame one more beat, no reaction.`,
+    (a) => `Hold: look at the ${a}, nod once like you accept this, then cut.`,
     (a) => `Hold: slow blink at the ${a}, then walk out of frame.`,
     (a) => `Hold: stare at the ${a} like it owes you money, then cut.`,
-    (a) => `Hold: close your eyes at the ${a} moment, breathe, cut.`,
-    (a) => `Hold: gesture at the ${a} like presenting evidence, then cut.`,
+    (a) => `Hold: close your eyes for a second, exhale, then cut.`,
+    (a) => `Hold: rest your hand on the ${a}, sigh once, then cut.`,
   ];
   const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
   const shotPlan: string[] = [
     `Wide-ish: enter the frame with the ${anchorLc} visible.`,
-    // PHASE UX3 — drop the literal "deliberately" stiffness.
-    `Medium: ${actionBare} the ${anchorLc} on camera with intent.`,
+    `Medium: ${actionBare} the ${anchorLc} in one clear gesture.`,
     shotPlanBeat3[beat3Idx]!(anchorLc),
   ];
 
@@ -488,14 +526,16 @@ export function authorCohesiveIdea(
   );
 
   // ---- 8. trigger / reaction (filmable verbs + visible response) //
-  // PHASE Z5.5 — rotating trigger pool replaces single hardcoded template
+  // PHASE UX3.1 — trigger pool rewritten to drop "with intent" /
+  // "commit to the X beat" stiffness; each entry reads as a
+  // physical action the creator performs on camera.
   const triggerShapes: ReadonlyArray<(a: string, ab: string) => string> = [
-    (a, ab) => `Open the ${a} moment on camera with intent, out loud.`,
-    (a, ab) => `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one clear visible beat.`,
-    (a, ab) => `Show the ${a} on screen, then ${ab} it without hesitation.`,
-    (a, ab) => `Frame the ${a}, pause, then commit to the ${ab} beat.`,
-    (a, ab) => `Let the ${a} sit in frame for a beat before you ${ab} it.`,
-    (a, ab) => `Walk up to the ${a} and ${ab} it like you mean it.`,
+    (a, ab) => `Show the ${a} on camera, out loud, in one clear beat.`,
+    (a, ab) => `${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${a} in one visible motion.`,
+    (a, ab) => `Open on the ${a}, then ${ab} it without hesitation.`,
+    (a, ab) => `Frame the ${a}, pause for a beat, then ${ab} it.`,
+    (a, ab) => `Let the ${a} sit in frame for one second before you ${ab} it.`,
+    (a, ab) => `Walk up to the ${a} and ${ab} it like nothing happened.`,
   ];
   const trigIdx = djb2(`${core.id}|${anchor}|trg`) % triggerShapes.length;
   const trigger = capChars(triggerShapes[trigIdx]!(anchorLc, actionBare), 140);

@@ -180,7 +180,21 @@ export type CoreCandidateRejectionReason =
   | "schema_invalid"
   | "construction_failed"
   | "core_misconfigured"
-  | "scenario_repeat";
+  | "scenario_repeat"
+  // PHASE UX3 + UX3.1 — scenario coherence rejection reasons rolled
+  // up from the cohesive author. The author surfaces these via its
+  // own union (`CohesiveAuthorRejectionReason`); keeping them
+  // representable here lets the recipe loop's `lastReason` and the
+  // per-reason `reasons` map type-check cleanly without a cast.
+  | "deliberate_template_artifact"
+  | "scene_template_leakage"
+  | "direct_to_camera_in_show"
+  | "show_missing_hook_anchor"
+  | "split_self_show_mismatch"
+  | "template_stiffness_phrase"
+  | "bad_grammar_by_past_participle"
+  | "hook_topic_noun_drift"
+  | "verb_anchor_implausible";
 
 export type CoreCandidateAttempt = {
   coreId: string;
@@ -228,7 +242,20 @@ export type GenerateCoreCandidatesResult = {
       | ComedyRejectionReason
       | "schema_invalid"
       | "construction_failed"
-      | "scenario_repeat",
+      | "scenario_repeat"
+      // PHASE UX3 + UX3.1 — scenario coherence reasons rolled up
+      // from the cohesive author. Pure additive overlay; existing
+      // dashboard fields (`.no_tension` etc.) keep working
+      // unchanged.
+      | "deliberate_template_artifact"
+      | "scene_template_leakage"
+      | "direct_to_camera_in_show"
+      | "show_missing_hook_anchor"
+      | "split_self_show_mismatch"
+      | "template_stiffness_phrase"
+      | "bad_grammar_by_past_participle"
+      | "hook_topic_noun_drift"
+      | "verb_anchor_implausible",
       number
     >;
     /** PHASE D4 — additive `copied_seed_hook` reject-source
@@ -527,7 +554,16 @@ const EMPTY_REASONS: Record<
   | ComedyRejectionReason
   | "schema_invalid"
   | "construction_failed"
-  | "scenario_repeat",
+  | "scenario_repeat"
+  | "deliberate_template_artifact"
+  | "scene_template_leakage"
+  | "direct_to_camera_in_show"
+  | "show_missing_hook_anchor"
+  | "split_self_show_mismatch"
+  | "template_stiffness_phrase"
+  | "bad_grammar_by_past_participle"
+  | "hook_topic_noun_drift"
+  | "verb_anchor_implausible",
   number
 > = {
   no_contradiction: 0,
@@ -541,6 +577,18 @@ const EMPTY_REASONS: Record<
   schema_invalid: 0,
   construction_failed: 0,
   scenario_repeat: 0,
+  // PHASE UX3 — scenario coherence reasons from the cohesive
+  // author's expanded validator. All start at 0 per batch.
+  deliberate_template_artifact: 0,
+  scene_template_leakage: 0,
+  direct_to_camera_in_show: 0,
+  show_missing_hook_anchor: 0,
+  split_self_show_mismatch: 0,
+  // PHASE UX3.1 — additions.
+  template_stiffness_phrase: 0,
+  bad_grammar_by_past_participle: 0,
+  hook_topic_noun_drift: 0,
+  verb_anchor_implausible: 0,
 };
 
 /** Spec — was 3 in Y5; Y6 walked 5 (domain, anchor) recipes per
@@ -592,7 +640,16 @@ export function generateCoreCandidates(
     | ComedyRejectionReason
     | "schema_invalid"
     | "construction_failed"
-    | "scenario_repeat",
+    | "scenario_repeat"
+    | "deliberate_template_artifact"
+    | "scene_template_leakage"
+    | "direct_to_camera_in_show"
+    | "show_missing_hook_anchor"
+    | "split_self_show_mismatch"
+    | "template_stiffness_phrase"
+    | "bad_grammar_by_past_participle"
+    | "hook_topic_noun_drift"
+    | "verb_anchor_implausible",
     number
   > = { ...EMPTY_REASONS };
   // PHASE D4 — per-batch reject-source roll-up. Mutated whenever
