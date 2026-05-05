@@ -1,0 +1,175 @@
+Approved. Proceed with Phase UX3.1 — Scenario Author Repair / Template Artifact Kill Pass.
+
+Your diagnosis is accepted.
+
+Primary goal:
+Eliminate noun-swapped, template-stiff, hook/scenario-mismatched outputs before closed beta.
+
+The screenshots prove this is a P0 blocker:
+- “abandon the fork once, slow”
+- “land the contradiction by abandoned the fork”
+- “ghost the calendar knowingly”
+- “abandon the alarm knowingly”
+- “spiral the lockscreen once, slow”
+- “i faked my own tab”
+- “yesterday me booked chaos for today me’s calendar” attached to shopping cart/mug scenes
+
+Proceed with your 5-edit plan, with the following refinements:
+
+1. Fix source templates first.
+In `cohesiveIdeaAuthor.ts`, remove/replace stiff template language:
+- knowingly
+- once, slow
+- Land the contradiction
+- End beat:
+- frame the {anchor} center
+- look straight at the lens, deadpan
+- Hand-held — frame...
+- any generic “verb the object” phrasing that does not sound natural
+
+Also audit triggerShapes, reactionShapes, and shotPlan beats for sibling stiffness.
+
+2. Broaden scenarioCoherence into a generalized stiffness detector.
+Do not only block exact screenshot strings.
+Add regex/pattern-level detection for:
+- `knowingly`
+- `once, slow`
+- `land the contradiction`
+- `with intent`
+- `on purpose`
+- `end beat:`
+- `frame the [noun] center`
+- `hand-held — frame`
+- `look straight at the lens`
+- standalone `deadpan` as a direction
+- bad grammar around “by abandoned / by ghosted / by faked / by spiraled”
+- generic noun-swapped stage directions
+
+Run it across:
+- hook
+- whatToShow
+- howToFilm
+- shotPlan
+- trigger
+- reaction
+- script
+- caption where appropriate
+
+3. Wire validation into both generation paths.
+Close the bypass:
+- cohesive author path
+- pattern engine path
+
+Every candidate that can reach the UI should pass the same scenario coherence validation.
+
+4. Use semantic anchor groups, not only exact `topicNoun`.
+The hook-scenario binding guard should not require exact noun equality only.
+
+Use compatibility clusters such as:
+- calendar/schedule/plan/appointment/group chat/invite
+- fridge/food/leftovers/groceries/takeout/snack
+- thread/message/text/group chat/reply/unread
+- profile/story/account/page/view
+- alarm/snooze/phone/bed/blanket
+- cart/shopping/order/checkout/package
+- mirror/reflection/bathroom/lighting/face
+- tab/browser/laptop/work/fake busy/productivity
+
+Reject obvious mismatches:
+- calendar hook + mug scenario
+- calendar hook + shopping cart scenario
+- thread hook + fork scenario
+- alarm hook + abandoned-object scenario
+- lockscreen + spiral-object scenario
+- profile + unrelated couch/object scene
+
+But do not over-reject broad big-premise hooks when the scenario is still coherent.
+
+5. Add verb-anchor plausibility.
+Prevent family verbs like:
+- abandon
+- ghost
+- spiral
+- fake
+- overthink
+
+from being applied to objects where they become nonsense.
+
+Examples:
+- do not “abandon a fork”
+- do not “ghost a calendar”
+- do not “spiral a lockscreen”
+- do not “fake a tab” unless the scenario clearly means fake productivity/browser-tab behavior
+- do not “abandon an alarm”; use snooze/ignore/bury instead
+
+Prefer anchor-aware verbs:
+- alarm → snooze, ignore, bury, silence
+- fork/food → set down, push away, stare at, abandon dinner if phrased naturally
+- calendar → cancel, reschedule, ignore, close
+- thread/message → leave unread, type/delete, close app
+- profile/story → open, tap, panic-close, put phone down
+- mirror → catch reflection, pause, back away, turn off light
+- cart/order → close cart, reopen, add item, stare at total
+
+6. Add authored scenario families for common hooks.
+For high-frequency families, stop using generic substitution and use authored plans:
+- yesterday/today calendar regret
+- fridge/food denial
+- mirror confidence betrayal
+- thread/group chat avoidance
+- profile/story-view mistake
+- alarm/sleep denial
+- shopping cart relapse
+- calendar/task avoidance
+
+7. Tests must be adversarial.
+Add tests that render actual templates across actual anchors and assert no stiffness phrases appear.
+Do not rely only on crafted strings.
+
+Required tests:
+- render-sweep test across cohesive author templates/anchors
+- pattern engine coherence validation test
+- anchor-group mismatch tests
+- verb-anchor plausibility tests
+- Film-This-Now/mobile passthrough test if feasible
+
+8. QA deliverables required.
+After implementation, generate and report fresh examples for:
+- yesterday me booked chaos for today me’s calendar
+- the mirror drained the whole battery
+- i abandoned the thread AGAIN
+- the fridge demolished my entire vibe
+- WHY does the alarm keep abandoning itself
+- fork/profile/calendar/alarm bad-example families
+
+For each, show:
+- hook
+- whatToShow
+- howToFilm
+- shotPlan or Film-This-Now beats
+- scenario coherence result
+- whether it used repaired/authored scenario family
+
+Success criteria:
+- 0 screenshot-style malformed phrases
+- 0 obvious hook/scenario mismatches
+- 0 noun-swapped verb-object nonsense
+- Film-This-Now beats are concrete and human-shootable
+- no-face/no-voice adaptations do not mention face/lens/speaking
+- refresh exclusion behavior preserved
+- no migrations
+- no API breaking changes
+- no validator loosening
+- tests pass
+- TypeScript clean
+
+Do not change:
+- Hero Quality Ranker
+- Retention Novelty
+- selectedSituations scoring
+- refresh excludeHooks plumbing
+- route shape
+- database schema
+- mobile UX1/UX2 behavior unless required for tests
+
+Proceed with UX3.1 now.
