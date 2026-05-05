@@ -75,6 +75,7 @@ import {
   type TrendBundle,
 } from "@workspace/lumina-trends";
 import { callJsonAgent } from "./ai";
+import { REGION_PROMPT_GUIDANCE } from "./regionProfile.js";
 import { db, schema } from "../db/client";
 import { logger } from "./logger";
 import { eq } from "drizzle-orm";
@@ -1055,8 +1056,33 @@ export async function generateIdeas(
     "     AVOID for the low-effort half: outfit changes, location changes, multiple actors, choreography, food prep that takes >2 min, anything needing a tripod or second pair of hands, anything that requires getting up from the couch. If an idea needs more than 'pick up phone and shoot', it does NOT count toward the 50%.",
     "     The remaining ≤50% can require slightly more setup (a quick prop swap, a walk to another room, simple before/after) but NEVER more than the 30-minute total filming cap.",
     "",
-    "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Code-switch to the region's natural slang where appropriate (Hinglish for India, Tagalog for Philippines, Pidgin for Nigeria) — but keep the hook itself parseable to a wider English-speaking audience.",
+    // PHASE R2 (post-architect-review fix for the prompt-policy
+    // contradiction): the original generic "Code-switch to the
+    // region's natural slang where appropriate (Hinglish / Tagalog
+    // / Pidgin)" line conflicted with the new R2 per-region block
+    // ("DEFAULT TO CLEAN ENGLISH, do NOT force heavy dialect").
+    // Resolution: emit the slang line ONLY for western (where the
+    // policy is moot — western has no Hinglish / Tagalog / Pidgin
+    // anyway, so the string is functionally a no-op). For non-
+    // western regions the line is dropped (`""` is removed by the
+    // `.filter(Boolean)` at the bottom of the system prompt
+    // assembly) and `REGION_PROMPT_GUIDANCE[region]` becomes the
+    // sole source of truth. Western byte-identical to pre-R2.
+    region === "western"
+      ? "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Code-switch to the region's natural slang where appropriate (Hinglish for India, Tagalog for Philippines, Pidgin for Nigeria) — but keep the hook itself parseable to a wider English-speaking audience."
+      : "Region authenticity is mandatory. Use the regional cultural note + trending hooks as your grounding. Keep hooks parseable to a wider English-speaking audience — see REGION CONTEXT block below for per-region language and content policy.",
     regionToneGuidance,
+    // PHASE R2 — per-region context guidance. Empty string for
+    // western (preserves the pre-R2 prompt verbatim, since the
+    // `.filter(Boolean)` strips empty slots); for nigeria / india /
+    // philippines the block is the canonical source of truth for
+    // language style + anti-stereotype + privacy/safety guidance
+    // (the generic slang line above is dropped on those regions).
+    // Claude remains fallback only; its output continues to flow
+    // through every validator (ideaSchema + comedy +
+    // scenarioCoherence + anti-copy) so this prompt change can
+    // never loosen acceptance gates.
+    REGION_PROMPT_GUIDANCE[region],
     "",
     `Match the creator's personal style profile — their hook style, caption tone, emoji density, pacing, content type. If their primary hook style is "${profile.hookStyle.primary}", at least half the ideas should use that hook type. The hook should sound like words the creator would actually say — not generic "TikTok voice". When in doubt, lean to the creator's energy.`,
     "",

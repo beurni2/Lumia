@@ -72,6 +72,8 @@ import type {
 } from "./tasteCalibration.js";
 import { scoreHookQuality } from "./hookQuality.js";
 import type { Region } from "@workspace/lumina-trends";
+import { REGION_VOICE_BIAS } from "./regionProfile.js";
+import { REGION_ANCHORS, hasRegionAnchors } from "./regionAnchorCatalog.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -385,6 +387,10 @@ export function resolveVoiceCluster(input: {
   coreId: string;
   recipeIdx: number;
   recentVoiceClusters?: ReadonlyMap<VoiceClusterId, number>;
+  /** PHASE R4 — optional region for additive +slot voice bias.
+   *  `undefined` and `"western"` add zero entries (byte-identical
+   *  to pre-R4). See REGION_VOICE_BIAS in regionProfile.ts. */
+  region?: Region;
 }): VoiceClusterId {
   // PHASE D1 — soften the prior priority-1 hard short-circuit
   // (was: `if (tone) return TONE_TO_VOICE_CLUSTER[tone]` — a 1.00
@@ -411,11 +417,24 @@ export function resolveVoiceCluster(input: {
   // - Tone != family default:       14 slots, preferred ~50%, family ~21%, others ~14%
   const familyDefault = FAMILY_VOICE[input.family];
   const biasedTable: VoiceClusterId[] = [];
+  // PHASE R4 — pull region-specific +slot bonuses (empty {} for
+  // western or undefined region — preserves byte-identical table).
+  const regionBias =
+    input.region && input.region !== "western"
+      ? REGION_VOICE_BIAS[input.region]
+      : undefined;
   for (const c of ALL_VOICE_CLUSTERS) {
     biasedTable.push(c, c);
     if (c === familyDefault) biasedTable.push(c);
     if (c === preferredFromTone) {
       biasedTable.push(c, c, c, c, c);
+    }
+    // PHASE R4 — additive region bonus. Each cluster keeps its
+    // baseline 2 slots so no cluster is ever dropped from the pool;
+    // region bonus only nudges sampling probability.
+    if (regionBias) {
+      const bonus = regionBias[c] ?? 0;
+      for (let i = 0; i < bonus; i++) biasedTable.push(c);
     }
   }
   const startIdx =
@@ -495,6 +514,14 @@ function buildRecipeQueue(
   recentPremises: ReadonlySet<string>,
   recentAnchors: ReadonlySet<string>,
   usedThisBatch: ReadonlySet<string>,
+  // PHASE R3 — optional region anchor rows (additive overlay).
+  // Empty array (western, undefined, or future regions with no
+  // curated entries) → short-circuits to the pre-R3 catalog queue
+  // BYTE-IDENTICAL. When non-empty, a 25% deterministic gate per
+  // (salt, coreId) decides whether to PREPEND the region recipes
+  // to the rotated catalog queue for that core. Region recipes are
+  // themselves salt-rotated for deterministic order across batches.
+  regionRows: readonly CoreDomainAnchorRow[] = [],
 ): Recipe[] {
   const all: Recipe[] = [];
   for (const row of rows) {
@@ -507,6 +534,47 @@ function buildRecipeQueue(
     }
   }
   if (all.length === 0) return all;
+
+  // PHASE R3 — region prefix gate. Deterministic ~25% per
+  // (salt, coreId). Cannot fire when regionRows is empty so
+  // western / undefined paths are byte-identical to pre-R3.
+  //
+  // Post-architect-review (R3 starvation fix): cap the prefix at
+  // REGION_PREFIX_CAP recipes when the gate fires so the catalog
+  // queue still receives the majority of `RECIPES_PER_CORE_CAP`
+  // attempts. With CAP=8 and prefix cap=3, gated cores get up to
+  // 3 region attempts followed by ≥5 catalog attempts — preventing
+  // an all-region prefix from burning the per-core attempt budget
+  // and indirectly pushing more requests onto the Claude fallback.
+  // The salt-rotated start position still cycles through ALL 6
+  // curated anchors over multiple batches, preserving anchor
+  // coverage across a creator's session even though any single
+  // gated core only sees 3.
+  let regionPrefix: Recipe[] = [];
+  if (regionRows.length > 0) {
+    const gate = djb2(`${salt}|${coreId}|region-prefix`) % 4;
+    if (gate === 0) {
+      const flat: Recipe[] = [];
+      for (const row of regionRows) {
+        for (const anchor of row.anchors) {
+          flat.push({
+            domain: row.domain,
+            anchor,
+            action: row.exampleAction,
+          });
+        }
+      }
+      if (flat.length > 0) {
+        const REGION_PREFIX_CAP = 3;
+        const rstart =
+          djb2(`${salt}|${coreId}|region-rotate`) % flat.length;
+        const take = Math.min(REGION_PREFIX_CAP, flat.length);
+        for (let i = 0; i < take; i++) {
+          regionPrefix.push(flat[(rstart + i) % flat.length]!);
+        }
+      }
+    }
+  }
   // Salt-rotated start position so cold-start (no recent premises /
   // anchors) still rotates across batches.
   const start = djb2(`${salt}|${coreId}|recipe`) % all.length;
@@ -523,7 +591,10 @@ function buildRecipeQueue(
     recentPremises.size === 0 &&
     usedThisBatch.size === 0
   ) {
-    return rotated;
+    // PHASE R3 — cold-start path: still honour the region prefix
+    // when the gate fired. Region recipes are tried first; the
+    // catalog queue follows in pre-R3 deterministic order.
+    return regionPrefix.length > 0 ? [...regionPrefix, ...rotated] : rotated;
   }
   const fresh: Recipe[] = [];
   const stale: Recipe[] = [];
@@ -563,7 +634,15 @@ function buildRecipeQueue(
     }
     (isStale ? stale : fresh).push(r);
   }
-  return [...fresh, ...stale];
+  // PHASE R3 — region prefix sits at the absolute front (above the
+  // freshness-sorted catalog queue) when the gate fired. Region
+  // recipes are subject to all the same downstream gates
+  // (`hookContainsAnchor`, `showContainsAnchor`, `validateComedy`,
+  // `validateAntiCopy`, `validateScenarioCoherence`) so this only
+  // re-orders the iterator — it cannot bypass any validator.
+  return regionPrefix.length > 0
+    ? [...regionPrefix, ...fresh, ...stale]
+    : [...fresh, ...stale];
 }
 
 // ---------------------------------------------------------------- //
@@ -744,6 +823,13 @@ export function generateCoreCandidates(
       recentPremises,
       recentAnchors,
       usedAnchorsThisBatch,
+      // PHASE R3 — pass region anchor rows when region is set and
+      // not western. Western and undefined both resolve to `[]`
+      // via `hasRegionAnchors` short-circuit, preserving pre-R3
+      // queue byte-identical on those paths.
+      input.region && hasRegionAnchors(input.region)
+        ? REGION_ANCHORS[input.region]
+        : [],
     );
 
     let attempts = 0;
@@ -785,6 +871,10 @@ export function generateCoreCandidates(
         coreId: core.id,
         recipeIdx: attempts,
         recentVoiceClusters,
+        // PHASE R4 — pass region for additive +slot voice bias.
+        // Undefined / "western" → no bonus pushed → biasedTable
+        // byte-identical to pre-R4.
+        ...(input.region ? { region: input.region } : {}),
       });
       const voice = getVoiceCluster(voiceId);
       attempts++;

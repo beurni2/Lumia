@@ -1,0 +1,315 @@
+Implement staged regional beta support for Lumina: R4 → R2 → R3.
+
+Context:
+Lumina will run beta across all supported regions. Claude must remain fallback only. The deterministic engine should not be region-blind forever, but we need to add regional support safely without breaking the closed-beta quality we just achieved.
+
+Current known state:
+- Region is selected in onboarding.
+- Supported region bundles: western, india, philippines, nigeria.
+- Region is stored on creators.region and ideas.region.
+- Region reaches /api/ideator/generate and hybridIdeator.
+- Claude fallback receives region context.
+- The main deterministic engine is still mostly region-blind.
+- Closed-beta quality is currently strong:
+  - live 20-idea API sweep passed
+  - no family-verb leaks
+  - no placeholder filler
+  - no meta-template signatures
+  - tests/typechecks clean
+  - western baseline is the control and must stay stable
+
+Product requirement:
+Lumina should eventually understand that humor, daily life, language rhythm, and filming reality differ by region.
+
+But do not overbuild regional comedy in one pass.
+
+For beta, add a minimal staged regional baseline:
+1. R4 — regional voice-cluster sampling bias
+2. R2 — Claude fallback regional prompt polish
+3. R3 — carefully staged region-tagged anchor catalog
+
+Important:
+Claude must remain fallback only.
+Do not make Claude the main regional generator.
+Do not force dialect/slang based only on region.
+Do not use heavy Pidgin/Hinglish/Taglish yet unless the system already has an explicit user language-style preference.
+Use clean English with light regional grounding by default.
+Bad regional comedy is worse than no regional comedy.
+
+Hard rules:
+- No broad rewrite.
+- No migrations unless absolutely unavoidable.
+- No API breaking changes.
+- No validator loosening.
+- Preserve western baseline behavior unless explicitly testing region differences.
+- Preserve Hero Quality, Retention Novelty, selectedSituations scoring, calibration, signal loop, refresh excludeHooks, UX1/UX2/UX3/UX3.3.
+- Keep tests passing and TypeScript clean.
+- Every region change must be gated by live-output QA.
+- Do not claim success from tests alone.
+
+Supported regions:
+- western
+- nigeria
+- india
+- philippines
+
+====================================================
+R4 — REGIONAL VOICE-CLUSTER SAMPLING BIAS
+====================================================
+
+Goal:
+Add very light deterministic regional flavor by adjusting voice-cluster sampling weights per region, using existing battle-tested clusters only.
+
+This should be the safest step.
+
+Do not add new voice clusters.
+Do not add new templates.
+Do not change validators.
+Do not alter western baseline except if necessary for config structure.
+
+Suggested behavior:
+- western: preserve current weights
+- nigeria: slightly more chaotic_confession / overdramatic_reframe, but keep dry_deadpan and quiet_realization available
+- india: slightly more quiet_realization / overdramatic_reframe / dry_deadpan, keep chaotic_confession available
+- philippines: slightly more chaotic_confession / quiet_realization / dry_deadpan, keep overdramatic available
+
+These are starting points only. Keep changes conservative.
+
+Requirements:
+- Use existing voice clusters.
+- Make regional weighting additive/config-based.
+- Must be fully reversible by changing config values.
+- Must not reduce batch diversity.
+- Must not force all 3 ideas into one voice.
+
+QA for R4:
+Generate 20 live ideas per region:
+- western
+- nigeria
+- india
+- philippines
+
+Report:
+- cluster distribution by region
+- hook quality
+- scenario quality
+- filmability
+- any repeated voice pattern issues
+- whether western remained stable
+
+Acceptance:
+- western baseline unchanged or materially equivalent
+- no safety failures
+- no scenario quality regression
+- no region gets over-concentrated into one voice
+- tests pass
+- TypeScript clean
+
+Pause and report if R4 causes quality/yield issues.
+
+====================================================
+R2 — CLAUDE FALLBACK REGIONAL PROMPT POLISH
+====================================================
+
+Goal:
+Improve regional grounding on the Claude fallback path only.
+
+Claude must stay fallback only.
+This phase should not affect the deterministic path except through existing fallback behavior.
+
+Current issue:
+Claude receives region context, but regional prompting is shallow. Existing regional context is not enough to produce culturally natural fallback output.
+
+Requirements:
+- Add or improve region-specific fallback prompt guidance for:
+  - western
+  - nigeria
+  - india
+  - philippines
+- Keep wording conservative and safe.
+- Avoid heavy dialect unless an explicit user language-style preference exists.
+- Prefer local daily-life context over forced slang.
+- Include anti-stereotype guidance.
+- Include privacy/safety guidance for chat/app/screen ideas.
+- Preserve all existing validators after Claude output.
+- Do not loosen fallback acceptance gates.
+
+Regional guidance examples:
+
+nigeria:
+- Use clean English with light Nigerian context by default.
+- If language style is not explicit, avoid heavy Pidgin.
+- Local reality can include WhatsApp group plans, transport stress, data/phone realities, market/errands, family/social pressure, school/work hustle, home/food situations.
+- Avoid lazy stereotypes or overusing auntie/uncle/NEPA jokes.
+- Use fake/demo/cropped screens for messages, bank alerts, or private app content.
+
+india:
+- Use clean English with light Indian context by default.
+- If language style is not explicit, avoid heavy Hinglish.
+- Local reality can include group chats, family plans, college/work deadlines, commute/traffic/train/metro, exams/study, hostel/roommate, food delivery.
+- Avoid caricature, forced “bro/bhai/yaar” everywhere, or stale stereotypes.
+- Use fake/demo/cropped screens for chats/apps/private data.
+
+philippines:
+- Use clean English with light Filipino context by default.
+- If language style is not explicit, avoid heavy Taglish.
+- Local reality can include group chats, commute/traffic, family plans, school/work, food delivery, phone/data, friend/social plans, home/roommate situations.
+- Avoid forced slang or stereotypes.
+- Use fake/demo/cropped screens for chats/apps/private data.
+
+western:
+- Preserve current proven baseline.
+
+QA for R2:
+Force or simulate fallback safely for each region without making Claude primary in production.
+Generate at least 10 fallback outputs per region.
+Report:
+- prompt changes
+- fallback output examples
+- rejection rates
+- validator failures by reason
+- cultural cringe / forced slang notes
+- safety issues
+- whether rollback is simple
+
+Acceptance:
+- fallback outputs remain validator-clean
+- no forced heavy dialect
+- no obvious stereotypes
+- no safety failures
+- no increase in empty/failure rate that would hurt refresh
+- tests pass
+- TypeScript clean
+
+====================================================
+R3 — REGION-TAGGED ANCHOR CATALOG, STAGED CAREFULLY
+====================================================
+
+Goal:
+Add a small, curated region-aware deterministic anchor baseline, without destabilizing the core engine.
+
+This is medium risk. Keep it small and staged.
+
+Do not add a huge regional corpus.
+Do not replace western anchors.
+Do not add abstract anchors that break scenario quality.
+Do not add anchors that cannot produce concrete Film-This-Now instructions.
+
+Use region-tagged anchors only when:
+- the anchor is concrete enough to film
+- the scenario can remain safe
+- the action is compatible
+- the anchor has a clear daily-life context
+- the validator can still reason about it
+- it does not rely on private real data
+
+Start with a small curated set per region.
+
+Examples of possible anchor categories, not mandatory exact items:
+
+nigeria:
+- WhatsApp group plan
+- transport fare / commute plan
+- data subscription / phone data
+- market errand
+- power/light interruption only if handled carefully
+- school/work deadline
+- food/home situation
+- fake bank alert only with privacy warning
+
+india:
+- group chat plan
+- commute/train/metro/traffic
+- college assignment / exam notes
+- hostel/roommate item
+- food delivery cart
+- family plan
+- work deadline
+- study materials
+
+philippines:
+- group chat plan
+- commute/traffic
+- food delivery
+- phone data/load
+- family plan
+- school/work task
+- roommate/home item
+- friend/social plan
+
+western:
+- preserve current baseline.
+
+Requirements:
+- Each new anchor must have:
+  - region tag
+  - compatible topic lanes
+  - safe verbs/actions
+  - privacy/safety notes if needed
+  - scenario compatibility check
+- Do not let a new anchor flow into generic verb-object nonsense.
+- Do not let a new anchor reduce recipe-loop yield without telemetry.
+- Keep additions small enough to hand-review.
+- If any anchor causes repeated rejection or weird output, remove or disable it.
+
+QA for R3:
+Generate 20 live deterministic ideas per region after anchor addition.
+For each region report:
+- how many ideas used region-tagged anchors
+- examples of hooks/scenarios/captions
+- scenario quality pass/fail
+- human-filmable yes/no
+- cultural relevance yes/no
+- awkward/stereotyped wording yes/no
+- rejection/yield stats
+
+Acceptance:
+- western baseline remains stable
+- each non-western region shows region-relevant details in at least 50–60% of ideas
+- 0 hook/scenario mismatches
+- 0 generic verb-object nonsense
+- 0 impossible actions
+- 0 safety failures
+- 0 obvious fake/stereotyped regional phrasing
+- at least 18/20 ideas per region are human-filmable
+- tests pass
+- TypeScript clean
+
+====================================================
+OVERALL REPORTING REQUIREMENTS
+====================================================
+
+For each stage R4, R2, R3, report separately:
+1. files changed
+2. config added/changed
+3. whether western baseline changed
+4. live QA results by region
+5. example outputs by region
+6. rejection/yield stats
+7. risks observed
+8. rollback path
+9. tests/typechecks run
+
+Final report must include:
+- cluster distribution by region
+- fallback QA by region
+- anchor usage by region
+- 20-idea sweep per region
+- human-filmable count per region
+- safety failures
+- stereotype/forced-slang issues
+- confirmation:
+  - Claude remains fallback only
+  - no migrations
+  - no API breaking changes
+  - no validator loosening
+  - western baseline preserved
+
+Stop conditions:
+Stop and ask before continuing if:
+- western baseline regresses
+- any region drops below 18/20 human-filmable
+- regional anchors create hook/scenario mismatch
+- fallback rejection rate becomes concerning
+- slang feels fake/stereotyped
+- TypeScript/tests fail in a way requiring architectural changes

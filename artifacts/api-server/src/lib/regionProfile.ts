@@ -63,6 +63,123 @@
 import type { Region } from "@workspace/lumina-trends";
 import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
 import type { Idea } from "./ideaGen.js";
+import type { VoiceClusterId } from "./voiceClusters.js";
+
+// ---------------------------------------------------------------- //
+// PHASE R4 — Regional voice-cluster sampling bias                  //
+// ---------------------------------------------------------------- //
+//
+// Conservative additive +slot weights per (region, voice cluster).
+// Applied AFTER the existing baseline (2 slots) + family-default
+// (+1) + tone-pin (+5) entries are pushed into resolveVoiceCluster's
+// `biasedTable`. Western entry is intentionally empty `{}` so the
+// table is byte-identical to pre-R4 for western/undefined creators.
+//
+// Design constraints:
+//  - Use existing 5 voice clusters only (no new clusters).
+//  - Conservative bonuses (+1 or +2) so no region collapses into
+//    a single voice; baseline 2-slot + family +1 + tone +5 still
+//    dominate. With a +2/+1 region nudge the dominant cluster
+//    becomes ~25-30% (vs ~22% baseline) — visible but never
+//    monoculture.
+//  - Cold-start (no tone) creators in non-western regions feel a
+//    small regional rhythm shift; tone-pinned creators are largely
+//    unaffected because the +5 tone bonus still dwarfs the +1/+2
+//    region bonus.
+//  - Reversible: change any number to 0 and the region reverts.
+//  - Acceptance: no region drops a cluster to 0 entries; the +2
+//    region clusters never beat a +5 tone-pinned cluster.
+
+// ---------------------------------------------------------------- //
+// PHASE R2 — Claude fallback regional prompt polish                //
+// ---------------------------------------------------------------- //
+//
+// Per-region guidance string injected into the Claude system prompt
+// AFTER the generic "Region authenticity" line in `ideaGen.ts`. The
+// existing line tells Claude to "code-switch to natural slang" — for
+// non-western regions we follow with a softer, anti-stereotype block
+// that says: keep base English; use light regional context (group
+// chats, transport, food, family); avoid forced Pidgin/Hinglish/
+// Taglish unless the user has explicitly opted in via a language-
+// style preference; redact private screen content.
+//
+// Western entry is `""` (empty string) so L1058's existing language
+// instruction is preserved verbatim — western quality bar untouched.
+//
+// Claude remains FALLBACK ONLY (hybridIdeator only triggers
+// generateIdeas when fewer than 3 local candidates clear the
+// scorer). All Claude output continues to flow through the same
+// validators (ideaSchema + comedy + scenarioCoherence + anti-copy)
+// so this prompt change can never loosen acceptance gates.
+//
+// Rollback path: replace any region's string with `""` to revert
+// that region's fallback prompt to the pre-R2 baseline.
+
+export const REGION_PROMPT_GUIDANCE: Record<Region, string> = {
+  western: "",
+
+  nigeria: [
+    "REGION CONTEXT — Nigeria (clean English with light Nigerian grounding):",
+    "  • DEFAULT TO CLEAN ENGLISH. Do NOT force heavy Pidgin or 'abeg'/'omo'/'wahala' unless the creator's profile explicitly asks for it. Light Pidgin in 1 of every 4-5 hooks is fine; saturating every hook reads as caricature.",
+    "  • Local daily-life context the audience recognises: WhatsApp group plans, transport stress (danfo / okada / ride-hailing fare drama), data subscription / phone reception realities, market or errand runs, family + social pressure (cousin's wedding, aunt's calls), school / work hustle, home cooking + food situations.",
+    "  • AVOID lazy stereotypes — overusing auntie / uncle stock characters, NEPA / 'light just took' jokes, 'Nigerian time' clichés. If a Lagos creator has heard the joke a hundred times this week, skip it.",
+    "  • SAFETY — for any chat / app / bank / screen idea, instruct fake or demo screens, cropped frames, no real account balances, names, or messages.",
+    "  • Filming reality — most micro-creators shoot on a single phone in a small room or while on the move; keep instructions executable in <30 minutes with no extra crew.",
+  ].join("\n"),
+
+  india: [
+    "REGION CONTEXT — India (clean English with light Indian grounding):",
+    "  • DEFAULT TO CLEAN ENGLISH. Do NOT force heavy Hinglish or sprinkle 'bhai' / 'yaar' / 'bro' into every hook unless the creator's profile explicitly asks for it. Light Hinglish in 1 of every 4-5 hooks is fine; over-using it reads as caricature.",
+    "  • Local daily-life context the audience recognises: family group chats, college or work deadlines, commute (metro / local train / autorickshaw / Ola-Uber traffic), exams + study marathons, hostel / roommate / PG situations, food delivery (Swiggy / Zomato cart guilt), chai-break beats, family expectations on calls.",
+    "  • AVOID caricature — Bollywood references on autopilot, forced 'bhai', stale aunty stereotypes. Specific > generic.",
+    "  • SAFETY — fake or demo screens for chats / payments / private app data; no real UPI handles or balances.",
+    "  • Filming reality — most micro-creators shoot on a single phone in a small room; keep instructions executable in <30 minutes solo.",
+  ].join("\n"),
+
+  philippines: [
+    "REGION CONTEXT — Philippines (clean English with light Filipino grounding):",
+    "  • DEFAULT TO CLEAN ENGLISH. Do NOT force heavy Taglish or sprinkle 'bes' / 'lodi' / 'sana all' into every hook unless the creator's profile explicitly asks for it. Light Taglish in 1 of every 4-5 hooks is fine; over-using it reads as caricature.",
+    "  • Local daily-life context the audience recognises: barkada group chats, commute (jeepney / MRT / heavy traffic), food delivery (foodpanda / GrabFood cart guilt), GCash / phone load realities, family plans, school / work tasks, roommate / condo home situations, weekend social plans.",
+    "  • AVOID forced slang or stereotype — 'sana all' on every video, generic 'tita' jokes, lazy beauty-queen references.",
+    "  • SAFETY — fake or demo screens for chats / payments / private app data; no real GCash balances or contact lists.",
+    "  • Filming reality — most micro-creators shoot on a single phone in a small room; keep instructions executable in <30 minutes solo.",
+  ].join("\n"),
+};
+
+export const REGION_VOICE_BIAS: Record<
+  Region,
+  Partial<Record<VoiceClusterId, number>>
+> = {
+  // Western: empty — preserves byte-identical biased table for the
+  // current 20/20 quality bar. Cold-start default region from
+  // routes/ideator.ts L83 also lands here, so cold-start creators
+  // are unchanged.
+  western: {},
+
+  // Nigeria: slightly more chaotic_confession + overdramatic_reframe.
+  // Keep dry_deadpan + quiet_realization + high_energy_rant available
+  // (no negative weights — only additive).
+  nigeria: {
+    chaotic_confession: 2,
+    overdramatic_reframe: 1,
+  },
+
+  // India: slightly more quiet_realization + overdramatic_reframe +
+  // dry_deadpan. Keep chaotic_confession available.
+  india: {
+    quiet_realization: 2,
+    overdramatic_reframe: 1,
+    dry_deadpan: 1,
+  },
+
+  // Philippines: slightly more chaotic_confession + quiet_realization
+  // + dry_deadpan. Keep overdramatic available.
+  philippines: {
+    chaotic_confession: 2,
+    quiet_realization: 1,
+    dry_deadpan: 1,
+  },
+};
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //

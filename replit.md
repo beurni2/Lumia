@@ -39,6 +39,9 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Voice Clusters Definitions:** `artifacts/api-server/src/lib/voiceClusters.ts`
 - **Trend Catalog:** `artifacts/api-server/src/lib/trendCatalog.ts`
 - **Onboarding Seed Logic:** `artifacts/api-server/src/lib/onboardingSeed.ts`
+- **Region Profile (R1 baseline + R4 voice bias + R2 fallback prompt):** `artifacts/api-server/src/lib/regionProfile.ts`
+- **Region Anchor Catalog (R3):** `artifacts/api-server/src/lib/regionAnchorCatalog.ts`
+- **Regional QA Harnesses (R1/R2/R3/R4):** `artifacts/api-server/src/qa/regionalR{1,2,3,4}Qa.ts` → outputs in `.local/REGIONAL_R{1,2,3,4}_QA.md`
 
 ## Architecture decisions
 
@@ -47,6 +50,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Additive Development:** New features are layered as additive overlays, preserving existing functionality and minimizing schema/migration changes. Data changes are often pure TypeScript.
 - **Quality-First LLM Mutation:** Llama 3.1 hook mutation only replaces original content if it scores strictly better, preventing quality regressions.
 - **Layered Diversity & Novelty:** Utilizes multiple axes (script type, archetype, scene object tag, hook language style, voice profile, hook fingerprint, anchor, region) with tiered penalties and boosts to ensure diversity and freshness across generated ideas and batches.
+- **Staged Regional Beta (R1→R4→R2→R3):** Non-western regions (nigeria/india/philippines) get layered, additive overlays — R1 deterministic caption/howToFilm decoration, R4 voice-cluster +slot bias (+1/+2 per region), R2 Claude-fallback prompt polish (clean English default + anti-stereotype + privacy notes; the generic "code-switch to slang" line is dropped for non-western and the per-region block is the sole source of truth), R3 small curated region anchor catalog (6 anchors per region) prepended to recipe queue at deterministic 25% gate per (salt, coreId), capped at 3 prefix recipes so the catalog queue still gets ≥5 of the 8 per-core attempts. Western and undefined-region paths are byte-identical to pre-overlay baseline at every phase. **Live 20-idea-per-region QA is a manual gate before beta rollout** — the synthetic harnesses (`qa/regionalR{1,2,3,4}Qa.ts`) verify the wiring is correct but live Claude + cohesive-author output quality remains untested.
 
 ## Product
 
