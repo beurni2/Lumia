@@ -31,6 +31,7 @@ import {
 } from "../scenarioCoherence";
 import {
   isVerbAnchorImplausible,
+  isStiffFamilyVerbLeak,
   resolveAnchorAwareAction,
   clustersContaining,
   FAMILY_ACTIONS,
@@ -176,7 +177,10 @@ describe("UX3.1 — bad_grammar_by_past_participle", () => {
       hook: "the fork won again today",
       trigger: "Land the moment by dropping the fork in one beat.",
       whatToShow:
-        "Camera on the fork. Beat 2: shrug. Beat 3: i dropped the fork.",
+        // PHASE UX3.3 — was "Beat 2: shrug. Beat 3: ..." which now
+        // matches META_TEMPLATE_SIGNATURES rule 14. Rewritten as
+        // clean prose; the test still exercises rule 6 (grammar).
+        "Camera on the fork. Hold on it for a beat, then drop it.",
       shotPlan: [
         "Wide: the fork in frame.",
         "Medium: drop the fork.",
@@ -242,7 +246,10 @@ describe("UX3.1 — hook_topic_noun_drift", () => {
     const idea = makeIdea({
       hook: "rest is for the rest of them, not for me",
       whatToShow:
-        "Camera on you. Beat 1: shrug. Beat 2: rest your forehead on the table. Beat 3: stare.",
+        // PHASE UX3.3 — "Beat 1: shrug" now matches rule 14.
+        // Rewritten as clean prose; rule 8 (cluster bypass) is
+        // still what's under test here.
+        "Camera on you. Shrug once, then rest your forehead on the table and stare.",
       shotPlan: [
         "Wide: enter the frame.",
         "Medium: shrug.",
@@ -293,7 +300,10 @@ describe("UX3.1 — verb_anchor_implausible", () => {
     const idea = makeIdea({
       hook: "the draft won again today",
       whatToShow:
-        "Camera on the draft. Beat 2: shrug. Beat 3: i abandon the draft today.",
+        // PHASE UX3.3 — "Beat 2: shrug" now matches rule 14;
+        // rewritten as clean prose. Rule 9's plausible-set
+        // acceptance is still what's under test here.
+        "Camera on the draft. Hold for a beat, then abandon the draft today.",
       shotPlan: [
         "Wide: the draft in frame.",
         "Medium: close the tab.",
@@ -308,7 +318,9 @@ describe("UX3.1 — verb_anchor_implausible", () => {
     const idea = makeIdea({
       hook: "the thread won again today",
       whatToShow:
-        "Camera on the thread. Beat 2: shrug. Beat 3: i ghost the thread today.",
+        // PHASE UX3.3 — "Beat 2: shrug" now matches rule 14;
+        // rewritten as clean prose.
+        "Camera on the thread. Hold for a beat, then ghost the thread today.",
       shotPlan: [
         "Wide: the thread in frame.",
         "Medium: scroll away.",
@@ -334,8 +346,13 @@ describe("UX3.1 — verb_anchor_implausible", () => {
     expect(isVerbAnchorImplausible("ghost", "thread")).toBe(false);
     expect(isVerbAnchorImplausible("fake", "profile")).toBe(false);
     // Unrelated verbs always pass through (open-grammar).
+    // PHASE UX3.3 — `expose` was added to STIFF_FAMILY_VERBS in C2
+    // (UX3.2 live QA shipped "expose the sink" / "expose the gym"
+    // as defects). The remaining open-grammar family verb is
+    // `avoid`, which the audit confirmed composes broadly with
+    // concrete anchors. Probe both to lock that contract.
     expect(isVerbAnchorImplausible("avoid", "fork")).toBe(false);
-    expect(isVerbAnchorImplausible("expose", "calendar")).toBe(false);
+    expect(isVerbAnchorImplausible("avoid", "calendar")).toBe(false);
   });
 
   it("resolveAnchorAwareAction swaps stiff verb for the per-anchor fallback", () => {
@@ -363,6 +380,100 @@ describe("UX3.1 — verb_anchor_implausible", () => {
     // anchor (fail-open semantics).
     const swap4 = resolveAnchorAwareAction(FAMILY_ACTIONS.adulting_chaos, "fork");
     expect(swap4.bare).toBe("avoid");
+  });
+
+  // ── PHASE UX3.3 (rev 3, post-architect) regression suite ─────────
+  // Architect UX3.3-C5 review found three rule-13 gaps. Lock them
+  // in before they can return.
+
+  it("rule 13 multi-match: plausible-then-implausible scan rejects the later leak", () => {
+    // Rev 2 used `.match()` which returns only the first hit. If
+    // a plausible pair ('ghost the thread') appeared before an
+    // implausible one ('expose the sink'), validation falsely
+    // passed. Rev 3 uses `matchAll` so the later leak is caught.
+    const idea = makeIdea({
+      hook: "the sink won again today",
+      whatToShow:
+        "Camera on the sink. I ghost the thread on my phone first, " +
+        "then expose the sink in the next beat anyway.",
+      shotPlan: [
+        "Wide: the sink in frame.",
+        "Medium: phone in hand.",
+        "Hold: stare at the sink, then cut.",
+      ],
+      trigger: "Show the sink on camera in one beat.",
+    });
+    expect(validateScenarioCoherence(idea)).toBe("family_verb_leak_on_scene");
+  });
+
+  it("rule 13 unknown-anchor stiff-verb leak still rejects (no fallback required)", () => {
+    // Rev 2 gated rule 13 on `isVerbAnchorImplausible`, which
+    // fails OPEN when the anchor has no entry in
+    // `ANCHOR_VERB_FALLBACK`. That meant 'abandon the cucumber'
+    // (cucumber unknown to the catalog) silently passed despite
+    // being a textbook family-verb leak. Rev 3 uses
+    // `isStiffFamilyVerbLeak` (no fallback gate) so the
+    // long-tail catch is preserved.
+    const idea = makeIdea({
+      hook: "the cucumber won again today",
+      whatToShow:
+        "Camera on the cucumber. Hold for one beat, then i abandon " +
+        "the cucumber today.",
+      shotPlan: [
+        "Wide: the cucumber in frame.",
+        "Medium: walk away.",
+        "Hold: stare, then cut.",
+      ],
+      trigger: "Show the cucumber on camera in one beat.",
+    });
+    expect(validateScenarioCoherence(idea)).toBe("family_verb_leak_on_scene");
+  });
+
+  it("dual-predicate semantic divergence: unknown anchors flag as leak but not as implausible-with-fallback", () => {
+    // PHASE UX3.3 (rev 3, post-architect §next-actions #1) — pin the
+    // intentional contract split between the two predicates so a
+    // future cleanup can't accidentally reunify them. The recipe-
+    // build path needs `isVerbAnchorImplausible` (gated on fallback
+    // existence — fail open if we can't repair). The validator path
+    // needs `isStiffFamilyVerbLeak` (no fallback gate — catch the
+    // long tail). 'cucumber' is deliberately NOT in
+    // ANCHOR_VERB_FALLBACK; the two predicates must diverge here.
+    expect(isVerbAnchorImplausible("abandon", "cucumber")).toBe(false);
+    expect(isStiffFamilyVerbLeak("abandon", "cucumber")).toBe(true);
+    // For known-fallback anchors the two agree on stiff-leak verdict.
+    expect(isVerbAnchorImplausible("abandon", "fork")).toBe(true);
+    expect(isStiffFamilyVerbLeak("abandon", "fork")).toBe(true);
+    // For whitelist-plausible pairs the two agree on no-leak verdict.
+    expect(isVerbAnchorImplausible("abandon", "draft")).toBe(false);
+    expect(isStiffFamilyVerbLeak("abandon", "draft")).toBe(false);
+    // For non-stiff family verbs the two agree on pass-through.
+    expect(isVerbAnchorImplausible("avoid", "cucumber")).toBe(false);
+    expect(isStiffFamilyVerbLeak("avoid", "cucumber")).toBe(false);
+  });
+
+  it("QA harness BANNED_PHRASES mirror parity: every validator-rejected pattern also fails the harness", () => {
+    // Architect flagged QA/validator drift: the live QA harness
+    // can ship 'PASS' on bytes the validator rejects, which lets
+    // the metric lie. This test imports the same probe strings
+    // and checks both surfaces reject them.
+    //
+    // We re-build the BANNED_PHRASES regex set inline (not
+    // exported from `ux32LiveQa.ts`) and assert byte-for-byte
+    // coverage of: `expose the X`, `hesitate, ... mid-realization`.
+    const harnessBanned = [
+      // Mirror of the rev-3 family-verb regex including `expose`.
+      /\b(abandon(?:ed|ing|s)?|ghost(?:ed|ing|s)?|fake[ds]?|faking|spiral(?:ed|ing|s)?|overthink(?:s|ing)?|overthought|perform(?:ed|ing|s)?|expose[ds]?|exposing)\s+(?:the|my|your|their|its|this|that)\s+\w+\b/i,
+      // Mirror of the rev-3 hesitate-mid-realization signature.
+      /\bhesitate,\s+and\s+\w+\s+the\s+\w+\s*[—–\-]\s*end\s+on\s+your\s+face\s+mid-realization\b/i,
+    ];
+    const probes = [
+      "i expose the sink in the next beat",
+      "phone propped low — hesitate, and abandon the draft — end on your face mid-realization",
+    ];
+    for (const probe of probes) {
+      const harnessHit = harnessBanned.some((re) => re.test(probe));
+      expect(harnessHit).toBe(true);
+    }
   });
 });
 

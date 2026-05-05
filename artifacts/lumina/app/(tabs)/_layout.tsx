@@ -10,6 +10,14 @@ import { flags } from "@/lib/featureFlags";
 // MVP freeze it is hidden from the tab bar entirely. The screen
 // file (`earnings.tsx`) still exists and is registered as a route
 // by expo-router, but is unreachable from navigation.
+//
+// PHASE UX3.3 — additionally gated on `SHOW_POST_BETA_SURFACES`
+// (default false). Per the closed-beta vision-trim, the visible
+// nav reduces to Home / Studio / Profile. The earnings tab returns
+// when EITHER flag flips to allow it.
+const EARNINGS_VISIBLE =
+  !flags.ARCHIVED_MONETIZATION && flags.SHOW_POST_BETA_SURFACES;
+
 function NativeTabLayout() {
   return (
     <NativeTabs>
@@ -21,7 +29,7 @@ function NativeTabLayout() {
         <Icon sf={{ default: "play.rectangle", selected: "play.rectangle.fill" }} />
         <Label>Studio</Label>
       </NativeTabs.Trigger>
-      {!flags.ARCHIVED_MONETIZATION && (
+      {EARNINGS_VISIBLE && (
         <NativeTabs.Trigger name="earnings">
           <Icon
             sf={{
@@ -50,7 +58,7 @@ function ClassicTabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="studio" options={{ title: "Studio" }} />
-      {!flags.ARCHIVED_MONETIZATION && (
+      {EARNINGS_VISIBLE && (
         <Tabs.Screen name="earnings" options={{ title: "Earnings" }} />
       )}
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />

@@ -156,11 +156,13 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // confession → quiet retreat). Period beat + "then" pivot +
       // concrete anchor. Renders ~55.
       "i told the ${anchor} everything. then ${actionPast} it.",
-      // PHASE D15 — distilled from D14 corpus pattern `i confessed
-      // to the group chat... then sobered up and pretended it was
-      // a joke` (admission → walk-back). Explicit `myself`
-      // anthropomorph + period beat + concrete anchor. Renders ~80.
-      "i confessed to the ${anchor}. then ${actionPast} myself.",
+      // PHASE UX3.3 (rev-4) — DELETED: "i confessed to the ${anchor}.
+      // then ${actionPast} myself." 20-idea live sweep showed this
+      // template ships across families with raw stiff `actionPast`
+      // ("performed myself" / "abandoned myself" / "ghosted myself")
+      // — ungrammatical first-person construction that bypassed the
+      // hook-exemption-from-leak-rule because hooks are intentionally
+      // exempt. Removed at the source instead.
       // PHASE D15 — distilled from D14 corpus pattern `still
       // doomscrolling at 2am again` (still-ing + time-stamp +
       // again loop confession). MID verb + brevity sweet spot +
@@ -297,12 +299,13 @@ const RAW_CLUSTERS: readonly VoiceCluster[] = [
       // predator-eating-victim escalation). Implicit anthropomorph
       // (`the X ate`) + MID verb + concrete anchor. Renders ~57.
       "the ${anchor} just ate my entire week alive",
-      // PHASE D15 — distilled from D14 corpus pattern `my amazon
-      // cart knows me better than my own therapist` (object-knows-
-      // creator-better-than-X shape). Explicit `my own` +
-      // HIGH verb (`fake`) + concrete + `again` contradiction.
-      // Renders ~92 (premium-band template).
-      "my own ${anchor} knows i'm faking it again",
+      // PHASE UX3.3 (rev-4) — DELETED: "my own ${anchor} knows
+      // i'm faking it again". 20-idea live sweep showed this
+      // template ships verbatim 3× per batch (low diversity), with
+      // grammatically broken subject-verb agreement on plural
+      // anchors ("my own slippers KNOWS"), AND embeds the family
+      // verb "faking" as an idiom that the leak regex cannot
+      // catch (no determiner before noun). Removed at source.
     ],
   seedHookExemplars: [
       "a small task became my villain origin",

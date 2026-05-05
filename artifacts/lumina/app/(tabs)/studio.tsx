@@ -59,6 +59,7 @@ import {
   writeDailyIdeas,
   type CachedIdea,
 } from "@/lib/dailyIdeasCache";
+import { flags } from "@/lib/featureFlags";
 import { STUDIO_EVOLVING_LINE } from "@/lib/loopMessages";
 
 /* ------------------------------------------------------------------ */
@@ -439,17 +440,25 @@ export default function StudioScreen() {
               a moment.
             </Text>
           ) : null}
+          {/* PHASE UX3.3 — the style-twin-train route is off-vision
+              for the closed beta. Hide every CTA that points at it;
+              defensive route-level redirects also guard the screen
+              if anyone deep-links. The "trained" branch keeps the
+              read-only summary so existing users still see what
+              Lumina learned, just without "Add more". */}
           {!styleTrained ? (
-            <View>
-              <Text style={styles.bodyText}>
-                Upload a few videos — I’ll match your tone, humor, and pacing.
-              </Text>
-              <PrimaryButton
-                label="Add videos (optional)"
-                icon="upload"
-                onPress={() => router.push("/style-twin-train")}
-              />
-            </View>
+            flags.SHOW_POST_BETA_SURFACES ? (
+              <View>
+                <Text style={styles.bodyText}>
+                  Upload a few videos — I’ll match your tone, humor, and pacing.
+                </Text>
+                <PrimaryButton
+                  label="Add videos (optional)"
+                  icon="upload"
+                  onPress={() => router.push("/style-twin-train")}
+                />
+              </View>
+            ) : null
           ) : (
             <View>
               <Text style={styles.bodyText}>
@@ -457,11 +466,13 @@ export default function StudioScreen() {
                 {importedCount === 1 ? "video" : "videos"}.
               </Text>
               <View style={styles.actionRow}>
-                <SecondaryButton
-                  label="Add more"
-                  icon="plus"
-                  onPress={() => router.push("/style-twin-train")}
-                />
+                {flags.SHOW_POST_BETA_SURFACES && (
+                  <SecondaryButton
+                    label="Add more"
+                    icon="plus"
+                    onPress={() => router.push("/style-twin-train")}
+                  />
+                )}
                 <SecondaryButton
                   label={resetting ? "Resetting…" : "Reset style"}
                   icon="rotate-ccw"

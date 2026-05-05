@@ -433,12 +433,27 @@ export function getAllCatalogActions(): ReadonlySet<string> {
 
 /** Family verbs that need anchor-fitting overrides for most concrete
  *  anchors (the `{family-verb} the {object}` construction reads as
- *  template stiffness for these four). */
+ *  template stiffness for these verbs).
+ *
+ *  PHASE UX3.3 — added `overthink`, `perform`, and `expose`. UX3.2
+ *  live QA shipped "overthink the invite" / "expose the sink" /
+ *  "perform the profile" because these family verbs (the bare
+ *  `FAMILY_ACTIONS[social_mask|dopamine_overthinking|identity_exposure]`
+ *  verbs) were not recognised as stiff and bypassed the anchor-aware
+ *  swap. Adding them brings the stiff set to 7 of the 8 family
+ *  verbs; only `avoid` still passes through (it composes broadly
+ *  with concrete anchors — "avoid the inbox" / "avoid the dishes"
+ *  read naturally — and the audit didn't flag it as a shipping
+ *  defect). */
 const STIFF_FAMILY_VERBS: ReadonlySet<string> = new Set([
   "abandon",
   "ghost",
   "spiral",
   "fake",
+  // PHASE UX3.3
+  "overthink",
+  "perform",
+  "expose",
 ]);
 
 /** Per stiff family verb, the set of anchors where the verb DOES
@@ -476,6 +491,29 @@ const VERB_ANCHOR_PLAUSIBLE: Record<string, ReadonlySet<string>> = {
   fake: new Set([
     "app", "profile", "bio", "crush", "thread", "selfie",
     "caption", "groupchat", "gym", "yoga", "pushups",
+  ]),
+  // PHASE UX3.3 — `overthink` is intransitive in natural English
+  // (the construction is "i overthink it" / "i'm overthinking
+  // again", not "i overthink the X"). Empty plausible set forces
+  // every anchor through the fallback table, mirroring `spiral`.
+  overthink: new Set([]),
+  // PHASE UX3.3 — `perform` composes with creator-workflow surfaces
+  // ("perform the bit", "perform the caption read"). Conservative
+  // whitelist — when in doubt, swap. Notably absent: profile, gym,
+  // gym-adjacent — "perform the profile" reads as nonsense and was
+  // a UX3.2 ship-defect.
+  perform: new Set([
+    "selfie", "caption", "thread", "voicememo", "draft",
+  ]),
+  // PHASE UX3.3 — `expose` composes with content/identity surfaces
+  // ("expose the draft", "expose the bio"). Notably absent:
+  // sink, gym, fridge, mail, mirror, environment fixtures — UX3.2
+  // live QA shipped "expose the sink" / "expose the gym" / "expose
+  // the fridge" all of which read as nonsense. Conservative
+  // whitelist forces those through the fallback table.
+  expose: new Set([
+    "draft", "bio", "selfie", "caption", "profile", "voicememo",
+    "lockscreen", "thumb",
   ]),
 };
 
@@ -573,9 +611,19 @@ const ANCHOR_VERB_FALLBACK: Record<string, FamilyAction> = {
  *  per-anchor verb when the family verb is stiffness-prone AND the
  *  (verb, anchor) pair is not in the explicit plausible whitelist.
  *
+ *  PHASE UX3.3 — when the anchor is unmapped (non-canonical or
+ *  freshly added without a fallback entry), the function previously
+ *  failed open and returned the raw stiff family verb — which is
+ *  exactly how "abandon the textbook" / "overthink the invite"
+ *  shipped in UX3.2 live QA. Now returns a class-agnostic safe
+ *  default ("ignore") instead. Single-word verb so it composes
+ *  with the `${actionBare} the ${anchor}` template grammar, and
+ *  reads naturally for screens, containers, objects, and abstract
+ *  concepts alike (the four anchor classes the cohesive author
+ *  emits across).
+ *
  *  Pure / deterministic. Returns the input `famAction` when no
- *  swap is warranted (non-stiff verb, or pair already plausible,
- *  or anchor missing from fallback table — fail open). */
+ *  swap is warranted (non-stiff verb, or pair already plausible). */
 export function resolveAnchorAwareAction(
   famAction: FamilyAction,
   anchor: string,
@@ -586,13 +634,53 @@ export function resolveAnchorAwareAction(
   const plausible = VERB_ANCHOR_PLAUSIBLE[verb];
   if (plausible && plausible.has(anchorLc)) return famAction;
   const fallback = ANCHOR_VERB_FALLBACK[anchorLc];
-  if (!fallback) return famAction;
-  return fallback;
+  if (fallback) return fallback;
+  // PHASE UX3.3 — class-agnostic safe default. Covers the long tail
+  // of unmapped anchors so the stiff family verb never leaks.
+  return SAFE_DEFAULT_ACTION;
+}
+
+/** PHASE UX3.3 — class-agnostic safe default for unmapped anchors. */
+const SAFE_DEFAULT_ACTION: FamilyAction = {
+  bare: "ignore",
+  past: "ignored",
+  ing: "ignoring",
+};
+
+/** PHASE UX3.3 (rev-4) — scene-side action resolver. Different from
+ *  `resolveAnchorAwareAction`: this one ALWAYS swaps stiff family
+ *  verbs to a fallback regardless of `VERB_ANCHOR_PLAUSIBLE` whitelist.
+ *
+ *  The whitelist exists so HOOKS can use stiff verbs metaphorically
+ *  ("still ghosting the app at midnight again", "fake the selfie
+ *  one more time") — that's a deliberate design choice. But on
+ *  SCENE surfaces (shotPlan / trigger / reaction / caption / script /
+ *  whyItWorks / premise / howToFilm) the same verb reads as an
+ *  unfilmable abstract action ("then ghost it", "fake the selfie in
+ *  one clear gesture", "perform the gift"). Use this resolver in the
+ *  cohesive author's scene templates so the family verb never leaks
+ *  into directorial copy, even for whitelisted (verb, anchor) pairs.
+ *
+ *  Pure / deterministic. */
+export function resolveSceneSafeAction(
+  famAction: FamilyAction,
+  anchor: string,
+): FamilyAction {
+  const verb = famAction.bare.toLowerCase();
+  if (!STIFF_FAMILY_VERBS.has(verb)) return famAction;
+  const anchorLc = anchor.toLowerCase();
+  const fallback = ANCHOR_VERB_FALLBACK[anchorLc];
+  if (fallback) return fallback;
+  return SAFE_DEFAULT_ACTION;
 }
 
 /** PHASE UX3.1 — exported for `validateScenarioCoherence` so the
  *  validator can also check (verb, anchor) plausibility on
- *  pattern-engine candidates that bypass the cohesive author. */
+ *  pattern-engine candidates that bypass the cohesive author.
+ *
+ *  Semantics: "is this pair implausible AND we know how to repair
+ *  it?" Used by the recipe-build path which needs a fallback verb.
+ *  Fails open on unknown anchors (no fallback to swap to). */
 export function isVerbAnchorImplausible(
   verb: string,
   anchor: string,
@@ -606,6 +694,28 @@ export function isVerbAnchorImplausible(
   // implausible. If we DON'T have a fallback, fail open (don't
   // claim implausibility we can't repair).
   return ANCHOR_VERB_FALLBACK[a] !== undefined;
+}
+
+/** PHASE UX3.3 (rev 3, post-architect) — different semantics from
+ *  `isVerbAnchorImplausible`: this is the validator-side leak
+ *  predicate. Returns `true` whenever a stiff family verb is paired
+ *  with an anchor that is NOT in the verb's explicit plausible
+ *  whitelist — irrespective of whether a fallback exists. The
+ *  architect review (UX3.3-C5) flagged that the implausibility
+ *  helper's fallback-gate caused validator under-detection of
+ *  unknown-anchor stiff-verb leaks (e.g. "abandon the cucumber"
+ *  was not flagged because cucumber has no fallback). For the
+ *  rendered-text leak check we want the long-tail catch back. */
+export function isStiffFamilyVerbLeak(
+  verb: string,
+  anchor: string,
+): boolean {
+  const v = verb.toLowerCase();
+  if (!STIFF_FAMILY_VERBS.has(v)) return false;
+  const a = anchor.toLowerCase();
+  const plausible = VERB_ANCHOR_PLAUSIBLE[v];
+  if (plausible && plausible.has(a)) return false;
+  return true;
 }
 
 // ---------------------------------------------------------------- //

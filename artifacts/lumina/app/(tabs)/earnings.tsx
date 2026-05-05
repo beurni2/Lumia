@@ -11,8 +11,11 @@
 
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Redirect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useMemo } from "react";
+
+import { flags } from "@/lib/featureFlags";
 import {
   Platform,
   ScrollView,
@@ -39,6 +42,18 @@ const STATUS_TONE: Record<string, { hex: string; bg: string }> = {
 };
 
 export default function EarningsScreen() {
+  // PHASE UX3.3 — closed-beta surface gate. The earnings tab is hidden
+  // from the nav layout via the same flag (`(tabs)/_layout.tsx` L19),
+  // but a stale deeplink, a refresh, or a navigation history entry
+  // could still land here directly. Redirect to the tab bar so the
+  // user lands on Home/Studio/Profile during the beta. Safe to early-
+  // return before the data hooks: `flags.SHOW_POST_BETA_SURFACES` is
+  // computed once at module load, so the hook order across renders
+  // for a given build is stable.
+  if (!flags.SHOW_POST_BETA_SURFACES) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   const insets = useSafeAreaInsets();
   const { data: earnings } = useGetEarningsSummary();
   const animatedAmount = useCountUp(earnings?.currentMonth ?? 0, 1400);

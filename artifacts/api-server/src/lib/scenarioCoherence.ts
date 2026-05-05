@@ -75,6 +75,7 @@ import type { Idea } from "./ideaGen.js";
 import {
   clustersContaining,
   isVerbAnchorImplausible,
+  isStiffFamilyVerbLeak,
   FAMILY_ACTIONS,
 } from "./coreDomainAnchorCatalog.js";
 import {
@@ -96,7 +97,13 @@ export type ScenarioCoherenceReason =
   // PHASE UX3.2 additions
   | "impossible_physical_action_on_abstract"
   | "placeholder_filming_phrase"
-  | "authored_domain_used_generic_template";
+  | "authored_domain_used_generic_template"
+  // PHASE UX3.3 additions — close the metric-lying gap from UX3.2
+  // live QA (validator said PASS while shipping "abandon the
+  // textbook" / "overthink the invite" / "Beat 3: i abandoned the
+  // X" / "pick the phone showing the invite up, put it back").
+  | "family_verb_leak_on_scene"
+  | "meta_template_signature";
 
 const STOPWORDS = new Set<string>([
   "the","a","an","and","or","but","if","then","of","for","to","in","on","at","by",
@@ -228,6 +235,108 @@ function findFirstImplausibleVerbAnchor(
   }
   return null;
 }
+
+// ---------------------------------------------------------------- //
+// PHASE UX3.3 — family-verb leak on scene surfaces                  //
+// ---------------------------------------------------------------- //
+//
+// Catches the exact failure mode UX3.2 live QA shipped with PASS:
+// the cohesive author's `resolveAnchorAwareAction` falls open and
+// returns the raw stiff family verb when the anchor isn't in
+// `ANCHOR_VERB_FALLBACK`. The verb then leaks through every render
+// surface ("abandon the textbook", "overthink the invite", "fake
+// the doc"). Rule 9 only catches anchors that are IN the fallback
+// table; this rule catches the long tail.
+//
+// Hook surfaces are exempt — hooks are allowed to use these verbs
+// metaphorically ("when overthinking the text becomes a hobby")
+// and have their own quality gates. We only ban these on scene
+// surfaces (whatToShow / howToFilm / shotPlan / trigger / reaction /
+// caption / script) where they imply an unfilmable physical action.
+//
+// PHASE UX3.3 — `expose` added. UX3.2 live QA shipped scene text
+// like "expose the sink" / "expose the gym" because `expose` is the
+// `identity_exposure` family verb and was passing through unchecked.
+//
+// PHASE UX3.3 (rev 2) — capture groups added: group 1 = verb (any
+// tense), group 2 = anchor noun. Rule 13 below uses these to gate
+// the rejection on `isVerbAnchorImplausible(bareVerb, anchor)` so
+// we honour rule 9's `VERB_ANCHOR_PLAUSIBLE` whitelist (e.g.
+// "abandon the draft" / "ghost the thread" are explicitly allowed
+// and must not be rejected by the leak rule).
+// PHASE UX3.3 (rev-4) — broadened determiner alternation. Pre-rev-4
+// only matched `verb + (the|my|your|...) + noun`. 20-idea live sweep
+// shipped "Frame the app, pause for a beat, then **ghost it**." and
+// "i confessed to the X. then **performed myself**." — both bypassed
+// detection because `it` and `myself` weren't in the alternation.
+// Added `it|me|myself|yourself|himself|herself|themself|themselves|
+// itself|ourselves` so any "verb + pronoun" tail also catches.
+const FAMILY_VERB_LEAK_RE =
+  /\b(abandon(?:ed|ing|s)?|ghost(?:ed|ing|s)?|fake[ds]?|faking|spiral(?:ed|ing|s)?|overthink(?:s|ing)?|overthought|perform(?:ed|ing|s)?|expose[ds]?|exposing)\s+(?:the|my|your|their|its|this|that|it|me|myself|yourself|himself|herself|themself|themselves|itself|ourselves)\b(?:\s+(\w+))?/;
+
+/** PHASE UX3.3 — collapse a tense-inflected family verb token back
+ *  to its bare form so we can ask the catalog whether the
+ *  (bare-verb, anchor) pair is plausible. The set of forms here
+ *  must stay aligned with the alternation in `FAMILY_VERB_LEAK_RE`
+ *  group 1. */
+function bareFamilyVerb(token: string): string {
+  const t = token.toLowerCase();
+  if (t === "overthought" || t.startsWith("overthink")) return "overthink";
+  if (t.startsWith("abandon")) return "abandon";
+  if (t.startsWith("ghost")) return "ghost";
+  if (t === "faking" || t.startsWith("fake")) return "fake";
+  if (t.startsWith("spiral")) return "spiral";
+  if (t.startsWith("perform")) return "perform";
+  if (t === "exposing" || t.startsWith("expose")) return "expose";
+  return t;
+}
+
+// ---------------------------------------------------------------- //
+// PHASE UX3.3 — meta-template signatures                            //
+// ---------------------------------------------------------------- //
+//
+// Catches the "the template IS the failure" patterns from
+// `cohesiveIdeaAuthor.ts` generic-fallback show / film shapes:
+//
+//   • "Beat 1: glance at the X. Beat 2: shrug. Beat 3: i ${ap} the X."
+//     — meta-instruction pretending to be a beat plan.
+//   • "Step in, pick the X up, put it back. One more beat — then
+//     ${ab} the X for real this time."
+//     — fake gesture (no comedic logic).
+//
+// Both are unfilmable regardless of which anchor is plugged in.
+// Banned on every scene surface.
+//
+// PHASE UX3.3 — added the "...hesitate, and X the Y — end on your
+// face mid-realization." signature from the now-deleted generic
+// showShape[3] template. The template is gone from
+// `cohesiveIdeaAuthor.ts` but we keep the regex as defense in depth
+// (future contributors / Claude fallback / pattern-engine variants
+// could regenerate the same scaffold).
+const META_TEMPLATE_SIGNATURES: ReadonlyArray<RegExp> = [
+  /\bbeat\s*\d+\s*:\s*(?:glance|shrug)\b/,
+  /\bup,\s*put\s+it\s+back\b/,
+  /\bone\s+more\s+beat\b\s*[—–\-]\s*then\b/,
+  // PHASE UX3.3 — "hesitate, and X the Y — end on your face mid-realization."
+  /\bhesitate,\s+and\s+\w+\s+the\s+\w+\s*[—–\-]\s*end\s+on\s+your\s+face\s+mid-realization\b/,
+  // PHASE UX3.3 (rev-4) — script LINE 2 placeholder that shipped
+  // verbatim in 20-idea live sweep ("show the X that contradicts
+  // line 1." was the literal template metadata, not creative
+  // direction). Source template fixed in `cohesiveIdeaAuthor.ts`
+  // L653; regex is defense-in-depth so any future regression that
+  // re-introduces the placeholder gets rejected at validation.
+  /\bshow\s+the\s+\w+\s+that\s+contradicts\s+line\s*1\b/,
+  // PHASE UX3.3 (rev-4) — "knows i'm faking it" idiom shipped 3× in
+  // a single 20-idea batch from the now-deleted voiceClusters L305
+  // template. Defensive regex catches the construction even if the
+  // template returns from a future contributor or pattern-engine
+  // variant.
+  /\bknows\s+(?:i\s*['']?m|i\s+am)\s+faking\s+it\b/,
+  // PHASE UX3.3 (rev-4) — "i confessed to the X. then Y myself."
+  // shape from now-deleted voiceClusters L163 template. The `then
+  // <verb> myself` tail is the giveaway — defends against return.
+  /\bconfessed\s+to\s+the\s+\w+\.\s+then\s+\w+\s+myself\b/,
+];
 
 // ---------------------------------------------------------------- //
 // Validator                                                         //
@@ -457,6 +566,43 @@ export function validateScenarioCoherence(
       if (re.test(allRenderedLc)) {
         return "authored_domain_used_generic_template";
       }
+    }
+  }
+
+  // ── UX3.3 rules (NEW — close the metric-lying gap) ─────────────
+
+  // (13) family-verb leak on a scene surface. Catches "abandon the
+  // textbook" / "overthink the invite" / "fake the doc" — the
+  // exact strings UX3.2 live QA shipped with PASS. Hook surfaces
+  // are exempt by construction (`allRenderedLc` excludes hookLc).
+  //
+  // PHASE UX3.3 (rev 3, post-architect) — iterate ALL matches via
+  // `matchAll`, not just the first, and use the validator-only
+  // `isStiffFamilyVerbLeak` predicate (no fallback-existence gate)
+  // so the long-tail catch is preserved. Rev 2 used `.match()` +
+  // `isVerbAnchorImplausible` which had two bugs: (a) only the
+  // first match was checked, so a plausible-then-implausible
+  // sequence ("ghost the thread … expose the sink") falsely
+  // passed; (b) the fallback gate caused unknown-anchor stiff-verb
+  // leaks to fail open. Both flagged by architect UX3.3-C5 review.
+  // Whitelist semantics from rule 9 are preserved: pairs in
+  // `VERB_ANCHOR_PLAUSIBLE[verb]` still pass.
+  for (const m of allRenderedLc.matchAll(
+    new RegExp(FAMILY_VERB_LEAK_RE, "g"),
+  )) {
+    const bareVerb = bareFamilyVerb(m[1] ?? "");
+    const anchorToken = (m[2] ?? "").toLowerCase();
+    if (isStiffFamilyVerbLeak(bareVerb, anchorToken)) {
+      return "family_verb_leak_on_scene";
+    }
+  }
+
+  // (14) meta-template signatures from the generic show/film shape
+  // pool. Independent of which anchor or verb is plugged in — the
+  // template structure itself is unfilmable.
+  for (const re of META_TEMPLATE_SIGNATURES) {
+    if (re.test(allRenderedLc)) {
+      return "meta_template_signature";
     }
   }
 

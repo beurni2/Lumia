@@ -51,6 +51,7 @@ import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
 import {
   FAMILY_ACTIONS,
   resolveAnchorAwareAction,
+  resolveSceneSafeAction,
 } from "./coreDomainAnchorCatalog.js";
 import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
 import {
@@ -371,6 +372,24 @@ export function authorCohesiveIdea(
     : famAction.ing;
   const anchorLc = anchor.toLowerCase();
 
+  // PHASE UX3.3 (rev-4) — scene-side action. The hook templates can
+  // use the family verb metaphorically when (verb, anchor) is in the
+  // `VERB_ANCHOR_PLAUSIBLE` whitelist ("still ghosting the app",
+  // "fake the selfie one more time"). But scene templates render
+  // those same verbs as imperative directorial copy ("then ghost it",
+  // "fake the selfie in one clear gesture", "perform the gift") which
+  // is unfilmable. `resolveSceneSafeAction` ALWAYS swaps stiff family
+  // verbs to a fallback regardless of whitelist, so scene-side
+  // surfaces (premise/howToFilm/shotPlan/trigger/reaction/caption/
+  // whyItWorks/script) never leak the family verb. Hook substitution
+  // continues to use the whitelist-aware action via `subs` above.
+  const sceneAction = isExplicitOverride
+    ? { bare: actionBare, past: actionPast, ing: actionIng }
+    : resolveSceneSafeAction(rawFamAction, anchorLc);
+  const sceneActionBare = sceneAction.bare.toLowerCase();
+  const sceneActionPast = sceneAction.past;
+  const sceneActionIng = sceneAction.ing;
+
   const subs: SubVars = {
     anchor: anchorLc,
     action: actionBare,
@@ -407,7 +426,7 @@ export function authorCohesiveIdea(
   // PHASE Z5.5 — premise uses core.tension instead of humanize(core.mechanism)
   // to avoid word-salad like "shop chef eat student" leaking into the premise.
   const premise = capChars(
-    `${capitalize(core.tension)} — the ${anchorLc} beat lands when i ${actionBare} it (${humanize(domain)}).`,
+    `${capitalize(core.tension)} — the ${anchorLc} beat lands when i ${sceneActionBare} it (${humanize(domain)}).`,
     240,
   );
 
@@ -486,22 +505,50 @@ export function authorCohesiveIdea(
     // prop ("phone open to the inbox") instead of the bare
     // abstract noun ("the inbox") so "set the X down" / "pick the
     // X up" templates land on shootable objects.
+    // PHASE UX3.3 — REMOVED three weak shapes from the original
+    // 4-shape pool:
+    //   - "Beat 1: glance / Beat 2: shrug / Beat 3: i ${ap} the X"
+    //     was the canonical placeholder filler the directive flagged
+    //     and is also already caught by `meta_template_signature` in
+    //     `scenarioCoherence` — every attempt was wasted retries.
+    //   - "Step in, pick the X up, put it back. One more beat — then
+    //     ${ab} the X for real this time" was the canonical "fake
+    //     gesture" pattern, also caught by `meta_template_signature`
+    //     — every attempt was wasted retries.
+    //   - "Phone propped low so the X dominates the foreground. You
+    //     enter behind it, hesitate, and ${ab} the X — end on your
+    //     face mid-realization" was NOT caught by the validator but
+    //     UX3.2 live QA hand-grade showed it shipped weak content
+    //     (e.g. "freeze the thumb", "expose the sink", "ignore the
+    //     wallpaper", "close the wallet") because the "hesitate /
+    //     end on your face" filler is template scaffolding, not a
+    //     real shootable beat.
+    // Replaced with three concrete-action shapes so generic ideas
+    // still have variety; each shape is a real physical sequence
+    // with no scaffolding language.
     const showShapes: ReadonlyArray<
       (n: string, ab: string, ap: string) => string
     > = [
-      (n, _ab, ap) =>
-        `Camera on the ${n}, you in frame next to it. Beat 1: glance at the ${n}. Beat 2: shrug. Beat 3: i ${ap} the ${anchorLc}.`,
       (n, ab, _ap) =>
         `Set the ${n} down where the camera can see it. Sit beside it for a second like you're thinking. Then ${ab} the ${anchorLc} and walk out of frame.`,
+      // PHASE UX3.3 — Place + negotiate. Concrete physical setup,
+      // works for wallet / dumbbell / fork / phone-prop class.
       (n, ab, _ap) =>
-        `Static wide of the ${n}. Step in, pick the ${n} up, put it back. One more beat — then ${ab} the ${anchorLc} for real this time.`,
+        `Place the ${n} on the table in front of you. Sit across from it for one full beat like you're negotiating with it. Then ${ab} the ${anchorLc} anyway.`,
+      // PHASE UX3.3 — Walk past + return. Concrete movement,
+      // works for fixed-environment anchors (wallpaper / mirror /
+      // sink / mail / dishes / lamp class).
       (n, ab, _ap) =>
-        `Phone propped low so the ${n} dominates the foreground. You enter behind it, hesitate, and ${ab} the ${anchorLc} — end on your face mid-realization.`,
+        `Walk past the ${n} once without looking. Stop. Walk back. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${anchorLc} this time — single take, no music.`,
+      // PHASE UX3.3 — Catch yourself reaching. Concrete micro-
+      // gesture, works broadly for any object you'd touch.
+      (n, ab, _ap) =>
+        `Catch yourself reaching for the ${n}. Pull your hand back like it bit you. One beat. Then ${ab} the ${anchorLc} anyway because of course you do.`,
     ];
     const showIdx =
       djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
     whatToShow = capChars(
-      showShapes[showIdx]!(renderNoun, actionBare, actionPast),
+      showShapes[showIdx]!(renderNoun, sceneActionBare, sceneActionPast),
       500,
     );
 
@@ -518,7 +565,7 @@ export function authorCohesiveIdea(
     const filmIdx =
       djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
     howToFilm = capChars(
-      filmShapes[filmIdx]!(renderNoun, actionBare),
+      filmShapes[filmIdx]!(renderNoun, sceneActionBare),
       400,
     );
 
@@ -534,7 +581,7 @@ export function authorCohesiveIdea(
     const beat3Idx = djb2(`${core.id}|${anchor}|sp3`) % shotPlanBeat3.length;
     shotPlan = [
       `Wide-ish: enter the frame with the ${renderNoun} visible.`,
-      `Medium: ${actionBare} the ${anchorLc} in one clear gesture.`,
+      `Medium: ${sceneActionBare} the ${anchorLc} in one clear gesture.`,
       shotPlanBeat3[beat3Idx]!(anchorLc),
     ];
 
@@ -549,7 +596,7 @@ export function authorCohesiveIdea(
       (a, ab) => `Walk up to the ${a} and ${ab} it like nothing happened.`,
     ];
     const trigIdx = djb2(`${core.id}|${anchor}|trg`) % triggerShapes.length;
-    trigger = capChars(triggerShapes[trigIdx]!(anchorLc, actionBare), 140);
+    trigger = capChars(triggerShapes[trigIdx]!(anchorLc, sceneActionBare), 140);
 
     // PHASE Z5.5 — rotating reaction pool.
     const reactionShapes: ReadonlyArray<(a: string) => string> = [
@@ -587,7 +634,7 @@ export function authorCohesiveIdea(
     ];
     const capIdx = djb2(`${core.id}|${anchor}|cap`) % captionShapes.length;
     caption = capChars(
-      captionShapes[capIdx]!(anchorLc, actionPast, humanize(domain)),
+      captionShapes[capIdx]!(anchorLc, sceneActionPast, humanize(domain)),
       140,
     );
   }
@@ -610,7 +657,7 @@ export function authorCohesiveIdea(
     whyShapes[whyIdx]!(
       capitalize(core.tension),
       anchorLc,
-      actionBare,
+      sceneActionBare,
       voice.id,
     ),
     280,
@@ -620,9 +667,19 @@ export function authorCohesiveIdea(
   // PHASE Z5.5 — LINE 3 uses core.tension (human-readable) instead of
   // core.mechanism (snake_case id). Pre-Z5.5 produced nonsensical
   // output like "Shop chef eat student" from humanize("shop_chef_eat_student").
+  // PHASE UX3.3 (rev-4) — LINE 2 was shipping the literal template
+  // metadata "show the ${anchorLc} that contradicts line 1." as
+  // creative direction (e.g. "show the slippers that contradicts
+  // line 1."). This is a placeholder, not a beat. Fix: derive LINE 2
+  // from `shotPlan[1]` (the middle beat, already vetted by either
+  // the authored plan or the scene-safe shape templates), stripped
+  // of its leading "Medium:" / "Wide:" / "Close:" director label so
+  // it reads as in-script direction. shotPlan[1] is always present
+  // (both authored and generic paths emit a 3-beat plan).
+  const cutawayBeat = (shotPlan[1] ?? "").replace(/^[A-Za-z][A-Za-z\-]*:\s*/, "");
   const script = capChars(
     `LINE 1: ${hook}\n` +
-      `LINE 2 (beat / cutaway): show the ${anchorLc} that contradicts line 1.\n` +
+      `LINE 2 (beat / cutaway): ${cutawayBeat}\n` +
       `LINE 3 (caption / mouthed): ${capitalize(core.tension)}.`,
     800,
   );

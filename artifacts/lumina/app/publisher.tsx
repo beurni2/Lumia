@@ -35,9 +35,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
 
+import { flags } from "@/lib/featureFlags";
 import { CosmicBackdrop } from "@/components/foundation/CosmicBackdrop";
 import { FireflyParticles } from "@/components/foundation/FireflyParticles";
 import { GlassSurface } from "@/components/foundation/GlassSurface";
@@ -79,6 +80,16 @@ const SHIELD_TONE: Record<ShieldStatus, { hex: string; bg: string; label: string
 };
 
 export default function PublisherScreen() {
+  // PHASE UX3.3 — defensive route-level guard. The closed-beta nav
+  // never links to /publisher, but a deep-link or stale history
+  // entry could still land here. Redirect to the tab bar.
+  // `flags.SHOW_POST_BETA_SURFACES` is computed once at module load
+  // from a process.env value, so the early-return-before-hooks
+  // pattern is safe (hook ordering is stable across the app's
+  // lifetime; the flag does not flip at runtime).
+  if (!flags.SHOW_POST_BETA_SURFACES) {
+    return <Redirect href="/(tabs)" />;
+  }
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { twin, loading: twinLoading } = useStyleTwin();

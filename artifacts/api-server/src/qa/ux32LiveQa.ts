@@ -63,6 +63,21 @@ const BANNED_PHRASES: ReadonlyArray<RegExp> = [
   /\bprops carry the deadpan\b/i,
   /\blet the props carry\b/i,
   /\bend beat\s*:/i,
+  // PHASE UX3.3 — close the metric-lying gap. UX3.2 live QA shipped
+  // PASS while these exact patterns appeared in scene surfaces.
+  // Mirror of `family_verb_leak_on_scene` + `meta_template_signature`
+  // from scenarioCoherence.ts so the harness fails on the same
+  // bytes the validator now rejects.
+  // PHASE UX3.3 (rev 3, post-architect) — added `expose` variants
+  // and the "hesitate, end on your face mid-realization" defensive
+  // signature so the harness mirrors validator rules 13/14 byte-for-
+  // byte. Architect flagged QA/validator parity drift: harness was
+  // reporting clean while validator caught these.
+  /\b(abandon(?:ed|ing|s)?|ghost(?:ed|ing|s)?|fake[ds]?|faking|spiral(?:ed|ing|s)?|overthink(?:s|ing)?|overthought|perform(?:ed|ing|s)?|expose[ds]?|exposing)\s+(?:the|my|your|their|its|this|that|it|me|myself|yourself|himself|herself|themself|themselves|itself|ourselves)\b/i,
+  /\bbeat\s*\d+\s*:\s*(?:glance|shrug)\b/i,
+  /\bup,\s*put\s+it\s+back\b/i,
+  /\bone\s+more\s+beat\b\s*[—–\-]\s*then\b/i,
+  /\bhesitate,\s+and\s+\w+\s+the\s+\w+\s*[—–\-]\s*end\s+on\s+your\s+face\s+mid-realization\b/i,
 ];
 
 function findBannedPhrases(idea: Idea): string[] {

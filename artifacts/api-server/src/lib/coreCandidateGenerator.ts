@@ -201,7 +201,12 @@ export type CoreCandidateRejectionReason =
   // when the cohesive author surfaces a UX3.2 verdict.
   | "impossible_physical_action_on_abstract"
   | "placeholder_filming_phrase"
-  | "authored_domain_used_generic_template";
+  | "authored_domain_used_generic_template"
+  // PHASE UX3.3 — close the metric-lying gap. Same additive overlay
+  // pattern. Recipe loop counts these the same as any other coherence
+  // rejection; rejection drives a recipe retry rather than a fail.
+  | "family_verb_leak_on_scene"
+  | "meta_template_signature";
 
 export type CoreCandidateAttempt = {
   coreId: string;
@@ -573,7 +578,9 @@ const EMPTY_REASONS: Record<
   | "verb_anchor_implausible"
   | "impossible_physical_action_on_abstract"
   | "placeholder_filming_phrase"
-  | "authored_domain_used_generic_template",
+  | "authored_domain_used_generic_template"
+  | "family_verb_leak_on_scene"
+  | "meta_template_signature",
   number
 > = {
   no_contradiction: 0,
@@ -603,6 +610,9 @@ const EMPTY_REASONS: Record<
   impossible_physical_action_on_abstract: 0,
   placeholder_filming_phrase: 0,
   authored_domain_used_generic_template: 0,
+  // PHASE UX3.3 — close the metric-lying gap.
+  family_verb_leak_on_scene: 0,
+  meta_template_signature: 0,
 };
 
 /** Spec — was 3 in Y5; Y6 walked 5 (domain, anchor) recipes per
@@ -666,7 +676,9 @@ export function generateCoreCandidates(
     | "verb_anchor_implausible"
     | "impossible_physical_action_on_abstract"
     | "placeholder_filming_phrase"
-    | "authored_domain_used_generic_template",
+    | "authored_domain_used_generic_template"
+    | "family_verb_leak_on_scene"
+    | "meta_template_signature",
     number
   > = { ...EMPTY_REASONS };
   // PHASE D4 — per-batch reject-source roll-up. Mutated whenever

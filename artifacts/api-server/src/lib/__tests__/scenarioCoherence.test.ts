@@ -54,7 +54,11 @@ function makeIdea(overrides: Partial<Idea>): Idea {
     visualHook:
       "Camera holds on the dishes reveal as the contradiction lands.",
     whatToShow:
-      "Camera on the dishes, you in frame next to them. Beat 1: glance at the dishes. Beat 2: shrug. Beat 3: i ignored the dishes.",
+      // PHASE UX3.3 — was "Beat 1: glance / Beat 2: shrug / Beat 3:
+      // ..." which now matches META_TEMPLATE_SIGNATURES rule 14.
+      // Rewritten as concrete prose so the baseline still represents
+      // a coherent passing idea.
+      "Camera on the dishes, you in frame next to them. Glance at the dishes once, then look away as you ignore them. Single take, hold on the dishes after.",
     howToFilm:
       "Phone propped chest height, single take. Keep yourself and the dishes in the same frame the whole time. Cut the second you ignore the dishes.",
     premise: "Self-betrayal — the dishes beat lands when i ignore it (food).",

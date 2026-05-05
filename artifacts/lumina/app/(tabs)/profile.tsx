@@ -187,44 +187,50 @@ export default function ProfileScreen() {
         {/* "Make ideas even more like you" — the OPTIONAL video
             training entry point, intentionally placed at the bottom
             so it reads as a "you can sharpen this further" upsell
-            rather than a barrier to first use. */}
-        <View style={styles.section}>
-          <Text style={[type.label, styles.sectionLabel]}>
-            make ideas even more like you
-          </Text>
-          <GlassSurface radius={22} agent="monetizer" breathing>
-            <View style={styles.cardInner}>
-              <Text style={styles.trainBody}>
-                Upload a few videos to sharpen your style (optional).
-              </Text>
-              <View style={{ alignItems: "center", marginTop: 18 }}>
-                <PortalButton
-                  label={isTrained ? "retrain with videos" : "train with videos"}
-                  onPress={goTrain}
-                  width={260}
-                  subtle
-                  disabled={loading}
-                />
+            rather than a barrier to first use.
+            PHASE UX3.3 — entire section is gated behind
+            SHOW_POST_BETA_SURFACES. The /style-twin-train route is
+            off-vision for the closed beta; defensive route-level
+            redirects also guard the screen if anyone deep-links. */}
+        {flags.SHOW_POST_BETA_SURFACES && (
+          <View style={styles.section}>
+            <Text style={[type.label, styles.sectionLabel]}>
+              make ideas even more like you
+            </Text>
+            <GlassSurface radius={22} agent="monetizer" breathing>
+              <View style={styles.cardInner}>
+                <Text style={styles.trainBody}>
+                  Upload a few videos to sharpen your style (optional).
+                </Text>
+                <View style={{ alignItems: "center", marginTop: 18 }}>
+                  <PortalButton
+                    label={isTrained ? "retrain with videos" : "train with videos"}
+                    onPress={goTrain}
+                    width={260}
+                    subtle
+                    disabled={loading}
+                  />
+                </View>
+                {isTrained && (
+                  <Pressable
+                    onPress={onWipe}
+                    style={({ pressed }) => [
+                      styles.wipeBtn,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
+                    testID="wipe-twin"
+                    accessibilityRole="button"
+                    accessibilityLabel="Wipe training data from this device"
+                  >
+                    <Text style={[type.label, styles.wipeText]}>
+                      wipe training data from this device
+                    </Text>
+                  </Pressable>
+                )}
               </View>
-              {isTrained && (
-                <Pressable
-                  onPress={onWipe}
-                  style={({ pressed }) => [
-                    styles.wipeBtn,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
-                  testID="wipe-twin"
-                  accessibilityRole="button"
-                  accessibilityLabel="Wipe training data from this device"
-                >
-                  <Text style={[type.label, styles.wipeText]}>
-                    wipe training data from this device
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          </GlassSurface>
-        </View>
+            </GlassSurface>
+          </View>
+        )}
 
         {/* Dev / QA-only — reset the Quick Tune onboarding state
             (server calibration doc + local hasCompleted flag +

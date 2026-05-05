@@ -23,6 +23,8 @@
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+
+import { flags } from "@/lib/featureFlags";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -207,6 +209,11 @@ export default function SwarmStudioScreen() {
   useEffect(() => () => clearWalkTimers(), [clearWalkTimers]);
 
   const handlePublish = useCallback(() => {
+    // PHASE UX3.3 — defense in depth. The button is hidden when the
+    // flag is false; this guard keeps any programmatic invocation
+    // (e.g. a future deep-link handler) from navigating into the
+    // gated publisher route.
+    if (!flags.SHOW_POST_BETA_SURFACES) return;
     setPhase("walking");
     clearWalkTimers();
     AGENT_ORDER.forEach((agent, i) => {
@@ -467,16 +474,22 @@ export default function SwarmStudioScreen() {
           )}
         </View>
 
-        {/* Publish portal CTA */}
-        <View style={styles.publishWrap}>
-          <PortalButton
-            label={phase === "walking" ? "the hive is publishing…" : "let the hive publish"}
-            onPress={handlePublish}
-            width={260}
-            subtle
-            disabled={phase !== "idle"}
-          />
-        </View>
+        {/* Publish portal CTA — PHASE UX3.3: the publisher route is
+            off-vision for the closed beta. Hide the entire wrap so
+            the saved-idea detail screen reads as "review only". The
+            handlePublish callback is also guarded defensively so any
+            programmatic call no-ops. */}
+        {flags.SHOW_POST_BETA_SURFACES && (
+          <View style={styles.publishWrap}>
+            <PortalButton
+              label={phase === "walking" ? "the hive is publishing…" : "let the hive publish"}
+              onPress={handlePublish}
+              width={260}
+              subtle
+              disabled={phase !== "idle"}
+            />
+          </View>
+        )}
 
         {/* Lily-pad input bar */}
         <View style={{ paddingBottom: bottomInset }}>

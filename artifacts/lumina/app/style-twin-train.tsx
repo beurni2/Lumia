@@ -46,7 +46,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { router, Stack } from "expo-router";
+import { Redirect, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, {
   useCallback,
@@ -102,6 +102,7 @@ import { agents, lumina, type AgentKey } from "@/constants/colors";
 import { spring } from "@/constants/motion";
 import { type } from "@/constants/typography";
 import { useStyleTwin } from "@/hooks/useStyleTwin";
+import { flags } from "@/lib/featureFlags";
 import { getInferenceAdapter } from "@/lib/inferenceFactory";
 
 /** Shape of POST /api/ideator/generate. We only consume `ideas[0]`
@@ -146,6 +147,14 @@ const AGENT_ORDER: AgentKey[] = ["ideator", "director", "editor", "monetizer"];
 const MIN_RITUAL_MS = 3200;
 
 export default function StyleTwinTrainScreen() {
+  // PHASE UX3.3 — defensive route-level guard. The closed-beta nav
+  // never links to /style-twin-train (gated CTAs in profile, studio,
+  // publisher), but a stale history entry could still land here.
+  // Redirect to the tab bar. Safe early-return: the flag is computed
+  // once at module load from a process.env value.
+  if (!flags.SHOW_POST_BETA_SURFACES) {
+    return <Redirect href="/(tabs)" />;
+  }
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const { twin, refresh } = useStyleTwin();

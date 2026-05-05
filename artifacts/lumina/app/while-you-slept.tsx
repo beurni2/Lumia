@@ -49,11 +49,12 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { flags } from "@/lib/featureFlags";
 import {
   AgentAvatar,
   CosmicBackdrop,
@@ -121,6 +122,15 @@ const AGENT_ORDER: readonly AgentKey[] = [
 ];
 
 export default function WhileYouSleptScreen() {
+  // PHASE UX3.3 — defensive route-level guard. The closed-beta nav
+  // never links to /while-you-slept, but a stale notification or
+  // history entry could still land here. Redirect to the tab bar.
+  // Safe to early-return before hooks: `flags.SHOW_POST_BETA_SURFACES`
+  // is computed once at module load from a process.env value and
+  // never flips at runtime, so hook ordering is stable.
+  if (!flags.SHOW_POST_BETA_SURFACES) {
+    return <Redirect href="/(tabs)" />;
+  }
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { twin, loading: twinLoading } = useStyleTwin();

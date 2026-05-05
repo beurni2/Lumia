@@ -105,8 +105,14 @@ function comfortAdaptCopy(
         "stay on the prop",
       )
       .replace(/\bto camera\b/gi, "in frame")
-      .replace(/\bframe yourself\b/gi, "frame the prop")
-      .replace(/\byou and the\b/gi, "the");
+      .replace(/\bframe yourself\b/gi, "frame the prop");
+    // PHASE UX3.3 — removed `\byou and the\b → the` rewrite. It was
+    // a UX3.1 cleanup pass for the heavy-substring comfort adapter
+    // that no longer runs; in the current authored-plan world it
+    // corrupts legitimate copy ("catching both you and the mirror"
+    // → "catching both the mirror") and serves no compensating
+    // purpose because the prior `frame yourself` → `frame the prop`
+    // swap doesn't introduce a "you and the" fragment.
     return `${body} ${NO_FACE_APPENDIX}`;
   }
   if (comfortMode === "no_voice") {
