@@ -1,0 +1,597 @@
+You are taking over development for Lumina.
+
+Your first job is NOT to blindly add features.
+
+Your first job is to understand the whole product, audit the full codebase from A–Z, identify what is actually built, identify what is broken, and create a clear repair plan that moves Lumina toward the finished product vision.
+
+Do not start by making broad changes.
+Audit first.
+Diagnose first.
+Then implement only the highest-impact fixes.
+
+====================================================
+1. PRODUCT VISION
+====================================================
+
+Lumina is a mobile app for short-form creators.
+
+Its purpose is to help creators stop staring at a blank screen and start filming.
+
+The product generates personalized, funny, filmable short-form video ideas that match the user’s taste, humor, comfort level, and filming situation.
+
+Lumina should not feel like:
+- a generic AI prompt wrapper
+- ChatGPT inside an app
+- a content idea generator that gives vague ideas
+- a tool that produces “valid” but weird or unfilmable outputs
+
+Lumina should feel like:
+“This app understands my humor and gives me something I can actually film right now.”
+
+The core product promise:
+
+A user opens Lumina, answers a few taste questions, and gets 3 strong ideas. At least one should feel funny, personal, low-effort, and immediately filmable.
+
+Finished-product standard:
+
+Every idea should answer:
+1. What is the hook?
+2. What exactly should the creator show?
+3. How should they film it?
+4. Why is it funny or relatable?
+5. Why does it fit this user?
+6. How can they film it with low embarrassment?
+7. What is the caption?
+8. Can they film it today without thinking too hard?
+
+If a creator cannot immediately understand what to film, the idea fails.
+
+====================================================
+2. TARGET USER
+====================================================
+
+Target users are short-form creators on TikTok, Instagram Reels, and YouTube Shorts.
+
+They may be:
+- beginner creators
+- inconsistent creators
+- micro-creators
+- people who want to post but feel stuck
+- people who have humor/taste but struggle turning it into ideas
+- people who feel awkward filming
+- people who need low-effort ideas they can shoot quickly
+
+Key user pain points:
+- “I don’t know what to post.”
+- “My ideas feel generic.”
+- “I don’t know how to turn this idea into a video.”
+- “I feel awkward filming.”
+- “I don’t want to show my face.”
+- “I don’t want to talk.”
+- “I need something easy today.”
+- “ChatGPT gives too many ideas but I still don’t know what to film.”
+- “I want ideas that sound like me.”
+
+Lumina must reduce decision fatigue and filming hesitation.
+
+====================================================
+3. CORE PRODUCT LOOP
+====================================================
+
+The desired app flow:
+
+1. User signs in.
+2. User completes Quick Tune calibration.
+3. Lumina generates 3 personalized ideas.
+4. User sees idea cards.
+5. Each card has:
+   - hook
+   - caption
+   - confidence labels
+   - primary “Film This Now” CTA
+6. User taps Film This Now.
+7. Film-This-Now screen gives practical filming instructions:
+   - setup
+   - hook / overlay
+   - action
+   - twist / reveal
+   - payoff
+   - caption
+   - time estimate
+   - difficulty
+   - no-face/no-voice/text-overlay adaptations
+8. User can create/review/export.
+9. User actions write signals back:
+   - selected
+   - exported
+   - skipped
+   - feedback
+   - make another
+   - regenerated
+10. Future ideas get more personalized and less repetitive.
+
+The habit loop should become:
+
+Open Lumina → get Daily 3 → pick one → Film This Now → export → Lumina learns.
+
+====================================================
+4. DIFFERENTIATION
+====================================================
+
+Lumina’s advantage is not “AI generates hooks.”
+
+Lumina’s advantage should be:
+- personalized taste calibration
+- deterministic comedy/voice architecture
+- curated hook corpus
+- quality gates
+- filmability-first ranking
+- low-cringe filming modes
+- retention novelty
+- signal learning
+- scenario instructions that make filming easy
+
+The finished product must beat ChatGPT by being:
+- faster
+- more personalized
+- more filmable
+- more action-oriented
+- less generic
+- more aware of the user’s filming comfort
+- better at giving 3 strong options instead of many mediocre ones
+
+Lumina should help users make decisions, not create more decisions.
+
+====================================================
+5. CURRENT ARCHITECTURE
+====================================================
+
+Monorepo:
+- artifacts/lumina: Expo React Native mobile app
+- artifacts/api-server: Express backend with Drizzle/Postgres/Zod/Pino
+- artifacts/mockup-sandbox: Vite sandbox
+
+Backend:
+- Express API
+- PostgreSQL
+- Drizzle ORM
+- Zod validation
+- Pino structured logging
+- Claude fallback through Replit AI Integrations
+- deterministic pattern engine first
+- Claude fallback only when needed
+
+Mobile:
+- Expo React Native
+- onboarding / calibration
+- home idea cards
+- Film-This-Now
+- create/review/export
+- profile/studio tabs
+- comfort modes
+- action conversion labels
+
+Known route/result shape:
+The ideator route returns ideas with stable shape. Avoid breaking API shape.
+
+Generation flow:
+cache → deterministic pattern engine → fallback if needed → scoring/filtering/ranking → return ideas.
+
+Hard engineering rules:
+- avoid migrations unless absolutely necessary
+- no API breaking changes
+- no validator loosening
+- no broad rewrites unless justified
+- keep tests passing
+- keep TypeScript clean
+- preserve existing route response shape
+- preserve cache shape
+- preserve signal loop
+- preserve hero/retention/scoring layers unless proven broken
+
+====================================================
+6. WHAT HAS ALREADY BEEN BUILT
+====================================================
+
+Core engine:
+- deterministic pattern engine
+- Claude fallback
+- hybrid ideator orchestrator
+- anti-copy Jaccard guard
+- hook validation
+- cliché scoring
+- quality floors
+- within-batch diversity
+- cross-batch novelty
+- willingness ranker
+- ViralFeelScore or similar quality scoring
+- ideator_signal loop
+
+Corpus:
+- 532 hook corpus
+- 253 scenario catalog
+- POV/relatable skit expansion
+- surprise twist expansion
+- user-blessed hook corpus
+
+Personalization:
+- 4-screen Quick Tune calibration:
+  1. format / filming style
+  2. tone / comedic voice
+  3. situations / topic lanes
+  4. opener style, optional
+- first 3 screens required
+- opener optional
+- high_energy_rant tone added
+- pov_hook opener added
+- selectedSituations collected and consumed by scoring
+- selectedSituations options:
+  food_home
+  dating_texting
+  work_school
+  social_awkwardness
+  health_wellness
+  creator_social
+
+Quality layers:
+- Z5: corpus expansion
+- Z5.5: template output polish
+- Z5.6: Always-On Hero Quality Ranker + Adaptive First-Session Boost
+- Z5.6b: Hero Threshold + Payoff Sharpening
+- Z5.7: Retention Novelty Loop
+- Z5.8: Quick Tune calibration upgrade
+- Z5.8b: selectedSituations consumed by generation
+- UX1: Action Conversion Layer
+- UX2: Low-Cringe Filming Modes
+- UX3: Scenario coherence + refresh reliability
+- UX3.1: attempted scenario author repair / template artifact kill pass
+
+UX features:
+- Film This Now primary CTA
+- confidence labels / chips
+- estimated time / difficulty plan block
+- low-cringe modes:
+  no face
+  no voice
+  text overlay
+  bedroom easy
+- comfort adaptation block
+- refresh excludeHooks support
+- refresh timeout / friendly failure copy
+- old ideas stay visible on refresh failure
+
+Deployment QA:
+- core loop passed earlier
+- server booted clean
+- TypeScript clean in reported phases
+- API tests passing in reported phases
+- signal writes verified
+- no P0/P1 deployment blockers found at that time
+
+====================================================
+7. CURRENT CRITICAL PROBLEM
+====================================================
+
+The main blocker is visible content quality.
+
+Hooks have improved, but scenarios and Film-This-Now instructions are still sometimes bad.
+
+The app has produced outputs like:
+- “abandoning the fork is my only hobby still”
+- “abandon the fork once, slow”
+- “Land the contradiction by abandoned the fork”
+- “ghosted the calendar knowingly”
+- “camera holds as i ghost the calendar knowingly”
+- “i faked my own tab”
+- “spiral the lockscreen once, slow”
+- “WHY does the alarm keep abandoning itself”
+- “pick up the gym”
+- “overthink the highlighter”
+- “dodge the inbox”
+- “Set the inbox down where the camera can see it”
+- “Lean into the panic beat — the reveal lands here”
+- “let the props carry the deadpan”
+
+These are unacceptable.
+
+They make Lumina feel like generic AI and will destroy trust.
+
+The issue is NOT just UI formatting.
+The issue is scenario authoring quality.
+
+The generator is still allowed to produce mechanically valid but human-bad scenarios.
+
+The core failure pattern:
+strong hook → noun-swapped template → weird action/object phrase → scenario technically passes → user sees nonsense.
+
+Examples:
+- inbox should be an email/laptop scene, not an object you set down or dodge
+- gym should be shoes/app/door/couch, not something you pick up
+- highlighter should highlight notes, not “overthink itself”
+- alarm should ring/snooze/blanket, not be abandoned
+- calendar should show plan/regret/rain-check, not random unrelated object
+- no-face/no-voice should create real alternate filming instructions, not awkward phrase swaps
+
+====================================================
+8. FINISHED PRODUCT QUALITY BAR
+====================================================
+
+Every generated idea must pass this human-quality test:
+
+Can a real creator immediately understand:
+1. what to film,
+2. where to film it,
+3. what object/screen/action is involved,
+4. what the twist is,
+5. what the final payoff is,
+6. why the hook matches the scenario,
+7. how to film it with no face/no voice if needed?
+
+A “valid” scenario is not enough.
+It must be human-filmable.
+
+Do not accept:
+- impossible actions
+- generic verb-object nonsense
+- vague emotional beats
+- placeholder direction
+- unrelated hook/scenario pairing
+- weak noun swaps
+- unnatural sentence grammar
+- comfort adaptations that sound awkward
+- Film-This-Now instructions that do not tell the user what to physically do
+
+Good output should sound like:
+
+Hook:
+“the alarm itself is the entire pattern”
+
+Good scenario:
+Show your phone alarm going off. Your hand hits snooze. Cut to the alarm going off again. This time your hand slowly slides the phone under the pillow while it keeps buzzing.
+
+Good Film-This-Now:
+Setup: Place the phone on your nightstand or bed.
+0–2s Hook: Put the hook as text overlay.
+2–6s Action: Alarm rings. Your hand hits snooze.
+6–12s Twist: Alarm rings again. Your hand pauses like it has been personally attacked.
+12–18s Payoff: Slide the phone under the pillow while it keeps buzzing.
+Caption: “the alarm won. i’m pretending it didn’t.”
+
+Bad output:
+“Static wide of the alarm. Step in, pick the alarm up, put it back.”
+
+====================================================
+9. WHAT THE NEW AGENT MUST AUDIT
+====================================================
+
+Audit the project A–Z before major changes.
+
+Inspect:
+- generation pipeline
+- hook generation
+- scenario generation
+- whatToShow generation
+- howToFilm generation
+- script generation
+- shotPlan generation
+- Film-This-Now beat creation
+- comfort adaptation logic
+- validation and scoring
+- refresh path
+- mobile rendering
+- calibration persistence and consumption
+- signal writing
+- retention novelty
+- tests
+
+Likely files/areas:
+- artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts
+- artifacts/api-server/src/lib/scenarioCoherence.ts
+- artifacts/api-server/src/lib/coreDomainAnchorCatalog.ts
+- artifacts/api-server/src/lib/hybridIdeator.ts
+- artifacts/api-server/src/lib/patternIdeator.ts
+- artifacts/api-server/src/lib/ideaScorer.ts
+- artifacts/api-server/src/lib/tasteCalibration.ts
+- artifacts/api-server/src/lib/retentionNoveltyScorer.ts
+- artifacts/api-server/src/routes/ideator.ts
+- artifacts/lumina/app/(tabs)/index.tsx
+- artifacts/lumina/app/film-this-now.tsx
+- artifacts/lumina/lib/actionConversion.ts
+- any mobile comfort adaptation helper
+- any tests related to scenario coherence / UX3 / UX3.1
+
+Questions to answer:
+1. Where exactly are bad scenario phrases still created?
+2. Which generation path creates them?
+3. Are validators running on every path?
+4. Are tests checking real rendered output or only crafted strings?
+5. Are mobile screens showing raw bad fields?
+6. Are comfort adaptations too shallow?
+7. Is Film-This-Now inventing vague filler?
+8. Is refresh excluding visible hooks correctly?
+9. Are repeated hooks still appearing?
+10. Which existing layers are useful and should remain?
+11. Which recent code is overbuilt or harmful and should be disabled/deleted?
+12. What is the minimum safe repair?
+
+====================================================
+10. WHAT NOT TO DO
+====================================================
+
+Do not start by building another broad layer.
+
+Do not add a complex planner unless the audit proves it is necessary.
+
+Do not overbuild.
+
+Do not create rigid systems that break valid multi-anchor jokes.
+
+Do not rely on exact string bans only.
+
+Do not only make tests pass.
+
+Do not accept “scenarioCoherence: PASS” as proof if the output still sounds bad.
+
+Do not loosen validators.
+
+Do not break API shape.
+
+Do not add migrations unless truly unavoidable.
+
+Do not remove useful existing systems just because the current output is bad.
+
+Do not change hero ranking, retention novelty, selectedSituations, or calibration unless the audit proves a specific defect.
+
+====================================================
+11. WHAT MAY NEED FIXING
+====================================================
+
+Likely required fixes:
+
+A. Remove generic scenario templates that create nonsense.
+Especially patterns like:
+- {verb} the {object}
+- set down {digital/abstract thing}
+- pick up {place/domain}
+- dodge {abstract thing}
+- expose {random object}
+- overthink {object}
+- ghost {object}
+- fake {object}
+
+B. Replace with simple safe domain-specific scenario directions.
+This does not need to be a huge planner. It can be a small set of safe scenario recipes for common domains.
+
+Common domains that need safe handling:
+- inbox/email
+- alarm/sleep
+- calendar/plans
+- fridge/food
+- highlighter/study
+- gym/fitness
+- browser tab/productivity
+- profile/story
+- room clutter/junk
+- mirror/reflection
+- shopping cart/order
+- group chat/thread
+- budget/money with fake/demo screen
+- creator post/analytics with fake/demo screen
+- notes/to-do list
+
+C. Improve Film-This-Now content.
+Remove vague filler:
+- “Lean into the panic beat”
+- “the reveal lands here”
+- “props carry the deadpan”
+
+Replace with concrete actions:
+- open app
+- type and delete reply
+- hit snooze
+- close fridge
+- reopen cart
+- highlight too much
+- put phone under pillow
+- close laptop halfway then reopen
+
+D. Improve no-face/no-voice adaptations.
+They should not be phrase swaps only.
+They should provide real alternate instructions:
+- use overlay text
+- show only hands/object/screen
+- crop below face
+- avoid “say this to camera”
+- avoid “look at lens”
+- use fake/demo/cropped screens for sensitive content
+
+E. Strengthen human-output QA.
+Every content-quality fix must produce real generated examples:
+- hook
+- whatToShow
+- howToFilm
+- Film-This-Now beats
+- human-filmable yes/no
+- scenario matches hook yes/no
+- awkward phrase yes/no
+
+====================================================
+12. ACCEPTANCE CRITERIA FOR NEXT REPAIR
+====================================================
+
+Before closed beta, require:
+
+Technical:
+- tests pass
+- TypeScript clean
+- server health green
+- no migrations
+- no API breaking changes
+- no validator loosening
+
+Output quality:
+- Generate at least 20 fresh ideas from the real orchestrator path.
+- At least 16/20 must be human-filmable.
+- 0 impossible physical actions.
+- 0 generic verb-object nonsense.
+- 0 vague Film-This-Now filler.
+- 0 obvious hook/scenario mismatches.
+- 0 no-face/no-voice instructions that mention face/lens/speaking.
+- Refresh must avoid exact visible hook repeats.
+- Old ideas must remain visible if refresh fails.
+
+Human review required:
+Do not mark complete unless the generated examples actually read well.
+
+====================================================
+13. HOW TO WORK FROM HERE
+====================================================
+
+Step 1:
+Audit the whole project and produce a report.
+
+Step 2:
+Classify problems:
+- P0 beta blockers
+- P1 quality issues
+- P2 polish
+- overbuilt/unused code
+- useful existing systems to keep
+
+Step 3:
+Create a minimal repair plan.
+
+Step 4:
+Get approval before implementing major changes.
+
+Step 5:
+Implement in small commits/phases.
+
+Step 6:
+Run tests/typechecks.
+
+Step 7:
+Generate real output examples and self-grade them.
+
+Step 8:
+Only then declare completion.
+
+====================================================
+14. FINAL PRODUCT DEFINITION
+====================================================
+
+The finished Lumina beta should do this:
+
+A new user answers quick taste questions.
+The app gives 3 ideas.
+The top idea is funny, clear, personal, and filmable.
+The user taps Film This Now.
+The app tells them exactly what to show, what to do, what to overlay, and how to finish the beat.
+If they do not want to show face or talk, the app adapts the instructions.
+If they refresh, they get truly different ideas.
+If they select/export/skip, Lumina learns.
+When they return, ideas get more personalized without becoming repetitive.
+
+The final product is not a hook generator.
+
+It is a personalized filming-action engine for short-form creators.
