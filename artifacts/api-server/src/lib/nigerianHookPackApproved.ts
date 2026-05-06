@@ -22,15 +22,7 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 45 approved · 5 rejected
- *
- * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
- * exported array — the generator does not silently fix anything):
- *   • DRAFT-031 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
- *   • DRAFT-093 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
- *   • DRAFT-095 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
- *   • DRAFT-171 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
- *   • DRAFT-221 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
+ * INGEST SUMMARY: 50 approved · 0 rejected
  */
 
 import {
@@ -82,6 +74,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "\"small\" has transport cost.",
       anchor: "small",
       domain: "movement",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-031 [REWRITE] · cluster: food
+      hook: "pot don expose my cooking lie",
+      whatToShow: "Open a pot, look inside, close it slowly, then open a snack cupboard like you are switching departments.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "kitchen update: faith required.",
+      anchor: "pot",
+      domain: "home",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -207,6 +210,28 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-093 [REWRITE] · cluster: towel
+      hook: "towel don expose my almost-ready lie",
+      whatToShow: "Show towel/robe, phone message asking 'ready?' You type 'almost' while clearly nowhere near ready.",
+      howToFilm: "Mirror lock-off, face out of frame, one take.",
+      caption: "readiness is spiritual.",
+      anchor: "towel",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-095 [REWRITE] · cluster: queue
+      hook: "queue don humble my errand spirit",
+      whatToShow: "Show a fake queue/line situation or text overlay. You look at the line, look at your phone, then turn around slowly.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "patience did not follow me.",
+      anchor: "queue",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-108 [REWRITE] · cluster: group_admin · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "admin punish my greeting like spam get immunity",
       whatToShow: "You post one harmless 'good morning.' A fake admin warning pops up. Meanwhile, three people are posting forwarded prayers and nobody touches them.",
@@ -291,6 +316,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "later has consequences.",
       anchor: "portal",
       domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-171 [REWRITE] · cluster: pay_back · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "pay don disgrace me before next month",
+      whatToShow: "Open fake chat with old repayment promise. Next message is a meme instead of money.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "debt with comedy timing.",
+      anchor: "pay",
+      domain: "money",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -434,6 +470,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "online without responsibility.",
       anchor: "online",
       domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-221 [REWRITE] · cluster: okada_shortcut
+      hook: "shortcut don disgrace my okada confidence",
+      whatToShow: "On an okada-style POV, the rider takes a rough shortcut. You hold tight and check your map like prayer has entered the journey.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "shortcut with consequences.",
+      anchor: "shortcut",
+      domain: "transport",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),

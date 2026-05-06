@@ -74,7 +74,7 @@ describe("cross-region no-op (item 1)", () => {
   it("scoreHookQuality is family-agnostic — switching family does not perturb scores", () => {
     // Defensive check that no hidden family-routing snuck in.
     for (const [hook, expected] of ENGLISH_SCORER_SNAPSHOTS) {
-      expect(scoreHookQuality(hook, "executive_dysfunction")).toBe(expected);
+      expect(scoreHookQuality(hook, "social_mask")).toBe(expected);
     }
   });
 });
