@@ -518,11 +518,7 @@ const emitApprovedFile = (
   }
   lines.push(" */");
   lines.push("");
-  lines.push("import {");
-  lines.push("  assertNigerianPackIntegrity,");
-  lines.push("  type NigerianPackEntry,");
-  lines.push("} from \"./nigerianHookPack.js\";");
-  lines.push("import { registerApprovedPoolReference } from \"./nigerianHookQuality.js\";");
+  lines.push("import { type NigerianPackEntry } from \"./nigerianHookPack.js\";");
   lines.push("");
   lines.push(
     "export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =",
@@ -544,17 +540,29 @@ const emitApprovedFile = (
   }
   lines.push("  ]);");
   lines.push("");
-  lines.push("// Defense in depth: re-run the production boot assert against the");
-  lines.push("// generated array at module load. If anything regresses (e.g. a future");
-  lines.push("// regenerate produces a row that violates a tightened rule) this throws");
-  lines.push("// before the file can be imported by tests or any downstream module.");
-  lines.push("assertNigerianPackIntegrity(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);");
+  lines.push("// NOTE: A self-`assertNigerianPackIntegrity(...)` call was previously");
+  lines.push("// emitted here as a defense-in-depth boot check. It was REMOVED because");
+  lines.push("// `nigerianHookPack.ts` imports this file at module-top, creating a");
+  lines.push("// circular import. When the flag is ON the self-call would execute");
+  lines.push("// before `PACK_FIELD_BOUNDS` (declared LATER in `nigerianHookPack.ts`)");
+  lines.push("// finishes initializing → TDZ → `Cannot read properties of undefined`.");
+  lines.push("// Defense is preserved by:");
+  lines.push("//   (1) `validateRow` in `qa/buildApprovedNigerianPack.ts` running ALL");
+  lines.push("//       the same checks per-row at codegen time before this file is");
+  lines.push("//       written, and");
+  lines.push("//   (2) `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` in");
+  lines.push("//       `nigerianHookPack.ts` (run after PACK_FIELD_BOUNDS is");
+  lines.push("//       initialized), which validates the live pool when flag is ON.");
   lines.push("");
-  lines.push("// PHASE N1-Q — register this pool with the additive scorer so the");
-  lines.push("// runtime ScoringContext { kind: \"pool\", pool } can accept this");
-  lines.push("// frozen array by reference identity. The scorer rejects any other");
-  lines.push("// pool with an Error.");
-  lines.push("registerApprovedPoolReference(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);");
+  lines.push("// NOTE: The PHASE N1-Q `registerApprovedPoolReference(...)` self-call");
+  lines.push("// was REMOVED here for the same circular-import TDZ reason as the");
+  lines.push("// integrity assert above (`APPROVED_POOL_REF` lives in");
+  lines.push("// `nigerianHookQuality.ts` and is in TDZ when this module loads via");
+  lines.push("// the cycle from `nigerianHookPack.ts`). Registration of the live");
+  lines.push("// pool happens in `nigerianHookPack.ts` after `NIGERIAN_HOOK_PACK`");
+  lines.push("// is assigned (it's the same array reference when the flag is ON).");
+  lines.push("// Tests that need to grade the approved pool while the flag is OFF");
+  lines.push("// must register it explicitly via `registerApprovedPoolReference`.");
   lines.push("");
   return lines.join("\n");
 };

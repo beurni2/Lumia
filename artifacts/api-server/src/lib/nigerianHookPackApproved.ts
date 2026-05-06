@@ -25,11 +25,7 @@
  * INGEST SUMMARY: 50 approved · 0 rejected
  */
 
-import {
-  assertNigerianPackIntegrity,
-  type NigerianPackEntry,
-} from "./nigerianHookPack.js";
-import { registerApprovedPoolReference } from "./nigerianHookQuality.js";
+import { type NigerianPackEntry } from "./nigerianHookPack.js";
 
 export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =
   Object.freeze([
@@ -585,15 +581,26 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
   ]);
 
-// Defense-in-depth boot assert moved to `nigerianHookPack.ts` (after
-// `PACK_FIELD_BOUNDS` is initialised) — calling it here at top level
-// causes a TDZ ReferenceError because the ESM cycle pauses
-// `nigerianHookPack.ts` evaluation at the `import` (line ~105) before
-// `PACK_FIELD_BOUNDS` (line ~222) has been declared. The post-import
-// `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` call in
-// `nigerianHookPack.ts` provides the same defense at the safe point.
+// NOTE: A self-`assertNigerianPackIntegrity(...)` call was previously
+// emitted here as a defense-in-depth boot check. It was REMOVED because
+// `nigerianHookPack.ts` imports this file at module-top, creating a
+// circular import. When the flag is ON the self-call would execute
+// before `PACK_FIELD_BOUNDS` (declared LATER in `nigerianHookPack.ts`)
+// finishes initializing → TDZ → `Cannot read properties of undefined`.
+// Defense is preserved by:
+//   (1) `validateRow` in `qa/buildApprovedNigerianPack.ts` running ALL
+//       the same checks per-row at codegen time before this file is
+//       written, and
+//   (2) `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` in
+//       `nigerianHookPack.ts` (run after PACK_FIELD_BOUNDS is
+//       initialized), which validates the live pool when flag is ON.
 
-// PHASE N1-Q — pool registration moved to `nigerianHookPack.ts` for
-// the same TDZ reason as the integrity assert above: the ESM cycle
-// pauses `nigerianHookQuality.ts` at its `let APPROVED_POOL_REF`
-// declaration if the cycle re-enters via this top-level call.
+// NOTE: The PHASE N1-Q `registerApprovedPoolReference(...)` self-call
+// was REMOVED here for the same circular-import TDZ reason as the
+// integrity assert above (`APPROVED_POOL_REF` lives in
+// `nigerianHookQuality.ts` and is in TDZ when this module loads via
+// the cycle from `nigerianHookPack.ts`). Registration of the live
+// pool happens in `nigerianHookPack.ts` after `NIGERIAN_HOOK_PACK`
+// is assigned (it's the same array reference when the flag is ON).
+// Tests that need to grade the approved pool while the flag is OFF
+// must register it explicitly via `registerApprovedPoolReference`.

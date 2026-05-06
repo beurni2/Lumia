@@ -1,0 +1,323 @@
+FEATURE SUMMARY — NIGERIAN REGIONAL COMEDY PACK / PIDGIN MODE
+
+Lumina is a short-form creator idea app that generates personalized, filmable video ideas. Each idea includes a hook, what to show, how to film, why it works, caption, and filming support.
+
+The Nigerian Regional Comedy Pack is a region-specific personalization feature for users in Nigeria who choose a Pidgin or light-Pidgin language style. Its purpose is to make the idea output feel culturally natural to Nigerian creators instead of sounding like generic Western short-form content.
+
+The feature is designed to support Nigerian comedy rhythm, Nigerian daily-life situations, and natural Nigerian/Pidgin phrasing while preserving the existing Lumina system.
+
+CORE PURPOSE
+
+The feature should make Nigerian users feel:
+
+“This app understands my humor.”
+
+It should not simply translate Western hooks into Pidgin. The hook, scenario, filming direction, and caption should work together as one Nigerian-native idea.
+
+SUPPORTED USERS
+
+The Nigerian pack applies only when all of the following are true:
+
+- region = nigeria
+- languageStyle = light_pidgin or pidgin
+- Nigerian pack feature flag is enabled
+- approved Nigerian pack entries exist
+
+The feature should not apply to:
+
+- Western users
+- India users
+- Philippines users
+- Nigeria users with clean English selected
+- Nigeria users with no languageStyle selected
+- any user when the feature flag is off
+
+LANGUAGE STYLE
+
+Nigeria does not automatically mean Pidgin.
+
+The user’s selected language style matters:
+
+- clean: no Nigerian Pidgin pack
+- light_pidgin: Nigerian pack eligible
+- pidgin: Nigerian pack eligible
+- null / unset: Nigerian pack not eligible
+
+This allows Nigerian users who prefer clean English to avoid Pidgin-heavy outputs.
+
+CORPUS STRUCTURE
+
+The Nigerian corpus contains 300 draft hook/scenario entries.
+
+Each entry is atomic. That means the hook, scenario, filming direction, caption, anchor, domain, cluster, language level, and review status belong together.
+
+Each Nigerian pack entry should include:
+
+- id
+- hook
+- whatToShow
+- howToFilm
+- caption
+- anchor
+- domain
+- cluster
+- pidginLevel
+- reviewedBy
+- privacyNote when needed
+
+The hook should not be separated from its scenario. A Nigerian/Pidgin hook should not be attached to a random Western scenario.
+
+DRAFT, APPROVED, AND LIVE STATES
+
+The corpus has three conceptual states:
+
+1. Draft pool
+
+This contains all draft Nigerian entries. These entries are not automatically active.
+
+2. Approved pool
+
+This contains entries that passed review and validation.
+
+3. Live pack
+
+This is the pack used by the generator when the feature is active.
+
+Only approved entries should be eligible for the live pack.
+
+REVIEW MODEL
+
+Every active entry must have a real review stamp.
+
+Rejected review states include:
+
+- blank reviewedBy
+- PENDING_NATIVE_REVIEW
+- AGENT-PROPOSED
+- AGENT-PROPOSED — pending review
+- whitespace or padded variants of those values
+
+A valid reviewed entry may use a stamp like:
+
+- BI 2026-05-05
+
+The system should treat review status as part of the safety model. Unreviewed or agent-proposed content should not become live Nigerian pack content.
+
+FEATURE FLAG
+
+The feature is controlled by:
+
+LUMINA_NG_PACK_ENABLED
+
+When the flag is off, the Nigerian pack should behave as inactive.
+
+When the flag is on, the Nigerian pack can activate only for eligible Nigerian Pidgin/light-Pidgin users.
+
+Production should remain safe because the feature is gated.
+
+ACTIVATION LOGIC
+
+The Nigerian pack activates only when all conditions are true:
+
+- flagEnabled is true
+- region is nigeria
+- languageStyle is light_pidgin or pidgin
+- live Nigerian pack length is greater than 0
+
+If any condition is false, the pack is inactive.
+
+IDEA GENERATION BEHAVIOR
+
+For eligible Nigerian Pidgin/light-Pidgin users, the final 3 ideas should visibly include Nigerian-native pack ideas.
+
+The intended output pattern is:
+
+1. Nigerian pack idea
+2. strongest normal/non-pack idea
+3. Nigerian pack idea
+
+This creates a blend of regional specificity and normal Lumina variety.
+
+For ineligible users, the normal idea generation path should remain unchanged.
+
+SLOT RESERVATION
+
+The pack uses slot reservation rather than globally changing normal idea scoring.
+
+Slot reservation means Nigerian pack candidates are placed into reserved final-card positions when eligible and valid.
+
+The intended structure is:
+
+- pack idea
+- non-pack idea
+- pack idea
+
+If only one valid pack candidate exists, the batch can contain one pack idea and two normal ideas.
+
+If no valid pack candidate exists, the system returns the normal batch.
+
+The system should avoid duplicate Nigerian pack entries or duplicate hooks within the same 3-card batch.
+
+VALIDATION AND SAFETY
+
+Nigerian pack entries remain subject to the existing quality and safety standards.
+
+Active entries must satisfy:
+
+- valid schema
+- anchor appears in hook
+- anchor appears in whatToShow
+- reviewedBy is valid
+- pidginLevel is valid
+- field lengths are valid
+- no mocking Pidgin spelling
+- no stereotype or mocking phrasing
+- scenario coherence passes
+- comedy validation passes
+- anti-copy validation passes
+- privacy and safety checks pass
+
+The feature should not weaken existing validators.
+
+NIGERIAN/PIDGIN SCORING
+
+The Nigerian pack uses a Pidgin-aware scoring path for reviewed Nigerian pack entries.
+
+This scoring exists because Nigerian/Pidgin hook structure differs from standard English hook structure.
+
+The scorer recognizes signals such as:
+
+- Nigerian/Pidgin markers
+- Nigerian punch verbs
+- anchor relevance
+- contradiction/tension
+- concise hook rhythm
+- filmable scenario pairing
+
+The scorer applies only to trusted Nigerian pack entries and should not change the global hook scorer for other content.
+
+REGIONAL AUTHENTICITY
+
+The feature should make Nigerian outputs feel grounded in Nigerian creator reality.
+
+Examples of Nigerian-relevant idea areas include:
+
+- WhatsApp and group chat behavior
+- transport and “I’m almost there” situations
+- power/light/data/phone realities
+- POS and transfer/payment moments
+- food/home/roommate situations
+- family pressure
+- school/work deadlines
+- creator/social media anxiety
+- market/bargaining moments
+- everyday public embarrassment
+
+The language should feel natural, not forced or cartoonish.
+
+PRIVACY AND SAFETY
+
+The feature must not ask users to expose real private information.
+
+Sensitive scenarios should use fake/mock screens only.
+
+This applies especially to:
+
+- bank apps
+- balances
+- transfer alerts
+- messages
+- group chats
+- private conversations
+- account screens
+
+User-facing directions should make it clear that mock/fake screens are used when needed.
+
+REGION-WRONG OUTPUTS
+
+For Nigerian Pidgin/light-Pidgin users, ideas should avoid obviously Western-specific daily-life anchors when they do not fit the region.
+
+The output should feel locally appropriate to Nigeria.
+
+REFRESH EXPERIENCE
+
+The feature should work inside the normal 3-idea refresh flow.
+
+Refreshing should provide new ideas while preserving existing app behavior:
+
+- current ideas remain visible during refresh
+- failed refresh does not create a blank state
+- user can retry
+- currently visible hooks are excluded from refresh
+- refresh behavior is logged for QA/debugging
+
+DEBUGGING AND QA VISIBILITY
+
+In staging or development, logs should make the Nigerian pack behavior visible.
+
+Useful debug fields include:
+
+- region
+- languageStyle
+- selectedSituations
+- feature flag value
+- live Nigerian pack length
+- activation true/false
+- pack usage count
+- packEntryId per idea when used
+- fallback usage
+- refresh duration
+- rejection counts
+- coherence failures
+- anti-copy failures
+
+These details are for development and QA, not normal production display.
+
+QA EXPECTATIONS
+
+The feature is considered healthy when Nigerian Pidgin/light-Pidgin batches show strong regional presence without leaking to other users.
+
+Expected QA behavior:
+
+- Nigeria + light_pidgin uses pack entries
+- Nigeria + pidgin uses pack entries
+- Nigeria + clean uses zero pack entries
+- Western uses zero pack entries
+- India uses zero pack entries
+- Philippines uses zero pack entries
+- cross-region leak is zero
+- safety/mocking hits are zero
+- scenario coherence passes
+- no duplicate pack entry in the same batch
+- no duplicate hook in the same batch
+- refresh remains reliable
+
+CURRENT FEATURE STATE
+
+The current intended feature state is:
+
+- 300 Nigerian draft entries exist as a reservoir
+- 50 approved Nigerian entries are available for the first active pack
+- the live pack is gated by LUMINA_NG_PACK_ENABLED
+- slot reservation controls pack visibility in eligible batches
+- the feature applies only to Nigeria + light_pidgin / pidgin
+- other regions and Nigeria-clean remain unaffected
+- production remains protected by the flag
+
+SUCCESS DEFINITION
+
+The feature is successful when a Nigerian creator using light Pidgin or Pidgin receives ideas that:
+
+- sound Nigerian
+- feel culturally natural
+- use Pidgin/light-Pidgin rhythm appropriately
+- are funny and relatable
+- are easy to film
+- avoid fake or forced dialect
+- avoid Western-region mismatch
+- preserve privacy and safety
+- include Nigerian-native pack ideas in most eligible 3-card batches
+- do not leak into other regions
+- do not break the existing Lumina idea system
+
+The finished experience should feel like a Nigerian creator-specific comedy layer built into Lumina, not a translation layer and not a generic global idea engine with slang added.

@@ -118,6 +118,10 @@ describe("runtime generation files do not import nigerianHookQuality (item 3)", 
       path.join(apiSrc, "qa/buildApprovedNigerianPack.ts"),
       path.join(apiSrc, "qa/nigerianPackRewriteWorksheet.ts"),
       path.join(apiSrc, "lib/__tests__/nigerianHookQuality.test.ts"),
+      // T2 stamp-hardening test legitimately uses the ingest key to
+      // exercise scoreNigerianPackEntry's whitespace-padded sentinel
+      // rejection paths via a real ScoringContext.
+      path.join(apiSrc, "lib/__tests__/nigerianPackStampHardening.test.ts"),
     ]);
     const walk = (dir: string): string[] => {
       const out: string[] = [];

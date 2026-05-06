@@ -120,6 +120,7 @@ import {
 // the upstream `selection.batch`.
 import { applyNigerianPackSlotReservation } from "./nigerianPackSlotReservation";
 import {
+  canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
   NIGERIAN_HOOK_PACK,
 } from "./nigerianHookPack";
@@ -4355,18 +4356,66 @@ export async function runHybridIdeator(
   // `validateAntiCopyDetailed`. No validator, scorer, or anti-copy
   // gate is touched. Per-batch dedup on `nigerianPackEntryId` AND
   // normalized hook is enforced inside the helper.
-  selection = {
-    ...selection,
-    batch: applyNigerianPackSlotReservation({
-      selectionBatch: selection.batch,
-      candidatePool: merged,
-      desiredCount,
+  const n1s2_preBatch = selection.batch;
+  const n1s2_languageStyle = calibration?.languageStyle ?? null;
+  const n1s2_flagEnabled = isNigerianPackFeatureEnabled();
+  const n1s2_packLength = NIGERIAN_HOOK_PACK.length;
+  const n1s2_postBatch = applyNigerianPackSlotReservation({
+    selectionBatch: n1s2_preBatch,
+    candidatePool: merged,
+    desiredCount,
+    region: input.region,
+    languageStyle: n1s2_languageStyle,
+    flagEnabled: n1s2_flagEnabled,
+    packLength: n1s2_packLength,
+  });
+  selection = { ...selection, batch: n1s2_postBatch };
+
+  // PHASE N1-FULL-SPEC — structured activation/decision telemetry.
+  // Spec §"DEBUGGING AND QA VISIBILITY" enumerates these fields as
+  // required debug surfaces. Pure observability — no behavior change
+  // (`n1s2_postBatch` was already assigned to `selection.batch`).
+  // Emitted for every request so flag-OFF / non-eligible cohorts are
+  // greppable as `activated:false` (no Nigeria-only sampling bias).
+  {
+    const packCandidatesAvailable = merged.filter(
+      (c) =>
+        (c.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId !==
+        undefined,
+    ).length;
+    const packEntryIdsShipped = n1s2_postBatch
+      .map(
+        (c) =>
+          (c.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId,
+      )
+      .filter((id): id is string => typeof id === "string");
+    const activated = canActivateNigerianPack({
       region: input.region,
-      languageStyle: calibration?.languageStyle ?? null,
-      flagEnabled: isNigerianPackFeatureEnabled(),
-      packLength: NIGERIAN_HOOK_PACK.length,
-    }),
-  };
+      languageStyle: n1s2_languageStyle,
+      flagEnabled: n1s2_flagEnabled,
+      packLength: n1s2_packLength,
+    });
+    logger.info(
+      {
+        creatorId: input.creator?.id,
+        region: input.region ?? null,
+        languageStyle: n1s2_languageStyle,
+        flagEnabled: n1s2_flagEnabled,
+        packLength: n1s2_packLength,
+        activated,
+        poolSize: merged.length,
+        packCandidatesAvailable,
+        packShippedCount: packEntryIdsShipped.length,
+        packEntryIdsShipped,
+        preBatchSize: n1s2_preBatch.length,
+        postBatchSize: n1s2_postBatch.length,
+        reorderApplied:
+          n1s2_preBatch.length === n1s2_postBatch.length &&
+          n1s2_preBatch.some((c, i) => c !== n1s2_postBatch[i]),
+      },
+      "nigerian_pack.slot_reservation_decision",
+    );
+  }
 
   // -------- Step 5: ship final batch, persist --------------------
   let final = selection.batch;
