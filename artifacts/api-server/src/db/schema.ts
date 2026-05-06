@@ -126,6 +126,20 @@ export const creators = pgTable("creators", {
   // surface scenarios (see VARIATION INJECTION block in ideaGen.ts).
   viralPatternMemoryJson:
     jsonb("viral_pattern_memory_json").$type<unknown>(),
+  // PHASE N1-FULL-SPEC — per-creator hook memory for the Nigerian
+  // Comedy Pack. Records which approved-pack entries this creator
+  // has already SEEN in a shipped batch, so the slot-reservation
+  // step (`applyNigerianPackSlotReservation`) can filter them out
+  // BEFORE picking, preventing visible repetition across consecutive
+  // batches. Capped at the 60 most-recent entries (older ones drop
+  // off → become eligible again). NULLABLE / default empty array;
+  // pre-migration creators and non-NG cohorts simply read `[]`,
+  // which is a no-op filter, so behaviour outside the activated
+  // Nigeria cohort remains byte-identical to the baseline.
+  nigerianPackSeenEntryIdsJson:
+    jsonb("nigerian_pack_seen_entry_ids_json")
+      .$type<ReadonlyArray<{ entryId: string; lastSeenAt: string }>>()
+      .default([]),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.

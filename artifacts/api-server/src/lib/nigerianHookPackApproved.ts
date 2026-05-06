@@ -22,13 +22,101 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 50 approved · 0 rejected
+ * INGEST SUMMARY: 63 approved · 74 rejected
+ *
+ * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
+ * exported array — the generator does not silently fix anything):
+ *   • DRAFT-003 → scoreNigerianPackEntry 20 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=5 filmable=10 brevity=5)
+ *   • DRAFT-005 → anchor 'message' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-013 → anchor 'danfo' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 27 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=5 filmable=5 brevity=17)
+ *   • DRAFT-015 → anchor 'outfit' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 30 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-019 → anchor 'keys' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 29 < floor 40 (visceral=7 naturalness=4 contradiction=0 anchor=0 filmable=5 brevity=13)
+ *   • DRAFT-021 → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=17)
+ *   • DRAFT-025 → scoreNigerianPackEntry 24 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=5 filmable=10 brevity=9)
+ *   • DRAFT-027 → anchor 'light' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 26 < floor 40 (visceral=5 naturalness=-5 contradiction=3 anchor=5 filmable=5 brevity=13)
+ *   • DRAFT-029 → anchor 'socket' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 28 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-033 → anchor 'jollof' not found in whatToShow; scoreNigerianPackEntry 29 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-037 → anchor 'pot' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 29 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=0 filmable=10 brevity=13)
+ *   • DRAFT-039 → anchor 'snacks' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 26 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=5)
+ *   • DRAFT-043 → anchor 'notes' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 19 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-045 → anchor 'later' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 19 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=5 filmable=5 brevity=9)
+ *   • DRAFT-047 → anchor 'meeting' not found in whatToShow; scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-049 → anchor 'notebook' not found in hook; scoreNigerianPackEntry 28 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=0 filmable=10 brevity=13)
+ *   • DRAFT-051 → validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 34 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=10 brevity=9)
+ *   • DRAFT-055 → scoreNigerianPackEntry 31 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=9)
+ *   • DRAFT-057 → anchor 'room' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-075 → anchor 'post' not found in hook; scoreNigerianPackEntry 15 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=5)
+ *   • DRAFT-077 → anchor 'clip' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 39 < floor 40 (visceral=25 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-079 → anchor 'views' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 30 < floor 40 (visceral=7 naturalness=0 contradiction=0 anchor=10 filmable=0 brevity=13)
+ *   • DRAFT-081 → anchor 'mirror' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-087 → anchor 'plan' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 32 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-089 → anchor 'kettle' not found in hook; scoreNigerianPackEntry 30 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-097 → anchor 'hair' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-099 → anchor 'task' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 19 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-102 → anchor 'typing' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 33 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-104 → anchor 'seen' not found in hook; scoreNigerianPackEntry 24 < floor 40 (visceral=5 naturalness=-5 contradiction=9 anchor=0 filmable=10 brevity=5)
+ *   • DRAFT-106 → anchor 'voice' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 24 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-109 → validateScenarioCoherence: hook_topic_noun_drift
+ *   • DRAFT-121 → anchor 'keke' not found in whatToShow; scoreNigerianPackEntry 33 < floor 40 (visceral=7 naturalness=4 contradiction=3 anchor=10 filmable=0 brevity=9)
+ *   • DRAFT-127 → anchor 'data' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-131 → anchor 'charger' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 29 < floor 40 (visceral=7 naturalness=0 contradiction=0 anchor=0 filmable=5 brevity=17)
+ *   • DRAFT-135 → scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=5 filmable=10 brevity=17)
+ *   • DRAFT-139 → anchor 'indomie' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-141 → scoreNigerianPackEntry 30 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-143 → anchor 'maggi' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-145 → anchor 'rice' not found in whatToShow; scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=4 contradiction=0 anchor=10 filmable=0 brevity=13)
+ *   • DRAFT-148 → anchor 'snack' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 25 < floor 40 (visceral=7 naturalness=8 contradiction=0 anchor=0 filmable=5 brevity=5)
+ *   • DRAFT-156 → anchor 'zoom' not found in hook; scoreNigerianPackEntry 33 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=0 filmable=10 brevity=9)
+ *   • DRAFT-168 → anchor 'change' not found in whatToShow; scoreNigerianPackEntry 32 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=0 brevity=17)
+ *   • DRAFT-175 → scoreNigerianPackEntry 20 < floor 40 (visceral=5 naturalness=-5 contradiction=0 anchor=5 filmable=10 brevity=5)
+ *   • DRAFT-179 → scoreNigerianPackEntry 26 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=5 filmable=10 brevity=5)
+ *   • DRAFT-183 → anchor 'edit' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=17)
+ *   • DRAFT-189 → anchor 'lost' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 29 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=10 filmable=0 brevity=13)
+ *   • DRAFT-197 → anchor 'shoe' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 29 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=0 brevity=9)
+ *   • DRAFT-208 → anchor 'deleted' not found in hook; scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=4 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-214 → anchor 'reply' not found in hook; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-216 → anchor 'emoji' not found in hook; scoreNigerianPackEntry 28 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=0 filmable=5 brevity=17)
+ *   • DRAFT-225 → anchor 'keke' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-230 → anchor 'passenger' not found in hook; scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-232 → anchor 'bike' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-235 → anchor 'data' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-239 → anchor 'light' not found in hook; anchor 'light' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 36 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=0 filmable=5 brevity=20)
+ *   • DRAFT-242 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=3 anchor=5 filmable=5 brevity=17)
+ *   • DRAFT-246 → anchor 'battery' not found in hook
+ *   • DRAFT-249 → anchor 'indomie' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-253 → anchor 'maggi' not found in whatToShow
+ *   • DRAFT-256 → anchor 'freezer' not found in hook; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-258 → anchor 'snack' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=4 contradiction=3 anchor=0 filmable=5 brevity=13)
+ *   • DRAFT-263 → anchor 'submission' not found in whatToShow; scoreNigerianPackEntry 28 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=0 brevity=13)
+ *   • DRAFT-267 → anchor 'presentation' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-272 → anchor 'aunty' not found in hook; anchor 'aunty' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 31 < floor 40 (visceral=7 naturalness=4 contradiction=0 anchor=0 filmable=0 brevity=20)
+ *   • DRAFT-274 → anchor 'cousin' not found in hook; scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=4 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-280 → anchor 'cart' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 34 < floor 40 (visceral=5 naturalness=-5 contradiction=9 anchor=0 filmable=5 brevity=20)
+ *   • DRAFT-282 → anchor 'salary' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 36 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=5 filmable=0 brevity=20)
+ *   • DRAFT-283 → anchor 'wishlist' not found in hook; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=0 filmable=10 brevity=20)
+ *   • DRAFT-287 → anchor 'budget' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-288 → anchor 'salary' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor; scoreNigerianPackEntry 33 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-290 → anchor 'views' not found in hook; anchor 'views' not found in whatToShow; scoreNigerianPackEntry 21 < floor 40 (visceral=5 naturalness=-5 contradiction=3 anchor=0 filmable=5 brevity=13)
+ *   • DRAFT-294 → anchor 'post' not found in hook; scoreNigerianPackEntry 36 < floor 40 (visceral=5 naturalness=4 contradiction=0 anchor=0 filmable=10 brevity=17)
+ *   • DRAFT-296 → anchor 'camera' not found in whatToShow; validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-300 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=10 filmable=10 brevity=13)
  */
 
 import { type NigerianPackEntry } from "./nigerianHookPack.js";
 
 export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =
   Object.freeze([
+    Object.freeze({
+      // source: DRAFT-001 · cluster: whatsapp · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "who send me make I tell them say I dey come?",
+      whatToShow: "Show a fake WhatsApp group plan from yesterday. Someone texts 'you don dey road?' while you are still under the blanket. Your hand hovers over the keyboard, types 'almost there,' then deletes it.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "yesterday me too get mind.",
+      anchor: "dey",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
     Object.freeze({
       // source: DRAFT-006 [REWRITE] · cluster: group_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "group chat don hijack my whole peace",
@@ -38,7 +126,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "group",
       domain: "messaging",
       pidginLevel: "pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-008 · cluster: whatsapp · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "I said \"no wahala\" before I understood the wahala",
+      whatToShow: "Show a fake chat where someone explains the plan in detail after you already replied 'no wahala.' You stare, then scroll back to your own message like you betrayed yourself.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "reading before replying is self-care.",
+      anchor: "wahala",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-010 [REWRITE] · cluster: messages · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -49,7 +148,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "phone",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-011 [REWRITE] · cluster: transport
@@ -60,7 +159,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "transport",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-017 [REWRITE] · cluster: social_plan · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -71,7 +170,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "small",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-023 [REWRITE] · cluster: power
+      hook: "one light blink killed my whole productivity",
+      whatToShow: "Laptop open. The room light flickers. You freeze, save the document aggressively, then stare at the socket like it owes you stability.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "productivity needs electricity and emotional support.",
+      anchor: "light",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-031 [REWRITE] · cluster: food
@@ -93,7 +203,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "room",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-041 · cluster: school
+      hook: "I opened the assignment and my brain said \"abeg\"",
+      whatToShow: "Show laptop or notebook with assignment. You read one line, scroll down, then slowly close the laptop halfway.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "academic courage loading.",
+      anchor: "assignment",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-053 [REWRITE] · cluster: social_pressure
@@ -104,7 +225,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "bed",
       domain: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-059 [REWRITE] · cluster: family_group · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -115,7 +236,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "chat",
       domain: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-061 [REWRITE] · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
@@ -126,7 +247,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "balance",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-063 [REWRITE] · cluster: bank_alert · privacyNote: Use fake bank-alert mock; never a real account screen.
@@ -137,7 +258,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "alert",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-065 [REWRITE] · cluster: shopping
@@ -148,7 +269,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "checkout",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-067 [REWRITE] · cluster: market
@@ -159,7 +280,29 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "list",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-069 · cluster: data_money
+      hook: "data subscription humbled my enjoyment plan",
+      whatToShow: "Fake data purchase screen. You choose the smaller plan, then open video app and immediately regret it.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "entertainment now has budget committee.",
+      anchor: "data",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-071 [REWRITE] · cluster: creator
+      hook: "post don go live, my peace don collapse",
+      whatToShow: "Show fake post analytics. You refresh, wait, refresh again, then lock the screen like you are above it. Immediately unlock.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "peace after posting is a myth.",
+      anchor: "post",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-073 [REWRITE] · cluster: comments
@@ -170,7 +313,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "comment",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-083 [REWRITE] · cluster: bed
@@ -181,7 +324,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "bed",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-085 [REWRITE] · cluster: shoes
@@ -192,7 +335,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "shoes",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-091 [REWRITE] · cluster: slippers
@@ -203,7 +346,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "slippers",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-093 [REWRITE] · cluster: towel
@@ -236,7 +379,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "admin",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-111 [REWRITE] · cluster: mute_unmute · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -247,7 +390,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "mute",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-114 [REWRITE] · cluster: poll_wahala · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -258,7 +401,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "poll",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-117 [REWRITE] · cluster: okada_promise
@@ -269,7 +412,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "bike",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-119 [REWRITE] · cluster: im_coming
@@ -280,7 +423,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "ironing",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-129 [REWRITE] · cluster: generator_noise
@@ -291,7 +434,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "generator",
       domain: "phone",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-146 [REWRITE] · cluster: generator_food
@@ -302,7 +445,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "freezer",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-151 · cluster: boss_email
+      hook: "oga sent email at 11:59 p.m. like sleep is illegal",
+      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly, open laptop, and stare at the screen.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "bedtime became office hours.",
+      anchor: "email",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-153 [REWRITE] · cluster: submission_closed
@@ -313,7 +467,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "portal",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-165 · cluster: aunty_setup · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "aunty has one \"fine person\" for everybody",
+      whatToShow: "Aunty shows a random profile or photo on fake WhatsApp. You lean back like the phone is too close to your destiny.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "matchmaking without consent.",
+      anchor: "aunty",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-171 [REWRITE] · cluster: pay_back · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -335,7 +500,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "airtime",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-177 [REWRITE] · cluster: caption
@@ -346,7 +511,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "caption",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-181 [REWRITE] · cluster: no_content
@@ -357,7 +522,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "camera",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-184 · cluster: tag_friends
+      hook: "I tagged everybody and nobody reposted",
+      whatToShow: "Fake post screen shows many tagged friends. No shares. You stare at the activity tab like it owes you loyalty.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "tag list without results.",
+      anchor: "tag",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-187 [REWRITE] · cluster: pos_fee · privacyNote: Use fake bank-alert mock; never a real account screen.
@@ -368,7 +544,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "pos",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-191 [REWRITE] · cluster: market_bargain
@@ -379,7 +555,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "seller",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-193 [REWRITE] · cluster: food_refusal
@@ -390,7 +566,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "stomach",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-195 [REWRITE] · cluster: rain
@@ -401,7 +577,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "rain",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-199 [REWRITE] · cluster: i_dey_fine
@@ -412,7 +588,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "fine",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-202 [REWRITE] · cluster: gif_war · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -423,7 +599,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "gif",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-204 · cluster: status_view_ghost · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "you viewed my status but still no reply?",
+      whatToShow: "Check your fake status viewers list. The same friend who ignored your message is at the top. You open the chat and zoom into their profile picture like it owes you explanation.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "viewer, not responder.",
+      anchor: "status",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-206 [REWRITE] · cluster: blue_tick · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -434,7 +621,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "ticks",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-210 [REWRITE] · cluster: forwarded_madness · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -445,7 +632,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "forward",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-212 [REWRITE] · cluster: muted_group · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -456,7 +643,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "mute",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-219 [REWRITE] · cluster: online_no_reply · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -467,7 +654,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "online",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-221 [REWRITE] · cluster: okada_shortcut
@@ -489,7 +676,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "gate",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-228 [REWRITE] · cluster: last_bus
@@ -500,7 +687,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "bus",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-237 [REWRITE] · cluster: generator_noise
@@ -511,7 +698,29 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "generator",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-244 · cluster: background_data
+      hook: "who dey use my data like this?",
+      whatToShow: "Fake data usage screen shows one app used too much. You look at the phone like somebody must confess.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "data investigation unit.",
+      anchor: "data",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-251 · cluster: garri
+      hook: "I left small garri this morning...",
+      whatToShow: "Reach for the garri bag. It is empty. You shake it once like more might appear.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "garri betrayed me.",
+      anchor: "garri",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-255 [REWRITE] · cluster: share_rice
@@ -522,7 +731,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "spoon",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-261 · cluster: boss_email · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "oga sent email at 11:58 p.m.",
+      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly and open your laptop again.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "bedtime became office hours.",
+      anchor: "email",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-266 [REWRITE] · cluster: zoom_camera_off
@@ -533,7 +753,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "camera",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-269 [REWRITE] · cluster: traffic_work_lie · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -544,7 +764,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "traffic",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-278 · cluster: matchmaking · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "aunty has one fine person for everybody",
+      whatToShow: "Aunty shows a random profile on fake WhatsApp. You lean back like the phone is too close to destiny.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "matchmaking without consent.",
+      anchor: "aunty",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-292 · cluster: caption_struggle
@@ -555,29 +786,18 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       anchor: "caption",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-023 [REWRITE] · cluster: power
-      hook: "one light blink killed my whole productivity",
-      whatToShow: "Laptop open. The room light flickers. You freeze, save the document aggressively, then stare at the socket like it owes you stability.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
-      caption: "productivity needs electricity and emotional support.",
-      anchor: "light",
-      domain: "phone",
-      pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
-    }),
-    Object.freeze({
-      // source: DRAFT-071 [REWRITE] · cluster: creator
-      hook: "post don go live, my peace don collapse",
-      whatToShow: "Show fake post analytics. You refresh, wait, refresh again, then lock the screen like you are above it. Immediately unlock.",
+      // source: DRAFT-298 · cluster: tag_friends
+      hook: "I tagged everybody and got zero shares",
+      whatToShow: "Fake post shows many tagged friends. Activity stays empty. You stare at the screen like loyalty is under review.",
       howToFilm: "Phone-level lock-off, soft daylight, one take.",
-      caption: "peace after posting is a myth.",
-      anchor: "post",
+      caption: "tag list without results.",
+      anchor: "tag",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-06",
     }),
   ]);
 

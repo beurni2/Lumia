@@ -42,6 +42,28 @@ export interface SlotReservationInput {
   languageStyle: LanguageStyle | null;
   flagEnabled: boolean;
   packLength: number;
+  /**
+   * PHASE N1-FULL-SPEC — per-creator hook memory.
+   *
+   * Optional set of `nigerianPackEntryId` values the creator has
+   * already seen in a recent shipped batch. Pack candidates whose
+   * entry id is in this set are filtered out of the ranked pool
+   * BEFORE the reserve-vs-non-pack composition runs, so the
+   * creator never sees the same pack hook twice in a row.
+   *
+   * Strictly additive: when undefined or empty, the function
+   * behaves identically to its previous signature (this is what
+   * keeps non-NG cohorts and tests that don't pass the field
+   * byte-identical to the baseline).
+   *
+   * The filter happens BEFORE the per-batch dedup and the
+   * `maxReserved = min(2, ..., desiredCount)` cap, so it can only
+   * REDUCE the reserved-pack count, never inflate it. If filtering
+   * leaves zero pack candidates, the function falls through to
+   * `return selectionBatch` exactly like the no-pack-available
+   * branch — no upstream selection is regressed.
+   */
+  excludeEntryIds?: ReadonlySet<string>;
 }
 
 function normHook(h: string): string {
@@ -67,6 +89,7 @@ export function applyNigerianPackSlotReservation(
     languageStyle,
     flagEnabled,
     packLength,
+    excludeEntryIds,
   } = input;
 
   // Activation guard — identical short-circuit set to S1 wiring.
@@ -82,12 +105,56 @@ export function applyNigerianPackSlotReservation(
   }
   if (desiredCount <= 0) return selectionBatch;
 
+  // PHASE N1-FULL-SPEC — fallback hardening for per-creator memory.
+  //
+  // The two fallback paths below (`return selectionBatch` when no
+  // pack candidates survive dedup, and again when composition would
+  // shrink the batch) used to return the upstream selection
+  // verbatim. That batch is produced by `selectWithNovelty` +
+  // `applyBatchComposition` upstream, neither of which is aware of
+  // `excludeEntryIds` — so when a creator had already seen a pack
+  // entry and that entry happened to also surface in the upstream
+  // selection, the fallback would re-ship the seen entry, defeating
+  // the per-creator memory contract.
+  //
+  // This helper strips excluded pack entries from any batch we are
+  // about to return through a fallback path. When `excludeEntryIds`
+  // is undefined or empty the helper is a no-op (`batch` is returned
+  // by reference unchanged), preserving the byte-identical baseline
+  // for non-NG cohorts and for tests that don't pass the field.
+  //
+  // Trade-off: in the rare edge case where stripping shrinks the
+  // batch below `desiredCount`, we accept the smaller batch rather
+  // than re-ship a seen entry. The per-creator memory contract is
+  // explicitly the higher priority of the two — repeated pack hooks
+  // are a worse failure mode than a one-short batch.
+  const stripExcludedPackFromBatch = (
+    batch: ScoredCandidate[],
+  ): ScoredCandidate[] => {
+    if (!excludeEntryIds || excludeEntryIds.size === 0) return batch;
+    return batch.filter((c) => {
+      const id = packEntryIdOf(c);
+      return id === undefined || !excludeEntryIds.has(id);
+    });
+  };
+
   // Distinct pack candidates from the post-validation pool, ranked
   // by score.total descending. Per-batch dedup on entry id AND on
   // normalized hook so the same pack hook can't take two slots even
   // if it surfaced under two different cores.
+  //
+  // PHASE N1-FULL-SPEC — apply the per-creator memory filter HERE,
+  // before any per-batch dedup or the maxReserved cap. Pack
+  // candidates whose entry id is in the excludeEntryIds set are
+  // dropped from the ranked pool. Undefined / empty set → no-op,
+  // baseline behaviour preserved (non-NG cohorts unchanged).
   const packRanked = candidatePool
-    .filter((c) => packEntryIdOf(c) !== undefined)
+    .filter((c) => {
+      const id = packEntryIdOf(c);
+      if (id === undefined) return false;
+      if (excludeEntryIds && excludeEntryIds.has(id)) return false;
+      return true;
+    })
     .slice()
     .sort((a, b) => b.score.total - a.score.total);
 
@@ -102,7 +169,7 @@ export function applyNigerianPackSlotReservation(
     reservedHooks.add(hookKey);
     dedupedPack.push(c);
   }
-  if (dedupedPack.length === 0) return selectionBatch;
+  if (dedupedPack.length === 0) return stripExcludedPackFromBatch(selectionBatch);
 
   // Cap reserved slots at 2 (per spec) AND at desiredCount AND at
   // the number of distinct pack candidates available.
@@ -162,6 +229,8 @@ export function applyNigerianPackSlotReservation(
 
   // If composition produced fewer ideas than upstream selection,
   // return upstream unchanged — never regress shipped count.
-  if (composed.length < selectionBatch.length) return selectionBatch;
+  if (composed.length < selectionBatch.length) {
+    return stripExcludedPackFromBatch(selectionBatch);
+  }
   return composed;
 }

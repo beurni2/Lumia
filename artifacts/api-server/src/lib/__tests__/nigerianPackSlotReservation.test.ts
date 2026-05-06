@@ -248,6 +248,90 @@ describe("applyNigerianPackSlotReservation", () => {
     expect((out[2]!.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId).toBeUndefined();
   });
 
+  describe("excludeEntryIds — per-creator memory (N1-FULL-SPEC)", () => {
+    it("filters excluded pack entries from primary composition path", () => {
+      const p1 = mkCandidate({ hook: "p1", total: 10, packEntryId: "p1" });
+      const p2 = mkCandidate({ hook: "p2", total: 9, packEntryId: "p2" });
+      const n1 = mkCandidate({ hook: "non one", total: 7 });
+      const out = applyNigerianPackSlotReservation({
+        selectionBatch: [p1, n1, p2],
+        candidatePool: [p1, p2, n1],
+        desiredCount: 3,
+        region: NG,
+        languageStyle: PIDGIN,
+        flagEnabled: true,
+        packLength: 50,
+        excludeEntryIds: new Set(["p1"]),
+      });
+      const ids = out.map(
+        (c) => (c.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId,
+      );
+      expect(ids).not.toContain("p1");
+    });
+
+    it("strips excluded pack entries when no eligible pack survives (fallback path)", () => {
+      // p1 is the only pack candidate AND it is excluded — dedupedPack
+      // becomes empty, so the fallback returns selectionBatch. Pre-fix
+      // this would re-ship p1 (it's in selectionBatch from upstream).
+      // Post-fix: p1 must be stripped.
+      const p1 = mkCandidate({ hook: "p1", total: 10, packEntryId: "p1" });
+      const n1 = mkCandidate({ hook: "non one", total: 7 });
+      const n2 = mkCandidate({ hook: "non two", total: 6 });
+      const out = applyNigerianPackSlotReservation({
+        selectionBatch: [p1, n1, n2],
+        candidatePool: [p1, n1, n2],
+        desiredCount: 3,
+        region: NG,
+        languageStyle: PIDGIN,
+        flagEnabled: true,
+        packLength: 50,
+        excludeEntryIds: new Set(["p1"]),
+      });
+      const ids = out.map(
+        (c) => (c.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId,
+      );
+      expect(ids).not.toContain("p1");
+      expect(out.length).toBe(2);
+    });
+
+    it("undefined excludeEntryIds is byte-identical to baseline (no-op)", () => {
+      const p1 = mkCandidate({ hook: "p1", total: 10, packEntryId: "p1" });
+      const n1 = mkCandidate({ hook: "non one", total: 7 });
+      const batch = [p1, n1, n1];
+      const baseline = applyNigerianPackSlotReservation({
+        selectionBatch: batch,
+        candidatePool: [p1, n1],
+        desiredCount: 3,
+        region: NG,
+        languageStyle: PIDGIN,
+        flagEnabled: true,
+        packLength: 50,
+      });
+      const withUndef = applyNigerianPackSlotReservation({
+        selectionBatch: batch,
+        candidatePool: [p1, n1],
+        desiredCount: 3,
+        region: NG,
+        languageStyle: PIDGIN,
+        flagEnabled: true,
+        packLength: 50,
+        excludeEntryIds: undefined,
+      });
+      const withEmpty = applyNigerianPackSlotReservation({
+        selectionBatch: batch,
+        candidatePool: [p1, n1],
+        desiredCount: 3,
+        region: NG,
+        languageStyle: PIDGIN,
+        flagEnabled: true,
+        packLength: 50,
+        excludeEntryIds: new Set(),
+      });
+      expect(withUndef).toEqual(baseline);
+      expect(withEmpty).toEqual(baseline);
+    });
+  });
+
   it("never reserves more than 2 of 3 slots (cap honoured)", () => {
     const p1 = mkCandidate({ hook: "p1", total: 10, packEntryId: "p1" });
     const p2 = mkCandidate({ hook: "p2", total: 9, packEntryId: "p2" });

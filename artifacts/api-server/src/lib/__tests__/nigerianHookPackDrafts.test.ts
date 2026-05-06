@@ -39,10 +39,19 @@ describe("N1 drafts — import shape", () => {
     expect(Object.isFrozen(DRAFT_NIGERIAN_HOOK_PACK)).toBe(true);
   });
 
-  it("every entry uses the PENDING_NATIVE_REVIEW sentinel", () => {
+  // PHASE N1-FULL-SPEC — the BI native speaker has reviewed all 300
+  // drafts and stamped them on 2026-05-06. The previous invariant
+  // ("every entry uses PENDING_NATIVE_REVIEW") has been replaced by
+  // the post-review invariant: every entry carries a non-empty,
+  // non-sentinel, non-AGENT-PROPOSED stamp (mirrors production rule).
+  it("every entry carries a real reviewer stamp (BI 2026-05-06)", () => {
     for (const e of DRAFT_NIGERIAN_HOOK_PACK) {
-      expect(e.reviewedBy).toBe(PENDING_NATIVE_REVIEW);
+      expect(e.reviewedBy.trim().length).toBeGreaterThan(0);
+      expect(e.reviewedBy).not.toBe(PENDING_NATIVE_REVIEW);
+      expect(e.reviewedBy.startsWith("AGENT-PROPOSED")).toBe(false);
     }
+    // Spot-check: at least one entry carries the BI stamp.
+    expect(DRAFT_NIGERIAN_HOOK_PACK[0]!.reviewedBy).toBe("BI 2026-05-06");
   });
 
   it("draft-integrity check returns no issues for the imported batch", () => {
@@ -69,13 +78,34 @@ describe("N1 drafts — import shape", () => {
 describe("N1 drafts — assert sensitivity (synthetic failures)", () => {
   const BASE: DraftNigerianPackEntry = DRAFT_NIGERIAN_HOOK_PACK[0]!;
 
-  it("rejects an entry whose reviewedBy is not the sentinel", () => {
+  // PHASE N1-FULL-SPEC — post-review the draft assert mirrors the
+  // production rules with one intentional difference: the PENDING
+  // sentinel is ACCEPTED at the draft layer (production assert
+  // rejects it via its non-empty + sentinel checks, so a draft
+  // carrying PENDING can never enter the live pack). Verify each
+  // remaining rejection path: empty, AGENT-PROPOSED prefix.
+  it("accepts an entry whose reviewedBy is the PENDING sentinel", () => {
+    const ok: DraftNigerianPackEntry = {
+      ...BASE,
+      reviewedBy: PENDING_NATIVE_REVIEW,
+    };
+    expect(() => assertNigerianDraftPackIntegrity([ok])).not.toThrow();
+  });
+
+  it("rejects an entry whose reviewedBy is empty", () => {
+    const bad: DraftNigerianPackEntry = { ...BASE, reviewedBy: "   " };
+    expect(() => assertNigerianDraftPackIntegrity([bad])).toThrow(
+      /reviewedBy/,
+    );
+  });
+
+  it("rejects an entry whose reviewedBy starts with AGENT-PROPOSED", () => {
     const bad: DraftNigerianPackEntry = {
       ...BASE,
-      reviewedBy: "X" as unknown as typeof PENDING_NATIVE_REVIEW,
+      reviewedBy: "AGENT-PROPOSED — pending BI review",
     };
     expect(() => assertNigerianDraftPackIntegrity([bad])).toThrow(
-      /PENDING_NATIVE_REVIEW/,
+      /AGENT-PROPOSED/,
     );
   });
 

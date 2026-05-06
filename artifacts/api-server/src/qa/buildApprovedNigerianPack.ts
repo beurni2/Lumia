@@ -68,7 +68,7 @@ import {
   scoreNigerianPackEntryDetailed,
 } from "../lib/nigerianHookQuality.js";
 
-const REVIEWED_BY = "BI 2026-05-05";
+const REVIEWED_BY = "BI 2026-05-06";
 const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
 // PHASE N1-Q follow-up: the agent may now PROPOSE rewrites for rows
 // that the reviewer hasn't gotten to yet. Such proposals MUST carry a
@@ -635,6 +635,57 @@ const main = (): void => {
       );
     }
   }
+
+  // PHASE N1-FULL-SPEC — write a standalone rejection report so the
+  // reviewer can triage failing drafts without grepping the codegen
+  // output. The report is grouped by reason category so common
+  // failure patterns (e.g. "anchor not found in whatToShow") are
+  // visible at a glance.
+  const reportPath = path.resolve(
+    path.dirname(outPath),
+    "../../../../.local/N1_REJECTION_REPORT.md",
+  );
+  const reportLines: string[] = [];
+  reportLines.push("# N1 Codegen Rejection Report");
+  reportLines.push("");
+  reportLines.push(`Generated: ${new Date().toISOString()}`);
+  reportLines.push(`Worksheet: ${path.basename(csvPath)}`);
+  reportLines.push(
+    `Approved: ${approved.length} · Rejected: ${rejected.length} · Total: ${rows.length}`,
+  );
+  reportLines.push("");
+  if (rejected.length === 0) {
+    reportLines.push("All worksheet rows passed validation. Nothing to triage.");
+  } else {
+    // Group by primary reason category for fast skimming.
+    const byCategory = new Map<string, typeof rejected>();
+    for (const r of rejected) {
+      const cat = r.reasons[0]?.split(":")[0]?.split(" ").slice(0, 4).join(" ") ?? "unknown";
+      const arr = byCategory.get(cat) ?? [];
+      arr.push(r);
+      byCategory.set(cat, arr);
+    }
+    reportLines.push(`## Summary by primary failure category`);
+    reportLines.push("");
+    for (const [cat, arr] of [...byCategory.entries()].sort(
+      (a, b) => b[1].length - a[1].length,
+    )) {
+      reportLines.push(`- **${cat}** — ${arr.length} drafts`);
+    }
+    reportLines.push("");
+    reportLines.push(`## Per-draft detail`);
+    reportLines.push("");
+    reportLines.push(`| draftId | pidginLevel | anchor | hook (first 60c) | reasons |`);
+    reportLines.push(`|---|---|---|---|---|`);
+    for (const r of rejected) {
+      const hookExcerpt = (r.row.hook ?? "").slice(0, 60).replace(/\|/g, "\\|");
+      reportLines.push(
+        `| ${r.row.draftId} | ${r.row.currentPidginLevel} | ${r.row.anchor} | ${hookExcerpt} | ${r.reasons.join("; ").replace(/\|/g, "\\|")} |`,
+      );
+    }
+  }
+  fs.writeFileSync(reportPath, reportLines.join("\n") + "\n", "utf8");
+  process.stdout.write(`  rejection report: ${reportPath}\n`);
 };
 
 main();

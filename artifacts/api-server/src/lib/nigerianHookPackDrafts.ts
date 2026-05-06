@@ -68,8 +68,16 @@ export type DraftNigerianPackEntry = Omit<
    *  corpus. Only `light_pidgin` / `pidgin` entries can ever be
    *  activation-eligible (the production type forbids `clean`). */
   readonly pidginLevel: "clean" | "light_pidgin" | "pidgin";
-  /** Always the literal `PENDING_NATIVE_REVIEW` sentinel for drafts. */
-  readonly reviewedBy: typeof PENDING_NATIVE_REVIEW;
+  /** Reviewer stamp. Either the legacy `PENDING_NATIVE_REVIEW`
+   *  sentinel (for unreviewed entries) OR a real reviewer
+   *  identifier such as `BI 2026-05-06`. The draft assert below
+   *  applies the same rules as production: non-empty, NOT the
+   *  `AGENT-PROPOSED…` prefix. The `PENDING_NATIVE_REVIEW`
+   *  sentinel is still accepted at the draft layer because the
+   *  PRODUCTION assert (the only one that gates activation)
+   *  rejects it — drafts can carry it for triage without
+   *  ever entering the live pack. */
+  readonly reviewedBy: string;
   /** Free-form cluster label sourced from the bracketed style header
    *  (e.g. `whatsapp`, `transport`, `bank_alert`). Snake_case. */
   readonly cluster: string;
@@ -104,7 +112,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "whatsapp",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -117,7 +125,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "whatsapp",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -130,7 +138,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_chat",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -143,7 +151,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "whatsapp",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -156,7 +164,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "messages",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -169,7 +177,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_chat",
       pidginLevel: "pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -182,7 +190,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "messages",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -195,7 +203,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "whatsapp",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -208,7 +216,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_chat",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -221,7 +229,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "messages",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     // ─── 11–20  Movement / transport / going out ──────────────────
@@ -235,7 +243,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the outing was cute until movement entered the conversation",
@@ -247,7 +255,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "going_out",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my energy left before the danfo even moved",
@@ -259,7 +267,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "danfo",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one small errand turned into a full character test",
@@ -271,7 +279,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "errand",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I dressed up and my motivation resigned",
@@ -283,7 +291,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "going_out",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I opened maps and the distance humbled my confidence",
@@ -295,7 +303,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "transport",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "they said \"just come small\" like movement is free",
@@ -307,7 +315,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "social_plan",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -320,7 +328,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "leaving_home",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I'd go outside and outside heard me",
@@ -332,7 +340,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "errand",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the plan was fun until logistics showed up",
@@ -344,7 +352,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "movement",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 21–30  Phone / data / power ─────────────────────────────
     {
@@ -357,7 +365,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one low battery warning changed the whole day's plan",
@@ -369,7 +377,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "phone",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the light blinked once and my productivity packed bag",
@@ -381,7 +389,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "power",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the generator sound reminded me that peace is expensive",
@@ -393,7 +401,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "generator",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said \"just one TikTok\" and my data said goodbye",
@@ -405,7 +413,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my phone battery judged my lifestyle before anyone else could",
@@ -417,7 +425,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "phone",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I planned to work, then light said \"not today\"",
@@ -429,7 +437,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "power",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my hotspot became a family responsibility",
@@ -441,7 +449,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "phone_data",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -454,7 +462,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "charging",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one notification ruined the peace I was managing",
@@ -466,7 +474,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "notification",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 31–40  Food / home / roommate ───────────────────────────
     {
@@ -479,7 +487,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "food",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the fridge said I should stop pretending I cook",
@@ -491,7 +499,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "food",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one spoon of jollof and my discipline left the group",
@@ -503,7 +511,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "jollof",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the shared fridge turned trust into a social experiment",
@@ -515,7 +523,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "roommate",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I'd clean small and the room laughed",
@@ -527,7 +535,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my midnight hunger started negotiating with my future self",
@@ -539,7 +547,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "food",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the stew finished but nobody wanted to announce it",
@@ -551,7 +559,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "kitchen",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "laundry waited quietly until I made weekend plans",
@@ -563,7 +571,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "home",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I bought snacks for the week and finished peace in one night",
@@ -575,7 +583,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "snacks",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the house chore found me even after I changed location",
@@ -587,7 +595,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "home",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 41–50  School / work / deadlines ────────────────────────
     {
@@ -600,7 +608,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "school",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my inbox waited until I relaxed to start shouting",
@@ -612,7 +620,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "work",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: "Use mock email UI; never real inbox screenshots.",
     },
     {
@@ -625,7 +633,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "study",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the deadline was quiet until I checked the date",
@@ -637,7 +645,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "deadline",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said \"I'll do it later\" and later brought lawyer",
@@ -649,7 +657,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my notes looked organized until I needed them",
@@ -661,7 +669,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "study",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one meeting invite and my whole spirit minimized",
@@ -673,7 +681,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "work_call",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the task was simple until I opened the laptop",
@@ -685,7 +693,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "productivity",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "lecturer said \"quick quiz\" and my soul left early",
@@ -697,7 +705,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "school",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my deadline and my confidence are not on speaking terms",
@@ -709,7 +717,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "deadline",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 51–60  Family / social pressure ─────────────────────────
     {
@@ -722,7 +730,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: "Use generic 'Mum' label; never real contact name.",
     },
     {
@@ -735,7 +743,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "family",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -748,7 +756,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "social_pressure",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the event was optional until family started counting attendance",
@@ -760,7 +768,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "event",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: "Use fake relatives in mock; no real names.",
     },
     {
@@ -773,7 +781,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -786,7 +794,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "social",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I entered the room and became tech support",
@@ -798,7 +806,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the small visit came with full expectations",
@@ -810,7 +818,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "social",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I muted the family chat and somehow it got louder",
@@ -822,7 +830,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "family_group",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -835,7 +843,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "event",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 61–70  Money / shopping / bank alert ────────────────────
     {
@@ -848,7 +856,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -861,7 +869,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "shopping",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one debit alert and I started remembering every mistake",
@@ -873,7 +881,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "bank_alert",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -886,7 +894,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "money",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I'm just checking price and somehow checkout opened",
@@ -898,7 +906,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "shopping",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "payday arrived and immediately started leaving",
@@ -910,7 +918,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "money",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I went market with list and came back with storyline",
@@ -922,7 +930,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "market",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one small treat became a financial personality",
@@ -934,7 +942,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "spending",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "data subscription humbled my enjoyment plan",
@@ -946,7 +954,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "data_money",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I checked food prices and started respecting home cooking",
@@ -958,7 +966,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "food_spending",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 71–80  Creator / social media ───────────────────────────
     {
@@ -971,7 +979,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my draft has been ready since fear entered the room",
@@ -983,7 +991,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one comment and I started doing press conference in my head",
@@ -995,7 +1003,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "comments",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the algorithm watched me try and said \"interesting\"",
@@ -1007,7 +1015,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I don't care about views and refreshed five times",
@@ -1019,7 +1027,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "posting",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my drafts folder knows too much about my confidence",
@@ -1031,7 +1039,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "drafts",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I filmed content and immediately started judging myself like panel",
@@ -1043,7 +1051,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator_life",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the video was fine until caption became an exam",
@@ -1055,7 +1063,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "caption",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "views no move and my spirit started checking network",
@@ -1067,7 +1075,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "analytics",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I made the content, then remembered people will see it",
@@ -1079,7 +1087,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator_fear",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     // ─── 81–100  Daily / object betrayal / misc ──────────────────
     {
@@ -1092,7 +1100,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "mirror",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the outfit made sense until outside entered the plan",
@@ -1104,7 +1112,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "outfit",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my bed held one meeting and I attended fully",
@@ -1116,7 +1124,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "bed",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the door saw me ready and asked if I was sure",
@@ -1128,7 +1136,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "door",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I wore shoes and still did not leave",
@@ -1140,7 +1148,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "shoes",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my water bottle has witnessed too many fake fresh starts",
@@ -1152,7 +1160,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "water_bottle",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I wrote the plan and immediately disobeyed it",
@@ -1164,7 +1172,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "planner",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my charger decided where I would spend the evening",
@@ -1176,7 +1184,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "charger",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I boiled water and forgot the reason",
@@ -1188,7 +1196,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "kettle",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my keys disappeared the moment I became serious",
@@ -1200,7 +1208,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "keys",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I wore slippers to do one thing and ended up doing nothing",
@@ -1212,7 +1220,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "slippers",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one notification changed the direction of my whole personality",
@@ -1224,7 +1232,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "notification",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said \"almost ready\" while still negotiating with towel",
@@ -1236,7 +1244,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "towel",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I packed my bag and forgot the main thing with confidence",
@@ -1248,7 +1256,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "bag",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I saw the queue and my errand became suggestion",
@@ -1260,7 +1268,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "queue",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the rain started acting like it knew my plans",
@@ -1272,7 +1280,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "rain",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my hair agreed at home and betrayed me outside",
@@ -1284,7 +1292,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "hair",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the list had three things and somehow I forgot all three",
@@ -1296,7 +1304,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "list",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said \"let me just quickly\" and the day laughed",
@@ -1308,7 +1316,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "small_task",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my confidence arrived early and left before the actual problem",
@@ -1320,7 +1328,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "final_relatable",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ════════════════════════════════════════════════════════════════
@@ -1339,7 +1347,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "family_group",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1352,7 +1360,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "typing_anxiety",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1365,7 +1373,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "office_group_chat",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1378,7 +1386,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "seen_wahala",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1391,7 +1399,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "blue_tick_pressure",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1404,7 +1412,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "voice_notes",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1417,7 +1425,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "deleted_message",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1430,7 +1438,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_admin",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1443,7 +1451,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "status_reply",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1456,7 +1464,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "k_reply",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1469,7 +1477,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "mute_unmute",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1482,7 +1490,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "birthday_group",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1495,7 +1503,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "online_ghosting",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1508,7 +1516,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "poll_wahala",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1521,7 +1529,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_exit_drama",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
 
@@ -1536,7 +1544,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "lagos_traffic",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"two minutes\" on bike can mean anything",
@@ -1548,7 +1556,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "okada_promise",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "your driver is 5 minutes away... for 45 minutes",
@@ -1560,7 +1568,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "ride_app",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said \"I dey come\" while still ironing",
@@ -1572,7 +1580,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "im_coming",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "traffic became the villain even after I left early",
@@ -1584,7 +1592,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "traffic_excuse",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"make we enter keke, e go fast\" was a setup",
@@ -1596,7 +1604,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "keke_drama",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"babe, I'm 5 minutes away\" from inside my house",
@@ -1608,7 +1616,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "almost_there_lie",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "driver cancelled after I waited long enough to change personality",
@@ -1620,7 +1628,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "ride_cancel",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "maps said 12 minutes and reality laughed",
@@ -1632,7 +1640,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "maps_reality",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"I'm at the gate\" while still locking my door",
@@ -1644,7 +1652,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "movement",
       cluster: "gate_lie",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── B26–B37  Power / data / phone realities ──────────────────
@@ -1658,7 +1666,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "light_surprise",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my data finished but I still kept refreshing",
@@ -1670,7 +1678,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data_wahala",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "20% battery and I still chose reels",
@@ -1682,7 +1690,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "battery_drama",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "generator noise said sleep is optional",
@@ -1694,7 +1702,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "generator_noise",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "full network bars with no service is emotional damage",
@@ -1706,7 +1714,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "network_bars",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "light came and everybody started running to charge",
@@ -1718,7 +1726,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "light_come_go",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my phone picked the worst time to update itself",
@@ -1730,7 +1738,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "phone_update",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my data was expiring, so suddenly I became productive online",
@@ -1742,7 +1750,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data_expiry",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "this charger only works when I respect its feelings",
@@ -1754,7 +1762,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "charger_angle",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "who is using my data in the background?",
@@ -1766,7 +1774,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data_thief",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the moment I started cooking, light remembered me",
@@ -1778,7 +1786,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "cooking_blackout",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "inverter said 8 hours and gave 45 minutes of hope",
@@ -1790,7 +1798,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "inverter_promise",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── B38–B49  Food / home / roommate ──────────────────────────
@@ -1804,7 +1812,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "jollof",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my indomie has disappeared again",
@@ -1816,7 +1824,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "food_thief",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "hunger at 2 a.m. is always a trap",
@@ -1828,7 +1836,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "late_night_hunger",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I left small garri this morning... so where is it?",
@@ -1840,7 +1848,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "garri",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the one time I cook, everybody suddenly appears",
@@ -1852,7 +1860,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "shared_food",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my maggi reduced overnight and nobody is confessing",
@@ -1864,7 +1872,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "maggi",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "food was \"2 minutes away\" for the last 40 minutes",
@@ -1876,7 +1884,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "delivery_delay",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"share this rice small na\" is how it starts",
@@ -1888,7 +1896,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "share_rice",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "light went and my freezer started threatening me",
@@ -1900,7 +1908,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "generator_food",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "who put fish in the microwave?",
@@ -1912,7 +1920,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "microwave_mystery",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"I go buy my own next time\" means I am hurt",
@@ -1924,7 +1932,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "buy_my_own",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "these plates have been in the sink long enough to pay rent",
@@ -1936,7 +1944,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "sink_war",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── B50–B59  School / work / deadlines ───────────────────────
@@ -1950,7 +1958,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "deadline",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "oga sent email at 11:59 p.m. like sleep is illegal",
@@ -1962,7 +1970,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "boss_email",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "group members only appear when deadline smells near",
@@ -1974,7 +1982,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "group_project",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -1987,7 +1995,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "submission_closed",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "Monday always arrives like it has a personal issue with me",
@@ -1999,7 +2007,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "monday",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "working from home became working near the bed",
@@ -2011,7 +2019,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "wfh_reality",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "camera off, mic muted — that is the real meeting",
@@ -2023,7 +2031,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "zoom_life",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "presentation in 10 minutes and I am still editing slide one",
@@ -2035,7 +2043,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "presentation_panic",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "class group chat is quiet until exam week attacks",
@@ -2047,7 +2055,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "class_group",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2060,7 +2068,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "performance_review",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── B60–B65  Family / social pressure ────────────────────────
@@ -2074,7 +2082,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "marriage_pressure",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my mum's favorite weekend topic is my future",
@@ -2086,7 +2094,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "mum_line",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I brought one friend home and they became a case study",
@@ -2098,7 +2106,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "bring_friend",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "Instagram weddings are not helping my family meetings",
@@ -2110,7 +2118,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "social_media_flex",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"so who is the special person?\" ruined the whole party",
@@ -2122,7 +2130,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "special_person",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "aunty has one \"fine person\" for everybody",
@@ -2134,7 +2142,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "aunty_setup",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
 
@@ -2149,7 +2157,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "fake_bank_alert",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -2162,7 +2170,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "cart_budget",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"send me small change\" has no small consequences",
@@ -2174,7 +2182,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "small_change",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -2187,7 +2195,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "salary_delay",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -2200,7 +2208,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "window_shopping",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"I go pay you back next week\" has entered season two",
@@ -2212,7 +2220,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "pay_back",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2225,7 +2233,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "airtime_data",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "salary came in and immediately started distributing itself",
@@ -2237,7 +2245,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "salary_day",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
 
@@ -2252,7 +2260,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "algorithm",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I don't care about views and refreshed five times",
@@ -2264,7 +2272,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "refresh_madness",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "this is take 47 and somehow the first one was better",
@@ -2276,7 +2284,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "takes",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "caption is harder than the whole video",
@@ -2288,7 +2296,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "caption",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "everybody is doing the trend and I am still learning left from right",
@@ -2300,7 +2308,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "trend",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I edited this video for three hours and still fear post",
@@ -2312,7 +2320,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "post_or_not",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "reading comments after posting is emotional gambling",
@@ -2324,7 +2332,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "comments",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "content no dey, but camera is already rolling",
@@ -2336,7 +2344,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "no_content",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "filming in public builds character I did not request",
@@ -2348,7 +2356,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "public_filming",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "one more edit and the video became worse",
@@ -2360,7 +2368,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "one_more_edit",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I tagged everybody and nobody reposted",
@@ -2372,7 +2380,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "tag_friends",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I need a break, but content is looking at me",
@@ -2384,7 +2392,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "creator_burnout",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── B86–B100  Misc daily embarrassment ───────────────────────
@@ -2398,7 +2406,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "slipper",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "cash no dey, POS dey charge extra, peace no dey",
@@ -2410,7 +2418,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "pos_fee",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -2423,7 +2431,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "voice_crack",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I got lost but pride said I should continue",
@@ -2435,7 +2443,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "lost_but_proud",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "realizing your zip was down after the whole day is cinema",
@@ -2447,7 +2455,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "wardrobe",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "seller said price and I said \"small small\" with confidence",
@@ -2459,7 +2467,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "market_bargain",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I sent the wrong voice note and my soul left my body",
@@ -2471,7 +2479,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "wrong_chat",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2484,7 +2492,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "food_refusal",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "elevator silence with your neighbor deserves background music",
@@ -2496,7 +2504,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "elevator",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I forgot umbrella and rain did not forgive me",
@@ -2508,7 +2516,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "rain",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "calling someone the wrong name in public has no recovery plan",
@@ -2520,7 +2528,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "name_mixup",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "new shoe was fine at home, then started biting outside",
@@ -2532,7 +2540,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "new_shoe",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I forgot their name mid-conversation and started speaking in circles",
@@ -2544,7 +2552,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "forgot_name",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "\"I dey fine\" while looking like pending maintenance",
@@ -2556,7 +2564,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "i_dey_fine",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "waving at someone who was not waving at you is spiritual training",
@@ -2568,7 +2576,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "everyday",
       cluster: "wrong_wave",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ════════════════════════════════════════════════════════════════
@@ -2587,7 +2595,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "stickers",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2600,7 +2608,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "gif_war",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2613,7 +2621,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "typing_torture",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2626,7 +2634,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "status_view_ghost",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2639,7 +2647,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "poll_chaos",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2652,7 +2660,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "blue_tick",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2665,7 +2673,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "voice_note_marathon",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2678,7 +2686,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "deleted_message",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2691,7 +2699,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "admin_power",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2704,7 +2712,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "forwarded_madness",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2717,7 +2725,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "birthday_flood",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2730,7 +2738,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "muted_group",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2743,7 +2751,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "reaction_confusion",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2756,7 +2764,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "k_reply",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2769,7 +2777,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "group_exit",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2782,7 +2790,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "status_emoji",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2795,7 +2803,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "poll_result",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2808,7 +2816,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "delivered_anxiety",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2821,7 +2829,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "online_no_reply",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
 
@@ -2836,7 +2844,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "danfo",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "'I know shortcut' is where the story started",
@@ -2848,7 +2856,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "okada_shortcut",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "driver cancelled right when I saw his car",
@@ -2860,7 +2868,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "bolt_cancel",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "babe, I dey gate already",
@@ -2872,7 +2880,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "gate_lie",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2885,7 +2893,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "traffic_content",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "enter keke, e go fast — famous mistake",
@@ -2897,7 +2905,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "keke_overload",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "'I'm almost there' said for the third time",
@@ -2909,7 +2917,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "almost_there",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -2922,7 +2930,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "wrong_pickup",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "last bus! run o!",
@@ -2934,7 +2942,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "last_bus",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "Google said 15 minutes and lied with confidence",
@@ -2946,7 +2954,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "maps_betrayal",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "oga drop me here every five minutes",
@@ -2958,7 +2966,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "passenger_argument",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "'I'm two minutes away' fifty minutes later",
@@ -2970,7 +2978,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "date_arrival",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "make we take bike, e go quick",
@@ -2982,7 +2990,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "bike_rain",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I'm at the corner already",
@@ -2994,7 +3002,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "transport",
       cluster: "corner_lie",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── C34–C47  Power / light / data / phone realities ──────────
@@ -3008,7 +3016,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "light_tease",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "data don finish but Instagram still dey open",
@@ -3020,7 +3028,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data_finished",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "phone at 8% and I'm still watching reels",
@@ -3032,7 +3040,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "battery",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "generator dey sing better than my playlist",
@@ -3044,7 +3052,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "generator_noise",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "full 4G but nothing is loading",
@@ -3056,7 +3064,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "network_bars",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "NEPA just did us dirty again",
@@ -3068,7 +3076,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "light_off",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "why now? I need to send this message",
@@ -3080,7 +3088,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "phone_update",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my data expires in 47 minutes",
@@ -3092,7 +3100,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "data_expiry",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "NEPA take light, phone torch became my spotlight",
@@ -3104,7 +3112,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "torchlight",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "this charger only works when I respect its feelings",
@@ -3116,7 +3124,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "charger_angle",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "who dey use my data like this?",
@@ -3128,7 +3136,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "background_data",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the exact moment I start frying, light goes",
@@ -3140,7 +3148,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "cooking_blackout",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "phone 3% and I dey far from house",
@@ -3152,7 +3160,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "phone",
       cluster: "no_power_bank",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "inverter promised 6 hours and gave 40 minutes",
@@ -3164,7 +3172,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "inverter",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── C48–C59  Food / home / roommate ──────────────────────────
@@ -3178,7 +3186,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "leftovers",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my indomie pack don reduce overnight",
@@ -3190,7 +3198,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "indomie",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "hunger at 2 a.m. always meets an empty house",
@@ -3202,7 +3210,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "late_hunger",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I left small garri this morning...",
@@ -3214,7 +3222,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "garri",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "the moment I cook, everybody appears",
@@ -3226,7 +3234,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "cooking_attracts",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "my Maggi cubes don reduce again",
@@ -3238,7 +3246,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "maggi",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "food is 3 minutes away for one hour",
@@ -3250,7 +3258,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "delivery_delay",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "bros, just one spoon na",
@@ -3262,7 +3270,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "share_rice",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "NEPA take light, my meat don thaw",
@@ -3274,7 +3282,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "freezer_thaw",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "who warmed fish in here again?",
@@ -3286,7 +3294,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "microwave_fish",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "no worry, I go buy my own next time",
@@ -3298,7 +3306,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "snacks",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "these plates have been there long enough to pay rent",
@@ -3310,7 +3318,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "home",
       cluster: "sink_war",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── C60–C70  School / work / deadlines ───────────────────────
@@ -3324,7 +3332,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "assignment_panic",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "oga sent email at 11:58 p.m.",
@@ -3336,7 +3344,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "boss_email",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -3349,7 +3357,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "group_project",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "submission just closed",
@@ -3361,7 +3369,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "portal_closed",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "Monday alarm hits different",
@@ -3373,7 +3381,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "monday_alarm",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "working from home became working near the bed",
@@ -3385,7 +3393,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "wfh",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "camera off, I'm actually eating",
@@ -3397,7 +3405,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "zoom_camera_off",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "presentation in 5 minutes and I'm still editing",
@@ -3409,7 +3417,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "presentation_panic",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "class group was dead until exam week",
@@ -3421,7 +3429,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "class_group",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -3434,7 +3442,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "traffic_work_lie",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -3447,7 +3455,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "work",
       cluster: "performance_review",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
 
     // ─── C71–C78  Family / social pressure ────────────────────────
@@ -3461,7 +3469,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "marriage_question",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "you no go marry this year?",
@@ -3473,7 +3481,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "aunty_pressure",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "mum's favorite weekend topic is my future",
@@ -3485,7 +3493,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "mum_future",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "your mate don buy house already",
@@ -3497,7 +3505,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "cousin_comparison",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I brought one friend home and they became a case study",
@@ -3509,7 +3517,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "friend_interview",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "Instagram weddings are not helping family meetings",
@@ -3521,7 +3529,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "ig_weddings",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -3534,7 +3542,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "special_person",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "aunty has one fine person for everybody",
@@ -3546,7 +3554,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "family",
       cluster: "matchmaking",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
 
@@ -3561,7 +3569,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "fake_alert",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3574,7 +3582,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "cart_overload",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3587,7 +3595,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "small_money",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3600,7 +3608,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "salary_delay",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3613,7 +3621,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "wishlist",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "'next week' became next month",
@@ -3625,7 +3633,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "debt_promise",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
     {
@@ -3638,7 +3646,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "atm_swallow",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3651,7 +3659,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "pos_failure",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
     {
@@ -3664,7 +3672,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "budget",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "salary finally dropped",
@@ -3676,7 +3684,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "money",
       cluster: "salary_day",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_BANK_NOTE,
     },
 
@@ -3691,7 +3699,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "algorithm",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I said I don't care, then refreshed twenty times",
@@ -3703,7 +3711,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "views_refresh",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "this is take 38 and somehow the first one was better",
@@ -3715,7 +3723,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "many_takes",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "caption dey harder than the video itself",
@@ -3727,7 +3735,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "caption_struggle",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "everybody is doing the trend and my body refused",
@@ -3739,7 +3747,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "trend_fail",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I don edit this video for four hours",
@@ -3751,7 +3759,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "post_fear",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "opening comments after posting is emotional gambling",
@@ -3763,7 +3771,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "comment_anxiety",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "camera rolling but brain empty",
@@ -3775,7 +3783,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "blank_brain",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "gained 3, lost 5 in one hour",
@@ -3787,7 +3795,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "follower_count",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I tagged everybody and got zero shares",
@@ -3799,7 +3807,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "tag_friends",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I need a break, but content is looking at me",
@@ -3811,7 +3819,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "creator",
       cluster: "burnout",
       pidginLevel: "clean",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
     },
     {
       hook: "I sent the voice note to my boss instead",
@@ -3823,7 +3831,7 @@ export const DRAFT_NIGERIAN_HOOK_PACK: readonly DraftNigerianPackEntry[] =
       domain: "messaging",
       cluster: "wrong_chat",
       pidginLevel: "light_pidgin",
-      reviewedBy: PENDING_NATIVE_REVIEW,
+      reviewedBy: "BI 2026-05-06",
       privacyNote: FAKE_CHAT_NOTE,
     },
   ]);
@@ -3862,10 +3870,20 @@ export function checkNigerianDraftPackIntegrity(
     const push = (reason: string) =>
       issues.push({ index: i, hookSnippet: tag, reason });
 
-    if (e.reviewedBy !== PENDING_NATIVE_REVIEW) {
+    // Draft-layer reviewedBy rules (mirrors production but accepts
+    // the PENDING sentinel because the production assert rejects it
+    // — drafts can carry the sentinel without ever entering the
+    // live pack):
+    //   • must be a non-empty trimmed string
+    //   • must NOT start with `AGENT-PROPOSED` (those need reviewer
+    //     overwrite before promotion)
+    const stamp = (e.reviewedBy ?? "").trim();
+    if (stamp.length === 0) {
+      push("reviewedBy missing or whitespace-only");
+    } else if (stamp.startsWith("AGENT-PROPOSED")) {
       push(
-        `reviewedBy must be the literal sentinel ` +
-          `'${PENDING_NATIVE_REVIEW}' for drafts (got '${e.reviewedBy}')`,
+        `reviewedBy carries AGENT-PROPOSED prefix — needs reviewer ` +
+          `overwrite before promotion (got '${e.reviewedBy}')`,
       );
     }
     if (

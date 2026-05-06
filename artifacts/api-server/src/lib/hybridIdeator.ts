@@ -120,6 +120,10 @@ import {
 // the upstream `selection.batch`.
 import { applyNigerianPackSlotReservation } from "./nigerianPackSlotReservation";
 import {
+  getRecentSeenEntryIds,
+  recordSeenEntries,
+} from "./nigerianPackCreatorMemory.js";
+import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
   NIGERIAN_HOOK_PACK,
@@ -4360,6 +4364,17 @@ export async function runHybridIdeator(
   const n1s2_languageStyle = calibration?.languageStyle ?? null;
   const n1s2_flagEnabled = isNigerianPackFeatureEnabled();
   const n1s2_packLength = NIGERIAN_HOOK_PACK.length;
+  // PHASE N1-FULL-SPEC — per-creator hook memory. Fetch the set of
+  // entry ids this creator has seen in a recent shipped batch so
+  // the slot reservation can filter them out BEFORE picking. The
+  // helper returns an empty Set when there's no creator id or when
+  // the column is empty/NULL/unreadable, which preserves the
+  // baseline behaviour for every non-NG cohort and every fresh
+  // creator. Read failures are logged and swallowed inside the
+  // helper — never fail the request.
+  const n1s2_excludeEntryIds = await getRecentSeenEntryIds(
+    input.creator?.id,
+  );
   const n1s2_postBatch = applyNigerianPackSlotReservation({
     selectionBatch: n1s2_preBatch,
     candidatePool: merged,
@@ -4368,8 +4383,26 @@ export async function runHybridIdeator(
     languageStyle: n1s2_languageStyle,
     flagEnabled: n1s2_flagEnabled,
     packLength: n1s2_packLength,
+    excludeEntryIds: n1s2_excludeEntryIds,
   });
   selection = { ...selection, batch: n1s2_postBatch };
+  // Record the entry ids actually shipped in this batch so the
+  // NEXT request can filter them. Best-effort — write failures are
+  // logged and swallowed inside the helper. We collect from the
+  // post-batch (not the pre-batch) so a creator who only ended up
+  // with non-pack ideas this turn isn't penalized.
+  {
+    const shippedEntryIds = n1s2_postBatch
+      .map(
+        (c) =>
+          (c.meta as { nigerianPackEntryId?: string })
+            .nigerianPackEntryId,
+      )
+      .filter((id): id is string => typeof id === "string");
+    if (shippedEntryIds.length > 0) {
+      void recordSeenEntries(input.creator?.id, shippedEntryIds);
+    }
+  }
 
   // PHASE N1-FULL-SPEC — structured activation/decision telemetry.
   // Spec §"DEBUGGING AND QA VISIBILITY" enumerates these fields as

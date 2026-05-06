@@ -525,4 +525,23 @@ export const migrations: Migration[] = [
       ALTER TABLE creators ADD COLUMN IF NOT EXISTS vision_style_json jsonb;
     `,
   },
+  {
+    id: 22,
+    name: "nigerian_pack_seen_entry_ids",
+    // PHASE N1-FULL-SPEC — per-creator hook memory for the Nigerian
+    // Comedy Pack. Strictly additive: a single NULLABLE jsonb column
+    // on `creators`, default `[]`. Read by
+    // `lib/nigerianPackCreatorMemory.ts` to filter the slot
+    // reservation pool BEFORE picking, so a creator never sees the
+    // same pack hook twice in a row. Pre-v22 rows + non-NG cohorts
+    // never read this column (the activation guard short-circuits
+    // before the read), so behaviour outside the activated Nigeria
+    // cohort is byte-identical to the baseline. Cap (60 most-recent)
+    // is enforced in TypeScript, not in SQL.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS nigerian_pack_seen_entry_ids_json jsonb
+          DEFAULT '[]'::jsonb;
+    `,
+  },
 ];

@@ -102,7 +102,14 @@ describe("N1-S — NIGERIAN_HOOK_PACK activation boundary", () => {
       process.env.LUMINA_NG_PACK_ENABLED = "true";
     });
 
-    it("NIGERIAN_HOOK_PACK equals the 50-entry approved pool", async () => {
+    it("NIGERIAN_HOOK_PACK equals the approved pool", async () => {
+      // PHASE N1-FULL-SPEC — pool size is now sourced from the
+      // approved file (was hard-coded 50 pre-ingest). After the
+      // BI 2026-05-06 review pass the size is whatever survives the
+      // production validator on the full 300-draft worksheet
+      // (currently 63; see N1_REJECTION_REPORT.md). The structural
+      // invariants tested here are: pack equals the approved
+      // candidates by reference, AND every entry passes integrity.
       const {
         NIGERIAN_HOOK_PACK,
         isNigerianPackFeatureEnabled,
@@ -111,11 +118,14 @@ describe("N1-S — NIGERIAN_HOOK_PACK activation boundary", () => {
         "../nigerianHookPackApproved.js"
       );
       expect(isNigerianPackFeatureEnabled()).toBe(true);
-      expect(NIGERIAN_HOOK_PACK.length).toBe(50);
+      expect(NIGERIAN_HOOK_PACK.length).toBeGreaterThanOrEqual(50);
+      expect(NIGERIAN_HOOK_PACK.length).toBe(
+        APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length,
+      );
       expect(NIGERIAN_HOOK_PACK).toBe(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);
     });
 
-    it("integrity assert passes on the 50-entry pack", async () => {
+    it("integrity assert passes on the approved pack", async () => {
       const { assertNigerianPackIntegrity, NIGERIAN_HOOK_PACK } =
         await freshImport();
       expect(() => assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)).not.toThrow();

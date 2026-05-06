@@ -211,6 +211,72 @@ describe("N1 — boot integrity asserts", () => {
     );
   });
 
+  // PHASE N1-FULL-SPEC — mocking regex was TIGHTENED from
+  //   /\b(abe+g+|waha+la+)\b/i  (1+ vowels — false-positives "abeg")
+  // to
+  //   /\b(abe{2,}g+|abeg{2,}|waha{2,}la+|wahala{2,})\b/i
+  // The tightening REDUCES false-positives — authentic single-stretch
+  // Pidgin like "abeg" and "wahala" must now PASS, while genuine
+  // cartoonish stretching ("abeeeg", "abeggg", "wahaaala", "wahalaaa")
+  // must STILL be rejected.
+  describe("mocking-spelling regex tightening (N1-FULL-SPEC)", () => {
+    it("PASSES authentic 'abeg' (no vowel stretch)", () => {
+      const ok = { ...VALID_LIGHT, hook: "abeg make una hear word" };
+      // Hook validators may reject for other reasons (anchor coverage),
+      // but the mocking-regex specifically must NOT fire.
+      try {
+        assertNigerianPackIntegrity([ok]);
+      } catch (err) {
+        expect(String(err)).not.toMatch(/mocking-spelling/);
+      }
+    });
+
+    it("PASSES authentic 'wahala' (no vowel/consonant stretch)", () => {
+      const ok = {
+        ...VALID_LIGHT,
+        hook: "this wahala no get part two",
+      };
+      try {
+        assertNigerianPackIntegrity([ok]);
+      } catch (err) {
+        expect(String(err)).not.toMatch(/mocking-spelling/);
+      }
+    });
+
+    // Hooks below include the VALID_LIGHT anchor ("danfo") so the
+    // anchor-coverage check passes and the mocking-spelling regex
+    // actually fires (validators short-circuit on first failure).
+    it("REJECTS stretched 'abeeeeg'", () => {
+      const bad = {
+        ...VALID_LIGHT,
+        hook: "abeeeeg the danfo conductor pass me again",
+      };
+      expect(() => assertNigerianPackIntegrity([bad])).toThrow(
+        /mocking-spelling/,
+      );
+    });
+
+    it("REJECTS stretched 'wahaaala'", () => {
+      const bad = {
+        ...VALID_LIGHT,
+        hook: "wahaaala don land for the danfo this morning",
+      };
+      expect(() => assertNigerianPackIntegrity([bad])).toThrow(
+        /mocking-spelling/,
+      );
+    });
+
+    it("REJECTS doubled-consonant 'abeggg'", () => {
+      const bad = {
+        ...VALID_LIGHT,
+        hook: "abeggg the danfo conductor needs to leave me",
+      };
+      expect(() => assertNigerianPackIntegrity([bad])).toThrow(
+        /mocking-spelling/,
+      );
+    });
+  });
+
   it("rejects the NEPA / 'light just took' stereotype", () => {
     const bad: NigerianPackEntry = {
       ...VALID_LIGHT,

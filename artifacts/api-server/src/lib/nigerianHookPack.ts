@@ -208,7 +208,17 @@ export const PIDGIN_MOCKING_PATTERNS: readonly RegExp[] = Object.freeze([
   // Lazy "auntie/uncle from village" framing.
   /\b(village\s+(auntie|aunty|uncle)|bush\s+(auntie|aunty|uncle))\b/i,
   // Mocking spelling of "abeg" / "wahala" with extended vowels.
-  /\b(abe+g+|waha+la+)\b/i,
+  // PHASE N1-FULL-SPEC — TIGHTENED to eliminate false-positives on
+  // legitimate Pidgin "abeg" / "wahala". The original `+` quantifiers
+  // matched the canonical spelling itself (1+ matches 1). The new
+  // pattern requires ≥2 of the variable letter, matching only the
+  // cartoonized stretched variants ("abeeeg", "abeggg", "waahala",
+  // "wahalaaa"). This is a TIGHTENING of the false-positive scope,
+  // not a relaxation of safety: every string the original regex
+  // rejected and that was actually mocking is still rejected; the
+  // strings now allowed are authentic Pidgin spellings the original
+  // regex incorrectly flagged.
+  /\b(abe{2,}g+|abeg{2,}|waha{2,}la+|wahala{2,})\b/i,
 ]);
 
 // ---------------------------------------------------------------- //
