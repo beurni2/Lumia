@@ -113,6 +113,16 @@ import {
   buildRetentionProfile,
   applyBatchComposition,
 } from "./retentionNoveltyScorer";
+// PHASE N1-S2 — Nigerian Pack Slot Reservation. Activation guard
+// inside the helper short-circuits to identity for every cohort
+// other than nigeria + pidgin/light_pidgin + flag ON + non-empty
+// pack — flag-OFF and non-eligible cohorts are byte-identical to
+// the upstream `selection.batch`.
+import { applyNigerianPackSlotReservation } from "./nigerianPackSlotReservation";
+import {
+  isNigerianPackFeatureEnabled,
+  NIGERIAN_HOOK_PACK,
+} from "./nigerianHookPack";
 // PHASE Y6 — cohesive author surfaces a `scenarioFingerprint` on
 // every core_native candidate's meta + the catalog exposes the
 // distinct anchors used for served-log probing. The `extractAnchor`
@@ -4330,6 +4340,33 @@ export async function runHybridIdeator(
       ),
     };
   }
+
+  // -------- Step 4d: Nigerian Pack Slot Reservation (N1-S2) ------
+  // Pure reorder of `selection.batch` after `applyBatchComposition`.
+  // The helper's activation guard (`canActivateNigerianPack`) short-
+  // circuits to identity for every region/style/flag combination
+  // other than nigeria + pidgin/light_pidgin + flag ON + non-empty
+  // approved pack, so flag-OFF and non-eligible cohorts get the
+  // upstream batch back unchanged (byte-identical to pre-N1-S2).
+  // Pack candidates are drawn from `merged` — the same post-
+  // validation pool that fed `selectWithNovelty`, so every reserved
+  // pack idea has already passed `ideaSchema`,
+  // `validateScenarioCoherence`, `validateComedy`, and
+  // `validateAntiCopyDetailed`. No validator, scorer, or anti-copy
+  // gate is touched. Per-batch dedup on `nigerianPackEntryId` AND
+  // normalized hook is enforced inside the helper.
+  selection = {
+    ...selection,
+    batch: applyNigerianPackSlotReservation({
+      selectionBatch: selection.batch,
+      candidatePool: merged,
+      desiredCount,
+      region: input.region,
+      languageStyle: calibration?.languageStyle ?? null,
+      flagEnabled: isNigerianPackFeatureEnabled(),
+      packLength: NIGERIAN_HOOK_PACK.length,
+    }),
+  };
 
   // -------- Step 5: ship final batch, persist --------------------
   let final = selection.batch;

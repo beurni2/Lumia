@@ -95,3 +95,15 @@ id = "ku7NamW_qErIJDhlGy3bX"
 uri = "file://.local/N1S_STAGING_QA.md"
 type = "text"
 title = "N1-S Live QA Sweep (160 ideas, 6 cohorts)"
+
+[[outputs]]
+id = "Y4eUQqHgbMwQ3dI6uOV48"
+uri = "file://.local/N1S2_FINAL_REPORT.md"
+type = "text"
+title = "N1-S2 Final Report — Nigerian Pack Slot Reservation (GO)"
+
+[[outputs]]
+id = "5Rbq1fYusYlVioxrKk2IR"
+uri = "file://.local/N1S2_STAGING_QA_FLAG_ON.md"
+type = "text"
+title = "N1-S2 Staging QA Sweep — Flag ON (160 ideas, 6 cohorts)"

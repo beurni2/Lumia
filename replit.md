@@ -37,6 +37,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Core Ideator Logic:** `artifacts/api-server/src/lib/`
 - **Taste Calibration Schema:** `artifacts/api-server/src/lib/tasteCalibration.ts`
 - **Nigerian Comedy Pack (N1):** `artifacts/api-server/src/lib/nigerianHookPack.ts`
+- **Nigerian Pack Slot Reservation (N1-S2):** `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
 - **Regional QA Harnesses:** `artifacts/api-server/src/qa/regionalR{1,2,3,4}Qa.ts`
 
 ## Architecture decisions

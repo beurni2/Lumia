@@ -1,0 +1,95 @@
+N1-S result accepted as HOLD.
+
+Do not enable production.
+Keep LUMINA_NG_PACK_ENABLED default off.
+
+The wiring is structurally correct:
+- flag-OFF byte identity passes
+- cross-region leak is 0
+- nigeria-clean pack usage is 0
+- safety/mocking hits are 0
+- scenario coherence is 160/160
+- tests pass
+
+The failure is pack adoption:
+- nigeria + light_pidgin / pidgin pack usage is ~17%
+- target is >=60%
+
+Implement N1-S2 — Nigerian Pack Slot Reservation.
+
+Choose slot reservation, not score boosting.
+
+Goal:
+When all activation conditions are true:
+- region === nigeria
+- languageStyle is light_pidgin or pidgin
+- LUMINA_NG_PACK_ENABLED === "true"
+- approved live pack length > 0
+
+Reserve up to 2 of the 3 final shipped ideas for Nigerian pack candidates, when enough valid pack candidates exist.
+
+Rules:
+- Do not affect western, india, philippines.
+- Do not affect nigeria-clean or null languageStyle.
+- Do not affect flag-OFF behavior.
+- Do not loosen validators.
+- Do not loosen anti-copy.
+- Do not loosen scenario coherence.
+- Do not loosen safety/privacy checks.
+- Do not use Claude as regionalization.
+- Do not globally modify scoreHookQuality.
+- Do not add a general score boost.
+- Pack candidates must still pass all existing production validators.
+- If fewer valid pack candidates exist, fill remaining slots with normal catalog candidates.
+- Preserve final batch diversity and avoid repeated nigerianPackEntryId.
+
+Implementation guidance:
+- Add per-batch dedup for nigerianPackEntryId.
+- At final selection/composition, if pack activation is true, compose the returned batch as:
+  1. highest-quality pack candidate
+  2. highest-quality non-pack candidate
+  3. next highest-quality pack candidate
+  if at least 2 valid distinct pack candidates exist.
+- If only 1 valid pack candidate exists:
+  1. highest-quality pack candidate
+  2. best normal candidate
+  3. next best normal candidate
+- If 0 valid pack candidates exist:
+  use existing behavior.
+- Keep existing catalog scoring/selection for non-pack candidates.
+- Do not allow same pack entry twice in one batch.
+- Do not allow same hook twice in one batch.
+
+QA:
+Re-run the same staging harness:
+- 30 ideas nigeria + light_pidgin
+- 30 ideas nigeria + pidgin
+- 30 ideas nigeria + clean
+- 30 ideas western
+- 20 ideas india
+- 20 ideas philippines
+
+Acceptance:
+- nigeria + light_pidgin pack usage >= 18/30
+- nigeria + pidgin pack usage >= 18/30
+- combined eligible pack usage >= 60%
+- cross-region pack leak = 0
+- nigeria-clean pack usage = 0
+- flag-OFF byte identity preserved
+- safety/mocking hits = 0
+- scenario coherence = 100%
+- no repeated nigerianPackEntryId within a batch
+- no major hook repetition
+- tests pass
+- TypeScript unchanged except pre-existing unrelated errors
+
+Report:
+- files changed
+- final composition algorithm
+- flag-OFF proof
+- flag-ON proof
+- pack usage by cohort
+- repeated pack-entry check
+- strongest 5 outputs
+- weakest 5 outputs
+- GO / HOLD recommendation
