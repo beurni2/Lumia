@@ -83,3 +83,15 @@ id = "mf2jhIBQDo1W_3UfKNr1n"
 uri = "file://.local/REGIONAL_N1_REWRITE_WORKSHEET.csv"
 type = "table"
 title = "N1 Rewrite Worksheet Round 6 (CSV)"
+
+[[outputs]]
+id = "WdmxZeMCU04MSQ10AfKC8"
+uri = "file://.local/N1S_FINAL_REPORT.md"
+type = "text"
+title = "N1-S Nigerian Pack Staging — Final Report"
+
+[[outputs]]
+id = "ku7NamW_qErIJDhlGy3bX"
+uri = "file://.local/N1S_STAGING_QA.md"
+type = "text"
+title = "N1-S Live QA Sweep (160 ideas, 6 cohorts)"
