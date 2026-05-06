@@ -1,0 +1,369 @@
+- draftId: DRAFT-003
+  newAnchor: group chat
+  rewrittenHook: "group chat say we move, my body say we where?"
+  rewrittenWhatToShow: "Show a fake group chat saying 'we move.' You sit on the bed fully dressed except for slippers, then slowly remove one shoe like the group chat has betrayed your spirit."
+
+- draftId: DRAFT-005
+  newAnchor: WhatsApp
+  rewrittenHook: "WhatsApp paragraph don drain my whole energy"
+  rewrittenWhatToShow: "Show a fake WhatsApp preview with a long paragraph. You open the WhatsApp message, scroll once, close it, and put the phone under a pillow like it needs detention."
+
+- draftId: DRAFT-013
+  newAnchor: traffic
+  rewrittenHook: "traffic message don cancel my danfo energy"
+  rewrittenWhatToShow: "Show yourself holding a bag near the door. A fake traffic message appears. You slowly drop the bag and sit down like traffic has already defeated the danfo plan."
+
+- draftId: DRAFT-015
+  newAnchor: outfit
+  rewrittenHook: "outfit ready, body don resign"
+  rewrittenWhatToShow: "Mirror shot without showing full face. You adjust your outfit, then sit on the bed 'for one second.' Cut to the outfit still ready while you are still sitting there."
+
+- draftId: DRAFT-019
+  newAnchor: keys
+  rewrittenHook: "keys don expose my outside lie"
+  rewrittenWhatToShow: "You pick up your keys, hear a fake notification about traffic, rain, or long queue, then gently put the keys back like outside has rejected you."
+
+- draftId: DRAFT-021
+  newAnchor: data
+  rewrittenHook: "data see one video and start crying"
+  rewrittenWhatToShow: "Show a fake data warning screen. You pause the video, stare at the data warning, then lower the brightness like that will save anything."
+
+- draftId: DRAFT-025
+  newAnchor: data
+  rewrittenHook: "data don vanish after one TikTok"
+  rewrittenWhatToShow: "Show fake data balance before and after one scroll. Your hand hovers over 'buy data,' then closes the app like the data can come back by itself."
+
+- draftId: DRAFT-027
+  newAnchor: light
+  rewrittenHook: "light said not today and my work spirit died"
+  rewrittenWhatToShow: "Laptop open, notes ready. The light goes off and the screen goes dim. You slowly close the laptop and pick up your phone like work has closed for the day."
+
+- draftId: DRAFT-029
+  newAnchor: socket
+  rewrittenHook: "socket don turn my floor to office"
+  rewrittenWhatToShow: "Phone charging from a short cable near the socket. You sit awkwardly on the floor beside the socket, trying to scroll like this was the plan."
+
+- draftId: DRAFT-033
+  newAnchor: jollof
+  rewrittenHook: "jollof don disgrace my discipline"
+  rewrittenWhatToShow: "Show a plate of jollof or pot of jollof. You take one spoon 'just to taste,' pause, then come back with a bigger spoon."
+
+- draftId: DRAFT-037
+  newAnchor: pot
+  rewrittenHook: "pot don expose the stew situation"
+  rewrittenWhatToShow: "Open a pot, scrape the bottom with a spoon, then look around like the pot has exposed the whole household."
+
+- draftId: DRAFT-039
+  newAnchor: snack bag
+  rewrittenHook: "snack bag don expose my weekly plan"
+  rewrittenWhatToShow: "Show a full snack bag, then cut to empty wrappers. Your hand folds the snack bag like evidence."
+
+- draftId: DRAFT-043
+  newAnchor: notes
+  rewrittenHook: "notes don turn highlighting to painting work"
+  rewrittenWhatToShow: "Show notes. Highlight one sentence, then another, then the full paragraph. You put the highlighter down like the notes have defeated you."
+
+- draftId: DRAFT-045
+  newAnchor: task
+  rewrittenHook: "task waited till later and brought lawyer"
+  rewrittenWhatToShow: "Show a to-do list with one task. The task has become three reminders. You try to swipe it away and it comes back."
+
+- draftId: DRAFT-047
+  newAnchor: invite
+  rewrittenHook: "invite land and my spirit minimize"
+  rewrittenWhatToShow: "Show a fake calendar invite. You stare at the invite, then adjust your shirt only from the top while still wearing house shorts or slippers."
+
+- draftId: DRAFT-049
+  newAnchor: quiz
+  rewrittenHook: "quiz message don chase my soul early"
+  rewrittenWhatToShow: "Show a notebook and fake class group message: 'quick quiz today.' You close the notebook, reopen it, then underline the title like the quiz will fear you."
+
+- draftId: DRAFT-051
+  newAnchor: call
+  rewrittenHook: "call from Mum don demand life update"
+  rewrittenWhatToShow: "Phone shows fake 'Mum calling.' You rehearse a responsible face for the call, answer, then immediately sit up straighter."
+
+- draftId: DRAFT-055
+  newAnchor: coming
+  rewrittenHook: "coming message sent, body still dey negotiate"
+  rewrittenWhatToShow: "Type 'I'm coming' in a fake chat. Then show yourself still sitting, checking time, and calculating excuses."
+
+- draftId: DRAFT-057
+  newAnchor: tech support
+  rewrittenHook: "tech support found me before food reached mouth"
+  rewrittenWhatToShow: "Sit down with food or drink. Someone's phone or laptop is placed in front of you for tech support. You look at it like peace has expired."
+
+- draftId: DRAFT-075
+  newAnchor: care
+  rewrittenHook: "care no dey, but refresh don betray me"
+  rewrittenWhatToShow: "Show fake post screen. Overlay 'I don't care.' Your thumb immediately refreshes again and again like care has entered the room."
+
+- draftId: DRAFT-077
+  newAnchor: clip
+  rewrittenHook: "clip don turn me to judging panel"
+  rewrittenWhatToShow: "Watch your own fake clip. Pause at an awkward frame, zoom in, then close the clip like the evidence is too much."
+
+- draftId: DRAFT-079
+  newAnchor: analytics
+  rewrittenHook: "analytics no move, my spirit check network"
+  rewrittenWhatToShow: "Fake analytics are stuck at the same number. You toggle Wi-Fi and data like the analytics problem is physics."
+
+- draftId: DRAFT-081
+  newAnchor: reflection
+  rewrittenHook: "reflection said try again before mirror loaded"
+  rewrittenWhatToShow: "Walk into frame feeling confident. Catch your reflection in the mirror, pause, adjust one thing, then adjust three more things."
+
+- draftId: DRAFT-087
+  newAnchor: list
+  rewrittenHook: "list dey open while I disobey am"
+  rewrittenWhatToShow: "Show a neat to-do list. Then show yourself doing a completely unrelated task while the list stays open."
+
+- draftId: DRAFT-089
+  newAnchor: water
+  rewrittenHook: "water don boil, reason don disappear"
+  rewrittenWhatToShow: "Show kettle or cup with water ready. You stare at the water, then open your phone trying to remember the original plan."
+
+- draftId: DRAFT-097
+  newAnchor: mirror
+  rewrittenHook: "mirror approve hair, outside reject am"
+  rewrittenWhatToShow: "Mirror check looks fine. Step near brighter light or window, freeze, then reach for cap or scarf like the mirror lied."
+
+- draftId: DRAFT-099
+  newAnchor: task
+  rewrittenHook: "task said quick, day started laughing"
+  rewrittenWhatToShow: "Show one small task. Cut to multiple tabs, items, and messages open. You sit back and stare at the task you accidentally expanded."
+
+- draftId: DRAFT-102
+  newAnchor: typing
+  rewrittenHook: "typing waste thirty minutes just to drop lol"
+  rewrittenWhatToShow: "Close-up of a fake chat showing 'typing...' for too long. The typing finally ends with 'lol.' You stare at the phone like your data was used for suspense."
+
+- draftId: DRAFT-104
+  newAnchor: message
+  rewrittenHook: "message seen since yesterday, pride still dey work"
+  rewrittenWhatToShow: "Open a fake chat. The message has been on seen for hours. You type, delete, type again, then lock the phone and pace like replying is a court case."
+
+- draftId: DRAFT-106
+  newAnchor: voice note
+  rewrittenHook: "voice note don turn full podcast"
+  rewrittenWhatToShow: "A friend sends seven fake voice notes. You start playing the voice note while doing chores, then pause at voice note three like the message has become a podcast."
+
+- draftId: DRAFT-109
+  newAnchor: status
+  rewrittenHook: "status view don expose the ignored message"
+  rewrittenWhatToShow: "Check your fake status viewers. The same person who ignored your message is there. You open the chat, then zoom into their profile picture like the status view owes explanation."
+
+- draftId: DRAFT-121
+  newAnchor: setup
+  rewrittenHook: "keke setup don turn quick ride to suffering"
+  rewrittenWhatToShow: "Squeeze into a tight keke setup. Rain starts or the cover leaks. Everyone in the setup reacts silently while trying to protect their phone."
+
+- draftId: DRAFT-127
+  newAnchor: data
+  rewrittenHook: "data don finish, refresh still dey form faith"
+  rewrittenWhatToShow: "Phone shows no internet because data is finished. You refresh the app anyway, then open settings like Wi-Fi might appear from mercy."
+
+- draftId: DRAFT-131
+  newAnchor: charger
+  rewrittenHook: "charger race start the moment light came"
+  rewrittenWhatToShow: "Power returns. Everyone rushes to plug devices. Before you settle, power goes again. Freeze with the charger still in your hand."
+
+- draftId: DRAFT-135
+  newAnchor: data
+  rewrittenHook: "data disappear and background app dey innocent"
+  rewrittenWhatToShow: "Fake data usage screen shows one app used too much data. You look around at roommates or at the phone like someone must confess."
+
+- draftId: DRAFT-139
+  newAnchor: noodles
+  rewrittenHook: "noodles don vanish from cupboard again"
+  rewrittenWhatToShow: "Open the cupboard. Your noodles or snacks are gone. You check behind other items like the noodles might be hiding."
+
+- draftId: DRAFT-141
+  newAnchor: garri
+  rewrittenHook: "garri don finish and nobody dey confess"
+  rewrittenWhatToShow: "Reach for the garri pack. It is empty. Shake the garri pack once, then stare into it like answers are inside."
+
+- draftId: DRAFT-143
+  newAnchor: cubes
+  rewrittenHook: "cubes don reduce, whole house dey innocent"
+  rewrittenWhatToShow: "Open the spice box and count the cubes. Two cubes are missing. You look toward the doorway like the whole house is lying."
+
+- draftId: DRAFT-145
+  newAnchor: rice
+  rewrittenHook: "rice hear one spoon and enter danger"
+  rewrittenWhatToShow: "You sit with rice. Someone enters and starts negotiating for 'just one spoon.' You pull the rice slightly closer."
+
+- draftId: DRAFT-148
+  newAnchor: snack
+  rewrittenHook: "snack finish, my peace enter next time"
+  rewrittenWhatToShow: "Roommate finishes your snack. You say 'I go buy my own next time' calmly, but your face stays on the empty snack wrapper too long."
+
+- draftId: DRAFT-156
+  newAnchor: meeting
+  rewrittenHook: "meeting camera off, breakfast dey conduct itself"
+  rewrittenWhatToShow: "Join a fake meeting screen. Camera off, mic muted. You are eating breakfast or folding clothes quietly while the meeting continues."
+
+- draftId: DRAFT-168
+  newAnchor: send
+  rewrittenHook: "send small money don become big decision"
+  rewrittenWhatToShow: "Friend sends a fake money request. You send a small amount, then immediately check your balance like the send button made a national decision."
+
+- draftId: DRAFT-175
+  newAnchor: refresh
+  rewrittenHook: "refresh don expose my I-don't-care lie"
+  rewrittenWhatToShow: "Show fake post screen. Overlay 'I don't care.' Your thumb hits refresh again and again."
+
+- draftId: DRAFT-179
+  newAnchor: post
+  rewrittenHook: "post button don hold my courage hostage"
+  rewrittenWhatToShow: "Final video is open. Thumb hovers over post. You lock the phone, unlock the phone, and hover over post again."
+
+- draftId: DRAFT-183
+  newAnchor: edit
+  rewrittenHook: "edit don make the video worse"
+  rewrittenWhatToShow: "Add effects, text, and transitions late at night. Watch the final edit and realize the simple version was better."
+
+- draftId: DRAFT-189
+  newAnchor: map
+  rewrittenHook: "map dey open, pride still dey drive"
+  rewrittenWhatToShow: "Walk or drive while checking a fake map secretly. Pretend you know the way, then turn around immediately."
+
+- draftId: DRAFT-197
+  newAnchor: shoe
+  rewrittenHook: "shoe behave at home, outside start biting"
+  rewrittenWhatToShow: "Walk confidently in the shoe, then start limping slightly outside while pretending everything is normal."
+
+- draftId: DRAFT-208
+  newAnchor: group
+  rewrittenHook: "group delete message and everybody become police"
+  rewrittenWhatToShow: "Someone posts something in a fake group chat and deletes it instantly. Everyone in the group starts asking what happened while you zoom into the deleted bubble."
+
+- draftId: DRAFT-214
+  newAnchor: reply
+  rewrittenHook: "reply said K and my heart scattered"
+  rewrittenWhatToShow: "Show a long sweet fake message you sent. The reply comes in as just 'K.' Your smile fades slowly while you screenshot the reply like evidence."
+
+- draftId: DRAFT-216
+  newAnchor: status
+  rewrittenHook: "status got emoji, DM still dey suffer"
+  rewrittenWhatToShow: "Friend replies to your status with an emoji, but your long DM is still unread. You switch between the status and the DM like the math is not adding up."
+
+- draftId: DRAFT-225
+  newAnchor: ride
+  rewrittenHook: "keke ride promise speed, suffering entered first"
+  rewrittenWhatToShow: "You squeeze into a tight keke ride. Someone's bag, elbow, or food is too close. You look at the camera like speed came with suffering."
+
+- draftId: DRAFT-230
+  newAnchor: junction
+  rewrittenHook: "junction drop don turn the taxi to committee"
+  rewrittenWhatToShow: "In a shared taxi setup, one passenger keeps asking to drop at every junction. Everyone else looks exhausted."
+
+- draftId: DRAFT-232
+  newAnchor: rain
+  rewrittenHook: "rain enter bike ride and humble everybody"
+  rewrittenWhatToShow: "Heavy rain starts mid bike ride. You and the rider are soaked and laughing at the decision you both made."
+
+- draftId: DRAFT-235
+  newAnchor: data
+  rewrittenHook: "data don finish, Instagram still dey form open"
+  rewrittenWhatToShow: "Phone says no connection because data is finished. You keep pulling to refresh, then start searching for Wi-Fi like mercy might appear."
+
+- draftId: DRAFT-239
+  newAnchor: light
+  rewrittenHook: "light disappear and power bank judge me"
+  rewrittenWhatToShow: "You are charging your power bank. Light cuts. You stare at the socket like the light betrayed the whole family."
+
+- draftId: DRAFT-242
+  newAnchor: torch
+  rewrittenHook: "torch become spotlight after NEPA disappear"
+  rewrittenWhatToShow: "Power outage. You use phone torch to move around the house and bump into furniture."
+
+- draftId: DRAFT-246
+  newAnchor: phone
+  rewrittenHook: "phone 3% and house still far"
+  rewrittenWhatToShow: "You are outside with low phone battery. You turn on battery saver and start walking faster like speed can charge the phone."
+
+- draftId: DRAFT-249
+  newAnchor: packs
+  rewrittenHook: "packs don reduce overnight and nobody confess"
+  rewrittenWhatToShow: "Open the cupboard. Half the packs are missing. You look toward your roommate like the case has suspects."
+
+- draftId: DRAFT-253
+  newAnchor: cubes
+  rewrittenHook: "cubes don reduce, house suddenly quiet"
+  rewrittenWhatToShow: "Open the spice box and count the cubes. Two cubes are missing. You look at the house like everyone is lying."
+
+- draftId: DRAFT-256
+  newAnchor: freezer
+  rewrittenHook: "freezer don expose the NEPA damage"
+  rewrittenWhatToShow: "Open the freezer after outage. Food is thawing. You check the freezer, then the ceiling, then the clock."
+
+- draftId: DRAFT-258
+  newAnchor: snack
+  rewrittenHook: "snack finish, my calm voice dey lie"
+  rewrittenWhatToShow: "Roommate finishes your snack. You say 'no worry, I go buy my own next time' calmly, but your face stays on the empty snack wrapper too long."
+
+- draftId: DRAFT-263
+  newAnchor: portal
+  rewrittenHook: "portal close and submission disgrace me"
+  rewrittenWhatToShow: "You keep postponing. Refresh the portal and see 'closed.' Your hand freezes on the mouse."
+
+- draftId: DRAFT-267
+  newAnchor: slides
+  rewrittenHook: "slides still rough, presentation don reach door"
+  rewrittenWhatToShow: "Laptop shows messy slides. You keep adjusting one font while time runs out before the presentation."
+
+- draftId: DRAFT-272
+  newAnchor: aunty
+  rewrittenHook: "aunty ask marriage question like exam"
+  rewrittenWhatToShow: "Family gathering. Aunty asks questions one after another. You smile like the ceiling has answers."
+
+- draftId: DRAFT-274
+  newAnchor: house
+  rewrittenHook: "house comparison don enter family meeting"
+  rewrittenWhatToShow: "Mum shows a cousin's car or house photo. You stare at the house photo like comparison has entered the room."
+
+- draftId: DRAFT-280
+  newAnchor: cart
+  rewrittenHook: "cart full, account said behave"
+  rewrittenWhatToShow: "Fake cart is full. Checkout total appears. You begin removing items from the cart one by one with pain."
+
+- draftId: DRAFT-282
+  newAnchor: banking app
+  rewrittenHook: "banking app no show salary, peace don vanish"
+  rewrittenWhatToShow: "You refresh a fake banking app. Nothing drops. Refresh the banking app again. Still nothing."
+
+- draftId: DRAFT-283
+  newAnchor: wishlist
+  rewrittenHook: "wishlist don turn ownership by faith"
+  rewrittenWhatToShow: "Scroll nice items online. Add them to wishlist, then close the app like wishlist equals ownership."
+
+- draftId: DRAFT-287
+  newAnchor: meal
+  rewrittenHook: "meal too simple, budgeting started preaching"
+  rewrittenWhatToShow: "Show a very simple meal for the fifth day while you nod like the meal is financial discipline."
+
+- draftId: DRAFT-288
+  newAnchor: alert
+  rewrittenHook: "alert land, bills start sharing salary"
+  rewrittenWhatToShow: "Alert lands. You smile, then open a list of bills and watch your smile reduce line by line."
+
+- draftId: DRAFT-290
+  newAnchor: care
+  rewrittenHook: "care no dey, but refresh don expose me"
+  rewrittenWhatToShow: "Show fake post screen. Overlay 'I don't care.' Your thumb refreshes again and again."
+
+- draftId: DRAFT-294
+  newAnchor: video
+  rewrittenHook: "video don finish, post fear still dey"
+  rewrittenWhatToShow: "Final video is open. Your finger hovers over post. You lock the phone, unlock it, and hover again."
+
+- draftId: DRAFT-296
+  newAnchor: ring light
+  rewrittenHook: "ring light on, brain don empty"
+  rewrittenWhatToShow: "Sit in front of ring light ready to film. Smile fades when no idea comes. You slowly stop recording."
+
+- draftId: DRAFT-300
+  newAnchor: voice note
+  rewrittenHook: "voice note enter boss chat and my soul left"
+  rewrittenWhatToShow: "Fake chat shows a voice note sent to the wrong person. You tap unsend repeatedly like speed can reverse history."

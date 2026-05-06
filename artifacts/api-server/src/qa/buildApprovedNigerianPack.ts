@@ -96,6 +96,13 @@ const AGENT_PROPOSED_REVIEWED_BY_PREFIX = "AGENT-PROPOSED";
 // are surfaced, never silently fixed.
 type Rewrite = {
   draftId: string;
+  // Optional anchor swap — when present and non-empty, replaces the
+  // worksheet row's `anchor` field BEFORE validation. This lets the
+  // reviewer fix anchor-not-found failures without editing the source
+  // drafts file (the worksheet column is still the source of truth
+  // for codegen; this overlay rides through the same code path as
+  // hook/whatToShow rewrites).
+  newAnchor?: string;
   rewrittenHook?: string;
   rewrittenWhatToShow?: string;
   rewrittenHowToFilm?: string;
@@ -147,6 +154,7 @@ const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
       else if (key === "rewrittenHowToFilm") cur.rewrittenHowToFilm = v;
       else if (key === "rewrittenCaption") cur.rewrittenCaption = v;
       else if (key === "rewriteNotes") cur.rewriteNotes = v;
+      else if (key === "newAnchor") cur.newAnchor = v;
       else if (key === "reviewedBy") cur.reviewedBy = v;
     }
   }
@@ -170,6 +178,7 @@ export const applyRewrite = (
   return {
     row: {
       ...row,
+      anchor: overlay(row.anchor, rw.newAnchor),
       hook: overlay(row.hook, rw.rewrittenHook),
       whatToShow: overlay(row.whatToShow, rw.rewrittenWhatToShow),
       howToFilm: overlay(row.howToFilm, rw.rewrittenHowToFilm),
