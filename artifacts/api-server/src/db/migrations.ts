@@ -544,4 +544,28 @@ export const migrations: Migration[] = [
           DEFAULT '[]'::jsonb;
     `,
   },
+  {
+    id: 23,
+    name: "catalog_template_seen_ids",
+    // PHASE N1-FULL-SPEC LIVE — per-creator catalog template memory.
+    // Mirrors migration #22 but for `pattern_variation` candidates.
+    // Records the `meta.templateId` of every catalog candidate this
+    // creator has SEEN in a shipped batch so the hybrid ideator can
+    // filter them out of the merged pool BEFORE `selectWithNovelty`
+    // picks. Prevents the visible-skeleton-repetition failure mode
+    // (`the X and i are still here. barely.` shipped twice with
+    // only the noun swapped). Strictly additive: single NULLABLE
+    // jsonb column on `creators`, default `[]`. Cap (24 most-recent)
+    // enforced in TypeScript (`catalogTemplateCreatorMemory.ts`),
+    // not in SQL. Cohort-agnostic — applies to every creator with
+    // a stable id, not gated on N1 activation, because catalog
+    // repetition is a problem for all cohorts. Pre-v23 rows read
+    // `[]` (no-op filter), so behaviour for them is byte-identical
+    // to the pre-v23 baseline.
+    sql: `
+      ALTER TABLE creators
+        ADD COLUMN IF NOT EXISTS catalog_template_seen_ids_json jsonb
+          DEFAULT '[]'::jsonb;
+    `,
+  },
 ];

@@ -123,6 +123,15 @@ import {
   getRecentSeenEntryIds,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
+// PHASE N1-FULL-SPEC LIVE — `catalogTemplateCreatorMemory.ts` and
+// schema column #23 (`catalog_template_seen_ids_json`) are kept as
+// inert plumbing for a corrected future attempt. The first wiring
+// attempt (filter by `meta.source === "pattern_variation" &&
+// meta.templateId`) regressed latency and missed the actual repeat
+// path (skeletons flow through `core_native` too). See the comment
+// block at the filter call site for the diagnosis. Imports
+// intentionally NOT pulled in here — we don't want unused-import
+// lint noise while the next attempt is designed.
 import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
@@ -4014,6 +4023,26 @@ export async function runHybridIdeator(
   // start refresh).
   merged = applyExcludeHooksFilter(merged, excludeHooksSet, excludeBigramsList);
 
+  // PHASE N1-FULL-SPEC LIVE — per-creator catalog template memory
+  // wiring intentionally REVERTED (2026-05-06). Schema column #23,
+  // migration, and `catalogTemplateCreatorMemory.ts` are kept as
+  // inert plumbing for a corrected future attempt. Reason for
+  // revert: filtering by `meta.source === "pattern_variation" &&
+  // meta.templateId` had two failure modes confirmed by live test:
+  //   (1) Filtering shrank `merged` enough that `selectWithNovelty`
+  //       underfilled the batch (per-style/per-core diversity gates
+  //       require a richer pool than `desiredCount` candidates).
+  //       That fired Claude fallback on every batch — undoing the
+  //       latency win from FIX A (1.6-7s → 16-61s).
+  //   (2) The same hook skeleton (`the X and i are still here.
+  //       barely.`) ships through MULTIPLE source paths, including
+  //       `core_native`, not just `pattern_variation`. So the
+  //       filter never bit on the actually-repeating templates.
+  // The next attempt should track a normalized HOOK SKELETON across
+  // all source paths, not a per-source templateId, and run AFTER
+  // selection (excluding from the next batch's `excludeHooksSet`)
+  // rather than BEFORE selection.
+
   // -------- Step 4a: first selection on local pool ----------------
   // Run the novelty-aware selector on the local pool. If batch
   // guards pass AND we have at least `desiredCount` picks, we're
@@ -4492,6 +4521,14 @@ export async function runHybridIdeator(
       void recordSeenEntries(input.creator?.id, shippedEntryIds);
     }
   }
+
+  // PHASE N1-FULL-SPEC LIVE — record-side of catalog template
+  // memory ALSO REVERTED to match the filter-side revert above.
+  // Recording without filtering would just pollute the memory
+  // column with no functional effect, and the corrected future
+  // attempt will use a different identifier (normalized hook
+  // skeleton across source paths) so the per-`templateId` records
+  // would be the wrong shape for it anyway.
 
   // PHASE N1-FULL-SPEC — structured activation/decision telemetry.
   // Spec §"DEBUGGING AND QA VISIBILITY" enumerates these fields as
