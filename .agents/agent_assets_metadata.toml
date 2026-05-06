@@ -71,3 +71,15 @@ id = "w6_TP96H4odyGpkyP2kIl"
 uri = "file://.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv"
 type = "table"
 title = "N1 Native Reviewer Worksheet (CSV)"
+
+[[outputs]]
+id = "PhhHLsAkmQ5NIdSK6l536"
+uri = "file://.local/REGIONAL_N1_REWRITE_WORKSHEET.md"
+type = "text"
+title = "N1 Rewrite Worksheet (46 rejected rows)"
+
+[[outputs]]
+id = "mf2jhIBQDo1W_3UfKNr1n"
+uri = "file://.local/REGIONAL_N1_REWRITE_WORKSHEET.csv"
+type = "table"
+title = "N1 Rewrite Worksheet (CSV)"
