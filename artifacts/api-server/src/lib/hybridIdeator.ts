@@ -265,6 +265,12 @@ export type HybridIdeatorResult = {
        *  fast-path; absent for generic-template renders + all
        *  Llama / Claude wraps. */
       authoredPlanId?: string;
+      /** PHASE N1-S — when set, identifies the `NIGERIAN_HOOK_PACK`
+       *  entry id this `core_native` candidate was authored from
+       *  (via `authorPackEntryAsIdea`, not `authorCohesiveIdea`).
+       *  Surfaces here so the staging QA harness can verify
+       *  per-cohort pack-usage rate without scraping logs. */
+      nigerianPackEntryId?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -4863,6 +4869,8 @@ export async function runHybridIdeator(
       // candidates and for `core_native` candidates whose anchor
       // wasn't in the authored set.
       authoredPlanId: (m as { authoredPlanId?: string }).authoredPlanId,
+      nigerianPackEntryId: (m as { nigerianPackEntryId?: string })
+        .nigerianPackEntryId,
     };
   });
 

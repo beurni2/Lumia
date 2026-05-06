@@ -248,6 +248,19 @@ export type CandidateMeta = PatternMeta | {
   // only `PREMISE_STYLE_DEFS[*].executions[*].example` is — so
   // verbatim core example use does not trip `copied_seed_hook`).
   source: "llama_3_1" | "claude_fallback" | "core_native";
+  /**
+   * PHASE N1-S — when set, identifies the `NIGERIAN_HOOK_PACK`
+   * entry id this `core_native` candidate was authored from (via
+   * `authorPackEntryAsIdea` rather than `authorCohesiveIdea`).
+   * Telemetry-only — pipeline never branches on it. Surfaces in
+   * QA harness output so the staging sweep can verify pack-usage
+   * rate per cohort. Optional everywhere — catalog `core_native`
+   * candidates and Llama / Claude wraps never set it. The pack
+   * activation guard (`canActivateNigerianPack`) makes this field
+   * unreachable for any non-`nigeria` + non-`pidgin/light_pidgin`
+   * cohort by construction.
+   */
+  nigerianPackEntryId?: string;
   scenarioFamily?: string;
   scenario?: PatternMeta["scenario"];
   visualActionPattern?: VisualActionPattern;

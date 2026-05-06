@@ -74,6 +74,20 @@ import { scoreHookQuality } from "./hookQuality.js";
 import type { Region } from "@workspace/lumina-trends";
 import { REGION_VOICE_BIAS } from "./regionProfile.js";
 import { REGION_ANCHORS, hasRegionAnchors } from "./regionAnchorCatalog.js";
+// PHASE N1-S — Nigerian pack atomic-recipe integration. The pack
+// import is unconditional (the live `NIGERIAN_HOOK_PACK` is empty
+// when `LUMINA_NG_PACK_ENABLED` is not "true", so flag-off behavior
+// stays byte-identical to pre-N1-S) but the activation guard
+// `getEligibleNigerianPackEntries` short-circuits on every non-
+// nigerian / non-pidgin / flag-off path. The author runs the SAME
+// four production validators with NO loosening.
+import {
+  getEligibleNigerianPackEntries,
+  isNigerianPackFeatureEnabled,
+  NIGERIAN_PACK_PREFIX_CAP,
+  type NigerianPackEntry,
+} from "./nigerianHookPack.js";
+import { authorPackEntryAsIdea } from "./nigerianPackAuthor.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -745,6 +759,18 @@ export function generateCoreCandidates(
   const seedFingerprints = loadSeedHookFingerprints();
   const cap = Math.max(0, Math.trunc(input.count));
 
+  // PHASE N1-S — pack activation context. Computed ONCE per call so
+  // the per-core loop only branches on a precomputed boolean. The
+  // activation guard inside `getEligibleNigerianPackEntries` enforces
+  // region === "nigeria" + languageStyle ∈ {light_pidgin, pidgin} +
+  // flagEnabled + packLength > 0; on any failure the eligible list
+  // is empty and the per-core block below is a structural no-op
+  // (byte-identical to pre-N1-S). The pack feature flag is read
+  // ONCE here (not per-core) so a same-call flag flip cannot turn
+  // a pack-eligible call into a non-eligible one mid-loop.
+  const packFlagEnabled = isNigerianPackFeatureEnabled();
+  const packLanguageStyle = tasteCalibration?.languageStyle ?? null;
+
   const candidates: CoreNativeCandidate[] = [];
   const perCoreAttempts: CoreCandidateAttempt[] = [];
   const reasons: Record<
@@ -853,6 +879,132 @@ export function generateCoreCandidates(
       anchorLower: string;
       quality: number;
     }[] = [];
+
+    // ─── PHASE N1-S — Nigerian pack atomic-recipe prefix ─────────── //
+    // Pack candidates are authored ATOMICALLY from the curator's
+    // verbatim hook+whatToShow+howToFilm+caption (vs. the catalog
+    // path which composes a recipe from family/anchor/action). They
+    // get FIRST-CLASS entry into the same `passing[]` set the
+    // catalog recipes feed, so the existing pick logic (highest
+    // hookQualityScore wins — `>` strict so ties favour the
+    // earliest entry, which means pack candidates win equal-score
+    // ties against later catalog recipes). Every pack candidate
+    // runs through ideaSchema → validateScenarioCoherence →
+    // validateComedy → validateAntiCopyDetailed unchanged. Failures
+    // fall through silently to the catalog recipe loop below — the
+    // recipe loop's existing reject counters do NOT pick up pack
+    // failures because pack reasons are intentionally NOT in
+    // `EMPTY_REASONS`, so we keep the catalog telemetry untouched.
+    //
+    // Cap = NIGERIAN_PACK_PREFIX_CAP (3). Same band as R3's anchor-
+    // prefix gate so pack draws stay conservative even when many
+    // entries match the active core's domain. Domain narrower
+    // pulls per-core eligible entries; pidginLevel is tier-gated
+    // inside `getEligibleNigerianPackEntries`.
+    //
+    // Activation guard is enforced inside the eligibility helper,
+    // so any non-nigerian / non-pidgin / flag-off / empty-pack
+    // call returns `[]` and this block is a structural no-op
+    // (byte-identical to pre-N1-S). Pack-author imports are loaded
+    // unconditionally — pack ESM bytes are still cheap on hot
+    // paths because the eligibility helper short-circuits BEFORE
+    // any author work runs.
+    const packEligible: readonly NigerianPackEntry[] =
+      getEligibleNigerianPackEntries({
+        region: input.region,
+        languageStyle: packLanguageStyle,
+        flagEnabled: packFlagEnabled,
+      });
+    if (packEligible.length > 0) {
+      // Filter to entries whose curator-declared domain bucket is
+      // compatible with the active core's anchor rows. The
+      // recipe-loop catalog is built from `CORE_DOMAIN_ANCHORS[core.id]`,
+      // so the set of canonical domains for this core is a slice of
+      // the same map. Pack entries declare a softer bucket label
+      // that the author normalises onto a `CanonicalDomain` via
+      // `PACK_DOMAIN_MAP`; we read the same projection table here
+      // so the per-core filter aligns with the author's normalisation.
+      const coreDomains = new Set(rows.map((r) => r.domain));
+      const PACK_DOMAIN_MAP: Record<string, string> = {
+        messaging: "phone",
+        movement: "fitness",
+        transport: "fitness",
+        family: "social",
+        creator: "content",
+        everyday: "home",
+        home: "home",
+        money: "money",
+        phone: "phone",
+        work: "work",
+      };
+      const matching = packEligible.filter((e) => {
+        const projected = PACK_DOMAIN_MAP[e.domain] ?? "phone";
+        return coreDomains.has(projected as CoreDomainAnchorRow["domain"]);
+      });
+      // Salt-rotated stable order so pack draws are deterministic
+      // across regenerates but still rotate (otherwise the same 3
+      // entries would always win the prefix slot for a given core).
+      const rotated = matching.slice();
+      const rotateBy = ((salt | 0) >>> 0) % Math.max(1, rotated.length);
+      const ordered = rotated
+        .slice(rotateBy)
+        .concat(rotated.slice(0, rotateBy));
+      const drawCap = Math.min(NIGERIAN_PACK_PREFIX_CAP, ordered.length);
+
+      // Resolve a voice cluster ONCE for the pack-prefix block. The
+      // pack entries are atomic native-Pidgin units — voice cluster
+      // is metadata-only on the resulting CandidateMeta (the
+      // verbatim hook text already carries the curator's voice).
+      const packVoiceId = resolveVoiceCluster({
+        family: core.family,
+        tasteCalibration,
+        salt,
+        coreId: core.id,
+        recipeIdx: 0,
+        recentVoiceClusters,
+        ...(input.region ? { region: input.region } : {}),
+      });
+      const packVoice = getVoiceCluster(packVoiceId);
+
+      for (let i = 0; i < drawCap; i++) {
+        const entry = ordered[i]!;
+        const r = authorPackEntryAsIdea({
+          entry,
+          core,
+          voice: packVoice,
+          regenerateSalt: salt,
+          recentPremises,
+          seedFingerprints,
+        });
+        if (!r.ok) continue;
+        // Same intra-batch / cross-batch fp dedup gate as catalog
+        // recipes — the pack candidate's fp competes against
+        // earlier sibling cores in the SAME batch and against the
+        // creator's last-7-batches envelope.
+        const sf = r.scenarioFingerprint;
+        if (
+          sf &&
+          (recentScenarioFingerprints.has(sf) ||
+            usedFingerprintsThisBatch.has(sf))
+        ) {
+          continue;
+        }
+        const quality = scoreHookQuality(r.idea.hook, core.family);
+        const meta: CandidateMeta = {
+          ...r.meta,
+          scenarioFingerprint: sf,
+          voiceClusterId: packVoiceId,
+          hookQualityScore: quality,
+        };
+        passing.push({
+          idea: r.idea,
+          meta,
+          sf,
+          anchorLower: entry.anchor.toLowerCase(),
+          quality,
+        });
+      }
+    }
 
     for (const recipe of queue) {
       if (attempts >= RECIPES_PER_CORE_CAP) break;

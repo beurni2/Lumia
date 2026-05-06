@@ -88,6 +88,22 @@
 
 import type { Region } from "@workspace/lumina-trends";
 import type { LanguageStyle } from "./tasteCalibration";
+// PHASE N1-S — staging activation. The approved pool is defined in
+// `nigerianHookPackApproved.ts` (auto-generated, native-reviewer
+// stamped). This module pulls it in so the live `NIGERIAN_HOOK_PACK`
+// can swap to the approved entries when `LUMINA_NG_PACK_ENABLED=true`
+// and otherwise stays equal to `Object.freeze([])` (byte-identical
+// to the pre-N1-S DARK default — the activation guard's
+// `flagEnabled === false` short-circuit also stays in force).
+//
+// Cycle-safety note: `nigerianHookPackApproved` re-imports
+// `assertNigerianPackIntegrity` (function decl — hoisted across the
+// ESM cycle) and the `NigerianPackEntry` type (erased at runtime).
+// The `APPROVED_…` const fully evaluates inside that module before
+// control returns here, so the assignment below sees a fully
+// initialised frozen array.
+import { APPROVED_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackApproved.js";
+import { registerApprovedPoolReference } from "./nigerianHookQuality.js";
 
 // Local djb2 — same canonical implementation already present in
 // `coreCandidateGenerator.ts` and `scenarioFingerprint.ts`. Inlined
@@ -160,8 +176,19 @@ export type NigerianPackEntry = {
 // hard `false` short-circuit, so the dark pack cannot mis-fire.
 // ---------------------------------------------------------------- //
 
+// PHASE N1-S — staging activation. When `LUMINA_NG_PACK_ENABLED=true`
+// is set in the environment AT MODULE LOAD, the live pack equals the
+// 50-entry native-reviewer-stamped APPROVED pool. Otherwise (the
+// default — flag unset, "false", or any non-`"true"` value) the pack
+// stays `Object.freeze([])` and behavior is byte-identical to the
+// pre-N1-S DARK state. The activation guard's `flagEnabled` AND
+// `packLength > 0` checks ALSO remain in force at every call site,
+// so even a same-process flag flip after module load cannot make a
+// dark pack fire and an active pack stays gated by the guard.
 export const NIGERIAN_HOOK_PACK: readonly NigerianPackEntry[] =
-  Object.freeze([]);
+  isNigerianPackFeatureEnabled()
+    ? APPROVED_NIGERIAN_PROMOTION_CANDIDATES
+    : (Object.freeze([]) as readonly NigerianPackEntry[]);
 
 // ---------------------------------------------------------------- //
 // Mocking-spelling and stereotype patterns to REJECT at boot.
@@ -341,6 +368,16 @@ export function assertNigerianPackIntegrity(
 
 // Boot-time check on the real pack. Empty today → no-op.
 assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK);
+
+// PHASE N1-Q — register the live pool with the additive scorer here
+// (after `NIGERIAN_HOOK_PACK` is assigned + asserted) instead of from
+// `nigerianHookPackApproved.ts`. The TDZ note above the
+// `APPROVED_NIGERIAN_PROMOTION_CANDIDATES` import explains why. The
+// scorer accepts the empty-frozen-array case as a no-op (no pool
+// reference is registered when the flag is OFF).
+if (NIGERIAN_HOOK_PACK.length > 0) {
+  registerApprovedPoolReference(NIGERIAN_HOOK_PACK);
+}
 
 // ---------------------------------------------------------------- //
 // Feature flag — server-side env gate. Read on every guard call

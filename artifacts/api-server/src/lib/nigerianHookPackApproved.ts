@@ -585,14 +585,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
   ]);
 
-// Defense in depth: re-run the production boot assert against the
-// generated array at module load. If anything regresses (e.g. a future
-// regenerate produces a row that violates a tightened rule) this throws
-// before the file can be imported by tests or any downstream module.
-assertNigerianPackIntegrity(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);
+// Defense-in-depth boot assert moved to `nigerianHookPack.ts` (after
+// `PACK_FIELD_BOUNDS` is initialised) — calling it here at top level
+// causes a TDZ ReferenceError because the ESM cycle pauses
+// `nigerianHookPack.ts` evaluation at the `import` (line ~105) before
+// `PACK_FIELD_BOUNDS` (line ~222) has been declared. The post-import
+// `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` call in
+// `nigerianHookPack.ts` provides the same defense at the safe point.
 
-// PHASE N1-Q — register this pool with the additive scorer so the
-// runtime ScoringContext { kind: "pool", pool } can accept this
-// frozen array by reference identity. The scorer rejects any other
-// pool with an Error.
-registerApprovedPoolReference(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);
+// PHASE N1-Q — pool registration moved to `nigerianHookPack.ts` for
+// the same TDZ reason as the integrity assert above: the ESM cycle
+// pauses `nigerianHookQuality.ts` at its `let APPROVED_POOL_REF`
+// declaration if the cycle re-enters via this top-level call.
