@@ -59,3 +59,15 @@ id = "4GdUjmThim0QGeS88C7zM"
 uri = "file://.local/UX31_LIVE_QA.md"
 type = "text"
 title = "Phase UX3.1 — Post-fix LIVE-app QA Sample"
+
+[[outputs]]
+id = "VFYnNqddGH4nx752BYav_"
+uri = "file://.local/REGIONAL_N1_REVIEWER_WORKSHEET.md"
+type = "text"
+title = "N1 Native Reviewer Worksheet (Top 50)"
+
+[[outputs]]
+id = "w6_TP96H4odyGpkyP2kIl"
+uri = "file://.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv"
+type = "table"
+title = "N1 Native Reviewer Worksheet (CSV)"
