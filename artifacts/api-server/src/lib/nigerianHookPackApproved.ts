@@ -22,7 +22,17 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 137 approved · 0 rejected
+ * INGEST SUMMARY: 180 approved · 7 rejected
+ *
+ * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
+ * exported array — the generator does not silently fix anything):
+ *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
+ *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-332 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
  */
 
 import { type NigerianPackEntry } from "./nigerianHookPack.js";
@@ -1533,6 +1543,479 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "wrong chat, correct panic.",
       anchor: "voice",
       domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-301 · cluster: power
+      hook: "NEPA blink once, everybody start prayer.",
+      whatToShow: "You hear one small spark near transformer. NEPA blink again. Papa runs to inverter, madam grabs charger, you just stand there like hope still dey.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "joy came for 3 seconds.",
+      anchor: "nepa",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-302 · cluster: home
+      hook: "bucket full halfway, I start feeling rich.",
+      whatToShow: "Tap is dropping small-small. You guard the bucket like gold while iya keeps bringing more containers.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "water wealth loading.",
+      anchor: "bucket",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-303 · cluster: home
+      hook: "kerosene seller called price, I greeted him \"sir.\"",
+      whatToShow: "You carry small bottle to buy kerosene. Seller mentions amount, you quietly reduce your cooking ambition.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "fire now has class.",
+      anchor: "kerosene",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-304 · cluster: food
+      hook: "gala entered bus, my stomach betrayed me.",
+      whatToShow: "You promised yourself no spending. Gala seller passes by, and your hand starts moving without permission.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "discipline left the bus.",
+      anchor: "gala",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-305 · cluster: food
+      hook: "puff-puff small, but price get boldness.",
+      whatToShow: "Madam gives you three tiny puff-puff in nylon. You look inside twice to confirm they're not hiding.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "where the rest dey?",
+      anchor: "puff-puff",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-306 · cluster: food
+      hook: "I bought meat-pie, now I'm searching for evidence.",
+      whatToShow: "You buy meat-pie and break it open slowly. You break it open slowly. One tiny filling appears, then disappears like magic trick.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "meat entered exile.",
+      anchor: "meat-pie",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-307 · cluster: food
+      hook: "okra no dey break up peacefully.",
+      whatToShow: "You scoop okra from plate. It stretches from spoon to mouth like it's begging not to leave.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "this soup has attachment.",
+      anchor: "okra",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-308 · cluster: food
+      hook: "egusi now deserves security escort.",
+      whatToShow: "Papa sees you taking extra egusi and clears throat. You return one spoon like tax payment.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "premium soup behavior.",
+      anchor: "egusi",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-309 · cluster: food
+      hook: "bukka smell dragged me inside by force.",
+      whatToShow: "You walk past bukka with strong mind. One aroma of stew and egusi hits you, and your legs turn back.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "my nose made the decision.",
+      anchor: "bukka",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-310 · cluster: people
+      hook: "agbero greeted me and my pocket got scared.",
+      whatToShow: "You step down from bus. Agbero smiles too nicely, and you already know payment discussion is coming.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "that smile has charges.",
+      anchor: "agbero",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-311 · cluster: people
+      hook: "marketer said \"sample,\" now I'm holding three products.",
+      whatToShow: "You stop for one second. Marketer puts cream on your hand, powder on your wrist, and price in your heart.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "eye contact was the mistake.",
+      anchor: "marketer",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-312 · cluster: people
+      hook: "iya said no change, but I heard coins.",
+      whatToShow: "You buy akara. Iya claims no change while her tray is making coin sound. You both just stare.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "coins are hiding.",
+      anchor: "change",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-313 · cluster: power
+      hook: "papa bought fuel and became household president.",
+      whatToShow: "He measures fuel small-small, locks the container, and warns everybody like national address.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "fuel has entered VIP.",
+      anchor: "fuel",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-315 · cluster: people
+      hook: "madam priced pepper like she came with army.",
+      whatToShow: "Seller says one amount. Madam laughs, adjusts her wrapper, and starts negotiation like court case.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "price must fall.",
+      anchor: "madam",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-316 · cluster: transport
+      hook: "danfo had one space, conductor said three people can fit.",
+      whatToShow: "You look at the seat. Conductor keeps saying \"shift small\" until everybody becomes folded paper.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "human arrangement.",
+      anchor: "conductor",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-317 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "conductor heard balance and started looking at sky.",
+      whatToShow: "You ask for your money. Conductor suddenly becomes busy counting passengers that don't exist.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "my change has travelled.",
+      anchor: "conductor",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-318 · cluster: power
+      hook: "transformer made sound, every papa became engineer.",
+      whatToShow: "One noise outside. Papa, oga, and madam gather from far, giving advice nobody asked for.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "street engineering meeting.",
+      anchor: "papa",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-319 · cluster: power
+      hook: "gen came on, landlord started walking slow.",
+      whatToShow: "The compound hears gen sound. Landlord stands near it proudly like he invented electricity.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "power with attitude.",
+      anchor: "gen",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-321 · cluster: food
+      hook: "bole seller added pepper, my eyes started negotiation.",
+      whatToShow: "You buy bole and ask for small pepper. Seller adds one dangerous scoop. You smile with fear.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "bravery has limit.",
+      anchor: "pepper",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-322 · cluster: food
+      hook: "suya man said \"one thousand,\" I started counting onion.",
+      whatToShow: "You order suya. The meat is small, onion is plenty, but the smell still makes you respect it.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "onion with meat decoration.",
+      anchor: "suya",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-323 · cluster: food
+      hook: "akara seller knows everybody except me.",
+      whatToShow: "You wait patiently. Three people arrive after you and iya at the akara tray says they booked earlier.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "invisible booking system.",
+      anchor: "akara",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-324 · cluster: food
+      hook: "moimoi opened, no egg, no fish, just silence.",
+      whatToShow: "You peel the leaf slowly with hope. Inside is plain moimoi staring back at you.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "expectation crashed.",
+      anchor: "moimoi",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-325 · cluster: home
+      hook: "pure-water cold small, my whole mood changed.",
+      whatToShow: "You buy sachet pure-water after long walk. First sip enters, and you smile like life has improved.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "small joy, big relief.",
+      anchor: "pure-water",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-326 · cluster: home
+      hook: "sachet refused to tear, my teeth entered work.",
+      whatToShow: "You try to open sachet water with hand. It refuses. You look left and right, then use teeth like tradition.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "modern problem, old solution.",
+      anchor: "sachet",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-328 · cluster: power
+      hook: "inverter beeped once, everybody reduced confidence.",
+      whatToShow: "Charger in socket. Inverter makes one tiny beep. You unplug fast like you touched government property.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "power is warning us.",
+      anchor: "inverter",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-329 · cluster: power
+      hook: "prepaid meter showing low unit is emotional attack.",
+      whatToShow: "You check meter and see small number. Suddenly nobody is allowed near socket again.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "unit discipline begins.",
+      anchor: "meter",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-330 · cluster: power
+      hook: "meter looked calm, but I no trust am.",
+      whatToShow: "You pass near prepaid meter and check it twice. The number still low, so you switch off everything near you.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "silent danger.",
+      anchor: "meter",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-331 · cluster: power
+      hook: "token is 20 digits, but my finger chose violence.",
+      whatToShow: "You enter token carefully. One wrong number spoils everything, and you start again with serious face.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "one digit, full pain.",
+      anchor: "token",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-333 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "transfer successful, but seller's face said no.",
+      whatToShow: "You show receipt. Seller says \"I never see am.\" You both wait for beep like final judgment.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "money is on journey.",
+      anchor: "seller",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-334 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "beep sounded and POS madam finally smiled.",
+      whatToShow: "You pay with transfer. Everyone waits quietly. Beep comes, and madam's whole face relaxes.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "peace restored.",
+      anchor: "madam",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-335 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "recharge card lost two numbers, now I'm guessing destiny.",
+      whatToShow: "You buy a recharge card. You scratch too hard. Two digits vanish. You start trying combinations like secret code.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "scratch with regret.",
+      anchor: "recharge",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-336 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "bundle finished faster than gala in bus.",
+      whatToShow: "You buy bundle. You open one app, watch small thing, and balance starts looking empty.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "where did it run?",
+      anchor: "bundle",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-337 · cluster: power
+      hook: "charger in public place has no real owner.",
+      whatToShow: "You plug charger into socket. One person says \"just small,\" another says \"my own is urgent.\"",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "socket politics.",
+      anchor: "charger",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-339 · cluster: transport
+      hook: "bus window seat can test friendship.",
+      whatToShow: "You and your friend enter bus. One window seat remains. Both of you smile fake and move faster.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "love has limit.",
+      anchor: "bus",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-340 · cluster: transport
+      hook: "bike man said price, I checked if we're flying.",
+      whatToShow: "You ask short distance fare. Bike rider calls big amount. You look at the road like maybe it changed.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "small trip, big bill.",
+      anchor: "bike",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-341 · cluster: power
+      hook: "one socket, five chargers, zero peace.",
+      whatToShow: "Five chargers fight for one socket. Everyone brings charger at once. Papa wants his own, madam wants hers, you guard your percentage with seriousness.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "family power battle.",
+      anchor: "charger",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-342 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "POS madam said charge, my smile disappeared.",
+      whatToShow: "You withdraw small cash. POS madam adds charge that feels too personal. You collect money with pain.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "withdrawal plus heartbreak.",
+      anchor: "madam",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-344 · cluster: transport
+      hook: "keke driver said \"enter,\" but space said no.",
+      whatToShow: "Three people already inside keke. Driver still waves you in like your body can compress.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "science experiment.",
+      anchor: "keke",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-346 · cluster: transport
+      hook: "slides made sound and announced my arrival.",
+      whatToShow: "You try to walk quietly. Slides keeps slapping floor and everybody turns to look.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "fashion with volume.",
+      anchor: "slides",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-347 · cluster: transport
+      hook: "Okada moved small, I held rider like family.",
+      whatToShow: "Okada starts fast. You pretend to be brave, but your hands grip the back iron with full respect.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "confidence reduced.",
+      anchor: "okada",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-348 · cluster: transport
+      hook: "conductor gave me torn note and called it balance.",
+      whatToShow: "You collect change in danfo. One note looks tired. You try returning it, conductor already moved away.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "money with history.",
+      anchor: "conductor",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-349 · cluster: food
+      hook: "madam counted my suya pieces like tax officer.",
+      whatToShow: "You bring suya home. Madam opens wrap, counts pieces, and asks why onion is plenty.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "suya investigation.",
+      anchor: "madam",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-350 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "papa at ATM presses cancel like it owes him money.",
+      whatToShow: "Papa tries to withdraw. Machine delays small. He presses buttons with full authority and blames the bank.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "technology vs papa.",
+      anchor: "papa",
+      domain: "money",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
     }),

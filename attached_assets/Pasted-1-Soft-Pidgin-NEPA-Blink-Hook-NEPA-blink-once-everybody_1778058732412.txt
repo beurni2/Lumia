@@ -1,0 +1,299 @@
+1. [Soft Pidgin | NEPA Blink]
+Hook: NEPA blink once, everybody start prayer.
+Scenario: You hear one small spark near transformer. Papa runs to inverter, madam grabs charger, you just stand there like hope still dey.
+Text: 0–2s: “joy came for 3 seconds.”
+CTA: If NEPA has played you, type “again?”
+
+2. [Soft Pidgin | Bucket Wealth]
+Hook: bucket full halfway, I start feeling rich.
+Scenario: Tap is dropping small-small. You guard the bucket like gold while iya keeps bringing more containers.
+Text: 0–3s: “water wealth loading.”
+CTA: Send this to somebody who knows water wahala.
+
+3. [Soft Pidgin | Kerosene Price]
+Hook: kerosene seller called price, I greeted him “sir.”
+Scenario: You carry small bottle to buy kerosene. Seller mentions amount, you quietly reduce your cooking ambition.
+Text: 0–3s: “fire now has class.”
+CTA: Type “hmm” if you feel this.
+
+4. [Soft Pidgin | Gala Temptation]
+Hook: gala entered bus, my stomach betrayed me.
+Scenario: You promised yourself no spending. Gala seller passes by, and your hand starts moving without permission.
+Text: 0–2s: “discipline left the bus.”
+CTA: Send this to your gala partner.
+
+5. [Soft Pidgin | Puff-Puff Confidence]
+Hook: puff-puff small, but price get boldness.
+Scenario: Madam gives you three tiny puff-puff in nylon. You look inside twice to confirm they’re not hiding.
+Text: 0–3s: “where the rest dey?”
+CTA: Type “add one” if you know.
+
+6. [Soft Pidgin | Meat-Pie Search]
+Hook: I bought meat-pie, now I’m searching for evidence.
+Scenario: You break it open slowly. One tiny filling appears, then disappears like magic trick.
+Text: 0–3s: “meat entered exile.”
+CTA: Type “case closed.”
+
+7. [Soft Pidgin | Okra Warning]
+Hook: okra no dey break up peacefully.
+Scenario: You scoop okra from plate. It stretches from spoon to mouth like it’s begging not to leave.
+Text: 0–2s: “this soup has attachment.”
+CTA: Type “draw draw” if you relate.
+
+8. [Soft Pidgin | Egusi Premium]
+Hook: egusi now deserves security escort.
+Scenario: Papa sees you taking extra egusi and clears throat. You return one spoon like tax payment.
+Text: 0–3s: “premium soup behavior.”
+CTA: Send this to egusi people.
+
+9. [Soft Pidgin | Bukka Aroma]
+Hook: bukka smell dragged me inside by force.
+Scenario: You walk past bukka with strong mind. One aroma of stew and egusi hits you, and your legs turn back.
+Text: 0–3s: “my nose made the decision.”
+CTA: Send this to somebody who can’t resist bukka.
+
+10. [Soft Pidgin | Agbero Greeting]
+Hook: agbero greeted me and my pocket got scared.
+Scenario: You step down from bus. Agbero smiles too nicely, and you already know payment discussion is coming.
+Text: 0–2s: “that smile has charges.”
+CTA: Type “I no get” if you understand.
+
+11. [Soft Pidgin | Marketer Trap]
+Hook: marketer said “sample,” now I’m holding three products.
+Scenario: You stop for one second. Marketer puts cream on your hand, powder on your wrist, and price in your heart.
+Text: 0–3s: “eye contact was the mistake.”
+CTA: Type “I escaped” if you’ve run before.
+
+12. [Soft Pidgin | Iya Change]
+Hook: iya said no change, but I heard coins.
+Scenario: You buy akara. Iya claims no change while her tray is making coin sound. You both just stare.
+Text: 0–3s: “coins are hiding.”
+CTA: Type “give me my balance.”
+
+13. [Soft Pidgin | Papa Fuel Rule]
+Hook: papa bought fuel and became household president.
+Scenario: He measures fuel small-small, locks the container, and warns everybody like national address.
+Text: 0–3s: “fuel has entered VIP.”
+CTA: Send this to one strict papa.
+
+14. [Soft Pidgin | Oga POS Drama]
+Hook: oga said transfer is coming, POS madam said “I’m watching.”
+Scenario: Oga sends transfer. POS madam folds arms and waits for beep like exam result.
+Text: 0–3s: “payment tension.”
+CTA: Type “it will enter.”
+
+15. [Soft Pidgin | Madam Market Power]
+Hook: madam priced pepper like she came with army.
+Scenario: Seller says one amount. Madam laughs, adjusts her wrapper, and starts negotiation like court case.
+Text: 0–3s: “price must fall.”
+CTA: Send this to market legends.
+
+16. [Soft Pidgin | Danfo Entry]
+Hook: danfo had one space, conductor said three people can fit.
+Scenario: You look at the seat. Conductor keeps saying “shift small” until everybody becomes folded paper.
+Text: 0–3s: “human arrangement.”
+CTA: Type “shift abeg.”
+
+17. [Soft Pidgin | Conductor Balance]
+Hook: conductor heard balance and started looking at sky.
+Scenario: You ask for your money. Conductor suddenly becomes busy counting passengers that don’t exist.
+Text: 0–3s: “my change has travelled.”
+CTA: Send this to anyone conductor owes.
+
+18. [Soft Pidgin | Transformer Experts]
+Hook: transformer made sound, every papa became engineer.
+Scenario: One noise outside. Papa, oga, and madam gather from far, giving advice nobody asked for.
+Text: 0–3s: “street engineering meeting.”
+CTA: Type “professional” if your area does this.
+
+19. [Soft Pidgin | Gen Flex]
+Hook: gen came on, landlord started walking slow.
+Scenario: The compound hears gen sound. Landlord stands near it proudly like he invented electricity.
+Text: 0–3s: “power with attitude.”
+CTA: Type “landlord levels.”
+
+20. [Soft Pidgin | Fuel Line Face]
+Hook: fuel line turned my fresh face to experience.
+Scenario: You arrive looking neat. After a while, your smile disappears and your slippers start collecting dust.
+Text: 0–3s: “I came with hope.”
+CTA: Type “fuel wahala.”
+
+21. [Soft Pidgin | Bole Betrayal]
+Hook: bole seller added pepper, my eyes started negotiation.
+Scenario: You buy bole and ask for small pepper. Seller adds one dangerous scoop. You smile with fear.
+Text: 0–3s: “bravery has limit.”
+CTA: Send this to pepper warriors.
+
+22. [Soft Pidgin | Suya Calculation]
+Hook: suya man said “one thousand,” I started counting onion.
+Scenario: You order suya. The meat is small, onion is plenty, but the smell still makes you respect it.
+Text: 0–3s: “onion with meat decoration.”
+CTA: Type “add small.”
+
+23. [Soft Pidgin | Akara Priority]
+Hook: akara seller knows everybody except me.
+Scenario: You wait patiently. Three people arrive after you and iya says they booked earlier.
+Text: 0–3s: “invisible booking system.”
+CTA: Type “my turn” if you’ve suffered.
+
+24. [Soft Pidgin | Moimoi Surprise]
+Hook: moimoi opened, no egg, no fish, just silence.
+Scenario: You peel the leaf slowly with hope. Inside is plain moimoi staring back at you.
+Text: 0–3s: “expectation crashed.”
+CTA: Type “where egg?”
+
+25. [Soft Pidgin | Pure-Water Rescue]
+Hook: pure-water cold small, my whole mood changed.
+Scenario: You buy sachet pure-water after long walk. First sip enters, and you smile like life has improved.
+Text: 0–3s: “small joy, big relief.”
+CTA: Send this to pure-water legends.
+
+26. [Soft Pidgin | Sachet Struggle]
+Hook: sachet refused to tear, my teeth entered work.
+Scenario: You try to open sachet water with hand. It refuses. You look left and right, then use teeth like tradition.
+Text: 0–3s: “modern problem, old solution.”
+CTA: Type “teeth method.”
+
+27. [Soft Pidgin | Tray Balance]
+Hook: tray on iya head has better control than my budget.
+Scenario: Iya walks with tray of akara and moimoi without shaking. You carry small nylon and almost stumble.
+Text: 0–3s: “balance queen.”
+CTA: Type “respect.”
+
+28. [Soft Pidgin | Inverter Warning]
+Hook: inverter beeped once, everybody reduced confidence.
+Scenario: Charger in socket. Inverter makes one tiny beep. You unplug fast like you touched government property.
+Text: 0–3s: “power is warning us.”
+CTA: Send this before battery cries.
+
+29. [Soft Pidgin | Prepaid Panic]
+Hook: prepaid meter showing low unit is emotional attack.
+Scenario: You check meter and see small number. Suddenly nobody is allowed near socket again.
+Text: 0–3s: “unit discipline begins.”
+CTA: Type “buy token.”
+
+30. [Soft Pidgin | Meter Side-Eye]
+Hook: meter looked calm, but I no trust am.
+Scenario: You pass near prepaid meter and check it twice. The number still low, so you switch off everything near you.
+Text: 0–3s: “silent danger.”
+CTA: Type “unit fear.”
+
+31. [Soft Pidgin | Token Mistake]
+Hook: token is 20 digits, but my finger chose violence.
+Scenario: You enter token carefully. One wrong number spoils everything, and you start again with serious face.
+Text: 0–3s: “one digit, full pain.”
+CTA: Send this to token warriors.
+
+32. [Soft Pidgin | ATM Patience]
+Hook: ATM line has one person pressing button like piano.
+Scenario: You wait behind someone at ATM. They keep pressing, canceling, and starting again while everyone sighs.
+Text: 0–3s: “uncle, decide abeg.”
+CTA: Type “next!”
+
+33. [Soft Pidgin | Transfer Proof]
+Hook: transfer successful, but seller’s face said no.
+Scenario: You show receipt. Seller says “I never see am.” You both wait for beep like final judgment.
+Text: 0–3s: “money is on journey.”
+CTA: Type “network please.”
+
+34. [Soft Pidgin | Beep Celebration]
+Hook: beep sounded and POS madam finally smiled.
+Scenario: You pay with transfer. Everyone waits quietly. Beep comes, and madam’s whole face relaxes.
+Text: 0–3s: “peace restored.”
+CTA: Send this to payment survivors.
+
+35. [Soft Pidgin | Recharge Wahala]
+Hook: recharge card lost two numbers, now I’m guessing destiny.
+Scenario: You scratch too hard. Two digits vanish. You start trying combinations like secret code.
+Text: 0–3s: “scratch with regret.”
+CTA: Type “gently.”
+
+36. [Soft Pidgin | Bundle Mystery]
+Hook: bundle finished faster than gala in bus.
+Scenario: You buy bundle. You open one app, watch small thing, and balance starts looking empty.
+Text: 0–3s: “where did it run?”
+CTA: Type “bundle thief.”
+
+37. [Soft Pidgin | Charger Ownership]
+Hook: charger in public place has no real owner.
+Scenario: You plug charger into socket. One person says “just small,” another says “my own is urgent.”
+Text: 0–3s: “socket politics.”
+CTA: Type “my charger.”
+
+38. [Soft Pidgin | Cart Fantasy]
+Hook: cart full like I’m rich, account quiet like village road.
+Scenario: You add shoes, slides, and fine shirt to cart. Total appears, and you quietly remove everything.
+Text: 0–3s: “shopping by imagination.”
+CTA: Send this to cart dreamers.
+
+39. [Soft Pidgin | Bus Window]
+Hook: bus window seat can test friendship.
+Scenario: You and your friend enter bus. One window seat remains. Both of you smile fake and move faster.
+Text: 0–3s: “love has limit.”
+CTA: Type “window seat.”
+
+40. [Soft Pidgin | Bike Price]
+Hook: bike man said price, I checked if we’re flying.
+Scenario: You ask short distance fare. Bike rider calls big amount. You look at the road like maybe it changed.
+Text: 0–3s: “small trip, big bill.”
+CTA: Type “reduce am.”
+
+41. [Soft Pidgin | Socket War]
+Hook: one socket, five chargers, zero peace.
+Scenario: Everyone brings charger at once. Papa wants his own, madam wants hers, you guard your percentage with seriousness.
+Text: 0–3s: “family power battle.”
+CTA: Send this to battery survivors.
+
+42. [Soft Pidgin | POS Madam]
+Hook: POS madam said charge, my smile disappeared.
+Scenario: You withdraw small cash. POS madam adds charge that feels too personal. You collect money with pain.
+Text: 0–3s: “withdrawal plus heartbreak.”
+CTA: Type “why charge?”
+
+43. [Soft Pidgin | Airtime Mistake]
+Hook: I bought airtime instead of bundle and started advising myself.
+Scenario: You recharge wrong option. Airtime enters proudly while you stare like “who will I call?”
+Text: 0–3s: “wrong blessing.”
+CTA: Type “convert am.”
+
+44. [Soft Pidgin | Keke Squeeze]
+Hook: keke driver said “enter,” but space said no.
+Scenario: Three people already inside keke. Driver still waves you in like your body can compress.
+Text: 0–3s: “science experiment.”
+CTA: Type “shift small.”
+
+45. [Soft Pidgin | Slippers Cut]
+Hook: slippers cut in public and my pride followed it.
+Scenario: You walk confidently. One strap snaps. You start dragging leg like slow-motion movie.
+Text: 0–3s: “movement downgraded.”
+CTA: Send this to slippers survivors.
+
+46. [Soft Pidgin | Slides Noise]
+Hook: slides made sound and announced my arrival.
+Scenario: You try to walk quietly. Slides keeps slapping floor and everybody turns to look.
+Text: 0–3s: “fashion with volume.”
+CTA: Type “fresh steps.”
+
+47. [Soft Pidgin | Okada Grip]
+Hook: Okada moved small, I held rider like family.
+Scenario: Okada starts fast. You pretend to be brave, but your hands grip the back iron with full respect.
+Text: 0–3s: “confidence reduced.”
+CTA: Type “slow down.”
+
+48. [Soft Pidgin | Danfo Change]
+Hook: conductor gave me torn note and called it balance.
+Scenario: You collect change in danfo. One note looks tired. You try returning it, conductor already moved away.
+Text: 0–3s: “money with history.”
+CTA: Type “no o!”
+
+49. [Soft Pidgin | Madam Suya Audit]
+Hook: madam counted my suya pieces like tax officer.
+Scenario: You bring suya home. Madam opens wrap, counts pieces, and asks why onion is plenty.
+Text: 0–3s: “suya investigation.”
+CTA: Send this to suya inspectors.
+
+50. [Soft Pidgin | Papa ATM]
+Hook: papa at ATM presses cancel like it owes him money.
+Scenario: Papa tries to withdraw. Machine delays small. He presses buttons with full authority and blames the bank.
+Text: 0–3s: “technology vs papa.”
+CTA: Type “papa calm.”

@@ -31,8 +31,8 @@ import {
 } from "../nigerianHookPackDrafts.js";
 
 describe("N1 drafts — import shape", () => {
-  it("imports exactly 300 candidate entries (Batch A + Batch B + Batch C)", () => {
-    expect(DRAFT_NIGERIAN_HOOK_PACK.length).toBe(300);
+  it("imports exactly 350 candidate entries (Batch A + Batch B + Batch C + Batch B-extension)", () => {
+    expect(DRAFT_NIGERIAN_HOOK_PACK.length).toBe(350);
   });
 
   it("the draft pool is frozen", () => {
@@ -206,7 +206,7 @@ describe("N1 drafts — tier breakdown report", () => {
         `light_pidgin=${counts.light_pidgin} pidgin=${counts.pidgin} ` +
         `(activation-eligible after promotion: ${activatable})`,
     );
-    expect(counts.clean + counts.light_pidgin + counts.pidgin).toBe(300);
+    expect(counts.clean + counts.light_pidgin + counts.pidgin).toBe(350);
     // Sanity: at least some Pidgin-tier entries exist (otherwise the
     // pack's whole purpose is moot — would indicate a tier-mapping
     // regression in the import).
