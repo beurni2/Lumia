@@ -88,6 +88,10 @@ import {
   type NigerianPackEntry,
 } from "./nigerianHookPack.js";
 import { authorPackEntryAsIdea } from "./nigerianPackAuthor.js";
+import {
+  computeNigerianStylePenalty,
+  isNigerianStylePenaltyFeatureEnabled,
+} from "./nigerianStylePenalty.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -771,6 +775,15 @@ export function generateCoreCandidates(
   const packFlagEnabled = isNigerianPackFeatureEnabled();
   const packLanguageStyle = tasteCalibration?.languageStyle ?? null;
 
+  // PHASE N1-STYLE — cohort-gated American-internet style penalty
+  // for the catalog (non-pack) recipe path. Computed ONCE per call
+  // mirroring `packFlagEnabled` above so a same-call flag flip
+  // cannot turn a penalized cohort into a non-penalized one mid-
+  // loop. Defaults OFF; production behavior unchanged until staging
+  // QA proves the calibration. Pack candidates are NEVER penalized
+  // (this flag is read only at the catalog call site below).
+  const stylePenaltyFlagEnabled = isNigerianStylePenaltyFeatureEnabled();
+
   const candidates: CoreNativeCandidate[] = [];
   const perCoreAttempts: CoreCandidateAttempt[] = [];
   const reasons: Record<
@@ -1147,7 +1160,23 @@ export function generateCoreCandidates(
           antiCopyRejects.samples.push(result.antiCopyMatch);
         }
       }
-      const quality = scoreHookQuality(result.idea.hook, core.family);
+      // PHASE N1-STYLE — score this catalog hook on the punch
+      // scale, then subtract a cohort-gated American-internet
+      // penalty (NG-pidgin/light_pidgin only, flag-gated, default
+      // 0). The penalty is a SOFT downweight, not a filter — the
+      // hook still enters `passing[]` and can ship if it's the
+      // only candidate. The goal is to lose the per-core quality
+      // competition to authentic catalog or pack alternatives,
+      // not to be excluded. Pack candidates (L1010 above) skip
+      // this branch entirely.
+      const baseQuality = scoreHookQuality(result.idea.hook, core.family);
+      const stylePenalty = computeNigerianStylePenalty({
+        hook: result.idea.hook,
+        region: input.region,
+        languageStyle: packLanguageStyle,
+        flagEnabled: stylePenaltyFlagEnabled,
+      });
+      const quality = baseQuality - stylePenalty;
       const meta: CandidateMeta = {
         ...result.meta,
         scenarioFingerprint: sf,

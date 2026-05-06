@@ -17,6 +17,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - `OPENROUTER_API_KEY`: API key for OpenRouter AI (used by Llama mutator).
 - `EXPO_PUBLIC_SHOW_POST_BETA_SURFACES`: Feature flag for beta surfaces (default: `false`).
 - `LUMINA_NG_PACK_ENABLED`: Nigerian Comedy Pack feature flag (default: `"false"`).
+- `LUMINA_NG_STYLE_PENALTY_ENABLED`: NG-pidgin/light_pidgin American-internet style penalty (default: `"false"`).
 
 ## Stack
 
@@ -39,6 +40,8 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Nigerian Comedy Pack (N1):** `artifacts/api-server/src/lib/nigerianHookPack.ts`
 - **Nigerian Pack Slot Reservation (N1-S2):** `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
 - **Per-Creator Pack Memory (N1-FULL-SPEC):** `artifacts/api-server/src/lib/nigerianPackCreatorMemory.ts`
+- **N1 Style Penalty (PHASE N1-STYLE):** `artifacts/api-server/src/lib/nigerianStylePenalty.ts` — cohort-gated American-internet phrase penalty applied at the catalog `scoreHookQuality` site only (NG-pidgin/light_pidgin + flag ON; pack candidates exempt). Soft -20/match (cap -60). Throttle audit in `.local/N1_THROTTLE_INSTRUMENTATION.md` confirmed 47/160 (29.4%) catalog hooks tripped patterns like "villain arc"/"co-conspirator"; with flag ON drops to 2/150 (1.3%) and combined fill ticks 30→31/60. Western/India/PH/NG-clean QA byte-identical to penalty-off baseline (verified by full-report diff).
+- **N1 Throttle Instrumentation (PHASE N1-INSTRUMENT):** `artifacts/api-server/src/qa/instrumentNigerianThrottle.ts` (additive observer in `coreCandidateGenerator.ts` L959-1055, gated by `globalThis.__nigerianThrottleObserver`, no-op when unset). Single sweep produces both throttle-gate measurements and the non-pack style audit. Pattern list imported from `nigerianStylePenalty.ts` (single source of truth).
 - **N1 Codegen + Rejection Report:** `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts` → `.local/N1_REJECTION_REPORT.md`
 - **N1 Rotation Regression Analysis (Batch B-extension + Batch C):** `.local/N1_ROTATION_REGRESSION_ANALYSIS.md` (original root-cause report + 2026-05-06 update noting the staging-QA harness is non-deterministic by design — `Math.random` in core selection — and a single-sample HOLD verdict is sample-driven, not a real regression)
 - **N1 Rotation Fix Proposal (WITHDRAWN):** `.local/N1_ROTATION_FIX_PROPOSAL.md` — Option C segment-interleave was implemented, regressed staging QA 29→15, reverted. Helper deleted post-architect-review; only the rotation-block comment pointer remains in `coreCandidateGenerator.ts` so future readers can audit the failed reasoning.
@@ -77,6 +80,7 @@ I prefer to develop iteratively and see changes frequently. Please ask before ma
 - **Determinism:** Many ideator components rely on deterministic hashing and seeded randomness.
 - **Additive Layers:** New features must be additive and preserve upstream phase behavior.
 - **N1 Pack Activation:** Never relax `canActivateNigerianPack`; all four AND-conditions are critical for cross-region leak prevention. `reviewedBy` must be a valid native speaker stamp — the integrity guard rejects empty stamps, the `PENDING_NATIVE_REVIEW` sentinel, and any stamp starting with `AGENT-PROPOSED` (used for agent-authored rewrite candidates that need reviewer sign-off). All sentinel comparisons normalize via `.trim()` first to reject whitespace-padded variants.
+- **N1 Style Penalty Symmetry:** `canApplyNigerianStylePenalty` mirrors `canActivateNigerianPack` (region+languageStyle+flag, no `clean`, no other regions). Adding a region or language style to ONE without the OTHER would split the cohort gate and cause penalty leakage; keep them aligned. Penalty is applied ONLY at the catalog `scoreHookQuality` call site (`coreCandidateGenerator.ts` L1171), NEVER at the pack-prefix call site (L1010) — pack hooks are reviewer-stamped and exempt by construction.
 - **N1 Circular-Import TDZ:** `nigerianHookPackApproved.ts` MUST NOT self-call `assertNigerianPackIntegrity` or `registerApprovedPoolReference` at module top level — the circular import (`nigerianHookPack.ts` ↔ `nigerianHookPackApproved.ts` ↔ `nigerianHookQuality.ts`) puts `PACK_FIELD_BOUNDS` and `APPROVED_POOL_REF` in TDZ when flag ON. Both calls live in `nigerianHookPack.ts` L370 and L378-380 (latter is conditional on `length > 0`). The codegen template in `buildApprovedNigerianPack.ts` enforces this.
 - **N1 Agent-Proposed Rewrites:** The agent may add rewrite candidates to `.local/REGIONAL_N1_REWRITES.yaml` with an explicit `reviewedBy: "AGENT-PROPOSED — pending BI review"` per-row override. These ride through the worksheet→ingest path but are rejected by all three defense layers (`buildApprovedNigerianPack` validator, `assertNigerianPackIntegrity` boot assert, `scoreNigerianPackEntry` safety check) until the reviewer overwrites the stamp with their initials + date.
 

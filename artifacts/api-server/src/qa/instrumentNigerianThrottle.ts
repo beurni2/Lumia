@@ -46,6 +46,7 @@ import {
   NIGERIAN_HOOK_PACK,
   isNigerianPackFeatureEnabled,
 } from "../lib/nigerianHookPack.js";
+import { AMERICAN_INTERNET_PATTERNS } from "../lib/nigerianStylePenalty.js";
 
 // ─── Throttle observer types ─── //
 type ThrottleRecord = {
@@ -68,28 +69,9 @@ declare global {
 }
 
 // ─── Style audit patterns ─── //
-// American Gen-Z internet vernacular — phrases that signal the
-// catalog recipe path produced a hook in a register the NG-pidgin
-// audience would read as foreign. Curated from the v2 unmatched-
-// hook examples + general internet/TikTok lexicon.
-const AMERICAN_INTERNET_PATTERNS: ReadonlyArray<RegExp> = [
-  /\bvillain arc\b/i,
-  /\bdemolished my (entire )?vibe\b/i,
-  /\bruined my (entire )?(vibe|villain|day)\b/i,
-  /\bkill(ed|ing)? my vibe\b/i,
-  /\bcaught (in )?(4k|the act)\b/i,
-  /\bco[- ]conspirator/i,
-  /\bavoiding (it|itself|myself)\b/i,
-  /\bkeeps? revealing itself\b/i,
-  /\b(the|my) \w+ itself is (the|my)\b/i,
-  /\bpersonality (is|itself)\b/i,
-  /\bthe \w+ ate my\b/i,
-  /\bmain character\b/i,
-  /\bnot (me|him|her|them) \w+ing\b/i,
-  /\bthe \w+ ruined\b/i,
-  /\blived rent[- ]free\b/i,
-  /\bunhinged\b/i,
-];
+// American Gen-Z internet vernacular — imported from the shared
+// `nigerianStylePenalty` module so the audit and the production
+// penalty stay perfectly aligned (single source of truth).
 
 // Authentic Nigerian-Pidgin tokens / cadence markers. Presence of
 // any of these (case-insensitive) strongly suggests the hook reads
