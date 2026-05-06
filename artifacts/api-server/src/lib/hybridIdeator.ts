@@ -123,15 +123,25 @@ import {
   getRecentSeenEntryIds,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
-// PHASE N1-FULL-SPEC LIVE — `catalogTemplateCreatorMemory.ts` and
-// schema column #23 (`catalog_template_seen_ids_json`) are kept as
-// inert plumbing for a corrected future attempt. The first wiring
-// attempt (filter by `meta.source === "pattern_variation" &&
-// meta.templateId`) regressed latency and missed the actual repeat
-// path (skeletons flow through `core_native` too). See the comment
-// block at the filter call site for the diagnosis. Imports
-// intentionally NOT pulled in here — we don't want unused-import
-// lint noise while the next attempt is designed.
+// PHASE N1-FULL-SPEC LIVE v2 — catalog hook-skeleton dedup. The
+// first attempt (pre-filter by `meta.templateId` for
+// `pattern_variation` only) regressed latency (pool shrinkage →
+// selectWithNovelty underfill → Claude fallback) AND missed
+// repeats flowing through `core_native`. The corrected design:
+//   • Track NORMALIZED HOOK SKELETONS (not templateIds) — cross-
+//     source, catches every repeat by the same template family.
+//   • Apply AFTER selection (post-pack-reservation), as a SWAP
+//     with alternatives from the same `merged` pool — never
+//     drops, never shrinks the pool fed to selectWithNovelty.
+//   • Skip pack candidates (governed by per-pack-entry memory
+//     immediately above).
+//   • Graceful degradation — if no alternative exists, ship the
+//     repeat. Better to repeat than to underfill or stall.
+import {
+  getRecentSeenSkeletons,
+  recordSeenSkeletons,
+  normalizeHookToSkeleton,
+} from "./catalogTemplateCreatorMemory.js";
 import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
@@ -4522,13 +4532,89 @@ export async function runHybridIdeator(
     }
   }
 
-  // PHASE N1-FULL-SPEC LIVE — record-side of catalog template
-  // memory ALSO REVERTED to match the filter-side revert above.
-  // Recording without filtering would just pollute the memory
-  // column with no functional effect, and the corrected future
-  // attempt will use a different identifier (normalized hook
-  // skeleton across source paths) so the per-`templateId` records
-  // would be the wrong shape for it anyway.
+  // PHASE N1-FULL-SPEC LIVE v2 — catalog hook-skeleton dedup.
+  // Operates on the FINAL post-pack-reservation batch. For each
+  // non-pack candidate whose normalized hook skeleton matches one
+  // the creator has seen recently AND another candidate exists in
+  // `merged` whose skeleton is novel, swap them. Pack candidates
+  // (`meta.nigerianPackEntryId` set) are skipped — they are
+  // governed by the per-pack-entry memory above. Pool unchanged
+  // (no pre-filter), so selectWithNovelty's diversity machinery
+  // is untouched and the previous attempt's latency regression
+  // cannot recur. Graceful degradation: when no alternative is
+  // available, the original candidate ships and recordSeenSkeletons
+  // logs the repeat — strictly better than underfilling.
+  {
+    const seenSkeletons = await getRecentSeenSkeletons(input.creator?.id);
+    if (seenSkeletons.size > 0) {
+      const isPack = (c: { meta: unknown }): boolean =>
+        (c.meta as { nigerianPackEntryId?: string })
+          .nigerianPackEntryId !== undefined;
+      const usedSkeletons = new Set<string>();
+      const usedIds = new Set<string>();
+      for (const c of n1s2_postBatch) {
+        usedSkeletons.add(normalizeHookToSkeleton(c.idea.hook));
+        const idAny = (c.idea as { id?: unknown }).id;
+        if (typeof idAny === "string") usedIds.add(idAny);
+      }
+      const swapped = n1s2_postBatch.map((c) => {
+        if (isPack(c)) return c;
+        const sk = normalizeHookToSkeleton(c.idea.hook);
+        if (sk.length === 0 || !seenSkeletons.has(sk)) return c;
+        const alt = merged.find((p) => {
+          if (isPack(p)) return false;
+          const altIdAny = (p.idea as { id?: unknown }).id;
+          if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
+            return false;
+          }
+          const altSk = normalizeHookToSkeleton(p.idea.hook);
+          if (altSk.length === 0) return false;
+          if (seenSkeletons.has(altSk)) return false;
+          if (usedSkeletons.has(altSk)) return false;
+          return true;
+        });
+        if (!alt) return c;
+        usedSkeletons.delete(sk);
+        usedSkeletons.add(normalizeHookToSkeleton(alt.idea.hook));
+        const cIdAny = (c.idea as { id?: unknown }).id;
+        if (typeof cIdAny === "string") usedIds.delete(cIdAny);
+        const altIdAny = (alt.idea as { id?: unknown }).id;
+        if (typeof altIdAny === "string") usedIds.add(altIdAny);
+        return alt;
+      });
+      let changed = false;
+      for (let i = 0; i < swapped.length; i++) {
+        if (swapped[i] !== n1s2_postBatch[i]) {
+          changed = true;
+          break;
+        }
+      }
+      if (changed) {
+        selection = { ...selection, batch: swapped };
+      }
+    }
+    // Record AFTER any swaps so the next request's seen-set
+    // reflects what actually shipped. Skip pack candidates — their
+    // hooks are catalog-curated and tracked separately. No-op when
+    // there's no creator id (helper short-circuits) or no non-pack
+    // hooks shipped.
+    {
+      const shippedNonPackHooks = selection.batch
+        .filter(
+          (c) =>
+            (c.meta as { nigerianPackEntryId?: string })
+              .nigerianPackEntryId === undefined,
+        )
+        .map((c) => c.idea.hook)
+        .filter((h): h is string => typeof h === "string" && h.length > 0);
+      if (shippedNonPackHooks.length > 0) {
+        void recordSeenSkeletons(
+          input.creator?.id,
+          shippedNonPackHooks,
+        );
+      }
+    }
+  }
 
   // PHASE N1-FULL-SPEC — structured activation/decision telemetry.
   // Spec §"DEBUGGING AND QA VISIBILITY" enumerates these fields as

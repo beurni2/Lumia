@@ -140,27 +140,29 @@ export const creators = pgTable("creators", {
     jsonb("nigerian_pack_seen_entry_ids_json")
       .$type<ReadonlyArray<{ entryId: string; lastSeenAt: string }>>()
       .default([]),
-  // PHASE N1-FULL-SPEC LIVE — per-creator catalog template memory.
-  // Records `meta.templateId` of the `pattern_variation` candidates
-  // this creator has SEEN in a recent shipped batch, so the
-  // hybrid ideator can filter them out of the candidate pool BEFORE
-  // selection. Prevents the visible-skeleton-repetition failure mode
+  // PHASE N1-FULL-SPEC LIVE v2 — per-creator catalog hook-skeleton
+  // memory. Records the NORMALIZED HOOK SKELETON of every non-pack
+  // candidate this creator has shipped in a recent batch (long
+  // tokens ≥5 chars collapsed to `__`). The hybrid ideator uses
+  // this set AFTER pack reservation to swap any repeating-skeleton
+  // candidate with a `merged`-pool alternative whose skeleton is
+  // novel — addresses the visible-skeleton-repetition failure mode
   // where consecutive batches ship "the X and i are still here.
-  // barely." with only the noun swapped (root cause: catalog
-  // templates are deterministically scored highest and re-win
-  // selection across batches when no memory layer exists). Capped at
-  // the 24 most-recent template ids — small enough that filtering
-  // CANNOT exhaust the active template pool (~30+ live templates),
-  // older ids drop off → become eligible again. NULLABLE / default
-  // empty array; pre-migration creators read `[]` (no-op filter).
-  // Cohort-agnostic: applies to every creator with a stable id, not
-  // gated on N1 activation, because catalog repetition is a problem
-  // for all cohorts. Underfill safety: if filtering would drop the
-  // pool below `desiredCount`, oldest-seen ids are re-admitted in
-  // the wiring step, never here.
+  // barely." with only the noun swapped. Capped at the 24
+  // most-recent skeletons — small enough that the swap cannot
+  // exhaust the active pool, oldest skeletons age out → become
+  // eligible again. NULLABLE / default empty array; pre-migration
+  // creators read `[]` (no-op swap = baseline). Cohort-agnostic:
+  // applies to every creator with a stable id, not gated on N1
+  // activation, because catalog repetition is a problem for all
+  // cohorts. Graceful degradation: if no novel alternative exists
+  // in `merged`, the original ships unchanged (never drops, never
+  // shrinks the pool). The earlier `templateId` shape was scrapped
+  // because repeats also flow through `core_native` (no templateId)
+  // and that approach pre-filtered the pool, regressing latency.
   catalogTemplateSeenIdsJson:
     jsonb("catalog_template_seen_ids_json")
-      .$type<ReadonlyArray<{ templateId: string; lastSeenAt: string }>>()
+      .$type<ReadonlyArray<{ skeleton: string; lastSeenAt: string }>>()
       .default([]),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without

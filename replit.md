@@ -51,6 +51,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Nigerian Comedy Pack (N1):** An environment flag-gated feature with specific regional and language style activation conditions to prevent cross-region leakage. Pack entries are atomic, require native speaker review, and are protected by per-creator hook memory.
 - **N1-FULL-SPEC Live Optimizations:** Includes `n1LiveSkipFallback` to bypass costly Claude regeneration when local pools are sufficient, and `maxReserved` adjustments in `nigerianPackSlotReservation.ts` for pack-first composition.
 - **Staged Regional Beta:** Non-western regions receive layered, additive overlays for content decoration, voice-cluster biasing, prompt polishing, and curated regional anchor catalogs.
+- **Per-Creator Skeleton Memory (FIX C v2):** Catalog hook-skeleton dedup runs AFTER pack reservation as a SWAP only — never drops candidates, never shrinks pool. Stores normalized hook skeletons (long tokens ≥5 chars → `__`, cap 24) in `creators.catalog_template_seen_ids_json`. Cohort-agnostic; degrades gracefully when no novel alternative exists.
 
 ## Product
 
