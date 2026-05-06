@@ -26,11 +26,11 @@
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-031 [REWRITE] → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=17)
- *   • DRAFT-093 → scoreNigerianPackEntry 34 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=5 filmable=10 brevity=13)
- *   • DRAFT-095 [REWRITE] → scoreNigerianPackEntry 35 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=13)
- *   • DRAFT-171 [REWRITE] → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=10 brevity=9)
- *   • DRAFT-221 → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=17)
+ *   • DRAFT-031 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
+ *   • DRAFT-093 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
+ *   • DRAFT-095 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
+ *   • DRAFT-171 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
+ *   • DRAFT-221 [REWRITE] → reviewedBy carries the AGENT-PROPOSED sentinel ('AGENT-PROPOSED — pending BI review') — this row is an agent-proposed rewrite candidate awaiting reviewer sign-off. The reviewer must overwrite the stamp with their own initials + date before this row can be approved.; scoreNigerianPackEntry 0 < floor 40 (visceral=0 naturalness=0 contradiction=0 anchor=0 filmable=0 brevity=0)
  */
 
 import {

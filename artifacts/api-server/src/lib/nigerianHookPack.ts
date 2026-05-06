@@ -243,6 +243,18 @@ export function assertNigerianPackIntegrity(
           `speaker must replace the sentinel with their initials + date.`,
       );
     }
+    // STRENGTHENED in N1-Q follow-up: agent-proposed rewrite candidates
+    // carry an AGENT-PROPOSED reviewedBy stamp so the integrity guard
+    // rejects them on activation. The literal prefix is duplicated here
+    // (not imported from the QA script) to keep this hot boot path
+    // dependency-free.
+    if (entry.reviewedBy.trim().startsWith("AGENT-PROPOSED")) {
+      throw new Error(
+        `[nigerianHookPack] entry carries the AGENT-PROPOSED sentinel: ` +
+          `${tag}. Agent-proposed rewrites cannot be activated — a Nigerian ` +
+          `native speaker must replace the stamp with their initials + date.`,
+      );
+    }
 
     if (
       entry.pidginLevel !== "light_pidgin" &&

@@ -169,6 +169,47 @@ describe("reviewedBy gate (item 4)", () => {
       ),
     ).toBe(0);
   });
+  // N1-Q follow-up — agent-proposed rewrite stamp must score 0 so the
+  // scorer can never promote an unreviewed candidate.
+  it("AGENT-PROPOSED stamp → 0", () => {
+    expect(
+      scoreNigerianPackEntry(
+        validEntry({ reviewedBy: "AGENT-PROPOSED — pending BI review" }),
+        ingestCtx,
+      ),
+    ).toBe(0);
+  });
+  it("AGENT-PROPOSED bare prefix → 0", () => {
+    expect(
+      scoreNigerianPackEntry(
+        validEntry({ reviewedBy: "AGENT-PROPOSED" }),
+        ingestCtx,
+      ),
+    ).toBe(0);
+  });
+  it("padded AGENT-PROPOSED stamp → 0", () => {
+    expect(
+      scoreNigerianPackEntry(
+        validEntry({ reviewedBy: "   AGENT-PROPOSED 2026-05-06   " }),
+        ingestCtx,
+      ),
+    ).toBe(0);
+  });
+});
+
+// N1-Q follow-up — boot integrity assert must reject AGENT-PROPOSED
+// on activation. Lives here (alongside the scorer tests) so the three
+// defense layers stay covered in one file.
+describe("boot integrity rejects AGENT-PROPOSED (item 4 — defense in depth)", () => {
+  it("assertNigerianPackIntegrity throws on AGENT-PROPOSED entry", async () => {
+    const { assertNigerianPackIntegrity } = await import("../nigerianHookPack.js");
+    const bad = [
+      validEntry({ reviewedBy: "AGENT-PROPOSED — pending BI review" }),
+    ];
+    expect(() => assertNigerianPackIntegrity(bad)).toThrow(
+      /AGENT-PROPOSED sentinel/,
+    );
+  });
 });
 
 // ─── 5. mocking pattern ───────────────────────────────────────────

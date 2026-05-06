@@ -60,7 +60,8 @@
  * preconditions documented in `nigerianHookPack.ts`:
  *
  *   • `entry.reviewedBy` non-empty and not the PENDING_NATIVE_REVIEW
- *     sentinel  → score = 0 if violated
+ *     sentinel and not an AGENT-PROPOSED candidate stamp
+ *     → score = 0 if violated
  *   • `entry.pidginLevel` ∈ {"light_pidgin", "pidgin"}  → 0 if not
  *   • no `PIDGIN_MOCKING_PATTERNS` hit on hook/whatToShow/caption  → 0
  *
@@ -169,6 +170,10 @@ function assertTrustedContext(ctx: ScoringContext): void {
 function failsSafetyChecks(entry: NigerianPackEntry): boolean {
   if (!entry.reviewedBy || entry.reviewedBy.trim().length === 0) return true;
   if (entry.reviewedBy.trim() === "PENDING_NATIVE_REVIEW") return true;
+  // N1-Q follow-up: agent-proposed rewrites carry the AGENT-PROPOSED
+  // prefix and must score 0 here too — defense in depth alongside the
+  // build-script validator and the boot integrity assert.
+  if (entry.reviewedBy.trim().startsWith("AGENT-PROPOSED")) return true;
   if (
     entry.pidginLevel !== "light_pidgin" &&
     entry.pidginLevel !== "pidgin"

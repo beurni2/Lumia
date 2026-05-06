@@ -70,6 +70,13 @@ import {
 
 const REVIEWED_BY = "BI 2026-05-05";
 const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
+// PHASE N1-Q follow-up: the agent may now PROPOSE rewrites for rows
+// that the reviewer hasn't gotten to yet. Such proposals MUST carry a
+// reviewedBy that begins with this prefix so the integrity guard
+// rejects them on ingestion. They never inherit the batch BI stamp,
+// never reach the approved file, and never reach the live pack until
+// the reviewer overwrites the stamp with their own initials + date.
+const AGENT_PROPOSED_REVIEWED_BY_PREFIX = "AGENT-PROPOSED";
 
 // ─── Rewrite overlay ─────────────────────────────────────────────
 //
@@ -94,6 +101,12 @@ type Rewrite = {
   rewrittenHowToFilm?: string;
   rewrittenCaption?: string;
   rewriteNotes?: string;
+  // Optional per-row override of the batch reviewedBy stamp. Used for
+  // agent-proposed rewrites that must NOT inherit the reviewer's BI
+  // batch stamp — they carry a sentinel like "AGENT-PROPOSED — pending
+  // BI review" so the integrity guard rejects them at ingest until the
+  // reviewer overwrites the stamp.
+  reviewedBy?: string;
 };
 
 const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
@@ -134,6 +147,7 @@ const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
       else if (key === "rewrittenHowToFilm") cur.rewrittenHowToFilm = v;
       else if (key === "rewrittenCaption") cur.rewrittenCaption = v;
       else if (key === "rewriteNotes") cur.rewriteNotes = v;
+      else if (key === "reviewedBy") cur.reviewedBy = v;
     }
   }
   flush();
@@ -160,6 +174,10 @@ const applyRewrite = (
       whatToShow: overlay(row.whatToShow, rw.rewrittenWhatToShow),
       howToFilm: overlay(row.howToFilm, rw.rewrittenHowToFilm),
       caption: overlay(row.caption, rw.rewrittenCaption),
+      reviewedByOverride:
+        rw.reviewedBy && rw.reviewedBy.length > 0
+          ? rw.reviewedBy
+          : row.reviewedByOverride,
     },
     applied: true,
   };
@@ -227,6 +245,12 @@ type WorksheetRow = {
   howToFilm: string;
   caption: string;
   privacyNote: string;
+  // Set ONLY by the rewrite overlay when a yaml entry carries an
+  // explicit `reviewedBy:` key. When undefined, validateRow falls back
+  // to the batch REVIEWED_BY constant. Used so agent-proposed rewrites
+  // can ship through the worksheet→ingest path while still being
+  // rejected by the integrity guard until the reviewer signs off.
+  reviewedByOverride?: string;
 };
 
 const readWorksheet = (csvPath: string): WorksheetRow[] => {
@@ -272,13 +296,23 @@ type ValidationResult =
 const validateRow = (row: WorksheetRow): ValidationResult => {
   const reasons: string[] = [];
 
-  // 1. reviewedBy
-  const reviewedBy = REVIEWED_BY;
+  // 1. reviewedBy — row-provided stamp wins over the batch default.
+  // This lets agent-proposed rewrites carry an AGENT-PROPOSED sentinel
+  // that the integrity guard rejects until the reviewer overwrites it.
+  const reviewedBy = row.reviewedByOverride ?? REVIEWED_BY;
   if (!reviewedBy || reviewedBy.trim().length === 0) {
     reasons.push("reviewedBy is empty");
   }
   if (reviewedBy.trim() === "PENDING_NATIVE_REVIEW") {
     reasons.push("reviewedBy is the PENDING_NATIVE_REVIEW sentinel");
+  }
+  if (reviewedBy.trim().startsWith(AGENT_PROPOSED_REVIEWED_BY_PREFIX)) {
+    reasons.push(
+      `reviewedBy carries the AGENT-PROPOSED sentinel ('${reviewedBy.trim()}') — ` +
+        `this row is an agent-proposed rewrite candidate awaiting reviewer ` +
+        `sign-off. The reviewer must overwrite the stamp with their own ` +
+        `initials + date before this row can be approved.`,
+    );
   }
 
   // 2. pidginLevel
@@ -390,7 +424,7 @@ const validateRow = (row: WorksheetRow): ValidationResult => {
     anchor: row.anchor.toLowerCase(),
     domain: row.domain,
     pidginLevel: row.currentPidginLevel as "light_pidgin" | "pidgin",
-    reviewedBy: REVIEWED_BY,
+    reviewedBy,
   };
   const hookScoring = scoreNigerianPackEntryDetailed(entryForScoring, {
     kind: "ingest",

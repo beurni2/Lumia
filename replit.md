@@ -68,7 +68,8 @@ I prefer to develop iteratively and see changes frequently. Please ask before ma
 - **LLM Rate Limits:** Be mindful of daily quotas and per-minute rate limits for AI calls.
 - **Determinism:** Many ideator components rely on deterministic hashing and seeded randomness.
 - **Additive Layers:** New features must be additive and preserve upstream phase behavior.
-- **N1 Pack Activation:** Never relax `canActivateNigerianPack`; all four AND-conditions are critical for cross-region leak prevention. `reviewedBy` must be a valid native speaker stamp.
+- **N1 Pack Activation:** Never relax `canActivateNigerianPack`; all four AND-conditions are critical for cross-region leak prevention. `reviewedBy` must be a valid native speaker stamp — the integrity guard rejects empty stamps, the `PENDING_NATIVE_REVIEW` sentinel, and any stamp starting with `AGENT-PROPOSED` (used for agent-authored rewrite candidates that need reviewer sign-off).
+- **N1 Agent-Proposed Rewrites:** The agent may add rewrite candidates to `.local/REGIONAL_N1_REWRITES.yaml` with an explicit `reviewedBy: "AGENT-PROPOSED — pending BI review"` per-row override. These ride through the worksheet→ingest path but are rejected by all three defense layers (`buildApprovedNigerianPack` validator, `assertNigerianPackIntegrity` boot assert, `scoreNigerianPackEntry` safety check) until the reviewer overwrites the stamp with their initials + date.
 
 ## Pointers
 
