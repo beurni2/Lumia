@@ -154,13 +154,13 @@ const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
   return out;
 };
 
-const loadRewrites = (repoRoot: string): Map<string, Rewrite> => {
+export const loadRewrites = (repoRoot: string): Map<string, Rewrite> => {
   const p = path.resolve(repoRoot, REWRITES_PATH_REL);
   if (!fs.existsSync(p)) return new Map();
   return parseRewritesYaml(fs.readFileSync(p, "utf8"));
 };
 
-const applyRewrite = (
+export const applyRewrite = (
   row: WorksheetRow,
   rw: Rewrite | undefined,
 ): { row: WorksheetRow; applied: boolean } => {
@@ -234,7 +234,7 @@ const parseCsv = (text: string): string[][] => {
   return rows.filter((r) => r.length > 1 || (r.length === 1 && r[0].length > 0));
 };
 
-type WorksheetRow = {
+export type WorksheetRow = {
   draftId: string;
   currentPidginLevel: string;
   anchor: string;
@@ -253,7 +253,7 @@ type WorksheetRow = {
   reviewedByOverride?: string;
 };
 
-const readWorksheet = (csvPath: string): WorksheetRow[] => {
+export const readWorksheet = (csvPath: string): WorksheetRow[] => {
   const text = fs.readFileSync(csvPath, "utf8");
   const rows = parseCsv(text);
   const header = rows[0];
@@ -293,7 +293,7 @@ type ValidationResult =
   | { ok: true; entry: NigerianPackEntry }
   | { ok: false; reasons: string[] };
 
-const validateRow = (row: WorksheetRow): ValidationResult => {
+export const validateRow = (row: WorksheetRow): ValidationResult => {
   const reasons: string[] = [];
 
   // 1. reviewedBy — row-provided stamp wins over the batch default.

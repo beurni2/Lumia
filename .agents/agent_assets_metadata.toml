@@ -113,3 +113,9 @@ id = "QwsiIplj0LBjNsJn3wmKY"
 uri = "file://.local/N1_FULL_SPEC_REPORT.md"
 type = "text"
 title = "N1-FULL-SPEC Final Compliance Report"
+
+[[outputs]]
+id = "cyAupgD8Bj35QiMvMGR4v"
+uri = "file://.local/N1_REJECTION_FIXUP_WORKSHEET.csv"
+type = "table"
+title = "N1 Rejection Fix-up Worksheet (74 drafts)"
