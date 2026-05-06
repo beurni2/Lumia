@@ -506,8 +506,21 @@ export default function HomeScreen() {
       // users despite the server eventually returning a clean batch.
       // 45s gives the recipe loop room to converge while still
       // capping a genuinely-stuck Claude call.
+      //
+      // PHASE N1-FULL-SPEC LIVE — bumped 45s → 120s. With the N1
+      // pack flag ON the server-side path now does (a) catalog
+      // pattern engine, (b) MANDATORY Claude fallback on every
+      // regenerate (`layer1CoreAwareTriggered = regenerate`,
+      // hybridIdeator.ts L4052 — by design from Y2 spec, ~20s),
+      // and (c) Llama hook mutator (~10s). Live request times
+      // measured 31-96s on the demo creator. The previous batch
+      // ALWAYS stays on screen on the timeout path (we never null
+      // `ideas` on failure), so the cost of a longer timeout is
+      // zero — it only changes whether the user sees a fresh
+      // batch or a "took too long" error when the server finishes
+      // between 45s and 120s.
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45_000);
+      const timeoutId = setTimeout(() => controller.abort(), 120_000);
       // PHASE UX3 — visible-hook exclusion list. Send the
       // current batch's hooks (lowercased + trimmed) so the
       // server can hard-reject exact repeats and soft-demote
