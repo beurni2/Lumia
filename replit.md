@@ -40,6 +40,7 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Nigerian Pack Slot Reservation (N1-S2):** `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
 - **Per-Creator Pack Memory (N1-FULL-SPEC):** `artifacts/api-server/src/lib/nigerianPackCreatorMemory.ts`
 - **N1 Codegen + Rejection Report:** `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts` → `.local/N1_REJECTION_REPORT.md`
+- **N1 Rotation Regression Analysis (Batch B-extension):** `.local/N1_ROTATION_REGRESSION_ANALYSIS.md` (root-cause for staging-QA HOLD verdict; recommends BI batch C rebalance toward `phone`/`work`/`social`/`content` domains)
 - **N1 Worksheet Extender:** `artifacts/api-server/src/qa/extendNigerianWorksheet.ts`
 - **Regional QA Harnesses:** `artifacts/api-server/src/qa/regionalR{1,2,3,4}Qa.ts`
 
