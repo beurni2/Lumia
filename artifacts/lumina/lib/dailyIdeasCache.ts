@@ -29,7 +29,7 @@ type Envelope = {
   cachedAt: string;
 };
 
-const KEY = "lumina:home-ideas:v1";
+const KEY = "lumina:home-ideas:v2";
 
 function utcDayKey(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10); // YYYY-MM-DD
