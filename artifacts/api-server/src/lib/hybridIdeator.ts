@@ -3800,6 +3800,50 @@ export async function runHybridIdeator(
     // regenerate; the core selection itself is allowed to vary across
     // calls so the supply pool isn't pinned to one fixed slate.
   });
+  // PHASE N1-LIVE-INSTRUMENT — opt-in live throttle observer for
+  // diagnosing why pack candidates fail to surface for a real
+  // creator's actual core slate. Default OFF; enable per-process
+  // by setting `LUMINA_NG_THROTTLE_LOG=true` in dev. When ON, we
+  // (a) install the observer global the pack-prefix block in
+  // `coreCandidateGenerator.ts` already speaks to (PHASE
+  // N1-INSTRUMENT v2 — additive, no behavior change), (b) collect
+  // its records into a local array for THIS call only, (c) restore
+  // the prior global immediately after the call so concurrent
+  // requests cannot leak observers across each other. The records
+  // are then dumped through `logger.info` so they appear in the
+  // existing pino stream alongside the rest of the per-request
+  // telemetry. Production is off by default and never sets this
+  // env var; this is a developer-only debug surface.
+  const _liveThrottleEnabled =
+    process.env.LUMINA_NG_THROTTLE_LOG === "true";
+  type LiveThrottleRec = {
+    coreId: string;
+    eligible: number;
+    matching: number;
+    attempted: number;
+    authoredOk: number;
+    survivedFpDedup: number;
+    enteredPassing: number;
+    validatorRejectsByReason: Record<string, number>;
+    rejectedEntrySamples: Array<{
+      entryHook: string;
+      entryAnchor: string;
+      reason: string;
+    }>;
+  };
+  const _liveThrottleRecords: LiveThrottleRec[] = [];
+  const _priorObserver = (
+    globalThis as { __nigerianThrottleObserver?: unknown }
+  ).__nigerianThrottleObserver;
+  if (_liveThrottleEnabled) {
+    (
+      globalThis as {
+        __nigerianThrottleObserver?: (rec: LiveThrottleRec) => void;
+      }
+    ).__nigerianThrottleObserver = (rec: LiveThrottleRec) => {
+      _liveThrottleRecords.push(rec);
+    };
+  }
   const coreNativeResult = generateCoreCandidates({
     cores: coreNativeSelection.cores,
     count: desiredCount + 2,
@@ -3857,6 +3901,25 @@ export async function runHybridIdeator(
     // and western creators are byte-identical to pre-R1.
     region: input.region,
   });
+  // PHASE N1-LIVE-INSTRUMENT — restore prior observer FIRST (so a
+  // throw in the logger.info path can't leak the global), then dump
+  // the collected per-core throttle records to pino. Bounded: the
+  // observer fires at most once per core attempted in the pack-prefix
+  // block, and the slate cap is small (≤8 cores per request).
+  if (_liveThrottleEnabled) {
+    (
+      globalThis as { __nigerianThrottleObserver?: unknown }
+    ).__nigerianThrottleObserver = _priorObserver;
+    logger.info(
+      {
+        event: "nigerian_pack.live_throttle",
+        region: input.region,
+        coreCount: _liveThrottleRecords.length,
+        records: _liveThrottleRecords,
+      },
+      "nigerian_pack.live_throttle",
+    );
+  }
   logger.info(
     {
       event: "phase_y5.core_native_generated",
