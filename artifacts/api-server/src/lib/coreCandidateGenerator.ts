@@ -979,6 +979,18 @@ export function generateCoreCandidates(
       let _packAuthoredOk = 0;
       let _packSurvivedFpDedup = 0;
       let _packEnteredPassing = 0;
+      // PHASE N1-INSTRUMENT v2 — per-validator drop accounting.
+      // Captured ONLY when the observer global is set (pure
+      // bookkeeping otherwise — these counters are emitted in the
+      // throttle record at the end of the pack-prefix block and
+      // never read by production logic). Samples capped at 5 per
+      // core to bound memory.
+      const _packValidatorRejects: Record<string, number> = {};
+      const _packRejectedSamples: Array<{
+        entryHook: string;
+        entryAnchor: string;
+        reason: string;
+      }> = [];
 
       // Resolve a voice cluster ONCE for the pack-prefix block. The
       // pack entries are atomic native-Pidgin units — voice cluster
@@ -1005,7 +1017,21 @@ export function generateCoreCandidates(
           recentPremises,
           seedFingerprints,
         });
-        if (!r.ok) continue;
+        if (!r.ok) {
+          // PHASE N1-INSTRUMENT v2 — record per-validator drop
+          // reason for the throttle observer. No-op for production
+          // semantics (counters are read only by the QA harness).
+          const reason = r.reason ?? "unknown";
+          _packValidatorRejects[reason] = (_packValidatorRejects[reason] ?? 0) + 1;
+          if (_packRejectedSamples.length < 5) {
+            _packRejectedSamples.push({
+              entryHook: entry.hook,
+              entryAnchor: entry.anchor,
+              reason,
+            });
+          }
+          continue;
+        }
         _packAuthoredOk++;
         // Same intra-batch / cross-batch fp dedup gate as catalog
         // recipes — the pack candidate's fp competes against
@@ -1039,6 +1065,8 @@ export function generateCoreCandidates(
 
       // PHASE N1-INSTRUMENT — emit throttle record (opt-in; no-op
       // when observer global is unset — see declaration above).
+      // PHASE N1-INSTRUMENT v2: includes per-validator drop reasons
+      // and a small bounded sample of rejected entries.
       const _obs = (
         globalThis as {
           __nigerianThrottleObserver?: (rec: {
@@ -1049,6 +1077,12 @@ export function generateCoreCandidates(
             authoredOk: number;
             survivedFpDedup: number;
             enteredPassing: number;
+            validatorRejectsByReason: Record<string, number>;
+            rejectedEntrySamples: Array<{
+              entryHook: string;
+              entryAnchor: string;
+              reason: string;
+            }>;
           }) => void;
         }
       ).__nigerianThrottleObserver;
@@ -1061,6 +1095,8 @@ export function generateCoreCandidates(
           authoredOk: _packAuthoredOk,
           survivedFpDedup: _packSurvivedFpDedup,
           enteredPassing: _packEnteredPassing,
+          validatorRejectsByReason: _packValidatorRejects,
+          rejectedEntrySamples: _packRejectedSamples,
         });
       }
     }

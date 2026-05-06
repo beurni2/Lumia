@@ -49,6 +49,12 @@ import {
 import { AMERICAN_INTERNET_PATTERNS } from "../lib/nigerianStylePenalty.js";
 
 // ─── Throttle observer types ─── //
+type RejectedSample = {
+  entryHook: string;
+  entryAnchor: string;
+  reason: string;
+};
+
 type ThrottleRecord = {
   seed: number;
   cohort: string;
@@ -59,6 +65,8 @@ type ThrottleRecord = {
   authoredOk: number;
   survivedFpDedup: number;
   enteredPassing: number;
+  validatorRejectsByReason: Record<string, number>;
+  rejectedEntrySamples: RejectedSample[];
 };
 
 declare global {
@@ -195,6 +203,44 @@ function main(): void {
       ? 0
       : (1 - sum((r) => r.survivedFpDedup) / sum((r) => r.authoredOk)) * 100;
   const enteredPassingTotal = sum((r) => r.enteredPassing);
+
+  // ─── Per-validator drop aggregation (PHASE N1-INSTRUMENT v2) ─── //
+  // Aggregate validator rejection reasons across all (seed, cohort,
+  // core) cells. Reason strings come from `authorPackEntryAsIdea`
+  // and are: "schema_invalid", "<scenario_coherence_reason>",
+  // "<comedy_rejection_reason>", "<anti_copy_reason>". The
+  // distribution tells us WHICH validator is the dominant
+  // chokepoint behind the 53.2% attempted→authoredOk drop, so we
+  // know whether to invest in scenarioCoherence relaxation, comedy
+  // refactoring, or anti-copy seed expansion (each requires a
+  // different fix and a different architect-review burden).
+  const validatorReasonCounts: Record<string, number> = {};
+  let totalAttempted = 0;
+  let totalRejected = 0;
+  for (const rec of throttleRecords) {
+    totalAttempted += rec.attempted;
+    for (const [reason, n] of Object.entries(rec.validatorRejectsByReason)) {
+      validatorReasonCounts[reason] = (validatorReasonCounts[reason] ?? 0) + n;
+      totalRejected += n;
+    }
+  }
+  const sortedReasonRows = Object.entries(validatorReasonCounts).sort(
+    (a, b) => b[1] - a[1],
+  );
+  // Sample up to 10 unique rejected entries per top reason so the
+  // user can spot-check what's failing.
+  const samplesByReason: Record<string, RejectedSample[]> = {};
+  const seenSampleKeys = new Set<string>();
+  for (const rec of throttleRecords) {
+    for (const s of rec.rejectedEntrySamples) {
+      const key = `${s.reason}::${s.entryHook}`;
+      if (seenSampleKeys.has(key)) continue;
+      seenSampleKeys.add(key);
+      const bucket = samplesByReason[s.reason] ?? [];
+      if (bucket.length < 10) bucket.push(s);
+      samplesByReason[s.reason] = bucket;
+    }
+  }
 
   // ─── Throttle decision tree ─── //
   let throttleVerdict = "";
@@ -338,6 +384,59 @@ function main(): void {
   lines.push("");
   for (const r of reasons) lines.push(`- ${r}`);
   lines.push("");
+
+  // PART 1.5: per-validator drop accounting
+  lines.push("---");
+  lines.push("");
+  lines.push("## Part 1.5 — Per-validator drop accounting");
+  lines.push("");
+  lines.push(
+    `Total attempted across the sweep: **${totalAttempted}**. Total rejected by validators: **${totalRejected}** (${totalAttempted === 0 ? "—" : ((totalRejected / totalAttempted) * 100).toFixed(1) + "%"}).`,
+  );
+  lines.push("");
+  if (sortedReasonRows.length === 0) {
+    lines.push("_No validator rejections recorded across the sweep._");
+    lines.push("");
+  } else {
+    lines.push("| validator reason | count | % of all rejections |");
+    lines.push("| --- | ---: | ---: |");
+    for (const [reason, n] of sortedReasonRows) {
+      const pct = totalRejected === 0 ? 0 : (n / totalRejected) * 100;
+      lines.push(`| \`${reason}\` | ${n} | ${pct.toFixed(1)}% |`);
+    }
+    lines.push("");
+    lines.push("### Validator drop verdict");
+    lines.push("");
+    const [topReason, topCount] = sortedReasonRows[0]!;
+    const topPct = totalRejected === 0 ? 0 : (topCount / totalRejected) * 100;
+    if (topPct >= 50) {
+      lines.push(
+        `**Single dominant validator: \`${topReason}\` accounts for ${topPct.toFixed(1)}% of all pack rejections.** Fix this one validator's interaction with pack content to recover most of the 53.2% attempted→authoredOk drop. Lower-frequency reasons can be addressed in follow-up.`,
+      );
+    } else if (sortedReasonRows.length <= 3 && topPct >= 30) {
+      lines.push(
+        `**Top reason \`${topReason}\` is ${topPct.toFixed(1)}% — significant but not dominant.** Mixed failure mode; expect the recovery from any single-validator fix to be partial. Worth investigating the top 2-3 reasons together.`,
+      );
+    } else {
+      lines.push(
+        `**Long-tailed validator failures** — no single reason exceeds 30%. The validator drop is diffuse; a broad scenarioCoherence/comedy/anti-copy review may be needed rather than a targeted patch.`,
+      );
+    }
+    lines.push("");
+    // Per-reason samples
+    for (const [reason, _n] of sortedReasonRows) {
+      const samples = samplesByReason[reason] ?? [];
+      if (samples.length === 0) continue;
+      lines.push(`### Examples — \`${reason}\` (up to 10 unique)`);
+      lines.push("");
+      for (const s of samples) {
+        lines.push(
+          `- ${JSON.stringify(s.entryHook)} _(anchor: \`${s.entryAnchor}\`)_`,
+        );
+      }
+      lines.push("");
+    }
+  }
 
   // PART 2: style
   lines.push("---");
