@@ -1,0 +1,73 @@
+Proceed with N1 approved-candidates ingestion.
+
+I approve all 50 entries from:
+.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv
+and/or
+.local/REGIONAL_N1_REVIEWER_WORKSHEET.md
+
+Task:
+Parse the 50 worksheet rows and create:
+artifacts/api-server/src/lib/nigerianHookPackApproved.ts
+
+Export:
+APPROVED_NIGERIAN_PROMOTION_CANDIDATES
+
+Important:
+This is still NOT activation.
+
+Hard rules:
+- Do not wire coreCandidateGenerator yet.
+- Do not move entries into live NIGERIAN_HOOK_PACK yet unless the current architecture requires the approved file to be referenced by tests only.
+- Do not set LUMINA_NG_PACK_ENABLED=true.
+- Do not activate the pack for users.
+- Do not weaken validators.
+- Do not loosen anchor checks.
+- Do not fake or bypass reviewedBy checks.
+- Keep NIGERIAN_HOOK_PACK dark until explicit activation approval.
+
+Reviewer stamp:
+Use reviewedBy value:
+BI 2026-05-05
+
+For all 50 rows:
+- decision = approve
+- final pidgin level = existing worksheet tier unless the row already specifies pidgin
+- reviewedBy = BI 2026-05-05
+- no rewrites unless needed to pass production asserts
+
+Validation:
+For every approved entry, re-check:
+- reviewedBy is non-empty and not PENDING_NATIVE_REVIEW
+- pidginLevel is light_pidgin or pidgin only
+- hook length bounds
+- whatToShow length bounds
+- howToFilm length bounds
+- caption length bounds
+- anchor appears in hook
+- anchor appears in whatToShow
+- no mocking-spelling regex hit
+- no stereotype blocklist hit
+- validateScenarioCoherence passes
+- scoreHookQuality passes required floor
+- no privacy/safety violation
+
+If any row fails:
+- do not silently “fix” it
+- report the exact row and reason
+- place failing rows in a rejected/needs-rewrite section
+- continue ingesting rows that pass
+
+Expected output:
+1. number approved
+2. number failed
+3. file created
+4. boot asserts result
+5. N1 tests result
+6. full relevant vitest result
+7. TypeScript result
+8. confirmation:
+   - pack remains dark
+   - no recipe integration
+   - env flag still off
+   - no cross-region leak
+   - no validator loosening
