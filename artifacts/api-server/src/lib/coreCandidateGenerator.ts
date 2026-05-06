@@ -955,6 +955,18 @@ export function generateCoreCandidates(
         .concat(rotated.slice(0, rotateBy));
       const drawCap = Math.min(NIGERIAN_PACK_PREFIX_CAP, ordered.length);
 
+      // PHASE N1-INSTRUMENT — opt-in throttle observer. Strictly
+      // additive: when `globalThis.__nigerianThrottleObserver` is
+      // undefined (the default), the counter increments below are
+      // dead-store and the trailing `if (_obs)` is a single
+      // truthy-check no-op. NO behavior change for any production
+      // caller. Set by the throttle-instrumentation analysis script
+      // in `qa/instrumentNigerianThrottle.ts` only — production code
+      // never sets this global.
+      let _packAuthoredOk = 0;
+      let _packSurvivedFpDedup = 0;
+      let _packEnteredPassing = 0;
+
       // Resolve a voice cluster ONCE for the pack-prefix block. The
       // pack entries are atomic native-Pidgin units — voice cluster
       // is metadata-only on the resulting CandidateMeta (the
@@ -981,6 +993,7 @@ export function generateCoreCandidates(
           seedFingerprints,
         });
         if (!r.ok) continue;
+        _packAuthoredOk++;
         // Same intra-batch / cross-batch fp dedup gate as catalog
         // recipes — the pack candidate's fp competes against
         // earlier sibling cores in the SAME batch and against the
@@ -993,6 +1006,7 @@ export function generateCoreCandidates(
         ) {
           continue;
         }
+        _packSurvivedFpDedup++;
         const quality = scoreHookQuality(r.idea.hook, core.family);
         const meta: CandidateMeta = {
           ...r.meta,
@@ -1006,6 +1020,34 @@ export function generateCoreCandidates(
           sf,
           anchorLower: entry.anchor.toLowerCase(),
           quality,
+        });
+        _packEnteredPassing++;
+      }
+
+      // PHASE N1-INSTRUMENT — emit throttle record (opt-in; no-op
+      // when observer global is unset — see declaration above).
+      const _obs = (
+        globalThis as {
+          __nigerianThrottleObserver?: (rec: {
+            coreId: string;
+            eligible: number;
+            matching: number;
+            attempted: number;
+            authoredOk: number;
+            survivedFpDedup: number;
+            enteredPassing: number;
+          }) => void;
+        }
+      ).__nigerianThrottleObserver;
+      if (_obs) {
+        _obs({
+          coreId: core.id,
+          eligible: packEligible.length,
+          matching: matching.length,
+          attempted: drawCap,
+          authoredOk: _packAuthoredOk,
+          survivedFpDedup: _packSurvivedFpDedup,
+          enteredPassing: _packEnteredPassing,
         });
       }
     }
