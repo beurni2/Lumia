@@ -1,0 +1,53 @@
+- draftId: DRAFT-003
+  newAnchor: group
+  rewrittenHook: "group don shout we move, my body say we where?"
+  rewrittenWhatToShow: "Show a fake group chat saying 'we move.' You sit on the bed fully dressed except for slippers, then slowly remove one shoe like the group has betrayed your spirit."
+  rewriteNotes: "Changed multi-token anchor 'group chat' to single-token 'group' and added 'don' for stronger Pidgin signal."
+
+- draftId: DRAFT-027
+  newAnchor: light
+  rewrittenHook: "light don cancel work before I even start"
+  rewrittenWhatToShow: "Laptop open, notes ready. The light goes off and the screen goes dim. You slowly close the laptop and pick up your phone like work has closed for the day."
+  rewriteNotes: "Kept light anchor and strengthened score with 'don cancel' plus clearer contradiction."
+
+- draftId: DRAFT-037
+  newAnchor: pot
+  rewrittenHook: "pot don expose the stew matter"
+  rewrittenWhatToShow: "Open a pot, scrape the bottom with a spoon, then stare at the pot like the stew matter has embarrassed the whole kitchen."
+  rewriteNotes: "Kept pot anchor and removed family/household wording that triggered scene leakage."
+
+- draftId: DRAFT-039
+  newAnchor: snack
+  rewrittenHook: "snack don expose my weekly plan"
+  rewrittenWhatToShow: "Show a full snack bag, then cut to empty wrappers. Your hand folds the snack bag like evidence."
+  rewriteNotes: "Changed multi-token anchor 'snack bag' to single-token 'snack'."
+
+- draftId: DRAFT-057
+  newAnchor: support
+  rewrittenHook: "support found me before food reached mouth"
+  rewrittenWhatToShow: "Sit down with food or drink. Someone's phone or laptop is placed in front of you for support. You look at it like peace has expired."
+  rewriteNotes: "Changed multi-token anchor 'tech support' to single-token 'support'."
+
+- draftId: DRAFT-106
+  newAnchor: podcast
+  rewrittenHook: "podcast don enter one small voice note"
+  rewrittenWhatToShow: "A friend sends seven fake voice notes. You start playing the voice note while doing chores, then pause at voice note three like the message has become a podcast."
+  rewriteNotes: "Changed multi-token anchor 'voice note' to single-token 'podcast' and kept the voice-note scenario intact."
+
+- draftId: DRAFT-282
+  newAnchor: banking
+  rewrittenHook: "banking no show salary, peace don vanish"
+  rewrittenWhatToShow: "You refresh a fake banking app. Nothing drops. Refresh the banking app again. Still nothing."
+  rewriteNotes: "Changed multi-token anchor 'banking app' to single-token 'banking'."
+
+- draftId: DRAFT-296
+  newAnchor: light
+  rewrittenHook: "light on, brain don empty"
+  rewrittenWhatToShow: "Sit in front of ring light ready to film. Smile fades when no idea comes. You slowly stop recording."
+  rewriteNotes: "Changed multi-token anchor 'ring light' to single-token 'light'."
+
+- draftId: DRAFT-300
+  newAnchor: voice
+  rewrittenHook: "voice enter boss chat and my soul japa"
+  rewrittenWhatToShow: "Fake chat shows a voice note sent to the wrong person. You tap unsend repeatedly like speed can reverse history."
+  rewriteNotes: "Changed multi-token anchor 'voice note' to single-token 'voice' and added natural Pidgin punch."
