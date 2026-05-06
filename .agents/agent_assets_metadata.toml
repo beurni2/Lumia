@@ -76,10 +76,10 @@ title = "N1 Native Reviewer Worksheet (CSV)"
 id = "PhhHLsAkmQ5NIdSK6l536"
 uri = "file://.local/REGIONAL_N1_REWRITE_WORKSHEET.md"
 type = "text"
-title = "N1 Rewrite Worksheet (46 rejected rows)"
+title = "N1 Rewrite Worksheet — Round 2 (37 still failing)"
 
 [[outputs]]
 id = "mf2jhIBQDo1W_3UfKNr1n"
 uri = "file://.local/REGIONAL_N1_REWRITE_WORKSHEET.csv"
 type = "table"
-title = "N1 Rewrite Worksheet (CSV)"
+title = "N1 Rewrite Worksheet Round 2 (CSV)"

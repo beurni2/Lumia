@@ -13,12 +13,16 @@
  *   • weaken validators or relax anchor checks
  *
  * For every row in the worksheet CSV the script:
- *   1. Reads the original draft fields (no rewrites — reviewer
- *      decision was "approve all 50 as-is").
- *   2. Stamps `reviewedBy = "BI 2026-05-05"` (the reviewer's stamp
+ *   1. Reads the original draft fields.
+ *   2. Optionally overlays reviewer rewrites from
+ *      `.local/REGIONAL_N1_REWRITES.yaml` (only NON-EMPTY rewritten
+ *      fields override the originals; blank fields keep originals).
+ *      If the rewrites file is absent, ingestion proceeds with the
+ *      original worksheet rows only.
+ *   3. Stamps `reviewedBy = "BI 2026-05-05"` (the reviewer's stamp
  *      provided in the ingest request — the agent did NOT author
  *      this string; it came from the user message).
- *   3. Re-validates the candidate against EVERY production rule:
+ *   4. Re-validates the candidate against EVERY production rule:
  *        - reviewedBy non-empty AND not the PENDING_NATIVE_REVIEW sentinel
  *        - pidginLevel ∈ {"light_pidgin","pidgin"}
  *        - hook / whatToShow / howToFilm / caption length bounds
@@ -28,9 +32,11 @@
  *        - validateScenarioCoherence(idea) === null
  *        - scoreHookQuality(hook, family) >= HOOK_QUALITY_FLOOR (40 —
  *          mirrors the recipe loop's quality floor in hookQuality.ts)
- *   4. PASS → append to the approved list.
- *   5. FAIL → append to the rejected list with the precise reason.
- *      No silent fixes. No fallback.
+ *   5. PASS → append to the approved list (tagged `[REWRITE]` in
+ *      source comments + audit if the rewrite overlay was applied).
+ *   6. FAIL → append to the rejected list with the precise reason.
+ *      No silent fixes. No fallback. Rewritten rows that still fail
+ *      stay rejected and feed the next round's worksheet.
  *
  * After ingest the script emits `nigerianHookPackApproved.ts` with:
  *   • `APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]`
@@ -60,6 +66,101 @@ import { validateScenarioCoherence } from "../lib/scenarioCoherence.js";
 import { scoreHookQuality } from "../lib/hookQuality.js";
 
 const REVIEWED_BY = "BI 2026-05-05";
+const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
+
+// ─── Rewrite overlay ─────────────────────────────────────────────
+//
+// Optional reviewer rewrites in a tiny YAML-list format:
+//
+//   - draftId: DRAFT-010
+//     rewrittenHook: "my phone said almost there while still charging at home"
+//     rewrittenWhatToShow: ""
+//     rewrittenHowToFilm: ""
+//     rewrittenCaption: "location: emotionally on the way."
+//     rewriteNotes: "..."
+//
+// Only NON-EMPTY rewritten fields override the worksheet's original
+// values. Blank fields keep the original. The agent does NOT author
+// rewrites — they come from the native reviewer; this script just
+// applies them and re-runs the SAME production validators. Failures
+// are surfaced, never silently fixed.
+type Rewrite = {
+  draftId: string;
+  rewrittenHook?: string;
+  rewrittenWhatToShow?: string;
+  rewrittenHowToFilm?: string;
+  rewrittenCaption?: string;
+  rewriteNotes?: string;
+};
+
+const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
+  const out = new Map<string, Rewrite>();
+  const lines = text.split(/\r?\n/);
+  let cur: Rewrite | null = null;
+  const flush = (): void => {
+    if (cur && cur.draftId) out.set(cur.draftId, cur);
+  };
+  // Match `- key: value` and `  key: value`. Values may be bare or
+  // double-quoted. JSON.parse handles standard escape sequences.
+  const kvRe = /^\s*-?\s*([A-Za-z][A-Za-z0-9_]*)\s*:\s*(.*)$/;
+  const decode = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return "";
+    if (trimmed.startsWith('"')) {
+      try {
+        return JSON.parse(trimmed) as string;
+      } catch {
+        // fall through — return as-is minus surrounding quotes
+        return trimmed.slice(1, -1);
+      }
+    }
+    return trimmed;
+  };
+  for (const raw of lines) {
+    if (raw.trim().length === 0) continue;
+    const m = raw.match(kvRe);
+    if (!m) continue;
+    const [, key, valueRaw] = m;
+    if (key === "draftId") {
+      flush();
+      cur = { draftId: decode(valueRaw) };
+    } else if (cur) {
+      const v = decode(valueRaw);
+      if (key === "rewrittenHook") cur.rewrittenHook = v;
+      else if (key === "rewrittenWhatToShow") cur.rewrittenWhatToShow = v;
+      else if (key === "rewrittenHowToFilm") cur.rewrittenHowToFilm = v;
+      else if (key === "rewrittenCaption") cur.rewrittenCaption = v;
+      else if (key === "rewriteNotes") cur.rewriteNotes = v;
+    }
+  }
+  flush();
+  return out;
+};
+
+const loadRewrites = (repoRoot: string): Map<string, Rewrite> => {
+  const p = path.resolve(repoRoot, REWRITES_PATH_REL);
+  if (!fs.existsSync(p)) return new Map();
+  return parseRewritesYaml(fs.readFileSync(p, "utf8"));
+};
+
+const applyRewrite = (
+  row: WorksheetRow,
+  rw: Rewrite | undefined,
+): { row: WorksheetRow; applied: boolean } => {
+  if (!rw) return { row, applied: false };
+  const overlay = (orig: string, rewritten: string | undefined): string =>
+    rewritten && rewritten.length > 0 ? rewritten : orig;
+  return {
+    row: {
+      ...row,
+      hook: overlay(row.hook, rw.rewrittenHook),
+      whatToShow: overlay(row.whatToShow, rw.rewrittenWhatToShow),
+      howToFilm: overlay(row.howToFilm, rw.rewrittenHowToFilm),
+      caption: overlay(row.caption, rw.rewrittenCaption),
+    },
+    applied: true,
+  };
+};
 const HOOK_QUALITY_FLOOR = 40;
 // Hook quality scoring is family-agnostic in the current implementation
 // (the `_family` parameter is unused — see `scoreHookQuality` JSDoc).
@@ -295,8 +396,16 @@ const tsEscape = (s: string): string =>
   JSON.stringify(s);
 
 const emitApprovedFile = (
-  approved: ReadonlyArray<{ row: WorksheetRow; entry: NigerianPackEntry }>,
-  rejected: ReadonlyArray<{ row: WorksheetRow; reasons: readonly string[] }>,
+  approved: ReadonlyArray<{
+    row: WorksheetRow;
+    entry: NigerianPackEntry;
+    fromRewrite: boolean;
+  }>,
+  rejected: ReadonlyArray<{
+    row: WorksheetRow;
+    reasons: readonly string[];
+    fromRewrite: boolean;
+  }>,
 ): string => {
   const lines: string[] = [];
   lines.push("/**");
@@ -329,7 +438,8 @@ const emitApprovedFile = (
     lines.push(" * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the");
     lines.push(" * exported array — the generator does not silently fix anything):");
     for (const r of rejected) {
-      lines.push(` *   • ${r.row.draftId} → ${r.reasons.join("; ")}`);
+      const tag = r.fromRewrite ? " [REWRITE]" : "";
+      lines.push(` *   • ${r.row.draftId}${tag} → ${r.reasons.join("; ")}`);
     }
   }
   lines.push(" */");
@@ -343,9 +453,9 @@ const emitApprovedFile = (
     "export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =",
   );
   lines.push("  Object.freeze([");
-  for (const { row, entry } of approved) {
+  for (const { row, entry, fromRewrite } of approved) {
     lines.push("    Object.freeze({");
-    lines.push(`      // source: ${row.draftId} · cluster: ${row.cluster}` +
+    lines.push(`      // source: ${row.draftId}${fromRewrite ? " [REWRITE]" : ""} · cluster: ${row.cluster}` +
       (row.privacyNote ? ` · privacyNote: ${row.privacyNote.slice(0, 60)}` : ""));
     lines.push(`      hook: ${tsEscape(entry.hook)},`);
     lines.push(`      whatToShow: ${tsEscape(entry.whatToShow)},`);
@@ -382,16 +492,26 @@ const main = (): void => {
   );
 
   const rows = readWorksheet(csvPath);
+  const rewrites = loadRewrites(repoRoot);
 
-  const approved: { row: WorksheetRow; entry: NigerianPackEntry }[] = [];
-  const rejected: { row: WorksheetRow; reasons: readonly string[] }[] = [];
+  const approved: {
+    row: WorksheetRow;
+    entry: NigerianPackEntry;
+    fromRewrite: boolean;
+  }[] = [];
+  const rejected: {
+    row: WorksheetRow;
+    reasons: readonly string[];
+    fromRewrite: boolean;
+  }[] = [];
 
-  for (const row of rows) {
+  for (const original of rows) {
+    const { row, applied } = applyRewrite(original, rewrites.get(original.draftId));
     const result = validateRow(row);
     if (result.ok) {
-      approved.push({ row, entry: result.entry });
+      approved.push({ row, entry: result.entry, fromRewrite: applied });
     } else {
-      rejected.push({ row, reasons: result.reasons });
+      rejected.push({ row, reasons: result.reasons, fromRewrite: applied });
     }
   }
 
@@ -404,10 +524,13 @@ const main = (): void => {
   const fileText = emitApprovedFile(approved, rejected);
   fs.writeFileSync(outPath, fileText, "utf8");
 
+  const approvedFromRewrite = approved.filter((a) => a.fromRewrite).length;
+  const rejectedFromRewrite = rejected.filter((r) => r.fromRewrite).length;
   process.stdout.write(
     `[buildApprovedNigerianPack] worksheet rows: ${rows.length}\n` +
-      `  approved: ${approved.length}\n` +
-      `  rejected: ${rejected.length}\n` +
+      `  rewrites loaded: ${rewrites.size}\n` +
+      `  approved: ${approved.length} (${approvedFromRewrite} from rewrites)\n` +
+      `  rejected: ${rejected.length} (${rejectedFromRewrite} from rewrites)\n` +
       `  reviewedBy stamp: ${REVIEWED_BY}\n` +
       `  output: ${outPath}\n` +
       `  NIGERIAN_HOOK_PACK still empty (DARK)\n` +

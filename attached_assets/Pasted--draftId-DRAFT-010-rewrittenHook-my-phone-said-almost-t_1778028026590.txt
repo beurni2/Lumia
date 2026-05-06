@@ -1,0 +1,321 @@
+- draftId: DRAFT-010
+  rewrittenHook: "my phone said almost there while still charging at home"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "location: emotionally on the way."
+  rewriteNotes: "Kept phone anchor; made contradiction sharper: message says movement, scene shows still at home."
+
+- draftId: DRAFT-266
+  rewrittenHook: "camera off saved me from the breakfast meeting"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "attendance without presence."
+  rewriteNotes: "Kept camera anchor; stronger contradiction between meeting and eating."
+
+- draftId: DRAFT-006
+  rewrittenHook: "this group chat don turn unpaid assignment"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "leadership by emoji."
+  rewriteNotes: "Kept group anchor; removed soft opener and sharpened the burden/tension."
+
+- draftId: DRAFT-085
+  rewrittenHook: "my shoes dressed up just to stay on the bed"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "readiness without results."
+  rewriteNotes: "Kept shoes anchor; stronger visual contradiction."
+
+- draftId: DRAFT-119
+  rewrittenHook: "ironing exposed my 'I dey come' lie"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "coming soon. allegedly."
+  rewriteNotes: "Kept ironing anchor; hook now directly exposes the lie."
+
+- draftId: DRAFT-177
+  rewrittenHook: "caption defeated the video after everything was ready"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "caption humbled the creator."
+  rewriteNotes: "Kept caption anchor; clearer conflict and payoff."
+
+- draftId: DRAFT-237
+  rewrittenHook: "generator turned my sleep into street concert"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "sleep with soundtrack."
+  rewriteNotes: "Kept generator anchor; stronger visual/audio joke."
+
+- draftId: DRAFT-255
+  rewrittenHook: "one spoon became a full plate negotiation"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "one spoon has agenda."
+  rewriteNotes: "Kept spoon anchor; clearer escalation."
+
+- draftId: DRAFT-091
+  rewrittenHook: "my slippers reported for duty and I still sat down"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mission cancelled at launch."
+  rewriteNotes: "Kept slippers anchor; stronger contradiction."
+
+- draftId: DRAFT-181
+  rewrittenHook: "camera was rolling but my brain resigned"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "camera ready. brain absent."
+  rewriteNotes: "Kept camera anchor; sharper creator panic."
+
+- draftId: DRAFT-219
+  rewrittenHook: "online for 30 minutes, reply still missing"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "online without responsibility."
+  rewriteNotes: "Kept online anchor; shorter and more direct."
+
+- draftId: DRAFT-206
+  rewrittenHook: "blue ticks arrived, reply disappeared"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "read receipt with pain."
+  rewriteNotes: "Kept ticks anchor; stronger contrast."
+
+- draftId: DRAFT-035
+  rewrittenHook: "the room laughed when I said clean small"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "organization by denial."
+  rewriteNotes: "Kept room anchor; tighter and more hook-like."
+
+- draftId: DRAFT-083
+  rewrittenHook: "my bed called one meeting and sleep won"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "meeting adjourned by sleep."
+  rewriteNotes: "Kept bed anchor; clearer payoff."
+
+- draftId: DRAFT-269
+  rewrittenHook: "traffic held me hostage while work thought I was seated"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "remote presence by faith."
+  rewriteNotes: "Kept traffic anchor; stronger conflict between reality and work chat."
+
+- draftId: DRAFT-111
+  rewrittenHook: "mute failed because I became the notification"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute button could not save me."
+  rewriteNotes: "Kept mute anchor; makes the contradiction more active."
+
+- draftId: DRAFT-117
+  rewrittenHook: "bike shortcut turned two minutes into testimony"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "quick route, long testimony."
+  rewriteNotes: "Kept bike anchor; more vivid Nigerian phrasing without forcing slang."
+
+- draftId: DRAFT-129
+  rewrittenHook: "generator noise cancelled sleep before bedtime"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "rest with soundtrack."
+  rewriteNotes: "Kept generator anchor; direct tension."
+
+- draftId: DRAFT-146
+  rewrittenHook: "freezer started panicking before I did"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "chicken under pressure."
+  rewriteNotes: "Kept freezer anchor; stronger personified tension."
+
+- draftId: DRAFT-199
+  rewrittenHook: "fine left my mouth while chaos held my body"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "fine, according to official statement."
+  rewriteNotes: "Kept fine anchor; stronger contradiction between words and visible state."
+
+- draftId: DRAFT-210
+  rewrittenHook: "one forward almost turned me into the problem"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "forwarding requires self-control."
+  rewriteNotes: "Kept forward anchor; clearer consequence."
+
+- draftId: DRAFT-223
+  rewrittenHook: "gate was typing while I was still finding keys"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "location by confidence."
+  rewriteNotes: "Kept gate anchor; keeps lie/scene mismatch."
+
+- draftId: DRAFT-059
+  rewrittenHook: "family chat beat mute and entered my peace"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute button needs backup."
+  rewriteNotes: "Kept chat anchor; stronger conflict."
+
+- draftId: DRAFT-067
+  rewrittenHook: "my market list entered the bag and lost control"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "the list lost control."
+  rewriteNotes: "Kept list anchor; ties the list to visible bag extras."
+
+- draftId: DRAFT-212
+  rewrittenHook: "mute was on, but my curiosity opened the group"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute could not save me."
+  rewriteNotes: "Kept mute anchor; stronger internal contradiction."
+
+- draftId: DRAFT-108
+  rewrittenHook: "admin warned my good morning while spam danced free"
+  rewrittenWhatToShow: "You post one harmless 'good morning.' A fake admin warning pops up. Meanwhile, three people are posting forwarded prayers and nobody touches the admin."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "admin power is not democracy."
+  rewriteNotes: "Kept admin anchor in hook and whatToShow; fixes missing-anchor issue."
+
+- draftId: DRAFT-114
+  rewrittenHook: "this poll betrayed my weekend in public"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "democracy hurt my feelings."
+  rewriteNotes: "Kept poll anchor; clearer betrayal/payoff."
+
+- draftId: DRAFT-153
+  rewrittenHook: "portal closed exactly when my courage opened"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "later has consequences."
+  rewriteNotes: "Kept portal anchor; stronger timing contradiction."
+
+- draftId: DRAFT-202
+  rewrittenHook: "one GIF turned my simple question into comedy"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "simple question, cinema reply."
+  rewriteNotes: "Kept GIF anchor; more compact and visual."
+
+- draftId: DRAFT-228
+  rewrittenHook: "last bus turned me into emergency athlete"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "cardio by transport."
+  rewriteNotes: "Kept bus anchor; sharper physical comedy."
+
+- draftId: DRAFT-017
+  rewrittenHook: "small visit became transport invoice"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "\"small\" has transport cost."
+  rewriteNotes: "Kept small anchor; more direct cost contradiction."
+
+- draftId: DRAFT-063
+  rewrittenHook: "one debit alert exposed every bad decision"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "fake alert, real emotion."
+  rewriteNotes: "Kept alert anchor; stronger consequence."
+
+- draftId: DRAFT-071
+  rewrittenHook: "post went live and my peace started refreshing"
+  rewrittenWhatToShow: "Show fake post analytics. You refresh the post, wait, refresh again, then lock the screen like you are above it. Immediately unlock."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "peace after posting is a myth."
+  rewriteNotes: "Kept post anchor in hook and whatToShow; fixes missing-anchor issue."
+
+- draftId: DRAFT-053
+  rewrittenHook: "my bed denied every 'when are you coming' message"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "my bed has authority."
+  rewriteNotes: "Kept bed anchor; stronger visual conflict."
+
+- draftId: DRAFT-011
+  rewrittenHook: "transport fare turned outside into a premium plan"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "outside is now a subscription."
+  rewriteNotes: "Kept transport anchor; sharper economic tension."
+
+- draftId: DRAFT-023
+  rewrittenHook: "one light blink killed my whole productivity"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "productivity needs electricity and emotional support."
+  rewriteNotes: "Kept light anchor; stronger action and consequence."
+
+- draftId: DRAFT-061
+  rewrittenHook: "balance saw my cart and embarrassed my confidence"
+  rewrittenWhatToShow: "Show a fake budget or fake bank-alert overlay with the balance visible. You open a shopping cart, add one item, then look back at the fake balance like it will change."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "financial courage is not evidence."
+  rewriteNotes: "Kept balance anchor in hook and whatToShow; fixes topic drift."
+
+- draftId: DRAFT-095
+  rewrittenHook: "the queue looked at me and cancelled the errand"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "patience did not follow me."
+  rewriteNotes: "Kept queue anchor; stronger personified conflict."
+
+- draftId: DRAFT-195
+  rewrittenHook: "rain caught me outside and collected my confidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "weather had agenda."
+  rewriteNotes: "Kept rain anchor; stronger visual consequence."
+
+- draftId: DRAFT-031
+  rewrittenHook: "the pot opened and hope left the kitchen"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "kitchen update: faith required."
+  rewriteNotes: "Kept pot anchor; sharper reveal."
+
+- draftId: DRAFT-065
+  rewrittenHook: "checkout opened before my budget could defend itself"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "window shopping with consequences."
+  rewriteNotes: "Kept checkout anchor; stronger money conflict."
+
+- draftId: DRAFT-187
+  rewrittenHook: "POS added extra fee and peace left the counter"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "payment method with plot twist."
+  rewriteNotes: "Kept POS anchor; sharper visible conflict."
+
+- draftId: DRAFT-191
+  rewrittenHook: "seller heard my price and laughed like evidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "bargaining as performance."
+  rewriteNotes: "Kept seller anchor; stronger embarrassment."
+
+- draftId: DRAFT-073
+  rewrittenHook: "one comment opened a press conference in my head"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mental press briefing."
+  rewriteNotes: "Kept comment anchor; stronger trigger."
+
+- draftId: DRAFT-171
+  rewrittenHook: "pay back entered season two with no episode ending"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "debt with comedy timing."
+  rewriteNotes: "Kept pay anchor; punchier debt contradiction."
+
+- draftId: DRAFT-193
+  rewrittenHook: "my stomach exposed the 'I don chop' lie"
+  rewrittenWhatToShow: "Someone offers food. You politely refuse. Your stomach makes noise while you look at the food too long."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "pride versus hunger."
+  rewriteNotes: "Kept stomach anchor in hook and whatToShow; fixes topic drift and sharpens contradiction."

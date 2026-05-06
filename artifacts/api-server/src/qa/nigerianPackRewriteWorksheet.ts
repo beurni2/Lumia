@@ -38,6 +38,63 @@ import { scoreHookQuality } from "../lib/hookQuality.js";
 const REVIEWED_BY = "BI 2026-05-05";
 const HOOK_QUALITY_FLOOR = 40;
 const DEFAULT_FAMILY = "adulting_chaos" as const;
+const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
+
+// Same tiny YAML-list reader as buildApprovedNigerianPack.ts — kept
+// inline (not extracted to a shared util) so each script is fully
+// self-contained for QA-script auditability.
+type Rewrite = {
+  draftId: string;
+  rewrittenHook?: string;
+  rewrittenWhatToShow?: string;
+  rewrittenHowToFilm?: string;
+  rewrittenCaption?: string;
+  rewriteNotes?: string;
+};
+const parseRewritesYaml = (text: string): Map<string, Rewrite> => {
+  const out = new Map<string, Rewrite>();
+  const kvRe = /^\s*-?\s*([A-Za-z][A-Za-z0-9_]*)\s*:\s*(.*)$/;
+  const decode = (raw: string): string => {
+    const t = raw.trim();
+    if (!t) return "";
+    if (t.startsWith('"')) {
+      try {
+        return JSON.parse(t) as string;
+      } catch {
+        return t.slice(1, -1);
+      }
+    }
+    return t;
+  };
+  let cur: Rewrite | null = null;
+  const flush = (): void => {
+    if (cur && cur.draftId) out.set(cur.draftId, cur);
+  };
+  for (const raw of text.split(/\r?\n/)) {
+    if (!raw.trim()) continue;
+    const m = raw.match(kvRe);
+    if (!m) continue;
+    const [, key, val] = m;
+    if (key === "draftId") {
+      flush();
+      cur = { draftId: decode(val) };
+    } else if (cur) {
+      const v = decode(val);
+      if (key === "rewrittenHook") cur.rewrittenHook = v;
+      else if (key === "rewrittenWhatToShow") cur.rewrittenWhatToShow = v;
+      else if (key === "rewrittenHowToFilm") cur.rewrittenHowToFilm = v;
+      else if (key === "rewrittenCaption") cur.rewrittenCaption = v;
+      else if (key === "rewriteNotes") cur.rewriteNotes = v;
+    }
+  }
+  flush();
+  return out;
+};
+const loadRewrites = (repoRoot: string): Map<string, Rewrite> => {
+  const p = path.resolve(repoRoot, REWRITES_PATH_REL);
+  if (!fs.existsSync(p)) return new Map();
+  return parseRewritesYaml(fs.readFileSync(p, "utf8"));
+};
 
 // ─── Worksheet CSV parser (same as builder) ──────────────────────
 const parseCsv = (text: string): string[][] => {
@@ -138,6 +195,8 @@ type RejectedRow = {
   row: WorksheetRow;
   reasons: string[];
   hookScore: number;
+  fromRewrite: boolean;
+  priorRewriteNotes: string;
 };
 
 const validateRow = (row: WorksheetRow): RejectedRow | null => {
@@ -201,7 +260,7 @@ const validateRow = (row: WorksheetRow): RejectedRow | null => {
   if (!row.domain || row.domain.trim().length === 0) reasons.push("domain is empty");
 
   if (reasons.length === 0) return null;
-  return { row, reasons, hookScore };
+  return { row, reasons, hookScore, fromRewrite: false, priorRewriteNotes: "" };
 };
 
 // ─── CSV emit ────────────────────────────────────────────────────
@@ -327,6 +386,10 @@ const buildMarkdown = (rejected: RejectedRow[]): string => {
     lines.push(`- **failureReason:** ${r.reasons.join("; ")}`);
     if (e.privacyNote) lines.push(`- **privacyNote:** ${e.privacyNote}`);
     if (e.reviewerNotes) lines.push(`- **reviewerNotes:** ${e.reviewerNotes}`);
+    if (r.fromRewrite) {
+      lines.push(`- **prior rewrite (still below floor):** yes`);
+      if (r.priorRewriteNotes) lines.push(`- **prior rewriteNotes:** ${r.priorRewriteNotes}`);
+    }
     lines.push("");
     lines.push("**Original (read-only):**");
     lines.push("");
@@ -365,10 +428,27 @@ const main = (): void => {
   const csvOut = path.join(outDir, "REGIONAL_N1_REWRITE_WORKSHEET.csv");
 
   const rows = readWorksheet(csvPath);
+  const rewrites = loadRewrites(repoRoot);
   const rejected: RejectedRow[] = [];
-  for (const row of rows) {
+  for (const original of rows) {
+    const rw = rewrites.get(original.draftId);
+    const overlay = (orig: string, rewritten: string | undefined): string =>
+      rewritten && rewritten.length > 0 ? rewritten : orig;
+    const row: WorksheetRow = rw
+      ? {
+          ...original,
+          hook: overlay(original.hook, rw.rewrittenHook),
+          whatToShow: overlay(original.whatToShow, rw.rewrittenWhatToShow),
+          howToFilm: overlay(original.howToFilm, rw.rewrittenHowToFilm),
+          caption: overlay(original.caption, rw.rewrittenCaption),
+        }
+      : original;
     const r = validateRow(row);
-    if (r !== null) rejected.push(r);
+    if (r !== null) {
+      r.fromRewrite = rw !== undefined;
+      r.priorRewriteNotes = rw?.rewriteNotes ?? "";
+      rejected.push(r);
+    }
   }
   // Sort: highest score first (closest to passing → easiest rewrite).
   rejected.sort((a, b) => b.hookScore - a.hookScore || a.row.draftId.localeCompare(b.row.draftId));

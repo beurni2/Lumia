@@ -22,56 +22,47 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreHookQuality(hook) >= 40
  *
- * INGEST SUMMARY: 4 approved · 46 rejected
+ * INGEST SUMMARY: 13 approved · 37 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-006 → scoreHookQuality 35 < floor 40
- *   • DRAFT-010 → scoreHookQuality 38 < floor 40
- *   • DRAFT-011 → scoreHookQuality 18 < floor 40
- *   • DRAFT-017 → scoreHookQuality 21 < floor 40
- *   • DRAFT-031 → scoreHookQuality 17 < floor 40
- *   • DRAFT-035 → scoreHookQuality 30 < floor 40
- *   • DRAFT-053 → scoreHookQuality 20 < floor 40
- *   • DRAFT-059 → scoreHookQuality 24 < floor 40
- *   • DRAFT-061 → validateScenarioCoherence: hook_topic_noun_drift; scoreHookQuality 18 < floor 40
- *   • DRAFT-063 → scoreHookQuality 21 < floor 40
- *   • DRAFT-065 → scoreHookQuality 17 < floor 40
- *   • DRAFT-067 → scoreHookQuality 24 < floor 40
- *   • DRAFT-073 → scoreHookQuality 13 < floor 40
- *   • DRAFT-083 → scoreHookQuality 28 < floor 40
- *   • DRAFT-085 → scoreHookQuality 35 < floor 40
- *   • DRAFT-091 → scoreHookQuality 33 < floor 40
- *   • DRAFT-095 → scoreHookQuality 18 < floor 40
- *   • DRAFT-108 → validateScenarioCoherence: show_missing_hook_anchor; scoreHookQuality 22 < floor 40
- *   • DRAFT-111 → scoreHookQuality 27 < floor 40
- *   • DRAFT-114 → scoreHookQuality 22 < floor 40
- *   • DRAFT-117 → scoreHookQuality 25 < floor 40
- *   • DRAFT-119 → scoreHookQuality 35 < floor 40
- *   • DRAFT-129 → scoreHookQuality 25 < floor 40
- *   • DRAFT-146 → scoreHookQuality 25 < floor 40
- *   • DRAFT-153 → scoreHookQuality 22 < floor 40
- *   • DRAFT-171 → scoreHookQuality 10 < floor 40
- *   • DRAFT-177 → scoreHookQuality 35 < floor 40
- *   • DRAFT-181 → scoreHookQuality 32 < floor 40
- *   • DRAFT-187 → scoreHookQuality 14 < floor 40
- *   • DRAFT-191 → scoreHookQuality 14 < floor 40
- *   • DRAFT-193 → validateScenarioCoherence: hook_topic_noun_drift; scoreHookQuality 10 < floor 40
- *   • DRAFT-195 → scoreHookQuality 18 < floor 40
- *   • DRAFT-199 → scoreHookQuality 25 < floor 40
- *   • DRAFT-202 → scoreHookQuality 22 < floor 40
- *   • DRAFT-206 → scoreHookQuality 31 < floor 40
- *   • DRAFT-210 → scoreHookQuality 25 < floor 40
- *   • DRAFT-212 → scoreHookQuality 23 < floor 40
- *   • DRAFT-219 → scoreHookQuality 32 < floor 40
- *   • DRAFT-223 → scoreHookQuality 25 < floor 40
- *   • DRAFT-228 → scoreHookQuality 22 < floor 40
- *   • DRAFT-237 → scoreHookQuality 35 < floor 40
- *   • DRAFT-255 → scoreHookQuality 35 < floor 40
- *   • DRAFT-266 → scoreHookQuality 38 < floor 40
- *   • DRAFT-269 → scoreHookQuality 28 < floor 40
- *   • DRAFT-023 → scoreHookQuality 18 < floor 40
- *   • DRAFT-071 → validateScenarioCoherence: show_missing_hook_anchor; scoreHookQuality 21 < floor 40
+ *   • DRAFT-006 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-010 [REWRITE] → scoreHookQuality 34 < floor 40
+ *   • DRAFT-011 [REWRITE] → validateScenarioCoherence: hook_topic_noun_drift; scoreHookQuality 32 < floor 40
+ *   • DRAFT-017 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-035 [REWRITE] → scoreHookQuality 34 < floor 40
+ *   • DRAFT-053 [REWRITE] → scoreHookQuality 28 < floor 40
+ *   • DRAFT-061 [REWRITE] → scoreHookQuality 32 < floor 40
+ *   • DRAFT-067 [REWRITE] → scoreHookQuality 28 < floor 40
+ *   • DRAFT-073 [REWRITE] → scoreHookQuality 21 < floor 40
+ *   • DRAFT-083 [REWRITE] → scoreHookQuality 32 < floor 40
+ *   • DRAFT-085 [REWRITE] → scoreHookQuality 24 < floor 40
+ *   • DRAFT-091 [REWRITE] → scoreHookQuality 24 < floor 40
+ *   • DRAFT-108 [REWRITE] → scoreHookQuality 18 < floor 40
+ *   • DRAFT-111 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-117 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-129 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-146 [REWRITE] → scoreHookQuality 28 < floor 40
+ *   • DRAFT-153 [REWRITE] → scoreHookQuality 28 < floor 40
+ *   • DRAFT-171 [REWRITE] → validateScenarioCoherence: show_missing_hook_anchor; scoreHookQuality 31 < floor 40
+ *   • DRAFT-177 [REWRITE] → scoreHookQuality 32 < floor 40
+ *   • DRAFT-181 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-187 [REWRITE] → scoreHookQuality 18 < floor 40
+ *   • DRAFT-191 [REWRITE] → scoreHookQuality 32 < floor 40
+ *   • DRAFT-195 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-199 [REWRITE] → scoreHookQuality 18 < floor 40
+ *   • DRAFT-202 [REWRITE] → validateScenarioCoherence: show_missing_hook_anchor; scoreHookQuality 22 < floor 40
+ *   • DRAFT-206 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-210 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-212 [REWRITE] → scoreHookQuality 31 < floor 40
+ *   • DRAFT-219 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-223 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-228 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-237 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-255 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-266 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-269 [REWRITE] → scoreHookQuality 37 < floor 40
+ *   • DRAFT-071 [REWRITE] → scoreHookQuality 35 < floor 40
  */
 
 import {
@@ -81,6 +72,50 @@ import {
 
 export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =
   Object.freeze([
+    Object.freeze({
+      // source: DRAFT-031 [REWRITE] · cluster: food
+      hook: "the pot opened and hope left the kitchen",
+      whatToShow: "Open a pot, look inside, close it slowly, then open a snack cupboard like you are switching departments.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "kitchen update: faith required.",
+      anchor: "pot",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-059 [REWRITE] · cluster: family_group · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "family chat beat mute and entered my peace",
+      whatToShow: "Show fake family group chat muted. Notifications still pile up visually. You stare at the mute icon like it lied.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "mute button needs backup.",
+      anchor: "chat",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-063 [REWRITE] · cluster: bank_alert · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "one debit alert exposed every bad decision",
+      whatToShow: "Fake bank-alert overlay pops up. You freeze, open calculator, then close it because the math is disrespectful.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "fake alert, real emotion.",
+      anchor: "alert",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-065 [REWRITE] · cluster: shopping
+      hook: "checkout opened before my budget could defend itself",
+      whatToShow: "Fake shopping app. You scroll, add to cart 'just to see,' then hover over checkout like your thumb has separate plans.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "window shopping with consequences.",
+      anchor: "checkout",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
     Object.freeze({
       // source: DRAFT-093 · cluster: towel
       hook: "I said \"almost ready\" while still negotiating with towel",
@@ -93,6 +128,39 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-095 [REWRITE] · cluster: queue
+      hook: "the queue looked at me and cancelled the errand",
+      whatToShow: "Show a fake queue/line situation or text overlay. You look at the line, look at your phone, then turn around slowly.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "patience did not follow me.",
+      anchor: "queue",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-114 [REWRITE] · cluster: poll_wahala · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "this poll betrayed my weekend in public",
+      whatToShow: "Fake group poll about weekend plans. You vote yes. Everyone else votes no. You stare, then type 'una no get joy' and delete it.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "democracy hurt my feelings.",
+      anchor: "poll",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-119 [REWRITE] · cluster: im_coming
+      hook: "ironing exposed my 'I dey come' lie",
+      whatToShow: "Type 'I'm coming now.' Cut to you still ironing or looking for socks while the time on your phone keeps moving.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "coming soon. allegedly.",
+      anchor: "ironing",
+      domain: "movement",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-172 · cluster: airtime_data
       hook: "airtime finished, but somehow data is also judging me",
       whatToShow: "Try to buy airtime with slow network. App loads forever. You stare like even the phone is tired.",
@@ -100,6 +168,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-193 [REWRITE] · cluster: food_refusal
+      hook: "my stomach exposed the 'I don chop' lie",
+      whatToShow: "Someone offers food. You politely refuse. Your stomach makes noise while you look at the food too long.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "pride versus hunger.",
+      anchor: "stomach",
+      domain: "everyday",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -122,6 +201,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "caption humbled me.",
       anchor: "caption",
       domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-023 [REWRITE] · cluster: power
+      hook: "one light blink killed my whole productivity",
+      whatToShow: "Laptop open. The room light flickers. You freeze, save the document aggressively, then stare at the socket like it owes you stability.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "productivity needs electricity and emotional support.",
+      anchor: "light",
+      domain: "phone",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
