@@ -47,12 +47,14 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { cosmic, lumina } from "@/constants/colors";
+import { type Bundle } from "@/constants/regions";
 import { fontFamily, type } from "@/constants/typography";
 import {
   EMPTY_CALIBRATION,
   markCalibrationPromptedThisProcess,
   saveTasteCalibration,
   suppressCalibrationGate,
+  type LanguageStyle,
   type PreferredFormat,
   type PreferredHookStyle,
   type PreferredTone,
@@ -83,6 +85,11 @@ export type TasteCalibrationMode = "initial" | "refresh";
 type Props = {
   onComplete: () => void;
   mode?: TasteCalibrationMode;
+  // PHASE N1 — region drives whether the new Pidgin language step
+  // (step 4) is surfaced. `"nigeria"` shows it; every other value
+  // (or null/undefined) skips it entirely so non-NG cohorts see
+  // the prior 4-step flow byte-identically.
+  region?: Bundle | null;
 };
 
 type Choice<T extends string> = { value: T; label: string; sub?: string };
@@ -165,6 +172,30 @@ const SITUATION_SUMMARY: Record<Situation, string> = {
   creator_social: "Creator / online life",
 };
 
+// PHASE N1 — Pidgin language picker (Nigeria-only step 4). Single-
+// select with auto-advance — minimum friction to confirm the
+// creator's voice register. Server enum order: clean / light_pidgin
+// / pidgin. We expose the same three with copy that reads in plain
+// English so the choice is unambiguous on first encounter.
+const LANGUAGE_CHOICES: Choice<LanguageStyle>[] = [
+  { value: "clean", label: "Plain English", sub: "no Pidgin in my hooks or captions" },
+  { value: "light_pidgin", label: "Mostly English, some Pidgin", sub: "the way I actually text — \"abi\", \"sha\", \"now-now\"" },
+  { value: "pidgin", label: "Full Pidgin", sub: "my normal voice — \"wahala\", \"how far\", \"abeg\"" },
+];
+const LANGUAGE_SUMMARY: Record<LanguageStyle, string> = {
+  clean: "Plain English",
+  light_pidgin: "English + Pidgin",
+  pidgin: "Pidgin voice",
+};
+// PHASE N1 — derive the companion `slangIntensity` (0/1/2) from the
+// chosen language style so the two server fields stay aligned
+// without a second tap.
+function intensityFromLanguageStyle(ls: LanguageStyle | null): number {
+  if (ls === "pidgin") return 2;
+  if (ls === "light_pidgin") return 1;
+  return 0;
+}
+
 // PHASE Z3 — multi-select cap. We allow the user to tap up to 3
 // options on the format / tone / opener steps. The 3rd tap auto-
 // advances (matches the original "no Next button if I'm decisive"
@@ -196,11 +227,21 @@ function successHaptic() {
   }
 }
 
-export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
+export function TasteCalibration({ onComplete, mode = "initial", region = null }: Props) {
   const isRefresh = mode === "refresh";
-  // PHASE Z5.8 — 5 step indices: 0=format, 1=tone, 2=situations,
-  // 3=opener (optional), 4=confirmation.
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
+  // PHASE N1 — Nigerian creators see a 6-index flow with a new
+  // language picker between opener and confirmation:
+  //   0=format, 1=tone, 2=situations, 3=opener (optional),
+  //   4=language (Nigeria-only), 5=confirmation.
+  // Every other region sees the prior 5-index flow (4 confirmation)
+  // and never lands on step 4 — opener terminal handlers jump
+  // straight to step 5 (confirmation) when region !== "nigeria",
+  // preserving byte-identical behaviour for non-NG cohorts.
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
+  const showLanguageStep = region === "nigeria";
+  // PHASE N1 — language style is single-select with auto-advance.
+  // `null` while the picker is open (and forever for non-NG saves).
+  const [languageStyle, setLanguageStyle] = useState<LanguageStyle | null>(null);
   // PHASE Z3/Z4/Z5.8 — four multi-step axes (formats / tones /
   // situations are required ≥1; hookStyles is optional ≥0). Z4
   // widened tone from a single nullable enum to an array; the
@@ -247,6 +288,10 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       chosenTones: PreferredTone[],
       chosenSituations: Situation[],
       chosenHooks: PreferredHookStyle[],
+      // PHASE N1 — `null` for non-Nigeria saves (the picker never
+      // surfaced) and for any future region that doesn't gate the
+      // pack on a language signal.
+      chosenLanguageStyle: LanguageStyle | null,
     ) => {
       const doc: TasteCalibrationDoc = {
         ...EMPTY_CALIBRATION,
@@ -264,6 +309,12 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         // time we get here; 0 is impossible because step 2's
         // Continue is gated on length>=1 and there is no Skip).
         selectedSituations: chosenSituations,
+        // PHASE N1 — Pidgin signal + derived intensity. Both stay
+        // at the EMPTY_CALIBRATION defaults (null / 0) for non-
+        // Nigeria saves, which is the cohort-gate's "do nothing"
+        // shape — no pack activation, no style penalty.
+        languageStyle: chosenLanguageStyle,
+        slangIntensity: intensityFromLanguageStyle(chosenLanguageStyle),
         skipped: false,
       };
       successHaptic();
@@ -398,6 +449,32 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // handler: append/remove with a cap of 3. The cap-reaching tap
   // fires the terminal save side effects directly (one-shot
   // guarded) and transitions to the confirmation step.
+  // PHASE N1 — opener-step terminal helper. Branches on whether
+  // the new Pidgin language step (step 4) needs to be shown:
+  //   • Nigeria → defer the save, advance to step 4 so the user
+  //     picks a language style first. `saveFiredRef` is NOT set
+  //     yet — the language step's terminal handler owns the save.
+  //   • Every other region → fire the save and jump straight to
+  //     confirmation (step 5). `saveFiredRef` is set here so a
+  //     race can't double-fire.
+  // Pulled out of the three opener entry points (cap auto-advance,
+  // Continue, Skip) so the routing rule lives in exactly one
+  // place.
+  const terminateOpener = useCallback(
+    (chosenHooks: PreferredHookStyle[]) => {
+      if (saveFiredRef.current) return;
+      if (showLanguageStep) {
+        setStep(4);
+        return;
+      }
+      saveFiredRef.current = true;
+      setBusy(true);
+      fireSaveSideEffects(formats, tones, situations, chosenHooks, null);
+      setStep(5);
+    },
+    [showLanguageStep, formats, tones, situations, fireSaveSideEffects],
+  );
+
   const handleHookToggle = useCallback(
     (v: PreferredHookStyle) => {
       if (busy) return;
@@ -419,26 +496,20 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         if (prev.length >= MULTI_SELECT_MAX) return prev;
         const next = [...prev, v];
         if (next.length === MULTI_SELECT_MAX) {
-          // Cap reached — fire the terminal save side effects on
-          // this same synchronous tick, guarded by the one-shot
-          // ref so a duplicate event can't double-fire.
-          if (!saveFiredRef.current) {
-            saveFiredRef.current = true;
-            setBusy(true);
-            fireSaveSideEffects(formats, tones, situations, next);
-            setStep(4);
-          }
+          // Cap reached — terminate the opener step. terminateOpener
+          // routes to the language step (Nigeria) or fires the save
+          // and lands on confirmation (every other region).
+          terminateOpener(next);
         }
         return next;
       });
     },
-    [busy, formats, tones, situations, fireSaveSideEffects],
+    [busy, formats, tones, situations, terminateOpener],
   );
 
-  // Continue button on the opener step — fires the terminal save
-  // side effects when the user is happy with 1 or 2 selections.
-  // Uses the same one-shot guard as the cap-reaching auto-advance
-  // path so the two terminal entry points can't both fire.
+  // Continue button on the opener step — same terminal contract as
+  // the cap-reaching tap. terminateOpener owns the save-vs-advance
+  // routing so the two entry points stay in lockstep.
   const handleHookContinue = useCallback(() => {
     if (busy) return;
     if (saveFiredRef.current) return;
@@ -449,12 +520,9 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       hookStyles.length === 0
     )
       return;
-    saveFiredRef.current = true;
-    setBusy(true);
     lightHaptic();
-    fireSaveSideEffects(formats, tones, situations, hookStyles);
-    setStep(4);
-  }, [busy, formats, tones, situations, hookStyles, fireSaveSideEffects]);
+    terminateOpener(hookStyles);
+  }, [busy, formats, tones, situations, hookStyles, terminateOpener]);
 
   // PHASE Z5.8 — Skip on the OPTIONAL opener step. Persists the
   // same doc the user built across the three required screens
@@ -474,18 +542,37 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
       situations.length === 0
     )
       return;
-    saveFiredRef.current = true;
-    setBusy(true);
     lightHaptic();
-    fireSaveSideEffects(formats, tones, situations, []);
-    setStep(4);
-  }, [busy, formats, tones, situations, fireSaveSideEffects]);
+    // Skip preserves the same routing rule as Continue / cap-tap —
+    // a Nigerian creator who skips the opener still picks a
+    // language style on step 4 before we save.
+    terminateOpener([]);
+  }, [busy, formats, tones, situations, terminateOpener]);
 
-  // Confirmation step lives below — when we land on step 4 we
+  // PHASE N1 — language picker terminal handler (Nigeria only).
+  // Single-select with auto-advance: tapping a choice fires the
+  // save with the chosen languageStyle and lands on confirmation
+  // (step 5). Guarded by saveFiredRef so a double-tap can't
+  // double-save.
+  const handleLanguagePick = useCallback(
+    (v: LanguageStyle) => {
+      if (busy) return;
+      if (saveFiredRef.current) return;
+      saveFiredRef.current = true;
+      setBusy(true);
+      lightHaptic();
+      setLanguageStyle(v);
+      fireSaveSideEffects(formats, tones, situations, hookStyles, v);
+      setStep(5);
+    },
+    [busy, formats, tones, situations, hookStyles, fireSaveSideEffects],
+  );
+
+  // Confirmation step lives below — when we land on step 5 we
   // schedule the auto-dismiss timer ourselves so the parent's
   // onComplete() runs after the animation has had time to land.
   useEffect(() => {
-    if (step !== 4) return;
+    if (step !== 5) return;
     const t = setTimeout(onComplete, CONFIRMATION_TOTAL_MS);
     return () => clearTimeout(t);
   }, [step, onComplete]);
@@ -501,13 +588,19 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // step is suffixed " · optional" so a creator who scans the
   // kicker first knows Skip is available there (and only there).
   const kickerPrefix = isRefresh ? "Quick refresh" : "Quick tune";
+  // PHASE N1 — total step count is 5 for Nigerian creators (the
+  // language picker is step 4) and 4 for every other region. The
+  // kicker reflects that so the user always sees "X of N" with N
+  // matching their actual flow length.
+  const totalSteps = showLanguageStep ? 5 : 4;
   const stepKicker = useMemo(() => {
-    if (step === 0) return `${kickerPrefix} · 1 of 4`;
-    if (step === 1) return `${kickerPrefix} · 2 of 4`;
-    if (step === 2) return `${kickerPrefix} · 3 of 4`;
-    if (step === 3) return `${kickerPrefix} · 4 of 4 · optional`;
+    if (step === 0) return `${kickerPrefix} · 1 of ${totalSteps}`;
+    if (step === 1) return `${kickerPrefix} · 2 of ${totalSteps}`;
+    if (step === 2) return `${kickerPrefix} · 3 of ${totalSteps}`;
+    if (step === 3) return `${kickerPrefix} · 4 of ${totalSteps} · optional`;
+    if (step === 4) return `${kickerPrefix} · 5 of ${totalSteps}`;
     return null;
-  }, [step, kickerPrefix]);
+  }, [step, kickerPrefix, totalSteps]);
 
   // PHASE Y14 — refresh-mode question copy. The first step doubles
   // as the "why are you seeing this again" surface (the only step
@@ -529,7 +622,7 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
   // hookStyles array MAY be empty (Skip path) — the confirmation
   // card simply renders no opener chips in that case.
   if (
-    step === 4 &&
+    step === 5 &&
     formats.length > 0 &&
     tones.length > 0 &&
     situations.length > 0
@@ -540,6 +633,11 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         toneLabels={tones.map((t) => TONE_SUMMARY[t])}
         situationLabels={situations.map((s) => SITUATION_SUMMARY[s])}
         hookLabels={hookStyles.map((h) => HOOK_SUMMARY[h])}
+        // PHASE N1 — language chip rendered only when the creator
+        // actually picked a style (Nigerian creators only). For
+        // every other cohort the array is empty and the chip block
+        // collapses cleanly.
+        languageLabels={languageStyle ? [LANGUAGE_SUMMARY[languageStyle]] : []}
         // PHASE Y14 — confirmation kicker mirrors the entry framing:
         // a refresh closes with "Refreshed" so the creator knows the
         // re-pin landed; initial flow keeps the original "Got it".
@@ -662,11 +760,34 @@ export function TasteCalibration({ onComplete, mode = "initial" }: Props) {
         </>
       ) : null}
 
+      {/* PHASE N1 — Pidgin language picker, Nigeria-only step 4.
+          Single-select with auto-advance: tapping any choice fires
+          the save (with the chosen languageStyle) and lands on
+          confirmation (step 5). No Skip — once a Nigerian creator
+          reaches this step, picking a voice register is required;
+          the choice "Plain English" exists for that purpose
+          (semantically equivalent to a clean cohort opt-out and
+          is what the server's pack-activation guard reads). */}
+      {step === 4 ? (
+        <>
+          <Text style={styles.heroTitle}>How do you want your hooks to sound?</Text>
+          <Text style={styles.heroSub}>
+            Tap one — this picks the voice your ideas land in.
+          </Text>
+          <SingleSelect
+            choices={LANGUAGE_CHOICES}
+            value={languageStyle}
+            onChange={handleLanguagePick}
+            disabled={busy}
+          />
+        </>
+      ) : null}
+
       {/* PHASE Z5.8 — Skip link is rendered ONLY on the optional
           opener step (step 3). The three required screens (0, 1, 2)
-          intentionally have no escape hatch — the closed-beta needs
-          a minimum viable taste signal before the user lands back
-          on Home. */}
+          and the Nigeria-only language step (step 4) intentionally
+          have no escape hatch — the closed-beta needs a minimum
+          viable taste signal before the user lands back on Home. */}
       {step === 3 ? (
         <Pressable
           onPress={handleSkip}
@@ -694,12 +815,16 @@ function ConfirmationCard({
   // Always at least one entry by contract (required step gates).
   situationLabels,
   hookLabels,
+  // PHASE N1 — language chip (Nigeria-only). Empty for every other
+  // cohort; the chip block collapses cleanly when the array is [].
+  languageLabels,
   kickerLabel,
 }: {
   formatLabels: string[];
   toneLabels: string[];
   situationLabels: string[];
   hookLabels: string[];
+  languageLabels: string[];
   kickerLabel: string;
 }) {
   // Reanimated shared values: opacity 0→1 over 220 ms (snappy fade
@@ -763,6 +888,12 @@ function ConfirmationCard({
           ))}
           {hookLabels.map((label) => (
             <View key={`h-${label}`} style={styles.confirmChip}>
+              <Text style={styles.confirmChipText}>{label}</Text>
+            </View>
+          ))}
+          {/* PHASE N1 — language chip(s); empty for non-Nigeria. */}
+          {languageLabels.map((label) => (
+            <View key={`l-${label}`} style={styles.confirmChip}>
               <Text style={styles.confirmChipText}>{label}</Text>
             </View>
           ))}

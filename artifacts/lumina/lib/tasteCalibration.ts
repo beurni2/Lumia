@@ -39,6 +39,13 @@ export type PreferredHookStyle =
   // PHASE Z5.8 — fifth opener option mirrors server enum.
   | "pov_hook";
 
+// PHASE N1 — Pidgin language-style picker. Mirrors `languageStyleEnum`
+// on the server. Surfaced ONLY when the creator's region is "nigeria"
+// (the new step 4 of the Quick Tune); for every other region the
+// field stays `null` and the server's pack activation guard short-
+// circuits, preserving byte-identical behaviour for non-NG cohorts.
+export type LanguageStyle = "clean" | "light_pidgin" | "pidgin";
+
 // PHASE Z5.8 — six situation / topic-lane buckets surfaced on the
 // new third Quick Tune screen. Mirrors `situationEnum` on the
 // server. Persisted on the JSONB doc; downstream ideator
@@ -66,6 +73,15 @@ export type TasteCalibration = {
   // additively; the server's zod schema defaults missing fields to
   // [] so older client payloads still accept on save.
   selectedSituations: Situation[];
+  // PHASE N1 — Pidgin language style. `null` for every region other
+  // than Nigeria (the picker is gated on region === "nigeria"); the
+  // server defaults a missing field to `null` so older payloads
+  // still parse cleanly.
+  languageStyle: LanguageStyle | null;
+  // PHASE N1 — derived companion intensity (0=clean, 1=light, 2=full).
+  // Mirrors the server field; we set it from `languageStyle` so the
+  // two stay aligned without a second tap.
+  slangIntensity: number;
   completedAt: string | null;
   skipped: boolean;
 };
@@ -82,6 +98,11 @@ export const EMPTY_CALIBRATION: TasteCalibration = {
   privacyAvoidances: [],
   preferredHookStyles: [],
   selectedSituations: [],
+  // PHASE N1 — defaults that match the server's `.nullable().default(null)`
+  // / `.default(0)` so a non-Nigeria save and a pre-N1 doc parse byte-
+  // identically.
+  languageStyle: null,
+  slangIntensity: 0,
   completedAt: null,
   skipped: false,
 };

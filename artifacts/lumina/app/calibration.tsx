@@ -29,12 +29,21 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { customFetch } from "@workspace/api-client-react";
+
 import {
   TasteCalibration,
   type TasteCalibrationMode,
 } from "@/components/onboarding/TasteCalibration";
 import { cosmic } from "@/constants/colors";
+import { type Bundle } from "@/constants/regions";
 import { fetchTasteCalibration } from "@/lib/tasteCalibration";
+
+// PHASE N1 — minimal shape we read off /api/style-profile here. The
+// home screen uses a richer type; for the calibration modal we
+// only need `region` to decide whether to surface the Pidgin
+// language step.
+type StyleProfileRegionResponse = { region: Bundle | null };
 
 export default function CalibrationModal() {
   const router = useRouter();
@@ -54,14 +63,28 @@ export default function CalibrationModal() {
   // user briefly sees first-time copy and then the refresh copy
   // swaps in (rare and visually subtle: only step 0 differs).
   const [mode, setMode] = useState<TasteCalibrationMode>("initial");
+  // PHASE N1 — region drives whether the Pidgin language step
+  // surfaces. We fetch it alongside the calibration doc so the
+  // modal mounts with both signals; null until the fetch lands
+  // (worst case: a Nigerian creator briefly sees the 4-step kicker
+  // before the region resolves and the kicker swaps to "of 5").
+  const [region, setRegion] = useState<Bundle | null>(null);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const cal = await fetchTasteCalibration();
+        const [cal, sp] = await Promise.all([
+          fetchTasteCalibration().catch(() => null),
+          customFetch<StyleProfileRegionResponse>("/api/style-profile").catch(
+            () => null,
+          ),
+        ]);
         if (cancelled) return;
         if (cal && !cal.skipped && cal.completedAt) {
           setMode("refresh");
+        }
+        if (sp?.region) {
+          setRegion(sp.region);
         }
       } catch {
         // Fail-open — keep the default "initial" framing on error.
@@ -90,7 +113,7 @@ export default function CalibrationModal() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <TasteCalibration onComplete={handleDone} mode={mode} />
+        <TasteCalibration onComplete={handleDone} mode={mode} region={region} />
       </ScrollView>
     </View>
   );

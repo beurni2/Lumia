@@ -511,7 +511,12 @@ export default function MvpOnboarding() {
         ) : null}
 
         {step === "calibration" ? (
-          <TasteCalibration onComplete={handleCalibrationDone} />
+          // PHASE N1 — pass the user's freshly-saved region through
+          // to the calibration screen so the Pidgin language step
+          // (Nigeria-only) can light up at the right point in the
+          // onboarding flow. `bundle` is set when the user picked
+          // their country on the region step above.
+          <TasteCalibration onComplete={handleCalibrationDone} region={bundle} />
         ) : null}
 
         {errorMsg ? (
