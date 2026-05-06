@@ -40,7 +40,8 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 - **Nigerian Pack Slot Reservation (N1-S2):** `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
 - **Per-Creator Pack Memory (N1-FULL-SPEC):** `artifacts/api-server/src/lib/nigerianPackCreatorMemory.ts`
 - **N1 Codegen + Rejection Report:** `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts` → `.local/N1_REJECTION_REPORT.md`
-- **N1 Rotation Regression Analysis (Batch B-extension):** `.local/N1_ROTATION_REGRESSION_ANALYSIS.md` (root-cause for staging-QA HOLD verdict; recommends BI batch C rebalance toward `phone`/`work`/`social`/`content` domains)
+- **N1 Rotation Regression Analysis (Batch B-extension + Batch C):** `.local/N1_ROTATION_REGRESSION_ANALYSIS.md` (original root-cause report + 2026-05-06 update noting the staging-QA harness is non-deterministic by design — `Math.random` in core selection — and a single-sample HOLD verdict is sample-driven, not a real regression)
+- **N1 Rotation Fix Proposal (WITHDRAWN):** `.local/N1_ROTATION_FIX_PROPOSAL.md` — Option C segment-interleave was implemented, regressed staging QA 29→15, reverted. Helper `rotatePackBuckets` retained in `nigerianHookPack.ts` (unwired, fully unit-tested) for any future use that doesn't share the per-batch fingerprint-dedup interaction.
 - **N1 Worksheet Extender:** `artifacts/api-server/src/qa/extendNigerianWorksheet.ts`
 - **Regional QA Harnesses:** `artifacts/api-server/src/qa/regionalR{1,2,3,4}Qa.ts`
 

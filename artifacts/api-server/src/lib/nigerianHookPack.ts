@@ -527,3 +527,4 @@ export function nigerianPackPrefixGate(
 ): boolean {
   return djb2(`${salt}|${coreId}|ng-pack-prefix`) % 4 === 0;
 }
+

@@ -944,6 +944,10 @@ export function generateCoreCandidates(
       // Salt-rotated stable order so pack draws are deterministic
       // across regenerates but still rotate (otherwise the same 3
       // entries would always win the prefix slot for a given core).
+      // A 2026-05-06 segment-interleave-by-domain alternative was
+      // tried + reverted (regressed staging QA 29→15 via per-batch
+      // fp-dedup correlation across cores). See
+      // .local/N1_ROTATION_FIX_PROPOSAL.md "Outcome appendix".
       const rotated = matching.slice();
       const rotateBy = ((salt | 0) >>> 0) % Math.max(1, rotated.length);
       const ordered = rotated
