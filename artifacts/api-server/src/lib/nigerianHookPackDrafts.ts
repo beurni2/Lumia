@@ -4844,16 +4844,24 @@ export function checkNigerianDraftPackIntegrity(
     const push = (reason: string) =>
       issues.push({ index: i, hookSnippet: tag, reason });
 
-    // Draft-layer reviewedBy rules (mirrors production but accepts
-    // the PENDING sentinel because the production assert rejects it
-    // — drafts can carry the sentinel without ever entering the
-    // live pack):
+    // Draft-layer reviewedBy rules — TIGHTENED per BI 2026-05-06
+    // ingest. After the 300-draft stamping pass every draft carries a
+    // real reviewer initials+date stamp; the legacy PENDING sentinel
+    // is no longer accepted at the draft layer either, so a reviewer
+    // can't accidentally regress a row to "unreviewed" without the
+    // boot assert tripping.
     //   • must be a non-empty trimmed string
+    //   • must NOT equal the PENDING_NATIVE_REVIEW sentinel
     //   • must NOT start with `AGENT-PROPOSED` (those need reviewer
     //     overwrite before promotion)
     const stamp = (e.reviewedBy ?? "").trim();
     if (stamp.length === 0) {
       push("reviewedBy missing or whitespace-only");
+    } else if (stamp === PENDING_NATIVE_REVIEW) {
+      push(
+        `reviewedBy is the PENDING_NATIVE_REVIEW sentinel — every ` +
+          `draft must carry a real reviewer stamp (e.g. 'BI 2026-05-06')`,
+      );
     } else if (stamp.startsWith("AGENT-PROPOSED")) {
       push(
         `reviewedBy carries AGENT-PROPOSED prefix — needs reviewer ` +

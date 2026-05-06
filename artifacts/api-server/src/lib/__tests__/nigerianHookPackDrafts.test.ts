@@ -78,18 +78,18 @@ describe("N1 drafts — import shape", () => {
 describe("N1 drafts — assert sensitivity (synthetic failures)", () => {
   const BASE: DraftNigerianPackEntry = DRAFT_NIGERIAN_HOOK_PACK[0]!;
 
-  // PHASE N1-FULL-SPEC — post-review the draft assert mirrors the
-  // production rules with one intentional difference: the PENDING
-  // sentinel is ACCEPTED at the draft layer (production assert
-  // rejects it via its non-empty + sentinel checks, so a draft
-  // carrying PENDING can never enter the live pack). Verify each
-  // remaining rejection path: empty, AGENT-PROPOSED prefix.
-  it("accepts an entry whose reviewedBy is the PENDING sentinel", () => {
-    const ok: DraftNigerianPackEntry = {
+  // PHASE N1-FULL-SPEC BI 2026-05-06 — TIGHTENED. The draft assert
+  // now also rejects the PENDING sentinel (every draft must carry a
+  // real reviewer stamp like "BI 2026-05-06"). Verify each rejection
+  // path: PENDING sentinel, empty, AGENT-PROPOSED prefix.
+  it("rejects an entry whose reviewedBy is the PENDING sentinel", () => {
+    const bad: DraftNigerianPackEntry = {
       ...BASE,
       reviewedBy: PENDING_NATIVE_REVIEW,
     };
-    expect(() => assertNigerianDraftPackIntegrity([ok])).not.toThrow();
+    expect(() => assertNigerianDraftPackIntegrity([bad])).toThrow(
+      /PENDING_NATIVE_REVIEW/,
+    );
   });
 
   it("rejects an entry whose reviewedBy is empty", () => {

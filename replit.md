@@ -77,6 +77,7 @@ I prefer to develop iteratively and see changes frequently. Please ask before ma
 - **N1 Style Penalty Symmetry:** `canApplyNigerianStylePenalty` must mirror `canActivateNigerianPack` to prevent cohort gate splitting and penalty leakage. Applied only at `scoreHookQuality` for catalog hooks, not pack hooks.
 - **N1 Circular-Import TDZ:** `nigerianHookPackApproved.ts` must not self-call `assertNigerianPackIntegrity` or `registerApprovedPoolReference` at the module top level due to circular import dependencies.
 - **N1 Agent-Proposed Rewrites:** Agent-proposed rewrites in `.local/REGIONAL_N1_REWRITES.yaml` require explicit reviewer sign-off to pass integrity checks.
+- **N1 Draft Reviewer Stamp (BI 2026-05-06):** Draft assert in `nigerianHookPackDrafts.ts` rejects empty, `PENDING_NATIVE_REVIEW`, and `AGENT-PROPOSED*` reviewer stamps. After the BI 2026-05-06 ingest pass every draft must carry a real reviewer initials+date stamp. Codegen (`qa/buildApprovedNigerianPack.ts`) writes per-draft rejection detail to `.local/N1_REJECTION_REPORT.md`; current state: 204 approved / 13 rejected of 217 worksheet rows.
 
 ## Pointers
 
