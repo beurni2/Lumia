@@ -19,7 +19,7 @@ function makeIdea(overrides: Partial<Idea> = {}): Idea {
     hook: "test hook",
     hookStyle: "internal_thought",
     structure: "denial_loop",
-    emotionalSpike: "guilt",
+    emotionalSpike: "regret",
     pattern: "pov",
     setting: "desk",
     howToFilm: "film at desk",
@@ -57,7 +57,7 @@ function makeScored(
       captionStrength: 8,
       freshness: 8,
     },
-  } as ScoredCandidate;
+  } as unknown as ScoredCandidate;
 }
 
 function makeMemory(overrides: Partial<ViralPatternMemory> = {}): ViralPatternMemory {
@@ -286,7 +286,7 @@ describe("computeNoveltyDistance", () => {
     const idea = makeIdea({
       structure: "denial_loop",
       hookStyle: "internal_thought",
-      emotionalSpike: "guilt",
+      emotionalSpike: "regret",
     });
     expect(computeNoveltyDistance({ idea }, profile)).toBe(3);
   });
@@ -297,7 +297,7 @@ describe("computeNoveltyDistance", () => {
       totalEntries: 9,
       structureCounts: { denial_loop: 3 },
       hookStyleCounts: { internal_thought: 3 },
-      emotionalSpikeCounts: { guilt: 3 },
+      emotionalSpikeCounts: { regret: 3 },
       formatCounts: { pov: 3 },
     };
     expect(computeNoveltyDistance({ idea: makeIdea() }, profile)).toBe(0);
@@ -331,7 +331,7 @@ describe("classifySlot", () => {
       totalEntries: 9,
       structureCounts: { denial_loop: 3 },
       hookStyleCounts: { internal_thought: 3 },
-      emotionalSpikeCounts: { guilt: 3 },
+      emotionalSpikeCounts: { regret: 3 },
       formatCounts: { pov: 3 },
     };
     const c = { idea: makeIdea(), meta: makeMeta() };
@@ -345,7 +345,7 @@ describe("classifySlot", () => {
       totalEntries: 9,
       structureCounts: { denial_loop: 3 },
       hookStyleCounts: { internal_thought: 3 },
-      emotionalSpikeCounts: { guilt: 3 },
+      emotionalSpikeCounts: { regret: 3 },
       formatCounts: { pov: 3 },
     };
     const c = { idea: makeIdea(), meta: makeMeta() };
@@ -477,7 +477,7 @@ describe("applyBatchComposition", () => {
       totalEntries: 9,
       structureCounts: { denial_loop: 3 },
       hookStyleCounts: { internal_thought: 3 },
-      emotionalSpikeCounts: { guilt: 3 },
+      emotionalSpikeCounts: { regret: 3 },
       formatCounts: { pov: 3 },
     };
     const result = applyBatchComposition(candidates, memory, profile);

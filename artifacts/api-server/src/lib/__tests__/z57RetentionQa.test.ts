@@ -20,7 +20,7 @@ function makeIdea(overrides: Partial<Idea> = {}): Idea {
     hook: "test hook " + Math.random().toString(36).slice(2, 8),
     hookStyle: "internal_thought",
     structure: "denial_loop",
-    emotionalSpike: "guilt",
+    emotionalSpike: "regret",
     pattern: "pov",
     setting: "desk",
     howToFilm: "film at desk",
@@ -58,7 +58,7 @@ function makeScored(
       captionStrength: 8,
       freshness: 8,
     },
-  } as ScoredCandidate;
+  } as unknown as ScoredCandidate;
 }
 
 function makeMemory(overrides: Partial<ViralPatternMemory> = {}): ViralPatternMemory {
@@ -239,8 +239,8 @@ describe("QA C: 5-10 batch fatigue → freshness", () => {
   it("novelty distance is high for candidates on fresh axes", () => {
     const profile = buildRetentionProfile(
       Array.from({ length: 5 }, () => [
-        { idea: makeIdea({ structure: "denial_loop", hookStyle: "internal_thought", emotionalSpike: "guilt", pattern: "pov" }) },
-        { idea: makeIdea({ structure: "denial_loop", hookStyle: "internal_thought", emotionalSpike: "guilt", pattern: "pov" }) },
+        { idea: makeIdea({ structure: "denial_loop", hookStyle: "internal_thought", emotionalSpike: "regret", pattern: "pov" }) },
+        { idea: makeIdea({ structure: "denial_loop", hookStyle: "internal_thought", emotionalSpike: "regret", pattern: "pov" }) },
       ]),
     );
     const fresh = makeIdea({

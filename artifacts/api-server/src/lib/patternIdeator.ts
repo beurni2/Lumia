@@ -7626,6 +7626,31 @@ function djb2HashLocal(s: string): number {
   return h >>> 0;
 }
 
+// FIX D — local mirror of scenarioCoherence.STOPWORDS + tokenize.
+// MUST stay byte-identical with scenarioCoherence.ts so the
+// construction-time pre-filter and the validator agree on what
+// "substantial hook token" means. Inlined (not imported) to avoid
+// a circular import → TDZ on `PREMISE_CORES`.
+const FIX_D_STOPWORDS = new Set<string>([
+  "the","a","an","and","or","but","if","then","of","for","to","in","on","at","by",
+  "is","was","are","were","be","been","being","have","has","had","i","im","me","my",
+  "you","your","it","its","this","that","these","those","there","here","when","where",
+  "why","how","what","who","whom","do","does","did","done","doing","with","without",
+  "into","onto","from","as","like","just","ok","okay","so","also","than","very",
+  "really","too","still","yet","again","once","twice","now","not","no","yes",
+  "go","goes","went","gone","going","get","got","gotten","getting",
+  "him","her","his","hers","their","theirs","they","them","we","us","our","ours",
+  "out","up","down","off","over","under","about","around","through","because",
+  "while","upon","against","between","its","onto","its","one","two","three",
+]);
+function fixDTokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !FIX_D_STOPWORDS.has(w));
+}
+
 /**
  * Per-visualActionPattern filming directions. Replaces the previous
  * generic "Phone propped at chest height in the {setting}" boilerplate
@@ -10238,6 +10263,38 @@ function assembleCandidate(
     // the hook does). When NEITHER references it the candidate is a
     // hook ↔ scene mismatch by construction — soft-skip via null.
     if (!hookHasTopic && !showHasTopic) {
+      return null;
+    }
+  }
+
+  // FIX D — pre-validate scenarioCoherence rule (4): at least one
+  // substantial hook token (≥3 chars, non-stopword) must appear in
+  // `whatToShow`. The downstream `phase_ux3_1.pattern_coherence_filter`
+  // in hybridIdeator.ts was rejecting ~11/13 pattern_variation
+  // candidates per batch on this rule, draining the local pool below
+  // the desiredCount threshold and forcing a Claude fallback (+30s
+  // latency). Catching the same condition here at construction time
+  // soft-skips the bad (template, scenario) pairing — the caller
+  // re-rolls into the next combination from the Cartesian iter,
+  // exactly as the topicBare check above does, so the local pool
+  // stays full and the fallback path stops firing on coherence.
+  // Validator semantics are UNCHANGED — we only move the rejection
+  // upstream so the post-merge filter sees a cleaner pool. tokenize+
+  // STOPWORDS are inlined (not imported from scenarioCoherence) to
+  // avoid a circular import → TDZ on `PREMISE_CORES`. The two copies
+  // MUST stay byte-identical; if scenarioCoherence's tokenize/STOPWORDS
+  // change, update FIX_D_STOPWORDS / fixDTokenize in tandem.
+  const hookTokensFixD = fixDTokenize(idea.hook);
+  if (hookTokensFixD.length > 0) {
+    const showTokensFixD = new Set(fixDTokenize(idea.whatToShow));
+    let overlapFixD = 0;
+    for (const t of hookTokensFixD) {
+      if (showTokensFixD.has(t)) {
+        overlapFixD = 1;
+        break;
+      }
+    }
+    if (overlapFixD < 1) {
       return null;
     }
   }
