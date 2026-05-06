@@ -20,34 +20,24 @@
  *   • anchor (lowercase) present in BOTH hook AND whatToShow
  *   • no PIDGIN_MOCKING_PATTERNS hit on hook/whatToShow/caption
  *   • validateScenarioCoherence(idea) === null
- *   • scoreHookQuality(hook) >= 40
+ *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 34 approved · 16 rejected
+ * INGEST SUMMARY: 45 approved · 5 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-053 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-061 [REWRITE] → scoreHookQuality 32 < floor 40
- *   • DRAFT-073 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-108 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-117 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-129 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-153 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-171 [REWRITE] → scoreHookQuality 17 < floor 40
- *   • DRAFT-177 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-191 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-195 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-210 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-212 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-228 [REWRITE] → scoreHookQuality 32 < floor 40
- *   • DRAFT-237 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-255 [REWRITE] → scoreHookQuality 32 < floor 40
+ *   • DRAFT-031 [REWRITE] → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=17)
+ *   • DRAFT-093 → scoreNigerianPackEntry 34 < floor 40 (visceral=5 naturalness=-5 contradiction=6 anchor=5 filmable=10 brevity=13)
+ *   • DRAFT-095 [REWRITE] → scoreNigerianPackEntry 35 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=13)
+ *   • DRAFT-171 [REWRITE] → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=10 brevity=9)
+ *   • DRAFT-221 → scoreNigerianPackEntry 39 < floor 40 (visceral=7 naturalness=-5 contradiction=0 anchor=10 filmable=10 brevity=17)
  */
 
 import {
   assertNigerianPackIntegrity,
   type NigerianPackEntry,
 } from "./nigerianHookPack.js";
+import { registerApprovedPoolReference } from "./nigerianHookQuality.js";
 
 export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =
   Object.freeze([
@@ -96,17 +86,6 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
-      // source: DRAFT-031 [REWRITE] · cluster: food
-      hook: "the pot opened and hope left the kitchen",
-      whatToShow: "Open a pot, look inside, close it slowly, then open a snack cupboard like you are switching departments.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
-      caption: "kitchen update: faith required.",
-      anchor: "pot",
-      domain: "home",
-      pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
-    }),
-    Object.freeze({
       // source: DRAFT-035 [REWRITE] · cluster: home
       hook: "room expose the mess I tried to respect",
       whatToShow: "Show one item on the floor. You pick it up and reveal a bigger mess underneath. You put it back like the room has structure.",
@@ -118,6 +97,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-053 [REWRITE] · cluster: social_pressure
+      hook: "bed save me before outside finish me",
+      whatToShow: "Show you in bed receiving a fake call/message. You look at your blanket, then the phone, then pull the blanket higher.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "my bed has authority.",
+      anchor: "bed",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-059 [REWRITE] · cluster: family_group · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "family chat beat mute and entered my peace",
       whatToShow: "Show fake family group chat muted. Notifications still pile up visually. You stare at the mute icon like it lied.",
@@ -125,6 +115,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "mute button needs backup.",
       anchor: "chat",
       domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-061 [REWRITE] · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "balance slap my cart confidence back to reality",
+      whatToShow: "Show a fake budget or fake bank-alert overlay. You open shopping cart, add one item, then look back at the fake balance like it will change.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "financial courage is not evidence.",
+      anchor: "balance",
+      domain: "money",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -162,6 +163,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-073 [REWRITE] · cluster: comments
+      hook: "one comment scatter my posting confidence live",
+      whatToShow: "Show fake comment preview. You type a reply, delete it, type again, then close the app dramatically.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "mental press briefing.",
+      anchor: "comment",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-083 [REWRITE] · cluster: bed
       hook: "bed disgrace my one-minute rest plan",
       whatToShow: "You sit on the bed 'for one minute.' Cut to you lying down with phone still in hand.",
@@ -195,24 +207,13 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
-      // source: DRAFT-093 · cluster: towel
-      hook: "I said \"almost ready\" while still negotiating with towel",
-      whatToShow: "Show towel/robe, phone message asking 'ready?' You type 'almost' while clearly nowhere near ready.",
-      howToFilm: "Mirror lock-off, face out of frame, one take.",
-      caption: "readiness is spiritual.",
-      anchor: "towel",
-      domain: "everyday",
-      pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
-    }),
-    Object.freeze({
-      // source: DRAFT-095 [REWRITE] · cluster: queue
-      hook: "the queue looked at me and cancelled the errand",
-      whatToShow: "Show a fake queue/line situation or text overlay. You look at the line, look at your phone, then turn around slowly.",
+      // source: DRAFT-108 [REWRITE] · cluster: group_admin · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "admin punish my greeting like spam get immunity",
+      whatToShow: "You post one harmless 'good morning.' A fake admin warning pops up. Meanwhile, three people are posting forwarded prayers and nobody touches them.",
       howToFilm: "Phone-level lock-off, soft daylight, one take.",
-      caption: "patience did not follow me.",
-      anchor: "queue",
-      domain: "everyday",
+      caption: "admin power is not democracy.",
+      anchor: "admin",
+      domain: "messaging",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -239,6 +240,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-117 [REWRITE] · cluster: okada_promise
+      hook: "bike shortcut turn my confidence to prayer",
+      whatToShow: "On a bike POV-style shot, show the rider taking a wrong turn while your hand checks the map in panic.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "quick route, long testimony.",
+      anchor: "bike",
+      domain: "movement",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-119 [REWRITE] · cluster: im_coming
       hook: "ironing exposed my 'I dey come' lie",
       whatToShow: "Type 'I'm coming now.' Cut to you still ironing or looking for socks while the time on your phone keeps moving.",
@@ -246,6 +258,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "coming soon. allegedly.",
       anchor: "ironing",
       domain: "movement",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-129 [REWRITE] · cluster: generator_noise
+      hook: "generator drag sleep outside and disgrace am",
+      whatToShow: "Try to sleep while generator hum plays. Pull pillow over your head, then remove it because it is somehow hotter.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "rest with soundtrack.",
+      anchor: "generator",
+      domain: "phone",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -261,6 +284,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-153 [REWRITE] · cluster: submission_closed
+      hook: "portal bury my courage with one closed page",
+      whatToShow: "Keep postponing the upload. Refresh the portal and see closed status. Your hand freezes on the mouse.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "later has consequences.",
+      anchor: "portal",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-172 · cluster: airtime_data
       hook: "airtime finished, but somehow data is also judging me",
       whatToShow: "Try to buy airtime with slow network. App loads forever. You stare like even the phone is tired.",
@@ -268,6 +302,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-177 [REWRITE] · cluster: caption
+      hook: "caption fight me after video don finish",
+      whatToShow: "Finished video ready. You type one caption, delete it, type another, then stare at blank space like it is an exam.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "caption humbled the creator.",
+      anchor: "caption",
+      domain: "creator",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -294,12 +339,34 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-191 [REWRITE] · cluster: market_bargain
+      hook: "seller laugh scatter my price confidence",
+      whatToShow: "At a market-style setup, seller gives price. You bargain too low. Seller laughs. You laugh too like it was a joke.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "bargaining as performance.",
+      anchor: "seller",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-193 [REWRITE] · cluster: food_refusal
       hook: "my stomach exposed the 'I don chop' lie",
       whatToShow: "Someone offers food. You politely refuse. Your stomach makes noise while you look at the food too long.",
       howToFilm: "Counter-level lock-off, daylight, one take.",
       caption: "pride versus hunger.",
       anchor: "stomach",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-195 [REWRITE] · cluster: rain
+      hook: "rain disgrace me before I even cross door",
+      whatToShow: "Step outside. Rain hits. You run back in soaked, holding your phone like the only survivor.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "weather had agenda.",
+      anchor: "rain",
       domain: "everyday",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
@@ -338,6 +405,28 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-210 [REWRITE] · cluster: forwarded_madness · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "one forward nearly make me public evidence",
+      whatToShow: "You receive a dramatic fake forwarded message. You hesitate, shake your head, then almost forward it before stopping yourself.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "forwarding requires self-control.",
+      anchor: "forward",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-212 [REWRITE] · cluster: muted_group · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "mute fail me, curiosity carry first position",
+      whatToShow: "You mute a noisy fake group. Five minutes later, you open it yourself, laugh at your own lack of discipline, then keep scrolling.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "mute could not save me.",
+      anchor: "mute",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-219 [REWRITE] · cluster: online_no_reply · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "online dey expose the reply wey japa",
       whatToShow: "Friend is online for 30 minutes but still has not replied. You watch the status like live sports.",
@@ -349,17 +438,6 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
-      // source: DRAFT-221 · cluster: okada_shortcut
-      hook: "'I know shortcut' is where the story started",
-      whatToShow: "On an okada-style POV, the rider takes a rough shortcut. You hold tight and check your map like prayer has entered the journey.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
-      caption: "shortcut with consequences.",
-      anchor: "shortcut",
-      domain: "transport",
-      pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
-    }),
-    Object.freeze({
       // source: DRAFT-223 [REWRITE] · cluster: gate_lie · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "gate don expose me, keys still dey hide",
       whatToShow: "You type 'I'm at the gate' while still tying your shoe and looking for keys inside the house.",
@@ -367,6 +445,39 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "location by confidence.",
       anchor: "gate",
       domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-228 [REWRITE] · cluster: last_bus
+      hook: "last bus turn my body to emergency evidence",
+      whatToShow: "You sprint toward a bus at night. You enter just as it starts moving and sit down breathing like you escaped destiny.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "cardio by transport.",
+      anchor: "bus",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-237 [REWRITE] · cluster: generator_noise
+      hook: "generator carry my sleep enter street concert",
+      whatToShow: "Neighbor's generator roars while you try to sleep. You cover your head with a pillow, then remove it because heat has joined the matter.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "sleep with soundtrack.",
+      anchor: "generator",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-255 [REWRITE] · cluster: share_rice
+      hook: "one spoon rob my plate in broad daylight",
+      whatToShow: "You sit with food. Roommate enters and starts negotiating for one spoon. You pull the plate closer.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "one spoon has agenda.",
+      anchor: "spoon",
+      domain: "home",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -432,3 +543,9 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
 // regenerate produces a row that violates a tightened rule) this throws
 // before the file can be imported by tests or any downstream module.
 assertNigerianPackIntegrity(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);
+
+// PHASE N1-Q — register this pool with the additive scorer so the
+// runtime ScoringContext { kind: "pool", pool } can accept this
+// frozen array by reference identity. The scorer rejects any other
+// pool with an Error.
+registerApprovedPoolReference(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);

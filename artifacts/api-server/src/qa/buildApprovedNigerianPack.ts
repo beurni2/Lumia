@@ -63,7 +63,10 @@ import {
   type NigerianPackEntry,
 } from "../lib/nigerianHookPack.js";
 import { validateScenarioCoherence } from "../lib/scenarioCoherence.js";
-import { scoreHookQuality } from "../lib/hookQuality.js";
+import {
+  getNigerianHookQualityIngestKey,
+  scoreNigerianPackEntryDetailed,
+} from "../lib/nigerianHookQuality.js";
 
 const REVIEWED_BY = "BI 2026-05-05";
 const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
@@ -162,10 +165,12 @@ const applyRewrite = (
   };
 };
 const HOOK_QUALITY_FLOOR = 40;
-// Hook quality scoring is family-agnostic in the current implementation
-// (the `_family` parameter is unused — see `scoreHookQuality` JSDoc).
-// We pick a sensible default rather than guessing per-row.
-const DEFAULT_FAMILY = "adulting_chaos" as const;
+// PHASE N1-Q — reviewed Nigerian pack entries are scored by the
+// dedicated additive scorer in `lib/nigerianHookQuality.ts`. The
+// floor (40) is unchanged. The English `scoreHookQuality` is no
+// longer the gate for this ingest path — see the file's leading
+// audit comment for the why.
+const NIGERIAN_INGEST_KEY = getNigerianHookQualityIngestKey();
 
 // ─── Worksheet CSV parser (RFC-4180 minimal) ─────────────────────
 const parseCsv = (text: string): string[][] => {
@@ -359,11 +364,45 @@ const validateRow = (row: WorksheetRow): ValidationResult => {
     reasons.push(`validateScenarioCoherence: ${coherenceFail}`);
   }
 
-  // 7. scoreHookQuality floor (recipe loop's published floor = 40).
-  const hookScore = scoreHookQuality(row.hook, DEFAULT_FAMILY);
+  // 7. Nigerian-pack hook quality floor (additive scorer; floor unchanged).
+  //
+  // The English `scoreHookQuality` overfits to Western-English hook
+  // syntax (verb table, anthropomorph patterns, concrete-noun list
+  // are all lexically locked). Reviewed Pidgin / light-Pidgin hooks
+  // routinely score 22–38 against the floor of 40 even when they
+  // pass every safety + coherence validator. The Nigerian pack
+  // ingest path uses `scoreNigerianPackEntry` instead — same floor
+  // (40), additive 6-dimension scale calibrated for Pidgin / Naija
+  // comedy. See `lib/nigerianHookQuality.ts` for the trust gate +
+  // axes. Cross-region behavior is unaffected: this scorer is never
+  // called from any runtime generation path.
+  //
+  // We construct a NigerianPackEntry shape ONLY after the prior six
+  // validation steps have passed (so this block is only reached for
+  // candidates that already cleared anchor / mocking / length /
+  // coherence checks). The `pidginLevel` cast is safe — step 2
+  // already rejected anything outside {"light_pidgin","pidgin"}.
+  const entryForScoring: NigerianPackEntry = {
+    hook: row.hook,
+    whatToShow: row.whatToShow,
+    howToFilm: row.howToFilm,
+    caption: row.caption,
+    anchor: row.anchor.toLowerCase(),
+    domain: row.domain,
+    pidginLevel: row.currentPidginLevel as "light_pidgin" | "pidgin",
+    reviewedBy: REVIEWED_BY,
+  };
+  const hookScoring = scoreNigerianPackEntryDetailed(entryForScoring, {
+    kind: "ingest",
+    key: NIGERIAN_INGEST_KEY,
+  });
+  const hookScore = hookScoring.total;
   if (hookScore < HOOK_QUALITY_FLOOR) {
     reasons.push(
-      `scoreHookQuality ${hookScore} < floor ${HOOK_QUALITY_FLOOR}`,
+      `scoreNigerianPackEntry ${hookScore} < floor ${HOOK_QUALITY_FLOOR} ` +
+        `(visceral=${hookScoring.visceral} naturalness=${hookScoring.naturalness} ` +
+        `contradiction=${hookScoring.contradiction} anchor=${hookScoring.anchorRelevance} ` +
+        `filmable=${hookScoring.filmable} brevity=${hookScoring.brevity})`,
     );
   }
 
@@ -430,7 +469,8 @@ const emitApprovedFile = (
   lines.push(" *   • anchor (lowercase) present in BOTH hook AND whatToShow");
   lines.push(" *   • no PIDGIN_MOCKING_PATTERNS hit on hook/whatToShow/caption");
   lines.push(" *   • validateScenarioCoherence(idea) === null");
-  lines.push(` *   • scoreHookQuality(hook) >= ${HOOK_QUALITY_FLOOR}`);
+  lines.push(` *   • scoreNigerianPackEntry(entry) >= ${HOOK_QUALITY_FLOOR}` +
+    `  (Pidgin-aware additive scorer; floor unchanged)`);
   lines.push(" *");
   lines.push(` * INGEST SUMMARY: ${approved.length} approved · ${rejected.length} rejected`);
   if (rejected.length > 0) {
@@ -448,6 +488,7 @@ const emitApprovedFile = (
   lines.push("  assertNigerianPackIntegrity,");
   lines.push("  type NigerianPackEntry,");
   lines.push("} from \"./nigerianHookPack.js\";");
+  lines.push("import { registerApprovedPoolReference } from \"./nigerianHookQuality.js\";");
   lines.push("");
   lines.push(
     "export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =",
@@ -474,6 +515,12 @@ const emitApprovedFile = (
   lines.push("// regenerate produces a row that violates a tightened rule) this throws");
   lines.push("// before the file can be imported by tests or any downstream module.");
   lines.push("assertNigerianPackIntegrity(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);");
+  lines.push("");
+  lines.push("// PHASE N1-Q — register this pool with the additive scorer so the");
+  lines.push("// runtime ScoringContext { kind: \"pool\", pool } can accept this");
+  lines.push("// frozen array by reference identity. The scorer rejects any other");
+  lines.push("// pool with an Error.");
+  lines.push("registerApprovedPoolReference(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);");
   lines.push("");
   return lines.join("\n");
 };

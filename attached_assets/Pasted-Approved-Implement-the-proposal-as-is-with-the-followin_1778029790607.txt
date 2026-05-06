@@ -1,0 +1,63 @@
+Approved.
+
+Implement the proposal as-is with the following constraints:
+
+1. Add the new pure scorer:
+   artifacts/api-server/src/lib/nigerianHookQuality.ts
+
+2. Use it only in:
+   - buildApprovedNigerianPack.ts
+   - nigerianPackRewriteWorksheet.ts
+
+3. Do not import or call it from runtime generation yet:
+   - coreCandidateGenerator.ts untouched
+   - hybridIdeator.ts untouched
+   - patternIdeator.ts untouched
+   - ideaScorer.ts untouched
+   - Claude fallback untouched
+
+4. Do not activate the Nigerian pack.
+   - NIGERIAN_HOOK_PACK remains Object.freeze([])
+   - LUMINA_NG_PACK_ENABLED remains default off
+   - no recipe integration
+
+5. Do not lower HOOK_QUALITY_FLOOR.
+   Floor stays 40.
+
+6. Do not loosen:
+   - validateScenarioCoherence
+   - validateAntiCopy
+   - privacy/safety checks
+   - anchor-in-hook
+   - anchor-in-whatToShow
+   - PIDGIN_MOCKING_PATTERNS
+   - reviewedBy guard
+
+7. The scorer must only approve reviewed Nigerian pack entries:
+   - region === nigeria
+   - languageStyle is light_pidgin or pidgin
+   - entry pidginLevel is light_pidgin or pidgin
+   - reviewedBy is non-empty and not PENDING_NATIVE_REVIEW
+   - entry comes from APPROVED_NIGERIAN_PROMOTION_CANDIDATES or NIGERIAN_HOOK_PACK by reference-identity guard
+
+8. Add tests proving:
+   - western/india/philippines behavior unchanged
+   - nigeria-clean unchanged
+   - runtime generation files do not import nigerianHookQuality
+   - blank/sentinel reviewedBy returns 0
+   - mocking pattern returns 0
+   - non-approved pool throws or refuses scoring
+   - existing production validators still run before approval
+   - re-ingest output is deterministic
+
+9. Re-run the approved-pack ingestion after implementation and report:
+   - approved count before scorer
+   - approved count after scorer
+   - rejected rows and reasons
+   - score breakdown for each newly approved row
+   - full N1 tests
+   - full api-server vitest
+   - TypeScript result
+   - confirmation pack remains dark
+
+Do not make any runtime activation change in this phase.

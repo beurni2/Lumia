@@ -7,7 +7,7 @@
  *   • mutate `APPROVED_NIGERIAN_PROMOTION_CANDIDATES`
  *   • touch `NIGERIAN_HOOK_PACK` (live pool stays empty / DARK)
  *   • flip `LUMINA_NG_PACK_ENABLED`
- *   • lower `scoreHookQuality` floors or add family-aware exemptions
+ *   • lower `scoreNigerianPackEntry` floors or add family-aware exemptions
  *   • weaken any validator or anchor check
  *
  * Re-runs the exact same per-row validation as
@@ -18,7 +18,7 @@
  *   .local/REGIONAL_N1_REWRITE_WORKSHEET.csv
  *
  * Each row carries the full original context + the precise failure
- * reasons + the scoreHookQuality value + blank columns for the
+ * reasons + the scoreNigerianPackEntry value + blank columns for the
  * reviewer's rewrite (`rewrittenHook` required; the rest optional).
  * The next ingest pass will run the rewrites back through the
  * existing production gates — no validator changes required.
@@ -33,11 +33,16 @@ import {
   PIDGIN_MOCKING_PATTERNS,
 } from "../lib/nigerianHookPack.js";
 import { validateScenarioCoherence } from "../lib/scenarioCoherence.js";
-import { scoreHookQuality } from "../lib/hookQuality.js";
+import {
+  getNigerianHookQualityIngestKey,
+  scoreNigerianPackEntryDetailed,
+} from "../lib/nigerianHookQuality.js";
+import type { NigerianPackEntry } from "../lib/nigerianHookPack.js";
 
 const REVIEWED_BY = "BI 2026-05-05";
 const HOOK_QUALITY_FLOOR = 40;
-const DEFAULT_FAMILY = "adulting_chaos" as const;
+// PHASE N1-Q — additive Nigerian-pack scorer; floor unchanged at 40.
+const NIGERIAN_INGEST_KEY = getNigerianHookQualityIngestKey();
 const REWRITES_PATH_REL = ".local/REGIONAL_N1_REWRITES.yaml";
 
 // Same tiny YAML-list reader as buildApprovedNigerianPack.ts — kept
@@ -253,9 +258,32 @@ const validateRow = (row: WorksheetRow): RejectedRow | null => {
     caption: row.caption,
   } as Parameters<typeof validateScenarioCoherence>[0]);
   if (coherenceFail !== null) reasons.push(`validateScenarioCoherence: ${coherenceFail}`);
-  const hookScore = scoreHookQuality(row.hook, DEFAULT_FAMILY);
+  // PHASE N1-Q — additive Nigerian-pack scorer. The English
+  // `scoreHookQuality` overfits to Western-English syntax — reviewed
+  // Pidgin hooks routinely scored 22–38 against it even after passing
+  // every other validator. Same floor (40), Pidgin-aware axes. The
+  // scorer is never called from runtime generation paths.
+  const entryForScoring: NigerianPackEntry = {
+    hook: row.hook,
+    whatToShow: row.whatToShow,
+    howToFilm: row.howToFilm,
+    caption: row.caption,
+    anchor: (row.anchor ?? "").toLowerCase(),
+    domain: row.domain ?? "",
+    // Step 2's pidginLevel check already rejected anything outside
+    // the union; this cast is only reached in the safe space.
+    pidginLevel: row.currentPidginLevel as "light_pidgin" | "pidgin",
+    reviewedBy: REVIEWED_BY,
+  };
+  const hookBreakdown = scoreNigerianPackEntryDetailed(entryForScoring, {
+    kind: "ingest",
+    key: NIGERIAN_INGEST_KEY,
+  });
+  const hookScore = hookBreakdown.total;
   if (hookScore < HOOK_QUALITY_FLOOR) {
-    reasons.push(`scoreHookQuality ${hookScore} < floor ${HOOK_QUALITY_FLOOR}`);
+    reasons.push(
+      `scoreNigerianPackEntry ${hookScore} < floor ${HOOK_QUALITY_FLOOR}`,
+    );
   }
   if (!row.domain || row.domain.trim().length === 0) reasons.push("domain is empty");
 
@@ -282,7 +310,7 @@ const buildCsv = (rejected: RejectedRow[]): string => {
     "whatToShow",
     "howToFilm",
     "caption",
-    "scoreHookQuality",
+    "scoreNigerianPackEntry",
     "failureReason",
     "reviewerNotes",
     // Reviewer-editable columns (blank — reviewer fills in)
@@ -354,7 +382,7 @@ const buildMarkdown = (rejected: RejectedRow[]): string => {
   lines.push("");
   lines.push("## Rewrite guidance (reviewer brief)");
   lines.push("");
-  lines.push("Goal: lift each hook above the production `scoreHookQuality >= 40` floor **without** weakening any validator. The same gates run on the rewrite — no exemptions.");
+  lines.push("Goal: lift each hook above the production `scoreNigerianPackEntry >= 40` floor (the Pidgin-aware additive scorer; same floor as before, calibrated for Pidgin / Naija comedy) **without** weakening any validator. The same gates run on the rewrite — no exemptions.");
   lines.push("");
   lines.push("- Make hooks **shorter and punchier**. Long conversational lines lose visceral score.");
   lines.push("- Add **clear contradiction or tension** — the unexpected beat that makes the hook funny.");
@@ -368,11 +396,11 @@ const buildMarkdown = (rejected: RejectedRow[]): string => {
   lines.push("");
   lines.push("## Per-row required fields");
   lines.push("");
-  lines.push("- `rewrittenHook` — REQUIRED. Must (a) keep the anchor, (b) lift `scoreHookQuality >= 40`, (c) stay within length bounds (≤ 120 chars), (d) avoid mocking-spelling regex.");
+  lines.push("- `rewrittenHook` — REQUIRED. Must (a) keep the anchor, (b) lift `scoreNigerianPackEntry >= 40`, (c) stay within length bounds (≤ 120 chars), (d) avoid mocking-spelling regex.");
   lines.push("- `rewrittenWhatToShow` / `rewrittenHowToFilm` / `rewrittenCaption` — OPTIONAL. Leave blank to keep the original; fill in only if your hook rewrite needs scene support.");
   lines.push("- `rewriteNotes` — OPTIONAL. What you changed and why (helps the next reviewer).");
   lines.push("");
-  lines.push("Once you return the filled worksheet, the next ingest pass will run every rewritten row through the existing production validators (length bounds · anchor in hook AND whatToShow · `PIDGIN_MOCKING_PATTERNS` · `validateScenarioCoherence` · `scoreHookQuality >= 40`) and emit a fresh `APPROVED_NIGERIAN_PROMOTION_CANDIDATES`. Failures are again surfaced — never silently fixed.");
+  lines.push("Once you return the filled worksheet, the next ingest pass will run every rewritten row through the existing production validators (length bounds · anchor in hook AND whatToShow · `PIDGIN_MOCKING_PATTERNS` · `validateScenarioCoherence` · `scoreNigerianPackEntry >= 40`) and emit a fresh `APPROVED_NIGERIAN_PROMOTION_CANDIDATES`. Failures are again surfaced — never silently fixed.");
   lines.push("");
   lines.push("---");
   lines.push("");
@@ -382,7 +410,7 @@ const buildMarkdown = (rejected: RejectedRow[]): string => {
     const e = r.row;
     lines.push(`### ${i + 1}. ${e.draftId} — anchor: \`${e.anchor}\` · tier: \`${e.currentPidginLevel}\` · domain: \`${e.domain}\` · cluster: \`${e.cluster}\``);
     lines.push("");
-    lines.push(`- **scoreHookQuality:** ${r.hookScore} (floor ${HOOK_QUALITY_FLOOR})`);
+    lines.push(`- **scoreNigerianPackEntry:** ${r.hookScore} (floor ${HOOK_QUALITY_FLOOR})`);
     lines.push(`- **failureReason:** ${r.reasons.join("; ")}`);
     if (e.privacyNote) lines.push(`- **privacyNote:** ${e.privacyNote}`);
     if (e.reviewerNotes) lines.push(`- **reviewerNotes:** ${e.reviewerNotes}`);
