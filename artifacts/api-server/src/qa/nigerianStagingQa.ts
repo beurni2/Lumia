@@ -303,6 +303,60 @@ process.on("uncaughtException", (err) => {
   process.exit(3);
 });
 
+// ─── Deterministic Math.random override (PHASE N1-QA-DET, 2026-05-06) ─── //
+//
+// Why: `selectPremiseCores` (and indirectly other call sites in the
+// generation pipeline) rely on `Math.random` for stochastic core
+// selection. With unseeded `Math.random` the harness produces a
+// per-run combined fill anywhere in 24-35/60 — a ±5 spread that
+// makes single-sample GO/HOLD verdicts noise-driven (see
+// `.local/N1_ROTATION_FIX_PROPOSAL.md` Outcome appendix and
+// `.local/N1_ROTATION_REGRESSION_ANALYSIS.md` top-of-doc correction
+// for the full post-mortem).
+//
+// What this does: at the start of `main()` we replace the global
+// `Math.random` with a seeded mulberry32 PRNG and restore the
+// original at the end of the run. Default seed is 0xN1S0CLEAN
+// (constant); override with `LUMINA_NG_QA_SEED=<int>`.
+//
+// Hard-rule compliance:
+//   • This only affects the QA harness process. Production server
+//     code is untouched (the harness is a CLI script, never imported
+//     by the running API).
+//   • No validator, scorer, threshold, or pack content changed.
+//   • Non-NG cohorts behave identically to NG cohorts — the override
+//     applies uniformly to every cohort in the same process, so
+//     cross-cohort relative behaviour is preserved.
+//
+// To compare against the legacy non-deterministic behaviour pass
+// `LUMINA_NG_QA_SEED=random` — that branch keeps the original
+// `Math.random` (no override) and the run will look like pre-N1-QA-DET.
+const __ORIGINAL_MATH_RANDOM = Math.random;
+function mulberry32(seed: number): () => number {
+  let s = seed >>> 0;
+  return function (): number {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function installSeededRandom(): { seed: number | "random" } {
+  const raw = process.env.LUMINA_NG_QA_SEED;
+  if (raw === "random") {
+    return { seed: "random" };
+  }
+  const parsed = raw === undefined ? NaN : Number.parseInt(raw, 10);
+  const seed = Number.isFinite(parsed) ? parsed : 0x4e315330; // "N1S0"
+  const prng = mulberry32(seed);
+  Math.random = prng;
+  return { seed };
+}
+function restoreOriginalRandom(): void {
+  Math.random = __ORIGINAL_MATH_RANDOM;
+}
+
 function main(): void {
   const flagOn = isNigerianPackFeatureEnabled();
   console.error(
@@ -318,6 +372,11 @@ function main(): void {
     console.error(`[nigerianStagingQa] ABORT: pack is empty.`);
     process.exit(2);
   }
+
+  const seedInfo = installSeededRandom();
+  console.error(
+    `[nigerianStagingQa] PRNG seed: ${seedInfo.seed === "random" ? "random (LEGACY non-deterministic mode)" : `0x${seedInfo.seed.toString(16)} (deterministic; override via LUMINA_NG_QA_SEED)`}`,
+  );
 
   const __filename = fileURLToPath(import.meta.url);
   const workspaceRoot = path.resolve(path.dirname(__filename), "../../../..");
@@ -336,6 +395,9 @@ function main(): void {
   headerLines.push(`_flag_: \`LUMINA_NG_PACK_ENABLED=true\``);
   headerLines.push(
     `_method_: direct \`generateCoreCandidates\` per cohort (orchestrator-bypass; see file header for rationale)`,
+  );
+  headerLines.push(
+    `_PRNG seed_: ${seedInfo.seed === "random" ? "**random** (LEGACY non-deterministic mode — single-sample verdicts are noise-driven)" : `\`0x${seedInfo.seed.toString(16)}\` (deterministic; override with \`LUMINA_NG_QA_SEED=<int>\` or \`LUMINA_NG_QA_SEED=random\`)`}`,
   );
   headerLines.push("");
   fs.writeFileSync(outPath, headerLines.join("\n") + "\n", "utf8");
@@ -571,6 +633,7 @@ function main(): void {
   console.error(
     `[nigerianStagingQa] wrote ${outPath} (${allRows.length} ideas across ${cohortMeta.length} cohorts; verdict=${overall ? "GO" : "HOLD"})`,
   );
+  restoreOriginalRandom();
 }
 
 main();
