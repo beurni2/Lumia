@@ -1,0 +1,156 @@
+Run QA for the new Nigerian/Pidgin Regional Comedy Pack feature.
+
+Goal:
+Verify the Nigerian/Pidgin pack works through the real app/API path, with the feature flag ON in staging/dev only, and confirm it does not affect any ineligible region or language style.
+
+Important:
+This is QA, not new feature work. Do not change generation behavior unless there is a crash or instrumentation-only issue. If a blocker appears, report it first.
+
+Feature activation rules:
+The Nigerian pack should activate only when all are true:
+- region === "nigeria"
+- languageStyle === "light_pidgin" or "pidgin"
+- LUMINA_NG_PACK_ENABLED === "true"
+- NIGERIAN_HOOK_PACK.length > 0
+
+Expected behavior:
+- Nigeria + light_pidgin: pack active
+- Nigeria + pidgin: pack active
+- Nigeria + clean: pack inactive
+- Nigeria + null languageStyle: pack inactive
+- Western: pack inactive
+- India: pack inactive
+- Philippines: pack inactive
+- Flag OFF: pack inactive everywhere
+
+Environment:
+1. Set LUMINA_NG_PACK_ENABLED=true only in staging/dev tester API server.
+2. Confirm production remains OFF.
+3. Confirm logs show:
+   - flagEnabled
+   - region
+   - languageStyle
+   - NIGERIAN_HOOK_PACK.length
+   - canActivateNigerianPack result
+   - pack usage count per returned batch
+   - nigerianPackEntryId for each pack idea
+   - fallback used yes/no
+   - refresh duration
+   - rejection counts
+
+Cohorts to test:
+A. Nigeria + light_pidgin
+B. Nigeria + pidgin
+C. Nigeria + clean
+D. Nigeria + null languageStyle
+E. Western
+F. India
+G. Philippines
+
+Test path:
+Use the real app/API generation path, not only internal generator harnesses.
+
+For each cohort:
+- Generate initial 3 ideas.
+- Refresh 10 times for Nigeria + light_pidgin.
+- Refresh 10 times for Nigeria + pidgin.
+- Refresh 5 times for each ineligible cohort.
+- Capture hooks, scenarios, howToFilm, captions, source, packEntryId, response time, and fallback usage.
+
+Minimum samples:
+- Nigeria + light_pidgin: 30 ideas
+- Nigeria + pidgin: 30 ideas
+- Nigeria + clean: 15 ideas
+- Nigeria + null: 15 ideas
+- Western: 15 ideas
+- India: 15 ideas
+- Philippines: 15 ideas
+
+QA checks:
+1. Activation:
+- Nigeria + light_pidgin activates the pack.
+- Nigeria + pidgin activates the pack.
+- Nigeria + clean does not activate the pack.
+- Nigeria + null does not activate the pack.
+- Western, India, Philippines do not activate the pack.
+
+2. Pack usage:
+- Nigeria + light_pidgin: at least 18/30 ideas from pack.
+- Nigeria + pidgin: at least 18/30 ideas from pack.
+- Combined eligible: at least 36/60 ideas from pack.
+- Ineligible cohorts: 0 pack ideas.
+
+3. Region correctness:
+- Nigerian outputs should sound Nigerian/Pidgin-native.
+- No obvious Western-region terms in Nigeria + pidgin/light_pidgin outputs, such as Venmo, CashApp, Zelle, Target, Walmart, Trader Joe’s.
+- No generic Western template dominating the batch.
+
+4. Safety/privacy:
+- No real bank balances.
+- No real transaction history.
+- No real private chats.
+- No addresses, IDs, plate numbers, passwords, or personal documents.
+- Any money/chat scenario should use fake/mock screens only.
+
+5. Quality:
+- Hooks sound natural, not fake or mocking Pidgin.
+- Scenario matches hook.
+- Caption matches hook/scenario.
+- HowToFilm is clear and filmable.
+- Film This Now plan matches the idea.
+
+6. Repetition:
+- No duplicate nigerianPackEntryId inside the same 3-card batch.
+- No duplicate normalized hook inside the same batch.
+- Report repeated packEntryIds across refreshes.
+- Report repeated anchors across refreshes.
+- Report repeated hook skeletons.
+
+7. Refresh reliability:
+- Refresh success rate at least 90%.
+- No blank states.
+- No stuck spinner.
+- Current ideas remain visible on failure.
+- User can retry immediately.
+- Timeout copy appears if needed.
+- excludeHooks is sent for currently visible hooks.
+- Record response time per refresh.
+
+8. Flag OFF baseline:
+After flag ON QA, run a smaller flag OFF pass:
+- Set LUMINA_NG_PACK_ENABLED=false or unset.
+- Confirm pack usage is 0 everywhere.
+- Confirm normal generation still works.
+- Confirm no cross-region leak.
+
+Acceptance criteria:
+- Nigeria + light_pidgin pack usage >= 18/30
+- Nigeria + pidgin pack usage >= 18/30
+- Combined eligible usage >= 36/60
+- Nigeria + clean pack usage = 0
+- Nigeria + null pack usage = 0
+- Western / India / Philippines pack usage = 0
+- 0 cross-region leaks
+- 0 safety/privacy failures
+- 0 mocking/cringe Pidgin failures
+- 0 scenario mismatches
+- 0 Film This Now mismatches on sampled ideas
+- Refresh success rate >= 90%
+- 0 blank states
+- 0 stuck spinner states
+- No duplicate packEntryId within a batch
+- No duplicate hook within a batch
+- Tests pass
+- TypeScript result unchanged except known pre-existing unrelated errors
+
+Deliverables:
+- .local/N1_LIVE_HARDEN_QA.md
+- cohort summary table
+- pack usage table
+- refresh reliability table
+- strongest 10 Nigerian outputs
+- weakest 10 outputs
+- wrong-region term report
+- repetition report
+- Film This Now alignment report
+- final verdict: GO / GO WITH NOTES / HOLD
