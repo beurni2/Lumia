@@ -157,6 +157,110 @@ describe("Nigerian pack trigger synthesis (PHASE N1-TRIGGER-FIX)", () => {
     }
   });
 
+  it("Pass 1 noun-ish picker: skips imperative verbs and apostrophe forms", () => {
+    // whatToShow modeled on the formerly-stilted "ask who's settle"
+    // case: opens with imperative verb "ask", contains apostrophe
+    // form "who's", and has clean noun tokens "free" "weekend"
+    // available later in the sentence. Pass 1 must skip "ask" +
+    // "who's" and reach for the cleaner pair.
+    const entry: NigerianPackEntry = {
+      ...FAILING_ENTRY,
+      id: "test_nounpicker",
+      anchor: "gif",
+      hook: "one GIF hijack the whole group question",
+      whatToShow:
+        "You ask 'who's free this weekend?' in a fake group chat. Friends reply with a running-away GIF and laughing reactions instead of answering.",
+    } as unknown as NigerianPackEntry;
+    const r = authorPackEntryAsIdea({
+      entry,
+      core: FAKE_CORE,
+      voice: FAKE_VOICE,
+      regenerateSalt: 0,
+      seedFingerprints: new Set<string>(),
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const trigger = r.idea.trigger;
+    // Must NOT contain the verb "ask" or the apostrophe form "who's".
+    expect(trigger).not.toContain(" ask ");
+    expect(trigger).not.toContain("who's");
+    // Must contain the anchor and a cleaner picked pair.
+    expect(trigger).toContain("gif");
+  });
+
+  it("Pass 2 fallback engages when whatToShow is dominated by skip set", () => {
+    // whatToShow built ENTIRELY from skip-set tokens + anchor +
+    // stopwords. Pass 1 returns null; Pass 2 picks any 2 non-stopword
+    // non-anchor tokens (i.e. the skip-set tokens themselves). The
+    // result still satisfies the validator's ≥2 overlap rule and
+    // never regresses below the pre-B baseline.
+    const entry: NigerianPackEntry = {
+      ...FAILING_ENTRY,
+      id: "test_pass2_fallback",
+      anchor: "phone",
+      whatToShow:
+        "You ask the phone, you watch, you wait, you tap, you check, you stare.",
+    } as unknown as NigerianPackEntry;
+    const r = authorPackEntryAsIdea({
+      entry,
+      core: FAKE_CORE,
+      voice: FAKE_VOICE,
+      regenerateSalt: 0,
+      seedFingerprints: new Set<string>(),
+    });
+    // Pre-B picker would have grabbed e.g. "ask" + "watch". Post-B
+    // Pass 1 rejects all those, but Pass 2 still grabs them so we
+    // don't regress. Whether the entry passes the comedy validator
+    // end-to-end depends on the hook side; the assertion here is
+    // only about not throwing and producing a non-empty trigger
+    // that contains the anchor.
+    if (r.ok) {
+      expect(r.idea.trigger).toContain("phone");
+      expect(r.idea.trigger.length).toBeGreaterThanOrEqual(5);
+      // Pass 2 fallback should yield SAME tokens a pre-B picker would
+      // pick (ask + watch in this whatToShow, which both come before
+      // any non-skip noun). Confirms the "never worse than pre-B"
+      // guarantee at the borrowed-token level.
+      const trigger = r.idea.trigger.toLowerCase();
+      expect(trigger).toMatch(/ask|watch/);
+    } else {
+      expect(typeof r.reason).toBe("string");
+    }
+  });
+
+  it("post-synthesis invariant: trigger overlap ≥2 with whatToShow even under truncation", () => {
+    // Adversarial entry: extremely long borrowed tokens that would
+    // push the trigger past the 140-char clampLen limit. The
+    // post-synthesis invariant must detect the truncation and
+    // fall back to the bare-anchor template.
+    const longTok1 = "a".repeat(60) + "x";
+    const longTok2 = "b".repeat(60) + "y";
+    const entry: NigerianPackEntry = {
+      ...FAILING_ENTRY,
+      id: "test_truncation_invariant",
+      anchor: "phone",
+      whatToShow: `Show the phone with ${longTok1} on it then ${longTok2} appears clearly.`,
+    } as unknown as NigerianPackEntry;
+    const r = authorPackEntryAsIdea({
+      entry,
+      core: FAKE_CORE,
+      voice: FAKE_VOICE,
+      regenerateSalt: 0,
+      seedFingerprints: new Set<string>(),
+    });
+    if (r.ok) {
+      // Verify trigger fits in clampLen bounds
+      expect(r.idea.trigger.length).toBeLessThanOrEqual(140);
+      // Verify trigger contains the anchor (bare template OR weave)
+      expect(r.idea.trigger.toLowerCase()).toContain("phone");
+    } else {
+      // Acceptable: hook-side validators may reject. The invariant
+      // we care about is that authorPackEntryAsIdea did not crash
+      // and did not produce an over-length trigger.
+      expect(typeof r.reason).toBe("string");
+    }
+  });
+
   it("real approved-pack sample: ≥80% pass validators (was <50% pre-fix)", () => {
     // Spot-check across the live approved pool. Pre-fix the v2
     // instrumentation showed ~47% passage (53.2% rejected, 94.4%

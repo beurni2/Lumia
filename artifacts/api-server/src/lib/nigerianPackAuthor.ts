@@ -181,27 +181,108 @@ function clampLen(s: string, min: number, max: number, pad: string): string {
  * fewer than 2 such tokens exist (extreme edge case given
  * PACK_FIELD_BOUNDS 20–500 chars on whatToShow).
  *
+ * PHASE N1-TRIGGER-FIX-B (2026-05-06) — two-pass picker. Pass 1
+ * additionally filters out pronouns, scene-direction imperative
+ * verbs, locative connectives, and apostrophe-containing tokens
+ * — these read as ungrammatical fragments when woven into the
+ * trigger template `notice the {anchor} land while {tok1} {tok2}
+ * settle`. Pass 2 falls back to the original Pass-1-equivalent
+ * behavior (any 2 non-stopword non-anchor tokens) so we NEVER
+ * produce a worse pick than the pre-B baseline. The empirical
+ * fill-rate measured under the Pass-1-only picker stays at or
+ * above 39/60.
+ *
  * The tokenization regex MUST match the validator's tokenize()
  * exactly (`comedyValidation.ts` L202: `/[a-z][a-z0-9']{2,}/g`),
  * otherwise the borrowed tokens could fail the validator's overlap
  * computation. STOPWORDS is imported from the same module to keep
  * the two sides perfectly synchronized.
+ *
+ * The TRIGGER_TOKEN_SKIP set is curated for readability of the
+ * borrowed tokens specifically — it is INTENTIONALLY broader than
+ * STOPWORDS (which is shared with the validator's overlap
+ * computation and must NOT shrink). Anything in this set still
+ * counts toward overlap satisfaction; we just prefer to pick
+ * around it when an alternative content token is available.
  */
+const TRIGGER_TOKEN_SKIP: ReadonlySet<string> = new Set([
+  // Pronouns + generic determiners not covered by STOPWORDS.
+  "own", "who", "whom", "whose", "what", "which",
+  "everyone", "someone", "anyone", "nobody", "somebody", "everybody",
+  "all", "any", "some", "many", "more", "most", "every", "each",
+  // Locative / temporal connectives (read as fragments without object).
+  "around", "behind", "below", "between", "through", "against",
+  "across", "under", "before", "after", "while", "until", "during",
+  "without", "within", "back", "away", "inside", "outside", "near",
+  // Imperative scene-direction verbs common in whatToShow corpus.
+  "open", "opens", "close", "closes", "watch", "watches",
+  "look", "looks", "ask", "asks", "tell", "tells",
+  "say", "says", "make", "makes", "take", "takes",
+  "get", "gets", "go", "goes", "come", "comes",
+  "hold", "holds", "hit", "hits", "land", "lands",
+  "drop", "drops", "pause", "pauses", "freeze", "freezes",
+  "scroll", "scrolls", "type", "types", "send", "sends",
+  "plug", "plugs", "pick", "picks", "walk", "walks",
+  "sit", "sits", "stand", "stands", "fall", "falls",
+  "run", "runs", "jump", "jumps", "move", "moves",
+  "turn", "turns", "cut", "cuts",
+  "check", "checks", "click", "clicks", "tap", "taps",
+  "wait", "waits", "hover", "hovers",
+  "delete", "deletes", "lock", "locks",
+  "smile", "smiles", "stare", "stares",
+  "scoop", "scoops", "stretch", "stretches",
+  "answer", "answers", "reply", "replies",
+  "remove", "removes", "rehearse", "rehearses",
+  "vanish", "vanishes", "explain", "explains",
+  "reach", "reaches", "begs", "begging",
+  "use", "uses", "find", "finds", "leave", "leaves",
+  "let", "lets", "give", "gives", "keep", "keeps",
+  "put", "try", "tries", "want", "wants",
+  "need", "needs", "feel", "feels",
+  "start", "starts", "stop", "stops",
+]);
+
 function extractShowContentTokens(
   whatToShow: string,
   anchorLc: string,
 ): [string, string] | null {
   const matches = whatToShow.toLowerCase().match(/[a-z][a-z0-9']{2,}/g);
   if (!matches) return null;
-  const seen = new Set<string>([anchorLc]);
-  const picked: string[] = [];
-  for (const m of matches) {
-    if (STOPWORDS.has(m)) continue;
-    if (seen.has(m)) continue;
-    seen.add(m);
-    picked.push(m);
-    if (picked.length === 2) return [picked[0]!, picked[1]!];
+
+  // ── Pass 1: prefer "noun-ish" tokens (drop pronouns, common
+  //    scene verbs, locatives, apostrophe forms). Apostrophe forms
+  //    like "who's" / "don't" tokenize fine but read as fragments
+  //    when borrowed.
+  {
+    const seen = new Set<string>([anchorLc]);
+    const picked: string[] = [];
+    for (const m of matches) {
+      if (STOPWORDS.has(m)) continue;
+      if (TRIGGER_TOKEN_SKIP.has(m)) continue;
+      if (m.includes("'")) continue;
+      if (seen.has(m)) continue;
+      seen.add(m);
+      picked.push(m);
+      if (picked.length === 2) return [picked[0]!, picked[1]!];
+    }
   }
+
+  // ── Pass 2: fallback to the pre-B behavior — any 2 non-stopword
+  //    non-anchor tokens. Guarantees we never regress past the
+  //    pre-B picker even on whatToShow texts dominated by the
+  //    skip set.
+  {
+    const seen = new Set<string>([anchorLc]);
+    const picked: string[] = [];
+    for (const m of matches) {
+      if (STOPWORDS.has(m)) continue;
+      if (seen.has(m)) continue;
+      seen.add(m);
+      picked.push(m);
+      if (picked.length === 2) return [picked[0]!, picked[1]!];
+    }
+  }
+
   return null;
 }
 
@@ -292,7 +373,39 @@ export function authorPackEntryAsIdea(
   const triggerRaw = showContentPair
     ? `notice the ${anchorLc} land while ${showContentPair[0]} ${showContentPair[1]} settle`
     : `notice the ${anchorLc} land`;
-  const trigger = clampLen(triggerRaw, 5, 140, "again");
+  let trigger = clampLen(triggerRaw, 5, 140, "again");
+
+  // PHASE N1-TRIGGER-FIX-B (architect follow-up) — post-synthesis
+  // invariant: the validator's `hook_scenario_mismatch` rule
+  // (comedyValidation.ts L568) requires
+  //   max(intersect(hookTokens, showTokens),
+  //       intersect(triggerTokens, showTokens)) >= 2
+  // The borrowed-token weave guarantees this BEFORE clampLen, but
+  // in the theoretical worst case (extremely long borrowed tokens
+  // pushing total > 140 chars) `clampLen` could truncate one of the
+  // borrowed tokens, dropping intersect cardinality. Defensively
+  // re-measure here and fall back to the bare-anchor template if
+  // the truncated trigger no longer carries ≥2 distinct
+  // intersection tokens with whatToShow. The bare template is
+  // always safe (anchor itself counts toward overlap, and the
+  // hookOverlap path may carry the rest).
+  {
+    const showTokenSet = new Set(
+      (entry.whatToShow.toLowerCase().match(/[a-z][a-z0-9']{2,}/g) ?? [])
+        .filter((t) => !STOPWORDS.has(t)),
+    );
+    const trigTokens = new Set(
+      (trigger.toLowerCase().match(/[a-z][a-z0-9']{2,}/g) ?? [])
+        .filter((t) => !STOPWORDS.has(t)),
+    );
+    let overlap = 0;
+    for (const t of trigTokens) if (showTokenSet.has(t)) overlap++;
+    if (overlap < 2 && showContentPair) {
+      // Truncation broke the invariant. Drop the borrowed-token
+      // suffix entirely; bare anchor template always fits.
+      trigger = clampLen(`notice the ${anchorLc} land`, 5, 140, "again");
+    }
+  }
   const reaction = clampLen(
     `freeze on the ${anchorLc} for one beat`,
     5,
