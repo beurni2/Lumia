@@ -182,7 +182,14 @@ function detectComedySignals(text: string): {
 // lists from NLP libraries would over-strip the already-terse
 // hooks (a 6-word hook could lose half its tokens). This list is
 // limited to grammatical glue + the most generic "scene" verbs.
-const STOPWORDS: ReadonlySet<string> = new Set([
+// PHASE N1-TRIGGER-FIX (2026-05-06) — exported so the Nigerian pack
+// author (`nigerianPackAuthor.ts`) can derive trigger content tokens
+// from `entry.whatToShow` while staying byte-aligned with the
+// validator's own stopword discipline. Single source of truth — any
+// future stopword tweak must auto-propagate to the pack-author
+// helper without code drift. The set is `ReadonlySet`, so consumers
+// cannot mutate it.
+export const STOPWORDS: ReadonlySet<string> = new Set([
   "the", "a", "an", "and", "or", "but", "if", "so",
   "to", "of", "in", "on", "at", "by", "for", "with",
   "is", "are", "was", "were", "be", "been", "being",
