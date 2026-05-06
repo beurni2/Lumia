@@ -27,21 +27,21 @@
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
  *   • DRAFT-053 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-061 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-061 [REWRITE] → scoreHookQuality 32 < floor 40
  *   • DRAFT-073 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-108 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-108 [REWRITE] → scoreHookQuality 22 < floor 40
  *   • DRAFT-117 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-129 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-153 [REWRITE] → scoreHookQuality 28 < floor 40
- *   • DRAFT-171 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-153 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-171 [REWRITE] → scoreHookQuality 17 < floor 40
  *   • DRAFT-177 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-191 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-195 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-195 [REWRITE] → scoreHookQuality 22 < floor 40
  *   • DRAFT-210 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-212 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-228 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-228 [REWRITE] → scoreHookQuality 32 < floor 40
  *   • DRAFT-237 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-255 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-255 [REWRITE] → scoreHookQuality 32 < floor 40
  */
 
 import {

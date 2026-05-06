@@ -1,0 +1,111 @@
+- draftId: DRAFT-195
+  rewrittenHook: "rain disgrace me before I even cross door"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "weather had agenda."
+  rewriteNotes: "Kept rain anchor; sharper embarrassment and immediate visual consequence."
+
+- draftId: DRAFT-053
+  rewrittenHook: "bed save me before outside finish me"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "my bed has authority."
+  rewriteNotes: "Kept bed anchor; stronger Nigerian-style resistance to social pressure."
+
+- draftId: DRAFT-061
+  rewrittenHook: "balance slap my cart confidence back to reality"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "financial courage is not evidence."
+  rewriteNotes: "Kept balance anchor; stronger impact verb and contradiction."
+
+- draftId: DRAFT-177
+  rewrittenHook: "caption fight me after video don finish"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "caption humbled the creator."
+  rewriteNotes: "Kept caption anchor; stronger creator frustration."
+
+- draftId: DRAFT-210
+  rewrittenHook: "one forward nearly make me public evidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "forwarding requires self-control."
+  rewriteNotes: "Kept forward anchor; stronger public consequence."
+
+- draftId: DRAFT-255
+  rewrittenHook: "one spoon rob my plate in broad daylight"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "one spoon has agenda."
+  rewriteNotes: "Kept spoon anchor; stronger theft and clearer visual payoff."
+
+- draftId: DRAFT-153
+  rewrittenHook: "portal bury my courage with one closed page"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "later has consequences."
+  rewriteNotes: "Kept portal anchor; stronger deadline consequence."
+
+- draftId: DRAFT-073
+  rewrittenHook: "one comment scatter my posting confidence live"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mental press briefing."
+  rewriteNotes: "Kept comment anchor; stronger creator anxiety and immediacy."
+
+- draftId: DRAFT-108
+  rewrittenHook: "admin punish my greeting like spam get immunity"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "admin power is not democracy."
+  rewriteNotes: "Kept admin anchor; stronger unfairness contrast."
+
+- draftId: DRAFT-117
+  rewrittenHook: "bike shortcut turn my confidence to prayer"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "quick route, long testimony."
+  rewriteNotes: "Kept bike anchor; stronger Nigerian ride panic."
+
+- draftId: DRAFT-129
+  rewrittenHook: "generator drag sleep outside and disgrace am"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "rest with soundtrack."
+  rewriteNotes: "Kept generator anchor; stronger personified conflict."
+
+- draftId: DRAFT-191
+  rewrittenHook: "seller laugh scatter my price confidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "bargaining as performance."
+  rewriteNotes: "Kept seller anchor; stronger market embarrassment."
+
+- draftId: DRAFT-212
+  rewrittenHook: "mute fail me, curiosity carry first position"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute could not save me."
+  rewriteNotes: "Kept mute anchor; stronger self-betrayal and Nigerian cadence."
+
+- draftId: DRAFT-228
+  rewrittenHook: "last bus turn my body to emergency evidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "cardio by transport."
+  rewriteNotes: "Kept bus anchor; stronger physical urgency."
+
+- draftId: DRAFT-237
+  rewrittenHook: "generator carry my sleep enter street concert"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "sleep with soundtrack."
+  rewriteNotes: "Kept generator anchor; stronger Nigerian phrasing while preserving setup."
+
+- draftId: DRAFT-171
+  rewrittenHook: "pay back die, meme show up as next of kin"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "debt with comedy timing."
+  rewriteNotes: "Kept pay anchor; stronger punchline and Nigerian-style absurdity."
