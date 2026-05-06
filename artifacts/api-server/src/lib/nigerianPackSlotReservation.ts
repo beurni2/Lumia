@@ -171,9 +171,20 @@ export function applyNigerianPackSlotReservation(
   }
   if (dedupedPack.length === 0) return stripExcludedPackFromBatch(selectionBatch);
 
-  // Cap reserved slots at 2 (per spec) AND at desiredCount AND at
-  // the number of distinct pack candidates available.
-  const maxReserved = Math.min(2, dedupedPack.length, desiredCount);
+  // PHASE N1-FULL-SPEC LIVE — cap lifted from literal `2` to
+  // `desiredCount`. Spec §"Slot reservation" originally capped at
+  // 2 to preserve a non-pack variety slot; live user feedback
+  // (2026-05-06) explicitly asked for more pidgin coverage and the
+  // pack-prefix block (coreCandidateGenerator.ts L955-1064)
+  // routinely produces 3+ distinct pack candidates per batch
+  // (15 generated, ~2-5 surviving per-core ranking with the style
+  // penalty active). The cohort gate at the top of this function
+  // (`canActivateNigerianPack`) already restricts this code path
+  // to nigeria + pidgin/light_pidgin + flag ON, so non-NG /
+  // flag-OFF cohorts remain byte-identical to the pre-lift
+  // baseline. `dedupedPack.length` and `desiredCount` are still
+  // in the min so we never over-allocate.
+  const maxReserved = Math.min(dedupedPack.length, desiredCount);
   const reservedPack = dedupedPack.slice(0, maxReserved);
 
   // Non-pack picks preserve upstream selection order. Drop any
@@ -184,17 +195,26 @@ export function applyNigerianPackSlotReservation(
     .filter((c) => packEntryIdOf(c) === undefined)
     .filter((c) => !reservedHooks.has(normHook(c.idea.hook)));
 
-  // Compose: even-indexed slots reserved for pack, odd-indexed for
-  // non-pack. For desiredCount=3 with ≥2 pack this yields the spec's
-  // [pack, nonPack, pack]. For 1 pack it yields [pack, nonPack,
-  // nonPack] (slot 2 wants pack, falls through to non-pack). For
-  // desiredCount=1 it yields [pack]; for 2 it yields [pack, nonPack].
+  // PHASE N1-FULL-SPEC LIVE — composition lifted from "even-indexed
+  // pack" to "pack-first". The original `slot % 2 === 0` pattern
+  // structurally capped pack at ⌈desiredCount/2⌉ (2 for the typical
+  // desiredCount=3) even when reservedPack.length allowed more.
+  // With the maxReserved cap above lifted to desiredCount, this
+  // change closes the loop: when 3 pack candidates survive
+  // dedup+memory-filter, all 3 ship as pack. When fewer survive,
+  // the trailing slots fall through to non-pack exactly like the
+  // 1-pack case did before. Result by available pack count
+  // (desiredCount=3): 3-pack → [pack,pack,pack], 2-pack →
+  // [pack,pack,nonPack] (was [pack,nonPack,pack]), 1-pack →
+  // [pack,nonPack,nonPack] (unchanged). Same cohort gate at the
+  // top of the function ensures non-NG / flag-OFF cohorts never
+  // hit this loop, so byte-identical parity is preserved.
   const composed: ScoredCandidate[] = [];
   const pickedHooks = new Set<string>();
   let packIdx = 0;
   let nonPackIdx = 0;
   for (let slot = 0; slot < desiredCount; slot++) {
-    const wantPackHere = slot % 2 === 0 && packIdx < reservedPack.length;
+    const wantPackHere = packIdx < reservedPack.length;
     if (wantPackHere) {
       const c = reservedPack[packIdx]!;
       composed.push(c);

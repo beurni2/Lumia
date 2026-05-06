@@ -136,7 +136,11 @@ describe("applyNigerianPackSlotReservation", () => {
     expect(out).toBe(batch);
   });
 
-  it("composes [pack, nonPack, pack] when ≥2 pack and ≥1 nonPack available", () => {
+  it("composes [pack, pack, nonPack] when 2 pack and ≥1 nonPack available (PHASE N1-FULL-SPEC LIVE — pack-first)", () => {
+    // Pre-LIVE behaviour: [p1, nonPack, p2]. LIVE behaviour: pack-
+    // first composition fills slots 0+1 with the two pack
+    // candidates and falls through to non-pack at slot 2. Cohort
+    // gate (NG-pidgin / light_pidgin + flag ON) unchanged.
     const p1 = mkCandidate({ hook: "pack one", total: 10, packEntryId: "p1" });
     const p2 = mkCandidate({ hook: "pack two", total: 9, packEntryId: "p2" });
     const n1 = mkCandidate({ hook: "non one", total: 8 });
@@ -152,8 +156,8 @@ describe("applyNigerianPackSlotReservation", () => {
     });
     expect(out.length).toBe(3);
     expect(out[0]!.meta).toMatchObject({ nigerianPackEntryId: "p1" });
-    expect((out[1]!.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId).toBeUndefined();
-    expect(out[2]!.meta).toMatchObject({ nigerianPackEntryId: "p2" });
+    expect(out[1]!.meta).toMatchObject({ nigerianPackEntryId: "p2" });
+    expect((out[2]!.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId).toBeUndefined();
   });
 
   it("ranks pack candidates by score.total desc — higher scorer wins", () => {
@@ -169,8 +173,10 @@ describe("applyNigerianPackSlotReservation", () => {
       flagEnabled: true,
       packLength: 50,
     });
+    // PHASE N1-FULL-SPEC LIVE — pack-first composition: hi (rank 0)
+    // lands at slot 0, lo (rank 1) at slot 1, non-pack at slot 2.
     expect(out[0]!.meta).toMatchObject({ nigerianPackEntryId: "hi" });
-    expect(out[2]!.meta).toMatchObject({ nigerianPackEntryId: "lo" });
+    expect(out[1]!.meta).toMatchObject({ nigerianPackEntryId: "lo" });
   });
 
   it("dedups pack candidates by nigerianPackEntryId", () => {
@@ -332,7 +338,13 @@ describe("applyNigerianPackSlotReservation", () => {
     });
   });
 
-  it("never reserves more than 2 of 3 slots (cap honoured)", () => {
+  it("ships up to desiredCount pack hooks when pool allows (PHASE N1-FULL-SPEC LIVE — cap lifted from 2 to desiredCount)", () => {
+    // Pre-LIVE behaviour capped reserved pack at literal `2` so
+    // `packCount === 2`. LIVE behaviour caps at `desiredCount` so
+    // `packCount === 3` when 3+ distinct pack candidates survive
+    // dedup. Cohort gate at the top of the function (NG-pidgin /
+    // light_pidgin + flag ON + non-empty pack) unchanged — non-NG
+    // and flag-OFF cohorts never enter this code path.
     const p1 = mkCandidate({ hook: "p1", total: 10, packEntryId: "p1" });
     const p2 = mkCandidate({ hook: "p2", total: 9, packEntryId: "p2" });
     const p3 = mkCandidate({ hook: "p3", total: 8, packEntryId: "p3" });
@@ -349,6 +361,9 @@ describe("applyNigerianPackSlotReservation", () => {
     const packCount = out.filter(
       (c) => (c.meta as { nigerianPackEntryId?: string }).nigerianPackEntryId !== undefined,
     ).length;
-    expect(packCount).toBe(2);
+    expect(packCount).toBe(3);
+    expect(out[0]!.meta).toMatchObject({ nigerianPackEntryId: "p1" });
+    expect(out[1]!.meta).toMatchObject({ nigerianPackEntryId: "p2" });
+    expect(out[2]!.meta).toMatchObject({ nigerianPackEntryId: "p3" });
   });
 });

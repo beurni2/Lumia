@@ -4049,7 +4049,33 @@ export async function runHybridIdeator(
   // fallback never fired). For regenerate=false (cheap pattern /
   // cache path) the trigger is unchanged so we don't regress the
   // sub-second normal-tap latency.
-  const layer1CoreAwareTriggered = regenerate;
+  // PHASE N1-FULL-SPEC LIVE — cohort-gated skip of the mandatory
+  // regenerate-Claude wrap when the local pool is already healthy
+  // AND the active cohort is NG-pidgin/light_pidgin with the pack
+  // flag ON. Live request audit (request d28a3efe, 2026-05-06)
+  // showed the regenerate-mandatory Claude path costing ~20s and
+  // returning `claudeKept: 0`, then the Llama mutator costing
+  // another ~10s and returning `mutationsSelected: 0` — 30 of 31
+  // total seconds wasted on no-op LLM round-trips while the local
+  // pool ALREADY had 10 healthy keepers (5 catalog `core_native`
+  // + 5 pack-prefix). For the NG-pidgin cohort the pack-prefix
+  // block is the highest-quality source by construction
+  // (reviewer-stamped entries, scoreNigerianPackEntry-validated),
+  // so Claude's variety contribution is structurally redundant.
+  // Gate is the same four-AND used by `canActivateNigerianPack`
+  // (region + languageStyle + flag + non-empty pack) PLUS a
+  // pool-fullness check (localKept >= desiredCount + 2 keeps a
+  // 2-candidate selection headroom for novelty / guard variety).
+  // Western/India/PH/NG-clean/flag-OFF cohorts evaluate the gate
+  // to false → byte-identical to pre-fix behaviour.
+  const n1LiveSkipFallback =
+    canActivateNigerianPack({
+      region: input.region,
+      languageStyle: calibration?.languageStyle ?? null,
+      flagEnabled: isNigerianPackFeatureEnabled(),
+      packLength: NIGERIAN_HOOK_PACK.length,
+    }) && localResult.kept.length >= desiredCount + 2;
+  const layer1CoreAwareTriggered = regenerate && !n1LiveSkipFallback;
   const needFallback =
     layer1CoreAwareTriggered ||
     merged.length < 3 ||
