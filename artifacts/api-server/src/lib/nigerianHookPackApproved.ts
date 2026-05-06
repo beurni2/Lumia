@@ -22,27 +22,24 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreHookQuality(hook) >= 40
  *
- * INGEST SUMMARY: 31 approved · 19 rejected
+ * INGEST SUMMARY: 34 approved · 16 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-006 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-035 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-053 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-061 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-073 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-108 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-117 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-108 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-117 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-129 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-153 [REWRITE] → scoreHookQuality 28 < floor 40
- *   • DRAFT-171 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-171 [REWRITE] → scoreHookQuality 22 < floor 40
  *   • DRAFT-177 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-187 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-191 [REWRITE] → scoreHookQuality 38 < floor 40
- *   • DRAFT-195 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-210 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-212 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-228 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-191 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-195 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-210 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-212 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-228 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-237 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-255 [REWRITE] → scoreHookQuality 35 < floor 40
  */
@@ -54,6 +51,17 @@ import {
 
 export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[] =
   Object.freeze([
+    Object.freeze({
+      // source: DRAFT-006 [REWRITE] · cluster: group_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "group chat don hijack my whole peace",
+      whatToShow: "Fake group chat shows five people tagging you. You type one reply, delete it, then just send a thumbs-up emoji and look away like that solved governance.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "leadership by emoji.",
+      anchor: "group",
+      domain: "messaging",
+      pidginLevel: "pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
     Object.freeze({
       // source: DRAFT-010 [REWRITE] · cluster: messages · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "phone expose my almost-there lie",
@@ -94,6 +102,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       howToFilm: "Counter-level lock-off, daylight, one take.",
       caption: "kitchen update: faith required.",
       anchor: "pot",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-035 [REWRITE] · cluster: home
+      hook: "room expose the mess I tried to respect",
+      whatToShow: "Show one item on the floor. You pick it up and reveal a bigger mess underneath. You put it back like the room has structure.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "organization by denial.",
+      anchor: "room",
       domain: "home",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
@@ -260,6 +279,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "camera ready. brain absent.",
       anchor: "camera",
       domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-187 [REWRITE] · cluster: pos_fee · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "POS expose my no-cash shame instantly",
+      whatToShow: "At a shop counter setup, you check your wallet, then see the POS extra charge. Your face drops slowly.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "payment method with plot twist.",
+      anchor: "pos",
+      domain: "everyday",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
