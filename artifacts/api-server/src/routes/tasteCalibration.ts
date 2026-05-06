@@ -87,7 +87,20 @@ router.delete("/taste-calibration", async (req, res, next) => {
 
 router.post("/taste-calibration", async (req, res, next) => {
   try {
-    const parsed = tasteCalibrationSchema.safeParse(req.body ?? {});
+    // PHASE N1-LANGSTYLE-PRESERVE — capture whether the raw body
+    // explicitly carried `languageStyle` BEFORE Zod parsing. Zod
+    // defaults missing field to `null`, which would otherwise
+    // silently clobber an existing server-side value on every
+    // save from a client whose UI doesn't expose the dial.
+    // Older mobile clients don't have a Pidgin/Clean selector
+    // yet, so absence-from-body must mean "leave existing alone".
+    const rawBody = (req.body ?? {}) as Record<string, unknown>;
+    const clientSentLanguageStyle = Object.prototype.hasOwnProperty.call(
+      rawBody,
+      "languageStyle",
+    );
+
+    const parsed = tasteCalibrationSchema.safeParse(rawBody);
     if (!parsed.success) {
       logger.warn(
         { issues: parsed.error.flatten() },
@@ -127,10 +140,26 @@ router.post("/taste-calibration", async (req, res, next) => {
           : [];
     const normalizedTone =
       normalizedTones.length > 0 ? normalizedTones[0] : null;
+
+    // PHASE N1-LANGSTYLE-PRESERVE — when the client did not send
+    // `languageStyle` in the raw body, preserve any pre-existing
+    // server-side value (read from the current row) instead of
+    // letting Zod's `.default(null)` clobber it. This keeps older
+    // mobile clients that don't expose the dial from silently
+    // turning off the Nigerian pack on every calibration save.
+    let preservedLanguageStyle = doc.languageStyle;
+    if (!clientSentLanguageStyle) {
+      const existing = parseTasteCalibration(r.creator.tasteCalibrationJson);
+      if (existing && existing.languageStyle != null) {
+        preservedLanguageStyle = existing.languageStyle;
+      }
+    }
+
     const persisted = {
       ...doc,
       preferredTone: normalizedTone,
       preferredTones: normalizedTones,
+      languageStyle: preservedLanguageStyle,
       completedAt: doc.skipped ? null : new Date().toISOString(),
     };
 
