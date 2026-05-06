@@ -1,0 +1,149 @@
+1. [Soft Pidgin | Data Vanish]
+Hook: data no dey stay long once scroll enter.
+Scenario: You say you’ll use small-small. One tiny scroll later, the data warning appears and you stare like the app robbed you politely.
+Caption: data dey evaporate for this country.
+
+2. [Soft Pidgin | Network Wahala]
+Hook: network waits till serious moment before it starts drama.
+Scenario: You try to send one urgent message. The loading circle keeps turning while your face slowly loses patience.
+Caption: na when you need am pass e dey hide.
+
+3. [Soft Pidgin | Signal Corner]
+Hook: signal get one special corner like shrine.
+Scenario: You move around the room with your hand raised. One tiny corner finally works, and you freeze there like statue.
+Caption: sacred place of connection.
+
+4. [Soft Pidgin | Wifi Visitor]
+Hook: wifi password don become visitor’s first greeting.
+Scenario: Visitor greets small, sits down, then immediately asks, “abeg, wifi still dey?”
+Caption: greeting first, password second.
+
+5. [Soft Pidgin | Hotspot Friendship]
+Hook: hotspot request fit test real friendship.
+Scenario: Friend asks for hotspot “just two minutes.” You look away for one second and they are already doing heavy browsing.
+Caption: small hotspot, big damage.
+
+6. [Soft Pidgin | DM Investigator]
+Hook: one innocent dm don start full investigation.
+Scenario: One message enters your dm. Somebody nearby sees your face change and starts asking who sent it.
+Caption: dm no dey stay private.
+
+7. [Soft Pidgin | Status Watcher]
+Hook: status complete, reply still missing.
+Scenario: You check your status viewers. The same person who ignored your chat watched every slide.
+Caption: active ghosting.
+
+8. [Soft Pidgin | Voicenote Length]
+Hook: voicenote pass five minutes? that one na episode.
+Scenario: Person sends a long voicenote. You press play, sit well, and prepare like lecture has started.
+Caption: abeg summarize am.
+
+9. [Soft Pidgin | Shift Mood]
+Hook: extra shift entered and my smile reduced.
+Scenario: You’re already preparing to leave. Manager casually says someone needs to cover one more shift.
+Caption: joy cancelled immediately.
+
+10. [Soft Pidgin | Timesheet Drama]
+Hook: timesheet long pass the actual energy.
+Scenario: You fill your timesheet with full seriousness, then stare at the hours like the week used you.
+Caption: full effort, soft reward.
+
+11. [Soft Pidgin | Deadline Pressure]
+Hook: deadline makes keyboard sound louder.
+Scenario: Morning is calm. By evening, everyone is typing like competition because deadline has entered the room.
+Caption: panic with professionalism.
+
+12. [Soft Pidgin | Salary-Day Hope]
+Hook: salary-day morning sweet pass normal morning.
+Scenario: You wake up with unusual patience, checking notifications like good news is warming up somewhere.
+Caption: hope first, confirmation later.
+
+13. [Soft Pidgin | Leave Denied]
+Hook: once I mention leave, manager starts smiling somehow.
+Scenario: You ask for leave politely. Manager starts talking about “team commitment” and “timing.”
+Caption: leave wey no wan leave.
+
+14. [Soft Pidgin | Manager Walk]
+Hook: manager passing your side can reset your posture.
+Scenario: You’re relaxed one second. Manager walks by, and you suddenly sit straighter than school prefect.
+Caption: instant office discipline.
+
+15. [Soft Pidgin | Intern Energy]
+Hook: intern entered smiling, office reality was waiting.
+Scenario: Intern arrives with fresh energy. Suddenly everyone is giving instructions like orientation became survival training.
+Caption: welcome to real life.
+
+16. [Soft Pidgin | Wedding-List Shock]
+Hook: wedding-list long enough to humble anybody.
+Scenario: You open the wedding-list and keep scrolling, wondering if you were invited as guest or committee member.
+Caption: celebration with assignment.
+
+17. [Soft Pidgin | Asoebi Pressure]
+Hook: asoebi message landed and my group chat went quiet.
+Scenario: The asoebi details enter the chat. Everybody reads it, but nobody wants to be the first to react.
+Caption: style with pressure.
+
+18. [Soft Pidgin | Naming Ceremony]
+Hook: naming ceremony no dey small for our side.
+Scenario: They say “just come for naming.” You arrive and it looks like full event with chairs, food, and loud gist.
+Caption: baby just arrived, everybody gathered.
+
+19. [Soft Pidgin | In-Laws Visit]
+Hook: in-laws coming can change everybody’s behavior.
+Scenario: One message says in-laws are coming. Suddenly everyone becomes polite, arranged, and extra responsible.
+Caption: emergency respect mode.
+
+20. [Soft Pidgin | Party Timing]
+Hook: party said 2pm, but 2pm was suggestion.
+Scenario: You dress up early and arrive on time. Only decorators and two confused chairs are around.
+Caption: punctuality punished.
+
+21. [Soft Pidgin | Gist Session]
+Hook: “I no get gist” is how the biggest gist starts.
+Scenario: Someone says they have nothing to say. Thirty minutes later, everybody is leaning forward.
+Caption: gist has no brakes.
+
+22. [Soft Pidgin | Condolence Timing]
+Hook: condolence gathering still get that one person asking questions.
+Scenario: The mood is serious. People are speaking softly, and one person is already whispering about who came late.
+Caption: gist no dey respect timing.
+
+23. [Soft Pidgin | Thumbnail Face]
+Hook: thumbnail face no dey match real life.
+Scenario: You take a content cover photo and choose the one where your eyes are widest like surprise ambassador.
+Caption: drama for visibility.
+
+24. [Soft Pidgin | Retake Wahala]
+Hook: one simple video don turn ten retake.
+Scenario: You start confidently, miss one word, laugh, start again, and now the whole room is tired with you.
+Caption: “last one” part nine.
+
+25. [Soft Pidgin | Tripod Trust]
+Hook: tripod waits for inspiration before it starts shaking.
+Scenario: You set up to record. The moment you step back with confidence, the tripod bends small and your peace disappears.
+Caption: stable in theory.
+
+26. [Soft Pidgin | Lightring Magic]
+Hook: lightring on, confidence don increase.
+Scenario: Normal room suddenly looks premium. You switch on the lightring and start posing like brand ambassador.
+Caption: soft glow, big confidence.
+
+27. [Soft Pidgin | Mic Respect]
+Hook: mic in hand can turn small talk to announcement.
+Scenario: You hold mic for a skit and immediately start speaking like host of serious program.
+Caption: tiny mic, giant authority.
+
+28. [Soft Pidgin | Clip Hunt]
+Hook: the exact clip you need don disappear.
+Scenario: You’re ready to finish content, but you keep scrolling through old takes like treasure hunt.
+Caption: hidden inside random clips.
+
+29. [Soft Pidgin | Edit Fatigue]
+Hook: edit sweet at first, later na eye pain.
+Scenario: You start excited, trimming and arranging. After a while, every version looks the same and your brain wants rest.
+Caption: creator suffering quietly.
+
+30. [Soft Pidgin | Batch Creator]
+Hook: batch content sounds smart until tiredness lands.
+Scenario: You plan to shoot many videos at once. By the third one, your smile is working on contract.
+Caption: productivity with stress.

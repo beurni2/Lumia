@@ -22,7 +22,7 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 180 approved · 7 rejected
+ * INGEST SUMMARY: 204 approved · 13 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
@@ -33,6 +33,12 @@
  *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-367 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-371 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
+ *   • DRAFT-372 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-373 → validateScenarioCoherence: hook_topic_noun_drift
+ *   • DRAFT-379 → validateScenarioCoherence: show_missing_hook_anchor
+ *   • DRAFT-380 → validateScenarioCoherence: hook_topic_noun_drift
  */
 
 import { type NigerianPackEntry } from "./nigerianHookPack.js";
@@ -2016,6 +2022,270 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "technology vs papa.",
       anchor: "papa",
       domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-351 · cluster: messages
+      hook: "data no dey stay long once scroll enter.",
+      whatToShow: "You say you'll use small-small. One tiny scroll later, the data warning appears and you stare like the app robbed you politely.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "data dey evaporate for this country.",
+      anchor: "data",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-352 · cluster: messages
+      hook: "network waits till serious moment before it starts drama.",
+      whatToShow: "You try to send one urgent message. The network loading circle keeps turning while your face slowly loses patience.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "na when you need am pass e dey hide.",
+      anchor: "network",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-353 · cluster: messages
+      hook: "signal get one special corner like shrine.",
+      whatToShow: "You move around the room with your hand raised. One tiny corner finally works, and you freeze there like statue.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "sacred place of connection.",
+      anchor: "corner",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-354 · cluster: messages
+      hook: "wifi password don become visitor's first greeting.",
+      whatToShow: "Visitor greets small, sits down, then immediately asks, \"abeg, wifi still dey?\"",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "greeting first, password second.",
+      anchor: "wifi",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-355 · cluster: messages
+      hook: "hotspot request fit test real friendship.",
+      whatToShow: "Friend asks for hotspot \"just two minutes.\" You look away for one second and they are already doing heavy browsing.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "small hotspot, big damage.",
+      anchor: "hotspot",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-356 · cluster: messages
+      hook: "one innocent dm don start full investigation.",
+      whatToShow: "One message enters your dm. Somebody nearby sees your face change and starts asking who sent the dm investigation.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "dm no dey stay private.",
+      anchor: "investigation",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-357 · cluster: messages
+      hook: "status complete, reply still missing.",
+      whatToShow: "You check your status viewers. The same person who ignored your chat watched every slide.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "active ghosting.",
+      anchor: "status",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-358 · cluster: messages
+      hook: "voicenote pass five minutes? that one na episode.",
+      whatToShow: "Person sends a long voicenote. You press play, sit well, and prepare like lecture has started.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "abeg summarize am.",
+      anchor: "voicenote",
+      domain: "phone",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-359 · cluster: work
+      hook: "extra shift entered and my smile reduced.",
+      whatToShow: "You're already preparing to leave. Manager casually says someone needs to cover one more shift.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "joy cancelled immediately.",
+      anchor: "shift",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-360 · cluster: work
+      hook: "timesheet long pass the actual energy.",
+      whatToShow: "You fill your timesheet with full seriousness, then stare at the hours like the week used you.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "full effort, soft reward.",
+      anchor: "timesheet",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-361 · cluster: work
+      hook: "deadline makes keyboard sound louder.",
+      whatToShow: "Morning is calm. By evening, everyone is typing like competition because deadline has entered the room.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "panic with professionalism.",
+      anchor: "deadline",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-362 · cluster: work
+      hook: "salary-day morning sweet pass normal morning.",
+      whatToShow: "You wake up with unusual patience, checking notifications like salary-day good news is warming up somewhere.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "hope first, confirmation later.",
+      anchor: "salary-day",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-363 · cluster: work
+      hook: "once I mention leave, manager starts smiling somehow.",
+      whatToShow: "You ask for leave politely. Manager starts talking about \"team commitment\" and \"timing.\"",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "leave wey no wan leave.",
+      anchor: "manager",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-364 · cluster: work
+      hook: "manager passing your side can reset your posture.",
+      whatToShow: "You're relaxed one second. Manager walks by, and you suddenly sit straighter than school prefect.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "instant office discipline.",
+      anchor: "manager",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-365 · cluster: work
+      hook: "intern entered smiling, office reality was waiting.",
+      whatToShow: "Intern arrives with fresh energy. Suddenly everyone is giving instructions like orientation became survival training.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "welcome to real life.",
+      anchor: "intern",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-366 · cluster: family
+      hook: "wedding-list long enough to humble anybody.",
+      whatToShow: "You open the wedding-list and keep scrolling, wondering if you were invited as guest or committee member.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "celebration with assignment.",
+      anchor: "wedding-list",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-368 · cluster: family
+      hook: "naming ceremony no dey small for our side.",
+      whatToShow: "They say \"just come for naming.\" You arrive and it looks like full event with chairs, food, and loud gist.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "baby just arrived, everybody gathered.",
+      anchor: "naming",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-369 · cluster: family
+      hook: "in-laws coming can change everybody's behavior.",
+      whatToShow: "One message says in-laws are coming. Suddenly everyone becomes polite, arranged, and extra responsible.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "emergency respect mode.",
+      anchor: "in-laws",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-370 · cluster: family
+      hook: "party said 2pm, but 2pm was suggestion.",
+      whatToShow: "You dress for the party early. arrive on time. Only decorators and two confused chairs are around.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "punctuality punished.",
+      anchor: "party",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-374 · cluster: creator
+      hook: "one simple video don turn ten retake.",
+      whatToShow: "You start confidently, miss one word, laugh, start a retake, and now the whole room is tired with you.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "last one\" part nine.",
+      anchor: "retake",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-375 · cluster: creator
+      hook: "tripod waits for inspiration before it starts shaking.",
+      whatToShow: "You set up to record. The moment you step back with confidence, the tripod bends small and your peace disappears.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "stable in theory.",
+      anchor: "tripod",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-376 · cluster: creator
+      hook: "lightring on, confidence don increase.",
+      whatToShow: "Normal room suddenly looks premium. You switch on the lightring and start posing like brand ambassador.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "soft glow, big confidence.",
+      anchor: "lightring",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-377 · cluster: creator
+      hook: "mic in hand can turn small talk to announcement.",
+      whatToShow: "You hold mic for a skit and immediately start speaking like host of serious program.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "tiny mic, giant authority.",
+      anchor: "mic",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-378 · cluster: creator
+      hook: "the exact clip you need don disappear.",
+      whatToShow: "You're ready to finish content, but you keep scrolling through old clip takes like treasure hunt.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "hidden inside random clips.",
+      anchor: "clip",
+      domain: "creator",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
     }),
