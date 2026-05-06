@@ -1,0 +1,107 @@
+Proceed to N1-S — Staging-only Nigerian Pack Activation QA.
+
+Context:
+The approved Nigerian pool is now complete:
+- APPROVED_NIGERIAN_PROMOTION_CANDIDATES = 50 entries
+- all reviewedBy = BI 2026-05-05
+- approved pool integrity passes
+- rejected rows = 0
+- NIGERIAN_HOOK_PACK is still empty/dark
+- LUMINA_NG_PACK_ENABLED is still off
+- runtime generation is untouched
+- 735/735 tests pass
+- no new TypeScript errors
+
+Goal:
+Wire the approved Nigerian pack into the live pack path for staging QA only, behind the existing activation guard.
+
+Hard rules:
+- Do not enable production rollout.
+- Do not remove the feature flag.
+- Do not loosen validators.
+- Do not loosen anchor checks.
+- Do not loosen anti-copy.
+- Do not loosen safety/privacy checks.
+- Do not touch western / india / philippines behavior.
+- Do not affect nigeria-clean.
+- Claude remains fallback only.
+- Keep NIGERIAN_HOOK_PACK gated by LUMINA_NG_PACK_ENABLED === "true".
+- If flag is unset/false, behavior must remain byte-identical to current dark state.
+
+Implementation:
+- Copy or reference APPROVED_NIGERIAN_PROMOTION_CANDIDATES into the live Nigerian pack path only if the existing architecture expects NIGERIAN_HOOK_PACK to contain activation entries.
+- Preserve canActivateNigerianPack conditions:
+  1. region === nigeria
+  2. languageStyle is light_pidgin or pidgin
+  3. LUMINA_NG_PACK_ENABLED === "true"
+  4. live pack length > 0
+- Wire only the intended recipe integration site.
+- Keep integration additive and reversible.
+
+QA required:
+1. Flag OFF tests:
+   - western unchanged
+   - india unchanged
+   - philippines unchanged
+   - nigeria + clean unchanged
+   - nigeria + null languageStyle unchanged
+   - nigeria + light_pidgin does not use pack
+   - nigeria + pidgin does not use pack
+
+2. Flag ON staging tests:
+   - nigeria + light_pidgin can use approved pack
+   - nigeria + pidgin can use approved pack
+   - western / india / philippines still cannot use pack
+   - nigeria-clean still cannot use pack
+
+3. Live output sweep:
+   Generate:
+   - 20 ideas: nigeria + light_pidgin
+   - 20 ideas: nigeria + pidgin
+   - 20 ideas: nigeria + clean
+   - 20 ideas: western
+   - 10 ideas: india
+   - 10 ideas: philippines
+
+For each idea report:
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source: Nigerian pack / deterministic catalog / Claude fallback
+- pack entry id if used
+- languageStyle
+- region
+- scenario coherence result
+- safety result
+- anti-copy result
+- human-filmable yes/no
+- sounds Nigerian yes/no for nigeria light_pidgin/pidgin
+- forced/cringe Pidgin yes/no
+- repeated hook/anchor yes/no
+
+Acceptance criteria:
+- nigeria + light_pidgin: at least 12/20 use approved pack entries
+- nigeria + pidgin: at least 12/20 use approved pack entries
+- nigeria-clean: 0 pack usage
+- western/india/philippines: 0 pack usage
+- 18/20+ filmable for nigeria light_pidgin and pidgin
+- 0 safety failures
+- 0 scenario mismatches
+- 0 forced/mock Pidgin
+- 0 cross-region leaks
+- no major repetition
+- fallback rate does not spike badly
+- tests pass
+- TypeScript result unchanged except pre-existing unrelated retention errors
+
+Report:
+- files changed
+- pack activation wiring
+- flag-off proof
+- flag-on proof
+- live QA tables
+- pack usage rate
+- strongest 5 outputs
+- weakest 5 outputs
+- recommendation: GO / GO WITH NOTES / HOLD
