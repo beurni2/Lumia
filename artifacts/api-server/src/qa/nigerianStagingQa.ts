@@ -72,7 +72,7 @@ type Cohort = {
 // would: 10 batches of 3 ideas per nigeria/western cohort = 30 ideas;
 // for india/philippines the spec asks for 20 ideas total → ~7 batches
 // (rounded up to give 21 ideas, then trimmed to 20).
-const COHORTS: readonly Cohort[] = [
+export const COHORTS: readonly Cohort[] = [
   { label: "ng_light_pidgin", region: "nigeria", languageStyle: "light_pidgin", count: 30 },
   { label: "ng_pidgin", region: "nigeria", languageStyle: "pidgin", count: 30 },
   { label: "ng_clean", region: "nigeria", languageStyle: "clean", count: 30 },
@@ -83,7 +83,7 @@ const COHORTS: readonly Cohort[] = [
 
 const PRODUCTION_BATCH_SIZE = 3; // mirrors hybridIdeator desiredCount
 
-type Row = {
+export type Row = {
   cohort: string;
   region: Region;
   languageStyle: LanguageStyle | null;
@@ -279,7 +279,7 @@ function runCohortBatch(cohort: Cohort, salt: number): Row[] {
 // `cohort.count / PRODUCTION_BATCH_SIZE` independent 3-idea batches,
 // each with a distinct regenerate salt. Trims the final batch if
 // the total would exceed cohort.count.
-function runCohort(cohort: Cohort, baseSalt: number): Row[] {
+export function runCohort(cohort: Cohort, baseSalt: number): Row[] {
   const totalBatches = Math.ceil(cohort.count / PRODUCTION_BATCH_SIZE);
   const out: Row[] = [];
   for (let b = 0; b < totalBatches; b++) {
@@ -348,7 +348,7 @@ function mulberry32(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function withSeededRandom<T>(seed: number | "random", fn: () => T): T {
+export function withSeededRandom<T>(seed: number | "random", fn: () => T): T {
   if (seed === "random") {
     // Don't override — caller wants legacy non-deterministic behaviour.
     return fn();
@@ -388,7 +388,7 @@ const COMBINED_TARGET_PCT = 0.5;
 //     the GO threshold downward to mask a HOLD.
 //   • The list is intentionally kept at 5 (odd) so the median is a
 //     concrete observed value, not a synthesized average of two.
-const DEFAULT_SWEEP_SEEDS = [1, 7, 42, 1337, 31337] as const;
+export const DEFAULT_SWEEP_SEEDS = [1, 7, 42, 1337, 31337] as const;
 
 // Per-cohort base salt — each cohort gets its own seed so the
 // cross-cohort core selection isn't pinned to one slate. The
@@ -825,5 +825,13 @@ function main(): void {
   );
 }
 
-main();
-process.exit(0);
+// Module-execution guard — only run main() when invoked directly via
+// `tsx src/qa/nigerianStagingQa.ts`, NOT when imported by another
+// script (e.g. `analyzeNigerianBatchDTargets.ts` reuses `runCohort`,
+// `COHORTS`, `withSeededRandom`, etc. without triggering a sweep).
+const __thisFile = fileURLToPath(import.meta.url);
+const __invokedFile = process.argv[1] ? path.resolve(process.argv[1]) : "";
+if (__thisFile === __invokedFile) {
+  main();
+  process.exit(0);
+}
