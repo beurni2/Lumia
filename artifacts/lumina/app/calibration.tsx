@@ -69,6 +69,13 @@ export default function CalibrationModal() {
   // (worst case: a Nigerian creator briefly sees the 4-step kicker
   // before the region resolves and the kicker swaps to "of 5").
   const [region, setRegion] = useState<Bundle | null>(null);
+  // PHASE N1 — block first paint until BOTH fetches resolve so a
+  // Nigerian creator opening /calibration in refresh mode can never
+  // race past the language-step decision (which keys off `region`).
+  // The previous "render immediately, swap region in later" pattern
+  // would let a fast tapper hit the opener-step terminal before
+  // showLanguageStep flipped true, silently skipping the picker.
+  const [ready, setReady] = useState<boolean>(false);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -88,6 +95,8 @@ export default function CalibrationModal() {
         }
       } catch {
         // Fail-open — keep the default "initial" framing on error.
+      } finally {
+        if (!cancelled) setReady(true);
       }
     })();
     return () => {
@@ -113,7 +122,9 @@ export default function CalibrationModal() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <TasteCalibration onComplete={handleDone} mode={mode} region={region} />
+        {ready ? (
+          <TasteCalibration onComplete={handleDone} mode={mode} region={region} />
+        ) : null}
       </ScrollView>
     </View>
   );

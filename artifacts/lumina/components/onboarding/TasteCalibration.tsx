@@ -65,6 +65,9 @@ import {
   markPendingPostCalibrationRefresh,
   markTasteOnboardingCompleted,
 } from "@/lib/tasteOnboardingState";
+// PHASE N1 — used to evict the cached Home batch on save so the
+// freshly-saved Pidgin signal actually surfaces on next focus.
+import { clearDailyIdeas } from "@/lib/dailyIdeasCache";
 
 /**
  * PHASE Y14 — `mode` distinguishes the first-time onboarding flow
@@ -332,6 +335,13 @@ export function TasteCalibration({ onComplete, mode = "initial", region = null }
       // failure is acceptable (we just skip the celebratory
       // treatment, the calibration itself still saved).
       void markPendingPostCalibrationRefresh();
+      // PHASE N1 — drop the daily-ideas cache so the next Home focus
+      // re-fetches with the freshly-saved languageStyle in play
+      // (Nigerian creators picking Pidgin/light_pidgin would
+      // otherwise see yesterday's plain-English batch and conclude
+      // the picker did nothing). Cheap no-op for non-Nigeria saves
+      // since the cache will just be re-populated identically.
+      void clearDailyIdeas();
       // Detached POST — never blocks navigation. Same fire-and-
       // forget pattern as the prior implementation; on the rare
       // network failure the next cold start will show the prompt
