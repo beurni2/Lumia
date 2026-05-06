@@ -1,0 +1,258 @@
+- draftId: DRAFT-219
+  rewrittenHook: "online dey show, but reply don japa"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "online without responsibility."
+  rewriteNotes: "Restored light Pidgin; kept online anchor and sharper ghosting tension."
+
+- draftId: DRAFT-223
+  rewrittenHook: "gate don expose me, keys still dey hide"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "location by confidence."
+  rewriteNotes: "Kept gate anchor; Pidgin rhythm with clear lie reveal."
+
+- draftId: DRAFT-269
+  rewrittenHook: "traffic hold me down, but work think say I don sit"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "remote presence by faith."
+  rewriteNotes: "Kept traffic anchor; stronger Nigerian phrasing around work lie."
+
+- draftId: DRAFT-006
+  rewrittenHook: "this group chat don turn unpaid assignment"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "leadership by emoji."
+  rewriteNotes: "Kept group anchor; already natural Pidgin and stronger than the first version."
+
+- draftId: DRAFT-071
+  rewrittenHook: "post don go live, my peace don collapse"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "peace after posting is a myth."
+  rewriteNotes: "Kept post anchor; Pidgin cadence with clear anxiety."
+
+- draftId: DRAFT-111
+  rewrittenHook: "mute betrayed me before the group even started"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute button could not save me."
+  rewriteNotes: "Kept mute anchor; light Pidgin-compatible without forced phrasing."
+
+- draftId: DRAFT-181
+  rewrittenHook: "camera dey roll, brain don resign"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "camera ready. brain absent."
+  rewriteNotes: "Kept camera anchor; compact Pidgin creator panic."
+
+- draftId: DRAFT-255
+  rewrittenHook: "one spoon don become full plate robbery"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "one spoon has agenda."
+  rewriteNotes: "Kept spoon anchor; Nigerian escalation and clear food tension."
+
+- draftId: DRAFT-010
+  rewrittenHook: "phone expose my almost-there lie"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "location: emotionally on the way."
+  rewriteNotes: "Kept phone anchor; light Pidgin/Naija phrasing and short hook."
+
+- draftId: DRAFT-035
+  rewrittenHook: "room laugh me when I said clean small"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "organization by denial."
+  rewriteNotes: "Kept room anchor; restored Nigerian rhythm."
+
+- draftId: DRAFT-011
+  rewrittenHook: "transport fare expose my outside courage"
+  rewrittenWhatToShow: "Show notes app with a fake transport budget. You add the transport numbers, pause, then slowly change your clothes back to house clothes."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "outside is now a subscription."
+  rewriteNotes: "Kept transport anchor in hook and whatToShow; light Pidgin phrasing."
+
+- draftId: DRAFT-061
+  rewrittenHook: "balance see my cart and disgrace my confidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "financial courage is not evidence."
+  rewriteNotes: "Kept balance anchor; more Nigerian comedic wording."
+
+- draftId: DRAFT-083
+  rewrittenHook: "bed call meeting, sleep carry vote"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "meeting adjourned by sleep."
+  rewriteNotes: "Kept bed anchor; stronger Pidgin-style punchline."
+
+- draftId: DRAFT-177
+  rewrittenHook: "caption don humble me after video finish"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "caption humbled the creator."
+  rewriteNotes: "Kept caption anchor; direct creator frustration in light Pidgin."
+
+- draftId: DRAFT-191
+  rewrittenHook: "seller hear my price and laugh me finish"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "bargaining as performance."
+  rewriteNotes: "Kept seller anchor; natural Nigerian market embarrassment."
+
+- draftId: DRAFT-171
+  rewrittenHook: "pay back don vanish, meme don arrive"
+  rewrittenWhatToShow: "Open fake chat with old pay-back promise. Next message is a meme instead of money."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "debt with comedy timing."
+  rewriteNotes: "Kept pay anchor in hook and whatToShow; Pidgin rhythm, clearer debt joke."
+
+- draftId: DRAFT-212
+  rewrittenHook: "mute dey on, curiosity still defeat me"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mute could not save me."
+  rewriteNotes: "Kept mute anchor; light Pidgin self-betrayal."
+
+- draftId: DRAFT-053
+  rewrittenHook: "bed reject the 'when are you coming?' message"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "my bed has authority."
+  rewriteNotes: "Kept bed anchor; keeps Nigerian social-pressure setup."
+
+- draftId: DRAFT-067
+  rewrittenHook: "list enter market and lose home training"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "the list lost control."
+  rewriteNotes: "Kept list anchor; Nigerian phrase with clear shopping chaos."
+
+- draftId: DRAFT-146
+  rewrittenHook: "freezer don panic before I even open am"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "chicken under pressure."
+  rewriteNotes: "Kept freezer anchor; light Pidgin power-outage tension."
+
+- draftId: DRAFT-153
+  rewrittenHook: "portal close, my courage disappear"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "later has consequences."
+  rewriteNotes: "Kept portal anchor; short Pidgin-style deadline panic."
+
+- draftId: DRAFT-017
+  rewrittenHook: "small visit don turn transport bill"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "\"small\" has transport cost."
+  rewriteNotes: "Kept small anchor; Nigerian money/movement tension."
+
+- draftId: DRAFT-117
+  rewrittenHook: "bike shortcut don turn prayer point"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "quick route, long testimony."
+  rewriteNotes: "Kept bike anchor; natural Nigerian phrasing for chaotic ride."
+
+- draftId: DRAFT-129
+  rewrittenHook: "generator don cancel sleep with full volume"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "rest with soundtrack."
+  rewriteNotes: "Kept generator anchor; light Pidgin and stronger conflict."
+
+- draftId: DRAFT-206
+  rewrittenHook: "blue ticks don land, reply don disappear"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "read receipt with pain."
+  rewriteNotes: "Kept ticks anchor; natural light Pidgin ghosting tension."
+
+- draftId: DRAFT-228
+  rewrittenHook: "last bus turn my body to emergency mode"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "cardio by transport."
+  rewriteNotes: "Kept bus anchor; Nigerian phrasing with physical urgency."
+
+- draftId: DRAFT-237
+  rewrittenHook: "generator start concert, my sleep suffer"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "sleep with soundtrack."
+  rewriteNotes: "Kept generator anchor; short and more native-feeling."
+
+- draftId: DRAFT-085
+  rewrittenHook: "shoes expose my leaving-house lie"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "readiness without results."
+  rewriteNotes: "Kept shoes anchor; light Pidgin-compatible and direct."
+
+- draftId: DRAFT-091
+  rewrittenHook: "slippers ready, mission still no launch"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mission cancelled at launch."
+  rewriteNotes: "Kept slippers anchor; more Nigerian cadence."
+
+- draftId: DRAFT-195
+  rewrittenHook: "rain catch me outside and collect my confidence"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "weather had agenda."
+  rewriteNotes: "Kept rain anchor; restored Pidgin-style phrasing."
+
+- draftId: DRAFT-202
+  rewrittenHook: "one GIF hijack the whole group question"
+  rewrittenWhatToShow: "You ask 'who's free this weekend?' in a fake group chat. Friends reply with a running-away GIF and laughing reactions instead of answering."
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "simple question, cinema reply."
+  rewriteNotes: "Kept GIF anchor in hook and whatToShow; light Pidgin grammar."
+
+- draftId: DRAFT-210
+  rewrittenHook: "one forward almost turn me to the problem"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "forwarding requires self-control."
+  rewriteNotes: "Kept forward anchor; Nigerian phrasing with consequence."
+
+- draftId: DRAFT-266
+  rewrittenHook: "camera off, breakfast become my real meeting"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "attendance without presence."
+  rewriteNotes: "Kept camera anchor; light Pidgin-style sentence rhythm."
+
+- draftId: DRAFT-073
+  rewrittenHook: "one comment don open emergency press conference"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "mental press briefing."
+  rewriteNotes: "Kept comment anchor; stronger Nigerian creator anxiety."
+
+- draftId: DRAFT-108
+  rewrittenHook: "admin attack my good morning and spare the spam"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "admin power is not democracy."
+  rewriteNotes: "Kept admin anchor; light Pidgin grammar and clearer unfairness."
+
+- draftId: DRAFT-187
+  rewrittenHook: "POS add extra fee and peace leave counter"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "payment method with plot twist."
+  rewriteNotes: "Kept POS anchor; Nigerian transactional frustration."
+
+- draftId: DRAFT-199
+  rewrittenHook: "fine come out, but chaos hold my body"
+  rewrittenWhatToShow: ""
+  rewrittenHowToFilm: ""
+  rewrittenCaption: "fine, according to official statement."
+  rewriteNotes: "Kept fine anchor; natural Pidgin contradiction."
