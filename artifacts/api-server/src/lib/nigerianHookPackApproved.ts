@@ -22,39 +22,29 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreHookQuality(hook) >= 40
  *
- * INGEST SUMMARY: 21 approved · 29 rejected
+ * INGEST SUMMARY: 31 approved · 19 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
  *   • DRAFT-006 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-017 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-035 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-053 [REWRITE] → scoreHookQuality 32 < floor 40
- *   • DRAFT-061 [REWRITE] → scoreHookQuality 32 < floor 40
- *   • DRAFT-073 [REWRITE] → scoreHookQuality 28 < floor 40
- *   • DRAFT-083 [REWRITE] → scoreHookQuality 38 < floor 40
- *   • DRAFT-091 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-108 [REWRITE] → scoreHookQuality 18 < floor 40
- *   • DRAFT-117 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-035 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-053 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-061 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-073 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-108 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-117 [REWRITE] → scoreHookQuality 38 < floor 40
  *   • DRAFT-129 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-146 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-153 [REWRITE] → scoreHookQuality 28 < floor 40
- *   • DRAFT-171 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-171 [REWRITE] → scoreHookQuality 35 < floor 40
  *   • DRAFT-177 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-181 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-187 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-191 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-195 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-199 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-206 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-210 [REWRITE] → scoreHookQuality 22 < floor 40
+ *   • DRAFT-191 [REWRITE] → scoreHookQuality 38 < floor 40
+ *   • DRAFT-195 [REWRITE] → scoreHookQuality 25 < floor 40
+ *   • DRAFT-210 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-212 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-219 [REWRITE] → scoreHookQuality 38 < floor 40
- *   • DRAFT-228 [REWRITE] → scoreHookQuality 22 < floor 40
- *   • DRAFT-237 [REWRITE] → scoreHookQuality 28 < floor 40
+ *   • DRAFT-228 [REWRITE] → scoreHookQuality 35 < floor 40
+ *   • DRAFT-237 [REWRITE] → scoreHookQuality 25 < floor 40
  *   • DRAFT-255 [REWRITE] → scoreHookQuality 35 < floor 40
- *   • DRAFT-266 [REWRITE] → scoreHookQuality 25 < floor 40
- *   • DRAFT-269 [REWRITE] → scoreHookQuality 23 < floor 40
  */
 
 import {
@@ -82,6 +72,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       howToFilm: "Phone-level lock-off, soft daylight, one take.",
       caption: "outside is now a subscription.",
       anchor: "transport",
+      domain: "movement",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-017 [REWRITE] · cluster: social_plan · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "small visit expose transport bill immediately",
+      whatToShow: "Fake chat says 'just come small.' You show your wallet, your shoes, then the bed. The bed wins.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "\"small\" has transport cost.",
+      anchor: "small",
       domain: "movement",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
@@ -142,12 +143,34 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-083 [REWRITE] · cluster: bed
+      hook: "bed disgrace my one-minute rest plan",
+      whatToShow: "You sit on the bed 'for one minute.' Cut to you lying down with phone still in hand.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "meeting adjourned by sleep.",
+      anchor: "bed",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-085 [REWRITE] · cluster: shoes
       hook: "shoes expose my leaving-house lie",
       whatToShow: "Show shoes on your feet while you sit on bed/couch scrolling. Cut to later, shoes still on, no movement.",
       howToFilm: "Couch-level handheld, mid-shot, one take.",
       caption: "readiness without results.",
       anchor: "shoes",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-091 [REWRITE] · cluster: slippers
+      hook: "slippers expose mission wey no even start",
+      whatToShow: "Camera on slippers. You stand up, take two steps, then sit back down with slippers still ready.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "mission cancelled at launch.",
+      anchor: "slippers",
       domain: "everyday",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
@@ -208,6 +231,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-146 [REWRITE] · cluster: generator_food
+      hook: "freezer expose blackout before my chicken survived",
+      whatToShow: "Open freezer during outage. Food is thawing. You check the clock, then the freezer, then the ceiling.",
+      howToFilm: "Counter-level lock-off, daylight, one take.",
+      caption: "chicken under pressure.",
+      anchor: "freezer",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-172 · cluster: airtime_data
       hook: "airtime finished, but somehow data is also judging me",
       whatToShow: "Try to buy airtime with slow network. App loads forever. You stare like even the phone is tired.",
@@ -215,6 +249,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-181 [REWRITE] · cluster: no_content
+      hook: "camera expose my brain wey resign live",
+      whatToShow: "Sit in front of camera ready to film. Smile fades as you realize there is no idea. You slowly stop recording.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "camera ready. brain absent.",
+      anchor: "camera",
+      domain: "creator",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
@@ -230,12 +275,45 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
+      // source: DRAFT-199 [REWRITE] · cluster: i_dey_fine
+      hook: "fine leave my mouth, chaos expose my body",
+      whatToShow: "Someone asks how you are. You say 'fine' while clearly tired, holding too many things, or sitting in chaos.",
+      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      caption: "fine, according to official statement.",
+      anchor: "fine",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
       // source: DRAFT-202 [REWRITE] · cluster: gif_war · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "one GIF hijack the whole group question",
       whatToShow: "You ask 'who's free this weekend?' in a fake group chat. Friends reply with a running-away GIF and laughing reactions instead of answering.",
       howToFilm: "Phone-level lock-off, soft daylight, one take.",
       caption: "simple question, cinema reply.",
       anchor: "gif",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-206 [REWRITE] · cluster: blue_tick · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "blue ticks expose reply wey disappear",
+      whatToShow: "You send a long fake message. Blue ticks appear immediately. You keep checking the chat while doing chores, pretending you are not checking.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "read receipt with pain.",
+      anchor: "ticks",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-219 [REWRITE] · cluster: online_no_reply · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "online dey expose the reply wey japa",
+      whatToShow: "Friend is online for 30 minutes but still has not replied. You watch the status like live sports.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "online without responsibility.",
+      anchor: "online",
       domain: "messaging",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
@@ -259,6 +337,28 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "location by confidence.",
       anchor: "gate",
       domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-266 [REWRITE] · cluster: zoom_camera_off
+      hook: "camera off hide breakfast meeting evidence",
+      whatToShow: "Join a fake Zoom meeting. Camera off, mic muted. You are quietly eating breakfast.",
+      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      caption: "attendance without presence.",
+      anchor: "camera",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-05",
+    }),
+    Object.freeze({
+      // source: DRAFT-269 [REWRITE] · cluster: traffic_work_lie · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "traffic expose my already-seated work lie",
+      whatToShow: "You reply work messages professionally while clearly stuck in traffic.",
+      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      caption: "remote presence by faith.",
+      anchor: "traffic",
+      domain: "work",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-05",
     }),
