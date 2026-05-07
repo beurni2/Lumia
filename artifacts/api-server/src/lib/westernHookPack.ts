@@ -148,6 +148,10 @@ export const WESTERN_SETTINGS = Object.freeze([
   "home",
   "entryway",
   "store",
+  // ── PHASE W2-Batch-B vocab addition (additive, draft-only) ─────
+  // Surfaced by W2B-009/019/041/044; widened additively per
+  // reviewer approval. Mirrors the W2-Batch-A widening pattern.
+  "hallway",
 ] as const);
 export type WesternSetting = (typeof WESTERN_SETTINGS)[number];
 
@@ -1190,7 +1194,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         howToFilm:
           "Kitchen or bedroom setup. The comedy is the seriousness of the test: post, watch, analyze, still panic.",
         caption: "soft launch for my confidence.",
-        anchor: "close friends",
+        anchor: "close",
         comedyFamily: "posting_anxiety",
         emotionalSpike: "private_embarrassment",
         setting: "kitchen",
@@ -1330,7 +1334,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         howToFilm:
           "Living room table, top-down. Let the colors look impressive, then reveal that none of them contain real progress.",
         caption: "stationery cosplay.",
-        anchor: "sticky notes",
+        anchor: "sticky",
         comedyFamily: "task_avoidance",
         emotionalSpike: "false_productivity",
         setting: "living_room",
@@ -1512,7 +1516,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         howToFilm:
           "Entryway close-up. The lock click should feel final, then let the pause betray you. Unlocking is the punchline.",
         caption: "hydration delayed the mission.",
-        anchor: "water bottle",
+        anchor: "water",
         comedyFamily: "leaving_house_delay",
         emotionalSpike: "avoidance_spike",
         setting: "entryway",
