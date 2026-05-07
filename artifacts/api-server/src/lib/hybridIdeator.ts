@@ -155,6 +155,7 @@ import {
 //     repeat. Better to repeat than to underfill or stall.
 import {
   getRecentSeenSkeletonRecency,
+  pickRecencyScoredAltIndex,
   recordSeenSkeletons,
   normalizeHookToSkeleton,
 } from "./catalogTemplateCreatorMemory.js";
@@ -4788,39 +4789,38 @@ export async function runHybridIdeator(
       }
       // Recency-scored alt picker (BI 2026-05-07 catalog repeat fix
       // — replaces the prior deterministic `merged.find()` two-tier
-      // search). For each non-pack candidate in `merged` not already
-      // used in-batch and whose skeleton differs from the repeating
-      // one, score = `Number.POSITIVE_INFINITY` if unseen, else the
-      // recency rank from `skeletonRecency` (0 = most-recent, larger
-      // = older). Highest-score wins → unseen first, then oldest
-      // seen. Rotates the picker away from always selecting the
-      // same first-match alt across batches, eliminating the 2×
-      // residual repeats the prior fix left in QA. SWAP-only
-      // semantics preserved (never drops, never shrinks the pool).
+      // search). Eligible alts (non-pack, not used-in-batch, valid
+      // skeleton) are scored by `pickRecencyScoredAltIndex`:
+      // unseen = `Number.POSITIVE_INFINITY`, else the recency rank
+      // from `skeletonRecency` (0 = most-recent, larger = older).
+      // Highest-score wins → unseen first, then oldest seen.
+      // Rotates the picker away from always selecting the same
+      // first-match alt across batches, eliminating the 2× residual
+      // repeats the prior fix left in QA. SWAP-only semantics
+      // preserved (never drops, never shrinks the pool).
+      const eligibleAlts: Array<typeof n1s2_postBatch[number]> = [];
+      const eligibleSkeletons: string[] = [];
+      for (const p of merged) {
+        if (isPack(p)) continue;
+        const altIdAny = (p.idea as { id?: unknown }).id;
+        if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
+          continue;
+        }
+        const altSk = normalizeHookToSkeleton(p.idea.hook);
+        if (altSk.length === 0) continue;
+        eligibleAlts.push(p);
+        eligibleSkeletons.push(altSk);
+      }
       const pickAlt = (
         sk: string,
       ): typeof n1s2_postBatch[number] | undefined => {
-        let bestAlt: typeof n1s2_postBatch[number] | undefined;
-        let bestScore = Number.NEGATIVE_INFINITY;
-        for (const p of merged) {
-          if (isPack(p)) continue;
-          const altIdAny = (p.idea as { id?: unknown }).id;
-          if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
-            continue;
-          }
-          const altSk = normalizeHookToSkeleton(p.idea.hook);
-          if (altSk.length === 0) continue;
-          if (altSk === sk) continue;
-          if (usedSkeletons.has(altSk)) continue;
-          const rank = skeletonRecency.get(altSk);
-          const score =
-            rank === undefined ? Number.POSITIVE_INFINITY : rank;
-          if (score > bestScore) {
-            bestScore = score;
-            bestAlt = p;
-          }
-        }
-        return bestAlt;
+        const idx = pickRecencyScoredAltIndex(
+          sk,
+          eligibleSkeletons,
+          usedSkeletons,
+          skeletonRecency,
+        );
+        return idx === -1 ? undefined : eligibleAlts[idx];
       };
       const swapped = n1s2_postBatch.map((c) => {
         if (isPack(c)) return c;

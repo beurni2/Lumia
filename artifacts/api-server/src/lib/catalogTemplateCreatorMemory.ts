@@ -205,6 +205,45 @@ export const getRecentSeenSkeletonRecency = async (
 };
 
 /**
+ * Pure helper: given a repeating skeleton `sk`, a candidate pool of
+ * alt skeletons (already filtered to non-pack, not-used-in-batch, with
+ * non-empty skeletons), the in-batch `usedSkeletons` set, and the
+ * creator's recency map, return the INDEX of the best alt according to
+ * the recency-scoring contract — `Number.POSITIVE_INFINITY` for unseen
+ * skeletons, otherwise the rank from `recency` (larger = older = better).
+ * On ties, the FIRST alt in iteration order wins (deterministic
+ * tie-breaker — important for QA reproducibility). Returns `-1` when
+ * no eligible alt exists.
+ *
+ * Used by the post-pack-reservation skeleton swap in `hybridIdeator.ts`
+ * to rotate the picker away from always selecting the same first-match
+ * alt across batches. Extracted here so the contract is unit-testable
+ * without spinning up the full ideator pipeline.
+ */
+export const pickRecencyScoredAltIndex = (
+  sk: string,
+  altSkeletons: ReadonlyArray<string>,
+  usedSkeletons: ReadonlySet<string>,
+  recency: ReadonlyMap<string, number>,
+): number => {
+  let bestIdx = -1;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < altSkeletons.length; i += 1) {
+    const altSk = altSkeletons[i];
+    if (!altSk) continue;
+    if (altSk === sk) continue;
+    if (usedSkeletons.has(altSk)) continue;
+    const rank = recency.get(altSk);
+    const score = rank === undefined ? Number.POSITIVE_INFINITY : rank;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+};
+
+/**
  * Records that the creator has just seen the given HOOK STRINGS
  * (raw, not pre-normalized — the helper normalizes internally so
  * call sites can stay agnostic). Merges with existing memory,

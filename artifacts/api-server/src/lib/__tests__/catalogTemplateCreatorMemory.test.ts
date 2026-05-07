@@ -50,6 +50,7 @@ import {
   getRecentSeenSkeletons,
   getRecentSeenSkeletonRecency,
   normalizeHookToSkeleton,
+  pickRecencyScoredAltIndex,
   recordSeenSkeletons,
 } from "../catalogTemplateCreatorMemory.js";
 import * as dbModule from "../../db/client.js";
@@ -326,6 +327,60 @@ describe("getRecentSeenSkeletonRecency", () => {
     expect(scoreOf("recent")).toBe(0);
     expect(scoreOf("never_seen")).toBeGreaterThan(scoreOf("oldest"));
     expect(scoreOf("oldest")).toBeGreaterThan(scoreOf("recent"));
+  });
+
+  test("returns -1 when no eligible alt exists (helper contract)", () => {
+    // All alts blocked: same-as-sk, in usedSkeletons, or empty.
+    const recency = new Map<string, number>();
+    expect(
+      pickRecencyScoredAltIndex(
+        "sk_a",
+        ["sk_a", "sk_b", ""],
+        new Set<string>(["sk_b"]),
+        recency,
+      ),
+    ).toBe(-1);
+    expect(pickRecencyScoredAltIndex("sk_a", [], new Set(), recency)).toBe(
+      -1,
+    );
+  });
+
+  test("scoring ordering: unseen > oldest seen > newest seen (helper contract)", () => {
+    // Mirrors the swap site in hybridIdeator.ts. Pool intentionally
+    // ordered [newest_seen, oldest_seen, unseen] so a deterministic
+    // first-match would have picked index 0; the recency picker must
+    // pick index 2 (unseen).
+    const recency = new Map<string, number>([
+      ["newest", 0],
+      ["oldest", 5],
+    ]);
+    expect(
+      pickRecencyScoredAltIndex(
+        "repeating",
+        ["newest", "oldest", "unseen"],
+        new Set<string>(),
+        recency,
+      ),
+    ).toBe(2);
+    // Drop the unseen alt — picker must fall back to oldest seen
+    // (index 1), NOT the deterministic first-match (index 0).
+    expect(
+      pickRecencyScoredAltIndex(
+        "repeating",
+        ["newest", "oldest"],
+        new Set<string>(),
+        recency,
+      ),
+    ).toBe(1);
+    // Also fall back to newest if oldest is blocked by usedSkeletons.
+    expect(
+      pickRecencyScoredAltIndex(
+        "repeating",
+        ["newest", "oldest"],
+        new Set<string>(["oldest"]),
+        recency,
+      ),
+    ).toBe(0);
   });
 
   test("first-write-wins on duplicate skeleton entries (most-recent rank kept)", async () => {
