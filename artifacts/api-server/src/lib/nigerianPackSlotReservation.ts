@@ -33,6 +33,7 @@ import type { ScoredCandidate } from "./ideaScorer.js";
 import type { Region } from "@workspace/lumina-trends";
 import type { LanguageStyle } from "./tasteCalibration.js";
 import { canActivateNigerianPack } from "./nigerianHookPack.js";
+import { logger } from "./logger.js";
 
 // PHASE N1-LIVE-HARDEN F3 — observability shape. Emitted once per
 // invocation (when activated) so the orchestrator log can attribute
@@ -53,6 +54,21 @@ export type SlotReservationDiagnostic = {
    * fell through) emit `false`.
    */
   earlyReturnEmptyPack: boolean;
+  /**
+   * PHASE N1-LIVE-HARDEN P1 — `true` when the memory soft-cap rescue
+   * path fired (memory wiped pool to zero AND softCapEnabled AND an
+   * ordered seen-entry list was supplied AND relaxing to the most-
+   * recent half surfaced ≥1 candidate). `false` otherwise (including
+   * when softCapEnabled is OFF, the field defaults to `false` so the
+   * diagnostic shape is stable across cohorts).
+   */
+  softCapRescueFired: boolean;
+  /**
+   * PHASE N1-LIVE-HARDEN P1 — when the rescue fires, the size of the
+   * relaxed exclusion set (the most-recent ⌈n/2⌉ of the original
+   * ordered seen list). `null` when the rescue did not fire.
+   */
+  softCapRelaxedSeenSize: number | null;
 };
 
 export interface SlotReservationInput {
@@ -86,6 +102,29 @@ export interface SlotReservationInput {
    */
   excludeEntryIds?: ReadonlySet<string>;
   /**
+   * PHASE N1-LIVE-HARDEN P1 — staging-only memory soft-cap rescue.
+   *
+   * When `softCapEnabled` is true AND the standard memory filter
+   * (`excludeEntryIds`) would wipe the pack pool to zero AND
+   * `excludeEntryIdsOrdered` is provided (most-recent first), the
+   * rescue path drops the OLDEST half of seen entries from the
+   * exclusion set FOR THIS REQUEST ONLY and re-runs the filter.
+   *
+   * The persisted memory column is NEVER mutated — relaxation is
+   * per-request only. Per-batch dedup on `nigerianPackEntryId` AND
+   * normalized hook is enforced AFTER rescue, so the rescue can
+   * never produce duplicate entry ids or duplicate hooks in the
+   * shipped batch (those constraints sit downstream of the rescue
+   * branch on the same code path).
+   *
+   * Both fields default to OFF — when `softCapEnabled` is false /
+   * undefined, the helper is byte-identical to the pre-P1 baseline
+   * for every cohort. Production must keep this gated OFF until the
+   * staging QA verdict explicitly approves enabling.
+   */
+  softCapEnabled?: boolean;
+  excludeEntryIdsOrdered?: ReadonlyArray<string>;
+  /**
    * PHASE N1-LIVE-HARDEN F3 — observability sink. Optional callback
    * invoked once per ACTIVATED invocation (gated by
    * `canActivateNigerianPack`) with the per-stage pack-pool counts.
@@ -94,6 +133,14 @@ export interface SlotReservationInput {
    * NG-null behaviour is byte-identical.
    */
   onDiagnostic?: (d: SlotReservationDiagnostic) => void;
+  /**
+   * PHASE N1-LIVE-HARDEN P1 — opaque creator id surfaced into the
+   * `nigerian_pack.memory_soft_cap_rescued` log line when the rescue
+   * fires. Optional; when omitted the log line is still emitted with
+   * `creatorId: null`. NOT used for any branching — pure logging
+   * tag.
+   */
+  creatorIdForLog?: string | null;
 }
 
 function normHook(h: string): string {
@@ -120,7 +167,10 @@ export function applyNigerianPackSlotReservation(
     flagEnabled,
     packLength,
     excludeEntryIds,
+    softCapEnabled,
+    excludeEntryIdsOrdered,
     onDiagnostic,
+    creatorIdForLog,
   } = input;
 
   // Activation guard — identical short-circuit set to S1 wiring.
@@ -188,16 +238,80 @@ export function applyNigerianPackSlotReservation(
     (n, c) => (packEntryIdOf(c) !== undefined ? n + 1 : n),
     0,
   );
-  const packRanked = candidatePool
+  // Initial filter against the FULL exclusion set. Both `excludeEntryIds`
+  // and (later) the rescue's relaxed set are read through this local
+  // mutable so the dedup loop below works against whichever set the
+  // current code path settled on.
+  let activeExcludeIds: ReadonlySet<string> | undefined = excludeEntryIds;
+  let packRanked = candidatePool
     .filter((c) => {
       const id = packEntryIdOf(c);
       if (id === undefined) return false;
-      if (excludeEntryIds && excludeEntryIds.has(id)) return false;
+      if (activeExcludeIds && activeExcludeIds.has(id)) return false;
       return true;
     })
     .slice()
     .sort((a, b) => b.score.total - a.score.total);
   const packPoolPostMemoryFilter = packRanked.length;
+
+  // PHASE N1-LIVE-HARDEN P1 — memory soft-cap rescue.
+  //
+  // Conditions for the rescue path to fire (ALL must hold):
+  //   1. The standard memory filter wiped the pool to zero
+  //      (`packPoolPostMemoryFilter === 0`).
+  //   2. There were pack candidates upstream
+  //      (`packPoolPreFilter > 0`) — otherwise nothing to rescue.
+  //   3. The caller passed `softCapEnabled: true` (env-flag-gated;
+  //      defaults to false in production).
+  //   4. The caller passed `excludeEntryIdsOrdered` with ≥1 entry
+  //      (most-recent first). Empty / missing → no rescue.
+  //
+  // Rescue action: build a relaxed exclusion set keeping only the
+  // most-recent ⌈n/2⌉ ids; refilter the pool against it. The
+  // persisted memory column is NOT mutated. Per-batch dedup on
+  // entry id + hook is the SAME loop below, so the rescue cannot
+  // produce a duplicate entry id or duplicate hook in the shipped
+  // batch — those constraints are downstream of the rescue branch.
+  let softCapRescueFired = false;
+  let softCapRelaxedSeenSize: number | null = null;
+  if (
+    packPoolPostMemoryFilter === 0 &&
+    packPoolPreFilter > 0 &&
+    softCapEnabled === true &&
+    excludeEntryIdsOrdered !== undefined &&
+    excludeEntryIdsOrdered.length > 0
+  ) {
+    const originalSeen = excludeEntryIdsOrdered.length;
+    const keepCount = Math.ceil(originalSeen / 2);
+    const relaxed = new Set(excludeEntryIdsOrdered.slice(0, keepCount));
+    const rescuedRanked = candidatePool
+      .filter((c) => {
+        const id = packEntryIdOf(c);
+        if (id === undefined) return false;
+        if (relaxed.has(id)) return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => b.score.total - a.score.total);
+    if (rescuedRanked.length > 0) {
+      packRanked = rescuedRanked;
+      activeExcludeIds = relaxed;
+      softCapRescueFired = true;
+      softCapRelaxedSeenSize = relaxed.size;
+      logger.info(
+        {
+          creatorId: creatorIdForLog ?? null,
+          region: region ?? null,
+          languageStyle: languageStyle ?? null,
+          packPoolPreFilter,
+          originalSeenSize: originalSeen,
+          relaxedSeenSize: relaxed.size,
+          rescuedCandidateCount: rescuedRanked.length,
+        },
+        "nigerian_pack.memory_soft_cap_rescued",
+      );
+    }
+  }
 
   const seenEntryIds = new Set<string>();
   const reservedHooks = new Set<string>();
@@ -218,9 +332,20 @@ export function applyNigerianPackSlotReservation(
         packPoolPostMemoryFilter,
         packPoolPostBatchDedup,
         earlyReturnEmptyPack: true,
+        softCapRescueFired,
+        softCapRelaxedSeenSize,
       });
     }
-    return stripExcludedPackFromBatch(selectionBatch);
+    // Strip-on-fallback uses the ACTIVE exclusion set so the rescue
+    // branch (when it surfaced no usable candidates) still respects
+    // the relaxed contract — never shrinks below the original
+    // exclusion behavior.
+    if (!activeExcludeIds || activeExcludeIds.size === 0) return selectionBatch;
+    const localExcl = activeExcludeIds;
+    return selectionBatch.filter((c) => {
+      const id = packEntryIdOf(c);
+      return id === undefined || !localExcl.has(id);
+    });
   }
 
   // PHASE N1-FULL-SPEC LIVE — cap lifted from literal `2` to
@@ -308,6 +433,8 @@ export function applyNigerianPackSlotReservation(
         packPoolPostMemoryFilter,
         packPoolPostBatchDedup,
         earlyReturnEmptyPack: false,
+        softCapRescueFired,
+        softCapRelaxedSeenSize,
       });
     }
     return stripExcludedPackFromBatch(selectionBatch);
@@ -318,6 +445,8 @@ export function applyNigerianPackSlotReservation(
       packPoolPostMemoryFilter,
       packPoolPostBatchDedup,
       earlyReturnEmptyPack: false,
+      softCapRescueFired,
+      softCapRelaxedSeenSize,
     });
   }
   return composed;

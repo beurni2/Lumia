@@ -190,9 +190,26 @@ const PER_BATCH_TIMEOUT_MS = 60_000;
 function normHook(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, " ");
 }
+// PHASE N1-LIVE-HARDEN — synthesise the same telemetry id the
+// authoring path emits (`nigerianPackAuthor.ts` L547). The entry
+// shape itself doesn't carry an `id` field — the approved-pack
+// module is auto-generated and reviewer-stamped, so adding a
+// column would force a regen + re-stamp. Inline the djb2 used by
+// the authoring side so the QA fallback id matches the server's
+// `meta.nigerianPackEntryId` on hook-only matches.
+function djb2(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  }
+  return h >>> 0;
+}
+function packEntryIdFor(hook: string, anchor: string): string {
+  return `ng_${djb2(`${hook}|${anchor}`).toString(16)}`;
+}
 const PACK_HOOK_INDEX = new Map<string, string>();
 for (const e of NIGERIAN_HOOK_PACK) {
-  PACK_HOOK_INDEX.set(normHook(e.hook), e.id);
+  PACK_HOOK_INDEX.set(normHook(e.hook), packEntryIdFor(e.hook, e.anchor));
 }
 
 // Hook skeleton for repetition reporting (mirrors FIX C v2 logic but

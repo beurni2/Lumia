@@ -136,6 +136,7 @@ import {
 } from "./nigerianRegionAnchorValidator.js";
 import {
   getRecentSeenEntryIds,
+  getRecentSeenEntriesOrdered,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
 // PHASE N1-FULL-SPEC LIVE v2 — catalog hook-skeleton dedup. The
@@ -4175,11 +4176,59 @@ export async function runHybridIdeator(
       packLength: NIGERIAN_HOOK_PACK.length,
     }) && localResult.kept.length >= desiredCount + 2;
   const layer1CoreAwareTriggered = regenerate && !n1LiveSkipFallback;
+  // PHASE N1-LIVE-HARDEN P3 — skip the Claude fallback round-trip
+  // when the local pool already satisfies the batch on a
+  // non-regenerate (normal-tap) request. Conditions (ALL must
+  // hold):
+  //   • `!regenerate` — never skip on the regenerate path; the
+  //     +novelty contribution from Claude's variety axis is the
+  //     whole point of regenerate. The `n1LiveSkipFallback` flag
+  //     above already governs the regenerate-NG-pidgin-pack-only
+  //     skip; this gate is its complement for the non-regenerate
+  //     general case.
+  //   • `localResult.kept.length >= desiredCount` — local pool
+  //     can fill the batch without external help.
+  //   • `merged.length >= 3` — same `merged.length < 3` gate the
+  //     `needFallback` cascade uses for the bare-pool branch.
+  //     We never skip when the merged pool would otherwise force
+  //     a fallback for under-fill.
+  // Net effect: a normal-tap request whose local pool is healthy
+  // ships in 2-7s instead of 20-35s when Claude would otherwise
+  // run as a regenerate-mandatory fallback. The two harder
+  // failure paths (`!selection.guardsPassed`, `selection.batch.length
+  // < desiredCount`) still trigger the fallback because the
+  // local pool DIDN'T actually satisfy the batch in those cases.
+  // P3 SAFETY: only mask the `layer1CoreAwareTriggered` (regenerate
+  // +novelty) skip condition. The harder failure paths
+  // (`merged.length < 3`, `selection.batch.length < desiredCount`,
+  // `!selection.guardsPassed`) MUST still trigger fallback — local
+  // pool counts (`localResult.kept`) are pre-selection and don't
+  // prove the actual batch was filled or passed diversity guards.
+  const p3SkipFallbackLocalSufficient =
+    !regenerate &&
+    localResult.kept.length >= desiredCount &&
+    merged.length >= 3 &&
+    selection.batch.length >= desiredCount &&
+    selection.guardsPassed;
   const needFallback =
-    layer1CoreAwareTriggered ||
-    merged.length < 3 ||
-    selection.batch.length < desiredCount ||
-    !selection.guardsPassed;
+    layer1CoreAwareTriggered && !p3SkipFallbackLocalSufficient
+      ? true
+      : merged.length < 3 ||
+        selection.batch.length < desiredCount ||
+        !selection.guardsPassed;
+  if (p3SkipFallbackLocalSufficient) {
+    logger.info(
+      {
+        creatorId: input.creator?.id,
+        region: input.region ?? null,
+        desiredCount,
+        localKept: localResult.kept.length,
+        mergedSize: merged.length,
+        regenerate,
+      },
+      "hybrid_ideator.p3_skip_fallback_local_sufficient",
+    );
+  }
   if (needFallback) {
     usedFallback = true;
     try {
@@ -4211,7 +4260,31 @@ export async function runHybridIdeator(
         },
         "phase_y.premise_cores_selected",
       );
-      const claudeResult = await generateIdeas({
+      // PHASE N1-LIVE-HARDEN P4 — outer 45s timeout race for the
+      // Claude fallback call. The Anthropic SDK's own `timeout=60_000`
+      // covers the network leg, but the ideator-side wrapper does
+      // additional pre/post work (prompt build, response parse,
+      // anti-copy gates) and the batch-served wall clock has been
+      // observed at 60-90s with the 60s client cutoff producing the
+      // visible "blank batch" timeouts. A 45s ceiling here gives the
+      // outer route a 15s buffer before its own 60s cutoff so the
+      // best-effort ship path below has time to run. On timeout we
+      // throw an `AbortError`-shaped error which the existing
+      // `catch (err)` at the bottom of this block already handles by
+      // logging `hybrid_ideator.fallback_failed` and falling through
+      // to whatever local candidates we have.
+      const FALLBACK_TIMEOUT_MS = 45_000;
+      let _p4TimeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      const _p4TimeoutPromise = new Promise<never>((_, reject) => {
+        _p4TimeoutHandle = setTimeout(() => {
+          reject(
+            new Error(
+              `hybrid_ideator.fallback_timeout: Claude generateIdeas exceeded ${FALLBACK_TIMEOUT_MS}ms`,
+            ),
+          );
+        }, FALLBACK_TIMEOUT_MS);
+      });
+      const _p4ClaudeCall = generateIdeas({
         region: input.region,
         styleProfile: input.styleProfile,
         count: desiredCount,
@@ -4235,6 +4308,15 @@ export async function runHybridIdeator(
         // collapses to the pre-PHASE-Y behavior.
         premiseCoreSeeds: coreSelection.cores,
       });
+      let claudeResult: Awaited<ReturnType<typeof generateIdeas>>;
+      try {
+        claudeResult = await Promise.race([
+          _p4ClaudeCall,
+          _p4TimeoutPromise,
+        ]);
+      } finally {
+        if (_p4TimeoutHandle !== null) clearTimeout(_p4TimeoutHandle);
+      }
       // Apply the same hook-exclusion to Claude's output so a
       // regenerate fallback can't ship a near-duplicate of the
       // previous batch (Claude lacks scenarioFamily, so family
@@ -4589,6 +4671,20 @@ export async function runHybridIdeator(
   const n1s2_excludeEntryIds = await getRecentSeenEntryIds(
     input.creator?.id,
   );
+  // PHASE N1-LIVE-HARDEN P1 — staging-only memory soft-cap rescue
+  // wiring. Gated behind `LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true`;
+  // production keeps this OFF until staging QA approves the lift.
+  // When the flag is off we skip the ordered-list DB read entirely
+  // (returns []) so the byte-identical baseline holds for every
+  // production cohort. When ON, the ordered list (most-recent
+  // first) is passed alongside the standard exclusion set; the
+  // helper only acts on it when the standard filter would
+  // otherwise wipe the pack pool to zero (memory-saturated case).
+  const n1s2_softCapEnabled =
+    process.env.LUMINA_NG_MEMORY_SOFT_CAP_ENABLED === "true";
+  const n1s2_excludeEntryIdsOrdered = n1s2_softCapEnabled
+    ? await getRecentSeenEntriesOrdered(input.creator?.id)
+    : [];
   // PHASE N1-LIVE-HARDEN F3 — slot-reservation diagnostic capture.
   // The sink is invoked once per ACTIVATED invocation (the helper's
   // own activation guard short-circuits the call for non-NG /
@@ -4604,6 +4700,9 @@ export async function runHybridIdeator(
     flagEnabled: n1s2_flagEnabled,
     packLength: n1s2_packLength,
     excludeEntryIds: n1s2_excludeEntryIds,
+    softCapEnabled: n1s2_softCapEnabled,
+    excludeEntryIdsOrdered: n1s2_excludeEntryIdsOrdered,
+    creatorIdForLog: input.creator?.id ?? null,
     onDiagnostic: (d) => {
       n1s2_diagnostic = d;
     },

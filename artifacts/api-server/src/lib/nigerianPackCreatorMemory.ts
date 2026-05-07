@@ -80,6 +80,54 @@ export const getRecentSeenEntryIds = async (
 };
 
 /**
+ * PHASE N1-LIVE-HARDEN P1 — ordered view of the per-creator memory.
+ *
+ * Returns the entry ids the creator has seen recently, ordered
+ * MOST-RECENT FIRST (matching the order `recordSeenEntries` writes
+ * into the JSONB column). Used by the memory soft-cap rescue path
+ * in `applyNigerianPackSlotReservation` to drop the OLDEST half of
+ * seen entries when the standard memory filter would otherwise
+ * wipe the pack pool to zero.
+ *
+ * Same error-swallowing contract as `getRecentSeenEntryIds`:
+ *   • Empty array on missing creatorId.
+ *   • Empty array on DB read failure (logged, swallowed).
+ *   • Empty array on empty / NULL column.
+ *
+ * The persisted column is NEVER mutated by this read or by the
+ * soft-cap rescue path that consumes its output. The relaxation is
+ * per-request only.
+ */
+export const getRecentSeenEntriesOrdered = async (
+  creatorId: string | undefined,
+): Promise<ReadonlyArray<string>> => {
+  if (!creatorId) return [];
+  try {
+    const rows = await db
+      .select({
+        memory: schema.creators.nigerianPackSeenEntryIdsJson,
+      })
+      .from(schema.creators)
+      .where(eq(schema.creators.id, creatorId))
+      .limit(1);
+    const memory = readMemory(rows[0]?.memory);
+    // `recordSeenEntries` already sorts most-recent first when it
+    // writes the column, but sort defensively here so a hand-edited
+    // or migrated row can't surprise the rescue heuristic.
+    return memory
+      .slice()
+      .sort((a, b) => (a.lastSeenAt < b.lastSeenAt ? 1 : -1))
+      .map((m) => m.entryId);
+  } catch (err) {
+    logger.warn(
+      { err, creatorId },
+      "nigerian_pack.memory_read_failed",
+    );
+    return [];
+  }
+};
+
+/**
  * Records that the creator has just seen the given entry ids in a
  * shipped batch. Merges with existing memory, deduplicates by
  * entryId (newer lastSeenAt wins), and caps at the most-recent

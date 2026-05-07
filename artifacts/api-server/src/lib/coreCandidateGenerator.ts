@@ -88,6 +88,8 @@ import {
   type NigerianPackEntry,
 } from "./nigerianHookPack.js";
 import { authorPackEntryAsIdea } from "./nigerianPackAuthor.js";
+// PHASE N1-LIVE-HARDEN P2 — structured per-core pack diagnostic.
+import { logger } from "./logger.js";
 import {
   computeNigerianStylePenalty,
   isNigerianStylePenaltyFeatureEnabled,
@@ -1099,6 +1101,30 @@ export function generateCoreCandidates(
           rejectedEntrySamples: _packRejectedSamples,
         });
       }
+
+      // PHASE N1-LIVE-HARDEN P2 — per-core pack-prefix candidate
+      // block diagnostic. Always emitted when `packEligible.length
+      // > 0` (i.e. we actually attempted the pack-prefix path for
+      // this core) so the orchestrator log has a per-core view of
+      // why a pack-pool drain happened upstream of the slot
+      // reservation. Mirrors the throttle observer payload but
+      // ships through the standard structured logger so it survives
+      // without a test-only observer being installed. Pure
+      // observability — no validator / scorer / pool change.
+      logger.info(
+        {
+          coreId: core.id,
+          packEligibleCount: packEligible.length,
+          matching: matching.length,
+          drawCap,
+          packAuthoredOk: _packAuthoredOk,
+          packSurvivedFpDedup: _packSurvivedFpDedup,
+          packEnteredPassing: _packEnteredPassing,
+          packValidatorRejects: _packValidatorRejects,
+          packRejectedSamples: _packRejectedSamples,
+        },
+        "nigerian_pack.candidate_block_diagnostic",
+      );
     }
 
     for (const recipe of queue) {

@@ -137,6 +137,8 @@ describe("applyNigerianPackSlotReservation — F3 diagnostic emission", () => {
       packPoolPostMemoryFilter: 0,
       packPoolPostBatchDedup: 0,
       earlyReturnEmptyPack: true,
+      softCapRescueFired: false,
+      softCapRelaxedSeenSize: null,
     });
   });
 
@@ -185,6 +187,8 @@ describe("applyNigerianPackSlotReservation — F3 diagnostic emission", () => {
       packPoolPostMemoryFilter: 3,
       packPoolPostBatchDedup: 3,
       earlyReturnEmptyPack: false,
+      softCapRescueFired: false,
+      softCapRelaxedSeenSize: null,
     });
     expect(out.length).toBeGreaterThanOrEqual(3);
   });
