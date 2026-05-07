@@ -203,3 +203,9 @@ id = "8ZdAEiRPYM2NF1Jh0Qd8B"
 uri = "file://.local/W2_I_REPORT.md"
 type = "text"
 title = "W2-I Approved Western Promotion Pool — Report"
+
+[[outputs]]
+id = "T5S16VYy15SNTrEmQx18g"
+uri = "file://.local/W2K_REPORT.md"
+type = "text"
+title = "PHASE W2-K — Staging QA Report"
