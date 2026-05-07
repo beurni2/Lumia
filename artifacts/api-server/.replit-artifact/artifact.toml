@@ -10,7 +10,7 @@ name = "API Server"
 paths = ["/api"]
 
 [services.development]
-run = "LUMINA_NG_THROTTLE_LOG=true LUMINA_NG_PACK_ENABLED=true LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true pnpm --filter @workspace/api-server run dev"
+run = "LUMINA_NG_THROTTLE_LOG=true LUMINA_NG_PACK_ENABLED=true LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true pnpm --filter @workspace/api-server run dev"
 
 [services.production]
 

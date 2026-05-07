@@ -186,6 +186,19 @@ export type GenerateCoreCandidatesInput = {
    *  default in `FAMILY_VOICE`. Parse failures must be coerced
    *  to `null` upstream — the resolver does not retry parsing. */
   tasteCalibration?: TasteCalibration | null;
+  /** PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —
+   *  per-creator Nigerian pack entry-id memory snapshot. Read by the
+   *  pack-aware per-core retention block ONLY (and only when
+   *  `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true` AND the cohort is
+   *  pack-eligible). Used to skip pack candidates whose entryId the
+   *  creator already saw in a recent batch, preventing the per-core
+   *  retained pack pick from re-shipping the same pack hook. The
+   *  downstream `applyNigerianPackSlotReservation` enforces the same
+   *  filter on its own pool — this field just teaches the upstream
+   *  per-core picker about it so cross-batch repeats are avoided
+   *  BEFORE the candidate flows into selection. Empty/undefined Set
+   *  preserves pre-flag behavior. */
+  recentNigerianPackEntryIds?: ReadonlySet<string>;
   /** PHASE R1 — optional region for deterministic regional
    *  baseline decoration. Threaded straight through to
    *  `authorCohesiveIdea`. `"western"` / `undefined` short-circuit
@@ -777,6 +790,29 @@ export function generateCoreCandidates(
   const packFlagEnabled = isNigerianPackFeatureEnabled();
   const packLanguageStyle = tasteCalibration?.languageStyle ?? null;
 
+  // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —
+  // staging-only flag, default OFF. When ON AND inside the activation-
+  // gated NG cohort (region===nigeria + languageStyle∈{pidgin,
+  // light_pidgin} + flagEnabled + non-empty pack — same gate as
+  // `getEligibleNigerianPackEntries`), the per-core picker at the
+  // bottom of this loop retains the BEST PACK candidate alongside the
+  // global best, when distinct. This prevents the per-core winner-
+  // take-all selector from suppressing pack candidates whenever a
+  // catalog candidate edges them out on `hookQualityScore`. No
+  // validator / scorer / corpus / safety / anti-copy change — only
+  // the per-core retention policy widens (1 → up to 2) inside the
+  // already-activated NG branch. Per-batch dedup on
+  // `nigerianPackEntryId` AND normalized hook is preserved by
+  // downstream `applyNigerianPackSlotReservation`. Production OFF
+  // until staging QA approves.
+  const packAwareRetentionEnabled =
+    process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
+  // Per-creator pack memory snapshot. Empty Set preserves pre-flag
+  // behavior (no skip). Always defined so the retention block can do
+  // a cheap `.has()` check without optional-chaining.
+  const recentNigerianPackEntryIds: ReadonlySet<string> =
+    input.recentNigerianPackEntryIds ?? new Set<string>();
+
   // PHASE N1-STYLE — cohort-gated American-internet style penalty
   // for the catalog (non-pack) recipe path. Computed ONCE per call
   // mirroring `packFlagEnabled` above so a same-call flag flip
@@ -1294,6 +1330,58 @@ export function generateCoreCandidates(
       usedAnchorsThisBatch.add(best.anchorLower);
       if (best.sf) usedFingerprintsThisBatch.add(best.sf);
       kept = true;
+
+      // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —
+      // when active (flag ON + cohort eligible via packEligible.length
+      // > 0, which is the SAME activation gate as the pack-prefix
+      // block above), additionally retain the BEST PACK candidate
+      // when distinct from `best`. Pack candidates carry
+      // `meta.nigerianPackEntryId` (set inside `authorPackEntryAsIdea`
+      // and spread through `...r.meta` at the pack push site above).
+      // Strict guards:
+      //   • flag must be true (default OFF; production unchanged)
+      //   • cohort must already be pack-eligible (no leak)
+      //   • at least one pack candidate must exist in `passing[]`
+      //   • the pack pick must differ from `best` (no in-batch
+      //     duplicate packEntryId or duplicate hook — the second
+      //     constraint is enforced structurally because pack hooks
+      //     are atomic per entry, plus downstream slot reservation's
+      //     per-batch hook dedup is preserved)
+      // No validator / scorer / corpus / anti-copy change — only the
+      // retention count widens from 1 → up to 2 in the activated NG
+      // branch. The per-core attempt budget upstream is unaffected.
+      if (
+        packAwareRetentionEnabled &&
+        packEligible.length > 0 &&
+        passing.length > 1
+      ) {
+        const bestPackId = (best.meta as { nigerianPackEntryId?: string })
+          .nigerianPackEntryId;
+        // Pack-memory-aware: skip pack candidates whose entryId the
+        // creator has already seen recently. Avoids cross-batch
+        // repetition that would otherwise re-ship the same pack hook
+        // because the per-core picker runs upstream of the slot
+        // reservation memory filter. Falls through to "no extra pick"
+        // when every pack candidate is seen — the global `best` is
+        // still pushed unconditionally above, so this never under-
+        // fills the per-core retention vs the pre-flag baseline.
+        let bestPack: typeof passing[number] | null = null;
+        for (const p of passing) {
+          const pid = (p.meta as { nigerianPackEntryId?: string })
+            .nigerianPackEntryId;
+          if (pid === undefined) continue;
+          if (pid === bestPackId) continue;
+          if (recentNigerianPackEntryIds.has(pid)) continue;
+          if (bestPack === null || p.quality > bestPack.quality) {
+            bestPack = p;
+          }
+        }
+        if (bestPack !== null) {
+          candidates.push({ idea: bestPack.idea, meta: bestPack.meta });
+          usedAnchorsThisBatch.add(bestPack.anchorLower);
+          if (bestPack.sf) usedFingerprintsThisBatch.add(bestPack.sf);
+        }
+      }
       // Clear lastReason — a passing recipe was found (any earlier
       // rejections were intermediate, not the final disposition for
       // this core). PHASE D4 — clear lastAntiCopyMatch on the same

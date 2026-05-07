@@ -3879,9 +3879,39 @@ export async function runHybridIdeator(
       _liveThrottleRecords.push(rec);
     };
   }
+  // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —
+  // hoist the per-creator Nigerian pack memory snapshot ABOVE the
+  // core-native generator so its pack-aware per-core retention block
+  // can skip already-seen pack entryIds (avoids cross-batch pack
+  // repeats). The same Set is reused below by the slot-reservation
+  // call (`excludeEntryIds`), so this hoist is read-budget-neutral
+  // when active and ELIMINATES the read entirely for non-NG cohorts.
+  // Gating is the full NG activation context (region + languageStyle
+  // ∈ {pidgin, light_pidgin} + LUMINA_NG_PACK_ENABLED) so flag-ON,
+  // non-NG cohorts pay nothing. The helper swallows errors and
+  // returns an empty Set on missing creator / DB failure / empty
+  // column.
+  const _hoistedLanguageStyle = calibration?.languageStyle ?? null;
+  const _hoistedNgEligible =
+    input.region === "nigeria" &&
+    (_hoistedLanguageStyle === "pidgin" ||
+      _hoistedLanguageStyle === "light_pidgin") &&
+    process.env.LUMINA_NG_PACK_ENABLED === "true";
+  const _hoistedNigerianPackSeenIds: ReadonlySet<string> = _hoistedNgEligible
+    ? await getRecentSeenEntryIds(input.creator?.id)
+    : new Set<string>();
+  // Pack-aware retention is staging-only. When OFF we still benefit
+  // from the hoisted Set being reused at the slot-reservation site
+  // below; the core generator simply receives an empty Set and the
+  // pack-aware retention block no-ops on the `.has()` check.
+  const _packAwareRetentionFlag =
+    process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
+  const _recentNigerianPackEntryIdsForRetention: ReadonlySet<string> =
+    _packAwareRetentionFlag ? _hoistedNigerianPackSeenIds : new Set<string>();
   const coreNativeResult = generateCoreCandidates({
     cores: coreNativeSelection.cores,
     count: desiredCount + 2,
+    recentNigerianPackEntryIds: _recentNigerianPackEntryIdsForRetention,
     noveltyContext: {
       recentPremiseStyleIds: noveltyContext.recentPremiseStyleIds,
       recentExecutionIds: noveltyContext.recentExecutionIds,
@@ -4668,9 +4698,11 @@ export async function runHybridIdeator(
   // baseline behaviour for every non-NG cohort and every fresh
   // creator. Read failures are logged and swallowed inside the
   // helper — never fail the request.
-  const n1s2_excludeEntryIds = await getRecentSeenEntryIds(
-    input.creator?.id,
-  );
+  // Reuse the hoisted snapshot fetched ABOVE generateCoreCandidates
+  // for pack-aware retention. Same Set semantics — empty on non-NG
+  // cohorts (read skipped) or DB failure. Eliminates the duplicate
+  // DB read this call previously incurred per request.
+  const n1s2_excludeEntryIds = _hoistedNigerianPackSeenIds;
   // PHASE N1-LIVE-HARDEN P1 — staging-only memory soft-cap rescue
   // wiring. Gated behind `LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true`;
   // production keeps this OFF until staging QA approves the lift.
