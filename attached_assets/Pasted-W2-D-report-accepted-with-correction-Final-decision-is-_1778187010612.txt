@@ -1,0 +1,72 @@
+W2-D report accepted with correction:
+
+Final decision is REWRITE FIRST, not GO TO PROMOTION.
+
+Do not activate.
+Do not promote Top 100 yet.
+Do not wire runtime.
+Do not add slot reservation.
+Do not change scoring.
+Do not change validators.
+Do not touch Nigerian pack behavior.
+Do not touch N1 flags.
+Do not touch India/Philippines behavior.
+Do not change Claude behavior.
+Do not add migrations.
+Do not expose API surface.
+
+Proceed to W2-E — Western Editorial Rewrite Worksheet.
+
+Goal:
+Create a rewrite worksheet for entries flagged by the W2-D report, focused on:
+1. visible-action gaps in whatToShow
+2. anchor not appearing in whatToShow
+3. low-scoring Bottom 50 entries
+4. triplet duplicate clusters
+5. entries with good hooks but weak/plain scenarios
+
+Do not rewrite automatically unless explicitly instructed.
+
+Tasks:
+1. Generate .local/W2_WESTERN_REWRITE_WORKSHEET.md.
+2. Include every entry from:
+   - visible-action gap list
+   - anchor/scenario cohesion gap list
+   - Bottom 50 rewrite/demotion candidates
+   - triplet duplicate clusters
+3. Deduplicate the worksheet by id.
+4. For each row include:
+   - id
+   - current hook
+   - current whatToShow
+   - current howToFilm
+   - current caption
+   - anchor
+   - comedyFamily
+   - emotionalSpike
+   - setting
+   - failure reasons
+   - suggested fix type:
+     - rewrite_whatToShow
+     - rewrite_hook_and_whatToShow
+     - anchor_cohesion_fix
+     - demote_or_replace
+     - duplicate_cluster_review
+   - blank fields for approved rewrite
+
+5. Also create a concise priority list:
+   - P0: Top 100 candidates with visible-action or anchor-cohesion gaps
+   - P1: Bottom 50 with score under 30
+   - P2: triplet duplicate cluster entries
+   - P3: category/setting balance suggestions
+
+6. Do not edit WESTERN_HOOK_PACK_DRAFT in this phase.
+7. Corpus must remain DARK.
+
+Deliverables:
+- .local/W2_WESTERN_REWRITE_WORKSHEET.md
+- count of unique entries needing review
+- P0/P1/P2/P3 counts
+- list of Top 100 entries that are blocked from promotion
+- confirmation no runtime or corpus changes were made
+- tests/typecheck if any code changed

@@ -179,3 +179,9 @@ id = "XAONBiNcEFGBhHU-C_XZy"
 uri = "file://.local/W2_WESTERN_EDITORIAL_RANKING.md"
 type = "text"
 title = "W2-D Western Editorial Ranking + Promotion Readiness Report"
+
+[[outputs]]
+id = "ymGVYHuO0Kxm5-FmAbRX9"
+uri = "file://.local/W2_WESTERN_REWRITE_WORKSHEET.md"
+type = "text"
+title = "W2-E Western Editorial Rewrite Worksheet"
