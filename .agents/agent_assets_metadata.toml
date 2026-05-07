@@ -172,16 +172,16 @@ title = "W1.4 Western Hook Specificity Report"
 id = "10NygQgRrKP_lVBOhbuyE"
 uri = "file://.local/W2_WESTERN_DRAFT_QA.md"
 type = "text"
-title = "W2-Batch-C Western Draft QA Report (clean — 150/150)"
+title = "Western Draft Integrity QA (post-W2-F)"
 
 [[outputs]]
 id = "XAONBiNcEFGBhHU-C_XZy"
 uri = "file://.local/W2_WESTERN_EDITORIAL_RANKING.md"
 type = "text"
-title = "W2-D Western Editorial Ranking + Promotion Readiness Report"
+title = "W2-D Western Editorial Ranking"
 
 [[outputs]]
 id = "ymGVYHuO0Kxm5-FmAbRX9"
 uri = "file://.local/W2_WESTERN_REWRITE_WORKSHEET.md"
 type = "text"
-title = "W2-E Western Editorial Rewrite Worksheet"
+title = "W2-E Western Rewrite Worksheet"
