@@ -48,6 +48,7 @@ import {
   CATALOG_SKELETON_MEMORY_CAP,
   CATALOG_SKELETON_LONG_TOKEN_THRESHOLD,
   getRecentSeenSkeletons,
+  getRecentSeenSkeletonRecency,
   normalizeHookToSkeleton,
   recordSeenSkeletons,
 } from "../catalogTemplateCreatorMemory.js";
@@ -268,5 +269,79 @@ describe("recordSeenSkeletons", () => {
 
   test("CATALOG_SKELETON_MEMORY_CAP is 48", () => {
     expect(CATALOG_SKELETON_MEMORY_CAP).toBe(48);
+  });
+});
+
+describe("getRecentSeenSkeletonRecency", () => {
+  test("returns empty Map for missing creatorId", async () => {
+    expect(await getRecentSeenSkeletonRecency(undefined)).toEqual(
+      new Map(),
+    );
+  });
+
+  test("returns empty Map when row is missing or memory is empty", async () => {
+    getState().rows = [];
+    expect(await getRecentSeenSkeletonRecency("c1")).toEqual(new Map());
+    getState().rows = [{ memory: [] }];
+    expect(await getRecentSeenSkeletonRecency("c1")).toEqual(new Map());
+  });
+
+  test("ranks newest = 0, older = larger (regardless of array order)", async () => {
+    // Stored array intentionally NOT in chronological order — the
+    // helper must sort by lastSeenAt desc to assign ranks.
+    getState().rows = [
+      {
+        memory: [
+          { skeleton: "old", lastSeenAt: "2025-01-01T00:00:00Z" },
+          { skeleton: "newest", lastSeenAt: "2025-01-03T00:00:00Z" },
+          { skeleton: "middle", lastSeenAt: "2025-01-02T00:00:00Z" },
+        ],
+      },
+    ];
+    const m = await getRecentSeenSkeletonRecency("c1");
+    expect(m.get("newest")).toBe(0);
+    expect(m.get("middle")).toBe(1);
+    expect(m.get("old")).toBe(2);
+  });
+
+  test("scoring contract: unseen > oldest seen > most-recent seen", async () => {
+    // Mirrors the picker logic in hybridIdeator.ts: score is
+    // +Infinity for unseen skeletons, otherwise the rank from the
+    // recency map (larger = older = preferred when no unseen alts).
+    getState().rows = [
+      {
+        memory: [
+          { skeleton: "recent", lastSeenAt: "2025-01-03T00:00:00Z" },
+          { skeleton: "oldest", lastSeenAt: "2025-01-01T00:00:00Z" },
+        ],
+      },
+    ];
+    const m = await getRecentSeenSkeletonRecency("c1");
+    const scoreOf = (sk: string): number => {
+      const r = m.get(sk);
+      return r === undefined ? Number.POSITIVE_INFINITY : r;
+    };
+    expect(scoreOf("never_seen")).toBe(Number.POSITIVE_INFINITY);
+    expect(scoreOf("oldest")).toBe(1);
+    expect(scoreOf("recent")).toBe(0);
+    expect(scoreOf("never_seen")).toBeGreaterThan(scoreOf("oldest"));
+    expect(scoreOf("oldest")).toBeGreaterThan(scoreOf("recent"));
+  });
+
+  test("first-write-wins on duplicate skeleton entries (most-recent rank kept)", async () => {
+    getState().rows = [
+      {
+        memory: [
+          { skeleton: "dup", lastSeenAt: "2025-01-03T00:00:00Z" },
+          { skeleton: "other", lastSeenAt: "2025-01-02T00:00:00Z" },
+          { skeleton: "dup", lastSeenAt: "2025-01-01T00:00:00Z" },
+        ],
+      },
+    ];
+    const m = await getRecentSeenSkeletonRecency("c1");
+    // After sort desc: dup(rank 0), other(rank 1), dup(rank 2 — skipped)
+    expect(m.get("dup")).toBe(0);
+    expect(m.get("other")).toBe(1);
+    expect(m.size).toBe(2);
   });
 });

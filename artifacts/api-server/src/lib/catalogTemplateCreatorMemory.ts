@@ -23,7 +23,7 @@
  * Storage: `creators.catalog_template_seen_ids_json` — same JSONB
  * column as the previous iteration (kept the column name for
  * migration stability), but the stored shape is now
- * `{ skeleton, lastSeenAt }`. Capped at the 24 most-recent skeletons
+ * `{ skeleton, lastSeenAt }`. Capped at `CATALOG_SKELETON_MEMORY_CAP`
  * (older drop off → become eligible again).
  *
  * Hard rules preserved:
