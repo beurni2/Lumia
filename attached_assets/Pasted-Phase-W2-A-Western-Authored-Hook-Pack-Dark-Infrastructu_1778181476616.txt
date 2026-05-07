@@ -1,0 +1,95 @@
+Phase W2-A — Western Authored Hook Pack Dark Infrastructure Only
+
+Goal:
+Create dark infrastructure for a future Western/default authored hook+scenario corpus.
+
+Important:
+Do NOT author the 150 entries yet.
+Do NOT generate hooks yourself.
+Do NOT activate anything in runtime.
+Do NOT route generation through this pack.
+Do NOT create slot reservation.
+Do NOT change scoring.
+Do NOT change validators.
+Do NOT touch Nigerian pack behavior.
+Do NOT touch N1 flags.
+Do NOT touch Pidgin scorer.
+Do NOT touch India/Philippines behavior.
+
+This phase is infrastructure only.
+
+Create:
+1. Western draft entry type
+Each entry should support:
+- id
+- hook
+- whatToShow
+- howToFilm
+- caption
+- anchor
+- comedyFamily
+- emotionalSpike
+- setting
+- reviewedBy
+
+2. Empty draft corpus:
+WESTERN_HOOK_PACK_DRAFT = Object.freeze([])
+
+3. Draft integrity checker:
+Validate:
+- hook length valid
+- whatToShow length valid
+- howToFilm length valid
+- caption length valid
+- anchor non-empty
+- comedyFamily valid
+- emotionalSpike valid
+- setting valid
+- reviewedBy is PENDING_EDITORIAL_REVIEW for draft rows
+- no exact duplicate hooks
+- no near-duplicate hook skeletons
+- no weak banned skeletons:
+  - I am totally fine about X
+  - the X knows I’m lying
+  - someone explain the X to me. NOW
+  - the X won. obviously.
+  - the X itself became…
+  - the X flatlined my whole week
+  - my body quit. my brain kept screaming
+- no obvious privacy/safety issue
+- scenario must not be generic “set object down / stare / walk away” without behavior
+
+4. QA report generator:
+Creates .local/W2_WESTERN_DRAFT_QA.md with:
+- total entries
+- category counts
+- duplicate report
+- weak skeleton report
+- length failures
+- safety/privacy failures
+- sample entries when present
+
+5. Tests:
+- empty draft passes
+- duplicate hooks fail
+- weak skeletons fail
+- invalid reviewedBy fails
+- invalid category fails
+- generic object scenario fails
+- valid sample row passes
+
+Hard rules:
+- No runtime generation behavior change.
+- No production behavior change.
+- No migrations.
+- No API changes.
+- No validators loosened.
+- No Claude changes.
+- Tests/typecheck clean.
+
+Deliverables:
+- files created/changed
+- integrity checker behavior
+- QA report path
+- tests/typecheck result
+- confirmation that draft corpus is empty and dark

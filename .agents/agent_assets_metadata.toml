@@ -167,3 +167,9 @@ id = "e7wbCIQod5DeDl08I3UeJ"
 uri = "file://artifacts/api-server/src/qa/reports/W1_4_SPECIFICITY_REPORT.md"
 type = "text"
 title = "W1.4 Western Hook Specificity Report"
+
+[[outputs]]
+id = "10NygQgRrKP_lVBOhbuyE"
+uri = "file://.local/W2_WESTERN_DRAFT_QA.md"
+type = "text"
+title = "W2-A Western Draft QA Report"
