@@ -155,6 +155,7 @@ import {
 //     repeat. Better to repeat than to underfill or stall.
 import {
   getRecentSeenSkeletonRecency,
+  getRecentSeenSkeletons,
   pickRecencyScoredAltIndex,
   recordSeenSkeletons,
   normalizeHookToSkeleton,
@@ -3909,10 +3910,30 @@ export async function runHybridIdeator(
     process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
   const _recentNigerianPackEntryIdsForRetention: ReadonlySet<string> =
     _packAwareRetentionFlag ? _hoistedNigerianPackSeenIds : new Set<string>();
+  // PHASE W1 — per-creator catalog skeleton memory snapshot for the
+  // cohort-gated Western hook adjustment's recent-skeleton repetition
+  // demotion. Gated to the western/default cohort (region undefined
+  // OR "western") so India/PH/Nigeria pay zero DB cost and the
+  // adjustment helper short-circuits to 0 anyway. Helper swallows
+  // errors and returns an empty Set on missing creator / DB failure
+  // / empty column. Reuses the SAME `creators.catalog_template_seen_ids_json`
+  // column the post-pack-reservation skeleton swap below already
+  // consults via `getRecentSeenSkeletonRecency`; this is a separate
+  // round trip rather than a shared snapshot because the swap fetches
+  // a recency Map and runs after `generateCoreCandidates` whereas
+  // the W1 layer needs a Set up front. One extra cheap read per
+  // western request — non-western cohorts pay nothing.
+  const _w1WesternEligible =
+    input.region === undefined || input.region === "western";
+  const _hoistedRecentCatalogSkeletons: ReadonlySet<string> =
+    _w1WesternEligible
+      ? await getRecentSeenSkeletons(input.creator?.id)
+      : new Set<string>();
   const coreNativeResult = generateCoreCandidates({
     cores: coreNativeSelection.cores,
     count: desiredCount + 2,
     recentNigerianPackEntryIds: _recentNigerianPackEntryIdsForRetention,
+    recentCatalogSkeletons: _hoistedRecentCatalogSkeletons,
     noveltyContext: {
       recentPremiseStyleIds: noveltyContext.recentPremiseStyleIds,
       recentExecutionIds: noveltyContext.recentExecutionIds,

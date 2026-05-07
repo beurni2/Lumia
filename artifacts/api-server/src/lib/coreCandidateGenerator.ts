@@ -94,6 +94,12 @@ import {
   computeNigerianStylePenalty,
   isNigerianStylePenaltyFeatureEnabled,
 } from "./nigerianStylePenalty.js";
+// PHASE W1 — Western catalog hook quality + repetition control.
+// Cohort-gated demotion-only adjustment for the catalog (non-pack)
+// recipe path. Returns 0 for non-western cohorts via its own gate so
+// the call site is branch-free. See westernHookQuality.ts for the
+// helper contract + magnitudes.
+import { computeWesternHookAdjustment } from "./westernHookQuality.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -199,6 +205,19 @@ export type GenerateCoreCandidatesInput = {
    *  BEFORE the candidate flows into selection. Empty/undefined Set
    *  preserves pre-flag behavior. */
   recentNigerianPackEntryIds?: ReadonlySet<string>;
+  /** PHASE W1 — per-creator catalog hook skeleton memory snapshot
+   *  used by the cohort-gated Western hook adjustment for the
+   *  recent-skeleton repetition demotion. Read upstream from the
+   *  same `creators.catalog_template_seen_ids_json` column the
+   *  hybrid ideator's catalog skeleton swap already consults
+   *  (see `getRecentSeenSkeletons` in `catalogTemplateCreatorMemory.ts`),
+   *  hoisted alongside the existing pack entry-id snapshot in
+   *  `hybridIdeator.ts` so non-western cohorts pay zero DB cost.
+   *  Empty/undefined Set short-circuits the repetition demotion
+   *  (cold-start creators ship every skeleton). The Western helper
+   *  also gates internally on cohort, so passing a non-empty Set
+   *  to a non-western cohort is still a no-op. */
+  recentCatalogSkeletons?: ReadonlySet<string>;
   /** PHASE R1 — optional region for deterministic regional
    *  baseline decoration. Threaded straight through to
    *  `authorCohesiveIdea`. `"western"` / `undefined` short-circuit
@@ -822,6 +841,15 @@ export function generateCoreCandidates(
   // (this flag is read only at the catalog call site below).
   const stylePenaltyFlagEnabled = isNigerianStylePenaltyFeatureEnabled();
 
+  // PHASE W1 — per-creator catalog skeleton memory snapshot for the
+  // Western adjustment's recent-skeleton repetition demotion. Empty
+  // Set when the caller didn't supply one (cold-start / non-western
+  // cohorts where hybridIdeator skipped the DB read). The Western
+  // helper also gates internally on cohort, so a non-empty Set on a
+  // non-western cohort is still a no-op.
+  const recentCatalogSkeletons: ReadonlySet<string> =
+    input.recentCatalogSkeletons ?? new Set<string>();
+
   const candidates: CoreNativeCandidate[] = [];
   const perCoreAttempts: CoreCandidateAttempt[] = [];
   const reasons: Record<
@@ -1297,7 +1325,22 @@ export function generateCoreCandidates(
         languageStyle: packLanguageStyle,
         flagEnabled: stylePenaltyFlagEnabled,
       });
-      const quality = baseQuality - stylePenalty;
+      // PHASE W1 — cohort-gated Western catalog hook adjustment.
+      // SIGNED (negative on weak skeleton / generic combo / recent
+      // skeleton; positive on visible-action / posting / contradiction
+      // / embarrassment specificity). Helper short-circuits to 0 for
+      // any non-western cohort (region !== undefined && region !==
+      // "western") so India / PH / Nigeria see ZERO net change. Pack
+      // candidates skip this branch entirely (pack push is at the
+      // earlier `if (packEligible.length > 0)` block, NOT here).
+      const westernAdjustment = computeWesternHookAdjustment({
+        hook: result.idea.hook,
+        whatToShow: result.idea.whatToShow,
+        region: input.region,
+        languageStyle: packLanguageStyle,
+        recentSkeletons: recentCatalogSkeletons,
+      });
+      const quality = baseQuality - stylePenalty + westernAdjustment;
       const meta: CandidateMeta = {
         ...result.meta,
         scenarioFingerprint: sf,
