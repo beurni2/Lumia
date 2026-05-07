@@ -184,9 +184,10 @@ export const getRecentSeenSkeletonRecency = async (
       .where(eq(schema.creators.id, creatorId))
       .limit(1);
     const memory = readMemory(rows[0]?.memory);
-    const sorted = [...memory].sort((a, b) =>
-      a.lastSeenAt < b.lastSeenAt ? 1 : -1,
-    );
+    const sorted = [...memory].sort((a, b) => {
+      if (a.lastSeenAt === b.lastSeenAt) return 0;
+      return a.lastSeenAt < b.lastSeenAt ? 1 : -1;
+    });
     const m = new Map<string, number>();
     sorted.forEach((e, i) => {
       // First write wins → guards against duplicate skeletons in a
