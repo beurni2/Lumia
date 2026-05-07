@@ -1,0 +1,94 @@
+W2-I accepted.
+
+Proceed to W2-K — Western Approved Pool Staging Activation Design.
+
+Goal:
+Safely wire the approved Western Top 100 pool into Western/default generation as a staging-only quality booster layer.
+
+Do not enable production.
+Do not replace the old Western corpus.
+Do not activate all 150 draft entries.
+Do not force all 3 cards from W2.
+Do not touch Nigerian pack behavior.
+Do not touch N1 flags.
+Do not touch Pidgin scorer.
+Do not touch India/Philippines behavior.
+Do not loosen validators.
+Do not change Claude behavior.
+Do not add migrations unless absolutely required and justified first.
+
+Source:
+Use only APPROVED_WESTERN_PROMOTION_CANDIDATES.
+Do not use WESTERN_HOOK_PACK_DRAFT directly for runtime.
+
+Activation:
+- Western/default only.
+- Staging flag only, default OFF in production.
+- Approved Top 100 only.
+- Old corpus remains available.
+
+Desired batch composition:
+- Prefer 1 W2-authored idea per Western/default batch when available.
+- Allow 2 W2 ideas only when both are highly distinct.
+- Keep at least 1 non-W2 idea for breadth/novelty unless local quality is poor.
+- Never ship 3 near-identical authored ideas.
+
+Memory / novelty:
+Track and avoid recent:
+- W2 entry id
+- exact hook
+- normalized hook skeleton
+- anchor
+- comedyFamily
+- emotionalSpike
+- setting
+
+Rules:
+- No duplicate W2 entry id within a batch.
+- No repeated W2 entry id across recent refreshes.
+- No exact hook duplicates.
+- No repeated hook skeletons.
+- Avoid overusing the same anchor.
+- Avoid overusing bedroom/desk when alternatives are available.
+- If W2 memory blocks too much, fall back to the old corpus rather than repeating W2.
+
+QA:
+Run real /api/ideator/generate:
+
+Western/default:
+- W2 ON: 20 refreshes / 60 ideas
+- W2 OFF baseline: 10 refreshes / 30 ideas
+
+Smoke:
+- Nigeria + pidgin
+- Nigeria + light_pidgin
+- Nigeria + clean
+- India
+- Philippines
+
+Report:
+- W2 delivery rate
+- old corpus delivery rate
+- exact hook duplicates
+- repeated skeletons
+- repeated W2 entry ids
+- anchor distribution
+- comedyFamily distribution
+- setting distribution
+- strongest 20 shipped ideas
+- weakest 20 shipped ideas
+- refresh success/timeouts
+- safety/privacy
+- non-Western regression
+- final GO/HOLD
+
+Acceptance:
+- Western output feels more specific, human, and funny than baseline.
+- W2 delivery is present but not overpowering.
+- No repeated W2 entry ids.
+- No exact hook duplicates.
+- Weak generic skeletons stay low.
+- Refresh success >=90%.
+- Safety/privacy hits = 0.
+- Non-Western cohorts unaffected.
+- Production remains OFF.
