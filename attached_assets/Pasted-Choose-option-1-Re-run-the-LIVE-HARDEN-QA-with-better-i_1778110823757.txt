@@ -1,0 +1,64 @@
+Choose option 1.
+
+Re-run the LIVE HARDEN QA with better instrumentation/proxy detection and republish the report with a real GO/HOLD call.
+
+Important:
+Do not make more generation changes during this QA.
+Do not tune pack scoring.
+Do not change slot reservation.
+Do not change validators.
+Do not change the corpus.
+Do not change refresh logic during the QA run.
+This should be measurement only unless there is a crash or instrumentation-only issue.
+
+The new QA report must separate three measurements:
+
+1. Pack-source delivery
+- Ideas that still have nigerianPackEntryId before public API stripping.
+- Measure from server-side logs or internal telemetry before response serialization.
+
+2. Nigerian/Pidgin content delivery
+- Use a proxy detector for Pidgin/Nigerian tokens and known Nigerian pack hook patterns.
+- Report how many ideas visibly sound Nigerian even if packEntryId is stripped or the hook was mutated.
+
+3. Final public API output
+- What the mobile app actually receives from /api/ideator/generate.
+- Include hook, whatToShow, howToFilm, caption, region, languageStyle, response time, fallback usage, refresh status.
+
+QA cohorts:
+- Nigeria + light_pidgin: 10 refreshes / 30 ideas
+- Nigeria + pidgin: 10 refreshes / 30 ideas
+- Nigeria + clean: 5 refreshes / 15 ideas
+- Nigeria + null: 5 refreshes / 15 ideas
+- Western: 5 refreshes / 15 ideas
+- India: 5 refreshes / 15 ideas
+- Philippines: 5 refreshes / 15 ideas
+
+Must report:
+- refresh success rate
+- timeout count
+- response times
+- blank state / stuck spinner status if available
+- wrong-region terms, including doordash, venmo, cashapp, zelle, target, walmart, trader joe’s
+- Nigerian/Pidgin proxy delivery rate
+- server-side pack candidate count
+- server-side pack selected count
+- final public output pack attribution if available
+- Film This Now alignment for sampled Nigerian ideas
+- final GO / GO WITH NOTES / HOLD
+
+Also explain the public API meta stripping issue:
+- whether nigerianPackEntryId is intentionally stripped
+- whether QA should read it from server logs instead
+- whether exposing it in dev-only QA output is safe
+
+Do not reinterpret the old HOLD without rerunning. The old report had a measurement flaw.
+
+After the QA rerun, separately report the accidental T1–T8 changes:
+- files changed
+- whether they are still present
+- whether they affect runtime
+- whether they should be rolled back
+- exact rollback plan if needed
+
+Production must remain OFF.

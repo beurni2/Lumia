@@ -320,12 +320,29 @@ router.post("/ideator/generate", async (req, res, next) => {
     const publicIdeas = result.ideas.map(
       ({ premise: _premise, premiseCoreId: _premiseCoreId, ...rest }) => rest,
     );
-    res.json({
+    // PHASE N1-LIVE-HARDEN-QA — dev-only instrumentation. When the
+    // request carries header `x-lumina-qa-expose-meta: 1` AND the
+    // process is NOT in production (`NODE_ENV !== "production"`), we
+    // append the orchestrator's `qaTelemetry` + `usedFallback` to the
+    // response so the live-harden QA harness can read the
+    // pre-stripping `nigerianPackEntryId` per idea instead of
+    // scraping logs. Pure additive, never enabled in prod, never
+    // surfaced to the mobile client (which doesn't send the header).
+    const exposeMeta =
+      process.env.NODE_ENV !== "production" &&
+      String(req.header("x-lumina-qa-expose-meta") ?? "") === "1";
+    const responseBody: Record<string, unknown> = {
       region,
       count: publicIdeas.length,
       regenerate,
       ideas: publicIdeas,
-    });
+    };
+    if (exposeMeta) {
+      responseBody.qaTelemetry = result.qaTelemetry;
+      responseBody.usedFallback = result.usedFallback;
+      responseBody.counts = result.counts;
+    }
+    res.json(responseBody);
   } catch (err) {
     next(err);
   }
