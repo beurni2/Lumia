@@ -280,6 +280,19 @@ export function canApplyWesternHookAdjustments(
 export function computeWesternHookAdjustment(
   input: WesternHookAdjustmentInput,
 ): number {
+  // QA-only diagnostic bypass: lets the W1 live-QA harness collect a
+  // matched "before" baseline against the same running server without
+  // a separate build. Hard-gated to non-production: even if the env
+  // var leaked into a deployed environment it would be a no-op when
+  // NODE_ENV === "production". Reads each call (cheap; the adjustment
+  // helper is invoked per-candidate inside an already O(N) scoring
+  // loop). Strictly off by default.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.LUMINA_W1_DISABLE_FOR_QA === "1"
+  ) {
+    return 0;
+  }
   if (!canApplyWesternHookAdjustments(input)) return 0;
   let adj = 0;
   const weakFamily = classifyWesternWeakSkeletonFamily(input.hook);
