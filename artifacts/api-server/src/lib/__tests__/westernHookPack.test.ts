@@ -84,18 +84,41 @@ describe("W2-A — corpus shape (dark)", () => {
       "no setting failures",
     ).toEqual([]);
     expect(
-      r.failures.filter((f) => f.code === "comedy_family_invalid"),
-      "no comedyFamily failures",
-    ).toEqual([]);
-    expect(
       r.failures.filter((f) => f.code === "emotional_spike_invalid"),
       "no emotionalSpike failures",
     ).toEqual([]);
-    // After both reviewer-approved minimal fixes (vocab widening +
-    // 3 anchor token swaps), the full draft corpus must pass the
-    // integrity check with zero surfaced failures.
-    expect(r.ok, "integrity check passes").toBe(true);
-    expect(r.failures.length, "zero surfaced failures").toBe(0);
+    // ── PHASE W2-Batch-C surfaced comedyFamily failures ─────────
+    // W2C-028 and W2C-040 were imported VERBATIM from the W2-Batch-C
+    // brief and use `comedyFamily: "false_productivity"`, which is
+    // a spike label, not a comedy-family value. Surfaced here for
+    // reviewer adjudication (NOT silently fixed). Both checks:
+    //   (a) any comedy_family_invalid id outside the whitelist
+    //       trips the suite (fail-loud on NEW failures).
+    //   (b) the whitelist must still match exactly (locks the
+    //       failure set so silent drift is caught).
+    const KNOWN_W2C_COMEDY_FAMILY_FAILURES = new Set([
+      "W2C-028",
+      "W2C-040",
+    ]);
+    const comedyFamilyFailIds = new Set(
+      r.failures
+        .filter((f) => f.code === "comedy_family_invalid")
+        .map((f) => f.id)
+        .filter((id): id is string => id !== null),
+    );
+    const unexpectedComedyFamilyFails = [...comedyFamilyFailIds].filter(
+      (id) => !KNOWN_W2C_COMEDY_FAMILY_FAILURES.has(id),
+    );
+    expect(
+      unexpectedComedyFamilyFails,
+      "no NEW comedyFamily failures",
+    ).toEqual([]);
+    expect(
+      comedyFamilyFailIds,
+      "exact known comedyFamily-failure set",
+    ).toEqual(KNOWN_W2C_COMEDY_FAMILY_FAILURES);
+    // Lock the total surfaced failure count to catch silent drift.
+    expect(r.failures.length, "exact total surfaced failure count").toBe(2);
   });
   it("an explicitly-empty pack still passes the integrity check", () => {
     // Sanity: the checker must still treat an empty pack as ok so

@@ -1620,6 +1620,713 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         setting: "store",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
+    // ── PHASE W2-Batch-C — 50 authored draft entries ──────────────
+      // Imported verbatim from the W2-Batch-C authoring brief.
+      // All 50 ship with `reviewedBy = PENDING_EDITORIAL_REVIEW`.
+      // The corpus REMAINS DARK. Two entries (W2C-028, W2C-040) use
+      // `comedyFamily: "false_productivity"`, which is the spike label
+      // not a comedy-family value — surfaced by the integrity checker
+      // for reviewer adjudication (NOT silently fixed).
+      {
+        id: "W2C-001",
+        hook: "adding an exclamation point, then deleting it before it exposes me",
+        whatToShow:
+          "You type a simple message, add an exclamation point to seem friendly, stare at it, then delete it like it revealed too much.",
+        howToFilm:
+          "Keep the phone just off-camera so the screen glow hits your face. Let the smile appear when you add the exclamation point, then slowly fade when you realize it feels desperate.",
+        caption: "punctuation became emotional evidence.",
+        anchor: "exclamation",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "private_embarrassment",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-002",
+        hook: "watching my own story four times like i'm quality control",
+        whatToShow:
+          "You lie on the bed replaying your own story again and again, judging every tiny facial movement.",
+        howToFilm:
+          "Start wide so it feels a little pathetic, then cut closer to your eyes tracking the replay bar. The fourth replay should feel like an investigation.",
+        caption: "viewer number one has notes.",
+        anchor: "story",
+        comedyFamily: "posting_anxiety",
+        emotionalSpike: "self_critique",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-003",
+        hook: "scheduling a focus hour and spending it auditioning playlists",
+        whatToShow:
+          "You start a focus timer, then spend almost the whole time skipping songs and judging the vibe instead of opening the work.",
+        howToFilm:
+          "Keep the timer visible in the background. Treat every song choice like a serious business decision, then reveal the untouched task.",
+        caption: "the vibes had to pass inspection.",
+        anchor: "playlist",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "false_productivity",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-004",
+        hook: "closing the laptop after one minor inconvenience",
+        whatToShow:
+          "A tiny error or confusing email appears. You stare for two seconds, then slowly close the laptop like the workday has legally ended.",
+        howToFilm:
+          "Keep the camera steady on your face. The laptop close should be slow and ceremonial, like you are respecting a moment of silence.",
+        caption: "the universe sent a sign and i obeyed.",
+        anchor: "laptop",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "avoidance_spike",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-005",
+        hook: "standing in the kitchen in my coat with no memory of why",
+        whatToShow:
+          "You are fully dressed to leave, keys in hand, standing in the kitchen staring at a random appliance like it summoned you.",
+        howToFilm:
+          "Static wide shot. Pat your pockets, look around, then freeze like your brain just disconnected from the mission.",
+        caption: "leaving the house failed to load.",
+        anchor: "coat",
+        comedyFamily: "leaving_house_delay",
+        emotionalSpike: "time_loss",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-006",
+        hook: "checking the delivery map like i'm tracking a fugitive",
+        whatToShow:
+          "You zoom in on the delivery map, whispering at the tiny car icon like your driver can hear you.",
+        howToFilm:
+          "Show a fake or blurred map first, then cut to you peeking through the blinds like this is a stakeout. Keep it serious.",
+        caption: "two minutes away has never felt so personal.",
+        anchor: "delivery",
+        comedyFamily: "food_self_control",
+        emotionalSpike: "overprepared_panic",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-007",
+        hook: "scrolling old posts to see if i was ever funny",
+        whatToShow:
+          "You scroll through old posts with a concerned face, occasionally doing a pity laugh at your own old joke.",
+        howToFilm:
+          "Use phone light on your face in a darker room. Move the phone closer like you are auditing your own personality.",
+        caption: "a performance review for past me.",
+        anchor: "posts",
+        comedyFamily: "creator_anxiety",
+        emotionalSpike: "self_critique",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-008",
+        hook: "typing for ten minutes and sending one emoji",
+        whatToShow:
+          "You type a long thoughtful reply, delete it, type a shorter one, delete that too, then send a single emoji.",
+        howToFilm:
+          "Focus on your thumbs working way too hard. The final emoji send should feel like you just completed a marathon and gave up at the finish line.",
+        caption: "social battery left mid-sentence.",
+        anchor: "typing",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "decision_avoidance",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-009",
+        hook: "rereading my sent email like i'm the hiring manager",
+        whatToShow:
+          "You open your sent folder and read your own email as if you are the person receiving it, nodding at your own wording.",
+        howToFilm:
+          "Over-the-shoulder at a laptop with a fake email. Mumble the serious phrases to yourself, then squint like the font might be judging you.",
+        caption: "post-send professionalism audit.",
+        anchor: "email",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "performance_panic",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-010",
+        hook: "putting on one shoe and losing all momentum",
+        whatToShow:
+          "One shoe is tied, the other is still in your hand, and you are sitting on the bed staring into space.",
+        howToFilm:
+          "Start close on the tied shoe, then tilt up to reveal you completely frozen. Let the half-ready outfit tell the joke.",
+        caption: "50% ready, 100% unavailable.",
+        anchor: "shoe",
+        comedyFamily: "leaving_house_delay",
+        emotionalSpike: "time_loss",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-011",
+        hook: "hiding my phone like i'm not allowed to exist",
+        whatToShow:
+          "You are scrolling, hear footsteps, shove the phone under a pillow, then pretend to be doing something painfully innocent.",
+        howToFilm:
+          "Use a wide shot so the panic move is obvious. The fake activity should be awkwardly unconvincing, like holding a book upside down.",
+        caption: "nothing suspicious, just suddenly literate.",
+        anchor: "phone",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "caught_off_guard",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-012",
+        hook: "saying 'you too' after the waiter says enjoy your meal",
+        whatToShow:
+          "You accept a plate, say 'you too' with full confidence, then freeze as the realization arrives.",
+        howToFilm:
+          "Stage it at home with a plate. Say it casually, then hold the tiny thousand-yard stare right before taking the first bite.",
+        caption: "apparently we're both enjoying this.",
+        anchor: "waiter",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "social_panic",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-013",
+        hook: "seeing 'urgent' and immediately placing the phone face down",
+        whatToShow:
+          "A fake work notification pops up. You read the word urgent, nod once, and flip the phone over like a judge closing a case.",
+        howToFilm:
+          "Shoot from the phone's point of view if you can. Your face should be calm in the exact way that means absolutely not.",
+        caption: "future me has been notified.",
+        anchor: "urgent",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "avoidance_spike",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-014",
+        hook: "studying the menu for twenty minutes and ordering my usual",
+        whatToShow:
+          "You scroll a menu with deep focus, act interested in new options, then order the same thing you always get.",
+        howToFilm:
+          "Make the menu research look intense. Then cut hard to the most boring familiar order, said with total peace.",
+        caption: "i like the illusion of range.",
+        anchor: "menu",
+        comedyFamily: "food_self_control",
+        emotionalSpike: "decision_avoidance",
+        setting: "car",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-015",
+        hook: "checking who's active so i know who i'm avoiding",
+        whatToShow:
+          "You open a fake DM list, see active indicators, and physically move the phone away like it got hot.",
+        howToFilm:
+          "Keep the screen fake or blurred and focus on your face. Every green dot should make you retreat a little more.",
+        caption: "visibility is a threat.",
+        anchor: "active",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "social_panic",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-016",
+        hook: "filming a day-in-the-life and quitting before lunch",
+        whatToShow:
+          "You start with cute coffee and shoe shots, then cut to yourself lying on the floor with the camera abandoned beside you.",
+        howToFilm:
+          "Begin like a polished mini-vlog. Then do a hard cut to the camera on the floor and you staring at nothing. Let the contrast do the work.",
+        caption: "the vlog died so the nap could live.",
+        anchor: "vlog",
+        comedyFamily: "posting_anxiety",
+        emotionalSpike: "self_betrayal",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-017",
+        hook: "googling how to be a morning person at 2:45 a.m.",
+        whatToShow:
+          "You lie in bed under phone light, searching for morning-person advice at the worst possible hour.",
+        howToFilm:
+          "Close on your tired face and the fake search. The slow blink is the punchline; you clearly already lost tomorrow.",
+        caption: "researching the person i will not become.",
+        anchor: "morning",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "quiet_guilt",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-018",
+        hook: "rereading my own text to see if the vibe is annoying",
+        whatToShow:
+          "You hold the phone at arm's length, squint at your sent message, and slowly realize you may have overdone it.",
+        howToFilm:
+          "Handheld and close. Let your face shift from proud to concerned in three seconds. Keep the fake message simple.",
+        caption: "my own worst pen pal.",
+        anchor: "vibe",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "self_critique",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-019",
+        hook: "staring at one task until it stops looking like English",
+        whatToShow:
+          "You look at a simple line of work, lean closer, lean back, squint one eye, and somehow understand less.",
+        howToFilm:
+          "Slowly push in on your eyes. By the end, you should look like the sentence personally betrayed your education.",
+        caption: "the words left the building.",
+        anchor: "task",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "avoidance_spike",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-020",
+        hook: "walking laps because i can't choose which chore to avoid",
+        whatToShow:
+          "You pace through the hallway, stop at one door, turn around, stop at another, and somehow do none of the chores.",
+        howToFilm:
+          "Use a still hallway angle like security footage. Speed it up slightly so you look like an NPC with no assignment.",
+        caption: "busy doing nothing at high speed.",
+        anchor: "hallway",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "decision_avoidance",
+        setting: "hallway",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-021",
+        hook: "deleting the draft because perfect or nothing apparently",
+        whatToShow:
+          "You reread a draft, make one disgusted face, select everything, and delete it with dramatic finality.",
+        howToFilm:
+          "Close on the delete/backspace moment, then cut to your face looking both powerful and deeply sad.",
+        caption: "creative process, but hostile.",
+        anchor: "draft",
+        comedyFamily: "posting_anxiety",
+        emotionalSpike: "self_critique",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-022",
+        hook: "doing one reset task and acting like i earned a vacation",
+        whatToShow:
+          "You wipe one counter or put one item away, then collapse onto the couch like you completed a full life overhaul.",
+        howToFilm:
+          "Film the tiny task quickly, then make the reward part slow and dramatic. The imbalance is the joke.",
+        caption: "one surface cleaned, ego restored.",
+        anchor: "reset",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "false_productivity",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-023",
+        hook: "checking my drafts like a graveyard of confidence",
+        whatToShow:
+          "You scroll through half-finished draft videos, wince at old ideas, and quietly close the app.",
+        howToFilm:
+          "Use dramatic low light if you want. Scroll slowly, like each draft is a past version of you asking for forgiveness.",
+        caption: "some drafts are buried for a reason.",
+        anchor: "drafts",
+        comedyFamily: "creator_anxiety",
+        emotionalSpike: "private_embarrassment",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-024",
+        hook: "reading the instructions again and becoming less informed",
+        whatToShow:
+          "You trace the instructions with your finger, mouth the words, then stare blankly like your brain rejected the file.",
+        howToFilm:
+          "Show the paper or fake screen first, then cut to your face completely empty. The silence should feel too long.",
+        caption: "comprehension has left the chat.",
+        anchor: "instructions",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "performance_panic",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-025",
+        hook: "standing in the fridge light waiting for dinner to appear",
+        whatToShow:
+          "You stand in front of the open fridge, looking from milk to mustard to leftovers like a meal might assemble itself.",
+        howToFilm:
+          "Shoot from inside the fridge if possible. Hold on your hopeful face for one beat too long, then close the door disappointed.",
+        caption: "waiting for ingredients to unionize.",
+        anchor: "fridge",
+        comedyFamily: "food_self_control",
+        emotionalSpike: "decision_avoidance",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-026",
+        hook: "replying 'just saw this' like the message wasn't aging in my phone",
+        whatToShow:
+          "You look at a three-day-old fake message, pretend to discover it for the first time, and type the lie.",
+        howToFilm:
+          "Tight on your eyes doing fake surprise. Then show the timestamp for half a second so the lie has evidence against it.",
+        caption: "a diplomatic lie.",
+        anchor: "reply",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "exposed_lie",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-027",
+        hook: "putting my phone away and visiting it four minutes later",
+        whatToShow:
+          "You bravely leave your phone in another room, sit down to work, then immediately invent a reason to go check it.",
+        howToFilm:
+          "Film it like a tiny heist. The first walk away should feel proud; the return should feel sneaky and pathetic.",
+        caption: "i failed as my own security guard.",
+        anchor: "phone",
+        comedyFamily: "phone_distraction",
+        emotionalSpike: "self_betrayal",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-028",
+        hook: "adding finished tasks to the list so i can cross them off",
+        whatToShow:
+          "You write things you already did, then cross them out with way too much satisfaction.",
+        howToFilm:
+          "Top-down on the notebook. Make the crossing-out sound loud and proud. Then reveal the actual hard task still untouched.",
+        caption: "productivity, but rigged.",
+        anchor: "list",
+        comedyFamily: "false_productivity" as WesternComedyFamily,
+        emotionalSpike: "quiet_guilt",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-029",
+        hook: "checking the lock again because my memory is unreliable",
+        whatToShow:
+          "You jiggle the door handle, walk away, stop, turn around, and check it again.",
+        howToFilm:
+          "Follow your feet from behind. Every turn back should feel more embarrassing because you clearly know what you're doing.",
+        caption: "but did i really lock it though.",
+        anchor: "lock",
+        comedyFamily: "leaving_house_delay",
+        emotionalSpike: "overprepared_panic",
+        setting: "entryway",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-030",
+        hook: "hovering over send like it's a detonator",
+        whatToShow:
+          "Your finger hovers just above the send button on a risky fake text while you breathe like a bomb squad intern.",
+        howToFilm:
+          "Extreme close-up on the finger. Build the tension, then cut immediately after the tap to you tossing the phone away.",
+        caption: "once it sends, i belong to fate.",
+        anchor: "send",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "social_panic",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-031",
+        hook: "practicing my listening face before the call",
+        whatToShow:
+          "You try different nods and tiny smiles in the mirror, looking engaged but deeply absent behind the eyes.",
+        howToFilm:
+          "Mirror shot. Switch between professional nod and blank robot reboot. End with the face you will use for the entire call.",
+        caption: "ten percent listening, ninety percent acting.",
+        anchor: "listening",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "performance_panic",
+        setting: "bathroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-032",
+        hook: "reading the same paragraph until my brain clocks out",
+        whatToShow:
+          "Your eyes move across the paragraph, reach the end, then snap right back to the top because nothing entered.",
+        howToFilm:
+          "Make the eye reset obvious and rhythmic. On the last attempt, close the book or tablet with quiet defeat.",
+        caption: "eyes read it. brain declined.",
+        anchor: "paragraph",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "avoidance_spike",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-033",
+        hook: "calculating sleep like math will save me",
+        whatToShow:
+          "You lie in bed counting hours on your fingers, checking the clock, and realizing the number keeps getting worse.",
+        howToFilm:
+          "Low light, phone glow. Every recalculation should make your face more disappointed in the choices that led here.",
+        caption: "the most stressful math i do.",
+        anchor: "sleep",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "time_loss",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-034",
+        hook: "burying the snack wrapper like evidence",
+        whatToShow:
+          "You fold an empty snack wrapper into a tiny square and hide it deep in the trash under other things.",
+        howToFilm:
+          "Close on the burial. Look over your shoulder before you hide it, like the kitchen has witnesses.",
+        caption: "if no one sees it, calories become folklore.",
+        anchor: "wrapper",
+        comedyFamily: "food_self_control",
+        emotionalSpike: "quiet_guilt",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-035",
+        hook: "leaving the room to remember why i entered it",
+        whatToShow:
+          "You walk into the kitchen, forget the mission, leave, then walk back in with sudden purpose.",
+        howToFilm:
+          "Use a doorway wide shot. The walk back out should feel like a reset button. Then re-enter with fake confidence.",
+        caption: "quest instructions recovered.",
+        anchor: "room",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "caught_off_guard",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-036",
+        hook: "choosing any door except the revolving one",
+        whatToShow:
+          "You approach a store, see the revolving door, pause, and immediately look for the normal door.",
+        howToFilm:
+          "Point-of-view shot of the revolving door, then cut to your face treating it like a machine built to humble you.",
+        caption: "i prefer doors that don't require timing.",
+        anchor: "door",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "social_panic",
+        setting: "store",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-037",
+        hook: "starting a get-ready video and getting lost in the mirror",
+        whatToShow:
+          "You set up the camera and ring light, then lean into the mirror and forget the video because one tiny face detail distracted you.",
+        howToFilm:
+          "Keep the creator setup visible in the background. The joke is that the whole production gets abandoned for one tiny mirror inspection.",
+        caption: "the tutorial lost to my pores.",
+        anchor: "mirror",
+        comedyFamily: "posting_anxiety",
+        emotionalSpike: "time_loss",
+        setting: "bathroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-038",
+        hook: "leaving a funny comment and waiting like a fisherman",
+        whatToShow:
+          "You post a comment, then refresh or check notifications while your hope rises and falls every few seconds.",
+        howToFilm:
+          "Close on your face. Each check should move from confidence to disappointment and back to confidence for no reason.",
+        caption: "casting a joke into the void.",
+        anchor: "comment",
+        comedyFamily: "creator_anxiety",
+        emotionalSpike: "performance_panic",
+        setting: "couch",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-039",
+        hook: "typing 'on my way' while still in a towel",
+        whatToShow:
+          "You sit wrapped in a towel, clearly nowhere near leaving, calmly typing 'on my way' into a fake chat.",
+        howToFilm:
+          "The contrast is the whole joke. Keep the towel, wet hair, or bathroom setting visible while the fake message says you're moving.",
+        caption: "on my way to the hair dryer.",
+        anchor: "way",
+        comedyFamily: "leaving_house_delay",
+        emotionalSpike: "exposed_lie",
+        setting: "bathroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-040",
+        hook: "organizing desktop icons to prepare for the work i won't do",
+        whatToShow:
+          "You drag icons into neat rows, empty the trash, and change the background while the actual work document stays blank.",
+        howToFilm:
+          "Over-the-shoulder at the laptop. The clicking should feel very productive, then reveal the untouched work sitting there.",
+        caption: "optimized everything except my behavior.",
+        anchor: "icons",
+        comedyFamily: "false_productivity" as WesternComedyFamily,
+        emotionalSpike: "avoidance_spike",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-041",
+        hook: "waiting for someone to leave the aisle like it's my turn in a game",
+        whatToShow:
+          "You pretend to read a random label while secretly waiting for the person blocking the item you actually want.",
+        howToFilm:
+          "Use the shelf as your frame. Your eyes should keep drifting toward the target item while your hand fake-studies something else.",
+        caption: "grocery store strategy mode.",
+        anchor: "aisle",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "social_panic",
+        setting: "store",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-042",
+        hook: "deleting half my text because it sounded too excited",
+        whatToShow:
+          "You type an enthusiastic reply, stare at it, then edit it down into something painfully neutral.",
+        howToFilm:
+          "Show the genuine happy version first. Then cut to the edited version and your face trying to act emotionally regulated.",
+        caption: "must maintain mysterious distance.",
+        anchor: "excited",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "self_critique",
+        setting: "bedroom",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-043",
+        hook: "scrubbing the sink because a deadline is chasing me",
+        whatToShow:
+          "You clean the sink with intense focus while the deadline sits visible on a laptop in the background.",
+        howToFilm:
+          "Shoot it like an action montage. The sink should look heroic, but the laptop in the background should expose the truth.",
+        caption: "cleaning is just panic with supplies.",
+        anchor: "sink",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "avoidance_spike",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-044",
+        hook: "checking my bank app after a treat-yourself weekend",
+        whatToShow:
+          "You open a fake bank app, cover one eye, peek at the number, and immediately regret the confidence you had yesterday.",
+        howToFilm:
+          "Use a fake screen only. Treat the reveal like a horror movie, but keep the reaction small: one quiet 'oh no' is enough.",
+        caption: "the math came back with attitude.",
+        anchor: "bank",
+        comedyFamily: "adulting_panic",
+        emotionalSpike: "instant_regret",
+        setting: "living_room",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-045",
+        hook: "rerecording the voice memo because my ending voice changed species",
+        whatToShow:
+          "You record a voice memo, hear your tone get weird at the end, cancel it, and start over with a fake calmer voice.",
+        howToFilm:
+          "Hold the phone like a walkie-talkie. The cancel swipe should be immediate. On take two, overcorrect your voice just enough to be funny.",
+        caption: "who was speaking at the end.",
+        anchor: "memo",
+        comedyFamily: "texting_overthinking",
+        emotionalSpike: "private_embarrassment",
+        setting: "car",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-046",
+        hook: "cleaning my glasses to see the mistake in HD",
+        whatToShow:
+          "You notice a mistake, take off your glasses, clean them carefully, put them back on, and realize the mistake is still there.",
+        howToFilm:
+          "Let the glasses cleaning be oddly serious. The punchline is putting them back on and getting the exact same bad news, but clearer.",
+        caption: "clarity did not help.",
+        anchor: "glasses",
+        comedyFamily: "work_school_panic",
+        emotionalSpike: "self_critique",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-047",
+        hook: "taking a perfect meal photo and then eating like nobody raised me",
+        whatToShow:
+          "You carefully stage a pretty meal photo, then immediately drop the elegance and eat like the camera was never there.",
+        howToFilm:
+          "Start with the calm influencer shot: plate, angle, little adjustment. Then cut to the real version with messy enthusiasm and zero performance.",
+        caption: "aesthetic lasted six seconds.",
+        anchor: "meal",
+        comedyFamily: "food_self_control",
+        emotionalSpike: "self_betrayal",
+        setting: "kitchen",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-048",
+        hook: "standing in the checkout line rehearsing normal eye contact",
+        whatToShow:
+          "You wait in line, practice a casual smile, then immediately look too intense when it's your turn.",
+        howToFilm:
+          "Use a store or hallway setup. The rehearsal should be subtle: tiny smile, reset, tiny nod. Then make the real interaction slightly worse.",
+        caption: "prepared for checkout. failed socially.",
+        anchor: "checkout",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "social_panic",
+        setting: "store",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-049",
+        hook: "opening a new tab like the old tab was the problem",
+        whatToShow:
+          "You open a fresh tab, stare at the blank page with hope, then avoid the same task in a cleaner window.",
+        howToFilm:
+          "Over-the-shoulder on the laptop. The new tab should feel like a fresh start for one second, then reveal nothing actually changed.",
+        caption: "fresh tab, stale behavior.",
+        anchor: "tab",
+        comedyFamily: "task_avoidance",
+        emotionalSpike: "false_productivity",
+        setting: "desk",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
+    {
+        id: "W2C-050",
+        hook: "checking the mirror in public and pretending it was casual",
+        whatToShow:
+          "You pass a reflective surface, glance at yourself, get caught looking, and pretend you were checking something nearby.",
+        howToFilm:
+          "Use a mirror, window, or dark phone screen. The recovery is the key: point at nothing, adjust a sleeve, act like this was always the plan.",
+        caption: "reflection audit interrupted.",
+        anchor: "mirror",
+        comedyFamily: "tiny_public_private_awkwardness",
+        emotionalSpike: "private_embarrassment",
+        setting: "store",
+        reviewedBy: PENDING_EDITORIAL_REVIEW,
+      },
   ]);
 
 // ---------------------------------------------------------------- //
