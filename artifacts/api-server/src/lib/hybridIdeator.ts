@@ -154,7 +154,6 @@ import {
 //   • Graceful degradation — if no alternative exists, ship the
 //     repeat. Better to repeat than to underfill or stall.
 import {
-  getRecentSeenSkeletons,
   getRecentSeenSkeletonRecency,
   recordSeenSkeletons,
   normalizeHookToSkeleton,
