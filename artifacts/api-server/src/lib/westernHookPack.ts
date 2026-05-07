@@ -65,6 +65,25 @@ export const WESTERN_COMEDY_FAMILIES = Object.freeze([
   "procrastination_theatre",
   // a hook escalating a small thing into a catastrophe
   "catastrophizing",
+  // ── W2-Batch-A vocab additions (additive, draft-only) ──────────
+  // The first 50 authored draft entries surfaced these clean,
+  // distinct comedy buckets. Adding them additively widens the
+  // draft taxonomy without touching runtime, scoring, or validators.
+  "posting_anxiety",
+  "food_self_control",
+  "texting_overthinking",
+  "task_avoidance",
+  "leaving_house_delay",
+  "creator_anxiety",
+  "procrastination",
+  "getting_ready",
+  "phone_distraction",
+  "tiny_public_private_awkwardness",
+  "work_school_panic",
+  "adulting_panic",
+  "self_control",
+  "self_improvement_attempt",
+  "social_plans",
 ] as const);
 export type WesternComedyFamily = (typeof WESTERN_COMEDY_FAMILIES)[number];
 
@@ -77,6 +96,35 @@ export const WESTERN_EMOTIONAL_SPIKES = Object.freeze([
   "smugness",
   "panic",
   "embarrassment",
+  // ── W2-Batch-A vocab additions (additive, draft-only) ──────────
+  // The first 50 authored draft entries surfaced these clean,
+  // distinct spike labels. Adding them additively widens the draft
+  // taxonomy without touching runtime, scoring, or validators.
+  "private_embarrassment",
+  "self_betrayal",
+  "social_panic",
+  "quiet_realization",
+  "exposed_lie",
+  "false_productivity",
+  "instant_regret",
+  "confused_pause",
+  "quiet_guilt",
+  "impatient_spiral",
+  "avoidance_spike",
+  "polite_rage",
+  "physical_embarrassment",
+  "financial_dread",
+  "quiet_defeat",
+  "performance_panic",
+  "overprepared_panic",
+  "excuse_found",
+  "caught_off_guard",
+  "decision_avoidance",
+  "time_loss",
+  "self_doubt_spike",
+  "mask_drop",
+  "self_critique",
+  "deadline_panic",
 ] as const);
 export type WesternEmotionalSpike =
   (typeof WESTERN_EMOTIONAL_SPIKES)[number];
@@ -92,6 +140,14 @@ export const WESTERN_SETTINGS = Object.freeze([
   "doorway",
   "mirror",
   "phone",
+  // ── W2-Batch-A vocab additions (additive, draft-only) ──────────
+  // The first 50 authored draft entries surfaced these additional
+  // settings. Adding them additively widens the draft taxonomy
+  // without touching runtime, scoring, or validators.
+  "living_room",
+  "home",
+  "entryway",
+  "store",
 ] as const);
 export type WesternSetting = (typeof WESTERN_SETTINGS)[number];
 

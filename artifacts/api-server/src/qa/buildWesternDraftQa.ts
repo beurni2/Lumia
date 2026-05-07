@@ -61,7 +61,7 @@ function build(): string {
   lines.push(`- **Total entries**: ${WESTERN_HOOK_PACK_DRAFT.length}`);
   lines.push(`- **Integrity check**: ${report.ok ? "OK" : "FAILED"}`);
   lines.push(
-    `- **Activation status**: DARK — corpus is empty and not wired into any runtime path. No slot reservation, no scoring change, no API surface.`,
+    `- **Activation status**: DARK — corpus is not wired into any runtime path. No slot reservation, no scoring change, no API surface.`,
   );
   lines.push("");
   lines.push("## Category counts");
