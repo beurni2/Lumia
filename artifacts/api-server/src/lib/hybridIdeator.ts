@@ -4787,7 +4787,9 @@ export async function runHybridIdeator(
         if (isPack(c)) return c;
         const sk = normalizeHookToSkeleton(c.idea.hook);
         if (sk.length === 0 || !seenSkeletons.has(sk)) return c;
-        const alt = merged.find((p) => {
+        // Primary: alt whose skeleton is novel (unseen by creator)
+        // and not already chosen elsewhere in this batch.
+        const novelAlt = merged.find((p) => {
           if (isPack(p)) return false;
           const altIdAny = (p.idea as { id?: unknown }).id;
           if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
@@ -4799,6 +4801,30 @@ export async function runHybridIdeator(
           if (usedSkeletons.has(altSk)) return false;
           return true;
         });
+        // Relaxed fallback (BI 2026-05-07 catalog repetition fix):
+        // when the per-creator seen-set has saturated the local pool's
+        // skeleton space, no truly novel alt exists — strict swap fails
+        // and the repeating skeleton ships again (root cause of the
+        // observed 3-4× repeats of "my body quit…" across 10 batches).
+        // Accept any non-pack alt whose skeleton (a) differs from the
+        // repeating one and (b) isn't already used in this batch. Still
+        // rotates the user away from the visible repeat — strictly
+        // better than shipping the same hook again. SWAP-ONLY semantics
+        // preserved (never drops, never shrinks the pool).
+        const alt =
+          novelAlt ??
+          merged.find((p) => {
+            if (isPack(p)) return false;
+            const altIdAny = (p.idea as { id?: unknown }).id;
+            if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
+              return false;
+            }
+            const altSk = normalizeHookToSkeleton(p.idea.hook);
+            if (altSk.length === 0) return false;
+            if (altSk === sk) return false;
+            if (usedSkeletons.has(altSk)) return false;
+            return true;
+          });
         if (!alt) return c;
         usedSkeletons.delete(sk);
         usedSkeletons.add(normalizeHookToSkeleton(alt.idea.hook));
