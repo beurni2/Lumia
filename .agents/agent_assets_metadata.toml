@@ -149,3 +149,9 @@ id = "OMoWuH_UY82IRCBg-21Wa"
 uri = "file://.local/qa-runs/N1_LIVE_HARDEN_QA_OFF.md"
 type = "text"
 title = "N1 Live Harden QA — OFF baseline"
+
+[[outputs]]
+id = "038KCmD1MlIX5YKP6QqfO"
+uri = "file://artifacts/api-server/src/qa/reports/W1_1_AUDIT_REPORT.md"
+type = "text"
+title = "W1.1 Western Under-fill / Fallback Audit Report"
