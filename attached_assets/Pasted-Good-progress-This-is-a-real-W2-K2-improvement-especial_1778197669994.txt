@@ -1,0 +1,73 @@
+Good progress. This is a real W2-K2 improvement, especially the demo-memory root cause fix.
+
+However, do not mark W2-K2 final GO yet. The core 10-batch post-fix sweep is strong, but the acceptance harness was not fully completed.
+
+Please run one final reduced-but-complete W2-K2 confirmation pass against a single warm local server, using the fixed implementation:
+
+Required final confirmation:
+1. W2 ON western/default:
+   - 20 refreshes
+   - 60 ideas total
+   - one fresh seeded Western test creator
+   - memory must persist across all 20 refreshes
+
+2. W2 OFF western/default:
+   - 10 refreshes
+   - 30 ideas total
+   - same style fresh seeded Western test creator
+   - use x-lumina-qa-force-w2-off: 1
+   - must show 0 W2 ideas
+
+3. Non-Western smoke:
+   - ng_pidgin: 3 refreshes
+   - ng_light: 3 refreshes
+   - ng_clean: 3 refreshes
+   - india: 3 refreshes
+   - philippines: 3 refreshes
+   - must show 0 W2 leaks
+
+Report the final aggregate numbers only, plus any failures:
+- W2 total / total ideas
+- batch W2-count distribution: 0, 1, 2, 3
+- distinct W2 entryIds / W2 ideas
+- repeated W2 entryIds
+- exact W2 hook repeats
+- repeated W2 skeletons
+- in-batch W2 entryId duplicates
+- in-batch W2 anchor duplicates
+- in-batch W2 skeleton duplicates
+- repeated anchors / family / setting / spike as soft-axis telemetry
+- old corpus / non-W2 count
+- W2 OFF count
+- non-Western leak count
+- refresh success / errors
+- latency avg / min / max
+- Claude fallback count if available
+- hookQualityScore populated on W2 candidates
+- production remains OFF
+- tests pass
+- typecheck clean
+
+Also confirm:
+- The process-local memory is bounded.
+- It cannot leak across different creators.
+- Non-demo creators still use DB-backed recent batch memory first.
+- The in-memory snapshot only supplements memory and does not replace persisted memory.
+- No public API shape was exposed.
+- No migration was added.
+- No validators or Claude prompts were changed.
+
+Acceptance remains:
+- About 2 W2 per 3-card Western/default batch.
+- 3/3 W2 batches = 0.
+- W2 repeated entryIds = 0.
+- W2 exact hook repeats = 0.
+- W2 skeleton repeats = 0.
+- No duplicate W2 anchor within the same batch.
+- Distinct W2 entryIds close to W2 delivery count.
+- Old corpus remains present as the third-card breadth layer.
+- W2 OFF baseline clean.
+- Non-Western leaks = 0.
+- Tests/typecheck clean.
+
+Current status is provisional GO, not final GO, until this full confirmation pass is complete.

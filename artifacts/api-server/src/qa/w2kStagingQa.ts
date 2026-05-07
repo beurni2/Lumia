@@ -53,6 +53,18 @@ const REPORT_PATH = path.resolve(
   __dirname,
   "../../../../.local/W2K_REPORT.md",
 );
+const JSONL_PATH = process.env.W2K_JSONL_PATH ?? null;
+const JSONL_LABEL = process.env.W2K_JSONL_LABEL ?? "chunk";
+
+async function appendJsonl(rec: Record<string, unknown>): Promise<void> {
+  if (!JSONL_PATH) return;
+  await fs.mkdir(path.dirname(JSONL_PATH), { recursive: true });
+  await fs.appendFile(
+    JSONL_PATH,
+    JSON.stringify({ chunk: JSONL_LABEL, ...rec }) + "\n",
+    "utf8",
+  );
+}
 const API_URL =
   process.env.W2K_LIVE_API_URL ??
   "http://localhost:80/api/ideator/generate";
@@ -207,7 +219,7 @@ async function runWesternSweep(
     const hooks = (r.resp?.ideas ?? [])
       .map((i) => i.hook ?? "")
       .filter((h) => h.length > 0);
-    out.push({
+    const rec: WesternBatchRecord = {
       batchIdx: i,
       ideaCount: r.resp?.ideas.length ?? 0,
       w2EntryIds: w2.entryIds,
@@ -220,7 +232,9 @@ async function runWesternSweep(
       hooks,
       durationMs: r.durationMs,
       errored: r.err !== null,
-    });
+    };
+    out.push(rec);
+    await appendJsonl({ kind: "western", label, ...rec });
     process.stdout.write(
       `[${label}] batch ${i + 1}/${batches} ${r.durationMs}ms ` +
         `ideas=${r.resp?.ideas.length ?? 0} w2=${w2.entryIds.length}` +
@@ -246,12 +260,14 @@ async function runLeakSweep(): Promise<LeakRecord[]> {
       const w2Ids = perIdea
         .map((p) => p.westernPackEntryId ?? null)
         .filter((x): x is string => typeof x === "string");
-      out.push({
+      const rec: LeakRecord = {
         cohort: cohort.label,
         batchIdx: i,
         w2EntryIds: w2Ids,
         errored: r.err !== null,
-      });
+      };
+      out.push(rec);
+      await appendJsonl({ kind: "leak", durationMs: r.durationMs, ...rec });
       process.stdout.write(
         `[leak:${cohort.label}] batch ${i + 1}/${LEAK_REFRESHES} ${r.durationMs}ms ` +
           `w2=${w2Ids.length}` +
