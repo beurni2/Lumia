@@ -137,6 +137,10 @@ type BatchRec = {
   funnel: WesternFunnel | null;
   hooks: string[];
   perIdeaSources: Array<string | null>;
+  // PHASE W1.1 AUDIT — per-idea hook quality scores so the report can
+  // surface the strongest 20 + weakest 20 western hooks (task spec
+  // section 3). Aligned by index with `hooks` / `perIdeaSources`.
+  perIdeaHookQuality: Array<number | null>;
 };
 
 async function callApi(args: {
@@ -231,6 +235,9 @@ async function runPass(label: string, batchCount: number, startIdx: number): Pro
       hooks: ideas.map((i) => i.hook),
       perIdeaSources: (r.resp?.qaTelemetry?.perIdea ?? []).map(
         (p) => p.source ?? null,
+      ),
+      perIdeaHookQuality: (r.resp?.qaTelemetry?.perIdea ?? []).map(
+        (p) => (typeof p.hookQualityScore === "number" ? p.hookQualityScore : null),
       ),
     };
     recs.push(rec);
@@ -446,6 +453,137 @@ function statRow(label: string, arr: number[]): string {
   return `| ${label} | ${arr.length} | ${avg(arr).toFixed(1)} | ${median(arr).toFixed(1)} | ${lo} | ${hi} |`;
 }
 
+// PHASE W1.1 AUDIT — map of well-known rejection reasons to the
+// upstream-spec funnel stage they belong to. Used to derive the
+// stage-by-stage breakdown the task spec asks for from the existing
+// `localRejectionTop` / `coreNativeRejectionTop` aggregates without
+// adding any new in-orchestrator counter (semantics-preserving).
+// Anything not matched falls into "other".
+const REASON_STAGE: Array<[RegExp, string]> = [
+  [/^schema_|_schema$|^validation_|^comedy_schema_/, "schema"],
+  [/^show_missing_hook_anchor$|coherence|^scene_|^anchor_/, "scenario_coherence"],
+  [/comedy|comic|punchline/, "comedy"],
+  [/copied|anti_copy|seed|template/, "anti_copy"],
+  [/safety|privacy|policy|harm/, "safety_privacy"],
+  [/novelty|diversity|fingerprint|skeleton|repeat|family/, "novelty_diversity"],
+];
+function reasonToStage(reason: string): string {
+  for (const [re, stage] of REASON_STAGE) {
+    if (re.test(reason)) return stage;
+  }
+  return "other";
+}
+
+function buildHookCorpusSection(recs: BatchRec[]): string {
+  // PHASE W1.1 AUDIT — strongest 20 / weakest 20 hooks + exact
+  // repeated hook list, required by task spec section 3. Pulls hook
+  // strings + per-idea hookQualityScore captured by the driver from
+  // every batch in the pass and sorts by score.
+  type HookRow = { hook: string; score: number | null; source: string | null; batchIdx: number };
+  const all: HookRow[] = [];
+  for (const r of recs) {
+    const hq = r.perIdeaHookQuality ?? [];
+    const ps = r.perIdeaSources ?? [];
+    for (let i = 0; i < r.hooks.length; i++) {
+      all.push({
+        hook: r.hooks[i]!,
+        score: hq[i] ?? null,
+        source: ps[i] ?? null,
+        batchIdx: r.batchIdx,
+      });
+    }
+  }
+  const lines: string[] = [];
+  lines.push("### Hook corpus — strongest 20, weakest 20, repeated hooks");
+  lines.push("");
+  if (all.length === 0) {
+    lines.push("- _(no hooks captured in this pass)_");
+    lines.push("");
+    return lines.join("\n");
+  }
+  const scored = all.filter((h) => h.score !== null) as Array<HookRow & { score: number }>;
+  if (scored.length === 0) {
+    lines.push(`- _(${all.length} hooks captured but none carried \`hookQualityScore\` in qaTelemetry — strongest/weakest ranking unavailable)_`);
+  } else {
+    const byScoreDesc = [...scored].sort((a, b) => b.score - a.score);
+    const byScoreAsc = [...scored].sort((a, b) => a.score - b.score);
+    lines.push(`Total hooks scored: **${scored.length}** of ${all.length} captured.`);
+    lines.push("");
+    lines.push("**Strongest 20 (highest `hookQualityScore`):**");
+    lines.push("");
+    lines.push("| # | score | source | batch | hook |");
+    lines.push("| --- | --- | --- | --- | --- |");
+    byScoreDesc.slice(0, 20).forEach((h, i) => {
+      lines.push(`| ${i + 1} | ${h.score.toFixed(1)} | \`${h.source ?? "?"}\` | ${h.batchIdx} | ${h.hook.replace(/\|/g, "\\|").slice(0, 140)} |`);
+    });
+    lines.push("");
+    lines.push("**Weakest 20 (lowest `hookQualityScore`):**");
+    lines.push("");
+    lines.push("| # | score | source | batch | hook |");
+    lines.push("| --- | --- | --- | --- | --- |");
+    byScoreAsc.slice(0, 20).forEach((h, i) => {
+      lines.push(`| ${i + 1} | ${h.score.toFixed(1)} | \`${h.source ?? "?"}\` | ${h.batchIdx} | ${h.hook.replace(/\|/g, "\\|").slice(0, 140)} |`);
+    });
+    lines.push("");
+  }
+  // Exact repeated hooks (case + whitespace normalized for matching).
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  const occurrences = new Map<string, { display: string; batches: number[] }>();
+  for (const h of all) {
+    const k = norm(h.hook);
+    const e = occurrences.get(k);
+    if (e) e.batches.push(h.batchIdx);
+    else occurrences.set(k, { display: h.hook, batches: [h.batchIdx] });
+  }
+  const repeats = [...occurrences.values()].filter((e) => e.batches.length > 1)
+    .sort((a, b) => b.batches.length - a.batches.length);
+  lines.push(`**Exact repeated hooks** (same hook string shipped in ≥2 batches): **${repeats.length}**`);
+  lines.push("");
+  if (repeats.length === 0) {
+    lines.push("- _(no exact repeats across batches in this pass)_");
+  } else {
+    lines.push("| count | batches | hook |");
+    lines.push("| --- | --- | --- |");
+    for (const r of repeats.slice(0, 20)) {
+      lines.push(`| ${r.batches.length} | ${r.batches.join(",")} | ${r.display.replace(/\|/g, "\\|").slice(0, 160)} |`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+function buildStageBreakdown(agg: Aggregate): string {
+  // PHASE W1.1 AUDIT — per-stage funnel rejection breakdown derived
+  // from the existing rejection-reason aggregates (no new in-orchestrator
+  // counter; reuses `localRejectionTop` + `coreNativeRejectionTop` +
+  // `coherenceRejections` already captured upstream). Each reason is
+  // mapped to a stage via `reasonToStage`. This satisfies the spec
+  // requirement to surface counts after schema / comedy / anti-copy /
+  // safety / novelty without changing pipeline semantics.
+  const stages = new Map<string, number>();
+  const bump = (k: string, v: number) =>
+    stages.set(k, (stages.get(k) ?? 0) + v);
+  // Coherence aggregate is already a stage (scenario_coherence).
+  for (const [, v] of agg.coherenceRejAgg) bump("scenario_coherence", v);
+  // Core-native rejections — bucket by reason → stage.
+  for (const [k, v] of agg.coreRejAgg) bump(reasonToStage(k), v);
+  // filterAndRescore rejections — bucket by reason → stage.
+  for (const [k, v] of agg.localRejAgg) bump(reasonToStage(k), v);
+  const lines: string[] = [];
+  lines.push("### Funnel rejection by stage (aggregated, derived from rejection-reason maps)");
+  lines.push("");
+  lines.push("> Stages are derived by pattern-matching every rejection reason against the canonical stage taxonomy (schema → scenario_coherence → comedy → anti_copy → safety_privacy → novelty_diversity → other). Reasons that match no pattern fall into `other`. This is a reporting-time derivation only — no in-orchestrator counter was added; the pipeline still emits its native rejection-reason aggregates and the driver buckets them.");
+  lines.push("");
+  lines.push("| stage | total rejected (across batches) |");
+  lines.push("| --- | --- |");
+  const order = ["schema", "scenario_coherence", "comedy", "anti_copy", "safety_privacy", "novelty_diversity", "other"];
+  for (const s of order) {
+    lines.push(`| ${s} | ${stages.get(s) ?? 0} |`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 function buildSection(label: string, agg: Aggregate, ts: string): string {
   const lines: string[] = [];
   lines.push(`## Pass: \`${label}\` (run ${ts})`);
@@ -567,13 +705,19 @@ function buildReport(): string {
     lines.push("> ⚠ **No `w11_on_*.json` dump found** — run `pnpm --filter @workspace/api-server exec tsx src/qa/w11AuditDriver.ts run --label=on --count=20` first.");
     lines.push("");
   } else {
-    lines.push(buildSection("W1 ON (production behavior)", aggregate(onPass.recs), onPass.ts));
+    const aggOn = aggregate(onPass.recs);
+    lines.push(buildSection("W1 ON (production behavior)", aggOn, onPass.ts));
+    lines.push(buildStageBreakdown(aggOn));
+    lines.push(buildHookCorpusSection(onPass.recs));
   }
   if (!offPass) {
     lines.push("> ⚠ **No `w11_off_*.json` dump found** — restart the api-server with `LUMINA_W1_DISABLE_FOR_QA=1` then run `pnpm --filter @workspace/api-server exec tsx src/qa/w11AuditDriver.ts run --label=off --count=10`.");
     lines.push("");
   } else {
-    lines.push(buildSection("W1 OFF (W1 helper bypassed)", aggregate(offPass.recs), offPass.ts));
+    const aggOff = aggregate(offPass.recs);
+    lines.push(buildSection("W1 OFF (W1 helper bypassed)", aggOff, offPass.ts));
+    lines.push(buildStageBreakdown(aggOff));
+    lines.push(buildHookCorpusSection(offPass.recs));
   }
 
   if (onPass && offPass) {

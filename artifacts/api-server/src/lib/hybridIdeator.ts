@@ -4245,6 +4245,39 @@ export async function runHybridIdeator(
   const _w1FirstSelectionBatchSize = selection.batch.length;
   const _w1FirstSelectionGuardsPassed = selection.guardsPassed;
   const _w1MergedSizeAtFirstSelection = merged.length;
+  // PHASE W1.1 AUDIT — same-snapshot weak-skeleton-family stats from
+  // the PRE-fallback merged pool. Computed here (not at function end)
+  // so fallback-injected `claude_fallback` candidates cannot pollute
+  // the family counts. Read off `meta.hookSkeletonId` which the
+  // scorer populates on every keeper. Capped at top 5 to bound
+  // payload. Empty when no candidates carry the field.
+  const _w1TopMergedHookSkeletons: Array<{
+    skeletonId: string;
+    count: number;
+  }> = (() => {
+    const counts = new Map<string, number>();
+    for (const c of merged) {
+      const m = c.meta as { hookSkeletonId?: string };
+      const sk = m.hookSkeletonId;
+      if (!sk) continue;
+      counts.set(sk, (counts.get(sk) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([skeletonId, count]) => ({ skeletonId, count }));
+  })();
+  const _w1MergedHookSkeletonRepeatedFamilies: number = (() => {
+    const counts = new Map<string, number>();
+    for (const c of merged) {
+      const m = c.meta as { hookSkeletonId?: string };
+      const sk = m.hookSkeletonId;
+      if (!sk) continue;
+      counts.set(sk, (counts.get(sk) ?? 0) + 1);
+    }
+    return Array.from(counts.values()).filter((n) => n > 1).length;
+  })();
 
   // -------- Step 4b: Claude fallback (when needed) ---------------
   // Three triggers, in spec order:
@@ -5608,36 +5641,14 @@ export async function runHybridIdeator(
       fallbackReplacedLocalInFinal:
         usedFallback &&
         final.some((c) => c.meta.source === "claude_fallback"),
-      // PHASE W1.1 AUDIT — top hook-skeleton frequency in the
-      // pre-fallback merged pool. Each skeleton's `count > 1` means
-      // multiple candidates collapsed to the same skeleton (a weak /
-      // repeated family). Read off `meta.hookSkeletonId` which the
-      // scorer already populates on every keeper. Capped at top 5 to
-      // bound payload. Empty when no candidates carry the field.
-      topMergedHookSkeletons: (() => {
-        const counts = new Map<string, number>();
-        for (const c of merged) {
-          const m = c.meta as { hookSkeletonId?: string };
-          const sk = m.hookSkeletonId;
-          if (!sk) continue;
-          counts.set(sk, (counts.get(sk) ?? 0) + 1);
-        }
-        return Array.from(counts.entries())
-          .filter(([, n]) => n > 0)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([skeletonId, count]) => ({ skeletonId, count }));
-      })(),
-      mergedHookSkeletonRepeatedFamilies: (() => {
-        const counts = new Map<string, number>();
-        for (const c of merged) {
-          const m = c.meta as { hookSkeletonId?: string };
-          const sk = m.hookSkeletonId;
-          if (!sk) continue;
-          counts.set(sk, (counts.get(sk) ?? 0) + 1);
-        }
-        return Array.from(counts.values()).filter((n) => n > 1).length;
-      })(),
+      // PHASE W1.1 AUDIT — see `_w1TopMergedHookSkeletons` /
+      // `_w1MergedHookSkeletonRepeatedFamilies` consts at the
+      // first-selection site. Snapshots are taken from the
+      // PRE-fallback merged pool so claude_fallback candidates
+      // cannot inflate the counts.
+      topMergedHookSkeletons: _w1TopMergedHookSkeletons,
+      mergedHookSkeletonRepeatedFamilies:
+        _w1MergedHookSkeletonRepeatedFamilies,
     };
     if (process.env.LUMINA_W1_FUNNEL_LOG === "true") {
       logger.info(
