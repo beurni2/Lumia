@@ -221,6 +221,7 @@ import {
   type StyleProfile,
 } from "./styleProfile";
 import { parseVisionStyleDoc } from "./visionProfileAggregator";
+import { canApplyWesternWeakFamilyCap } from "./westernHookQuality.js";
 import type { Creator } from "../db/schema";
 
 // -----------------------------------------------------------------------------
@@ -3997,6 +3998,18 @@ export async function runHybridIdeator(
     _w1WesternEligible
       ? await getRecentSeenSkeletons(input.creator?.id)
       : new Set<string>();
+  // PHASE W1.2 — flip the per-batch weak Western skeleton family
+  // diversity cap for the western/default cohort. Gated by
+  // `canApplyWesternWeakFamilyCap` (region check + non-prod
+  // `LUMINA_W1_2_DISABLE_FOR_QA=1` kill-switch for matched-N QA).
+  // `selectionPenalty` reads the flag and applies a -100 SOFT penalty
+  // to any candidate whose hook matches a weak Western family already
+  // present in `batchSoFar`. Non-western cohorts leave the field
+  // undefined → zero overhead. Soft (not hard reject) so a
+  // fully-poisoned pool still ships rather than under-filling.
+  if (canApplyWesternWeakFamilyCap({ region: input.region, languageStyle: null })) {
+    noveltyContext.westernWeakFamilyCapEnabled = true;
+  }
   const coreNativeResult = generateCoreCandidates({
     cores: coreNativeSelection.cores,
     count: desiredCount + 2,

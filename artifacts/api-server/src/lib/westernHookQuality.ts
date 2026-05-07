@@ -311,3 +311,65 @@ export function computeWesternHookAdjustment(
   }
   return adj;
 }
+
+// ---------------------------------------------------------------- //
+// PHASE W1.2 — Per-batch weak-family diversity cap                  //
+// ---------------------------------------------------------------- //
+//
+// Caller-side (selection-time) lever that prevents the same weak
+// Western skeleton family from occupying more than one slot in the
+// shipped batch unless the pool would under-fill. Implemented as a
+// LARGE soft penalty (-100) added by `selectionPenalty` when this
+// candidate's hook matches a weak family already present in
+// `batchSoFar`.
+//
+// Why -100 (not -1000 hard reject): the spec mandates "Allow at most
+// 1 candidate per weak skeleton family per generated batch UNLESS the
+// pool would under-fill". `selectWithNovelty` is a greedy picker that
+// always selects the highest (score - penalty) survivor, so a -100
+// penalty puts a 2nd weak-family candidate well below ANY normal
+// candidate (whose typical penalty band is single-digit), but if the
+// only remaining survivors are all -100 (the pool genuinely has no
+// alternatives), the selector still ships the best weak candidate
+// rather than under-filling.
+//
+// Cohort-gated by the caller — `selectionPenalty` only invokes this
+// when `ctx.westernWeakFamilyCapEnabled` is true (set by
+// `hybridIdeator` only on the western/default cohort + W1.2 enabled).
+// Nigerian / India / Philippines cohorts pay zero overhead.
+
+export const WESTERN_WEAK_FAMILY_BATCH_PENALTY = 100;
+
+export function computeWesternWeakFamilyBatchPenalty(
+  candidateHook: string,
+  batchSoFarHooks: ReadonlyArray<string>,
+): number {
+  if (batchSoFarHooks.length === 0) return 0;
+  const candFamily = classifyWesternWeakSkeletonFamily(candidateHook);
+  if (candFamily === null) return 0;
+  for (const h of batchSoFarHooks) {
+    if (classifyWesternWeakSkeletonFamily(h) === candFamily) {
+      return WESTERN_WEAK_FAMILY_BATCH_PENALTY;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Activation gate for the W1.2 per-batch weak-family cap. Mirrors
+ * `canApplyWesternHookAdjustments` (region-only) AND adds an env
+ * kill-switch (`LUMINA_W1_2_DISABLE_FOR_QA=1`, non-prod only) so the
+ * QA harness can collect a matched OFF baseline against the same
+ * running server.
+ */
+export function canApplyWesternWeakFamilyCap(
+  input: Pick<WesternHookAdjustmentInput, "region" | "languageStyle">,
+): boolean {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.LUMINA_W1_2_DISABLE_FOR_QA === "1"
+  ) {
+    return false;
+  }
+  return canApplyWesternHookAdjustments(input);
+}

@@ -282,3 +282,102 @@ describe("W1 — strong vs weak deterministic ordering", () => {
     expect(strong).toBeGreaterThan(weak);
   });
 });
+
+// ---------------------------------------------------------------- //
+// PHASE W1.2 — Per-batch weak-family diversity cap                  //
+// ---------------------------------------------------------------- //
+
+import {
+  WESTERN_WEAK_FAMILY_BATCH_PENALTY,
+  computeWesternWeakFamilyBatchPenalty,
+  canApplyWesternWeakFamilyCap,
+} from "../westernHookQuality.js";
+
+describe("W1.2 — computeWesternWeakFamilyBatchPenalty", () => {
+  it("returns 0 when batchSoFar is empty", () => {
+    expect(
+      computeWesternWeakFamilyBatchPenalty("the fridge won", []),
+    ).toBe(0);
+  });
+
+  it("returns 0 when candidate matches no weak family", () => {
+    expect(
+      computeWesternWeakFamilyBatchPenalty(
+        "i opened the door and just stood there",
+        ["the fridge won"],
+      ),
+    ).toBe(0);
+  });
+
+  it("returns 0 when batchSoFar has no candidate of the same weak family", () => {
+    expect(
+      computeWesternWeakFamilyBatchPenalty("the fridge won", [
+        "i am totally fine about the fridge",
+      ]),
+    ).toBe(0);
+  });
+
+  it("returns the penalty when batchSoFar contains the same weak family (anchor swap)", () => {
+    expect(
+      computeWesternWeakFamilyBatchPenalty("the fridge won", [
+        "the sink won. obviously.",
+      ]),
+    ).toBe(WESTERN_WEAK_FAMILY_BATCH_PENALTY);
+  });
+
+  it("returns the penalty when same weak family appears anywhere in batchSoFar", () => {
+    expect(
+      computeWesternWeakFamilyBatchPenalty("totally fine about my list", [
+        "i opened the door",
+        "i am totally fine about the fridge",
+        "the keyboard knows i am lying",
+      ]),
+    ).toBe(WESTERN_WEAK_FAMILY_BATCH_PENALTY);
+  });
+});
+
+describe("W1.2 — canApplyWesternWeakFamilyCap", () => {
+  it("fires for region undefined", () => {
+    expect(
+      canApplyWesternWeakFamilyCap({ region: undefined, languageStyle: null }),
+    ).toBe(true);
+  });
+  it("fires for region western", () => {
+    expect(
+      canApplyWesternWeakFamilyCap({ region: "western", languageStyle: null }),
+    ).toBe(true);
+  });
+  it("does NOT fire for nigeria / india / philippines", () => {
+    expect(
+      canApplyWesternWeakFamilyCap({ region: "nigeria", languageStyle: null }),
+    ).toBe(false);
+    expect(
+      canApplyWesternWeakFamilyCap({ region: "india", languageStyle: null }),
+    ).toBe(false);
+    expect(
+      canApplyWesternWeakFamilyCap({
+        region: "philippines",
+        languageStyle: null,
+      }),
+    ).toBe(false);
+  });
+  it("kill-switch LUMINA_W1_2_DISABLE_FOR_QA=1 disables in non-prod", () => {
+    const prevNode = process.env.NODE_ENV;
+    const prevFlag = process.env.LUMINA_W1_2_DISABLE_FOR_QA;
+    try {
+      process.env.NODE_ENV = "development";
+      process.env.LUMINA_W1_2_DISABLE_FOR_QA = "1";
+      expect(
+        canApplyWesternWeakFamilyCap({
+          region: "western",
+          languageStyle: null,
+        }),
+      ).toBe(false);
+    } finally {
+      if (prevNode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevNode;
+      if (prevFlag === undefined) delete process.env.LUMINA_W1_2_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_2_DISABLE_FOR_QA = prevFlag;
+    }
+  });
+});

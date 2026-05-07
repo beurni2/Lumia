@@ -119,6 +119,7 @@ import { canonicalizeHookForFingerprint } from "./scenarioFingerprint";
 // — zero change in boost magnitude for those paths. Lives in
 // `hookQuality.ts` next to the scorer it consumes.
 import { hookQualityBoost } from "./hookQuality.js";
+import { computeWesternWeakFamilyBatchPenalty } from "./westernHookQuality.js";
 import {
   scoreSituationAlignment,
   type Situation,
@@ -2848,6 +2849,18 @@ export type NoveltyContext = {
    * creators and for anyone who skipped Quick Tune (no-op).
    */
   selectedSituations?: ReadonlySet<Situation>;
+  /**
+   * PHASE W1.2 — Per-batch weak Western skeleton family diversity cap.
+   * When `true`, `selectionPenalty` adds a large soft penalty
+   * (-WESTERN_WEAK_FAMILY_BATCH_PENALTY) to any candidate whose hook
+   * matches a weak Western skeleton family already represented in
+   * `batchSoFar`. Set ONLY by `hybridIdeator` for the western/default
+   * cohort (region undefined OR "western") via
+   * `canApplyWesternWeakFamilyCap`. Non-western cohorts leave it
+   * undefined → zero overhead. Soft (-100), so a fully-poisoned pool
+   * still ships rather than under-fills.
+   */
+  westernWeakFamilyCapEnabled?: boolean;
 };
 
 /** Empty context — pass to `scoreNovelty` when no prior batch info. */
@@ -3416,6 +3429,21 @@ export function selectionPenalty(
     }
     const cHsid = metaHookSkeletonId(c.meta);
     if (cHsid && hookSkeletons.has(cHsid)) p -= 3;
+
+    // PHASE W1.2 — Per-batch weak Western skeleton family diversity
+    // cap. Cohort-gated by `ctx.westernWeakFamilyCapEnabled` (set by
+    // `hybridIdeator` only on western/default + W1.2 enabled). When
+    // this candidate's hook matches a weak Western family already
+    // present in `batchSoFar`, apply a -100 SOFT penalty — large
+    // enough to lose to ANY normal candidate (typical penalty band
+    // is single-digit) but soft enough that a fully-poisoned pool
+    // still ships rather than under-fills (the spec's "unless the
+    // pool would under-fill" carve-out). Non-western cohorts skip
+    // the entire scan — the flag is undefined for them.
+    if (ctx.westernWeakFamilyCapEnabled) {
+      const batchHooks = batchSoFar.map((b) => b.idea.hook);
+      p -= computeWesternWeakFamilyBatchPenalty(c.idea.hook, batchHooks);
+    }
 
     // PHASE Z5.5 — cold-start hook skeleton similarity guard.
     // Text-based bigram Jaccard catches hooks sharing the same
