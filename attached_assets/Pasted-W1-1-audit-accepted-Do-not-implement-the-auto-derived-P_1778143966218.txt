@@ -1,0 +1,77 @@
+W1.1 audit accepted.
+
+Do not implement the auto-derived P3 widening yet.
+
+Conclusion:
+Western/default is not under-filling. The local pool fills desiredCount before fallback. Claude fallback is mostly triggered by layer1CoreAware regenerate-novelty behavior, and fallback is not replacing shipped local picks in this audit.
+
+The real Western quality issue is upstream skeleton-family overrepresentation:
+- totally_fine_about appears 19 times in both ON and OFF merged pools
+- is_it_really_still_about also repeats heavily
+- W1 demotion is firing, but the candidate pool is still flooded with weak skeleton families
+
+Next task:
+Phase W1.2 — Western Skeleton Family Diversity Cap
+
+Goal:
+Prevent weak Western skeleton families from flooding the merged candidate pool before final selection.
+
+Scope:
+Western/default catalog only.
+
+Hard rules:
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not touch Pidgin scorer.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change anti-copy.
+- Do not change safety/privacy.
+- Do not add a Western pack yet.
+- Do not add corpus yet.
+- Do not change Claude prompts.
+- Do not change QA thresholds.
+
+Implementation direction:
+1. Add a Western/default-only cap or strong demotion for repeated weak skeleton families in the candidate pool.
+2. Target weak families:
+   - totally_fine_about
+   - is_it_really_still_about
+   - someone_explain_anchor
+   - anchor_won
+   - anchor_knows_lying
+   - anchor_itself_became
+   - anchor_flatlined
+   - anchor_demolished_vibe
+   - anchor_keeps_revealing_itself
+   - body_quit_brain_screaming
+3. Do not hard-delete every instance. Allow at most 1 candidate per weak skeleton family per generated batch unless the pool would under-fill.
+4. Prefer candidates with specific visible behavior, self-betrayal, posting/social anxiety, or clear filmable action.
+5. Keep existing W1 scoring/demotion intact.
+
+QA:
+Run real /api/ideator/generate for Western/default:
+- W1.2 ON: 20 refreshes / 60 ideas
+- W1.2 OFF baseline if cheap: 10 refreshes / 30 ideas
+
+Report:
+- weak skeleton family count in merged pool
+- weak skeleton family count in shipped output
+- exact repeated hooks
+- repeated skeleton families
+- source mix
+- refresh success/timeouts
+- strongest 20 hooks
+- weakest 20 hooks
+- N1 smoke test unchanged
+- India/Philippines smoke unchanged
+
+Acceptance:
+- weak skeleton families no longer dominate merged pool
+- shipped weak-template rate clearly reduced
+- no exact hook duplicates in short run
+- refresh success >=90%
+- no safety/privacy regressions
+- Nigerian pack unaffected
+- tests pass
+- typecheck clean
