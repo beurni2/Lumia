@@ -125,3 +125,9 @@ id = "Zta-zQl_643FdXu1wh03J"
 uri = "file://.local/N1_LIVE_HARDEN_QA.md"
 type = "text"
 title = "N1 LIVE HARDEN QA Report"
+
+[[outputs]]
+id = "e05htgtjE2byE2IfZssO3"
+uri = "file://.local/N1_LIVE_HARDEN_RCA.md"
+type = "text"
+title = "N1 Live Harden — Root-Cause Analysis & Fix Plan"
