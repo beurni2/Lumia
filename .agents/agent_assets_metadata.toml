@@ -191,3 +191,9 @@ id = "u4drFoDlDKA4QRMlnMw8w"
 uri = "file://.local/W2_F_REPORT.md"
 type = "text"
 title = "W2-F Western P0 Editorial Rewrite Pass — Report"
+
+[[outputs]]
+id = "axVfxtokqO-AtYaoP15iB"
+uri = "file://.local/W2_H_REPORT.md"
+type = "text"
+title = "W2-H Western Triplet Cluster Resolution — Report"

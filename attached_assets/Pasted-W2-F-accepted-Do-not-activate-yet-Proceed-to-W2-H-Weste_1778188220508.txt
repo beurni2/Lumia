@@ -1,0 +1,76 @@
+W2-F accepted.
+
+Do not activate yet.
+
+Proceed to W2-H — Western Triplet Cluster Resolution.
+
+Goal:
+Resolve the 4 remaining triplet clusters covering 9 entries so the future promotion pool does not contain repeated taxonomy/joke points.
+
+Scope:
+Only edit entries in the 4 triplet clusters reported by W2-F/W2-E.
+
+Do not touch unrelated entries.
+Do not activate corpus.
+Do not wire runtime.
+Do not add slot reservation.
+Do not change scoring.
+Do not change validators.
+Do not touch Nigerian pack behavior.
+Do not touch N1 flags.
+Do not touch India/Philippines behavior.
+Do not change Claude behavior.
+Do not add migrations.
+Do not expose API surface.
+
+Clusters to resolve:
+1. texting_overthinking | social_panic | reply
+   - W2A-006
+   - W2A-045
+   - W2B-001
+
+2. texting_overthinking | social_panic | send
+   - W2A-003
+   - W2C-030
+
+3. task_avoidance | false_productivity | tab
+   - W2A-033
+   - W2C-049
+
+4. task_avoidance | false_productivity | playlist
+   - W2B-023
+   - W2C-003
+
+Rules:
+- Keep the strongest entry in each cluster unchanged where possible.
+- Rewrite or demote the weaker entries so each triplet becomes unique.
+- Prefer changing anchor / emotionalSpike / comedyFamily only if semantically accurate.
+- If a hook or scenario is weak, rewrite minimally.
+- Preserve ids.
+- Preserve reviewedBy: PENDING_EDITORIAL_REVIEW.
+- Keep corpus DARK.
+- Do not introduce duplicate hooks or weak banned skeletons.
+- Keep scenario coherence and visible action clean.
+
+After applying:
+- Re-run Western draft integrity QA.
+- Re-run W2-D editorial ranker.
+- Re-run westernHookPack tests and typecheck.
+
+Report:
+- clusters before/after
+- entries changed
+- score movement
+- duplicate hook status
+- triplet collision count
+- Top 100 blocked count
+- corpus DARK confirmation
+- tests/typecheck result
+
+Acceptance:
+- 0 triplet collisions if possible
+- Top 100 remains unblocked
+- no duplicate hooks
+- no weak banned skeletons
+- no privacy/safety hits
+- no runtime changes
