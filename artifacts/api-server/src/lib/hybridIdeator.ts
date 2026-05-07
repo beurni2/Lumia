@@ -118,7 +118,22 @@ import {
 // other than nigeria + pidgin/light_pidgin + flag ON + non-empty
 // pack — flag-OFF and non-eligible cohorts are byte-identical to
 // the upstream `selection.batch`.
-import { applyNigerianPackSlotReservation } from "./nigerianPackSlotReservation";
+import {
+  applyNigerianPackSlotReservation,
+  type SlotReservationDiagnostic,
+} from "./nigerianPackSlotReservation";
+// PHASE N1-LIVE-HARDEN F2 — Nigerian region-anchor brand validator.
+// Cohort-gated post-merge filter: drops catalog/pattern candidates
+// whose rendered surfaces carry obvious Western-only brand anchors
+// (doordash/venmo/walmart/...) ONLY when the request resolves to a
+// Nigeria + light_pidgin/pidgin + flag-ON cohort. Non-NG / NG-clean
+// / NG-null / flag-OFF cohorts are byte-identical to baseline
+// because `shouldApplyNigerianRegionAnchorValidator` short-circuits
+// the helper to a no-op. NEVER touches anti-copy / safety / scoring.
+import {
+  shouldApplyNigerianRegionAnchorValidator,
+  validateNigerianRegionAnchor,
+} from "./nigerianRegionAnchorValidator.js";
 import {
   getRecentSeenEntryIds,
   recordSeenEntries,
@@ -4033,6 +4048,51 @@ export async function runHybridIdeator(
   // start refresh).
   merged = applyExcludeHooksFilter(merged, excludeHooksSet, excludeBigramsList);
 
+  // PHASE N1-LIVE-HARDEN F2 — region-anchor brand filter. Gated on
+  // the same activation guard as the pack itself
+  // (`canActivateNigerianPack`), so non-NG / NG-clean / NG-null /
+  // flag-OFF cohorts skip this block entirely (`merged` returned
+  // by reference). Inside the gate, we drop any candidate whose
+  // rendered surfaces match a Western-only brand term — pack
+  // candidates are unaffected because their hooks are vetted
+  // Pidgin and never carry doordash/venmo/walmart. Pure additive
+  // reject branch — does not loosen any existing validator,
+  // does not change scoring, does not touch anti-copy.
+  const _n1F2_calibrationForFilter = parseTasteCalibration(
+    input.tasteCalibrationJson,
+  );
+  const _n1F2_languageStyle =
+    _n1F2_calibrationForFilter?.languageStyle ?? null;
+  const _n1F2_flagEnabled = isNigerianPackFeatureEnabled();
+  const _n1F2_packLength = NIGERIAN_HOOK_PACK.length;
+  const _n1F2_active = shouldApplyNigerianRegionAnchorValidator({
+    region: input.region,
+    languageStyle: _n1F2_languageStyle,
+    flagEnabled: _n1F2_flagEnabled,
+    packLength: _n1F2_packLength,
+  });
+  let _n1F2_droppedFirstPass = 0;
+  if (_n1F2_active) {
+    const before = merged.length;
+    merged = merged.filter(
+      (c) => validateNigerianRegionAnchor(c.idea) === null,
+    );
+    _n1F2_droppedFirstPass = before - merged.length;
+    if (_n1F2_droppedFirstPass > 0) {
+      logger.info(
+        {
+          creatorId: input.creator?.id,
+          region: input.region ?? null,
+          languageStyle: _n1F2_languageStyle,
+          dropped: _n1F2_droppedFirstPass,
+          remaining: merged.length,
+          stage: "post_local",
+        },
+        "nigerian_region_anchor.filter_applied",
+      );
+    }
+  }
+
   // PHASE N1-FULL-SPEC LIVE — per-creator catalog template memory
   // wiring intentionally REVERTED (2026-05-06). Schema column #23,
   // migration, and `catalogTemplateCreatorMemory.ts` are kept as
@@ -4247,6 +4307,32 @@ export async function runHybridIdeator(
         excludeHooksSet,
         excludeBigramsList,
       );
+      // PHASE N1-LIVE-HARDEN F2 — re-apply the region-anchor brand
+      // filter on the post-fallback merged pool so any Claude-
+      // generated candidate that happens to mention a Western-only
+      // brand can't slip into the second selection pass. Same gate
+      // (`_n1F2_active`) as the first-pass filter above; non-NG /
+      // flag-OFF cohorts skip this block (no-op).
+      if (_n1F2_active) {
+        const beforePost = merged.length;
+        merged = merged.filter(
+          (c) => validateNigerianRegionAnchor(c.idea) === null,
+        );
+        const droppedPost = beforePost - merged.length;
+        if (droppedPost > 0) {
+          logger.info(
+            {
+              creatorId: input.creator?.id,
+              region: input.region ?? null,
+              languageStyle: _n1F2_languageStyle,
+              dropped: droppedPost,
+              remaining: merged.length,
+              stage: "post_fallback",
+            },
+            "nigerian_region_anchor.filter_applied",
+          );
+        }
+      }
       logger.info(
         {
           event: "phase_y2.layer1_core_aware_used",
@@ -4503,6 +4589,12 @@ export async function runHybridIdeator(
   const n1s2_excludeEntryIds = await getRecentSeenEntryIds(
     input.creator?.id,
   );
+  // PHASE N1-LIVE-HARDEN F3 — slot-reservation diagnostic capture.
+  // The sink is invoked once per ACTIVATED invocation (the helper's
+  // own activation guard short-circuits the call for non-NG /
+  // flag-OFF / NG-clean / NG-null cohorts), so this stays
+  // byte-identical to baseline outside the NG-pidgin path.
+  let n1s2_diagnostic: SlotReservationDiagnostic | null = null;
   const n1s2_postBatch = applyNigerianPackSlotReservation({
     selectionBatch: n1s2_preBatch,
     candidatePool: merged,
@@ -4512,6 +4604,9 @@ export async function runHybridIdeator(
     flagEnabled: n1s2_flagEnabled,
     packLength: n1s2_packLength,
     excludeEntryIds: n1s2_excludeEntryIds,
+    onDiagnostic: (d) => {
+      n1s2_diagnostic = d;
+    },
   });
   selection = { ...selection, batch: n1s2_postBatch };
   // Record the entry ids actually shipped in this batch so the
@@ -4657,6 +4752,14 @@ export async function runHybridIdeator(
         reorderApplied:
           n1s2_preBatch.length === n1s2_postBatch.length &&
           n1s2_preBatch.some((c, i) => c !== n1s2_postBatch[i]),
+        // PHASE N1-LIVE-HARDEN F3 — pack-pool drain attribution.
+        // Present only on ACTIVATED invocations (helper's gate);
+        // null for non-NG / flag-OFF cohorts. Lets QA distinguish
+        // "no pack produced upstream" (preFilter=0) from
+        // "exhausted by per-creator memory" (preFilter>0,
+        // postMemoryFilter=0) from "killed by per-batch dedup"
+        // (postMemoryFilter>0, postBatchDedup=0).
+        slotReservationDiagnostic: n1s2_diagnostic,
       },
       "nigerian_pack.slot_reservation_decision",
     );

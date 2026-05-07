@@ -34,6 +34,27 @@ import type { Region } from "@workspace/lumina-trends";
 import type { LanguageStyle } from "./tasteCalibration.js";
 import { canActivateNigerianPack } from "./nigerianHookPack.js";
 
+// PHASE N1-LIVE-HARDEN F3 — observability shape. Emitted once per
+// invocation (when activated) so the orchestrator log can attribute
+// pack-pool drains to the right filter stage. NOT emitted for the
+// short-circuit / non-activated path — that already logs as
+// `activated:false` upstream.
+export type SlotReservationDiagnostic = {
+  /** Pack candidates in `candidatePool` BEFORE per-creator memory filter. */
+  packPoolPreFilter: number;
+  /** Pack candidates remaining AFTER per-creator memory (`excludeEntryIds`) filter. */
+  packPoolPostMemoryFilter: number;
+  /** Pack candidates remaining AFTER per-batch entry-id + hook dedup. */
+  packPoolPostBatchDedup: number;
+  /**
+   * `true` when reservation took the early `dedupedPack.length === 0`
+   * fallback (i.e. composed pack count = 0). The two non-empty paths
+   * (composed batch returned, or composition shrunk below upstream and
+   * fell through) emit `false`.
+   */
+  earlyReturnEmptyPack: boolean;
+};
+
 export interface SlotReservationInput {
   selectionBatch: ScoredCandidate[];
   candidatePool: ScoredCandidate[];
@@ -64,6 +85,15 @@ export interface SlotReservationInput {
    * branch — no upstream selection is regressed.
    */
   excludeEntryIds?: ReadonlySet<string>;
+  /**
+   * PHASE N1-LIVE-HARDEN F3 — observability sink. Optional callback
+   * invoked once per ACTIVATED invocation (gated by
+   * `canActivateNigerianPack`) with the per-stage pack-pool counts.
+   * Pure side-channel; never affects the return value. Non-activated
+   * cohorts skip the call entirely so flag-OFF / non-NG / NG-clean /
+   * NG-null behaviour is byte-identical.
+   */
+  onDiagnostic?: (d: SlotReservationDiagnostic) => void;
 }
 
 function normHook(h: string): string {
@@ -90,6 +120,7 @@ export function applyNigerianPackSlotReservation(
     flagEnabled,
     packLength,
     excludeEntryIds,
+    onDiagnostic,
   } = input;
 
   // Activation guard — identical short-circuit set to S1 wiring.
@@ -148,6 +179,15 @@ export function applyNigerianPackSlotReservation(
   // candidates whose entry id is in the excludeEntryIds set are
   // dropped from the ranked pool. Undefined / empty set → no-op,
   // baseline behaviour preserved (non-NG cohorts unchanged).
+  // PHASE N1-LIVE-HARDEN F3 — capture the pack pool size BEFORE the
+  // per-creator memory filter so the diagnostic surface can
+  // distinguish "no pack candidates produced upstream" from "pack
+  // candidates produced but all already shipped to this creator
+  // recently".
+  const packPoolPreFilter = candidatePool.reduce(
+    (n, c) => (packEntryIdOf(c) !== undefined ? n + 1 : n),
+    0,
+  );
   const packRanked = candidatePool
     .filter((c) => {
       const id = packEntryIdOf(c);
@@ -157,6 +197,7 @@ export function applyNigerianPackSlotReservation(
     })
     .slice()
     .sort((a, b) => b.score.total - a.score.total);
+  const packPoolPostMemoryFilter = packRanked.length;
 
   const seenEntryIds = new Set<string>();
   const reservedHooks = new Set<string>();
@@ -169,7 +210,18 @@ export function applyNigerianPackSlotReservation(
     reservedHooks.add(hookKey);
     dedupedPack.push(c);
   }
-  if (dedupedPack.length === 0) return stripExcludedPackFromBatch(selectionBatch);
+  const packPoolPostBatchDedup = dedupedPack.length;
+  if (dedupedPack.length === 0) {
+    if (onDiagnostic) {
+      onDiagnostic({
+        packPoolPreFilter,
+        packPoolPostMemoryFilter,
+        packPoolPostBatchDedup,
+        earlyReturnEmptyPack: true,
+      });
+    }
+    return stripExcludedPackFromBatch(selectionBatch);
+  }
 
   // PHASE N1-FULL-SPEC LIVE — cap lifted from literal `2` to
   // `desiredCount`. Spec §"Slot reservation" originally capped at
@@ -250,7 +302,23 @@ export function applyNigerianPackSlotReservation(
   // If composition produced fewer ideas than upstream selection,
   // return upstream unchanged — never regress shipped count.
   if (composed.length < selectionBatch.length) {
+    if (onDiagnostic) {
+      onDiagnostic({
+        packPoolPreFilter,
+        packPoolPostMemoryFilter,
+        packPoolPostBatchDedup,
+        earlyReturnEmptyPack: false,
+      });
+    }
     return stripExcludedPackFromBatch(selectionBatch);
+  }
+  if (onDiagnostic) {
+    onDiagnostic({
+      packPoolPreFilter,
+      packPoolPostMemoryFilter,
+      packPoolPostBatchDedup,
+      earlyReturnEmptyPack: false,
+    });
   }
   return composed;
 }

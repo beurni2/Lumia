@@ -22,6 +22,7 @@ import { resolveCreator } from "../lib/resolveCreator";
 import { runHybridIdeator } from "../lib/hybridIdeator";
 import { isRegion, type Region } from "@workspace/lumina-trends";
 import { styleProfileSchema, type StyleProfile } from "../lib/styleProfile";
+import { languageStyleEnum } from "../lib/tasteCalibration";
 import { consumeQuota, refundQuota } from "../lib/quota";
 import { DailyCapExceededError } from "../lib/aiCost";
 import {
@@ -55,7 +56,41 @@ const bodySchema = z.object({
   // additive / non-breaking; legacy callers (curl, pre-UX3 mobile
   // builds) flow through unchanged.
   excludeHooks: z.array(z.string()).max(20).optional(),
+  // PHASE N1-LIVE-HARDEN F1 — request-scoped languageStyle override.
+  // When provided, the route merges the value into the
+  // `tasteCalibrationJson` it forwards to `runHybridIdeator` for
+  // this single request only. Never persisted to the creator row,
+  // so a curl / QA caller can probe a different cohort without
+  // mutating the creator's saved Quick Tune answer. Honours the
+  // pack activation gate semantics — `clean` and `null` will
+  // disable Nigerian pack activation regardless of what the
+  // persisted doc says. Mobile clients today never send this
+  // field; their behaviour is byte-identical to pre-F1.
+  languageStyle: languageStyleEnum.nullable().optional(),
 });
+
+// PHASE N1-LIVE-HARDEN F1 — exported for unit tests.
+export const ideatorGenerateBodySchema = bodySchema;
+
+/**
+ * PHASE N1-LIVE-HARDEN F1 — pure helper for the request-scoped
+ * languageStyle override. Returns the persisted calibration jsonb
+ * UNCHANGED when the body does not carry an override; otherwise
+ * returns a NEW shallow-copied object with `languageStyle`
+ * overwritten. Never mutates inputs. Exported so the override
+ * semantics can be tested without spinning up the route handler.
+ */
+export function buildOverriddenTasteCalibration(
+  persisted: unknown,
+  bodyLanguageStyle: "clean" | "light_pidgin" | "pidgin" | null | undefined,
+): unknown {
+  if (bodyLanguageStyle === undefined) return persisted;
+  const base =
+    persisted && typeof persisted === "object"
+      ? (persisted as Record<string, unknown>)
+      : {};
+  return { ...base, languageStyle: bodyLanguageStyle };
+}
 
 router.post("/ideator/generate", async (req, res, next) => {
   try {
@@ -210,7 +245,17 @@ router.post("/ideator/generate", async (req, res, next) => {
         // re-SELECT the creator row. resolveCreator returns the
         // full creator (`.select()`), so this field is always
         // present (may be null).
-        tasteCalibrationJson: creator.tasteCalibrationJson,
+        //
+        // PHASE N1-LIVE-HARDEN F1 — when the request body carries
+        // `languageStyle`, build a request-scoped override on top
+        // of the persisted doc. Pure JSON merge; never persisted.
+        // The downstream `parseTasteCalibration` is tolerant of
+        // partial documents, so the merged object stays valid even
+        // when no calibration exists yet (cold-start creators).
+        tasteCalibrationJson: buildOverriddenTasteCalibration(
+          creator.tasteCalibrationJson,
+          body.languageStyle,
+        ),
         // Same pattern for the Llama 3.2 Vision style-extraction
         // document. NULL for new creators / pre-v21 rows / anyone
         // who hasn't uploaded any analyzable video — the

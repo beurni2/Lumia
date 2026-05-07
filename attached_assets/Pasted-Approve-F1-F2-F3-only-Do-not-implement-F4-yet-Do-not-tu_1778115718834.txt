@@ -1,0 +1,82 @@
+Approve F1 + F2 + F3 only.
+
+Do not implement F4 yet.
+Do not tune scoring.
+Do not change pack memory.
+Do not change maxReserved.
+Do not change PACK_DOMAIN_MAP.
+Do not change QA thresholds.
+Do not add corpus.
+Do not enable production.
+
+Implement the minimal fixes exactly as described:
+
+F1 — Honor request-scoped languageStyle in /api/ideator/generate
+- Add optional languageStyle to the route body schema:
+  clean | light_pidgin | pidgin | null
+- If body.languageStyle is provided, merge it into the request-scoped tasteCalibrationJson passed into runHybridIdeator.
+- Do not persist this override.
+- Existing mobile clients that do not send languageStyle should behave the same as before.
+- This must make ng_clean and ng_null QA cohorts genuinely inactive for Nigerian pack usage.
+
+F2 — Add Nigerian region-anchor brand validator
+- Add a validator/check for Nigeria pack-eligible outputs only.
+- It should reject obvious Western-only brand/region anchors in Nigeria + light_pidgin / pidgin outputs.
+- Seed list should match the QA detector terms already used:
+  doordash, venmo, cashapp, cash app, zelle, target, walmart, trader joe, trader joes, trader joe's, starbucks, dunkin, whole foods, costco, cvs, walgreens, ihop, chipotle, ubereats, grubhub, amazon prime, netflix, hulu
+- Apply only when Nigerian pack activation conditions are true.
+- Non-Nigeria, Nigeria-clean, and Nigeria-null must remain byte-identical.
+- Do not loosen any existing validator.
+
+F3 — Add reservation diagnostics
+- Add observability only.
+- Log packPoolPreFilter, packPoolPostMemoryFilter, and packPoolPostBatchDedup when slot reservation returns early because dedupedPack.length === 0.
+- No behavior change.
+
+Validation required:
+1. Unit tests for route languageStyle override:
+   - body languageStyle clean disables pack
+   - body languageStyle null disables pack
+   - body languageStyle light_pidgin enables pack only when flag and region allow
+   - body languageStyle pidgin enables pack only when flag and region allow
+   - missing body languageStyle preserves existing persisted behavior
+   - override is not persisted
+
+2. Unit tests for region-anchor validator:
+   - rejects doordash/venmo/etc. for Nigeria + light_pidgin / pidgin
+   - does not run for western / india / philippines
+   - does not run for Nigeria-clean
+   - does not run for Nigeria-null
+   - does not affect safety/privacy/anti-copy/scoring thresholds
+
+3. Re-run real /api/ideator/generate live harden QA:
+   - Nigeria + light_pidgin: 30 ideas
+   - Nigeria + pidgin: 30 ideas
+   - Nigeria + clean: 15 ideas
+   - Nigeria + null: 15 ideas
+   - Western: 15 ideas
+   - India: 15 ideas
+   - Philippines: 15 ideas
+
+Acceptance:
+- ng_clean pack usage = 0
+- ng_null pack usage = 0
+- western/india/philippines pack usage = 0
+- ng_light_pidgin pack/proxy delivery is measured correctly
+- ng_pidgin pack/proxy delivery is measured correctly
+- wrong-region Western anchor leaks in eligible Nigeria outputs = 0
+- refresh success remains >= 90%
+- privacy hits = 0
+- scenario mismatches = 0
+- no validator loosening
+- tests pass
+- TypeScript unchanged except known unrelated errors
+
+Deliverables:
+- files changed
+- exact route override behavior
+- proof override is request-scoped only
+- region-anchor validator report
+- reservation diagnostic examples
+- refreshed .local/N1_LIVE_HARDEN_QA.md
+- final GO / GO WITH NOTES / HOLD
