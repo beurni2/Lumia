@@ -349,6 +349,24 @@ export type GenerateCoreCandidatesResult = {
      *  the circularity is being hit. */
     antiCopyRejects: AntiCopyRejectsTelemetry;
     perCoreAttempts: CoreCandidateAttempt[];
+    /** PHASE W1.1 AUDIT (BI 2026-05-07) — additive cohort-gated tally
+     *  of per-recipe Western hook adjustment outcomes. Populated ONLY
+     *  when `input.region === undefined || input.region === "western"`;
+     *  omitted for non-western cohorts so existing dashboards see no
+     *  shape drift. Counts cover EVERY catalog (non-pack) recipe whose
+     *  hook reached the W1 scoring branch (i.e. survived comedy /
+     *  anti-copy / scenario-fingerprint gates up to the per-core
+     *  `westernAdjustment` site), not just the per-core winners.
+     *  `netDelta` is the sum of signed adjustments — positive = pool
+     *  got boosted on net, negative = pool got demoted on net. Pure
+     *  read-only telemetry; no behavior change. */
+    westernAdjustmentSummary?: {
+      recipesScored: number;
+      demoted: number;
+      boosted: number;
+      zero: number;
+      netDelta: number;
+    };
   };
 };
 
@@ -850,6 +868,24 @@ export function generateCoreCandidates(
   const recentCatalogSkeletons: ReadonlySet<string> =
     input.recentCatalogSkeletons ?? new Set<string>();
 
+  // PHASE W1.1 AUDIT (BI 2026-05-07) — cohort-gated tally of per-recipe
+  // Western hook adjustment outcomes. Activated for the SAME cohort the
+  // helper itself short-circuits on (region undefined OR "western"), so
+  // non-western cohorts pay zero cost and the result field is omitted
+  // from `stats`. Counts EVERY catalog (non-pack) recipe whose hook
+  // reached the W1 scoring branch — pack candidates skip this branch
+  // and are never counted (mirrors the production Western adjustment
+  // wiring at L1354). Pure read-only telemetry.
+  const _w1AuditEligible =
+    input.region === undefined || input.region === "western";
+  const _w1AuditTally = {
+    recipesScored: 0,
+    demoted: 0,
+    boosted: 0,
+    zero: 0,
+    netDelta: 0,
+  };
+
   const candidates: CoreNativeCandidate[] = [];
   const perCoreAttempts: CoreCandidateAttempt[] = [];
   const reasons: Record<
@@ -1341,6 +1377,18 @@ export function generateCoreCandidates(
         recentSkeletons: recentCatalogSkeletons,
       });
       const quality = baseQuality - stylePenalty + westernAdjustment;
+      // PHASE W1.1 AUDIT — tally per-recipe adjustment outcome for the
+      // western/default cohort. Sign is the policy signal: <0 demoted,
+      // >0 boosted (specificity bonus), ===0 net no-op (helper returned
+      // 0 — either non-eligible cohort, no weak family + no bonus
+      // signals, or the QA bypass env var was set).
+      if (_w1AuditEligible) {
+        _w1AuditTally.recipesScored += 1;
+        _w1AuditTally.netDelta += westernAdjustment;
+        if (westernAdjustment < 0) _w1AuditTally.demoted += 1;
+        else if (westernAdjustment > 0) _w1AuditTally.boosted += 1;
+        else _w1AuditTally.zero += 1;
+      }
       const meta: CandidateMeta = {
         ...result.meta,
         scenarioFingerprint: sf,
@@ -1451,6 +1499,9 @@ export function generateCoreCandidates(
       rejectionReasons: reasons,
       antiCopyRejects,
       perCoreAttempts,
+      ...(_w1AuditEligible
+        ? { westernAdjustmentSummary: _w1AuditTally }
+        : {}),
     },
   };
 }

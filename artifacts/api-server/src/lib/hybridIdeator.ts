@@ -338,6 +338,65 @@ export type HybridIdeatorResult = {
     coreNative?: {
       antiCopyRejects: AntiCopyRejectsTelemetry;
     };
+    /**
+     * PHASE W1.1 AUDIT (BI 2026-05-07) — additive cohort-gated funnel
+     * snapshot for western/default requests. Populated ONLY when
+     * `_w1WesternEligible` (region undefined OR "western"); omitted
+     * for India/PH/Nigeria so non-western dashboards see no shape
+     * drift. Captures the full local→fallback→ship pipeline counters
+     * a W1.1 under-fill audit needs (raw pattern → exclusion →
+     * coherence → core_native → merge → filterAndRescore →
+     * applyExcludeHooks → first selection → fallback decision &
+     * outcome → final selection size + guards). Pure read-only;
+     * shipped on `qaTelemetry` (so only requests carrying the QA
+     * header in dev see it). The `phase_w1.funnel_summary` log
+     * carries the same payload when `LUMINA_W1_FUNNEL_LOG=true`.
+     */
+    westernFunnel?: {
+      region: string | null;
+      desiredCount: number;
+      regenerate: boolean;
+      rawPatternCount: number;
+      patternAfterExclusion: number;
+      coherenceKept: number;
+      coherenceRejections: Record<string, number>;
+      coreNativeGenerated: number;
+      coreNativeKept: number;
+      coreNativeRejectionTop: Array<{ reason: string; count: number }>;
+      westernAdjustmentSummary: {
+        recipesScored: number;
+        demoted: number;
+        boosted: number;
+        zero: number;
+        netDelta: number;
+      } | null;
+      mergedIntoFilterAndRescore: number;
+      localKept: number;
+      localHardRejected: number;
+      localRejected: number;
+      localRejectionTop: Array<{ reason: string; count: number }>;
+      excludeHooksApplied: number;
+      mergedAfterExclude: number;
+      mergedSizeAtFirstSelection: number;
+      firstSelectionBatchSize: number;
+      firstSelectionGuardsPassed: boolean;
+      n1LiveSkipFallback: boolean;
+      p3SkipFallbackLocalSufficient: boolean;
+      needFallback: boolean;
+      fallbackTriggers: {
+        layer1CoreAware: boolean;
+        mergedShort: boolean;
+        selectionUnderfilled: boolean;
+        guardsFailed: boolean;
+      } | null;
+      usedFallback: boolean;
+      fallbackKept: number;
+      fallbackRejectionTop: Array<{ reason: string; count: number }>;
+      mergedSizeAfterFallback: number;
+      finalSelectionBatchSize: number;
+      finalGuardsPassed: boolean;
+      shippedSourceMix: Array<{ source: string; count: number }>;
+    };
   };
 };
 
@@ -4174,6 +4233,16 @@ export async function runHybridIdeator(
     regenerate,
   });
 
+  // PHASE W1.1 AUDIT (BI 2026-05-07) — snapshot the TRUE first-selection
+  // state before any fallback / reselect / mutation / pack-reservation /
+  // skeleton-swap mutates `selection`. Used by the western-funnel
+  // capture near function end so the audit report can distinguish
+  // "what the local pipeline produced before fallback" from "what
+  // shipped". Pure read; not used by any production code path.
+  const _w1FirstSelectionBatchSize = selection.batch.length;
+  const _w1FirstSelectionGuardsPassed = selection.guardsPassed;
+  const _w1MergedSizeAtFirstSelection = merged.length;
+
   // -------- Step 4b: Claude fallback (when needed) ---------------
   // Three triggers, in spec order:
   //   1. Fewer than 3 local candidates passed the scorer — same as
@@ -5435,6 +5504,102 @@ export async function runHybridIdeator(
     };
   });
 
+  // PHASE W1.1 AUDIT (BI 2026-05-07) — cohort-gated western-funnel
+  // snapshot. Built once here near the very end so all post-fallback
+  // and post-skeleton-swap state is captured (the `final` array above
+  // is the truly shipped pool). The whole block is `_w1WesternEligible`-
+  // gated so non-western cohorts pay zero cost and the field is
+  // omitted from `qaTelemetry`. The matching `phase_w1.funnel_summary`
+  // log fires only when `LUMINA_W1_FUNNEL_LOG=true` AND eligibility
+  // holds, so production logs are unchanged unless the operator opts
+  // in. Hard rules: no behavior change, no validator/scorer/Claude
+  // prompt touch, no NG/anti-copy mutation — purely additive read.
+  let _w1FunnelSnapshot:
+    | NonNullable<
+        NonNullable<HybridIdeatorResult["qaTelemetry"]>["westernFunnel"]
+      >
+    | undefined = undefined;
+  if (_w1WesternEligible) {
+    const _topReasons = (
+      m: Record<string, number> | null | undefined,
+    ): Array<{ reason: string; count: number }> => {
+      if (!m) return [];
+      return Object.entries(m)
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([reason, count]) => ({ reason, count }));
+    };
+    const _shippedMix: Map<string, number> = new Map();
+    for (const c of final) {
+      const s = c.meta.source ?? "unknown";
+      _shippedMix.set(s, (_shippedMix.get(s) ?? 0) + 1);
+    }
+    _w1FunnelSnapshot = {
+      region: input.region ?? null,
+      desiredCount,
+      regenerate,
+      rawPatternCount: rawCandidates.length,
+      patternAfterExclusion: localCandidatesPreCoherence.length,
+      coherenceKept: localCandidates.length,
+      coherenceRejections: { ...coherenceRejectionsForSummary },
+      coreNativeGenerated: coreNativeResult.stats.generatedCount,
+      coreNativeKept: coreNativeResult.stats.keptCount,
+      coreNativeRejectionTop: _topReasons(coreNativeRejectionReasons),
+      westernAdjustmentSummary:
+        coreNativeResult.stats.westernAdjustmentSummary ?? null,
+      mergedIntoFilterAndRescore: mergedLocalCandidates.length,
+      localKept: localResult.kept.length,
+      localHardRejected: localResult.hardRejected,
+      localRejected: localResult.rejected,
+      localRejectionTop: _topReasons(localResult.rejectionReasons),
+      excludeHooksApplied: excludeHooksList.length,
+      // `mergedAfterExclude` is `merged.length` AFTER fallback +
+      // post-fallback exclude. The pre-fallback merged size is
+      // captured separately as `mergedSizeAtFirstSelection` for the
+      // audit; here `merged.length` reflects the truly final merged
+      // pool.
+      mergedAfterExclude: merged.length,
+      mergedSizeAtFirstSelection: _w1MergedSizeAtFirstSelection,
+      // PHASE W1.1 AUDIT — `firstSelection*` is the TRUE pre-fallback
+      // state (snapshot taken right after the initial `selectWithNovelty`
+      // call at L4231 before fallback / reselect can mutate `selection`).
+      firstSelectionBatchSize: _w1FirstSelectionBatchSize,
+      firstSelectionGuardsPassed: _w1FirstSelectionGuardsPassed,
+      n1LiveSkipFallback,
+      p3SkipFallbackLocalSufficient,
+      needFallback,
+      fallbackTriggers: needFallback
+        ? {
+            layer1CoreAware:
+              layer1CoreAwareTriggered && !p3SkipFallbackLocalSufficient,
+            mergedShort: merged.length < 3,
+            selectionUnderfilled: selection.batch.length < desiredCount,
+            guardsFailed: !selection.guardsPassed,
+          }
+        : null,
+      usedFallback,
+      fallbackKept: fallbackKeptCount,
+      fallbackRejectionTop: _topReasons(fallbackRejectionReasons ?? null),
+      mergedSizeAfterFallback: merged.length,
+      finalSelectionBatchSize: final.length,
+      finalGuardsPassed: selection.guardsPassed,
+      shippedSourceMix: Array.from(_shippedMix.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([source, count]) => ({ source, count })),
+    };
+    if (process.env.LUMINA_W1_FUNNEL_LOG === "true") {
+      logger.info(
+        {
+          event: "phase_w1.funnel_summary",
+          creatorId: input.creator?.id,
+          ..._w1FunnelSnapshot,
+        },
+        "phase_w1.funnel_summary",
+      );
+    }
+  }
+
   return {
     ideas,
     source,
@@ -5456,6 +5621,7 @@ export async function runHybridIdeator(
       coreNative: {
         antiCopyRejects: coreNativeResult.stats.antiCopyRejects,
       },
+      ...(_w1FunnelSnapshot ? { westernFunnel: _w1FunnelSnapshot } : {}),
     },
   };
 }
