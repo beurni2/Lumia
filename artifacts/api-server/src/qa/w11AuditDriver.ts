@@ -39,6 +39,15 @@ const REPORT_PATH = path.resolve(
   __dirname,
   "../../../../.local/W1_1_AUDIT_REPORT.md",
 );
+// PHASE W1.1 AUDIT — also write a tracked copy alongside the driver so
+// the deliverable is reviewable from the git diff. `.local/` is
+// system-wide-ignored on this platform, so a local `.gitignore`
+// exception cannot un-ignore the report. Both paths receive the same
+// content; the in-repo path is the canonical one for reviewers.
+const TRACKED_REPORT_PATH = path.resolve(
+  __dirname,
+  "./reports/W1_1_AUDIT_REPORT.md",
+);
 const API_URL =
   process.env.W11_API_URL ?? "http://localhost:80/api/ideator/generate";
 const PER_BATCH_TIMEOUT_MS = 90_000;
@@ -88,6 +97,9 @@ type WesternFunnel = {
   finalSelectionBatchSize: number;
   finalGuardsPassed: boolean;
   shippedSourceMix: Array<{ source: string; count: number }>;
+  fallbackReplacedLocalInFinal?: boolean;
+  topMergedHookSkeletons?: Array<{ skeletonId: string; count: number }>;
+  mergedHookSkeletonRepeatedFamilies?: number;
 };
 
 type GenResp = {
@@ -292,6 +304,9 @@ type Aggregate = {
     netDelta: number;
   };
   shippedSourceAgg: Map<string, number>;
+  fbReplacedLocalBatches: number;
+  mergedSkeletonAgg: Map<string, number>;
+  repeatedSkeletonFamiliesPerBatch: number[];
 };
 
 function aggregate(recs: BatchRec[]): Aggregate {
@@ -335,6 +350,9 @@ function aggregate(recs: BatchRec[]): Aggregate {
       netDelta: 0,
     },
     shippedSourceAgg: new Map(),
+    fbReplacedLocalBatches: 0,
+    mergedSkeletonAgg: new Map(),
+    repeatedSkeletonFamiliesPerBatch: [],
   };
   const bumpMap = (m: Map<string, number>, k: string, v: number): void => {
     m.set(k, (m.get(k) ?? 0) + v);
@@ -386,6 +404,16 @@ function aggregate(recs: BatchRec[]): Aggregate {
     }
     for (const e of f.shippedSourceMix)
       bumpMap(agg.shippedSourceAgg, e.source, e.count);
+    if (f.fallbackReplacedLocalInFinal === true)
+      agg.fbReplacedLocalBatches += 1;
+    if (f.topMergedHookSkeletons) {
+      for (const e of f.topMergedHookSkeletons)
+        bumpMap(agg.mergedSkeletonAgg, e.skeletonId, e.count);
+    }
+    if (typeof f.mergedHookSkeletonRepeatedFamilies === "number")
+      agg.repeatedSkeletonFamiliesPerBatch.push(
+        f.mergedHookSkeletonRepeatedFamilies,
+      );
   }
   return agg;
 }
@@ -483,6 +511,22 @@ function buildSection(label: string, agg: Aggregate, ts: string): string {
   lines.push(`- net delta sum: **${w.netDelta}**, per-recipe avg: ${(w.recipesScored > 0 ? w.netDelta / w.recipesScored : 0).toFixed(2)}`);
   lines.push("");
   lines.push("### Shipped source mix (aggregated)");
+  lines.push("");
+  // PHASE W1.1 AUDIT — required fields: replacement flag + weak skeleton families.
+  lines.push("");
+  lines.push("### Fallback ↔ shipped replacement & weak skeleton families");
+  lines.push("");
+  lines.push(`- batches where Claude fallback REPLACED local picks in the final shipped batch: **${agg.fbReplacedLocalBatches}/${agg.batches}** = ${pct(agg.fbReplacedLocalBatches, agg.batches)}`);
+  lines.push(`- avg repeated hook-skeleton families per batch (skeletons with ≥2 candidates in pre-fallback merged pool): **${avg(agg.repeatedSkeletonFamiliesPerBatch).toFixed(2)}**`);
+  if (agg.mergedSkeletonAgg.size > 0) {
+    lines.push("");
+    lines.push("Top merged hook-skeleton families across all batches (skeletonId → total count, top 10):");
+    for (const [k, v] of topN(agg.mergedSkeletonAgg, 10)) {
+      lines.push(`- \`${k}\`: ${v}`);
+    }
+  } else {
+    lines.push("- (no `meta.hookSkeletonId` populated on merged candidates in this run)");
+  }
   lines.push("");
   const totalShipped = [...agg.shippedSourceAgg.values()].reduce(
     (s, x) => s + x,
@@ -673,7 +717,10 @@ async function main(): Promise<void> {
   } else if (sub === "report") {
     const md = buildReport();
     fs.writeFileSync(REPORT_PATH, md);
+    fs.mkdirSync(path.dirname(TRACKED_REPORT_PATH), { recursive: true });
+    fs.writeFileSync(TRACKED_REPORT_PATH, md);
     process.stdout.write(`[w11] wrote ${REPORT_PATH}\n`);
+    process.stdout.write(`[w11] wrote ${TRACKED_REPORT_PATH}\n`);
   } else {
     process.stderr.write("usage: w11AuditDriver.ts (run --label=<label> [--count=N]) | report\n");
     process.exit(2);

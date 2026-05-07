@@ -396,6 +396,9 @@ export type HybridIdeatorResult = {
       finalSelectionBatchSize: number;
       finalGuardsPassed: boolean;
       shippedSourceMix: Array<{ source: string; count: number }>;
+      fallbackReplacedLocalInFinal: boolean;
+      topMergedHookSkeletons: Array<{ skeletonId: string; count: number }>;
+      mergedHookSkeletonRepeatedFamilies: number;
     };
   };
 };
@@ -4336,6 +4339,15 @@ export async function runHybridIdeator(
       : merged.length < 3 ||
         selection.batch.length < desiredCount ||
         !selection.guardsPassed;
+  // PHASE W1.1 AUDIT (BI 2026-05-07) — snapshot the trigger booleans
+  // at the DECISION point (right where `needFallback` is computed),
+  // before fallback / reselect / mutation can mutate `merged` /
+  // `selection`. The funnel snapshot at function-end reads these
+  // consts so attribution reflects the true cause, not post-mutation
+  // state. Pure read; not used by any production code path.
+  const _w1FbTrigMergedShort = merged.length < 3;
+  const _w1FbTrigSelectionUnderfilled = selection.batch.length < desiredCount;
+  const _w1FbTrigGuardsFailed = !selection.guardsPassed;
   if (p3SkipFallbackLocalSufficient) {
     logger.info(
       {
@@ -5573,9 +5585,11 @@ export async function runHybridIdeator(
         ? {
             layer1CoreAware:
               layer1CoreAwareTriggered && !p3SkipFallbackLocalSufficient,
-            mergedShort: merged.length < 3,
-            selectionUnderfilled: selection.batch.length < desiredCount,
-            guardsFailed: !selection.guardsPassed,
+            // PHASE W1.1 AUDIT — pre-fallback decision-point snapshots
+            // (see `_w1FbTrig*` consts at the `needFallback` site).
+            mergedShort: _w1FbTrigMergedShort,
+            selectionUnderfilled: _w1FbTrigSelectionUnderfilled,
+            guardsFailed: _w1FbTrigGuardsFailed,
           }
         : null,
       usedFallback,
@@ -5587,6 +5601,43 @@ export async function runHybridIdeator(
       shippedSourceMix: Array.from(_shippedMix.entries())
         .sort((a, b) => b[1] - a[1])
         .map(([source, count]) => ({ source, count })),
+      // PHASE W1.1 AUDIT — direct flag: did Claude fallback content
+      // actually appear in the FINAL shipped batch? Distinguishes
+      // "fallback fired but its candidates lost reselection" from
+      // "fallback fired AND replaced local picks".
+      fallbackReplacedLocalInFinal:
+        usedFallback &&
+        final.some((c) => c.meta.source === "claude_fallback"),
+      // PHASE W1.1 AUDIT — top hook-skeleton frequency in the
+      // pre-fallback merged pool. Each skeleton's `count > 1` means
+      // multiple candidates collapsed to the same skeleton (a weak /
+      // repeated family). Read off `meta.hookSkeletonId` which the
+      // scorer already populates on every keeper. Capped at top 5 to
+      // bound payload. Empty when no candidates carry the field.
+      topMergedHookSkeletons: (() => {
+        const counts = new Map<string, number>();
+        for (const c of merged) {
+          const m = c.meta as { hookSkeletonId?: string };
+          const sk = m.hookSkeletonId;
+          if (!sk) continue;
+          counts.set(sk, (counts.get(sk) ?? 0) + 1);
+        }
+        return Array.from(counts.entries())
+          .filter(([, n]) => n > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([skeletonId, count]) => ({ skeletonId, count }));
+      })(),
+      mergedHookSkeletonRepeatedFamilies: (() => {
+        const counts = new Map<string, number>();
+        for (const c of merged) {
+          const m = c.meta as { hookSkeletonId?: string };
+          const sk = m.hookSkeletonId;
+          if (!sk) continue;
+          counts.set(sk, (counts.get(sk) ?? 0) + 1);
+        }
+        return Array.from(counts.values()).filter((n) => n > 1).length;
+      })(),
     };
     if (process.env.LUMINA_W1_FUNNEL_LOG === "true") {
       logger.info(
