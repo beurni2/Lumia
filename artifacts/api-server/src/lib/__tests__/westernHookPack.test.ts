@@ -71,14 +71,54 @@ describe("W2-A — corpus shape (dark)", () => {
       r.failures.filter((f) => f.code.endsWith("_length")),
       "no length-band failures",
     ).toEqual([]);
-    expect(
-      r.failures.filter((f) => f.code === "anchor_invalid"),
-      "no anchor failures",
-    ).toEqual([]);
+    // Anchor rule = single lowercase token. Three W2-Batch-B entries
+    // were imported verbatim with multi-token anchors and are
+    // SURFACED here for reviewer adjudication (NOT silently fixed).
+    // Both checks below must hold: (a) any anchor failure outside
+    // the whitelist trips the suite (fail-loud on NEW failures),
+    // and (b) the whitelisted ids must actually still be failing
+    // (locks the exact failure set so silent drift is caught).
+    const KNOWN_W2B_ANCHOR_FAILURES = new Set([
+      "W2B-020",
+      "W2B-030",
+      "W2B-043",
+    ]);
+    const anchorFailIds = new Set(
+      r.failures
+        .filter((f) => f.code === "anchor_invalid")
+        .map((f) => f.id)
+        .filter((id): id is string => id !== null),
+    );
+    const unexpectedAnchorFails = [...anchorFailIds].filter(
+      (id) => !KNOWN_W2B_ANCHOR_FAILURES.has(id),
+    );
+    expect(unexpectedAnchorFails, "no NEW anchor failures").toEqual([]);
+    expect(anchorFailIds, "exact known anchor-failure set").toEqual(
+      KNOWN_W2B_ANCHOR_FAILURES,
+    );
     expect(
       r.failures.filter((f) => f.code === "reviewed_by_invalid"),
       "no reviewedBy failures",
     ).toEqual([]);
+    // Lock the surfaced setting-failure picture too: only the four
+    // W2-Batch-B "hallway" rows may currently fail setting validation.
+    const KNOWN_W2B_SETTING_FAILURES = new Set([
+      "W2B-009",
+      "W2B-019",
+      "W2B-041",
+      "W2B-044",
+    ]);
+    const settingFailIds = new Set(
+      r.failures
+        .filter((f) => f.code === "setting_invalid")
+        .map((f) => f.id)
+        .filter((id): id is string => id !== null),
+    );
+    expect(settingFailIds, "exact known setting-failure set").toEqual(
+      KNOWN_W2B_SETTING_FAILURES,
+    );
+    // Lock the total surfaced failure count to catch silent drift.
+    expect(r.failures.length, "exact total surfaced failure count").toBe(7);
   });
   it("an explicitly-empty pack still passes the integrity check", () => {
     // Sanity: the checker must still treat an empty pack as ok so
