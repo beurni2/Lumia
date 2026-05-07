@@ -20,7 +20,14 @@ import {
   RECENT_SKELETON_DEMOTION,
   GENERIC_COMBO_DEMOTION,
   WESTERN_BONUS_CAP,
+  WESTERN_WEAK_SKELETON_IDS,
+  WESTERN_WEAK_QUOTA_MAX_PER_FAMILY,
+  WESTERN_WEAK_QUOTA_MAX_TOTAL,
+  WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN,
+  applyWesternWeakSkeletonQuota,
   canApplyWesternHookAdjustments,
+  canApplyWesternWeakSkeletonQuota,
+  classifyWesternWeakCandidate,
   classifyWesternWeakSkeletonFamily,
   computeWesternHookAdjustment,
   isGenericWhatToShow,
@@ -378,6 +385,278 @@ describe("W1.2 — canApplyWesternWeakFamilyCap", () => {
       else process.env.NODE_ENV = prevNode;
       if (prevFlag === undefined) delete process.env.LUMINA_W1_2_DISABLE_FOR_QA;
       else process.env.LUMINA_W1_2_DISABLE_FOR_QA = prevFlag;
+    }
+  });
+});
+
+// ---------------------------------------------------------------- //
+// PHASE W1.3 — upstream weak-skeleton generation quota              //
+// ---------------------------------------------------------------- //
+
+type QC = { idea: { hook: string }; meta: { hookSkeletonId?: string } };
+const mk = (hook: string, hookSkeletonId?: string): QC => ({
+  idea: { hook },
+  meta: hookSkeletonId === undefined ? {} : { hookSkeletonId },
+});
+
+describe("W1.3 — WESTERN_WEAK_SKELETON_IDS contents", () => {
+  it("contains the three known patternIdeator flooders", () => {
+    expect(WESTERN_WEAK_SKELETON_IDS.has("totally_fine_about")).toBe(true);
+    expect(WESTERN_WEAK_SKELETON_IDS.has("is_it_really_still_about")).toBe(true);
+    expect(WESTERN_WEAK_SKELETON_IDS.has("noun_won_today")).toBe(true);
+  });
+  it("does not contain unrelated skeletonIds", () => {
+    expect(WESTERN_WEAK_SKELETON_IDS.has("way_i_avoid_sport")).toBe(false);
+    expect(WESTERN_WEAK_SKELETON_IDS.has("noun_pays_rent")).toBe(false);
+  });
+});
+
+describe("W1.3 — classifyWesternWeakCandidate", () => {
+  it("matches via hookSkeletonId and canonicalizes to the regex family id", () => {
+    // skeletonId `totally_fine_about` → canonical regex family
+    // `totally_fine_about_anchor` so a hookSkeletonId-tagged candidate
+    // and a regex-classified candidate of the same shape collapse to
+    // the SAME family key under `maxPerFamily=1`.
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "I am totally fine about the errand list",
+        hookSkeletonId: "totally_fine_about",
+      }),
+    ).toBe("totally_fine_about_anchor");
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "the inbox won today, again",
+        hookSkeletonId: "noun_won_today",
+      }),
+    ).toBe("anchor_won");
+  });
+  it("`is_it_really_still_about` skeletonId stays as its own canonical key", () => {
+    // No W1.2 regex equivalent — keeps its skeletonId namespace.
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "is it really still about the gym",
+        hookSkeletonId: "is_it_really_still_about",
+      }),
+    ).toBe("is_it_really_still_about");
+  });
+  it("matches via regex fallback when skeletonId missing", () => {
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "the fridge knows i'm lying",
+        hookSkeletonId: undefined,
+      }),
+    ).toBe("anchor_knows_lying");
+  });
+  it("matches via regex fallback when skeletonId is non-weak", () => {
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "the fridge won again",
+        hookSkeletonId: "some_other_template",
+      }),
+    ).toBe("anchor_won");
+  });
+  it("returns null for non-weak hooks with no weak skeletonId", () => {
+    expect(
+      classifyWesternWeakCandidate({
+        hook: "i opened the laptop and immediately closed it",
+        hookSkeletonId: "way_i_avoid_sport",
+      }),
+    ).toBeNull();
+  });
+  it("collapses skeletonId-tagged + regex-only same-family candidates to ONE family key under quota", () => {
+    // Mixed-metadata flooding by the SAME effective family must
+    // count as one family under `maxPerFamily=1`.
+    const cands = [
+      mk("I am totally fine about the inbox", "totally_fine_about"), // skeletonId path
+      mk("I am totally fine about the dishes"), // regex path, no metadata
+      mk("I am completely fine about the bills"), // regex path, no metadata
+      mk("the way I avoid the inbox", "way_i_avoid_sport"),
+      mk("planned to handle today", "planned_to_handle"),
+      mk("me, refusing to deal", "refusing_to_deal"),
+      mk("neutral filler X", "noun_pays_rent"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    // All three "totally fine about ..." candidates share canonical
+    // family `totally_fine_about_anchor` → only ONE survives the cap.
+    expect(r.perFamilyKept["totally_fine_about_anchor"]).toBe(1);
+    expect(r.totalWeakKept).toBe(1);
+    expect(r.totalWeakDropped).toBe(2);
+    expect(r.relaxed).toBe(false);
+  });
+});
+
+describe("W1.3 — applyWesternWeakSkeletonQuota", () => {
+  it("keeps all non-weak candidates untouched", () => {
+    const cands = [
+      mk("the way I avoid the inbox like a sport", "way_i_avoid_sport"),
+      mk("me, refusing to deal with the dishes", "refusing_to_deal"),
+      mk("i opened the laptop and gave up", "neutral_a"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    expect(r.kept).toHaveLength(3);
+    expect(r.dropped).toHaveLength(0);
+    expect(r.relaxed).toBe(false);
+    expect(r.totalWeakKept).toBe(0);
+    expect(r.totalWeakDropped).toBe(0);
+  });
+
+  it("caps a single flooding family at maxPerFamily=1", () => {
+    const cands = [
+      mk("I am totally fine about the inbox", "totally_fine_about"),
+      mk("I am totally fine about the dishes", "totally_fine_about"),
+      mk("I am totally fine about the laundry", "totally_fine_about"),
+      mk("the way I avoid the inbox", "way_i_avoid_sport"),
+      mk("me, refusing to deal", "refusing_to_deal"),
+      mk("i did not do it", "neutral"),
+      mk("planned to handle today", "planned_to_handle"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    expect(r.perFamilyKept["totally_fine_about_anchor"]).toBe(1);
+    expect(r.totalWeakKept).toBe(1);
+    expect(r.totalWeakDropped).toBe(2);
+    expect(r.dropped).toHaveLength(2);
+    expect(r.relaxed).toBe(false);
+    expect(r.kept).toHaveLength(5);
+  });
+
+  it("caps total weak at maxTotal=3 across distinct families", () => {
+    const fillers = Array.from({ length: 10 }, (_, i) =>
+      mk(`neutral hook ${i}`, `neutral_${i}`),
+    );
+    const cands: QC[] = [
+      mk("I am totally fine about the inbox", "totally_fine_about"),
+      mk("is it really still about the dishes", "is_it_really_still_about"),
+      mk("the inbox won today, again", "noun_won_today"),
+      mk("the fridge knows i'm lying"),
+      mk("someone explain the keyboard to me"),
+      ...fillers,
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    expect(r.totalWeakKept).toBe(WESTERN_WEAK_QUOTA_MAX_TOTAL);
+    expect(r.totalWeakDropped).toBe(2);
+    expect(r.relaxed).toBe(false);
+  });
+
+  it("under-fill carve-out promotes spilled candidates and sets relaxed=true", () => {
+    const cands = [
+      mk("I am totally fine about the inbox", "totally_fine_about"),
+      mk("I am totally fine about the dishes", "totally_fine_about"),
+      mk("I am totally fine about the laundry", "totally_fine_about"),
+      mk("I am totally fine about the bills", "totally_fine_about"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    // safetyFloor = max(5, 4) = 5 → all four promoted back
+    expect(r.kept).toHaveLength(4);
+    expect(r.dropped).toHaveLength(0);
+    expect(r.relaxed).toBe(true);
+    expect(r.totalWeakKept).toBe(4);
+  });
+
+  it("safetyFloorMin floor applies when desiredCount is small", () => {
+    const cands = [
+      mk("I am totally fine about A", "totally_fine_about"),
+      mk("I am totally fine about B", "totally_fine_about"),
+      mk("I am totally fine about C", "totally_fine_about"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 1 });
+    // safetyFloor = max(1, 4) = 4, but only 3 cands → all kept, relaxed=true
+    expect(r.kept).toHaveLength(3);
+    expect(r.relaxed).toBe(true);
+  });
+
+  it("preserves input order in kept (no carve-out)", () => {
+    const cands = [
+      mk("neutral A", "way_i_avoid_sport"),
+      mk("I am totally fine about X", "totally_fine_about"),
+      mk("neutral B", "refusing_to_deal"),
+      mk("I am totally fine about Y", "totally_fine_about"),
+      mk("neutral C", "planned_to_handle"),
+      mk("neutral D", "lying_about_again"),
+      mk("neutral E", "noun_pays_rent"),
+    ];
+    const r = applyWesternWeakSkeletonQuota(cands, { desiredCount: 5 });
+    expect(r.relaxed).toBe(false);
+    expect(r.kept.map((c) => c.idea.hook)).toEqual([
+      "neutral A",
+      "I am totally fine about X",
+      "neutral B",
+      "neutral C",
+      "neutral D",
+      "neutral E",
+    ]);
+  });
+
+  it("safetyFloorMin constant matches helper default", () => {
+    expect(WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN).toBe(4);
+    expect(WESTERN_WEAK_QUOTA_MAX_PER_FAMILY).toBe(1);
+    expect(WESTERN_WEAK_QUOTA_MAX_TOTAL).toBe(3);
+  });
+
+  it("no-ops on empty input", () => {
+    const r = applyWesternWeakSkeletonQuota([], { desiredCount: 5 });
+    expect(r.kept).toHaveLength(0);
+    expect(r.dropped).toHaveLength(0);
+    expect(r.relaxed).toBe(false);
+  });
+});
+
+describe("W1.3 — canApplyWesternWeakSkeletonQuota cohort gate", () => {
+  it("returns true for region undefined and 'western'", () => {
+    expect(
+      canApplyWesternWeakSkeletonQuota({ region: undefined, languageStyle: null }),
+    ).toBe(true);
+    expect(
+      canApplyWesternWeakSkeletonQuota({ region: "western", languageStyle: null }),
+    ).toBe(true);
+  });
+  it("returns false for non-western regions", () => {
+    for (const region of ["nigeria", "india", "philippines"] as const) {
+      expect(
+        canApplyWesternWeakSkeletonQuota({ region, languageStyle: null }),
+      ).toBe(false);
+    }
+  });
+  it("kill-switch LUMINA_W1_3_DISABLE_FOR_QA=1 disables in non-prod", () => {
+    const prevNode = process.env.NODE_ENV;
+    const prevFlag = process.env.LUMINA_W1_3_DISABLE_FOR_QA;
+    try {
+      process.env.NODE_ENV = "development";
+      process.env.LUMINA_W1_3_DISABLE_FOR_QA = "1";
+      expect(
+        canApplyWesternWeakSkeletonQuota({
+          region: "western",
+          languageStyle: null,
+        }),
+      ).toBe(false);
+    } finally {
+      if (prevNode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevNode;
+      if (prevFlag === undefined) delete process.env.LUMINA_W1_3_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_3_DISABLE_FOR_QA = prevFlag;
+    }
+  });
+  it("W1.3 kill-switch is independent of W1.2 kill-switch", () => {
+    const prevNode = process.env.NODE_ENV;
+    const prevFlag2 = process.env.LUMINA_W1_2_DISABLE_FOR_QA;
+    const prevFlag3 = process.env.LUMINA_W1_3_DISABLE_FOR_QA;
+    try {
+      process.env.NODE_ENV = "development";
+      process.env.LUMINA_W1_2_DISABLE_FOR_QA = "1";
+      delete process.env.LUMINA_W1_3_DISABLE_FOR_QA;
+      // W1.3 should still be active even though W1.2 kill-switch is on
+      expect(
+        canApplyWesternWeakSkeletonQuota({
+          region: "western",
+          languageStyle: null,
+        }),
+      ).toBe(true);
+    } finally {
+      if (prevNode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevNode;
+      if (prevFlag2 === undefined) delete process.env.LUMINA_W1_2_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_2_DISABLE_FOR_QA = prevFlag2;
+      if (prevFlag3 === undefined) delete process.env.LUMINA_W1_3_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_3_DISABLE_FOR_QA = prevFlag3;
     }
   });
 });

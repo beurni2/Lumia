@@ -373,3 +373,199 @@ export function canApplyWesternWeakFamilyCap(
   }
   return canApplyWesternHookAdjustments(input);
 }
+
+// ---------------------------------------------------------------- //
+// PHASE W1.3 — Upstream weak-skeleton generation quota              //
+// ---------------------------------------------------------------- //
+//
+// W1.2 fixed the in-batch cap (max 1 per family per shipped batch),
+// but the W1.2 QA sweep showed the merged candidate pool is still
+// flooded by a small set of pattern-engine templates:
+//   - `totally_fine_about`              — 100 occurrences in 20-batch ON run
+//   - `is_it_really_still_about`        —  41 occurrences
+//   - `noun_won_today`                  —  10 occurrences
+// These are the patternIdeator `skeletonId` values for the templates
+// that produce the user's weak-family hooks at the source.
+//
+// W1.3 caps how many candidates with a known weak skeleton enter the
+// merged pool BEFORE selection, on the western/default cohort only.
+// Detection combines:
+//   (1) `meta.hookSkeletonId` membership in `WESTERN_WEAK_SKELETON_IDS`
+//       (catches the dominant patternIdeator-emitted templates), and
+//   (2) regex match against `WESTERN_WEAK_SKELETONS` (catches Claude /
+//       llama mutation hooks that reproduce the weak shape without a
+//       skeletonId tag — emergent volume is low but non-zero).
+//
+// Quota:
+//   - max 1 candidate per weak family entering merged pool
+//   - max 3 total weak candidates entering merged pool
+//   - if final `kept.length` < `safetyFloor` (= max(desiredCount, 4)),
+//     promote dropped weak candidates back into kept until floor met
+//     (under-fill carve-out — caller logs `relaxed=true`)
+//
+// Cohort-gated: same gate as W1.2 + a separate non-prod kill-switch
+// `LUMINA_W1_3_DISABLE_FOR_QA=1` so the QA harness can collect a
+// matched OFF baseline against the same running server. Nigerian /
+// India / Philippines cohorts pay zero overhead — the helper short-
+// circuits if the caller's gate returns false.
+
+// Map from patternIdeator `skeletonId` (template-tag namespace) to the
+// canonical W1.2 regex family id. Detection paths (skeletonId vs regex)
+// MUST collapse to a single family key, otherwise `maxPerFamily=1`
+// silently allows two effectively-same-family survivors when one
+// candidate carries `meta.hookSkeletonId` and another (Claude/llama
+// mutation reproducing the same shape) does not.
+//
+// `is_it_really_still_about` has no W1.2 regex family — it stays as
+// its own canonical key (the regex table doesn't try to match the
+// "is it really still about X" question shape and we deliberately do
+// not widen W1.2 here per spec rule "no validator/regex changes").
+export const WESTERN_WEAK_SKELETON_ID_TO_FAMILY: ReadonlyMap<string, string> =
+  new Map([
+    ["totally_fine_about", "totally_fine_about_anchor"],
+    ["noun_won_today", "anchor_won"],
+    ["is_it_really_still_about", "is_it_really_still_about"],
+  ]);
+
+export const WESTERN_WEAK_SKELETON_IDS: ReadonlySet<string> = new Set(
+  WESTERN_WEAK_SKELETON_ID_TO_FAMILY.keys(),
+);
+
+export const WESTERN_WEAK_QUOTA_MAX_PER_FAMILY = 1;
+export const WESTERN_WEAK_QUOTA_MAX_TOTAL = 3;
+export const WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN = 4;
+
+/**
+ * Family identity for a candidate. Returns the patternIdeator
+ * `skeletonId` if it's in the known weak set, else falls back to the
+ * regex classifier in `classifyWesternWeakSkeletonFamily`. Returns
+ * null if the candidate is not weak.
+ *
+ * Symmetric with the W1.2 selection-time check — both layers must
+ * agree on what "weak" means or the protection layers diverge.
+ */
+export function classifyWesternWeakCandidate(input: {
+  hook: string;
+  hookSkeletonId?: string | null | undefined;
+}): string | null {
+  if (input.hookSkeletonId) {
+    const fam = WESTERN_WEAK_SKELETON_ID_TO_FAMILY.get(input.hookSkeletonId);
+    if (fam !== undefined) return fam;
+  }
+  return classifyWesternWeakSkeletonFamily(input.hook);
+}
+
+export type WesternWeakQuotaCandidate = {
+  idea: { hook: string };
+  meta: { hookSkeletonId?: string };
+};
+
+export type WesternWeakQuotaResult<T> = {
+  kept: T[];
+  dropped: T[];
+  relaxed: boolean;
+  perFamilyKept: Record<string, number>;
+  perFamilyDropped: Record<string, number>;
+  totalWeakKept: number;
+  totalWeakDropped: number;
+};
+
+/**
+ * Apply the W1.3 weak-skeleton quota to a merged candidate pool.
+ *
+ * Algorithm (single pass + carve-out):
+ *   1. Walk candidates in input order. Non-weak → keep all.
+ *   2. Weak (per `classifyWesternWeakCandidate`) → keep only when
+ *      both `perFamilyKept[fam] < maxPerFamily` and
+ *      `totalWeakKept < maxTotal`. Otherwise spill into `dropped`.
+ *   3. After the walk, if `kept.length < safetyFloor` promote spilled
+ *      candidates back into `kept` (in original order) until the
+ *      floor is met or the spill is empty. Sets `relaxed = true`.
+ *
+ * The helper itself is cohort-agnostic — the caller is responsible
+ * for gating on `canApplyWesternWeakSkeletonQuota`. Keeps the helper
+ * trivially testable without env state.
+ */
+export function applyWesternWeakSkeletonQuota<T extends WesternWeakQuotaCandidate>(
+  candidates: ReadonlyArray<T>,
+  opts: {
+    desiredCount: number;
+    maxPerFamily?: number;
+    maxTotal?: number;
+    safetyFloorMin?: number;
+  },
+): WesternWeakQuotaResult<T> {
+  const maxPerFamily = opts.maxPerFamily ?? WESTERN_WEAK_QUOTA_MAX_PER_FAMILY;
+  const maxTotal = opts.maxTotal ?? WESTERN_WEAK_QUOTA_MAX_TOTAL;
+  const safetyFloor = Math.max(
+    opts.desiredCount,
+    opts.safetyFloorMin ?? WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN,
+  );
+  const kept: T[] = [];
+  const droppedWithFamily: Array<{ cand: T; fam: string }> = [];
+  const perFamilyKept: Record<string, number> = {};
+  const perFamilyDropped: Record<string, number> = {};
+  let totalWeakKept = 0;
+  for (const c of candidates) {
+    const fam = classifyWesternWeakCandidate({
+      hook: c.idea.hook,
+      hookSkeletonId: c.meta.hookSkeletonId,
+    });
+    if (fam === null) {
+      kept.push(c);
+      continue;
+    }
+    const famKept = perFamilyKept[fam] ?? 0;
+    if (famKept < maxPerFamily && totalWeakKept < maxTotal) {
+      kept.push(c);
+      perFamilyKept[fam] = famKept + 1;
+      totalWeakKept++;
+    } else {
+      droppedWithFamily.push({ cand: c, fam });
+      perFamilyDropped[fam] = (perFamilyDropped[fam] ?? 0) + 1;
+    }
+  }
+  let relaxed = false;
+  let i = 0;
+  while (kept.length < safetyFloor && i < droppedWithFamily.length) {
+    const { cand, fam } = droppedWithFamily[i];
+    kept.push(cand);
+    perFamilyKept[fam] = (perFamilyKept[fam] ?? 0) + 1;
+    perFamilyDropped[fam] = (perFamilyDropped[fam] ?? 0) - 1;
+    if (perFamilyDropped[fam] <= 0) delete perFamilyDropped[fam];
+    totalWeakKept++;
+    relaxed = true;
+    i++;
+  }
+  const dropped = droppedWithFamily.slice(i).map((x) => x.cand);
+  return {
+    kept,
+    dropped,
+    relaxed,
+    perFamilyKept,
+    perFamilyDropped,
+    totalWeakKept,
+    totalWeakDropped: dropped.length,
+  };
+}
+
+/**
+ * Activation gate for the W1.3 upstream weak-skeleton quota. Mirrors
+ * `canApplyWesternHookAdjustments` (region-only) plus a non-prod env
+ * kill-switch `LUMINA_W1_3_DISABLE_FOR_QA=1` so the QA harness can
+ * collect a matched OFF baseline against the same running server.
+ *
+ * Independent from the W1.2 kill-switch — flipping one does not
+ * affect the other, so the QA harness can isolate either layer.
+ */
+export function canApplyWesternWeakSkeletonQuota(
+  input: Pick<WesternHookAdjustmentInput, "region" | "languageStyle">,
+): boolean {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.LUMINA_W1_3_DISABLE_FOR_QA === "1"
+  ) {
+    return false;
+  }
+  return canApplyWesternHookAdjustments(input);
+}

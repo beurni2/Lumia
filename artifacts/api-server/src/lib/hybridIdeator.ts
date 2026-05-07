@@ -221,7 +221,11 @@ import {
   type StyleProfile,
 } from "./styleProfile";
 import { parseVisionStyleDoc } from "./visionProfileAggregator";
-import { canApplyWesternWeakFamilyCap } from "./westernHookQuality.js";
+import {
+  applyWesternWeakSkeletonQuota,
+  canApplyWesternWeakFamilyCap,
+  canApplyWesternWeakSkeletonQuota,
+} from "./westernHookQuality.js";
 import type { Creator } from "../db/schema";
 
 // -----------------------------------------------------------------------------
@@ -4182,6 +4186,56 @@ export async function runHybridIdeator(
   // start refresh).
   merged = applyExcludeHooksFilter(merged, excludeHooksSet, excludeBigramsList);
 
+  // -------- PHASE W1.3 — upstream weak-skeleton generation quota ----
+  // Cohort-gated (western/default only) cap on how many candidates
+  // with a known weak skeleton enter the merged pool BEFORE selection.
+  // Targets the three patternIdeator templates that flooded the W1.2
+  // QA merged pools (`totally_fine_about` 100, `is_it_really_still_about`
+  // 41, `noun_won_today` 10 in the 20-batch ON sweep). Detection uses
+  // BOTH `meta.hookSkeletonId` (catches direct template emits) AND a
+  // regex classifier (catches Claude/llama mutation hooks that
+  // reproduce the weak shape). Quota: max 1 per family, max 3 total
+  // weak; under-fill carve-out promotes spilled candidates back when
+  // `kept.length < max(desiredCount, 4)`. Non-western cohorts pay zero
+  // overhead — `canApplyWesternWeakSkeletonQuota` short-circuits.
+  // Independent kill-switch `LUMINA_W1_3_DISABLE_FOR_QA=1` (non-prod
+  // only) so the QA harness can pair an OFF baseline against the same
+  // running server without disturbing W1.2.
+  const _w13QuotaActive = canApplyWesternWeakSkeletonQuota({
+    region: input.region,
+    languageStyle: null,
+  });
+  let _w13QuotaApplied = false;
+  let _w13QuotaDropped = 0;
+  let _w13QuotaRelaxed = false;
+  let _w13QuotaPerFamilyKept: Record<string, number> = {};
+  if (_w13QuotaActive) {
+    const _w13Before = merged.length;
+    const _w13Result = applyWesternWeakSkeletonQuota(merged, { desiredCount });
+    merged = _w13Result.kept;
+    _w13QuotaDropped = _w13Result.totalWeakDropped;
+    _w13QuotaRelaxed = _w13Result.relaxed;
+    _w13QuotaPerFamilyKept = _w13Result.perFamilyKept;
+    _w13QuotaApplied = _w13QuotaDropped > 0 || _w13QuotaRelaxed;
+    if (_w13QuotaApplied) {
+      logger.info(
+        {
+          creatorId: input.creator?.id,
+          region: input.region ?? null,
+          desiredCount,
+          beforeMerged: _w13Before,
+          afterMerged: merged.length,
+          weakKept: _w13Result.totalWeakKept,
+          weakDropped: _w13QuotaDropped,
+          relaxed: _w13QuotaRelaxed,
+          perFamilyKept: _w13QuotaPerFamilyKept,
+          perFamilyDropped: _w13Result.perFamilyDropped,
+        },
+        "western_weak_skeleton_quota.applied",
+      );
+    }
+  }
+
   // PHASE N1-LIVE-HARDEN F2 — region-anchor brand filter. Gated on
   // the same activation guard as the pack itself
   // (`canActivateNigerianPack`), so non-NG / NG-clean / NG-null /
@@ -4627,6 +4681,41 @@ export async function runHybridIdeator(
         },
         "phase_y2.layer1_core_aware_used",
       );
+      // PHASE W1.3 — re-apply the upstream weak-skeleton quota on the
+      // post-fallback merged pool. Claude fallback re-introduces
+      // candidates after the first-pass quota fired, so without this
+      // re-application the second `selectWithNovelty` would see an
+      // un-capped weak-family distribution. Same gate, same helper,
+      // separate `stage: post_fallback` log tag so QA can distinguish
+      // local-pool vs post-fallback firings.
+      if (_w13QuotaActive) {
+        const _w13Before = merged.length;
+        const _w13Result = applyWesternWeakSkeletonQuota(merged, {
+          desiredCount,
+        });
+        merged = _w13Result.kept;
+        if (
+          _w13Result.totalWeakDropped > 0 ||
+          _w13Result.relaxed
+        ) {
+          logger.info(
+            {
+              creatorId: input.creator?.id,
+              region: input.region ?? null,
+              stage: "post_fallback",
+              desiredCount,
+              beforeMerged: _w13Before,
+              afterMerged: merged.length,
+              weakKept: _w13Result.totalWeakKept,
+              weakDropped: _w13Result.totalWeakDropped,
+              relaxed: _w13Result.relaxed,
+              perFamilyKept: _w13Result.perFamilyKept,
+              perFamilyDropped: _w13Result.perFamilyDropped,
+            },
+            "western_weak_skeleton_quota.applied",
+          );
+        }
+      }
       // Re-select on the (possibly replaced) pool — Claude may have
       // unlocked axis variety the local pool lacked, and on the
       // pool-promotion path the selector now picks exclusively from

@@ -1,0 +1,114 @@
+Phase W1.3 — Western Pattern-Engine Skeleton Distribution Fix
+
+Context:
+W1 and W1.2 are safe, but W1.2 QA shows the real issue is upstream skeleton overproduction, not in-batch selection.
+
+Evidence:
+- W1.2 OFF shipped weak-family rate: 5/30 = 16.7%
+- W1.2 ON shipped weak-family rate: 10/60 = 16.7%
+- W1.2 ON respected the in-batch cap: max 1 per weak family per batch
+- But merged pool is still flooded:
+  - totally_fine_about: 100 occurrences in ON run
+  - is_it_really_still_about: 41 occurrences in ON run
+- One exact duplicate shipped in ON:
+  - “I am totally fine about the errand list”
+
+Conclusion:
+W1.2 is safe to keep, but it is not enough. The upstream Western/default pattern engine is over-generating weak skeleton families.
+
+Goal:
+Reduce overproduction of weak Western skeleton families at generation/candidate-pool construction time while preserving enough candidates to avoid under-fill.
+
+Scope:
+Western/default catalog only.
+
+Hard rules:
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not touch Pidgin scorer.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change anti-copy.
+- Do not change safety/privacy.
+- Do not add a Western pack yet.
+- Do not add corpus yet.
+- Do not change Claude prompts.
+- Do not change QA thresholds.
+- Do not remove W1 or W1.2.
+- Do not hard-ban all weak skeletons if it risks under-fill.
+
+Tasks:
+
+1. Identify where weak skeleton families are generated
+Trace the source of:
+- totally_fine_about
+- is_it_really_still_about
+- someone_explain_anchor
+- anchor_won
+- anchor_knows_lying
+- anchor_itself_became
+- anchor_flatlined
+- anchor_demolished_vibe
+- anchor_keeps_revealing_itself
+- body_quit_brain_screaming
+
+Report which files/templates/families produce them and how often.
+
+2. Add Western/default weak-skeleton generation quotas
+For Western/default only, cap how many weak skeleton candidates can enter the merged pool per request.
+
+Suggested starting rule:
+- max 1 candidate per weak skeleton family entering merged pool
+- max 3 total weak-skeleton candidates entering merged pool
+- if the pool would under-fill, allow fallback candidates but log that the quota relaxed
+
+This should happen before final selection, not only inside selectionPenalty.
+
+3. Add upstream replacement preference
+When a weak skeleton candidate is skipped due to quota, prefer generating or keeping candidates with:
+- visible behavior
+- self-betrayal
+- posting/social anxiety
+- concrete action
+- specific scenario anchor
+- filmable moment
+
+Do not use Claude as the replacement mechanism.
+
+4. Keep W1.2 in-batch cap
+W1.2 should remain as a final protection layer.
+
+5. QA
+Run real /api/ideator/generate for Western/default:
+
+A. W1.3 OFF baseline:
+- 10 refreshes / 30 ideas
+
+B. W1.3 ON:
+- 20 refreshes / 60 ideas
+
+Report:
+- merged-pool weak skeleton counts
+- shipped weak-family rate
+- repeated skeleton families across refreshes
+- exact duplicate hooks
+- source mix
+- Claude fallback rate
+- refresh success/timeouts
+- strongest 20 hooks
+- weakest 20 hooks
+- N1 smoke unchanged
+- India/Philippines smoke unchanged
+
+Acceptance:
+- merged-pool totally_fine_about count clearly reduced
+- merged-pool is_it_really_still_about count clearly reduced
+- shipped weak-family rate lower than baseline
+- no exact duplicate hooks in 60-idea ON run
+- no batch has more than 1 weak-family hook
+- refresh success >=90%
+- no safety/privacy regressions
+- Nigerian pack unaffected
+- India/Philippines unaffected
+- tests pass
+- typecheck clean
