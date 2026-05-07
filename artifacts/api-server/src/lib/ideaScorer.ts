@@ -317,6 +317,14 @@ export type CandidateMeta = PatternMeta | {
    * served-log so we can verify the median ≥ 60 acceptance bar held.
    */
   hookQualityScore?: number;
+  /** PHASE W2-K2 — Western APPROVED pack axis tags. Stamped on
+   *  W2-authored candidates only by `authorWesternPackEntryAsIdea`
+   *  for cross-batch memory + slot-reservation diversity gates. */
+  westernPackComedyFamily?: string;
+  westernPackEmotionalSpike?: string;
+  westernPackSetting?: string;
+  westernPackAnchor?: string;
+  westernPackHookSkeleton?: string;
   /**
    * IdeaCoreType / IdeaCoreFamily — narrative-FAMILY diversity axis
    * (Phase 1 replacement for `scriptType`). Pattern-variation candidates

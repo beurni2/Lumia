@@ -277,6 +277,15 @@ router.post("/ideator/generate", async (req, res, next) => {
         // the orchestrator (see hybridIdeator). Empty / undefined
         // when omitted — legacy non-breaking.
         excludeHooks: body.excludeHooks,
+        // PHASE W2-K2 — staging-only QA flag. Lets the QA harness
+        // toggle W2 ON/OFF per request without restarting the
+        // server. Header is gated on `NODE_ENV !== "production"`
+        // so the production stack ignores it entirely. Pure
+        // additive — non-QA callers never set the header so the
+        // forwarded value is always `undefined` for them.
+        qaForceW2Off:
+          process.env.NODE_ENV !== "production" &&
+          String(req.header("x-lumina-qa-force-w2-off") ?? "") === "1",
       });
     } catch (err) {
       // Refund quota if the call failed before producing ideas, so a

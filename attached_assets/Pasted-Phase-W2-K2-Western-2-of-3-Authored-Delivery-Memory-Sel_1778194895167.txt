@@ -1,0 +1,201 @@
+Phase W2-K2 — Western 2-of-3 Authored Delivery + Memory/Selection Fix
+
+Context:
+W2-K staging showed the approved Western pool can enter Western/default generation and non-Western leak gates are clean, but the activation behavior is not ready.
+
+Observed W2-K issues:
+- W2 ON western: 10/10 batches had W2 ideas.
+- W2 ideas total: 20/30, meaning W2 was already delivering 2/3.
+- 10/10 batches had ≥2 W2 ideas.
+- 0 batches had 3/3 W2, which is good.
+- But only 15 distinct W2 entryIds appeared across 20 W2 ideas.
+- Cross-batch hook repeats occurred 5 times.
+- W2-OFF baseline did not run.
+- Post-review hookQualityScore meta bug was fixed and must be preserved.
+
+Updated product goal:
+Western/default should usually ship:
+- 2 W2-authored ideas per 3-card batch
+- 1 old-corpus / pattern / novelty idea per batch
+
+W2 should become the main Western quality layer, but not the only source. The old corpus must remain active for breadth, fallback, novelty, and personalization.
+
+This phase is about fixing W2 memory/selection quality before more corpus expansion.
+
+Hard rules:
+- Production remains OFF.
+- Do not enable production.
+- Do not remove or replace the old Western corpus.
+- Do not activate all 150 draft entries.
+- Use only APPROVED_WESTERN_PROMOTION_CANDIDATES.
+- Do not use WESTERN_HOOK_PACK_DRAFT directly in runtime.
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not touch Pidgin scorer.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change Claude prompts.
+- Do not add migrations unless the no-migration memory path is proven impossible and you stop to report why.
+- Do not expose new public API surface.
+- Preserve the hookQualityScore meta fix:
+  W2 candidates must carry real meta.hookQualityScore.
+
+Primary goal:
+Make 2 W2 ideas per Western/default batch work without repeats.
+
+Required behavior:
+1. Target 2 W2 ideas per 3-card Western/default batch when enough distinct W2 candidates are available.
+2. Keep 1 non-W2 idea in each batch for breadth/novelty.
+3. Do not ship 3/3 W2 by default.
+4. If W2 memory/dedupe blocks too many candidates, fall back to 1 W2 + 2 old-corpus rather than repeating W2.
+5. Do not repeat W2 entryIds across recent refreshes.
+6. Do not repeat exact W2 hooks across recent refreshes.
+7. Do not repeat normalized W2 hook skeletons across recent refreshes.
+8. Avoid repeating the same W2 anchor too often.
+9. Avoid repeating the same W2 comedyFamily too often.
+10. Avoid repeating the same W2 setting too often, especially bedroom/desk.
+11. Do not allow two W2 ideas in the same batch with the same anchor.
+12. Do not allow two W2 ideas in the same batch with the same normalized skeleton.
+13. Prefer two W2 ideas only when they are clearly distinct across:
+    - entryId
+    - hook
+    - skeleton
+    - anchor
+    - comedyFamily
+    - emotionalSpike
+    - setting
+
+Memory approach:
+Use the no-migration path first.
+
+Derive recent W2 memory from existing persisted recent batch data / creators.last_idea_batch_json if possible.
+
+Track:
+- recent W2 entryIds
+- recent exact hooks
+- recent normalized hook skeletons
+- recent anchors
+- recent comedyFamily values
+- recent emotionalSpike values
+- recent settings
+
+If W2 entryIds are not recoverable from last_idea_batch_json:
+- Add internal/staging-only telemetry needed to verify W2 entryId behavior.
+- Do not add a DB column in this phase.
+- Do not silently relax the “no repeated W2 entryId across recent refreshes” gate.
+- Report exactly what is missing and stop before implementing a weaker version.
+
+Selection requirements:
+- Do not simply sort by score and repeatedly pick the same top W2 entries.
+- Add selection pressure for underused W2 entries.
+- Penalize recently seen W2 entryIds strongly.
+- Penalize recently seen W2 hook skeletons strongly.
+- Penalize repeated anchors/comedyFamily/settings softly.
+- Keep hookQualityScore and existing quality scoring meaningful.
+- The picker should use more of the approved pool over repeated refreshes.
+
+Suggested W2 selection shape:
+1. Build eligible W2 candidate pool from APPROVED_WESTERN_PROMOTION_CANDIDATES.
+2. Remove or hard-penalize recently seen entryIds / exact hooks / skeletons.
+3. Apply soft diversity penalties for recent anchor, comedyFamily, emotionalSpike, setting.
+4. Select first W2 card by strongest adjusted score.
+5. Select second W2 card only from candidates distinct from the first across skeleton and anchor, preferably family/spike/setting too.
+6. Fill the third card from old corpus / pattern / novelty path.
+7. If second W2 is not distinct enough, ship 1 W2 + 2 old-corpus instead of forcing a weak or repetitive W2.
+
+Runtime metadata:
+For QA/internal telemetry, each shipped W2 idea should expose enough internal QA metadata to verify:
+- w2EntryId
+- w2Source = approved_western
+- hookQualityScore
+- hook skeleton
+- anchor
+- comedyFamily
+- emotionalSpike
+- setting
+
+This metadata must not expose anything unsafe publicly; keep it QA/internal if needed.
+
+QA harness:
+Use real HTTP against the running localhost API server.
+
+Run reduced but meaningful QA:
+
+A. W2 ON western/default:
+- 20 refreshes
+- 60 ideas total
+- fresh seeded Western test creator
+
+B. W2 OFF western/default baseline:
+- 10 refreshes
+- 30 ideas total
+- same style fresh seeded Western test creator
+- must actually run; 0-batch OFF baseline is not acceptable
+
+C. Non-Western smoke:
+- ng_pidgin: 3 refreshes
+- ng_light: 3 refreshes
+- ng_clean: 3 refreshes
+- india: 3 refreshes
+- philippines: 3 refreshes
+
+Report:
+1. W2 delivery:
+   - total W2 ideas / total ideas
+   - batches with 0 W2
+   - batches with 1 W2
+   - batches with 2 W2
+   - batches with 3 W2
+2. Distinctness:
+   - distinct W2 entryIds
+   - repeated W2 entryIds
+   - exact W2 hook repeats
+   - repeated W2 hook skeletons
+   - repeated anchors
+   - repeated comedyFamily
+   - repeated settings
+3. Composition:
+   - old corpus / pattern idea delivery count
+   - W2 vs old corpus ratio
+4. Quality:
+   - strongest 20 shipped Western ideas
+   - weakest 20 shipped Western ideas
+   - compare W2 ON vs W2 OFF quality
+   - weak generic skeleton rate
+5. Performance:
+   - refresh success
+   - latency avg/min/max
+   - timeout/error count
+   - Claude fallback usage if available
+6. Safety:
+   - privacy/safety hits
+   - non-Western leak results
+7. Flags:
+   - staging flag state
+   - production remains OFF
+8. Technical:
+   - tests/typecheck
+   - runtime import-surface confirmation
+   - hookQualityScore populated on W2 candidates
+
+Acceptance gates for GO:
+- W2 ON ships about 2 W2 ideas per Western/default batch when enough distinct candidates exist.
+- W2 delivery target: roughly 60–70% of shipped Western ideas.
+- 3/3 W2 batches = 0 by default.
+- Exact W2 hook repeats = 0 in the 60-idea ON sweep.
+- Repeated W2 entryIds = 0 in the 60-idea ON sweep.
+- Repeated W2 skeletons = 0 in the 60-idea ON sweep.
+- No duplicate W2 anchor within the same batch.
+- Distinct W2 entryIds should be close to W2 delivery count. Example: if 40 W2 ideas ship, expect around 40 distinct W2 ids, not 15.
+- Old corpus remains present as the third-card/breadth layer.
+- W2 OFF baseline must run successfully.
+- W2 ON output must visibly improve Western specificity/humanness/funniness vs W2 OFF.
+- Refresh success >=90%.
+- Safety/privacy hits = 0.
+- Non-Western W2 leaks = 0.
+- Production remains OFF.
+- Tests pass.
+- Typecheck clean.
+
+Important:
+Do not mark this GO just because W2 appears. The goal is fresh, non-repeating, high-quality 2-of-3 W2 delivery.

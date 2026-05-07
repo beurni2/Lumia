@@ -147,10 +147,16 @@ import {
 } from "./westernHookPackApproved.js";
 import {
   authorWesternPackEntryAsIdea,
+  normalizeWesternHookSkeleton,
   w2EntryIdOf,
 } from "./westernPackAuthor.js";
 import type { WesternHookPackDraftEntry } from "./westernHookPack.js";
-import { getRecentSeenWesternEntryIds } from "./westernPackCreatorMemory.js";
+import {
+  getRecentSeenWesternEntryIds,
+  getRecentSeenWesternAxes,
+  recordW2InMemorySeen,
+  type WesternRecentAxes,
+} from "./westernPackCreatorMemory.js";
 import {
   applyWesternApprovedPackSlotReservation,
   type WesternPackCandidate,
@@ -278,6 +284,16 @@ export type HybridIdeatorInput = GenerateIdeasInput & {
    */
   excludeHooks?: string[];
   /**
+   * PHASE W2-K2 — staging-only QA flag. When true, the W2 booster
+   * is forcibly disabled for THIS request only (gate AND-folded
+   * with the existing flag-on activation check). Lets the QA
+   * harness toggle ON/OFF per request without restarting the
+   * server. The route layer accepts `x-lumina-qa-force-w2-off: 1`
+   * (dev/test-only header) and forwards true here. Production
+   * callers never set it, so non-QA traffic is byte-identical.
+   */
+  qaForceW2Off?: boolean;
+  /**
    * Per-creator usage snapshot for the Llama cost-control / anti-abuse
    * gates inside `maybeMutateBatch`. Optional — when absent, no gate
    * fires (matches demo bypass). Counters are read by the route layer
@@ -352,6 +368,15 @@ export type HybridIdeatorResult = {
        *  staging QA harness can verify per-cohort W2-pack-usage
        *  rate without scraping logs. */
       westernPackEntryId?: string;
+      /** PHASE W2-K2 — Western APPROVED pack axis tags. Stamped on
+       *  W2-authored candidates only. Surfaces here so the staging
+       *  QA harness can verify per-batch + cross-batch diversity
+       *  on every diversity axis without scraping logs. */
+      westernPackHookSkeleton?: string;
+      westernPackAnchor?: string;
+      westernPackComedyFamily?: string;
+      westernPackEmotionalSpike?: string;
+      westernPackSetting?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -2381,6 +2406,23 @@ type CachedBatchEntry = {
    */
   westernPackEntryId?: string;
   /**
+   * PHASE W2-K2 — Western APPROVED pack axis tags persisted in
+   * cache so the next request's `getRecentSeenWesternAxes` can mine
+   * skeleton/anchor/family/spike/setting from
+   * `creators.last_idea_batch_json` for the soft / hard diversity
+   * gates in the slot reservation. Same non-breaking JSONB pattern
+   * as `westernPackEntryId` — legacy entries written before W2-K2
+   * shipped flow through as undefined and contribute only to the
+   * entryId+hook axes (skeleton/anchor/family/spike/setting axes
+   * stay quiet for those entries until a fresh batch writes a new
+   * envelope with the fields populated).
+   */
+  westernPackHookSkeleton?: string;
+  westernPackAnchor?: string;
+  westernPackComedyFamily?: string;
+  westernPackEmotionalSpike?: string;
+  westernPackSetting?: string;
+  /**
    * HOOK STYLE spec axis (12 values). Persisted in cache so
    * `buildNoveltyContext` can derive `recentHookLanguageStyles` and
    * `unusedHookLanguageStylesLast3` without an in-memory state. Cache
@@ -2653,6 +2695,11 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         scenarioFingerprint?: unknown;
         voiceClusterId?: unknown;
         westernPackEntryId?: unknown;
+        westernPackHookSkeleton?: unknown;
+        westernPackAnchor?: unknown;
+        westernPackComedyFamily?: unknown;
+        westernPackEmotionalSpike?: unknown;
+        westernPackSetting?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2865,6 +2912,31 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
           wrapper.westernPackEntryId.length > 0
             ? wrapper.westernPackEntryId
             : undefined,
+        westernPackHookSkeleton:
+          typeof wrapper.westernPackHookSkeleton === "string" &&
+          wrapper.westernPackHookSkeleton.length > 0
+            ? wrapper.westernPackHookSkeleton
+            : undefined,
+        westernPackAnchor:
+          typeof wrapper.westernPackAnchor === "string" &&
+          wrapper.westernPackAnchor.length > 0
+            ? wrapper.westernPackAnchor
+            : undefined,
+        westernPackComedyFamily:
+          typeof wrapper.westernPackComedyFamily === "string" &&
+          wrapper.westernPackComedyFamily.length > 0
+            ? wrapper.westernPackComedyFamily
+            : undefined,
+        westernPackEmotionalSpike:
+          typeof wrapper.westernPackEmotionalSpike === "string" &&
+          wrapper.westernPackEmotionalSpike.length > 0
+            ? wrapper.westernPackEmotionalSpike
+            : undefined,
+        westernPackSetting:
+          typeof wrapper.westernPackSetting === "string" &&
+          wrapper.westernPackSetting.length > 0
+            ? wrapper.westernPackSetting
+            : undefined,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -3044,6 +3116,23 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     // every non-W2 candidate; flows through cleanly.
     westernPackEntryId: (c.meta as { westernPackEntryId?: string })
       .westernPackEntryId,
+    // PHASE W2-K2 — persist the 5 axis tags alongside entryId so
+    // the next request's `getRecentSeenWesternAxes` can mine all
+    // axes from `creators.last_idea_batch_json` in a single read.
+    // Undefined for every non-W2 candidate (typical case).
+    westernPackHookSkeleton: (
+      c.meta as { westernPackHookSkeleton?: string }
+    ).westernPackHookSkeleton,
+    westernPackAnchor: (c.meta as { westernPackAnchor?: string })
+      .westernPackAnchor,
+    westernPackComedyFamily: (
+      c.meta as { westernPackComedyFamily?: string }
+    ).westernPackComedyFamily,
+    westernPackEmotionalSpike: (
+      c.meta as { westernPackEmotionalSpike?: string }
+    ).westernPackEmotionalSpike,
+    westernPackSetting: (c.meta as { westernPackSetting?: string })
+      .westernPackSetting,
     hookLanguageStyle: c.meta.hookLanguageStyle,
     // VOICE PROFILES spec — persist alongside hookLanguageStyle so
     // the next regen's `buildNoveltyContext` can read the immediate-
@@ -4038,15 +4127,31 @@ export async function runHybridIdeator(
   // region∈{undefined,"western"} + languageStyle∈{undefined,null,"clean"} +
   // flag ON + non-empty pool. Non-eligible cohorts pay zero DB cost
   // (helper short-circuits to empty Set without touching the row).
-  const _w2kEligible = canActivateWesternApprovedPool({
-    region: input.region,
-    languageStyle: _hoistedLanguageStyle,
-    flagEnabled: isWesternApprovedPoolFeatureEnabled(),
-    packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
-  });
-  const _hoistedWesternPackSeenIds: ReadonlySet<string> = _w2kEligible
-    ? await getRecentSeenWesternEntryIds(input.creator?.id)
-    : new Set<string>();
+  const _w2kEligible =
+    !input.qaForceW2Off &&
+    canActivateWesternApprovedPool({
+      region: input.region,
+      languageStyle: _hoistedLanguageStyle,
+      flagEnabled: isWesternApprovedPoolFeatureEnabled(),
+      packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+    });
+  // PHASE W2-K2 — single DB read returns ALL recent W2 axes (entryIds
+  // + hooks + skeletons + anchors + families + spikes + settings).
+  // Replaces the W2-K entry-id-only read; same activation gate so
+  // non-eligible cohorts pay zero DB cost (helper short-circuits).
+  const _hoistedWesternPackSeenAxes: WesternRecentAxes = _w2kEligible
+    ? await getRecentSeenWesternAxes(input.creator?.id)
+    : {
+        entryIds: new Set<string>(),
+        hooks: new Set<string>(),
+        skeletons: new Set<string>(),
+        anchors: new Set<string>(),
+        families: new Set<string>(),
+        spikes: new Set<string>(),
+        settings: new Set<string>(),
+      };
+  const _hoistedWesternPackSeenIds: ReadonlySet<string> =
+    _hoistedWesternPackSeenAxes.entryIds;
   // PHASE W1 — per-creator catalog skeleton memory snapshot for the
   // cohort-gated Western hook adjustment's recent-skeleton repetition
   // demotion. Gated to the western/default cohort (region undefined
@@ -5221,6 +5326,11 @@ export async function runHybridIdeator(
           comedyFamily: entry.comedyFamily,
           setting: entry.setting,
           anchor: entry.anchor,
+          // PHASE W2-K2 — pass through the spike + skeleton tags so
+          // the slot reservation's hard / soft distinctness gates
+          // can read them without re-deriving from `entry`.
+          emotionalSpike: entry.emotionalSpike,
+          hookSkeleton: normalizeWesternHookSkeleton(entry.hook),
           qualityScore: score,
         });
       }
@@ -5232,13 +5342,39 @@ export async function runHybridIdeator(
         languageStyle: _hoistedLanguageStyle,
         flagEnabled: isWesternApprovedPoolFeatureEnabled(),
         packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
-        excludeEntryIds: _hoistedWesternPackSeenIds,
+        excludeAxes: _hoistedWesternPackSeenAxes,
         onDiagnostic: (d) => {
           w2sr_diagnostic = d;
         },
       });
       if (w2sr_postBatch !== selection.batch) {
         selection = { ...selection, batch: w2sr_postBatch };
+      }
+      // PHASE W2-K2 — record shipped W2 axes onto the per-process
+      // in-memory snapshot so demo creators (whose `persistCache`
+      // is a no-op) still get cross-batch dedup. Non-demo creators
+      // also feed this map; their next request reads BOTH sources
+      // (DB envelope + in-memory) and the union dedups under Set
+      // construction. Cheap synchronous work — bounded LRU.
+      for (const c of selection.batch) {
+        const meta = c.meta as {
+          westernPackEntryId?: string;
+          westernPackHookSkeleton?: string;
+          westernPackAnchor?: string;
+          westernPackComedyFamily?: string;
+          westernPackEmotionalSpike?: string;
+          westernPackSetting?: string;
+        };
+        if (typeof meta.westernPackEntryId !== "string") continue;
+        recordW2InMemorySeen(input.creator?.id, {
+          entryId: meta.westernPackEntryId,
+          hook: c.idea.hook,
+          skeleton: meta.westernPackHookSkeleton,
+          anchor: meta.westernPackAnchor,
+          family: meta.westernPackComedyFamily,
+          spike: meta.westernPackEmotionalSpike,
+          setting: meta.westernPackSetting,
+        });
       }
       logger.info(
         {
@@ -5858,6 +5994,22 @@ export async function runHybridIdeator(
         .nigerianPackEntryId,
       westernPackEntryId: (m as { westernPackEntryId?: string })
         .westernPackEntryId,
+      // PHASE W2-K2 — surface the axis tags on the QA telemetry
+      // array. Undefined for every non-W2 candidate so non-W2
+      // batches surface the same shape as pre-W2-K2 (additive).
+      westernPackHookSkeleton: (
+        m as { westernPackHookSkeleton?: string }
+      ).westernPackHookSkeleton,
+      westernPackAnchor: (m as { westernPackAnchor?: string })
+        .westernPackAnchor,
+      westernPackComedyFamily: (
+        m as { westernPackComedyFamily?: string }
+      ).westernPackComedyFamily,
+      westernPackEmotionalSpike: (
+        m as { westernPackEmotionalSpike?: string }
+      ).westernPackEmotionalSpike,
+      westernPackSetting: (m as { westernPackSetting?: string })
+        .westernPackSetting,
     };
   });
 

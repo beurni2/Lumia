@@ -348,6 +348,27 @@ export function w2EntryIdOf(entry: WesternHookPackDraftEntry): string {
   return `w2_${djb2(`${entry.hook}|${entry.anchor}`).toString(16)}`;
 }
 
+/**
+ * PHASE W2-K2 — normalize a hook to a coarse skeleton for cross-batch
+ * dedup. Mirrors the catalog skeleton normalizer pattern: long
+ * content tokens (>=5 chars, after stripping punctuation) collapse to
+ * `__`; shorter function words preserve. Cap 24 tokens.
+ *
+ * The shape captures sentence-rhythm + short connective words while
+ * masking specific nouns/verbs, so two W2 hooks with the same
+ * structural shape but different anchors normalize equal — exactly
+ * the cross-batch repetition the W2-K sweep surfaced.
+ */
+export function normalizeWesternHookSkeleton(hook: string): string {
+  const tokens = (hook ?? "")
+    .toLowerCase()
+    .replace(/[.,!?;:"]+/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 0)
+    .slice(0, 24);
+  return tokens.map((t) => (t.length >= 5 ? "__" : t)).join(" ");
+}
+
 export type AuthorWesternPackEntryInput = {
   entry: WesternHookPackDraftEntry;
   regenerateSalt: number;
@@ -486,6 +507,17 @@ export function authorWesternPackEntryAsIdea(
     source: "core_native",
     usedBigPremise: true,
     westernPackEntryId: w2EntryIdOf(entry),
+    // PHASE W2-K2 — stamp the per-axis tags onto meta so the
+    // slot-reservation pre-filter, cross-batch memory persistence,
+    // and qaTelemetry per-idea surface all read directly off the
+    // candidate without re-deriving from the entry. Family/spike/
+    // setting are the editorially-curated W2 enums verbatim;
+    // anchor is lower-cased; skeleton is the coarse mask above.
+    westernPackComedyFamily: entry.comedyFamily,
+    westernPackEmotionalSpike: entry.emotionalSpike,
+    westernPackSetting: entry.setting,
+    westernPackAnchor: anchorLc,
+    westernPackHookSkeleton: normalizeWesternHookSkeleton(entry.hook),
   };
 
   return {

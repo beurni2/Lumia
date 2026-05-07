@@ -1,28 +1,21 @@
 /**
- * PHASE W2-K — Staging QA driver.
+ * PHASE W2-K2 — Staging QA driver.
  *
- * Reduced sweep:
- *   • 20 western batches with W2 ON
- *   • 10 western batches with W2 OFF (control)
- *   • 5 cohorts × 3 refreshes (NG-pidgin, NG-light_pidgin, NG-clean,
- *     india, philippines) — leak gate: NO W2 entryId may appear.
+ * Sweep:
+ *   • W2-ON western (clean):     W2K_WESTERN_BATCHES (default 20)
+ *   • W2-OFF western (clean):    W2K_OFF_BATCHES (default 10)
+ *   • Leak gates × 5 cohorts:    W2K_LEAK_REFRESHES (default 3)
+ *
+ * Toggling W2 between ON/OFF is achieved by sending the staging-only
+ * header `x-lumina-qa-force-w2-off: 1` on OFF batches. The route
+ * gates the header on `NODE_ENV !== "production"`, so the production
+ * stack ignores it entirely; in dev the orchestrator AND-folds this
+ * with the regular activation gate, forcing W2 off for that one
+ * request without restarting the server.
  *
  * Hits the REAL `/api/ideator/generate` route via the shared proxy
  * with `x-lumina-qa-expose-meta: 1` so the per-idea telemetry array
- * surfaces `westernPackEntryId`. Aggregates entry-id usage rate,
- * distinctness across batches, in-batch family/setting/anchor
- * separation when 2 W2 ship, and leak counts in NG/India/PH cohorts.
- *
- * Toggling W2 between ON/OFF is achieved by setting the env var on
- * the server side via `__qaOverrides` request hint (we instead do
- * per-batch toggle by pinging two endpoints at different env states
- * via the `regenerate` flag-stayed approach if available; in this
- * staging driver, we treat the server's current env as authoritative
- * and label the contrast based on the response — see `w2OnObserved`
- * derivation below). The server's current dev `start` script sets
- * the flag ON, so the first 20 batches register the ON branch; the
- * "OFF" 10 are documented as a contrast-validation request (operator
- * runs them with the env unset, separately, if needed).
+ * surfaces all W2 axis tags.
  */
 
 import { fileURLToPath } from "node:url";
@@ -39,6 +32,11 @@ type GenIdea = {
 type GenPerIdea = {
   source?: string;
   westernPackEntryId?: string | null;
+  westernPackHookSkeleton?: string | null;
+  westernPackAnchor?: string | null;
+  westernPackComedyFamily?: string | null;
+  westernPackEmotionalSpike?: string | null;
+  westernPackSetting?: string | null;
   nigerianPackEntryId?: string | null;
   hookQualityScore?: number | null;
   anchor?: string | null;
@@ -58,25 +56,25 @@ const REPORT_PATH = path.resolve(
 const API_URL =
   process.env.W2K_LIVE_API_URL ??
   "http://localhost:80/api/ideator/generate";
-const PER_BATCH_TIMEOUT_MS = 120_000;
+const PER_BATCH_TIMEOUT_MS = 90_000;
 const COUNT_PER_BATCH = 3;
+
+const WESTERN_ON_BATCHES = Number(process.env.W2K_WESTERN_BATCHES ?? 20);
+const WESTERN_OFF_BATCHES = Number(process.env.W2K_OFF_BATCHES ?? 10);
+const LEAK_REFRESHES = Number(process.env.W2K_LEAK_REFRESHES ?? 3);
 
 type Cohort = {
   label: string;
   region: string;
   languageStyle: string | null;
-  expectW2: boolean;
 };
 
-const WESTERN_ON_BATCHES = Number(process.env.W2K_WESTERN_BATCHES ?? 10);
-const WESTERN_OFF_BATCHES = Number(process.env.W2K_OFF_BATCHES ?? 0);
-const LEAK_REFRESHES = Number(process.env.W2K_LEAK_REFRESHES ?? 1);
 const LEAK_COHORTS: ReadonlyArray<Cohort> = [
-  { label: "ng_pidgin", region: "nigeria", languageStyle: "pidgin", expectW2: false },
-  { label: "ng_light", region: "nigeria", languageStyle: "light_pidgin", expectW2: false },
-  { label: "ng_clean", region: "nigeria", languageStyle: "clean", expectW2: false },
-  { label: "india", region: "india", languageStyle: null, expectW2: false },
-  { label: "philippines", region: "philippines", languageStyle: null, expectW2: false },
+  { label: "ng_pidgin", region: "nigeria", languageStyle: "pidgin" },
+  { label: "ng_light", region: "nigeria", languageStyle: "light_pidgin" },
+  { label: "ng_clean", region: "nigeria", languageStyle: "clean" },
+  { label: "india", region: "india", languageStyle: null },
+  { label: "philippines", region: "philippines", languageStyle: null },
 ];
 
 async function callApi(args: {
@@ -84,6 +82,7 @@ async function callApi(args: {
   languageStyle: string | null;
   count: number;
   regenerate: boolean;
+  forceW2Off: boolean;
 }): Promise<{
   resp: GenResp | null;
   status: number;
@@ -96,14 +95,16 @@ async function callApi(args: {
     regenerate: args.regenerate,
   };
   if (args.languageStyle !== null) body.languageStyle = args.languageStyle;
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-lumina-qa-expose-meta": "1",
+  };
+  if (args.forceW2Off) headers["x-lumina-qa-force-w2-off"] = "1";
   const t0 = Date.now();
   try {
     const r = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-lumina-qa-expose-meta": "1",
-      },
+      headers,
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(PER_BATCH_TIMEOUT_MS),
     });
@@ -133,6 +134,12 @@ type WesternBatchRecord = {
   batchIdx: number;
   ideaCount: number;
   w2EntryIds: string[];
+  w2Skeletons: string[];
+  w2Anchors: string[];
+  w2Families: string[];
+  w2Spikes: string[];
+  w2Settings: string[];
+  w2HookScores: number[];
   hooks: string[];
   durationMs: number;
   errored: boolean;
@@ -145,9 +152,46 @@ type LeakRecord = {
   errored: boolean;
 };
 
+function pickW2(perIdea: GenPerIdea[]): {
+  entryIds: string[];
+  skeletons: string[];
+  anchors: string[];
+  families: string[];
+  spikes: string[];
+  settings: string[];
+  scores: number[];
+} {
+  const entryIds: string[] = [];
+  const skeletons: string[] = [];
+  const anchors: string[] = [];
+  const families: string[] = [];
+  const spikes: string[] = [];
+  const settings: string[] = [];
+  const scores: number[] = [];
+  for (const p of perIdea) {
+    const id = p.westernPackEntryId;
+    if (typeof id !== "string" || id.length === 0) continue;
+    entryIds.push(id);
+    if (typeof p.westernPackHookSkeleton === "string")
+      skeletons.push(p.westernPackHookSkeleton);
+    if (typeof p.westernPackAnchor === "string")
+      anchors.push(p.westernPackAnchor);
+    if (typeof p.westernPackComedyFamily === "string")
+      families.push(p.westernPackComedyFamily);
+    if (typeof p.westernPackEmotionalSpike === "string")
+      spikes.push(p.westernPackEmotionalSpike);
+    if (typeof p.westernPackSetting === "string")
+      settings.push(p.westernPackSetting);
+    if (typeof p.hookQualityScore === "number")
+      scores.push(p.hookQualityScore);
+  }
+  return { entryIds, skeletons, anchors, families, spikes, settings, scores };
+}
+
 async function runWesternSweep(
   label: string,
   batches: number,
+  forceW2Off: boolean,
 ): Promise<WesternBatchRecord[]> {
   const out: WesternBatchRecord[] = [];
   for (let i = 0; i < batches; i++) {
@@ -156,25 +200,30 @@ async function runWesternSweep(
       languageStyle: "clean",
       count: COUNT_PER_BATCH,
       regenerate: i > 0,
+      forceW2Off,
     });
     const perIdea = r.resp?.qaTelemetry?.perIdea ?? [];
-    const w2Ids = perIdea
-      .map((p) => p.westernPackEntryId ?? null)
-      .filter((x): x is string => typeof x === "string");
+    const w2 = pickW2(perIdea);
     const hooks = (r.resp?.ideas ?? [])
       .map((i) => i.hook ?? "")
       .filter((h) => h.length > 0);
     out.push({
       batchIdx: i,
       ideaCount: r.resp?.ideas.length ?? 0,
-      w2EntryIds: w2Ids,
+      w2EntryIds: w2.entryIds,
+      w2Skeletons: w2.skeletons,
+      w2Anchors: w2.anchors,
+      w2Families: w2.families,
+      w2Spikes: w2.spikes,
+      w2Settings: w2.settings,
+      w2HookScores: w2.scores,
       hooks,
       durationMs: r.durationMs,
       errored: r.err !== null,
     });
     process.stdout.write(
       `[${label}] batch ${i + 1}/${batches} ${r.durationMs}ms ` +
-        `ideas=${r.resp?.ideas.length ?? 0} w2=${w2Ids.length}` +
+        `ideas=${r.resp?.ideas.length ?? 0} w2=${w2.entryIds.length}` +
         (r.err ? ` ERR=${r.err.slice(0, 80)}` : "") +
         "\n",
     );
@@ -191,6 +240,7 @@ async function runLeakSweep(): Promise<LeakRecord[]> {
         languageStyle: cohort.languageStyle,
         count: COUNT_PER_BATCH,
         regenerate: i > 0,
+        forceW2Off: false,
       });
       const perIdea = r.resp?.qaTelemetry?.perIdea ?? [];
       const w2Ids = perIdea
@@ -213,45 +263,102 @@ async function runLeakSweep(): Promise<LeakRecord[]> {
   return out;
 }
 
+function countRepeats(arr: string[]): {
+  totalRepeatedSlots: number;
+  distinctRepeated: Array<[string, number]>;
+} {
+  const counts = new Map<string, number>();
+  for (const v of arr) counts.set(v, (counts.get(v) ?? 0) + 1);
+  const distinctRepeated = [...counts.entries()].filter(([, c]) => c > 1);
+  const totalRepeatedSlots = distinctRepeated.reduce(
+    (s, [, c]) => s + (c - 1),
+    0,
+  );
+  return { totalRepeatedSlots, distinctRepeated };
+}
+
 function summarizeWestern(
   label: string,
   batches: WesternBatchRecord[],
 ): string {
   const total = batches.length;
+  if (total === 0) {
+    return [`### ${label} — 0 batches (skipped)`, ""].join("\n");
+  }
   const errored = batches.filter((b) => b.errored).length;
   const totalIdeas = batches.reduce((s, b) => s + b.ideaCount, 0);
   const totalW2 = batches.reduce((s, b) => s + b.w2EntryIds.length, 0);
-  const batchesWithAny = batches.filter((b) => b.w2EntryIds.length > 0).length;
-  const batchesWithTwo = batches.filter((b) => b.w2EntryIds.length >= 2).length;
-  const batchesWithThree = batches.filter((b) => b.w2EntryIds.length >= 3).length;
-  const distinctIds = new Set(batches.flatMap((b) => b.w2EntryIds));
+  const dist = [0, 0, 0, 0]; // # of W2 in batch: 0, 1, 2, 3
+  for (const b of batches) {
+    const idx = Math.min(b.w2EntryIds.length, 3);
+    dist[idx]!++;
+  }
+  const allEntryIds = batches.flatMap((b) => b.w2EntryIds);
   const allHooks = batches.flatMap((b) => b.hooks);
-  const hookCounts = new Map<string, number>();
-  for (const h of allHooks)
-    hookCounts.set(h, (hookCounts.get(h) ?? 0) + 1);
-  const repeatHooks = [...hookCounts.entries()].filter(([, c]) => c > 1);
-  const inBatchDups = batches.filter((b) => {
-    const s = new Set(b.w2EntryIds);
-    return s.size !== b.w2EntryIds.length;
-  }).length;
+  const allW2Hooks = batches.flatMap((b, _i) =>
+    b.hooks.slice(0, b.w2EntryIds.length),
+  );
+  const allSkeletons = batches.flatMap((b) => b.w2Skeletons);
+  const allAnchors = batches.flatMap((b) => b.w2Anchors);
+  const allFamilies = batches.flatMap((b) => b.w2Families);
+  const allSpikes = batches.flatMap((b) => b.w2Spikes);
+  const allSettings = batches.flatMap((b) => b.w2Settings);
+  const allScores = batches.flatMap((b) => b.w2HookScores);
+
+  const idStats = countRepeats(allEntryIds);
+  const hookStats = countRepeats(allHooks);
+  const skelStats = countRepeats(allSkeletons);
+  const anchorStats = countRepeats(allAnchors);
+  const familyStats = countRepeats(allFamilies);
+  const settingStats = countRepeats(allSettings);
+  const spikeStats = countRepeats(allSpikes);
+
+  const inBatchEntryDups = batches.filter(
+    (b) => new Set(b.w2EntryIds).size !== b.w2EntryIds.length,
+  ).length;
+  const inBatchAnchorDups = batches.filter(
+    (b) => b.w2Anchors.length > 1 &&
+      new Set(b.w2Anchors).size !== b.w2Anchors.length,
+  ).length;
+  const inBatchSkeletonDups = batches.filter(
+    (b) => b.w2Skeletons.length > 1 &&
+      new Set(b.w2Skeletons).size !== b.w2Skeletons.length,
+  ).length;
+
+  const avgScore = allScores.length > 0
+    ? (allScores.reduce((s, v) => s + v, 0) / allScores.length).toFixed(1)
+    : "—";
+
   const avgDuration =
     batches.reduce((s, b) => s + b.durationMs, 0) /
     Math.max(batches.length, 1);
-  const latencyMin = batches.length > 0 ? Math.min(...batches.map((b) => b.durationMs)) : 0;
-  const latencyMax = batches.length > 0 ? Math.max(...batches.map((b) => b.durationMs)) : 0;
+  const latencyMin = Math.min(...batches.map((b) => b.durationMs));
+  const latencyMax = Math.max(...batches.map((b) => b.durationMs));
+
+  const fmtRepeats = (s: { totalRepeatedSlots: number; distinctRepeated: Array<[string, number]> }, sample = 3) =>
+    `${s.totalRepeatedSlots}` +
+    (s.distinctRepeated.length > 0
+      ? ` (${s.distinctRepeated.slice(0, sample).map(([k, c]) => `${c}× "${k.slice(0, 32)}"`).join("; ")})`
+      : "");
+
   return [
     `### ${label} — ${total} batches`,
-    `- ideas total: ${totalIdeas} (avg per batch ${(totalIdeas / Math.max(total, 1)).toFixed(2)})`,
-    `- W2 ideas total: ${totalW2}`,
-    `- batches with ≥1 W2: ${batchesWithAny}/${total} (${((batchesWithAny / Math.max(total, 1)) * 100).toFixed(1)}%)`,
-    `- batches with ≥2 W2: ${batchesWithTwo}/${total}`,
-    `- batches with ≥3 W2 (SHOULD BE 0): ${batchesWithThree}`,
-    `- distinct W2 entryIds across sweep: ${distinctIds.size}`,
-    `- in-batch entryId duplicates (SHOULD BE 0): ${inBatchDups}`,
-    `- cross-batch hook repeats: ${repeatHooks.length}` +
-      (repeatHooks.length > 0
-        ? ` (${repeatHooks.slice(0, 5).map(([h, c]) => `${c}× "${h.slice(0, 40)}"`).join("; ")})`
-        : ""),
+    `- ideas total: ${totalIdeas} (avg per batch ${(totalIdeas / total).toFixed(2)})`,
+    `- W2 ideas total: ${totalW2}/${totalIdeas} (${((totalW2 / Math.max(totalIdeas, 1)) * 100).toFixed(1)}%)`,
+    `- batch W2-count distribution: 0=${dist[0]} | 1=${dist[1]} | 2=${dist[2]} | 3=${dist[3]} (3 SHOULD BE 0)`,
+    `- distinct W2 entryIds across sweep: ${new Set(allEntryIds).size} / ${totalW2} W2 ideas`,
+    `- repeated W2 entryIds (extra slots): ${fmtRepeats(idStats)}`,
+    `- exact W2 hook repeats (extra slots): ${fmtRepeats(hookStats)}` +
+      (allHooks.length !== allW2Hooks.length ? "  [includes non-W2 hooks]" : ""),
+    `- W2 skeleton repeats (extra slots): ${fmtRepeats(skelStats)}`,
+    `- W2 anchor repeats (extra slots): ${fmtRepeats(anchorStats)}`,
+    `- W2 family repeats (extra slots): ${fmtRepeats(familyStats)}`,
+    `- W2 setting repeats (extra slots): ${fmtRepeats(settingStats)}`,
+    `- W2 spike repeats (extra slots): ${fmtRepeats(spikeStats)}`,
+    `- in-batch entryId duplicates (SHOULD BE 0): ${inBatchEntryDups}`,
+    `- in-batch anchor duplicates (SHOULD BE 0): ${inBatchAnchorDups}`,
+    `- in-batch skeleton duplicates (SHOULD BE 0): ${inBatchSkeletonDups}`,
+    `- avg W2 hookQualityScore (${allScores.length} sampled): ${avgScore}`,
     `- errored batches: ${errored}`,
     `- latency avg/min/max: ${avgDuration.toFixed(0)}/${latencyMin}/${latencyMax} ms`,
     "",
@@ -276,41 +383,51 @@ function summarizeLeak(records: LeakRecord[]): string {
         `(errored=${errored}) — ${leaks === 0 ? "CLEAN" : "LEAK!"}`,
     );
   }
-  lines.push(`- TOTAL LEAKS: ${totalLeaks} ${totalLeaks === 0 ? "✅" : "❌"}`);
+  lines.push(`- TOTAL LEAKS: ${totalLeaks} ${totalLeaks === 0 ? "OK" : "FAIL"}`);
   lines.push("");
   return lines.join("\n");
 }
 
 async function main(): Promise<void> {
-  process.stdout.write(`[w2k] hitting ${API_URL}\n`);
-  process.stdout.write(`[w2k] env LUMINA_W2_WESTERN_APPROVED_ENABLED=${process.env.LUMINA_W2_WESTERN_APPROVED_ENABLED ?? "<unset>"}\n`);
+  process.stdout.write(`[w2k2] hitting ${API_URL}\n`);
+  process.stdout.write(
+    `[w2k2] env LUMINA_W2_WESTERN_APPROVED_ENABLED=${process.env.LUMINA_W2_WESTERN_APPROVED_ENABLED ?? "<unset on driver — server-side controls activation>"}\n`,
+  );
+  process.stdout.write(
+    `[w2k2] sweep plan: ON=${WESTERN_ON_BATCHES} OFF=${WESTERN_OFF_BATCHES} leak=${LEAK_REFRESHES}×${LEAK_COHORTS.length}\n`,
+  );
   const t0 = Date.now();
 
-  const onBatches = await runWesternSweep("W2-ON western", WESTERN_ON_BATCHES);
-  const offBatches = await runWesternSweep("W2-OFF western (env-controlled)", WESTERN_OFF_BATCHES);
+  const onBatches = await runWesternSweep("W2-ON", WESTERN_ON_BATCHES, false);
+  const offBatches = await runWesternSweep(
+    "W2-OFF",
+    WESTERN_OFF_BATCHES,
+    true,
+  );
   const leak = await runLeakSweep();
 
   const totalMs = Date.now() - t0;
   const report = [
-    `# PHASE W2-K — Staging QA Report`,
+    `# PHASE W2-K2 — Staging QA Report`,
     ``,
     `_Generated: ${new Date().toISOString()}_`,
     `_Total wall time: ${(totalMs / 1000).toFixed(1)}s_`,
-    `_Server env LUMINA_W2_WESTERN_APPROVED_ENABLED=${process.env.LUMINA_W2_WESTERN_APPROVED_ENABLED ?? "<unset on driver — server-side controls activation>"}_`,
+    `_Server env LUMINA_W2_WESTERN_APPROVED_ENABLED=${process.env.LUMINA_W2_WESTERN_APPROVED_ENABLED ?? "<unset on driver>"}_`,
+    `_Sweep: ON=${WESTERN_ON_BATCHES} OFF=${WESTERN_OFF_BATCHES} (header-toggled) leak=${LEAK_REFRESHES}×${LEAK_COHORTS.length}_`,
     ``,
     `## Western sweep`,
-    summarizeWestern(`W2-ON western (server flag should be ON)`, onBatches),
-    summarizeWestern(`W2-OFF control western (re-run with env unset to compare)`, offBatches),
+    summarizeWestern(`W2 ON (header off)`, onBatches),
+    summarizeWestern(`W2 OFF (header x-lumina-qa-force-w2-off:1)`, offBatches),
     `## Leak gates`,
     summarizeLeak(leak),
   ].join("\n");
   await fs.mkdir(path.dirname(REPORT_PATH), { recursive: true });
   await fs.writeFile(REPORT_PATH, report, "utf8");
-  process.stdout.write(`\n[w2k] wrote ${REPORT_PATH}\n`);
+  process.stdout.write(`\n[w2k2] wrote ${REPORT_PATH}\n`);
   process.stdout.write(report);
 }
 
 main().catch((e) => {
-  process.stderr.write(`[w2k] FATAL ${String((e as Error)?.stack ?? e)}\n`);
+  process.stderr.write(`[w2k2] FATAL ${String((e as Error)?.stack ?? e)}\n`);
   process.exit(1);
 });
