@@ -1,0 +1,67 @@
+Proceed to W2-F — Western P0 Editorial Rewrite Pass.
+
+Scope:
+Rewrite only the P0 entries from W2-E:
+Top 100 candidates with visible-action or anchor-cohesion gaps.
+
+Do not rewrite P1/P2/P3 yet.
+Do not rewrite all 81 entries.
+Do not activate the corpus.
+Do not wire runtime.
+Do not add slot reservation.
+Do not change scoring.
+Do not change validators.
+Do not touch Nigerian pack behavior.
+Do not touch N1 flags.
+Do not touch India/Philippines behavior.
+Do not change Claude behavior.
+Do not add migrations.
+Do not expose API surface.
+
+Goal:
+Fix the 28 P0 entries so they are promotion-ready by improving:
+1. visible behavior in whatToShow
+2. anchor presence in whatToShow
+3. scenario specificity
+4. one-person filmability
+
+Rules:
+- Prefer changing only whatToShow when the hook is already strong.
+- Only change hook if the hook itself is the problem.
+- Do not weaken the comedic idea.
+- Keep howToFilm if it already sounds human and useful.
+- Keep caption unless it no longer matches after rewrite.
+- Preserve ids.
+- Preserve reviewedBy: PENDING_EDITORIAL_REVIEW.
+- Corpus remains DARK.
+
+For each P0 entry:
+1. Apply the minimal rewrite needed.
+2. Ensure the anchor token appears in whatToShow.
+3. Ensure whatToShow includes a concrete visible action.
+4. Ensure hook, whatToShow, howToFilm, and caption still describe the same atomic idea.
+5. Avoid generic “stare / walk away / object wins” scenarios unless paired with a concrete behavior.
+
+After applying:
+- Re-run Western draft integrity QA.
+- Re-run W2-D editorial ranker.
+- Re-run westernHookPack tests and typecheck.
+
+Report:
+- number of P0 entries rewritten
+- ids rewritten
+- before/after score movement
+- remaining Top 100 blocked entries
+- visible-action gap count before/after
+- anchor-cohesion gap count before/after
+- duplicate/triplet status
+- corpus still DARK confirmation
+- tests/typecheck result
+
+Acceptance:
+- P0 blocked count should drop materially, ideally to 0.
+- Top 100 promotion pool should become cleaner.
+- No new duplicate hooks.
+- No weak banned skeletons.
+- No privacy/safety hits.
+- No runtime changes.

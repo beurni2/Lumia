@@ -300,7 +300,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-007",
       hook: "filming a gym story from the couch like nobody will notice",
       whatToShow:
-        "You angle the camera at sneakers, a water bottle, or workout clothes while clearly sitting on the couch.",
+        "You lie on the couch and angle the camera at sneakers and a water bottle so the gym story posts without anyone noticing the cushion behind you.",
       howToFilm:
         "Make it look like you're trying to hide the couch from the frame and failing. A tiny pan revealing the blanket or remote sells the lie without needing a word.",
       caption: "fitness content, emotionally.",
@@ -342,7 +342,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-010",
       hook: "checking one notification and losing the entire plot",
       whatToShow:
-        "You pick up your phone to check one notification, then end up deep in another app with no memory of why you started.",
+        "You tap the notification, open the app, scroll for forty seconds, and lose all memory of why you picked the phone up in the first place.",
       howToFilm:
         "Start with a clear mission: one notification. Then jump cut through two or three tiny phone movements until you're completely somewhere else. End with you looking confused at your own screen.",
       caption: "i left to get one thing and came back a different person.",
@@ -398,7 +398,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-014",
       hook: "refreshing the tracking page like i can intimidate the package",
       whatToShow:
-        "You refresh a package tracking page over and over even though it hasn't moved in hours.",
+        "You open the tracking page for the package, swipe down to refresh, stare at the unchanged timestamp, and swipe down again like you can intimidate it.",
       howToFilm:
         "Keep the tracking screen fake or blurred. Focus on the physical ritual: refresh, lean in, refresh harder, lean back defeated.",
       caption: "the package and i are in negotiations.",
@@ -538,7 +538,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-024",
       hook: "watching my own story like i didn't just post it",
       whatToShow:
-        "You post a story, then immediately watch it from your own profile like you're part of the audience.",
+        "You tap to post the story, open your own profile, and scroll to your story to watch it like you're part of the audience.",
       howToFilm:
         "Film your hand tapping into your own story, then cut to your face judging it like a stranger uploaded it. Keep the embarrassment tiny and real.",
       caption: "viewer number one.",
@@ -566,7 +566,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-026",
       hook: "bringing a water bottle to feel like a better person",
       whatToShow:
-        "You carry a water bottle around proudly, then never actually drink from it.",
+        "You grab a water bottle, place it next to the laptop with intention, glance at it every ten minutes, and never actually take a sip.",
       howToFilm:
         "Let the bottle be visible in multiple little moments: desk, couch, doorway. Each time, you move it like a prop from your improved life.",
       caption: "hydration, but mostly branding.",
@@ -580,7 +580,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-027",
       hook: "standing in workout clothes waiting for motivation to arrive",
       whatToShow:
-        "You put on workout clothes, stand in the room ready, then slowly sit down without starting.",
+        "You put on the workout clothes, stand in the middle of the room waiting for motivation to land, then sit down without starting a single thing.",
       howToFilm:
         "Frame it like a workout intro. Shoes tied, water nearby, serious face. Then let the energy drain out in real time until you're just sitting there.",
       caption: "outfit did its part.",
@@ -622,7 +622,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-030",
       hook: "packing a bag like i'm moving out for one errand",
       whatToShow:
-        "You pack a bag for a simple errand and somehow add charger, water, snack, backup sweater, and things you absolutely won't need.",
+        "You open the bag for one quick errand, place the charger inside, then a water bottle, then a snack, then a backup sweater nobody asked for.",
       howToFilm:
         "Shoot from above or bed-level. Each extra item should feel more unnecessary than the last. End by struggling to zip the bag for a 20-minute outing.",
       caption: "emotionally preparing for survival.",
@@ -706,7 +706,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-036",
       hook: "setting a timer and then negotiating with it",
       whatToShow:
-        "You set a focus timer, start working, then immediately pause it because you 'need one thing' first.",
+        "You tap the timer to start a focus block, sit down at the desk, then immediately press pause because you 'need one thing' first.",
       howToFilm:
         "Show the timer starting like a serious commitment. Then show your finger hovering over pause way too soon. The guilt is the whole joke.",
       caption: "the timer met my personality.",
@@ -762,7 +762,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-040",
       hook: "checking the mirror for confidence and leaving with questions",
       whatToShow:
-        "You check your outfit in the mirror, start confident, then notice one tiny thing and unravel.",
+        "You stand at the mirror, adjust the outfit, lean in to fix one tiny thing, then squint at another and slowly unravel.",
       howToFilm:
         "Use a mirror angle but keep it casual. The first look should be approving. Then one adjustment turns into five. End before it gets too polished.",
       caption: "the mirror opened a case.",
@@ -804,7 +804,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-043",
       hook: "rewatching my own video like i'm investigating a crime",
       whatToShow:
-        "You replay your own clip, pause at a weird face, zoom in, and reconsider posting.",
+        "You open the video, tap pause on a weird face, lean in to squint at it, and reconsider posting.",
       howToFilm:
         "Use a fake clip or your camera roll blurred. The zoom-in is the punchline. React like you found evidence against yourself.",
       caption: "editor, detective, victim.",
@@ -1008,7 +1008,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-007",
         hook: "screenshotting one reply for a full investigation",
         whatToShow:
-          "You screenshot a short fake reply, zoom in on one word, and study it like evidence.",
+          "You tap screenshot on a short fake reply, lean in to zoom on one word, and stare at it like it is evidence.",
         howToFilm:
           "Bedroom setup, phone close enough to understand the action but fake enough to avoid real messages. Let your face slowly become detective mode.",
         caption: "one text, three theories.",
@@ -1050,7 +1050,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-010",
         hook: "finding the typo after the message is already gone",
         whatToShow:
-          "You send a message, reread it, notice the typo, and freeze like the room temperature changed.",
+          "You tap send, scroll back to reread the message, spot the typo, and stare at the screen like the room temperature just changed.",
         howToFilm:
           "Show the fake send, then cut to your eyes catching the typo. Don't overdo the facepalm; a tiny frozen stare is funnier.",
         caption: "proofread after disaster.",
@@ -1064,7 +1064,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-011",
         hook: "taking twelve story selfies to look effortless",
         whatToShow:
-          "You take selfie after selfie, each one slightly different, then review them like you're casting a movie.",
+          "You tap to take selfie after selfie, swipe through them, and stare at each one like you are casting a movie.",
         howToFilm:
           "Bathroom mirror or window light works. Let the repetition build: pose, check, delete, pose again. By the end, your face should be tired of your face.",
         caption: "effortless took 14 minutes.",
@@ -1246,7 +1246,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-024",
         hook: "watering plants like the deadline is theirs",
         whatToShow:
-          "You carefully water every plant while a timer, laptop, or assignment waits in the background.",
+          "You lean over the plants, pour water into each pot one by one, and glance back at the laptop where the deadline still waits.",
         howToFilm:
           "Living room wide shot. Move slowly and responsibly with the plants, then cut to the work still sitting there untouched.",
         caption: "plants got my attention first.",
@@ -1260,7 +1260,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-025",
         hook: "rearranging desktop icons like the work will respect me",
         whatToShow:
-          "You drag icons into neat folders while the real document waits untouched.",
+          "You drag desktop icons into neat folders, adjust the wallpaper, and glance at the real document still sitting blank.",
         howToFilm:
           "Desk close-up on the laptop and your hands. The satisfied nod after organizing icons should be way too proud for what just happened.",
         caption: "digital cleaning, real avoidance.",
@@ -1414,7 +1414,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-036",
         hook: "talking on mute with full confidence",
         whatToShow:
-          "You answer a fake call question, speak for several seconds, then notice you're still muted.",
+          "You sit in front of the laptop, lean toward the mic to answer the call question, talk for several seconds, then glance at the screen and see you are still on mute.",
         howToFilm:
           "Desk selfie style. The confidence before the mute discovery is everything. Let the realization hit slowly, then frantic unmute.",
         caption: "gave a speech to myself.",
@@ -1484,7 +1484,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-041",
         hook: "one last mirror check becoming a full audit",
         whatToShow:
-          "You check the mirror before leaving, fix one thing, then another, then another.",
+          "You lean toward the mirror for one last check, adjust your collar, then your hair, then squint at the lighting and start an unscheduled audit.",
         howToFilm:
           "Hallway mirror angle. Start casual, then let each tiny fix make you more suspicious of the whole outfit.",
         caption: "mirror opened an investigation.",
@@ -1526,7 +1526,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-044",
         hook: "walking to the door and remembering my charger like a plot twist",
         whatToShow:
-          "You head toward the door, stop suddenly, and turn back for the charger.",
+          "You walk toward the door, stop suddenly, and pace back to grab the charger off the desk.",
         howToFilm:
           "Hallway tracking shot. Keep the walk normal, then make the stop abrupt like your brain just shouted from another room.",
         caption: "charger remembered me first.",
@@ -1704,7 +1704,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-006",
         hook: "checking the delivery map like i'm tracking a fugitive",
         whatToShow:
-          "You zoom in on the delivery map, whispering at the tiny car icon like your driver can hear you.",
+          "You open the delivery app, lean in to zoom on the tiny car icon, and whisper at it like your driver can hear you.",
         howToFilm:
           "Show a fake or blurred map first, then cut to you peeking through the blinds like this is a stakeout. Keep it serious.",
         caption: "two minutes away has never felt so personal.",
@@ -1844,7 +1844,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-016",
         hook: "filming a day-in-the-life and quitting before lunch",
         whatToShow:
-          "You start with cute coffee and shoe shots, then cut to yourself lying on the floor with the camera abandoned beside you.",
+          "You set up the vlog, film cute coffee and shoe shots, then collapse onto the floor with the camera tossed beside you.",
         howToFilm:
           "Begin like a polished mini-vlog. Then do a hard cut to the camera on the floor and you staring at nothing. Let the contrast do the work.",
         caption: "the vlog died so the nap could live.",
@@ -1872,7 +1872,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-018",
         hook: "rereading my own text to see if the vibe is annoying",
         whatToShow:
-          "You hold the phone at arm's length, squint at your sent message, and slowly realize you may have overdone it.",
+          "You hold the phone at arm's length, squint at your sent message, and slowly realize the vibe came out way too keen.",
         howToFilm:
           "Handheld and close. Let your face shift from proud to concerned in three seconds. Keep the fake message simple.",
         caption: "my own worst pen pal.",
@@ -1928,7 +1928,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-022",
         hook: "doing one reset task and acting like i earned a vacation",
         whatToShow:
-          "You wipe one counter or put one item away, then collapse onto the couch like you completed a full life overhaul.",
+          "You wipe one counter as your 'reset' task, put away a single mug, then collapse onto the couch like you completed a full life overhaul.",
         howToFilm:
           "Film the tiny task quickly, then make the reward part slow and dramatic. The imbalance is the joke.",
         caption: "one surface cleaned, ego restored.",
@@ -1942,7 +1942,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-023",
         hook: "checking my drafts like a graveyard of confidence",
         whatToShow:
-          "You scroll through half-finished draft videos, wince at old ideas, and quietly close the app.",
+          "You open your drafts, scroll through the half-finished videos, wince at old ideas, and quietly close the app.",
         howToFilm:
           "Use dramatic low light if you want. Scroll slowly, like each draft is a past version of you asking for forgiveness.",
         caption: "some drafts are buried for a reason.",
@@ -1984,7 +1984,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-026",
         hook: "replying 'just saw this' like the message wasn't aging in my phone",
         whatToShow:
-          "You look at a three-day-old fake message, pretend to discover it for the first time, and type the lie.",
+          "You look at a three-day-old fake message, pretend to discover it for the first time, and type the reply 'just saw this' like the lie is harmless.",
         howToFilm:
           "Tight on your eyes doing fake surprise. Then show the timestamp for half a second so the lie has evidence against it.",
         caption: "a diplomatic lie.",
@@ -2208,7 +2208,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-042",
         hook: "deleting half my text because it sounded too excited",
         whatToShow:
-          "You type an enthusiastic reply, stare at it, then edit it down into something painfully neutral.",
+          "You type an excited reply, stare at it for too long, then delete words one by one until the excited tone is completely gone.",
         howToFilm:
           "Show the genuine happy version first. Then cut to the edited version and your face trying to act emotionally regulated.",
         caption: "must maintain mysterious distance.",
@@ -2250,7 +2250,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-045",
         hook: "rerecording the voice memo because my ending voice changed species",
         whatToShow:
-          "You record a voice memo, hear your tone get weird at the end, cancel it, and start over with a fake calmer voice.",
+          "You tap to record the voice memo, lean closer to hear your tone get weird at the end, swipe to cancel, then press record again with a fake calmer voice.",
         howToFilm:
           "Hold the phone like a walkie-talkie. The cancel swipe should be immediate. On take two, overcorrect your voice just enough to be funny.",
         caption: "who was speaking at the end.",
@@ -2278,7 +2278,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-047",
         hook: "taking a perfect meal photo and then eating like nobody raised me",
         whatToShow:
-          "You carefully stage a pretty meal photo, then immediately drop the elegance and eat like the camera was never there.",
+          "You place the meal on a plate, adjust the angle for one perfect photo, then drop the elegance and eat like the camera was never there.",
         howToFilm:
           "Start with the calm influencer shot: plate, angle, little adjustment. Then cut to the real version with messy enthusiasm and zero performance.",
         caption: "aesthetic lasted six seconds.",
@@ -2320,7 +2320,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-050",
         hook: "checking the mirror in public and pretending it was casual",
         whatToShow:
-          "You pass a reflective surface, glance at yourself, get caught looking, and pretend you were checking something nearby.",
+          "You glance at yourself in a store-window mirror, get caught looking, and pretend you were adjusting a sleeve the entire time.",
         howToFilm:
           "Use a mirror, window, or dark phone screen. The recovery is the key: point at nothing, adjust a sleeve, act like this was always the plan.",
         caption: "reflection audit interrupted.",
