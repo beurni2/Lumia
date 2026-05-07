@@ -569,3 +569,254 @@ export function canApplyWesternWeakSkeletonQuota(
   }
   return canApplyWesternHookAdjustments(input);
 }
+
+// ---------------------------------------------------------------- //
+// PHASE W1.4 — Western hook specificity upgrade                     //
+// ---------------------------------------------------------------- //
+//
+// W1.3 stopped a small set of skeleton TEMPLATES from flooding the
+// merged pool, but the W1.3 ON shipped sample still contains
+// generic-template comedy that pre-W1.3 weak-skeleton detection
+// doesn't classify, e.g.
+//
+//   "the bed itself isn't the problem. i am."
+//   "i avoided the pan AGAIN. AGAIN!!!"
+//   "watched myself fake the gym live"          (drift toward generic)
+//   "one inbox aged me 10 years visibly"
+//   "the inbox ruined my villain arc"
+//
+// And it lacks a positive bias toward the spec's preferred direction:
+//
+//   "opening the fridge like new food spawned"
+//   "checking the post like the likes owe me rent"
+//   "filming a gym story from the couch like nobody will notice"
+//   "saying I'm leaving, then sitting down for 18 more minutes"
+//
+// W1.4 adds a SECOND, parallel, deterministic scoring layer on top of
+// W1's `computeWesternHookAdjustment` — same cohort gate, same call
+// site, but with an orthogonal signal set. The two layers compose by
+// addition; no validator or anti-copy or safety semantics changes.
+//
+// Two signal axes:
+//
+//   (A) GENERIC_TEMPLATE_PATTERNS — narrowly-scoped regexes that
+//       match the weak-but-not-W1-classified template shapes shown
+//       in the W1.3 ON QA sample. Each pattern hit = -DEMOTION,
+//       capped at MAX_DEMOTION so a single hook can't be demoted
+//       beyond a sane bound.
+//
+//   (B) SPECIFIC_BEHAVIOR_SIGNALS — gerund-led action openers,
+//       "like X" comparison structure, concrete numeric duration,
+//       and self-betrayal "X, then Y" structure. Each = +REWARD,
+//       capped at MAX_REWARD.
+//
+// Like W1, the two axes are MUTUALLY EXCLUSIVE per hook: if any
+// generic-template fires, the specificity reward path is skipped
+// (a hook that hits a known template AND has concrete-action verbs
+// is still demoted on net — the template signal dominates).
+//
+// Demotion-only NET on template hits, never a hard filter. Even a
+// fully-demoted hook ships if it's the sole survivor in its core.
+
+// ----- (A) generic-template patterns -----
+//
+// Curated ONLY from shapes observed in the W1.3 ON shipped sample.
+// Each pattern is intentionally narrow (multi-token shape, not a
+// single common word) so legitimate creator phrasing isn't caught.
+
+interface WesternGenericTemplatePattern {
+  readonly id: string;
+  readonly hookPattern: RegExp;
+}
+
+export const WESTERN_GENERIC_TEMPLATE_PATTERNS: ReadonlyArray<WesternGenericTemplatePattern> =
+  [
+    // "quietly realized the towel itself is the personality"
+    // "quiet realization: the inbox itself is anxiety now"
+    // Listed FIRST so it wins over `anchor_itself_is_abstract_noun`
+    // for hooks that carry both markers (the meta-narration is the
+    // stronger template signal). The two patterns can also stack:
+    // see the multi-template demotion test where both fire and the
+    // demotion accumulates to the cap.
+    {
+      id: "quiet_realization_template",
+      hookPattern:
+        /(?:\bquiet\s+realization\b|\bquietly\s+realiz(?:ed|ation)\b)/i,
+    },
+    // "the bed itself isn't the problem. i am."
+    {
+      id: "anchor_itself_isnt_the_problem",
+      hookPattern: /\b(?:the|my)\s+\w+(?:[-\s]\w+)?\s+itself\s+isn'?t\s+the\s+problem\b/i,
+    },
+    // "the inbox itself is the entire pattern"
+    // "the inbox itself is anxiety now"
+    // "the towel itself is the personality"
+    {
+      id: "anchor_itself_is_abstract_noun",
+      hookPattern:
+        /\b(?:the|my)\s+\w+(?:[-\s]\w+)?\s+itself\s+is\s+(?:the\s+entire\s+pattern|anxiety|the\s+personality|the\s+plot|the\s+villain)\b/i,
+    },
+    // "one inbox aged me 10 years visibly"
+    {
+      id: "aged_me_n_years",
+      hookPattern: /\baged\s+me\s+\d+\s+years?\b/i,
+    },
+    // "i ignored the wallpaper AGAIN. AGAIN!!!"
+    // "i avoided the pan AGAIN. AGAIN!!!"
+    // Repeated emphatic AGAIN is a clear template marker — case-
+    // sensitive on at least one occurrence to avoid catching the
+    // ordinary lowercase word.
+    {
+      id: "repeated_emphatic_again",
+      hookPattern: /\bAGAIN[.!]?\s+AGAIN[!.]*/,
+    },
+    // "the inbox ruined my villain arc"
+    // "the junk ruined my villain arc"
+    {
+      id: "ruined_my_villain_arc",
+      hookPattern: /\bruined\s+my\s+villain\s+arc\b/i,
+    },
+    // "i CANNOT stop avoiding the fork. i CANNOT"
+    // "i CANNOT stop claiming the couch. i CANNOT"
+    {
+      id: "i_cannot_stop_doubled",
+      hookPattern: /\bi\s+CANNOT\s+stop\b/,
+    },
+    // "WHY does the alarm keep snoozing itself"
+    // "WHY does the sink keep ignoring itself"
+    {
+      id: "why_does_anchor_keep_verbing_itself",
+      hookPattern:
+        /\bWHY\s+does\s+(?:the|my)\s+\w+\s+keep\s+\w+ing\s+itself\b/,
+    },
+    // "the tasks drained the whole battery"
+    {
+      id: "drained_the_whole_battery",
+      hookPattern: /\bdrained\s+the\s+whole\s+battery\b/i,
+    },
+    // "the mirror broke me!! and I'M NOT FINE"
+    // "this is where the gift broke me"
+    // Anchor-broke-me as a rigid template; require the noun-phrase
+    // shape to avoid catching legitimate "broke me" usage in long
+    // narrative hooks.
+    {
+      id: "anchor_broke_me",
+      hookPattern: /\b(?:the|my)\s+\w+(?:[-\s]\w+)?\s+broke\s+me\b/i,
+    },
+    // "watched myself fake the gym live"
+    // The shape "watched myself <verb> the X live" is a generic
+    // self-observation template (the verb slot is filler).
+    {
+      id: "watched_myself_verb_anchor_live",
+      hookPattern:
+        /\bwatched\s+myself\s+\w+\s+(?:the|my)\s+\w+\s+live\b/i,
+    },
+  ];
+
+/**
+ * Returns the matched generic-template family id (or null) for a hook.
+ * First-match wins; the table is intentionally narrow so collisions are
+ * rare. Stable + deterministic for tests.
+ */
+export function classifyWesternGenericTemplateFamily(
+  hook: string,
+): string | null {
+  if (!hook) return null;
+  for (const fam of WESTERN_GENERIC_TEMPLATE_PATTERNS) {
+    if (fam.hookPattern.test(hook)) return fam.id;
+  }
+  return null;
+}
+
+// ----- (B) specificity reward signals -----
+//
+// Gerund-led openers ("opening the fridge like new food spawned…")
+// — anchored at hook start so middle-of-sentence verbs from W1's
+// existing VISIBLE_ACTION_VERBS don't double-count.
+
+const W14_GERUND_OPENER: RegExp =
+  /^\s*(?:opening|checking|filming|hovering|saying|sitting|making|drafting|hitting|previewing|swiping|texting|clicking|tapping|reading|practicing|rehearsing|posting|deleting|scrolling|pretending|holding|carrying|wearing|standing|walking|leaving|ordering|booking|writing|recording|narrating|whispering|mouthing|typing|previewing|reviewing|editing|cropping)\b/i;
+
+// "like new food spawned" / "like that counts" / "like the likes owe me"
+// — comparison structure. Distinct from W1's POSTING_ANXIETY.
+const W14_LIKE_COMPARISON: RegExp =
+  /\blike\s+(?:that\s+counts|nobody|new\s+\w+\s+spawned|the\s+\w+\s+(?:owes?|owe)|i'?m\s+\w+|the\s+\w+\s+can\s+(?:fight|hear|see|reply|punish))\b/i;
+
+// "saying I'm leaving, then sitting down" — "X, then Y" inversion
+// where X is a stated intent and Y is the betrayal action. Distinct
+// from W1's SELF_BETRAYAL_CONTRADICTION ("said I was X and …").
+const W14_THEN_BETRAYAL: RegExp =
+  /\b(?:saying|said)\s+(?:i'?m|i\s*am|i'?ll)\s+\w+(?:\s+\w+){0,3},?\s+then\s+\w+ing\b/i;
+
+// "for 18 more minutes" / "for 20 minutes" — concrete numeric
+// durations make a hook visibly filmable.
+const W14_CONCRETE_DURATION: RegExp =
+  /\bfor\s+\d+\s+(?:more\s+)?(?:second|minute|hour|day)s?\b/i;
+
+const W14_REWARD_PER_AXIS = 5;
+export const WESTERN_W14_REWARD_CAP = 15;
+const W14_DEMOTION_PER_MATCH = 10;
+export const WESTERN_W14_DEMOTION_CAP = 20;
+
+/**
+ * Compute the W1.4 specificity adjustment (signed). Returns 0 for any
+ * cohort that doesn't pass the cohort gate. Composition rule mirrors
+ * W1: if any generic-template fires, only the demotion path runs;
+ * otherwise the specificity reward path runs. Caps applied per axis.
+ */
+export function computeWesternSpecificityAdjustment(
+  input: Pick<WesternHookAdjustmentInput, "hook" | "region" | "languageStyle">,
+): number {
+  // QA-only diagnostic kill-switch: lets the W1.4 live-QA harness
+  // collect a matched OFF baseline against the same running server.
+  // Hard-gated to non-production: even if the env var leaked into a
+  // deployed environment it would be a no-op when NODE_ENV ===
+  // "production". Strictly off by default.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.LUMINA_W1_4_DISABLE_FOR_QA === "1"
+  ) {
+    return 0;
+  }
+  if (!canApplyWesternHookAdjustments(input)) return 0;
+  const hook = input.hook ?? "";
+  if (!hook) return 0;
+  let demotion = 0;
+  for (const fam of WESTERN_GENERIC_TEMPLATE_PATTERNS) {
+    if (fam.hookPattern.test(hook)) {
+      demotion += W14_DEMOTION_PER_MATCH;
+      if (demotion >= WESTERN_W14_DEMOTION_CAP) {
+        return -WESTERN_W14_DEMOTION_CAP;
+      }
+    }
+  }
+  if (demotion > 0) return -demotion;
+  let reward = 0;
+  if (W14_GERUND_OPENER.test(hook)) reward += W14_REWARD_PER_AXIS;
+  if (W14_LIKE_COMPARISON.test(hook)) reward += W14_REWARD_PER_AXIS;
+  if (W14_THEN_BETRAYAL.test(hook)) reward += W14_REWARD_PER_AXIS;
+  if (W14_CONCRETE_DURATION.test(hook)) reward += W14_REWARD_PER_AXIS;
+  if (reward === 0) return 0;
+  return Math.min(reward, WESTERN_W14_REWARD_CAP);
+}
+
+/**
+ * Activation gate for the W1.4 specificity upgrade. Mirrors
+ * `canApplyWesternHookAdjustments` (region-only) plus a non-prod env
+ * kill-switch (`LUMINA_W1_4_DISABLE_FOR_QA=1`) so the QA harness can
+ * collect a matched OFF baseline against the same running server.
+ *
+ * Independent from W1, W1.2, and W1.3 kill-switches — flipping one
+ * does not affect the others, so the QA harness can isolate any layer.
+ */
+export function canApplyWesternSpecificityUpgrade(
+  input: Pick<WesternHookAdjustmentInput, "region" | "languageStyle">,
+): boolean {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.LUMINA_W1_4_DISABLE_FOR_QA === "1"
+  ) {
+    return false;
+  }
+  return canApplyWesternHookAdjustments(input);
+}

@@ -99,7 +99,10 @@ import {
 // recipe path. Returns 0 for non-western cohorts via its own gate so
 // the call site is branch-free. See westernHookQuality.ts for the
 // helper contract + magnitudes.
-import { computeWesternHookAdjustment } from "./westernHookQuality.js";
+import {
+  computeWesternHookAdjustment,
+  computeWesternSpecificityAdjustment,
+} from "./westernHookQuality.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -1376,7 +1379,22 @@ export function generateCoreCandidates(
         languageStyle: packLanguageStyle,
         recentSkeletons: recentCatalogSkeletons,
       });
-      const quality = baseQuality - stylePenalty + westernAdjustment;
+      // PHASE W1.4 — orthogonal specificity upgrade. Same cohort gate
+      // (region undefined OR "western"), separate non-prod kill-switch
+      // (`LUMINA_W1_4_DISABLE_FOR_QA=1`). Demotes the weak-but-not-
+      // W1-classified template shapes observed in the W1.3 ON sample
+      // (e.g. "X itself isn't the problem", "AGAIN. AGAIN!!!", "aged
+      // me N years", "ruined my villain arc"); rewards gerund-led
+      // action openers, "like X" comparison structure, "X, then Y"
+      // self-betrayal, and concrete numeric durations. Composes by
+      // addition with W1; pack candidates skip this branch (above).
+      const w14Adjustment = computeWesternSpecificityAdjustment({
+        hook: result.idea.hook,
+        region: input.region,
+        languageStyle: packLanguageStyle,
+      });
+      const quality =
+        baseQuality - stylePenalty + westernAdjustment + w14Adjustment;
       // PHASE W1.1 AUDIT — tally per-recipe adjustment outcome for the
       // western/default cohort. Sign is the policy signal: <0 demoted,
       // >0 boosted (specificity bonus), ===0 net no-op (helper returned

@@ -1,0 +1,112 @@
+W1.3 accepted.
+
+Keep W1.3 enabled in staging.
+
+Result:
+- merged weak skeleton occurrences dropped from 70 to 16
+- repeated-family count dropped from 22 to 2
+- totally_fine_about dropped from 45 to 7
+- is_it_really_still_about dropped from 25 to 9
+- exact hook duplicates remained 0
+- non-western smoke clean
+
+However, shipped Western hooks are still not funny/specific enough.
+W1.3 fixed upstream skeleton flooding, but the replacement candidates still feel generic.
+
+Proceed to Phase W1.4 — Western Hook Specificity Upgrade.
+
+Goal:
+Improve final shipped Western/default hooks by converting generic object/template comedy into specific, filmable micro-behavior comedy.
+
+Scope:
+Western/default catalog only.
+
+Hard rules:
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not touch Pidgin scorer.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change anti-copy.
+- Do not change safety/privacy.
+- Do not add a Western pack yet.
+- Do not add corpus yet.
+- Do not change Claude prompts.
+- Do not change QA thresholds.
+- Keep W1/W1.2/W1.3 intact.
+
+Problem examples still shipping:
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+- “I am totally fine about the wifi”
+- “I am totally fine about the meal prep”
+- “the bed itself isn't the problem. i am.”
+- “i ignored the wallpaper AGAIN. AGAIN!!!”
+- “watched myself fake the gym live”
+- “i avoided the pan AGAIN. AGAIN!!!”
+
+Task:
+Add a Western/default hook specificity upgrade layer that rewards or rewrites toward:
+- specific visible action
+- self-betrayal
+- private embarrassment
+- social/posting anxiety
+- concrete micro-behavior
+- filmable moment
+- natural creator phrasing
+
+Do not use LLMs for this.
+Do not make broad rewrites.
+Keep it deterministic and scoped.
+
+Preferred direction:
+- “opening the fridge like new food spawned”
+- “checking the post like the likes owe me rent”
+- “filming a gym story from the couch like nobody will notice”
+- “changing my wallpaper like that counts as fixing my life”
+- “saying I’m leaving, then sitting down for 18 more minutes”
+- “hovering over send like the text can fight back”
+- “making a to-do list and immediately betraying it”
+
+Implementation guidance:
+1. Identify the most common weak-but-not-capped Western shipped patterns after W1.3.
+2. Add deterministic replacement templates or stronger scoring preference for specific behavior hooks.
+3. Keep scenario coherence intact: hook, whatToShow, and howToFilm must still match.
+4. If replacing a hook would break scenario coherence, do not replace; demote instead.
+5. Apply only to Western/default candidates.
+6. Keep all existing validators intact.
+
+QA:
+Run real /api/ideator/generate for Western/default:
+- W1.4 OFF baseline: 10 refreshes / 30 ideas
+- W1.4 ON: 20 refreshes / 60 ideas
+
+Also run smoke:
+- Nigeria + pidgin
+- Nigeria + light_pidgin
+- India
+- Philippines
+
+Report:
+- shipped weak-template rate
+- shipped generic-object rate
+- strongest 20 hooks
+- weakest 20 hooks
+- exact duplicates
+- repeated skeletons
+- scenario match quality
+- refresh success/timeouts
+- safety/privacy
+- N1 smoke unchanged
+- India/PH smoke unchanged
+
+Acceptance:
+- shipped hooks feel more specific and filmable
+- weak/generic-object hooks reduced
+- no exact hook duplicates
+- refresh success >=90%
+- no safety/privacy regressions
+- Nigerian pack unaffected
+- India/Philippines unaffected
+- tests pass
+- typecheck clean

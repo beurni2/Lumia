@@ -24,12 +24,18 @@ import {
   WESTERN_WEAK_QUOTA_MAX_PER_FAMILY,
   WESTERN_WEAK_QUOTA_MAX_TOTAL,
   WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN,
+  WESTERN_GENERIC_TEMPLATE_PATTERNS,
+  WESTERN_W14_REWARD_CAP,
+  WESTERN_W14_DEMOTION_CAP,
   applyWesternWeakSkeletonQuota,
   canApplyWesternHookAdjustments,
   canApplyWesternWeakSkeletonQuota,
+  canApplyWesternSpecificityUpgrade,
+  classifyWesternGenericTemplateFamily,
   classifyWesternWeakCandidate,
   classifyWesternWeakSkeletonFamily,
   computeWesternHookAdjustment,
+  computeWesternSpecificityAdjustment,
   isGenericWhatToShow,
 } from "../westernHookQuality.js";
 import { normalizeHookToSkeleton } from "../catalogTemplateCreatorMemory.js";
@@ -658,5 +664,325 @@ describe("W1.3 — canApplyWesternWeakSkeletonQuota cohort gate", () => {
       if (prevFlag3 === undefined) delete process.env.LUMINA_W1_3_DISABLE_FOR_QA;
       else process.env.LUMINA_W1_3_DISABLE_FOR_QA = prevFlag3;
     }
+  });
+});
+
+describe("W1.4 — classifyWesternGenericTemplateFamily", () => {
+  it("matches the 'X itself isn't the problem' template", () => {
+    expect(classifyWesternGenericTemplateFamily("the bed itself isn't the problem. i am.")).toBe(
+      "anchor_itself_isnt_the_problem",
+    );
+    expect(classifyWesternGenericTemplateFamily("the gym itself isn't the problem. i am.")).toBe(
+      "anchor_itself_isnt_the_problem",
+    );
+  });
+  it("matches the 'X itself is the entire pattern / anxiety / personality' template", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("the inbox itself is the entire pattern"),
+    ).toBe("anchor_itself_is_abstract_noun");
+    // Without the 'quiet realization' prefix marker, since that
+    // pattern is listed first and would win on a hook carrying both.
+    expect(
+      classifyWesternGenericTemplateFamily("the inbox itself is anxiety now"),
+    ).toBe("anchor_itself_is_abstract_noun");
+  });
+  it("matches the 'aged me N years' template", () => {
+    expect(classifyWesternGenericTemplateFamily("one inbox aged me 10 years visibly")).toBe(
+      "aged_me_n_years",
+    );
+    expect(classifyWesternGenericTemplateFamily("one gym aged me 10 years visibly")).toBe(
+      "aged_me_n_years",
+    );
+  });
+  it("matches the repeated emphatic AGAIN template", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("i ignored the wallpaper AGAIN. AGAIN!!!"),
+    ).toBe("repeated_emphatic_again");
+    expect(
+      classifyWesternGenericTemplateFamily("i avoided the pan AGAIN. AGAIN!!!"),
+    ).toBe("repeated_emphatic_again");
+  });
+  it("matches the 'ruined my villain arc' template", () => {
+    expect(classifyWesternGenericTemplateFamily("the inbox ruined my villain arc")).toBe(
+      "ruined_my_villain_arc",
+    );
+    expect(classifyWesternGenericTemplateFamily("the junk ruined my villain arc")).toBe(
+      "ruined_my_villain_arc",
+    );
+  });
+  it("matches the 'i CANNOT stop' template (case-sensitive on CANNOT)", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("i CANNOT stop avoiding the fork. i CANNOT"),
+    ).toBe("i_cannot_stop_doubled");
+    // lowercase "i cannot stop" is too common in normal speech — do
+    // not classify as template.
+    expect(classifyWesternGenericTemplateFamily("i cannot stop laughing")).toBeNull();
+  });
+  it("matches the 'WHY does the X keep ...ing itself' template", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("WHY does the alarm keep snoozing itself"),
+    ).toBe("why_does_anchor_keep_verbing_itself");
+  });
+  it("matches the 'drained the whole battery' template", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("the tasks drained the whole battery"),
+    ).toBe("drained_the_whole_battery");
+  });
+  it("matches the 'X broke me' template (with noun-phrase shape)", () => {
+    expect(classifyWesternGenericTemplateFamily("the mirror broke me!! and I'M NOT FINE")).toBe(
+      "anchor_broke_me",
+    );
+    expect(classifyWesternGenericTemplateFamily("this is where the gift broke me")).toBe(
+      "anchor_broke_me",
+    );
+  });
+  it("matches the 'quiet realization' / 'quietly realized' marker", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("quietly realized the towel itself is the personality"),
+    ).toBe("quiet_realization_template");
+    expect(
+      classifyWesternGenericTemplateFamily("quiet realization: the inbox itself is anxiety now"),
+    ).toBe("quiet_realization_template");
+  });
+  it("matches the 'watched myself <verb> the X live' template", () => {
+    expect(classifyWesternGenericTemplateFamily("watched myself fake the gym live")).toBe(
+      "watched_myself_verb_anchor_live",
+    );
+  });
+  it("returns null for legitimate creator phrasing", () => {
+    expect(
+      classifyWesternGenericTemplateFamily("opening the fridge like new food spawned"),
+    ).toBeNull();
+    expect(
+      classifyWesternGenericTemplateFamily("checking the post like the likes owe me rent"),
+    ).toBeNull();
+    expect(classifyWesternGenericTemplateFamily("")).toBeNull();
+  });
+});
+
+describe("W1.4 — computeWesternSpecificityAdjustment cohort gate", () => {
+  it("returns 0 for nigeria", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "i ignored the wallpaper AGAIN. AGAIN!!!",
+        region: "nigeria",
+        languageStyle: "pidgin",
+      }),
+    ).toBe(0);
+  });
+  it("returns 0 for india", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "i ignored the wallpaper AGAIN. AGAIN!!!",
+        region: "india",
+        languageStyle: null,
+      }),
+    ).toBe(0);
+  });
+  it("returns 0 for philippines", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "i ignored the wallpaper AGAIN. AGAIN!!!",
+        region: "philippines",
+        languageStyle: null,
+      }),
+    ).toBe(0);
+  });
+  it("fires for region undefined and 'western'", () => {
+    const h = "i ignored the wallpaper AGAIN. AGAIN!!!";
+    expect(
+      computeWesternSpecificityAdjustment({ hook: h, region: undefined, languageStyle: null }),
+    ).toBeLessThan(0);
+    expect(
+      computeWesternSpecificityAdjustment({ hook: h, region: "western", languageStyle: null }),
+    ).toBeLessThan(0);
+  });
+});
+
+describe("W1.4 — computeWesternSpecificityAdjustment demotion path", () => {
+  it("demotes a single template hit by the per-match magnitude", () => {
+    const adj = computeWesternSpecificityAdjustment({
+      hook: "the bed itself isn't the problem. i am.",
+      region: "western",
+      languageStyle: null,
+    });
+    expect(adj).toBeLessThan(0);
+    expect(adj).toBeGreaterThanOrEqual(-WESTERN_W14_DEMOTION_CAP);
+  });
+  it("stacks demotion when a hook hits multiple templates, capped at WESTERN_W14_DEMOTION_CAP", () => {
+    // "the inbox itself is anxiety now" → anchor_itself_is_abstract_noun
+    // + "quiet realization:" → quiet_realization_template
+    const adj = computeWesternSpecificityAdjustment({
+      hook: "quiet realization: the inbox itself is anxiety now",
+      region: "western",
+      languageStyle: null,
+    });
+    expect(adj).toBe(-WESTERN_W14_DEMOTION_CAP);
+  });
+  it("template demotion suppresses the specificity reward path (template dominates)", () => {
+    // "saying I'm leaving, then sitting…" alone earns the THEN_BETRAYAL
+    // reward; combine it with an emphatic-AGAIN template hit and the
+    // result must still be NEGATIVE (template wins).
+    const reward = computeWesternSpecificityAdjustment({
+      hook: "saying i'm leaving, then sitting down for 18 more minutes",
+      region: "western",
+      languageStyle: null,
+    });
+    expect(reward).toBeGreaterThan(0);
+    const mixed = computeWesternSpecificityAdjustment({
+      hook: "saying i'm leaving, then sitting down for 18 more minutes AGAIN. AGAIN!!!",
+      region: "western",
+      languageStyle: null,
+    });
+    expect(mixed).toBeLessThan(0);
+  });
+});
+
+describe("W1.4 — computeWesternSpecificityAdjustment reward path", () => {
+  it("rewards a gerund-led action opener", () => {
+    const adj = computeWesternSpecificityAdjustment({
+      hook: "opening the fridge like new food spawned",
+      region: "western",
+      languageStyle: null,
+    });
+    // Gerund opener + 'like X spawned' comparison = 2 axes ⇒ +10
+    expect(adj).toBeGreaterThan(0);
+    expect(adj).toBeLessThanOrEqual(WESTERN_W14_REWARD_CAP);
+  });
+  it("rewards 'like X owe me / can fight' comparison structure", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "checking the post like the likes owe me rent",
+        region: "western",
+        languageStyle: null,
+      }),
+    ).toBeGreaterThan(0);
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "hovering over send like the text can fight back",
+        region: "western",
+        languageStyle: null,
+      }),
+    ).toBeGreaterThan(0);
+  });
+  it("rewards 'X, then Y-ing' self-betrayal structure", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "saying i'm leaving, then sitting down for 18 more minutes",
+        region: "western",
+        languageStyle: null,
+      }),
+    ).toBeGreaterThan(0);
+  });
+  it("rewards concrete numeric duration", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "watched my draft for 18 minutes",
+        region: "western",
+        languageStyle: null,
+      }),
+    ).toBeGreaterThan(0);
+  });
+  it("caps reward at WESTERN_W14_REWARD_CAP across all axes", () => {
+    // 4-axis hook: gerund opener + 'like ... can ...' + then-betrayal + duration
+    const adj = computeWesternSpecificityAdjustment({
+      hook: "saying i'm leaving like the chair can hear me, then sitting down for 18 more minutes",
+      region: "western",
+      languageStyle: null,
+    });
+    expect(adj).toBeLessThanOrEqual(WESTERN_W14_REWARD_CAP);
+    expect(adj).toBeGreaterThan(0);
+  });
+  it("returns 0 for a neutral non-template hook with no reward signals", () => {
+    expect(
+      computeWesternSpecificityAdjustment({
+        hook: "the laundry mountain is undefeated",
+        region: "western",
+        languageStyle: null,
+      }),
+    ).toBe(0);
+  });
+});
+
+describe("W1.4 — strong specific hook outranks template hook on net (W1 + W1.4 composed)", () => {
+  // W1 + W1.4 are added at the call site; here we simulate the composition.
+  it("specific hook beats a generic-template hook by a wide margin", () => {
+    const ctx = {
+      whatToShow: "open the fridge twice and stare at it",
+      region: "western" as const,
+      languageStyle: null,
+      recentSkeletons: new Set<string>(),
+    };
+    const templateHook = "the bed itself isn't the problem. i am.";
+    const specificHook = "opening the fridge like new food spawned";
+    const tmplNet =
+      computeWesternHookAdjustment({ ...ctx, hook: templateHook }) +
+      computeWesternSpecificityAdjustment({
+        hook: templateHook,
+        region: ctx.region,
+        languageStyle: ctx.languageStyle,
+      });
+    const specNet =
+      computeWesternHookAdjustment({ ...ctx, hook: specificHook }) +
+      computeWesternSpecificityAdjustment({
+        hook: specificHook,
+        region: ctx.region,
+        languageStyle: ctx.languageStyle,
+      });
+    expect(specNet - tmplNet).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe("W1.4 — canApplyWesternSpecificityUpgrade kill-switch", () => {
+  it("respects LUMINA_W1_4_DISABLE_FOR_QA in non-prod", () => {
+    const prevEnv = process.env.NODE_ENV;
+    const prevFlag = process.env.LUMINA_W1_4_DISABLE_FOR_QA;
+    try {
+      process.env.NODE_ENV = "development";
+      process.env.LUMINA_W1_4_DISABLE_FOR_QA = "1";
+      expect(
+        canApplyWesternSpecificityUpgrade({ region: "western", languageStyle: null }),
+      ).toBe(false);
+      expect(
+        computeWesternSpecificityAdjustment({
+          hook: "i ignored the wallpaper AGAIN. AGAIN!!!",
+          region: "western",
+          languageStyle: null,
+        }),
+      ).toBe(0);
+      delete process.env.LUMINA_W1_4_DISABLE_FOR_QA;
+      expect(
+        canApplyWesternSpecificityUpgrade({ region: "western", languageStyle: null }),
+      ).toBe(true);
+    } finally {
+      if (prevEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevEnv;
+      if (prevFlag === undefined) delete process.env.LUMINA_W1_4_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_4_DISABLE_FOR_QA = prevFlag;
+    }
+  });
+  it("kill-switch is a no-op in production (non-prod-only safety)", () => {
+    const prevEnv = process.env.NODE_ENV;
+    const prevFlag = process.env.LUMINA_W1_4_DISABLE_FOR_QA;
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.LUMINA_W1_4_DISABLE_FOR_QA = "1";
+      expect(
+        canApplyWesternSpecificityUpgrade({ region: "western", languageStyle: null }),
+      ).toBe(true);
+    } finally {
+      if (prevEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevEnv;
+      if (prevFlag === undefined) delete process.env.LUMINA_W1_4_DISABLE_FOR_QA;
+      else process.env.LUMINA_W1_4_DISABLE_FOR_QA = prevFlag;
+    }
+  });
+});
+
+describe("W1.4 — magnitudes and table contents", () => {
+  it("W1.4 caps and per-match magnitudes are non-zero and bounded", () => {
+    expect(WESTERN_W14_REWARD_CAP).toBeGreaterThan(0);
+    expect(WESTERN_W14_DEMOTION_CAP).toBeGreaterThan(0);
+    expect(WESTERN_GENERIC_TEMPLATE_PATTERNS.length).toBeGreaterThan(5);
   });
 });
