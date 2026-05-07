@@ -100,6 +100,12 @@ type WesternFunnel = {
   fallbackReplacedLocalInFinal?: boolean;
   topMergedHookSkeletons?: Array<{ skeletonId: string; count: number }>;
   mergedHookSkeletonRepeatedFamilies?: number;
+  // PHASE W1.1 AUDIT (round-4 follow-up) — FULL rejection-reason
+  // maps so the per-stage breakdown can use exact counts (not top-5).
+  // Optional so old dumps that pre-date these fields still parse.
+  coreNativeRejectionFull?: Record<string, number>;
+  localRejectionFull?: Record<string, number>;
+  fallbackRejectionFull?: Record<string, number>;
 };
 
 type GenResp = {
@@ -395,12 +401,31 @@ function aggregate(recs: BatchRec[]): Aggregate {
     agg.fbKept.push(f.fallbackKept);
     for (const [k, v] of Object.entries(f.coherenceRejections))
       bumpMap(agg.coherenceRejAgg, k, v);
-    for (const e of f.coreNativeRejectionTop)
-      bumpMap(agg.coreRejAgg, e.reason, e.count);
-    for (const e of f.localRejectionTop)
-      bumpMap(agg.localRejAgg, e.reason, e.count);
-    for (const e of f.fallbackRejectionTop)
-      bumpMap(agg.fbRejAgg, e.reason, e.count);
+    // PHASE W1.1 AUDIT (round-4) — prefer FULL maps (no truncation)
+    // when present; fall back to top-5 arrays for old dumps. This
+    // makes the per-stage breakdown an exact count rather than an
+    // estimate.
+    if (f.coreNativeRejectionFull) {
+      for (const [k, v] of Object.entries(f.coreNativeRejectionFull))
+        bumpMap(agg.coreRejAgg, k, v);
+    } else {
+      for (const e of f.coreNativeRejectionTop)
+        bumpMap(agg.coreRejAgg, e.reason, e.count);
+    }
+    if (f.localRejectionFull) {
+      for (const [k, v] of Object.entries(f.localRejectionFull))
+        bumpMap(agg.localRejAgg, k, v);
+    } else {
+      for (const e of f.localRejectionTop)
+        bumpMap(agg.localRejAgg, e.reason, e.count);
+    }
+    if (f.fallbackRejectionFull) {
+      for (const [k, v] of Object.entries(f.fallbackRejectionFull))
+        bumpMap(agg.fbRejAgg, k, v);
+    } else {
+      for (const e of f.fallbackRejectionTop)
+        bumpMap(agg.fbRejAgg, e.reason, e.count);
+    }
     if (f.westernAdjustmentSummary) {
       agg.westernAdjAgg.recipesScored +=
         f.westernAdjustmentSummary.recipesScored;
@@ -648,9 +673,22 @@ function buildSection(label: string, agg: Aggregate, ts: string): string {
   lines.push(`- zero (adj==0): **${w.zero}** = ${pct(w.zero, w.recipesScored)}`);
   lines.push(`- net delta sum: **${w.netDelta}**, per-recipe avg: ${(w.recipesScored > 0 ? w.netDelta / w.recipesScored : 0).toFixed(2)}`);
   lines.push("");
+  // PHASE W1.1 AUDIT (round-4) — fixed heading/bullet ordering: emit
+  // the Shipped source mix section in full (heading + bullets) before
+  // moving to the Fallback ↔ shipped section.
   lines.push("### Shipped source mix (aggregated)");
   lines.push("");
-  // PHASE W1.1 AUDIT — required fields: replacement flag + weak skeleton families.
+  const totalShipped = [...agg.shippedSourceAgg.values()].reduce(
+    (s, x) => s + x,
+    0,
+  );
+  if (totalShipped === 0) {
+    lines.push("- _(no shipped-source counts in this run)_");
+  } else {
+    for (const [k, v] of topN(agg.shippedSourceAgg, 10)) {
+      lines.push(`- \`${k}\`: ${v} = ${pct(v, totalShipped)}`);
+    }
+  }
   lines.push("");
   lines.push("### Fallback ↔ shipped replacement & weak skeleton families");
   lines.push("");
@@ -664,14 +702,6 @@ function buildSection(label: string, agg: Aggregate, ts: string): string {
     }
   } else {
     lines.push("- (no `meta.hookSkeletonId` populated on merged candidates in this run)");
-  }
-  lines.push("");
-  const totalShipped = [...agg.shippedSourceAgg.values()].reduce(
-    (s, x) => s + x,
-    0,
-  );
-  for (const [k, v] of topN(agg.shippedSourceAgg, 10)) {
-    lines.push(`- \`${k}\`: ${v} = ${pct(v, totalShipped)}`);
   }
   lines.push("");
   return lines.join("\n");

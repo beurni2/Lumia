@@ -363,6 +363,11 @@ export type HybridIdeatorResult = {
       coreNativeGenerated: number;
       coreNativeKept: number;
       coreNativeRejectionTop: Array<{ reason: string; count: number }>;
+      // PHASE W1.1 AUDIT (round-4 follow-up) — FULL rejection-reason
+      // map (not top-N). Driver uses this for exact per-stage
+      // attribution; the `*Top` array remains for human-readable
+      // summary. Cohort-gated; non-western pays nothing.
+      coreNativeRejectionFull: Record<string, number>;
       westernAdjustmentSummary: {
         recipesScored: number;
         demoted: number;
@@ -375,6 +380,7 @@ export type HybridIdeatorResult = {
       localHardRejected: number;
       localRejected: number;
       localRejectionTop: Array<{ reason: string; count: number }>;
+      localRejectionFull: Record<string, number>;
       excludeHooksApplied: number;
       mergedAfterExclude: number;
       mergedSizeAtFirstSelection: number;
@@ -392,6 +398,7 @@ export type HybridIdeatorResult = {
       usedFallback: boolean;
       fallbackKept: number;
       fallbackRejectionTop: Array<{ reason: string; count: number }>;
+      fallbackRejectionFull: Record<string, number>;
       mergedSizeAfterFallback: number;
       finalSelectionBatchSize: number;
       finalGuardsPassed: boolean;
@@ -5599,6 +5606,7 @@ export async function runHybridIdeator(
       coreNativeGenerated: coreNativeResult.stats.generatedCount,
       coreNativeKept: coreNativeResult.stats.keptCount,
       coreNativeRejectionTop: _topReasons(coreNativeRejectionReasons),
+      coreNativeRejectionFull: { ...(coreNativeRejectionReasons ?? {}) },
       westernAdjustmentSummary:
         coreNativeResult.stats.westernAdjustmentSummary ?? null,
       mergedIntoFilterAndRescore: mergedLocalCandidates.length,
@@ -5606,6 +5614,7 @@ export async function runHybridIdeator(
       localHardRejected: localResult.hardRejected,
       localRejected: localResult.rejected,
       localRejectionTop: _topReasons(localResult.rejectionReasons),
+      localRejectionFull: { ...(localResult.rejectionReasons ?? {}) },
       excludeHooksApplied: excludeHooksList.length,
       // `mergedAfterExclude` is `merged.length` AFTER fallback +
       // post-fallback exclude. The pre-fallback merged size is
@@ -5636,6 +5645,7 @@ export async function runHybridIdeator(
       usedFallback,
       fallbackKept: fallbackKeptCount,
       fallbackRejectionTop: _topReasons(fallbackRejectionReasons ?? null),
+      fallbackRejectionFull: { ...(fallbackRejectionReasons ?? {}) },
       mergedSizeAfterFallback: merged.length,
       finalSelectionBatchSize: final.length,
       finalGuardsPassed: selection.guardsPassed,
