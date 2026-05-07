@@ -303,6 +303,110 @@ export const recordSeenSkeletons = async (
   }
 };
 
+/**
+ * Shape required by `applyCatalogSkeletonSwap`. Kept structural and
+ * generic so the helper can be unit-tested with lightweight fixtures
+ * without dragging the full `ScoredCandidate` shape from
+ * `hybridIdeator.ts` into this module (and the resulting circular
+ * import). The hybrid ideator passes its `ScoredCandidate` arrays
+ * directly — the extra fields are ignored here.
+ */
+export interface SkeletonSwapCandidate {
+  readonly idea: {
+    readonly hook?: string;
+    readonly id?: unknown;
+    readonly [k: string]: unknown;
+  };
+  readonly meta: {
+    readonly nigerianPackEntryId?: string;
+    readonly [k: string]: unknown;
+  };
+}
+
+/**
+ * Pure, in-memory port of the post-pack-reservation catalog skeleton
+ * swap that lives inline in `hybridIdeator.ts` (~L4774-4849). For every
+ * non-pack candidate in `batch` whose normalized hook skeleton appears
+ * in the creator's `seenSkeletons` set, find the best alternate from
+ * `mergedPool` (non-pack, not already used in-batch, distinct skeleton)
+ * scored by `pickRecencyScoredAltIndex` — unseen first, then oldest
+ * seen — and swap it in. Pack candidates (`meta.nigerianPackEntryId`
+ * set) are NEVER swapped; they are governed by the per-pack-entry
+ * memory layer.
+ *
+ * Hard SWAP-only semantics:
+ *   • The returned array has identical length to `batch`.
+ *   • If no alt is available for a repeating skeleton, the original
+ *     candidate ships (graceful degradation > under-fill).
+ *   • The in-batch `usedSkeletons` bookkeeping is updated as swaps
+ *     happen, so a later swap never re-selects a skeleton that an
+ *     earlier swap (or the initial batch itself) already used. This
+ *     also means duplicate skeletons present in the INITIAL batch are
+ *     remembered — a later swap will not pick the duplicated skeleton
+ *     as its "alt", even if it is unseen by the creator.
+ *
+ * Returns the (possibly identical) swapped batch. Reference equality
+ * with `batch` is preserved when no swap fired, so call sites can
+ * cheaply detect a no-op via `result === batch`.
+ */
+export const applyCatalogSkeletonSwap = <T extends SkeletonSwapCandidate>(
+  batch: ReadonlyArray<T>,
+  mergedPool: ReadonlyArray<T>,
+  seenSkeletons: ReadonlySet<string>,
+  skeletonRecency: ReadonlyMap<string, number>,
+): ReadonlyArray<T> => {
+  if (seenSkeletons.size === 0) return batch;
+  const isPack = (c: SkeletonSwapCandidate): boolean =>
+    c.meta.nigerianPackEntryId !== undefined;
+  const usedSkeletons = new Set<string>();
+  const usedIds = new Set<string>();
+  for (const c of batch) {
+    usedSkeletons.add(normalizeHookToSkeleton(c.idea.hook ?? ""));
+    const idAny = c.idea.id;
+    if (typeof idAny === "string") usedIds.add(idAny);
+  }
+  const eligibleAlts: T[] = [];
+  const eligibleSkeletons: string[] = [];
+  for (const p of mergedPool) {
+    if (isPack(p)) continue;
+    const altIdAny = p.idea.id;
+    if (typeof altIdAny === "string" && usedIds.has(altIdAny)) continue;
+    const altSk = normalizeHookToSkeleton(p.idea.hook ?? "");
+    if (altSk.length === 0) continue;
+    eligibleAlts.push(p);
+    eligibleSkeletons.push(altSk);
+  }
+  const swapped = batch.map((c) => {
+    if (isPack(c)) return c;
+    const sk = normalizeHookToSkeleton(c.idea.hook ?? "");
+    if (sk.length === 0 || !seenSkeletons.has(sk)) return c;
+    const idx = pickRecencyScoredAltIndex(
+      sk,
+      eligibleSkeletons,
+      usedSkeletons,
+      skeletonRecency,
+    );
+    if (idx === -1) return c;
+    const alt = eligibleAlts[idx];
+    if (!alt) return c;
+    usedSkeletons.delete(sk);
+    usedSkeletons.add(normalizeHookToSkeleton(alt.idea.hook ?? ""));
+    const cIdAny = c.idea.id;
+    if (typeof cIdAny === "string") usedIds.delete(cIdAny);
+    const altIdAny = alt.idea.id;
+    if (typeof altIdAny === "string") usedIds.add(altIdAny);
+    return alt;
+  });
+  let changed = false;
+  for (let i = 0; i < swapped.length; i += 1) {
+    if (swapped[i] !== batch[i]) {
+      changed = true;
+      break;
+    }
+  }
+  return changed ? swapped : batch;
+};
+
 /** Test-only helper — clear the memory for a creator. */
 export const __resetCatalogMemoryForTests = async (
   creatorId: string,

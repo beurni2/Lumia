@@ -154,11 +154,10 @@ import {
 //   • Graceful degradation — if no alternative exists, ship the
 //     repeat. Better to repeat than to underfill or stall.
 import {
+  applyCatalogSkeletonSwap,
   getRecentSeenSkeletonRecency,
   getRecentSeenSkeletons,
-  pickRecencyScoredAltIndex,
   recordSeenSkeletons,
-  normalizeHookToSkeleton,
 } from "./catalogTemplateCreatorMemory.js";
 import {
   canActivateNigerianPack,
@@ -4797,76 +4796,24 @@ export async function runHybridIdeator(
       input.creator?.id,
     );
     const seenSkeletons = new Set(skeletonRecency.keys());
-    if (seenSkeletons.size > 0) {
-      const isPack = (c: { meta: unknown }): boolean =>
-        (c.meta as { nigerianPackEntryId?: string })
-          .nigerianPackEntryId !== undefined;
-      const usedSkeletons = new Set<string>();
-      const usedIds = new Set<string>();
-      for (const c of n1s2_postBatch) {
-        usedSkeletons.add(normalizeHookToSkeleton(c.idea.hook));
-        const idAny = (c.idea as { id?: unknown }).id;
-        if (typeof idAny === "string") usedIds.add(idAny);
-      }
-      // Recency-scored alt picker (BI 2026-05-07 catalog repeat fix
-      // — replaces the prior deterministic `merged.find()` two-tier
-      // search). Eligible alts (non-pack, not used-in-batch, valid
-      // skeleton) are scored by `pickRecencyScoredAltIndex`:
-      // unseen = `Number.POSITIVE_INFINITY`, else the recency rank
-      // from `skeletonRecency` (0 = most-recent, larger = older).
-      // Highest-score wins → unseen first, then oldest seen.
-      // Rotates the picker away from always selecting the same
-      // first-match alt across batches, eliminating the 2× residual
-      // repeats the prior fix left in QA. SWAP-only semantics
-      // preserved (never drops, never shrinks the pool).
-      const eligibleAlts: Array<typeof n1s2_postBatch[number]> = [];
-      const eligibleSkeletons: string[] = [];
-      for (const p of merged) {
-        if (isPack(p)) continue;
-        const altIdAny = (p.idea as { id?: unknown }).id;
-        if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
-          continue;
-        }
-        const altSk = normalizeHookToSkeleton(p.idea.hook);
-        if (altSk.length === 0) continue;
-        eligibleAlts.push(p);
-        eligibleSkeletons.push(altSk);
-      }
-      const pickAlt = (
-        sk: string,
-      ): typeof n1s2_postBatch[number] | undefined => {
-        const idx = pickRecencyScoredAltIndex(
-          sk,
-          eligibleSkeletons,
-          usedSkeletons,
-          skeletonRecency,
-        );
-        return idx === -1 ? undefined : eligibleAlts[idx];
-      };
-      const swapped = n1s2_postBatch.map((c) => {
-        if (isPack(c)) return c;
-        const sk = normalizeHookToSkeleton(c.idea.hook);
-        if (sk.length === 0 || !seenSkeletons.has(sk)) return c;
-        const alt = pickAlt(sk);
-        if (!alt) return c;
-        usedSkeletons.delete(sk);
-        usedSkeletons.add(normalizeHookToSkeleton(alt.idea.hook));
-        const cIdAny = (c.idea as { id?: unknown }).id;
-        if (typeof cIdAny === "string") usedIds.delete(cIdAny);
-        const altIdAny = (alt.idea as { id?: unknown }).id;
-        if (typeof altIdAny === "string") usedIds.add(altIdAny);
-        return alt;
-      });
-      let changed = false;
-      for (let i = 0; i < swapped.length; i++) {
-        if (swapped[i] !== n1s2_postBatch[i]) {
-          changed = true;
-          break;
-        }
-      }
-      if (changed) {
-        selection = { ...selection, batch: swapped };
-      }
+    // Recency-scored alt swap (BI 2026-05-07 catalog repeat fix —
+    // replaces the prior deterministic `merged.find()` two-tier
+    // search). Eligible alts (non-pack, not used-in-batch, valid
+    // skeleton) are scored by `pickRecencyScoredAltIndex`:
+    // unseen = `Number.POSITIVE_INFINITY`, else the recency rank
+    // from `skeletonRecency` (0 = most-recent, larger = older).
+    // Highest-score wins → unseen first, then oldest seen.
+    // SWAP-only semantics preserved (never drops, never shrinks the
+    // pool). Logic extracted to `applyCatalogSkeletonSwap` for unit
+    // testability — see hybridIdeatorCatalogSwap.test.ts.
+    const swapped = applyCatalogSkeletonSwap(
+      n1s2_postBatch,
+      merged,
+      seenSkeletons,
+      skeletonRecency,
+    );
+    if (swapped !== n1s2_postBatch) {
+      selection = { ...selection, batch: swapped as typeof n1s2_postBatch };
     }
     // Record AFTER any swaps so the next request's seen-set
     // reflects what actually shipped. Skip pack candidates — their
