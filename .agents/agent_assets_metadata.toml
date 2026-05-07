@@ -131,3 +131,9 @@ id = "e05htgtjE2byE2IfZssO3"
 uri = "file://.local/N1_LIVE_HARDEN_RCA.md"
 type = "text"
 title = "N1 Live Harden — Root-Cause Analysis & Fix Plan"
+
+[[outputs]]
+id = "vaHdxMRDID_q3ZwUzilz0"
+uri = "file://.local/N1_LIVE_HARDEN_PACK_DELIVERY_PLAN.md"
+type = "text"
+title = "N1 Pack Delivery & Refresh Latency — Root Cause + Fix Plan"

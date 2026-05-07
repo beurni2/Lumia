@@ -1,0 +1,62 @@
+N1 Live Harden QA remains HOLD.
+
+F1/F2/F3 are accepted:
+- request-scoped languageStyle override works
+- ng_clean/ng_null pack usage is now 0
+- cross-region pack leaks are 0
+- NG eligible Western-anchor leaks are now 0
+- F3 diagnostics are wired
+
+Do not roll out to testers.
+Do not enable production.
+Do not add corpus.
+Do not tune scoring.
+Do not change QA thresholds.
+
+Next task:
+Root-cause why pack candidates rarely survive real /api/ideator/generate composition.
+
+Current failure:
+- server-side pack delivery eligible: 3/57 = 5.3%
+- NG-native proxy delivery eligible: 9/57 = 15.8%
+- target: >=30% server-pack and >=60% NG-native
+- refresh success: 73.3%, target >=90%
+
+Investigate using the new F3 diagnostics:
+1. For each Nigeria + light_pidgin / pidgin request, log:
+   - packPoolPreFilter
+   - packPoolPostMemoryFilter
+   - packPoolPostBatchDedup
+   - packCandidatesAvailable
+   - reservedPackCount
+   - finalPackCount
+   - early return reason if pack reservation returns without placing pack ideas
+
+2. Determine whether pack delivery is failing because of:
+   - per-creator memory excluding too many pack entries
+   - domain projection filter producing too few eligible pack entries
+   - batch dedup removing too many pack entries
+   - final composition replacing pack entries
+   - slot reservation not receiving enough valid candidates
+   - some later route/orchestrator stage dropping reserved pack entries
+
+3. Separately investigate refresh timeout drivers:
+   - which cohorts timeout
+   - whether fallback is causing 60s waits
+   - whether Claude/Llama fallback is triggered unnecessarily
+   - whether best-effort local candidates can return earlier instead of waiting
+
+Hard rules:
+- no validator loosening
+- no anti-copy loosening
+- no safety/privacy loosening
+- no global score boost
+- no corpus additions
+- no production flag enablement
+- no QA threshold changes
+
+Deliverables:
+- exact reason pack delivery falls from expected staging fill to 5.3% in real route
+- exact reason refresh success is only 73.3%
+- minimal fix plan before implementation
+- no generation behavior changes until plan is reviewed
