@@ -37,13 +37,53 @@ const VALID: WesternHookPackDraftEntry = {
   reviewedBy: PENDING_EDITORIAL_REVIEW,
 };
 
-describe("W2-A — corpus ships empty (dark)", () => {
-  it("WESTERN_HOOK_PACK_DRAFT is an empty frozen array", () => {
-    expect(WESTERN_HOOK_PACK_DRAFT.length).toBe(0);
+describe("W2-A — corpus shape (dark)", () => {
+  it("WESTERN_HOOK_PACK_DRAFT is a frozen array with the imported W2-Batch-A entries", () => {
+    // PHASE W2-Batch-A imported the first 50 authored draft entries.
+    // The corpus is still DARK (no runtime path imports it); this test
+    // asserts the shape, not emptiness.
     expect(Object.isFrozen(WESTERN_HOOK_PACK_DRAFT)).toBe(true);
+    expect(WESTERN_HOOK_PACK_DRAFT.length).toBeGreaterThanOrEqual(50);
+    // All draft rows must carry the editorial-review sentinel.
+    for (const e of WESTERN_HOOK_PACK_DRAFT) {
+      expect(e.reviewedBy).toBe(PENDING_EDITORIAL_REVIEW);
+    }
+    // Stable id range from the W2-Batch-A brief.
+    const ids = WESTERN_HOOK_PACK_DRAFT.map((e) => e.id);
+    expect(ids).toContain("W2A-001");
+    expect(ids).toContain("W2A-050");
+    expect(new Set(ids).size).toBe(ids.length); // no duplicate ids
   });
-  it("empty draft passes the integrity check", () => {
+  it("draft hook layer (dupes, weak skeletons, scenario, privacy) is clean", () => {
+    // The W2-Batch-A entries fail vocabulary validation (the W2-A
+    // taxonomies need to be widened — pending reviewer adjudication),
+    // but the HOOK-LAYER checks (duplicates, weak banned skeletons,
+    // generic scenarios, obvious privacy patterns) must already pass.
     const r = checkWesternHookPackDraftIntegrity(WESTERN_HOOK_PACK_DRAFT);
+    expect(r.duplicateHookFingerprints, "no duplicate hooks").toEqual([]);
+    expect(r.weakSkeletonHits.size, "no weak banned skeletons").toBe(0);
+    expect(r.privacyFailures, "no obvious privacy hits").toEqual([]);
+    expect(
+      r.failures.filter((f) => f.code === "generic_object_scenario"),
+      "no generic set/stare/walkaway scenarios",
+    ).toEqual([]);
+    expect(
+      r.failures.filter((f) => f.code.endsWith("_length")),
+      "no length-band failures",
+    ).toEqual([]);
+    expect(
+      r.failures.filter((f) => f.code === "anchor_invalid"),
+      "no anchor failures",
+    ).toEqual([]);
+    expect(
+      r.failures.filter((f) => f.code === "reviewed_by_invalid"),
+      "no reviewedBy failures",
+    ).toEqual([]);
+  });
+  it("an explicitly-empty pack still passes the integrity check", () => {
+    // Sanity: the checker must still treat an empty pack as ok so
+    // future cohorts/authoring milestones can re-test in isolation.
+    const r = checkWesternHookPackDraftIntegrity([]);
     expect(r.ok).toBe(true);
     expect(r.failures).toHaveLength(0);
   });
