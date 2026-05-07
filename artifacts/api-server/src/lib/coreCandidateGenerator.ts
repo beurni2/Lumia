@@ -968,7 +968,30 @@ export function generateCoreCandidates(
       const ordered = rotated
         .slice(rotateBy)
         .concat(rotated.slice(0, rotateBy));
-      const drawCap = Math.min(NIGERIAN_PACK_PREFIX_CAP, ordered.length);
+      // PHASE N1-LIVE-HARDEN PRODUCT-PASS (BI 2026-05-07) — lift the
+      // pack-prefix attempt cap inside the activation-gated NG path
+      // ONLY. The original `NIGERIAN_PACK_PREFIX_CAP=3` left ~150
+      // matching pack entries per core untried, capping end-to-end
+      // pack delivery at ~10% on ng_pidgin/ng_light_pidgin (the
+      // first 3 attempts often hit `schema_invalid` or fp-dedup,
+      // wiping the pool). The eligible cap of 12 surfaces enough
+      // surviving candidates for the slot reservation layer to
+      // actually reserve pack slots without changing any validator,
+      // scorer, anti-copy, safety/privacy, anchor, or corpus rule.
+      // Strictly gated: this block is already inside
+      // `if (packEligible.length > 0)`, and `packEligible` is
+      // produced by `getEligibleNigerianPackEntries` which enforces
+      // region===nigeria + languageStyle∈{pidgin,light_pidgin} +
+      // `LUMINA_NG_PACK_ENABLED===true` + non-empty pack — so no
+      // path can leak into clean/null/non-Nigeria cohorts.
+      // `NIGERIAN_PACK_PREFIX_CAP` (3) export is preserved for any
+      // out-of-band reader; only this draw site reads the lifted
+      // value.
+      const NIGERIAN_PACK_ELIGIBLE_DRAW_CAP = 12;
+      const drawCap = Math.min(
+        NIGERIAN_PACK_ELIGIBLE_DRAW_CAP,
+        ordered.length,
+      );
 
       // PHASE N1-INSTRUMENT — opt-in throttle observer. Strictly
       // additive: when `globalThis.__nigerianThrottleObserver` is

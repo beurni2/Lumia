@@ -1,0 +1,118 @@
+Stop broad investigation loops.
+
+Implement one focused N1 product-pass fix.
+
+Goal:
+For users with:
+- region === "nigeria"
+- languageStyle === "light_pidgin" or "pidgin"
+- LUMINA_NG_PACK_ENABLED === "true"
+- NIGERIAN_HOOK_PACK.length > 0
+
+the real /api/ideator/generate path must reliably return Nigerian/Pidgin-native ideas.
+
+Target behavior:
+- Most eligible 3-card batches should contain at least 2 Nigerian pack/native ideas.
+- Refresh should complete reliably before the client timeout.
+- Clean/null/non-Nigeria cohorts must receive 0 Nigerian pack ideas.
+
+Fix scope:
+
+1. Ensure enough pack candidates exist before reservation.
+The current pack pool is often too thin before memory filtering.
+For eligible Nigeria + light_pidgin/pidgin requests, generate a larger pack candidate pool before slot reservation.
+
+Do this only inside the Nigerian pack path.
+Do not change global catalog generation.
+Do not change validators.
+Do not change scoring.
+Do not change corpus.
+Do not change anti-copy.
+Do not change safety/privacy.
+
+Pack candidates must still pass:
+- schema
+- scenario coherence
+- comedy validation
+- anti-copy
+- safety/privacy
+- anchor checks
+- mocking/stereotype checks
+
+2. Keep memory, but do not let memory erase the pack.
+If memory filtering would reduce valid pack candidates to zero, allow the oldest seen entries to become eligible for this request only.
+Do not mutate persisted memory.
+Do not allow duplicate packEntryId in the same 3-card batch.
+Keep this behavior gated/default OFF in production if needed.
+
+3. Slot reservation must actually reserve pack ideas.
+When at least 2 valid distinct pack candidates exist, final eligible batch should be:
+- pack
+- best non-pack
+- pack
+
+If only 1 valid pack candidate exists:
+- pack
+- best non-pack
+- best non-pack
+
+If 0 valid pack candidates exist:
+- existing behavior
+
+4. Fix refresh latency.
+If localKept >= desiredCount and regenerate !== true, do not call Claude fallback.
+If Claude fallback is needed, cap it at 45s.
+On Claude timeout, return best-effort validated local candidates.
+Never return blank.
+Never leave refresh stuck.
+
+Hard rules:
+- Do not loosen validators.
+- Do not loosen anti-copy.
+- Do not loosen safety/privacy.
+- Do not globally boost scoreHookQuality.
+- Do not add corpus.
+- Do not change QA thresholds.
+- Do not enable production.
+- Do not leak pack into Nigeria-clean/null or non-Nigeria.
+- Do not allow duplicate packEntryId in a batch.
+- Do not allow duplicate hook in a batch.
+
+QA:
+Run real /api/ideator/generate QA, not generateCoreCandidates only.
+
+Cohorts:
+- Nigeria + light_pidgin: 10 refreshes / 30 ideas
+- Nigeria + pidgin: 10 refreshes / 30 ideas
+- Nigeria + clean: 5 refreshes / 15 ideas
+- Nigeria + null: 5 refreshes / 15 ideas
+- Western: 5 refreshes / 15 ideas
+- India: 5 refreshes / 15 ideas
+- Philippines: 5 refreshes / 15 ideas
+
+Acceptance:
+- Nigeria + light_pidgin: at least 18/30 pack ideas
+- Nigeria + pidgin: at least 18/30 pack ideas
+- Combined eligible pack/native delivery >= 36/60
+- Nigeria-clean pack usage = 0
+- Nigeria-null pack usage = 0
+- Western/India/Philippines pack usage = 0
+- Refresh success >= 90%
+- Timeout count low enough to avoid visible refresh failure
+- 0 blank states
+- 0 safety/privacy issues
+- 0 wrong-region Western terms in eligible Nigeria outputs
+- 0 duplicate packEntryId inside a batch
+- 0 duplicate hook inside a batch
+
+Report only:
+- files changed
+- pack candidate pool before reservation
+- pack candidates after memory
+- final pack shipped count
+- refresh success/timeouts
+- leak checks
+- safety/privacy
+- strongest 10 outputs
+- weakest 10 outputs
+- final GO/HOLD
