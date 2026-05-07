@@ -124,7 +124,7 @@ title = "N1 Rejection Fix-up Worksheet (9 remaining drafts)"
 id = "Zta-zQl_643FdXu1wh03J"
 uri = "file://.local/N1_LIVE_HARDEN_QA.md"
 type = "text"
-title = "N1 Live Harden QA Report (2026-05-07)"
+title = "N1 Live Harden QA — latest run"
 
 [[outputs]]
 id = "e05htgtjE2byE2IfZssO3"
@@ -137,3 +137,15 @@ id = "vaHdxMRDID_q3ZwUzilz0"
 uri = "file://.local/N1_LIVE_HARDEN_PACK_DELIVERY_PLAN.md"
 type = "text"
 title = "N1 Pack Delivery & Refresh Latency — Root Cause + Fix Plan"
+
+[[outputs]]
+id = "YHRWlmZEgpIByzI8Mm3hU"
+uri = "file://.local/qa-runs/SUMMARY.md"
+type = "text"
+title = "N1 Live Harden P1+P2+P3+P4 — Validation Summary"
+
+[[outputs]]
+id = "OMoWuH_UY82IRCBg-21Wa"
+uri = "file://.local/qa-runs/N1_LIVE_HARDEN_QA_OFF.md"
+type = "text"
+title = "N1 Live Harden QA — OFF baseline"
