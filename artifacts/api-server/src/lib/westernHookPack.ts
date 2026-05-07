@@ -1621,12 +1621,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     // ── PHASE W2-Batch-C — 50 authored draft entries ──────────────
-      // Imported verbatim from the W2-Batch-C authoring brief.
-      // All 50 ship with `reviewedBy = PENDING_EDITORIAL_REVIEW`.
-      // The corpus REMAINS DARK. Two entries (W2C-028, W2C-040) use
-      // `comedyFamily: "false_productivity"`, which is the spike label
-      // not a comedy-family value — surfaced by the integrity checker
-      // for reviewer adjudication (NOT silently fixed).
+    // Imported verbatim from the W2-Batch-C authoring brief.
+    // All 50 ship with `reviewedBy = PENDING_EDITORIAL_REVIEW`.
+    // The corpus REMAINS DARK. Two entries (W2C-028, W2C-040)
+    // originally arrived with `comedyFamily: "false_productivity"`
+    // (a spike label, not a comedy-family value); per reviewer
+    // approval those were swapped to `task_avoidance`. The
+    // emotionalSpike values on those rows (`quiet_guilt` and
+    // `avoidance_spike` respectively) and all other fields are
+    // unchanged. No vocab additions were required.
       {
         id: "W2C-001",
         hook: "adding an exclamation point, then deleting it before it exposes me",
@@ -2014,7 +2017,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
           "Top-down on the notebook. Make the crossing-out sound loud and proud. Then reveal the actual hard task still untouched.",
         caption: "productivity, but rigged.",
         anchor: "list",
-        comedyFamily: "false_productivity" as WesternComedyFamily,
+        comedyFamily: "task_avoidance",
         emotionalSpike: "quiet_guilt",
         setting: "desk",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
@@ -2182,7 +2185,7 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
           "Over-the-shoulder at the laptop. The clicking should feel very productive, then reveal the untouched work sitting there.",
         caption: "optimized everything except my behavior.",
         anchor: "icons",
-        comedyFamily: "false_productivity" as WesternComedyFamily,
+        comedyFamily: "task_avoidance",
         emotionalSpike: "avoidance_spike",
         setting: "desk",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
