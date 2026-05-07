@@ -185,3 +185,9 @@ id = "ymGVYHuO0Kxm5-FmAbRX9"
 uri = "file://.local/W2_WESTERN_REWRITE_WORKSHEET.md"
 type = "text"
 title = "W2-E Western Rewrite Worksheet"
+
+[[outputs]]
+id = "u4drFoDlDKA4QRMlnMw8w"
+uri = "file://.local/W2_F_REPORT.md"
+type = "text"
+title = "W2-F Western P0 Editorial Rewrite Pass — Report"
