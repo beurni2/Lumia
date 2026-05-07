@@ -155,3 +155,9 @@ id = "038KCmD1MlIX5YKP6QqfO"
 uri = "file://artifacts/api-server/src/qa/reports/W1_1_AUDIT_REPORT.md"
 type = "text"
 title = "W1.1 Western Under-fill / Fallback Audit Report"
+
+[[outputs]]
+id = "zjWmT9LJ1CWBNHL3a5tUN"
+uri = "file://artifacts/api-server/src/qa/reports/W1_3_QUOTA_REPORT.md"
+type = "text"
+title = "W1.3 Western Weak-Skeleton Quota — QA Report"
