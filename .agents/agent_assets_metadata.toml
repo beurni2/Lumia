@@ -161,3 +161,9 @@ id = "zjWmT9LJ1CWBNHL3a5tUN"
 uri = "file://artifacts/api-server/src/qa/reports/W1_3_QUOTA_REPORT.md"
 type = "text"
 title = "W1.3 Western Weak-Skeleton Quota — QA Report"
+
+[[outputs]]
+id = "e7wbCIQod5DeDl08I3UeJ"
+uri = "file://artifacts/api-server/src/qa/reports/W1_4_SPECIFICITY_REPORT.md"
+type = "text"
+title = "W1.4 Western Hook Specificity Report"
