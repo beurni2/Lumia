@@ -4251,33 +4251,41 @@ export async function runHybridIdeator(
   // the family counts. Read off `meta.hookSkeletonId` which the
   // scorer populates on every keeper. Capped at top 5 to bound
   // payload. Empty when no candidates carry the field.
+  // COHORT-GATED: only walk `merged` when the western funnel will
+  // actually emit (`_w1WesternEligible`); non-western cohorts pay zero
+  // overhead. Both consts default to empty values when gated off so
+  // the funnel-build site at function end can read them unchanged.
   const _w1TopMergedHookSkeletons: Array<{
     skeletonId: string;
     count: number;
-  }> = (() => {
-    const counts = new Map<string, number>();
-    for (const c of merged) {
-      const m = c.meta as { hookSkeletonId?: string };
-      const sk = m.hookSkeletonId;
-      if (!sk) continue;
-      counts.set(sk, (counts.get(sk) ?? 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .filter(([, n]) => n > 0)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([skeletonId, count]) => ({ skeletonId, count }));
-  })();
-  const _w1MergedHookSkeletonRepeatedFamilies: number = (() => {
-    const counts = new Map<string, number>();
-    for (const c of merged) {
-      const m = c.meta as { hookSkeletonId?: string };
-      const sk = m.hookSkeletonId;
-      if (!sk) continue;
-      counts.set(sk, (counts.get(sk) ?? 0) + 1);
-    }
-    return Array.from(counts.values()).filter((n) => n > 1).length;
-  })();
+  }> = _w1WesternEligible
+    ? (() => {
+        const counts = new Map<string, number>();
+        for (const c of merged) {
+          const m = c.meta as { hookSkeletonId?: string };
+          const sk = m.hookSkeletonId;
+          if (!sk) continue;
+          counts.set(sk, (counts.get(sk) ?? 0) + 1);
+        }
+        return Array.from(counts.entries())
+          .filter(([, n]) => n > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([skeletonId, count]) => ({ skeletonId, count }));
+      })()
+    : [];
+  const _w1MergedHookSkeletonRepeatedFamilies: number = _w1WesternEligible
+    ? (() => {
+        const counts = new Map<string, number>();
+        for (const c of merged) {
+          const m = c.meta as { hookSkeletonId?: string };
+          const sk = m.hookSkeletonId;
+          if (!sk) continue;
+          counts.set(sk, (counts.get(sk) ?? 0) + 1);
+        }
+        return Array.from(counts.values()).filter((n) => n > 1).length;
+      })()
+    : 0;
 
   // -------- Step 4b: Claude fallback (when needed) ---------------
   // Three triggers, in spec order:
