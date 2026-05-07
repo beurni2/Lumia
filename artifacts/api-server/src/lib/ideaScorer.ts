@@ -262,6 +262,20 @@ export type CandidateMeta = PatternMeta | {
    * cohort by construction.
    */
   nigerianPackEntryId?: string;
+  /**
+   * PHASE W2-K — when set, identifies the
+   * `APPROVED_WESTERN_PROMOTION_CANDIDATES` entry id this
+   * `core_native` candidate was authored from (via
+   * `authorWesternPackEntryAsIdea`). Telemetry-only — pipeline never
+   * branches on it. Surfaces in QA harness output so the staging
+   * sweep can verify W2 entry-id usage rate per cohort. Optional
+   * everywhere — catalog `core_native` candidates and Llama / Claude
+   * wraps never set it. The activation guard
+   * (`canActivateWesternApprovedPool`) makes this field unreachable
+   * for any non-western cohort and for any cohort with
+   * `LUMINA_W2_WESTERN_APPROVED_ENABLED` unset.
+   */
+  westernPackEntryId?: string;
   scenarioFamily?: string;
   scenario?: PatternMeta["scenario"];
   visualActionPattern?: VisualActionPattern;

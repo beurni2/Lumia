@@ -139,6 +139,24 @@ import {
   getRecentSeenEntriesOrdered,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
+import {
+  isWesternApprovedPoolFeatureEnabled,
+  canActivateWesternApprovedPool,
+  getEligibleWesternApprovedEntries,
+  APPROVED_WESTERN_PROMOTION_CANDIDATES,
+} from "./westernHookPackApproved.js";
+import {
+  authorWesternPackEntryAsIdea,
+  w2EntryIdOf,
+} from "./westernPackAuthor.js";
+import type { WesternHookPackDraftEntry } from "./westernHookPack.js";
+import { getRecentSeenWesternEntryIds } from "./westernPackCreatorMemory.js";
+import {
+  applyWesternApprovedPackSlotReservation,
+  type WesternPackCandidate,
+  type WesternSlotReservationDiagnostic,
+} from "./westernPackSlotReservation.js";
+import { scoreHookQuality } from "./hookQuality.js";
 // PHASE N1-FULL-SPEC LIVE v2 — catalog hook-skeleton dedup. The
 // first attempt (pre-filter by `meta.templateId` for
 // `pattern_variation` only) regressed latency (pool shrinkage →
@@ -327,6 +345,13 @@ export type HybridIdeatorResult = {
        *  Surfaces here so the staging QA harness can verify
        *  per-cohort pack-usage rate without scraping logs. */
       nigerianPackEntryId?: string;
+      /** PHASE W2-K — when set, identifies the
+       *  `APPROVED_WESTERN_PROMOTION_CANDIDATES` entry id this
+       *  `core_native` candidate was authored from (via
+       *  `authorWesternPackEntryAsIdea`). Surfaces here so the
+       *  staging QA harness can verify per-cohort W2-pack-usage
+       *  rate without scraping logs. */
+      westernPackEntryId?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -2344,6 +2369,18 @@ type CachedBatchEntry = {
   family?: string;
   templateId?: string;
   /**
+   * PHASE W2-K — `APPROVED_WESTERN_PROMOTION_CANDIDATES` entry id
+   * this cached idea was authored from (when the W2 author fired
+   * via the slot-reservation path). Persisted in cache so the
+   * next request's `getRecentSeenWesternEntryIds` can mine it from
+   * `creators.last_idea_batch_json` for per-creator memory WITHOUT
+   * a new column. Same non-breaking JSONB pattern as the rest of
+   * the entry fields above — legacy entries written before W2-K
+   * shipped fall through as undefined and contribute nothing to
+   * the recent-seen set, which is the right behavior.
+   */
+  westernPackEntryId?: string;
+  /**
    * HOOK STYLE spec axis (12 values). Persisted in cache so
    * `buildNoveltyContext` can derive `recentHookLanguageStyles` and
    * `unusedHookLanguageStylesLast3` without an in-memory state. Cache
@@ -2615,6 +2652,7 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         viralFeelScoreTotal?: unknown;
         scenarioFingerprint?: unknown;
         voiceClusterId?: unknown;
+        westernPackEntryId?: unknown;
       };
       const parsed = ideaSchema.safeParse(wrapper.idea);
       if (!parsed.success) return null;
@@ -2822,6 +2860,11 @@ function tryParseEntries(raw: unknown): CachedBatchEntry[] | null {
         viralFeelScoreTotal,
         scenarioFingerprint,
         voiceClusterId,
+        westernPackEntryId:
+          typeof wrapper.westernPackEntryId === "string" &&
+          wrapper.westernPackEntryId.length > 0
+            ? wrapper.westernPackEntryId
+            : undefined,
       });
     } else {
       const parsed = ideaSchema.safeParse(item);
@@ -2995,6 +3038,12 @@ function toCacheEntries(picks: ScoredCandidate[]): CachedBatchEntry[] {
     family: c.meta.scenarioFamily,
     templateId:
       c.meta.source === "pattern_variation" ? c.meta.templateId : undefined,
+    // PHASE W2-K — persist westernPackEntryId so the NEXT request's
+    // `getRecentSeenWesternEntryIds` can mine it from
+    // `creators.last_idea_batch_json` (no migration). Undefined for
+    // every non-W2 candidate; flows through cleanly.
+    westernPackEntryId: (c.meta as { westernPackEntryId?: string })
+      .westernPackEntryId,
     hookLanguageStyle: c.meta.hookLanguageStyle,
     // VOICE PROFILES spec — persist alongside hookLanguageStyle so
     // the next regen's `buildNoveltyContext` can read the immediate-
@@ -3983,6 +4032,21 @@ export async function runHybridIdeator(
     process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
   const _recentNigerianPackEntryIdsForRetention: ReadonlySet<string> =
     _packAwareRetentionFlag ? _hoistedNigerianPackSeenIds : new Set<string>();
+  // PHASE W2-K — hoist the per-creator Western APPROVED pack memory
+  // snapshot. Read once here, reused at the slot-reservation site
+  // below. Gating mirrors the slot-reservation activation guard:
+  // region∈{undefined,"western"} + languageStyle∈{undefined,null,"clean"} +
+  // flag ON + non-empty pool. Non-eligible cohorts pay zero DB cost
+  // (helper short-circuits to empty Set without touching the row).
+  const _w2kEligible = canActivateWesternApprovedPool({
+    region: input.region,
+    languageStyle: _hoistedLanguageStyle,
+    flagEnabled: isWesternApprovedPoolFeatureEnabled(),
+    packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+  });
+  const _hoistedWesternPackSeenIds: ReadonlySet<string> = _w2kEligible
+    ? await getRecentSeenWesternEntryIds(input.creator?.id)
+    : new Set<string>();
   // PHASE W1 — per-creator catalog skeleton memory snapshot for the
   // cohort-gated Western hook adjustment's recent-skeleton repetition
   // demotion. Gated to the western/default cohort (region undefined
@@ -5069,6 +5133,135 @@ export async function runHybridIdeator(
     }
   }
 
+  // -------- PHASE W2-K — Western APPROVED Pack slot reservation --
+  // Runs AFTER the NG slot reservation + catalog skeleton swap so
+  // the upstream selection / hero / taste / NG composition remain
+  // authoritative for non-reserved positions. Activation guard
+  // short-circuits to identity for every cohort other than
+  // (region∈{undef,"western"} + lang∈{undef,null,"clean"} +
+  // LUMINA_W2_WESTERN_APPROVED_ENABLED=true + non-empty pool), so
+  // NG/India/PH and prod-default-OFF cohorts get the upstream batch
+  // back unchanged. The author runs all 4 production validators
+  // unchanged; bad entries silently drop and the slot reservation
+  // simply has fewer candidates to pick from.
+  {
+    let w2sr_diagnostic: WesternSlotReservationDiagnostic | null = null;
+    if (_w2kEligible) {
+      const w2EligibleEntries = getEligibleWesternApprovedEntries({
+        region: input.region,
+        languageStyle: _hoistedLanguageStyle,
+        flagEnabled: isWesternApprovedPoolFeatureEnabled(),
+        packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+      });
+      // Filter eligible entries by per-creator memory BEFORE authoring
+      // — saves validator cost on entries we'd reject anyway.
+      const memoryFiltered: WesternHookPackDraftEntry[] =
+        _hoistedWesternPackSeenIds.size > 0
+          ? w2EligibleEntries.filter(
+              (e) => !_hoistedWesternPackSeenIds.has(w2EntryIdOf(e)),
+            )
+          : w2EligibleEntries.slice();
+      // Cap authoring effort — we only ever need the top few. Pick
+      // a salt-rotated window of 12 to give the slot reservation
+      // diversity choice without paying validator cost on all 100.
+      const authoringWindow = 12;
+      const memoryFilteredLen = memoryFiltered.length;
+      const startIdx = memoryFilteredLen > 0
+        ? ((regenerate ? regenerateSalt ?? 0 : 0)) % memoryFilteredLen
+        : 0;
+      const rotated: WesternHookPackDraftEntry[] = [];
+      for (let i = 0; i < memoryFilteredLen && rotated.length < authoringWindow; i++) {
+        const pick = memoryFiltered[(startIdx + i) % memoryFilteredLen];
+        if (pick) rotated.push(pick);
+      }
+      const w2Candidates: WesternPackCandidate[] = [];
+      const w2RecentPremises = new Set<string>(
+        merged.map((c) => c.idea.hook.toLowerCase().trim()),
+      );
+      for (const entry of rotated) {
+        const authored = authorWesternPackEntryAsIdea({
+          entry,
+          regenerateSalt: regenerateSalt ?? 0,
+          recentPremises: w2RecentPremises,
+          seedFingerprints: new Set<string>(),
+        });
+        if (!authored.ok) continue;
+        // `scoreHookQuality` family arg is unused by the math (see
+        // hookQuality.ts L604) but typed to `PremiseCoreFamily`. The
+        // W2 `comedyFamily` taxonomy is wider than the premise core
+        // taxonomy, so we pass a benign default that satisfies the
+        // type without affecting the score.
+        const score = scoreHookQuality(authored.idea.hook, "self_betrayal");
+        // PHASE W2-K — stamp hookQualityScore onto meta so downstream
+        // `annotateAndSortByWillingness` / `scoreWillingness` treats
+        // W2 ideas as picker-eligible (gated on hookStrength >= 50).
+        // Without this, W2 candidates default to 0 and get demoted in
+        // final ordering, defeating the booster intent. Architect
+        // review caught this as the only HIGH-impact defect.
+        const scored: ScoredCandidate = {
+          idea: authored.idea,
+          meta: { ...authored.meta, hookQualityScore: score },
+          score: {
+            total: score / 10,
+            hookImpact: 2,
+            tension: 2,
+            filmability: 2,
+            personalFit: 1,
+            captionStrength: 1,
+            freshness: 1,
+            scrollStopScore: 0,
+            hookIntentScore: 0,
+            heroQuality: score,
+          },
+          rewriteAttempted: false,
+        };
+        w2Candidates.push({
+          candidate: scored,
+          entryId: w2EntryIdOf(entry),
+          comedyFamily: entry.comedyFamily,
+          setting: entry.setting,
+          anchor: entry.anchor,
+          qualityScore: score,
+        });
+      }
+      const w2sr_postBatch = applyWesternApprovedPackSlotReservation({
+        selectionBatch: selection.batch,
+        w2Candidates,
+        desiredCount,
+        region: input.region,
+        languageStyle: _hoistedLanguageStyle,
+        flagEnabled: isWesternApprovedPoolFeatureEnabled(),
+        packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+        excludeEntryIds: _hoistedWesternPackSeenIds,
+        onDiagnostic: (d) => {
+          w2sr_diagnostic = d;
+        },
+      });
+      if (w2sr_postBatch !== selection.batch) {
+        selection = { ...selection, batch: w2sr_postBatch };
+      }
+      logger.info(
+        {
+          phase: "w2k.slot_reservation",
+          activated: true,
+          region: input.region ?? null,
+          languageStyle: _hoistedLanguageStyle,
+          eligiblePool: w2EligibleEntries.length,
+          memoryFiltered: memoryFiltered.length,
+          authored: w2Candidates.length,
+          memorySize: _hoistedWesternPackSeenIds.size,
+          diagnostic: w2sr_diagnostic,
+          shippedW2: selection.batch.filter(
+            (c) =>
+              (c.meta as { westernPackEntryId?: string })
+                .westernPackEntryId !== undefined,
+          ).length,
+        },
+        "phase_w2k.slot_reservation",
+      );
+    }
+  }
+
   // PHASE N1-FULL-SPEC — structured activation/decision telemetry.
   // Spec §"DEBUGGING AND QA VISIBILITY" enumerates these fields as
   // required debug surfaces. Pure observability — no behavior change
@@ -5663,6 +5856,8 @@ export async function runHybridIdeator(
       authoredPlanId: (m as { authoredPlanId?: string }).authoredPlanId,
       nigerianPackEntryId: (m as { nigerianPackEntryId?: string })
         .nigerianPackEntryId,
+      westernPackEntryId: (m as { westernPackEntryId?: string })
+        .westernPackEntryId,
     };
   });
 

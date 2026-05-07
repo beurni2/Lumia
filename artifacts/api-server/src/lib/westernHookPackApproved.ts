@@ -37,6 +37,84 @@
     checkWesternHookPackDraftIntegrity,
     type WesternHookPackDraftEntry,
   } from "./westernHookPack.js";
+  import type { Region } from "@workspace/lumina-trends";
+  import type { LanguageStyle } from "./tasteCalibration.js";
+
+  // ---------------------------------------------------------------- //
+  // PHASE W2-K — staging-only activation gates for the Western        //
+  // approved promotion pool. Mirrors the NG pack activation pattern   //
+  // (`canActivateNigerianPack`) but tighter: this pool ONLY targets   //
+  // the western/default cohort and the "clean" / unspecified language //
+  // style, so the NG cohort (region=nigeria + pidgin/light_pidgin) is  //
+  // structurally excluded by both axes. Production `start` script does //
+  // NOT set the env flag → OFF in prod. The dev `start` script sets it //
+  // → ON in staging. Pool length is read from the frozen Top 100      //
+  // export below so a future re-rank cannot accidentally activate an  //
+  // empty pool.                                                       //
+  // ---------------------------------------------------------------- //
+
+  /** Staging-only env flag for the W2-K runtime wiring. */
+  export const WESTERN_APPROVED_POOL_FEATURE_FLAG_ENV =
+    "LUMINA_W2_WESTERN_APPROVED_ENABLED";
+
+  /** Reads the env flag. `true` only when literal "true". */
+  export const isWesternApprovedPoolFeatureEnabled = (): boolean =>
+    process.env[WESTERN_APPROVED_POOL_FEATURE_FLAG_ENV] === "true";
+
+  export interface CanActivateWesternApprovedPoolInput {
+    region: Region | undefined;
+    languageStyle: LanguageStyle | null | undefined;
+    flagEnabled: boolean;
+    packLength: number;
+  }
+
+  /**
+   * Four-AND activation guard — short-circuits to false unless ALL
+   * conditions hold. Order is intentional: cheapest first.
+   *
+   *   1. flagEnabled       — env flag ON (staging only by default)
+   *   2. packLength > 0    — frozen Top 100 has entries
+   *   3. region eligible   — undefined OR "western" (the default cohort)
+   *   4. languageStyle ok  — undefined / null / "clean" only. The
+   *                          NG cohort uses "pidgin" / "light_pidgin"
+   *                          and is excluded by BOTH region (≠western)
+   *                          and languageStyle (≠clean), so a single-
+   *                          axis bug cannot leak W2 into NG.
+   *
+   * India / PH cohorts have region "india"/"philippines" → fail (3).
+   * NG-clean (region=nigeria + clean) → fails (3).
+   * Western-pidgin (region=western + pidgin) → fails (4) — defensive,
+   * not expected in production but blocked here for cohort isolation.
+   */
+  export const canActivateWesternApprovedPool = (
+    input: CanActivateWesternApprovedPoolInput,
+  ): boolean => {
+    if (!input.flagEnabled) return false;
+    if (input.packLength <= 0) return false;
+    if (input.region !== undefined && input.region !== "western") return false;
+    const ls = input.languageStyle ?? null;
+    if (ls !== null && ls !== "clean") return false;
+    return true;
+  };
+
+  /**
+   * Returns the eligible W2 entries for the given activation context.
+   * Returns an empty frozen array (NOT the pool) when the four-AND
+   * guard fails, so callers can pass the result through `.length` and
+   * `.filter()` checks without an extra activation branch.
+   */
+  export const getEligibleWesternApprovedEntries = (
+    input: CanActivateWesternApprovedPoolInput,
+  ): readonly WesternHookPackDraftEntry[] => {
+    if (!canActivateWesternApprovedPool(input)) {
+      return EMPTY_WESTERN_APPROVED_FROZEN;
+    }
+    return APPROVED_WESTERN_PROMOTION_CANDIDATES;
+  };
+
+  const EMPTY_WESTERN_APPROVED_FROZEN: readonly WesternHookPackDraftEntry[] =
+    Object.freeze([]);
+
 
   // Selection provenance: ids ordered by descending W2-D rubric score
   // (post-W2-F, post-W2-H corpus). Captured here as a readonly tuple
