@@ -1,0 +1,82 @@
+Phase W1.1 — Western Local Pool Underfill / Claude Fallback Reduction Audit
+
+Context:
+W1 landed safely:
+- westernHookQuality helper added
+- weak skeleton demotion and specificity bonuses wired
+- N1/India/PH smoke clean
+- 924/924 tests pass
+- typecheck clean
+
+But live Western QA did not prove output improvement:
+- BEFORE weak-skeleton hits: 7/36 = 19.4%
+- AFTER weak-skeleton hits: 9/36 = 25.0%
+- sample is small and inconclusive
+- 11/12 western batches used Claude fallback in both passes
+
+Goal:
+Find why Western/default local generation under-fills and forces Claude fallback so often.
+
+This is investigation-first. Do not change generation behavior until root cause is reported.
+
+Hard rules:
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not loosen validators.
+- Do not loosen anti-copy.
+- Do not loosen safety/privacy.
+- Do not change Claude prompts yet.
+- Do not add a Western pack yet.
+- Do not add corpus yet.
+- Do not change QA thresholds.
+
+Instrumentation:
+For western/default /api/ideator/generate requests, log the local candidate funnel:
+
+- raw local candidates generated
+- candidates after schema validation
+- candidates after scenario coherence
+- candidates after comedy validation
+- candidates after anti-copy
+- candidates after safety/privacy
+- candidates after novelty/diversity
+- candidates after W1 westernHookQuality adjustment
+- final localKept before fallback decision
+- desiredCount
+- fallback triggered yes/no
+- fallback reason
+- top rejection reasons
+- top weak skeleton families present
+- top repeated skeleton families
+- number of candidates demoted by W1
+- number of candidates boosted by W1
+- whether Claude fallback candidates replaced local candidates in final shipped batch
+
+QA:
+Run real /api/ideator/generate on a fresh Western/default creator:
+- 20 refreshes
+- 60 ideas total
+- W1 ON
+
+Also run a small W1 OFF comparison if cheap:
+- 10 refreshes
+- 30 ideas
+
+Report:
+- fallback rate
+- localKept distribution
+- rejection reason breakdown
+- W1 adjustment impact
+- shipped source mix
+- weak skeleton hit rate
+- strongest 20 Western hooks
+- weakest 20 Western hooks
+- exact repeated hooks
+- repeated skeleton families
+- refresh success/timeouts
+
+Deliverables:
+- root cause of Western local under-fill
+- whether W1 is being applied before fallback
+- whether W1 adjusted candidates are surviving to final output
+- minimal fix plan before implementation
