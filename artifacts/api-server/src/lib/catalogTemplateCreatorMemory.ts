@@ -46,8 +46,18 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client.js";
 import { logger } from "./logger.js";
 
-/** Maximum skeletons retained in the per-creator memory window. */
-export const CATALOG_SKELETON_MEMORY_CAP = 24;
+/**
+ * Maximum skeletons retained in the per-creator memory window.
+ * Bumped from 24 → 48 (BI 2026-05-07 catalog repeat fix) so the
+ * recency-scored alt picker in `hybridIdeator.ts` has a longer tail
+ * of "older = better" rotation candidates before skeletons drop off
+ * and become unseen again. The previous 24 saturated within ~3
+ * batches in the activated NG cohorts (catalog template space is
+ * ~7 templates × 16 scenarios) which collapsed the picker's score
+ * gradient. 48 covers ~6 batches without saturation while still
+ * being a tiny JSONB payload (one short string per entry).
+ */
+export const CATALOG_SKELETON_MEMORY_CAP = 48;
 
 /**
  * Token-length threshold for skeleton normalization. Tokens of 5+
@@ -142,6 +152,54 @@ export const getRecentSeenSkeletons = async (
       "catalog_skeleton.memory_read_failed",
     );
     return new Set();
+  }
+};
+
+/**
+ * Returns a recency-rank map for every seen skeleton:
+ *   key = skeleton string
+ *   val = 0-indexed rank (0 = most-recently-seen, larger = older)
+ *
+ * Used by the catalog skeleton swap in `hybridIdeator.ts` to score
+ * alternate candidates: unseen skeletons (absent from the map) are
+ * preferred first, otherwise the LARGEST rank (oldest) wins. This
+ * rotates the picker away from always selecting the same recently
+ * seen alt and prevents the deterministic-first-match collapse that
+ * left some catalog hooks shipping 2× across 10-batch runs.
+ *
+ * Same failure modes as `getRecentSeenSkeletons`: empty Map on
+ * missing creatorId, DB read failure (logged, swallowed), or
+ * empty / NULL column.
+ */
+export const getRecentSeenSkeletonRecency = async (
+  creatorId: string | undefined,
+): Promise<Map<string, number>> => {
+  if (!creatorId) return new Map();
+  try {
+    const rows = await db
+      .select({
+        memory: schema.creators.catalogTemplateSeenIdsJson,
+      })
+      .from(schema.creators)
+      .where(eq(schema.creators.id, creatorId))
+      .limit(1);
+    const memory = readMemory(rows[0]?.memory);
+    const sorted = [...memory].sort((a, b) =>
+      a.lastSeenAt < b.lastSeenAt ? 1 : -1,
+    );
+    const m = new Map<string, number>();
+    sorted.forEach((e, i) => {
+      // First write wins → guards against duplicate skeletons in a
+      // malformed row keeping the most-recent rank.
+      if (!m.has(e.skeleton)) m.set(e.skeleton, i);
+    });
+    return m;
+  } catch (err) {
+    logger.warn(
+      { err, creatorId },
+      "catalog_skeleton.recency_read_failed",
+    );
+    return new Map();
   }
 };
 

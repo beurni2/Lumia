@@ -253,9 +253,9 @@ describe("recordSeenSkeletons", () => {
   });
 
   test("caps at CATALOG_SKELETON_MEMORY_CAP, dropping oldest", async () => {
-    const existing = Array.from({ length: 30 }, (_, i) => ({
+    const existing = Array.from({ length: 60 }, (_, i) => ({
       skeleton: `s${i}`,
-      lastSeenAt: `2025-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
+      lastSeenAt: `2025-01-01T${String(i).padStart(2, "0")}:00:00Z`,
     }));
     getState().rows = [{ memory: existing }];
     // "go now" normalizes to "go now" (both <5 chars → kept verbatim).
@@ -266,7 +266,7 @@ describe("recordSeenSkeletons", () => {
     expect(written.find((e) => e.skeleton === "s0")).toBeUndefined();
   });
 
-  test("CATALOG_SKELETON_MEMORY_CAP is 24", () => {
-    expect(CATALOG_SKELETON_MEMORY_CAP).toBe(24);
+  test("CATALOG_SKELETON_MEMORY_CAP is 48", () => {
+    expect(CATALOG_SKELETON_MEMORY_CAP).toBe(48);
   });
 });

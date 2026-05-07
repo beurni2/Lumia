@@ -155,6 +155,7 @@ import {
 //     repeat. Better to repeat than to underfill or stall.
 import {
   getRecentSeenSkeletons,
+  getRecentSeenSkeletonRecency,
   recordSeenSkeletons,
   normalizeHookToSkeleton,
 } from "./catalogTemplateCreatorMemory.js";
@@ -4771,7 +4772,10 @@ export async function runHybridIdeator(
   // available, the original candidate ships and recordSeenSkeletons
   // logs the repeat — strictly better than underfilling.
   {
-    const seenSkeletons = await getRecentSeenSkeletons(input.creator?.id);
+    const skeletonRecency = await getRecentSeenSkeletonRecency(
+      input.creator?.id,
+    );
+    const seenSkeletons = new Set(skeletonRecency.keys());
     if (seenSkeletons.size > 0) {
       const isPack = (c: { meta: unknown }): boolean =>
         (c.meta as { nigerianPackEntryId?: string })
@@ -4783,48 +4787,47 @@ export async function runHybridIdeator(
         const idAny = (c.idea as { id?: unknown }).id;
         if (typeof idAny === "string") usedIds.add(idAny);
       }
+      // Recency-scored alt picker (BI 2026-05-07 catalog repeat fix
+      // — replaces the prior deterministic `merged.find()` two-tier
+      // search). For each non-pack candidate in `merged` not already
+      // used in-batch and whose skeleton differs from the repeating
+      // one, score = `Number.POSITIVE_INFINITY` if unseen, else the
+      // recency rank from `skeletonRecency` (0 = most-recent, larger
+      // = older). Highest-score wins → unseen first, then oldest
+      // seen. Rotates the picker away from always selecting the
+      // same first-match alt across batches, eliminating the 2×
+      // residual repeats the prior fix left in QA. SWAP-only
+      // semantics preserved (never drops, never shrinks the pool).
+      const pickAlt = (
+        sk: string,
+      ): typeof n1s2_postBatch[number] | undefined => {
+        let bestAlt: typeof n1s2_postBatch[number] | undefined;
+        let bestScore = Number.NEGATIVE_INFINITY;
+        for (const p of merged) {
+          if (isPack(p)) continue;
+          const altIdAny = (p.idea as { id?: unknown }).id;
+          if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
+            continue;
+          }
+          const altSk = normalizeHookToSkeleton(p.idea.hook);
+          if (altSk.length === 0) continue;
+          if (altSk === sk) continue;
+          if (usedSkeletons.has(altSk)) continue;
+          const rank = skeletonRecency.get(altSk);
+          const score =
+            rank === undefined ? Number.POSITIVE_INFINITY : rank;
+          if (score > bestScore) {
+            bestScore = score;
+            bestAlt = p;
+          }
+        }
+        return bestAlt;
+      };
       const swapped = n1s2_postBatch.map((c) => {
         if (isPack(c)) return c;
         const sk = normalizeHookToSkeleton(c.idea.hook);
         if (sk.length === 0 || !seenSkeletons.has(sk)) return c;
-        // Primary: alt whose skeleton is novel (unseen by creator)
-        // and not already chosen elsewhere in this batch.
-        const novelAlt = merged.find((p) => {
-          if (isPack(p)) return false;
-          const altIdAny = (p.idea as { id?: unknown }).id;
-          if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
-            return false;
-          }
-          const altSk = normalizeHookToSkeleton(p.idea.hook);
-          if (altSk.length === 0) return false;
-          if (seenSkeletons.has(altSk)) return false;
-          if (usedSkeletons.has(altSk)) return false;
-          return true;
-        });
-        // Relaxed fallback (BI 2026-05-07 catalog repetition fix):
-        // when the per-creator seen-set has saturated the local pool's
-        // skeleton space, no truly novel alt exists — strict swap fails
-        // and the repeating skeleton ships again (root cause of the
-        // observed 3-4× repeats of "my body quit…" across 10 batches).
-        // Accept any non-pack alt whose skeleton (a) differs from the
-        // repeating one and (b) isn't already used in this batch. Still
-        // rotates the user away from the visible repeat — strictly
-        // better than shipping the same hook again. SWAP-ONLY semantics
-        // preserved (never drops, never shrinks the pool).
-        const alt =
-          novelAlt ??
-          merged.find((p) => {
-            if (isPack(p)) return false;
-            const altIdAny = (p.idea as { id?: unknown }).id;
-            if (typeof altIdAny === "string" && usedIds.has(altIdAny)) {
-              return false;
-            }
-            const altSk = normalizeHookToSkeleton(p.idea.hook);
-            if (altSk.length === 0) return false;
-            if (altSk === sk) return false;
-            if (usedSkeletons.has(altSk)) return false;
-            return true;
-          });
+        const alt = pickAlt(sk);
         if (!alt) return c;
         usedSkeletons.delete(sk);
         usedSkeletons.add(normalizeHookToSkeleton(alt.idea.hook));

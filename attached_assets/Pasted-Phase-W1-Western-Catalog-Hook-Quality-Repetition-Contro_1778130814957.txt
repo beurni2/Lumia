@@ -1,0 +1,183 @@
+Phase W1 — Western Catalog Hook Quality + Repetition Control
+
+Goal:
+Improve Western/default hook funniness, specificity, and freshness without creating a new pack system and without affecting the Nigerian/Pidgin pack.
+
+Observed problem:
+The Western/default catalog is producing hooks that pass validators but feel template-like, repetitive, and not funny enough.
+
+Examples of weak/repeated hooks:
+- “my body quit. my brain kept screaming”
+- “I am totally fine about the post”
+- “the fridge knows I’m lying”
+- “someone explain the keyboard to me. NOW”
+- “the sink won. obviously.”
+- “the X itself became ‘at least I tried’ again”
+- “the X flatlined my whole week”
+- “the X demolished my entire vibe”
+- “the X keeps revealing itself”
+
+Product requirement:
+Western/default ideas should feel like specific, filmable micro-comedy moments, not object-swapped templates.
+
+Good Western hook direction:
+- specific private behavior
+- visible action
+- self-betrayal
+- social/private embarrassment
+- contradiction
+- natural creator/texting rhythm
+- clear filmable moment
+
+Examples of stronger direction:
+- “checking the post like the likes owe me rent”
+- “opening the fridge like new food spawned”
+- “I made a to-do list and immediately betrayed it”
+- “practiced the casual reply and still sounded insane”
+- “said I was leaving and sat down for 18 more minutes”
+
+Scope:
+Western/default catalog path only.
+
+Do not:
+- touch Nigerian pack behavior
+- touch N1 flags
+- touch Nigerian pack-aware retention
+- touch Pidgin scorer
+- touch regional validators
+- create a Western pack yet
+- add a new corpus yet
+- add migrations unless explicitly required and justified first
+- loosen validators
+- loosen anti-copy
+- loosen safety/privacy checks
+- use Claude as the main generator
+- change QA thresholds
+- damage India/Philippines/regional behavior
+
+Tasks:
+
+1. Add weak Western hook skeleton demotion
+
+Demote, not hard-ban by default, these weak skeleton families:
+- “someone explain the {anchor} to me”
+- “the {anchor} won”
+- “the {anchor} knows I’m lying”
+- “I am totally fine about the {anchor}”
+- “the {anchor} itself became”
+- “the {anchor} flatlined my whole week”
+- “the {anchor} demolished my entire vibe”
+- “the {anchor} keeps revealing itself”
+- “my body quit. my brain kept screaming”
+
+The demotion should be strong enough that these do not dominate output, but should not starve the generator.
+
+2. Add Western/default hook specificity scoring
+
+For Western/default catalog candidates, add a positive adjustment for hooks that contain:
+- concrete visible action
+- human behavior rather than random object personification
+- contradiction/self-betrayal
+- private embarrassment
+- social/app/posting anxiety
+- clear filmable setup
+- natural phrase rhythm
+
+Examples of specific behavior:
+- checking a post repeatedly
+- opening the fridge again
+- hovering over send/post
+- sitting down after saying you are leaving
+- rehearsing a casual reply
+- pretending a task is “almost done”
+- checking a notification and losing focus
+
+3. Add recent hook skeleton repetition control
+
+Track normalized hook skeletons across recent refreshes for the creator/session if an existing memory mechanism already supports this.
+
+If a skeleton appeared recently, demote it.
+
+Do not allow the same weak skeleton family to dominate multiple refreshes.
+
+This should target skeleton repetition, not just exact hook repetition.
+
+Examples:
+- “the fridge knows I’m lying”
+- “the sink knows I’m lying”
+should count as the same skeleton family.
+
+4. Add weak scenario pairing demotion
+
+If a hook is generic and the scenario is also generic, demote the candidate.
+
+Weak scenario patterns include:
+- set object down
+- stare at object
+- ignore object
+- walk out of frame
+- object “wins” without a clear behavior
+- random object becomes the whole joke
+
+Do not block strong object-based comedy when the behavior is specific and filmable.
+
+5. Preserve existing quality gates
+
+All candidates must still pass:
+- schema validation
+- scenario coherence
+- comedy validation
+- anti-copy
+- safety/privacy
+- diversity/novelty checks
+
+Do not loosen any validator.
+
+6. QA through real API path
+
+Run real /api/ideator/generate QA, not only direct generator tests.
+
+Cohort:
+- western/default
+- 20 refreshes
+- 60 ideas total
+
+Also run quick regression checks:
+- Nigeria + pidgin: small smoke test to confirm N1 unaffected
+- Nigeria + light_pidgin: small smoke test to confirm N1 unaffected
+- India: small smoke test
+- Philippines: small smoke test
+
+Report:
+- weak skeleton hit rate before/after
+- repeated skeleton families
+- exact repeated hooks
+- strongest 20 Western hooks
+- weakest 20 Western hooks
+- scenario match quality
+- refresh success/timeouts
+- safety/privacy
+- N1 regression check
+- regional regression check
+- tests/typecheck
+
+Acceptance criteria:
+- weak skeleton rate clearly reduced
+- repeated skeleton families reduced
+- no exact hook duplicates within a short refresh run
+- Western hooks feel more specific and filmable
+- refresh success remains >=90%
+- no safety/privacy regressions
+- Nigerian pack behavior unchanged
+- India/Philippines behavior not materially changed
+- tests pass
+- typecheck clean or only documented pre-existing unrelated errors
+
+Deliverable:
+A concise W1 report with:
+- files changed
+- scoring/demotion logic
+- repetition logic
+- before/after examples
+- QA tables
+- final verdict: GO / GO WITH NOTES / HOLD
