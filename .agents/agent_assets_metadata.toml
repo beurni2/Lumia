@@ -173,3 +173,9 @@ id = "10NygQgRrKP_lVBOhbuyE"
 uri = "file://.local/W2_WESTERN_DRAFT_QA.md"
 type = "text"
 title = "W2-Batch-C Western Draft QA Report (clean — 150/150)"
+
+[[outputs]]
+id = "XAONBiNcEFGBhHU-C_XZy"
+uri = "file://.local/W2_WESTERN_EDITORIAL_RANKING.md"
+type = "text"
+title = "W2-D Western Editorial Ranking + Promotion Readiness Report"
