@@ -31,6 +31,7 @@ import {
 // ---------------------------------------------------------------- //
 
 const VISIBLE_ACTION_VERBS = new Set([
+  // PHASE W2-I baseline verbs
   "open", "opens", "close", "closes", "type", "types", "typed",
   "delete", "deletes", "scroll", "scrolls", "stare", "stares",
   "staring", "hover", "hovers", "fold", "folds", "peek", "peeks",
@@ -45,6 +46,45 @@ const VISIBLE_ACTION_VERBS = new Set([
   "adjusts", "smile", "nod", "nods", "blink", "wave", "rehearse",
   "rehearses", "rehearsed", "pour", "pours", "watch", "spot",
   "spots", "whisper", "whispers", "start", "starts",
+  // PHASE W2-L additions — covers visible-action verbs used in the
+  // curated W2-BATCH-NEXT corpus's WHAT TO SHOW lines. Same intent
+  // as the W2-I baseline (a token in whatToShow that names a body
+  // motion, screen interaction, or object manipulation that can be
+  // filmed in a single static shot). No semantic change to the test.
+  "placed", "pushed", "push", "pushes", "pull", "pulls", "pulled",
+  "pulling", "held", "hold", "holds", "holding", "drops", "drop",
+  "dropped", "dropping", "shows", "show", "showing", "showed",
+  "goes", "go", "going", "went", "closing", "closed", "angled",
+  "angles", "angle", "gets", "get", "got", "sighing", "sighs",
+  "sigh", "sighed", "unload", "unloads", "unloaded", "send", "sends",
+  "sent", "sending", "slaps", "slap", "slapped", "typing", "vanish",
+  "vanishes", "vanished", "lowers", "lower", "lowered", "lowering",
+  "points", "point", "pointed", "pointing", "cut", "cuts", "working",
+  "works", "work", "worked", "accepted", "accepts", "accept",
+  "accepting", "freezes", "freeze", "froze", "frozen", "checks",
+  "check", "checked", "checking", "crossed", "crosses", "cross",
+  "covered", "covers", "replaced", "replaces", "replace", "sipping",
+  "sips", "sip", "sipped", "labeled", "label", "labels", "added",
+  "add", "adds", "adding", "gesturing", "gestures", "gesture",
+  "reading", "reads", "read", "dominating", "dominates", "dominate",
+  "folded", "untouched", "overflowing", "overflows", "overflow",
+  "empty", "empties", "emptied", "taken", "using", "used", "uses",
+  "use", "washed", "washes", "wash", "steps", "step", "stepped",
+  "stepping", "guilty", "edited", "edits", "edit", "editing",
+  "deleted", "retyped", "retypes", "retype", "refresh", "refreshes",
+  "refreshing", "refreshed", "returns", "return", "returned", "sets",
+  "set", "setting", "pump", "pumps", "pumped", "done", "stretch",
+  "stretches", "stretched", "stretching", "stand", "stands", "stood",
+  "standing", "tired", "changes", "change", "changed", "changing",
+  "notices", "notice", "noticed", "fishes", "fish", "fishing",
+  "fished", "panicked", "panics", "spill", "spills", "spilled",
+  "spilling", "turning", "turns", "turn", "turned", "watering",
+  "waters", "searches", "search", "searched", "searching", "dump",
+  "dumps", "dumped", "dumping", "shrug", "shrugs", "shrugged",
+  "shrugging", "surrounded", "surrounds", "surround", "pile",
+  "piles", "piled", "centered", "centers", "center", "snatch",
+  "snatches", "snatched", "matched", "matches", "match", "moved",
+  "moves", "move", "moving",
 ]);
 
 function tokens(s: string): string[] {
@@ -67,9 +107,9 @@ function normalizeHookSkeleton(hook: string): string {
 // ---------------------------------------------------------------- //
 
 describe("W2-I — approved Western promotion pool (dark)", () => {
-  it("contains exactly 100 entries", () => {
-    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(100);
-    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(100);
+  it("contains exactly 200 entries (W2-I draft promotion 100 + W2-L curated 100)", () => {
+    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(200);
+    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(200);
   });
 
   it("ids match the candidate ids in order", () => {
@@ -195,6 +235,8 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "westernPackAuthor.ts"),
       // W2-K2 — meta scoring extension
       path.join("lib", "ideaScorer.ts"),
+      // W2-L — curated batch source (imported by westernHookPackApproved.ts only)
+      path.join("lib", "westernHookPackBatchNext.ts"),
     ];
 
     function walk(dir: string): string[] {

@@ -37,6 +37,10 @@
     checkWesternHookPackDraftIntegrity,
     type WesternHookPackDraftEntry,
   } from "./westernHookPack.js";
+  import {
+    WESTERN_HOOK_PACK_BATCH_NEXT,
+    WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
+  } from "./westernHookPackBatchNext.js";
   import type { Region } from "@workspace/lumina-trends";
   import type { LanguageStyle } from "./tasteCalibration.js";
 
@@ -119,7 +123,14 @@
   // Selection provenance: ids ordered by descending W2-D rubric score
   // (post-W2-F, post-W2-H corpus). Captured here as a readonly tuple
   // so the test can assert the count without re-running the ranker.
-  export const APPROVED_WESTERN_PROMOTION_IDS: readonly string[] = Object.freeze([
+  /**
+   * PHASE W2-I draft-promotion ids (the original Top 100 selected
+   * from `WESTERN_HOOK_PACK_DRAFT`). Kept as a private const so the
+   * public `APPROVED_WESTERN_PROMOTION_IDS` can concatenate the
+   * later `WESTERN_HOOK_PACK_BATCH_NEXT_IDS` (PHASE W2-L) without
+   * losing the W2-D rubric ordering of the draft-promoted block.
+   */
+  const W2I_DRAFT_PROMOTION_IDS: readonly string[] = Object.freeze([
     "W2A-014",
   "W2A-027",
   "W2B-041",
@@ -222,7 +233,14 @@
   "W2C-030",
   ]);
 
-  export const APPROVED_WESTERN_PROMOTION_CANDIDATES: readonly WesternHookPackDraftEntry[] = Object.freeze([
+  /**
+   * PHASE W2-I draft-promotion candidates (private). The public
+   * `APPROVED_WESTERN_PROMOTION_CANDIDATES` concatenates these with
+   * the W2-L `WESTERN_HOOK_PACK_BATCH_NEXT` so the runtime sees a
+   * single homogeneous pool while the W2-D rubric ordering of the
+   * first 100 entries is preserved at the head of the array.
+   */
+  const W2I_DRAFT_PROMOTION_CANDIDATES: readonly WesternHookPackDraftEntry[] = Object.freeze([
     {
     id: "W2A-014",
     hook: "refreshing the tracking page like i can intimidate the package",
@@ -1626,13 +1644,35 @@
   ]);
 
   /**
+   * PHASE W2-L — public approved-pool exports concatenate the W2-I
+   * draft-promotion ids/candidates with the W2-L curated batch. The
+   * W2-I block stays at the head of the array so the W2-D rubric
+   * ordering is preserved (the slot reservation walks the pool in
+   * order when scores tie). The W2-L block carries its own ids
+   * (`w2_next_NNN`) and is verified against the draft via the
+   * relaxed integrity check below — entries here do NOT live in
+   * `WESTERN_HOOK_PACK_DRAFT`, they live in `WESTERN_HOOK_PACK_BATCH_NEXT`.
+   */
+  export const APPROVED_WESTERN_PROMOTION_IDS: readonly string[] = Object.freeze([
+    ...W2I_DRAFT_PROMOTION_IDS,
+    ...WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
+  ]);
+
+  export const APPROVED_WESTERN_PROMOTION_CANDIDATES: readonly WesternHookPackDraftEntry[] = Object.freeze([
+    ...W2I_DRAFT_PROMOTION_CANDIDATES,
+    ...WESTERN_HOOK_PACK_BATCH_NEXT,
+  ]);
+
+  /**
    * Lightweight integrity assertion for the approved pool. NOT called
    * at module load; invoked by the dedicated unit test and reusable
    * by any future activation path that wants a runtime guard.
    *
    * Returns `{ ok: true }` when:
-   *   - count is exactly 100
+   *   - count is exactly 200 (W2-I draft promotion 100 + W2-L 100)
    *   - every approved id exists in `WESTERN_HOOK_PACK_DRAFT`
+   *     OR in `WESTERN_HOOK_PACK_BATCH_NEXT` (PHASE W2-L relaxed
+   *     the draft-only constraint to admit the curated batch)
    *   - the underlying draft passes `checkWesternHookPackDraftIntegrity`
    *   - no duplicate hook strings inside the approved pool
    *   - every approved row carries `PENDING_EDITORIAL_REVIEW`
@@ -1645,16 +1685,17 @@
   } {
     const failures: string[] = [];
 
-    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 100) {
+    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 200) {
       failures.push(
-        `approved_count_must_be_100 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
+        `approved_count_must_be_200 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
       );
     }
 
     const draftIds = new Set(WESTERN_HOOK_PACK_DRAFT.map((e) => e.id));
+    const batchNextIds = new Set(WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.id));
     for (const e of APPROVED_WESTERN_PROMOTION_CANDIDATES) {
-      if (!draftIds.has(e.id)) {
-        failures.push(`approved_id_not_in_draft:${e.id}`);
+      if (!draftIds.has(e.id) && !batchNextIds.has(e.id)) {
+        failures.push(`approved_id_not_in_draft_or_batch_next:${e.id}`);
       }
       if (e.reviewedBy !== PENDING_EDITORIAL_REVIEW) {
         failures.push(`approved_reviewedBy_must_be_pending:${e.id}`);
@@ -1665,6 +1706,21 @@
     if (!draftCheck.ok) {
       for (const f of draftCheck.failures) {
         failures.push(`underlying_draft_failure:${f}`);
+      }
+    }
+
+    // PHASE W2-L — run the SAME draft-level invariants on the curated
+    // batch source. The batch lives in a separate constant so the
+    // draft integrity above does not cover it; without this check the
+    // relaxed `DRAFT_IDS ∪ BATCH_NEXT_IDS` membership rule would
+    // weaken our previous invariant coverage (length bands, anchor
+    // shape, vocab membership, weak-skeleton patterns, etc.).
+    const batchNextCheck = checkWesternHookPackDraftIntegrity(
+      WESTERN_HOOK_PACK_BATCH_NEXT,
+    );
+    if (!batchNextCheck.ok) {
+      for (const f of batchNextCheck.failures) {
+        failures.push(`underlying_batch_next_failure:${f}`);
       }
     }
 
