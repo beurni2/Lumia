@@ -383,3 +383,9 @@ id = "uE40OUUKQHrlEZeRqPGGq"
 uri = "file://.local/W2QA_AUDIT_REPORT.md"
 type = "text"
 title = "W2-QA-AUDIT — First-Impression + Weak Pattern Root-Cause Audit"
+
+[[outputs]]
+id = "eh1g7WH2G7wdlrZhZp1t3"
+uri = "file://.local/W2QAFIX1_REPORT.md"
+type = "text"
+title = "W2-QA-FIX-1 Report"
