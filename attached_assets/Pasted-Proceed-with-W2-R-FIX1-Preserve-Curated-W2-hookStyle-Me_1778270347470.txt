@@ -1,0 +1,115 @@
+Proceed with W2-R-FIX1 — Preserve Curated W2 hookStyle Metadata.
+
+Root cause:
+The W2-R style-collapse issue is upstream of slot reservation.
+
+Current behavior:
+westernPackAuthor.ts overwrites every W2 pack entry's curated hookStyle with:
+
+hookStyle: pickHookStyle(hookLower)
+
+The pickHookStyle regex is too narrow and falls through to internal_thought for almost every W2 hook. As a result:
+- W2 ideas are effectively 100% internal_thought at runtime
+- allSameStyle batches stay extremely high
+- W2-R hookStyle penalty cannot work because the pool is already monochrome
+- raising penalty weights does not solve the problem and risks quality/fallback regression
+
+Goal:
+Preserve curated hookStyle metadata from W2 pack entries.
+
+Scope:
+Make the smallest safe upstream fix:
+- use entry.hookStyle when available
+- fall back to pickHookStyle(hookLower) only if entry.hookStyle is missing or invalid
+
+Suggested implementation:
+In artifacts/api-server/src/lib/westernPackAuthor.ts, replace:
+
+hookStyle: pickHookStyle(hookLower)
+
+with the equivalent of:
+
+hookStyle: normalizeWesternPackHookStyle(entry.hookStyle) ?? pickHookStyle(hookLower)
+
+or, if the type union already accepts all W2 hookStyle values:
+
+hookStyle: entry.hookStyle ?? pickHookStyle(hookLower)
+
+Before implementation:
+1. Verify Idea["hookStyle"] accepts all W2 pack hookStyle values currently used by W2-I/W2-L/W2-N/W2-T.
+2. If not, do NOT blindly widen the union.
+3. Prefer a small explicit mapping table from W2 hookStyle values to existing Idea hookStyle values only if needed.
+4. Report any unsupported values before patching.
+
+Hard rules:
+- Do not change validators.
+- Do not change ideaSchema unless absolutely required and explicitly reported.
+- Do not change Claude prompts.
+- Do not change production flags.
+- Do not change W2-O.
+- Do not change W2-T source content.
+- Do not change hooks.
+- Do not change whatToShow.
+- Do not change captions/howToFilm.
+- Do not add migrations.
+- Do not add memory architecture.
+- Do not tune hookStyle penalty beyond default 1.0 in this pass.
+- Do not implement first-batch interleave yet.
+- Do not implement phone-flavor metadata.
+
+Tests required:
+1. Add/adjust unit test proving W2 authored ideas preserve curated hookStyle.
+   Example:
+   - W2-T entry with hookStyle=object_betrayal authors as object_betrayal, not internal_thought
+   - W2 entry with tiny_documentary authors as tiny_documentary if supported/mapped
+   - fallback pickHookStyle still works for non-pack or missing hookStyle cases
+
+2. Confirm W2 author still passes validators:
+   - scenario coherence
+   - comedy validation
+   - anti-copy
+   - hook length
+   - safety/privacy
+
+3. Confirm no cohort leakage:
+   - NG/N1 unaffected
+   - India/Philippines unaffected
+   - Western/clean only
+
+4. Run full api-server tests.
+5. Run typecheck for affected package.
+
+Post-change runtime QA:
+Run W2-R diversity harness again with:
+- LIVE flag ON in dev only
+- production flags untouched
+- Western/clean
+- 10 creators
+- 12–20 batches each if feasible
+- count=3
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+- x-lumina-qa-expose-meta:1
+
+Report before vs after:
+- internal_thought share
+- distinct hookStyle count
+- allSameStyle batches
+- W2-T share
+- W2-I/W2-L/W2-N/W2-T distribution
+- in-batch duplicate failures
+- entryId/hook/skeleton repeats
+- fallback count
+- latency avg/min/max
+- errors
+- production flags unchanged
+
+Expected result:
+- internal_thought should drop materially from ~95%
+- allSameStyle should drop materially from ~80%
+- W2-T share should remain ≥15%
+- no exact hook / entryId / skeleton regression
+- no fallback or latency regression
+- tests green
+
+If the hookStyle union/mapping is larger than expected, stop and report before widening anything.
