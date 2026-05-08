@@ -269,3 +269,9 @@ id = "7qEFiSYTSOHT4idtqfU5T"
 uri = "file://.local/W2S_AUDIT/REPORT.md"
 type = "text"
 title = "W2-S Live Pool Diversity Audit"
+
+[[outputs]]
+id = "SbsjOKRyWwJYYgpD__UYl"
+uri = "file://.local/W2T_REPORT.md"
+type = "text"
+title = "W2-T Diversity Batch Import Report"
