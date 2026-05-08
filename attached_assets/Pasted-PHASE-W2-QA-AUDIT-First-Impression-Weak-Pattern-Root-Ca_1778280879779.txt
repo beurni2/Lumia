@@ -1,0 +1,176 @@
+PHASE W2-QA-AUDIT — First-Impression + Weak Pattern Root-Cause Audit
+
+Objective:
+Audit the remaining W2-QA caveats and identify exact root causes before any repair work.
+
+Do not fix anything in this phase.
+Do not patch code.
+Do not change selectors.
+Do not change validators.
+Do not change production flags.
+Do not import another batch.
+Do not start Film This Now polish.
+Do not propose a fix until the root cause is proven.
+
+Context:
+W2-QA is GO with caveats for internal QA/design-partner testing, not production.
+
+System metrics are strong:
+- 100 batches / 300 ideas
+- 0 HTTP errors
+- 0 Claude fallback
+- median latency ~4.4s
+- 96% of batches = 2 W2 + 1 old/core
+- 0 batches = 3 W2
+- 0 per-creator entryId repeats
+- 0 per-creator hook repeats
+- 0 per-creator skeleton repeats
+- 0 unsafe/private ideas found
+- W2-T share = 21.9%
+
+Known caveats needing root-cause audit:
+1. First-impression overlap:
+   - first batch source mix = 66.7% W2-I, 30% pattern_variation, 3.3% core_native
+   - 0 W2-L / W2-N / W2-T on first open
+   - only 4 distinct first-card hooks across 10 fresh creators
+   - examples include:
+     - “the fridge knows i'm lying”
+     - “watching my own story like i didn't just post it”
+     - “filming gym proof from the couch”
+
+2. Weak old/core/pattern outputs:
+   - repeated “I am totally fine about...” pattern
+   - “the swipe keeps revealing itself”
+   - “the tasks keeps dodging itself”
+   - “the couch keeps avoiding itself”
+   - “the app keeps closing itself”
+   - “i checked one thing. ruined my day”
+   - “the ___ and i are still here”
+   - these may be coming from core_native or pattern_variation, not W2
+
+3. Monoculture / sameness:
+   - 24% all-same effective style batches
+   - phone anchor concentration
+   - desk/couch/kitchen concentration
+   - first batch W2-I head-of-pool dominance
+
+Goal:
+Produce a diagnosis report that explains WHY these issues happen and where in the code/data they originate.
+
+Use artifacts:
+- .local/qa-runs/w2qa_top_bottom.md
+- .local/qa-runs/w2qa_editorial_sample.md
+- .local/qa-runs/w2qa_failure_patterns.md
+- .local/qa-runs/w2qa_sweep.json
+- .local/W2QA_FIRST_IMPRESSION_REPORT.md
+- .local/W2QA_REFRESH_EXPERIENCE_REPORT.md
+
+Create:
+.local/W2QA_AUDIT_REPORT.md
+
+Audit tasks:
+
+1. First-impression overlap root cause
+
+Trace the exact path for first batch generation:
+- /api/ideator/generate
+- regenerate=false behavior
+- cache behavior
+- W2 slot reservation behavior
+- approved/live pool ordering
+- W2-I head ordering
+- pattern_variation/core_native selection
+- source of first-card selection
+- why W2-L/N/T are absent on first open
+- why only 4 first-card hooks appear across 10 fresh creators
+
+Answer:
+- Is this caused by pool ordering?
+- Is this caused by cache?
+- Is this caused by deterministic seed?
+- Is this caused by score sorting?
+- Is this caused by W2-D rubric order?
+- Is this caused by the same demo creator/in-process memory?
+- Is this expected or a real production UX issue?
+
+2. Weak old/core/pattern output root cause
+
+For each weak repeated pattern, trace source:
+- “I am totally fine about...”
+- “the ___ keeps dodging itself”
+- “the ___ keeps avoiding itself”
+- “the ___ and i are still here”
+- “i checked one thing. ruined my day”
+- “the swipe keeps revealing itself”
+- “the app keeps closing itself”
+
+For each:
+- source module/file
+- template or pattern id
+- whether it comes from core_native, pattern_variation, catalog, or W2
+- how often it appears in the W2-QA run
+- why it passes validators
+- whether it is weak because of template wording, anchor substitution, scenario generation, caption generation, or selection scoring
+- whether it should be suppressed, rewritten, downranked, or left alone
+
+3. W2 vs old/core quality split
+
+Compare W2 ideas vs old/core/pattern ideas in the QA sample:
+- which group contributes most weak/bottom-20 ideas
+- which group contributes most top-20 ideas
+- whether W2 quality is strong enough
+- whether old/core is dragging down perceived quality
+- whether the 1 old/core slot is still helping or hurting first impression
+
+4. Monoculture root cause
+
+Diagnose:
+- why 24% all-same effective style batches remain
+- whether it is first-batch-specific or refresh-wide
+- whether it comes from W2-I, old/core, or pattern_variation
+- whether comedyFamily telemetry missing is blocking diagnosis
+- whether phone anchor concentration comes from W2 or old/core
+- whether desk/couch/kitchen concentration comes from W2 or old/core
+
+5. Risk assessment
+
+For each identified issue, classify:
+- product severity: P0/P1/P2
+- user impact
+- likely fix surface
+- risk of fixing
+- whether it should block moving to W2-FTN
+- whether it should block production
+
+6. Recommend fix options, but do not implement
+
+For each issue, provide options with tradeoffs:
+- minimal fix
+- safer fix
+- higher-impact fix
+- no-op rationale if no fix needed
+
+Examples of possible fix families:
+- first-batch deterministic top-N shuffle
+- interleave W2-I/L/N/T for first batch only
+- old/core weak-template suppress list
+- pattern_variation template rewrite
+- downrank old/core weak skeletons
+- first-impression eligibility filter
+- telemetry patch for comedyFamily
+- curation-side rebalance later
+
+But do not implement anything.
+
+Deliverable structure:
+1. Executive summary
+2. Issue-by-issue root cause
+3. Evidence table with file paths/functions/templates
+4. W2 vs old/core quality split
+5. Severity/risk table
+6. Recommended next action
+7. “Do not fix yet” confirmation
+
+Decision rule:
+If the audit proves a small targeted fix is needed, we will approve a separate repair prompt.
+If the audit shows the issue is not real or is acceptable, we move to W2-FTN.

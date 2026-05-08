@@ -377,3 +377,9 @@ id = "XELfc2fV4kJvNCtbqWrXc"
 uri = "file://.local/qa-runs/w2qa_editorial_sample.md"
 type = "text"
 title = "30-batch editorial sample (full text)"
+
+[[outputs]]
+id = "uE40OUUKQHrlEZeRqPGGq"
+uri = "file://.local/W2QA_AUDIT_REPORT.md"
+type = "text"
+title = "W2-QA-AUDIT — First-Impression + Weak Pattern Root-Cause Audit"
