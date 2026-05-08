@@ -1,0 +1,1031 @@
+W2-P EDITORIAL REPAIR PACKET 2 — ANCHOR / COHESION MISMATCH
+
+Instructions for coding agent:
+Apply these as repair overrides by ID.
+Preserve unchanged metadata unless explicitly replaced.
+Do not invent creative rewrites.
+Do not loosen validators.
+After applying, rerun author validators, W2-O rubric, live-pool derivation, tests, and runtime smoke.
+
+---
+
+### w2_next_003
+Keep hook:
+Third night of leftovers and I’m still pretending
+
+Replace whatToShow:
+Creator opens the microwave on the third night of leftovers, sniffs the Tupperware, takes one brave bite, and nods like this was always dinner.
+
+Replace howToFilm:
+Frame the microwave and Tupperware. Open it like you are already suspicious, take the third-night bite, then nod through visible regret.
+
+Replace caption:
+third night. same lie.
+
+Replace anchor:
+third
+
+---
+
+### w2_next_004
+Keep hook:
+Cutting board looks like a crime scene every single time
+
+Replace whatToShow:
+Close-up of a cutting board covered in uneven carrot chunks, knife pauses mid-chop, creator compares it to the recipe photo and stares in defeat.
+
+Replace howToFilm:
+Shoot down at the cutting board. Show the recipe photo, the chaotic carrot pieces, then pause the knife like the board has evidence on it.
+
+Replace caption:
+the cutting board saw everything.
+
+Replace anchor:
+cutting
+
+---
+
+### w2_next_011
+Replace hook:
+My meal prep plan fit inside one container
+
+Replace whatToShow:
+Creator lines up empty meal prep containers on the counter, places one lonely container with actual food in the middle, then slowly removes the empty ones.
+
+Replace howToFilm:
+Start with the meal prep containers like a big plan is happening. Reveal only one container has food, then clear the empty ones away in silence.
+
+Replace caption:
+meal prep, singular.
+
+Replace anchor:
+meal
+
+---
+
+### w2_next_013
+Keep hook:
+Grocery list still has confidence I lost days ago
+
+Replace whatToShow:
+Creator opens a staged grocery list that says “spinach, bananas, salmon,” then cuts to the counter: chips, coffee, and absolutely no bananas.
+
+Replace howToFilm:
+Show the grocery list first so the optimism is clear. Cut to the real counter and let the missing bananas do the joke.
+
+Replace caption:
+the grocery list believed in someone else.
+
+Replace anchor:
+grocery
+
+---
+
+### w2_next_016
+Keep hook:
+Cart total hit $92 and I still added gum
+
+Replace whatToShow:
+Creator shows a staged cart total at $92, pauses, then drops a pack of gum onto the counter like that was somehow still necessary.
+
+Replace howToFilm:
+Use a fake receipt/cart screen or staged grocery layout. Show the $92 cart total, then add the gum as the final bad decision.
+
+Replace caption:
+cart total was already yelling.
+
+Replace anchor:
+cart
+
+---
+
+### w2_next_018
+Replace hook:
+A subscription from my confident self just charged me
+
+Replace whatToShow:
+Creator gets a staged subscription charge notification, stares at the app icon, then tries to remember what version of themselves signed up for this.
+
+Replace howToFilm:
+Frame the subscription notification safely. Hold on the stare at the app icon, then look off like you are searching your past for answers.
+
+Replace caption:
+subscription from a person i no longer know.
+
+Replace anchor:
+subscription
+
+Safety note:
+Hide real billing details.
+
+---
+
+### w2_next_019
+Keep hook:
+Checkout line total made me put back the fancy cheese
+
+Replace whatToShow:
+Creator recreates the checkout moment at home: staged receipt total on the table, fancy cheese in hand, then the cheese slowly goes back into the bag.
+
+Replace howToFilm:
+Show the checkout total first, then the fancy cheese. The punchline is putting it back with the seriousness of a financial decision.
+
+Replace caption:
+checkout humbled the cheese.
+
+Replace anchor:
+checkout
+
+---
+
+### w2_next_020
+Keep hook:
+My “treat yourself” budget lasts until Wednesday
+
+Replace whatToShow:
+Creator opens a staged treat-yourself budget note, checks the date, then quietly puts one card back in the wallet like the week is over.
+
+Replace howToFilm:
+Frame the wallet, card, and staged budget note. Show the “treat yourself” line, then return the card with quiet disappointment.
+
+Replace caption:
+treat yourself had office hours.
+
+Replace anchor:
+treat
+
+Safety note:
+Do not show real card numbers.
+
+---
+
+### w2_next_023
+Keep hook:
+Cart had three “essentials” and fourteen snacks
+
+Replace whatToShow:
+Creator unloads a staged cart haul onto the kitchen table: three practical items on one side, a giant snack pile on the other.
+
+Replace howToFilm:
+Build two piles in frame. Count the essentials quickly, then let the snack pile visually take over the shot.
+
+Replace caption:
+cart priorities were exposed.
+
+Replace anchor:
+cart
+
+---
+
+### w2_next_025
+Keep hook:
+I canceled three subscriptions and kept the one I forgot
+
+Replace whatToShow:
+Creator opens a staged canceled subscriptions list, checks off three canceled items, then notices one forgotten subscription and slowly closes the laptop.
+
+Replace howToFilm:
+Show the canceled subscription list clearly. Let the forgotten one appear last, then close the laptop like the audit is over.
+
+Replace caption:
+canceled three. feared one.
+
+Replace anchor:
+canceled
+
+Safety note:
+Use fake/blurred subscription details.
+
+---
+
+### w2_next_032
+Keep hook:
+They said “k” and I assembled a legal defense
+
+Replace whatToShow:
+Phone shows a fake text that says “k,” creator types a huge defense paragraph, deletes it, then sends “cool” with visible spiritual damage.
+
+Replace howToFilm:
+Start tight on the “k.” Show the long paragraph building, delete it all, then send “cool” like you just represented yourself in court.
+
+Replace caption:
+“k” required legal counsel.
+
+Replace anchor:
+legal
+
+Safety note:
+Use fake chat text.
+
+---
+
+### w2_next_041
+Keep hook:
+This to-do item has survived three versions of me
+
+Replace whatToShow:
+Creator points to the same to-do item copied across three planner pages or app lists, each in a different pen/color, still not completed.
+
+Replace howToFilm:
+Show the first to-do item, then the second, then the third. End on the same task still waiting like it pays rent.
+
+Replace caption:
+three versions of me. one task.
+
+Replace anchor:
+to-do
+
+Safety note:
+Avoid showing private tasks.
+
+---
+
+### w2_next_044
+Keep hook:
+Work-from-home outfit is still pajamas at 3pm
+
+Replace whatToShow:
+Creator shows a work-from-home mirror check: nice top or hoodie above, pajama pants below, clock visible at 3pm.
+
+Replace howToFilm:
+Use the mirror as the reveal. Start polished from the waist up, then tilt down to the pajamas and clock.
+
+Replace caption:
+work from home, barely from outfit.
+
+Replace anchor:
+work
+
+---
+
+### w2_next_046
+Keep hook:
+My focus playlist is just lo-fi and snacks
+
+Replace whatToShow:
+Creator opens a focus playlist on the laptop, nods like work is starting, then immediately grabs chips and never touches the keyboard.
+
+Replace howToFilm:
+Frame the laptop playlist and keyboard. Start the focus playlist, then let the snack grab steal the entire scene.
+
+Replace caption:
+focus playlist. snack behavior.
+
+Replace anchor:
+focus
+
+Safety note:
+Avoid showing private account details.
+
+---
+
+### w2_next_061
+Keep hook:
+Roommate schedule says they’re home and they’re not
+
+Replace whatToShow:
+Creator checks a staged roommate schedule on the phone that says “home,” then pans across an obviously empty living room.
+
+Replace howToFilm:
+Show the roommate schedule first, then slowly pan the empty room. End on the confused look back at the schedule.
+
+Replace caption:
+roommate schedule entered fiction.
+
+Replace anchor:
+roommate
+
+Safety note:
+Use fake schedule details; avoid identifying roommate data.
+
+---
+
+### w2_next_068
+Keep hook:
+I filmed a 12-second idea for 45 minutes
+
+Replace whatToShow:
+Creator opens phone camera, taps through multiple filmed takes, then shows an exhausted face beside the final 12-second clip.
+
+Replace howToFilm:
+Show the camera roll or fake take list. Let the number of takes feel excessive, then end on the tiny final clip and your defeated face.
+
+Replace caption:
+filmed for 45. posted for 12.
+
+Replace anchor:
+filmed
+
+---
+
+### w2_next_075
+Keep hook:
+My drafts are now organized by emotional damage
+
+Replace whatToShow:
+Creator opens a staged drafts folder with labels like “maybe,” “absolutely not,” and “why did I film this,” then silently moves one draft into the worst folder.
+
+Replace howToFilm:
+Use staged folder names. Scroll slowly, move one draft, and let the folder labels be the joke.
+
+Replace caption:
+drafts folder has departments now.
+
+Replace anchor:
+drafts
+
+Safety note:
+Use staged draft names only.
+
+---
+
+### w2_next_076
+Keep hook:
+Algorithm recommended a memory I did not authorize
+
+Replace whatToShow:
+Creator sees a staged algorithm memory recommendation on the phone, freezes, then scrolls away so fast the phone almost slips.
+
+Replace howToFilm:
+Show a blurred or fake memory recommendation. The reaction is the point: freeze first, then panic-scroll away.
+
+Replace caption:
+algorithm, delete that thought.
+
+Replace anchor:
+algorithm
+
+Safety note:
+Do not show real people, usernames, exes, or private posts.
+
+---
+
+### w2_next_077
+Keep hook:
+I refreshed the feed and the feed refreshed my patience
+
+Replace whatToShow:
+Creator pulls to refresh a staged feed, the exact same post returns, and the phone gets set down like it lost privileges.
+
+Replace howToFilm:
+Frame the pull-to-refresh gesture. Show the same post returning, then place the phone down with parental disappointment.
+
+Replace caption:
+refreshed and learned nothing.
+
+Replace anchor:
+refreshed
+
+Safety note:
+Use staged or blurred feed.
+
+---
+
+### w2_next_081
+Keep hook:
+5am me made promises 5:12am me never respected
+
+Replace whatToShow:
+Creator’s alarm rings at 5am, they sit up like a new person, then at 5:12am they are fully back under the blanket.
+
+Replace howToFilm:
+Show the 5am alarm, the heroic sit-up, then the 5:12am collapse. Make the two versions of you feel like enemies.
+
+Replace caption:
+5am me was unsupervised.
+
+Replace anchor:
+5am
+
+---
+
+### w2_next_083
+Keep hook:
+Wind-down routine became a wrist workout
+
+Replace whatToShow:
+Creator starts a wind-down routine in bed with book and eye mask nearby, then thumb-scrolls on the phone until the book is clearly ignored.
+
+Replace howToFilm:
+Frame the wind-down props first. Then let the phone take over the shot while the thumb does all the “routine.”
+
+Replace caption:
+wind-down routine, thumb edition.
+
+Replace anchor:
+wind
+
+---
+
+### w2_next_084
+Keep hook:
+I stretched once and called it yoga
+
+Replace whatToShow:
+Creator does one tiny stretch on the living room floor, immediately stands up satisfied, and rolls the mat away like a class ended.
+
+Replace howToFilm:
+Use one safe stretch. The joke is the confidence afterward: stand up, nod, and put the mat away way too soon.
+
+Replace caption:
+yoga was brief.
+
+Replace anchor:
+stretched
+
+Safety note:
+Avoid unsafe stretching positions.
+
+---
+
+### w2_next_088
+Keep hook:
+Autocorrect changed my tone and left me with the consequences
+
+Replace whatToShow:
+Phone autocorrects a fake message into something colder than intended, creator notices after sending, freezes, then slowly puts the phone down.
+
+Replace howToFilm:
+Use a fake chat. Show the autocorrect change, the send, and the delayed realization. End on the frozen face.
+
+Replace caption:
+autocorrect chose violence politely.
+
+Replace anchor:
+autocorrect
+
+Safety note:
+Use fake chat text.
+
+---
+
+### w2_next_089
+Keep hook:
+Charger waited until 3% to reveal its true character
+
+Replace whatToShow:
+Creator sees phone at 3%, plugs in the charger, battery icon does nothing, and the creator slowly turns to stare at the cord.
+
+Replace howToFilm:
+Start on the 3% battery. Plug in the charger, wait for nothing to happen, then give the cord the full betrayal stare.
+
+Replace caption:
+charger picked a moment.
+
+Replace anchor:
+charger
+
+---
+
+### w2_next_090
+Keep hook:
+Earbuds fell in the exact spot I can’t reach
+
+Replace whatToShow:
+Creator drops an earbud between couch cushions, reaches in from three angles, then stares into the gap like it became a different address.
+
+Replace howToFilm:
+Show the earbud drop clearly. Try the reach from different angles, fail, then hold on the impossible couch gap.
+
+Replace caption:
+earbuds found another dimension.
+
+Replace anchor:
+earbuds
+
+---
+
+### w2_next_100
+Keep hook:
+I cleaned one surface and immediately gave it a sequel
+
+Replace whatToShow:
+Creator shows a cleaned counter, places one item down, then another, then another, until the cleaned surface has a full sequel of clutter.
+
+Replace howToFilm:
+Open on the clean surface. Add clutter one item at a time like the mess is rebuilding itself. End on the counter fully back in chaos.
+
+Replace caption:
+cleaned surface, part two.
+
+Replace anchor:
+cleaned
+
+---
+
+### w2_next2_008
+Keep hook:
+This email found me absolutely not well
+
+Replace whatToShow:
+Creator is sorting a junk drawer by color when an email notification dings; they look at the laptop like the email interrupted private nonsense.
+
+Replace howToFilm:
+Frame the weird drawer-sorting first. Let the email notification interrupt, then hold the stare like the message arrived at the worst possible time.
+
+Replace caption:
+this email found a situation.
+
+Replace anchor:
+email
+
+Safety note:
+Use staged email notification only.
+
+---
+
+### w2_next2_013
+Keep hook:
+This $12 smoothie was supposed to install a new personality
+
+Replace whatToShow:
+Creator takes a sip of the $12 smoothie, waits for a new personality to arrive, checks the phone camera, and realizes nothing installed.
+
+Replace howToFilm:
+Show the smoothie price/context safely, take the hopeful sip, wait two beats, then check the camera like the update failed.
+
+Replace caption:
+smoothie did not install the update.
+
+Replace anchor:
+smoothie
+
+Safety note:
+Do not film while driving.
+
+---
+
+### w2_next2_015
+Keep hook:
+Night routine is just switching screens horizontally
+
+Replace whatToShow:
+Creator starts a night routine by turning off the TV, lies down horizontally, then immediately opens the phone inches from their face.
+
+Replace howToFilm:
+Show the TV turning off, the horizontal move to the couch or bed, then the phone lighting up. The routine is just screen migration.
+
+Replace caption:
+night routine changed devices.
+
+Replace anchor:
+night
+
+---
+
+### w2_next2_016
+Keep hook:
+I said “just looking” and immediately started acting employed
+
+Replace whatToShow:
+Creator says “just looking” to nobody in their own pantry, then starts inspecting a loaf of bread with fake employee-level seriousness.
+
+Replace howToFilm:
+Simulate the store moment at home. Say “just looking,” pick up the bread, and nod like you suddenly work there.
+
+Replace caption:
+just looking became a shift.
+
+Replace anchor:
+looking
+
+Safety note:
+Do not film strangers or store employees.
+
+---
+
+### w2_next2_019
+Keep hook:
+My treat-yourself logic has entered the courtroom
+
+Replace whatToShow:
+Creator presents the treat-yourself candle like courtroom evidence, silently pointing to it and then to the lights like the purchase is saving money.
+
+Replace howToFilm:
+Frame the candle as evidence. Use hand gestures like a trial: candle, lights, receipt, final confident nod.
+
+Replace caption:
+treat yourself submitted evidence.
+
+Replace anchor:
+treat
+
+---
+
+### w2_next2_020
+Keep hook:
+7:05am me is not the person 10pm me hired
+
+Replace whatToShow:
+Creator sits on the bed at 7:05am with one sock on, staring at the wall like the person 10pm hired never showed up.
+
+Replace howToFilm:
+Show the time, the one sock, and the blank stare. Let the failed handoff between night-you and morning-you be obvious.
+
+Replace caption:
+10pm me lied on the résumé.
+
+Replace anchor:
+person
+
+---
+
+### w2_next2_024
+Keep hook:
+The “I understood that” face has left the building
+
+Replace whatToShow:
+Creator wears the “I understood that” face: aggressive nodding, wide eyes, fake “ohhh okay,” then writes absolutely nothing down.
+
+Replace howToFilm:
+Make the face the whole bit. Nod too hard, say the fake “okay,” then reveal the blank note page.
+
+Replace caption:
+understood nothing. performed everything.
+
+Replace anchor:
+understood
+
+---
+
+### w2_next2_027
+Keep hook:
+I just remembered breathing is supposed to happen automatically
+
+Replace whatToShow:
+Creator sits at the desk, suddenly remembers breathing, lets out a huge exhale, slumps back, and blinks like the system rebooted.
+
+Replace howToFilm:
+Hold still at the desk first. Then release the giant exhale all at once, slump back, and let the reboot blink land.
+
+Replace caption:
+breathing had to be manually updated.
+
+Replace anchor:
+breathing
+
+---
+
+### w2_next2_029
+Keep hook:
+Reading instructions is not part of my brand, apparently
+
+Replace whatToShow:
+Creator holds the instructions upside down, pockets a mystery screw, and confidently tries to force two harmless pieces together.
+
+Replace howToFilm:
+Show the upside-down instructions first. Then show the mystery screw and the wrong assembly attempt. Keep the confidence undeserved.
+
+Replace caption:
+instructions were present. not involved.
+
+Replace anchor:
+instructions
+
+Safety note:
+Use safe/light objects only.
+
+---
+
+### w2_next2_030
+Keep hook:
+Door-lock doubt has a subscription plan
+
+Replace whatToShow:
+Creator lies in bed, has door-lock doubt, gets up to check the lock, returns to bed, then immediately doubts the lock again.
+
+Replace howToFilm:
+Use quick cuts between bed and door. Make the loop feel like a subscription renewal: check, return, doubt, repeat.
+
+Replace caption:
+door-lock doubt renewed automatically.
+
+Replace anchor:
+lock
+
+Safety note:
+Do not show exterior address details.
+
+---
+
+### w2_next2_031
+Keep hook:
+I promoted myself to Head of Tomorrow
+
+Replace whatToShow:
+Creator promoted themself with a blazer over pajamas, opens the laptop, immediately closes it, and nods like tomorrow’s department handled it.
+
+Replace howToFilm:
+Start with the blazer like a promotion ceremony. Open the laptop, close it instantly, then nod with executive confidence.
+
+Replace caption:
+promoted. postponed.
+
+Replace anchor:
+promoted
+
+---
+
+### w2_next2_032
+Keep hook:
+Gym outfit clocked in. I did not.
+
+Replace whatToShow:
+Creator wears the gym outfit on an unrolled yoga mat, eats chips, and gives the mat a guilty look because the outfit clocked in alone.
+
+Replace howToFilm:
+Frame the gym outfit and untouched mat together. Eat the chips calmly, then glance at the mat like it knows.
+
+Replace caption:
+outfit showed up for both of us.
+
+Replace anchor:
+outfit
+
+---
+
+### w2_next2_034
+Keep hook:
+Five more minutes became a missing-person case
+
+Replace whatToShow:
+Creator says “five more minutes,” hits snooze, then quick-cuts to messy hair, toast in hand, and total confusion at the clock.
+
+Replace howToFilm:
+Show the “five more minutes” moment clearly. Then cut hard to the aftermath: hair, toast, clock, no explanation.
+
+Replace caption:
+five minutes filed a report.
+
+Replace anchor:
+five
+
+---
+
+### w2_next2_035
+Keep hook:
+Avoiding someone in public turned me into a shelf inspector
+
+Replace whatToShow:
+Creator recreates avoiding someone by crouching at pantry shelves, inspecting canned beans like public eye contact depends on it.
+
+Replace howToFilm:
+Shoot the avoidance crouch at home. Make the shelf inspection way too serious, like the beans became urgent research.
+
+Replace caption:
+avoiding became a full inspection.
+
+Replace anchor:
+avoiding
+
+Safety note:
+Do not film strangers.
+
+---
+
+### w2_next2_048
+Keep hook:
+My budgeting plan is hoping the app declines me first
+
+Replace whatToShow:
+Creator opens a staged budgeting note, then a fake app payment screen, clasps hands, and clearly hopes the app declines before they have to decide.
+
+Replace howToFilm:
+Show the budgeting plan first, then the payment screen. The joke is praying for the app to be the responsible one.
+
+Replace caption:
+budgeting outsourced to the app.
+
+Replace anchor:
+budgeting
+
+Safety note:
+Use fake payment/subscription screen.
+
+---
+
+### w2_next2_054
+Keep hook:
+My social media detox had a loading screen
+
+Replace whatToShow:
+Creator starts a social media detox by putting the phone in a drawer, walks away, then immediately slides back into frame and opens the drawer.
+
+Replace howToFilm:
+Show the detox decision with the phone going into the drawer. Walk away confidently, then return too fast and reopen it.
+
+Replace caption:
+social media detox buffering.
+
+Replace anchor:
+social
+
+---
+
+### w2_next2_056
+Keep hook:
+Finding a sleep position became contact sport
+
+Replace whatToShow:
+Creator tries finding a sleep position, wrestles the pillow and blanket, flips around safely, and ends upside down with one leg out of frame.
+
+Replace howToFilm:
+Keep the movement safe and exaggerated. Show the failed position changes one after another until the final upside-down defeat.
+
+Replace caption:
+sleep position fought back.
+
+Replace anchor:
+finding
+
+Safety note:
+Keep movement safe.
+
+---
+
+### w2_next2_062
+Keep hook:
+I rehearsed the voicemail and still sounded surprised
+
+Replace whatToShow:
+Creator rehearsed the voicemail calmly, hears the beep, then instantly sounds surprised and says “hi??” like the phone called them.
+
+Replace howToFilm:
+Show the calm rehearsal first. Let the beep interrupt, then switch into the surprised voice immediately.
+
+Replace caption:
+rehearsed it. forgot the role.
+
+Replace anchor:
+rehearsed
+
+Safety note:
+Use fake contact/number.
+
+---
+
+### w2_next2_075
+Keep hook:
+Splitwise turned brunch into a courtroom
+
+Replace whatToShow:
+Creator opens a fake Splitwise brunch expense, points at one suspicious line item, then silently opens a calculator like evidence is being reviewed.
+
+Replace howToFilm:
+Use a fake shared-expense screen. Point at the brunch line item, open the calculator, and let the silence feel like court.
+
+Replace caption:
+Splitwise called the witness.
+
+Replace anchor:
+Splitwise
+
+Safety note:
+Use fake expense names and amounts.
+
+---
+
+### w2_next2_089
+Keep hook:
+My lunch break became a meeting with my pillow
+
+Replace whatToShow:
+Creator starts lunch break with food on the desk, glances at the pillow, then lies on the couch holding the lunch container like the meeting moved.
+
+Replace howToFilm:
+Show the lunch first. Then show the pillow pulling focus, and end with the lunch container joining you on the couch.
+
+Replace caption:
+lunch break had a chairperson.
+
+Replace anchor:
+break
+
+---
+
+### w2_next2_092
+Keep hook:
+My reusable bag collection has become a personality test
+
+Replace whatToShow:
+Creator opens a closet and reveals reusable bags inside reusable bags, then pulls out one tote and finds another tote folded inside it.
+
+Replace howToFilm:
+Start with the closet reveal. Pull one reusable bag out, then reveal another bag inside like the collection is multiplying.
+
+Replace caption:
+reusable bags discovered recursion.
+
+Replace anchor:
+reusable
+
+---
+
+### w2_next2_097
+Keep hook:
+My calendar reminder arrived after my motivation left
+
+Replace whatToShow:
+Creator gets a calendar reminder on the phone, then camera reveals they are already under a blanket with motivation fully gone.
+
+Replace howToFilm:
+Show the calendar reminder first. Then reveal the blanket situation slowly, like the reminder arrived at an abandoned office.
+
+Replace caption:
+calendar reminder missed the meeting.
+
+Replace anchor:
+calendar
+
+Safety note:
+Use generic reminder text.
+
+---
+
+### W2A-006
+Keep hook:
+rehearsing a casual reply and still sounding insane
+
+Replace whatToShow:
+You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type something weirdly formal anyway.
+
+Replace howToFilm:
+Film it like a tiny audition. Rehearse the casual reply once, then show the formal typed version and the face that knows it got weird.
+
+Replace caption:
+why did i become customer service.
+
+Replace anchor:
+rehearsing
+
+---
+
+### W2A-041
+Keep hook:
+muting the call and becoming a completely different person
+
+Replace whatToShow:
+You speak professionally on a call, hit mute, then instantly become a different person: eating, stretching, or staring into space.
+
+Replace howToFilm:
+Frame the laptop call from the side. The mute click is the switch. Make “call you” and “muted you” feel like two separate employees.
+
+Replace caption:
+mute is my real personality.
+
+Replace anchor:
+muting
+
+---
+
+### W2B-011
+Keep hook:
+taking twelve story selfies to look effortless
+
+Replace whatToShow:
+You keep taking story selfies, checking each one, deleting it, then taking another like effortless somehow needs twelve attempts.
+
+Replace howToFilm:
+Use a bathroom mirror or window light. Let the repetition build: selfie, check, delete, selfie again. End with the tired face.
+
+Replace caption:
+effortless took twelve tries.
+
+Replace anchor:
+taking
+
+---
+
+### W2C-016
+Keep hook:
+filming a day-in-the-life and quitting before lunch
+
+Replace whatToShow:
+You start filming a day-in-the-life with morning coffee, one desk shot, and a hopeful angle, then stop before lunch and stare at the unfinished clips.
+
+Replace howToFilm:
+Show the first few day-in-the-life clips quickly, then reveal the empty afternoon. The joke is the documentary ending before lunch.
+
+Replace caption:
+day in the life ended at 10:42.
+
+Replace anchor:
+filming
+
+---
+
+### W2C-020
+Keep hook:
+walking laps because i can't choose which chore to avoid
+
+Replace whatToShow:
+You keep walking laps around the room, passing laundry, dishes, and a trash bag, because choosing one chore would make it real.
+
+Replace howToFilm:
+Shoot a repeated walking loop. Pass each chore without touching it, then keep walking like movement itself counts as progress.
+
+Replace caption:
+walking counted as a decision.
+
+Replace anchor:
+walking

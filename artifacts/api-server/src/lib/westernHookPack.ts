@@ -352,11 +352,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-006",
       hook: "rehearsing a casual reply and still sounding insane",
       whatToShow:
-        "You sit on the bed, rehearse 'yeah, sounds good' out loud in a casual tone, then type something weirdly formal anyway and stare at it.",
+        "You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type something weirdly formal anyway.",
       howToFilm:
-        "Film the rehearsal like a tiny audition. Whisper the normal version, then cut to you typing the most unnatural message possible. Your face should know it's bad before you send it.",
+        "Film it like a tiny audition. Rehearse the casual reply once, then show the formal typed version and the face that knows it got weird.",
       caption: "why did i become customer service.",
-      anchor: "tone",
+      anchor: "rehearsing",
       comedyFamily: "texting_overthinking" as WesternComedyFamily,
       emotionalSpike: "self_critique" as WesternEmotionalSpike,
       setting: "bedroom" as WesternSetting,
@@ -842,11 +842,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-041",
       hook: "muting the call and becoming a completely different person",
       whatToShow:
-        "You speak professionally, hit mute, then instantly collapse into eating, stretching, or staring into space.",
+        "You speak professionally on a call, hit mute, then instantly become a different person: eating, stretching, or staring into space.",
       howToFilm:
-        "Frame it like a laptop call from the side. The mute click is the switch. Make the difference between 'meeting you' and 'real you' obvious.",
-      caption: "mute is my true personality.",
-      anchor: "mute",
+        "Frame the laptop call from the side. The mute click is the switch. Make “call you” and “muted you” feel like two separate employees.",
+      caption: "mute is my real personality.",
+      anchor: "muting",
       comedyFamily: "work_school_panic" as WesternComedyFamily,
       emotionalSpike: "mask_drop" as WesternEmotionalSpike,
       setting: "desk" as WesternSetting,
@@ -1130,11 +1130,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-011",
         hook: "taking twelve story selfies to look effortless",
         whatToShow:
-          "You tap to take selfie after selfie, swipe through them, and stare at each one like you are casting a movie.",
+          "You keep taking story selfies, checking each one, deleting it, then taking another like effortless somehow needs twelve attempts.",
         howToFilm:
-          "Bathroom mirror or window light works. Let the repetition build: pose, check, delete, pose again. By the end, your face should be tired of your face.",
-        caption: "effortless took 14 minutes.",
-        anchor: "selfie",
+          "Use a bathroom mirror or window light. Let the repetition build: selfie, check, delete, selfie again. End with the tired face.",
+        caption: "effortless took twelve tries.",
+        anchor: "taking",
         comedyFamily: "creator_anxiety",
         emotionalSpike: "self_critique",
         setting: "bathroom",
@@ -1910,11 +1910,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-016",
         hook: "filming a day-in-the-life and quitting before lunch",
         whatToShow:
-          "You set up the vlog, film cute coffee and shoe shots, then collapse onto the floor with the camera tossed beside you.",
+          "You start filming a day-in-the-life with morning coffee, one desk shot, and a hopeful angle, then stop before lunch and stare at the unfinished clips.",
         howToFilm:
-          "Begin like a polished mini-vlog. Then do a hard cut to the camera on the floor and you staring at nothing. Let the contrast do the work.",
-        caption: "the vlog died so the nap could live.",
-        anchor: "vlog",
+          "Show the first few day-in-the-life clips quickly, then reveal the empty afternoon. The joke is the documentary ending before lunch.",
+        caption: "day in the life ended at 10:42.",
+        anchor: "filming",
         comedyFamily: "posting_anxiety",
         emotionalSpike: "self_betrayal",
         setting: "living_room",
@@ -1966,11 +1966,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-020",
         hook: "walking laps because i can't choose which chore to avoid",
         whatToShow:
-          "You pace through the hallway, stop at one door, turn around, stop at another, and somehow do none of the chores.",
+          "You keep walking laps around the room, passing laundry, dishes, and a trash bag, because choosing one chore would make it real.",
         howToFilm:
-          "Use a still hallway angle like security footage. Speed it up slightly so you look like an NPC with no assignment.",
-        caption: "busy doing nothing at high speed.",
-        anchor: "hallway",
+          "Shoot a repeated walking loop. Pass each chore without touching it, then keep walking like movement itself counts as progress.",
+        caption: "walking counted as a decision.",
+        anchor: "walking",
         comedyFamily: "task_avoidance",
         emotionalSpike: "decision_avoidance",
         setting: "hallway",
