@@ -275,3 +275,9 @@ id = "SbsjOKRyWwJYYgpD__UYl"
 uri = "file://.local/W2T_REPORT.md"
 type = "text"
 title = "W2-T Diversity Batch Import Report"
+
+[[outputs]]
+id = "1H_Pm1AA8ADRS5LTwo736"
+uri = "file://.local/W2U_REVIEW_PACKET.md"
+type = "text"
+title = "W2-U Editorial Review Packet (W2-T, 100 entries)"
