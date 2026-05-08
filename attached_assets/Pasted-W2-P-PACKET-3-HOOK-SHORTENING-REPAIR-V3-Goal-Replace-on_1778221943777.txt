@@ -1,0 +1,209 @@
+W2-P PACKET 3 — HOOK-SHORTENING REPAIR V3
+
+Goal:
+Replace only the hooks below.
+Do not change whatToShow / howToFilm / caption / anchor unless a validator requires it.
+Do not loosen validators.
+Do not change ideaSchema.
+Preserve IDs.
+
+Hard requirement:
+- every hook must be ≤10 words
+- target ≤8 words where possible
+
+---
+
+### w2_next_007
+Replace hook:
+Oat milk watched me choose regular milk
+
+### w2_next_017
+Replace hook:
+Bank app opened and I changed species
+
+### w2_next_030
+Replace hook:
+Second text sent before self-respect arrived
+
+### w2_next_036
+Replace hook:
+“We should catch up” was decorative
+
+### w2_next_048
+Replace hook:
+“Email boss” survived another day
+
+### w2_next_052
+Replace hook:
+My me-time block got overwritten
+
+### w2_next_072
+Replace hook:
+Analytics smiled and I got scared
+
+### w2_next_091
+Replace hook:
+Remote died at the emotional part
+
+---
+
+### w2_next2_005
+Replace hook:
+Mail looked at me. I chose fees.
+
+### w2_next2_007
+Replace hook:
+LinkedIn me would not survive my kitchen
+
+### w2_next2_014
+Replace hook:
+Circling back from a place of guilt
+
+### w2_next2_018
+Replace hook:
+Four-person dinner needs battery approval
+
+### w2_next2_038
+Replace hook:
+One shoe on. Floor won.
+
+### w2_next2_042
+Replace hook:
+Zoom waiting face got legally concerning
+
+### w2_next2_045
+Replace hook:
+Entered the room. Purpose vanished.
+
+### w2_next2_046
+Replace hook:
+Tape edge chose war
+
+### w2_next2_047
+Replace hook:
+Nice sweater me did not last
+
+### w2_next2_051
+Replace hook:
+Fine me built a sad sandwich
+
+### w2_next2_055
+Replace hook:
+Terms accepted by thumb alone
+
+### w2_next2_058
+Replace hook:
+Food at home was propaganda
+
+### w2_next2_066
+Replace hook:
+Dating app remembered I have a face
+
+### w2_next2_068
+Replace hook:
+Heart reaction felt legally binding
+
+### w2_next2_070
+Replace hook:
+Muted chat. Checked immediately.
+
+### w2_next2_074
+Replace hook:
+Rewards points arrived empty-handed
+
+### w2_next2_084
+Replace hook:
+Toothbrush waited through an entire podcast
+
+### w2_next2_090
+Replace hook:
+Pajamas ended my public life
+
+### w2_next2_093
+Replace hook:
+One junk email changed my algorithm
+
+### w2_next2_098
+Replace hook:
+Drawer cleaning became a time capsule
+
+### w2_next2_100
+Replace hook:
+Vacuum light revealed the truth
+
+---
+
+### W2A-007
+Replace hook:
+filming gym proof from the couch
+
+### W2A-046
+Replace hook:
+9:03 made the day unusable
+
+### W2B-005
+Replace hook:
+typing bubble disappeared with my confidence
+
+### W2B-037
+Replace hook:
+my name appeared. breathing stopped.
+
+### W2B-044
+Replace hook:
+charger remembered itself at the door
+
+### W2C-001
+Replace hook:
+exclamation point almost exposed me
+
+### W2C-018
+Replace hook:
+rereading my text like evidence
+
+### W2C-022
+Replace hook:
+one reset task became vacation proof
+
+### W2C-026
+Replace hook:
+“just saw this” was historical fiction
+
+### W2C-040
+Replace hook:
+desktop icons got more work than me
+
+### W2C-047
+Replace hook:
+meal photo behaved better than me
+
+---
+
+After applying:
+1. Rerun the latent enumerator.
+2. Confirm:
+   - triplet collisions = 0
+   - anchor missing = 0
+   - W2-L overlap shortfalls = 0
+   - W2-N overlap shortfalls = 0
+   - no hook exceeds 10 words
+
+3. Rerun affected tests.
+4. Rerun full api-server tests.
+5. Rerun W2-O rubric.
+
+Report:
+- promote / needs_rewrite / reject
+- live pool size
+- schema_invalid bucket count before/after
+- any hooks still >10 words
+- W2-I / W2-L / W2-N promote counts
+- tests result
+- production flags unchanged
+
+Also update the QA manifest hint text:
+The previous schema_invalid hint was misleading. Future reports should surface the actual Zod failure path/reason when available, especially:
+- hook must be ≤10 words
+- target ≤8 words
+
+Do not change validators. This is QA reporting only.

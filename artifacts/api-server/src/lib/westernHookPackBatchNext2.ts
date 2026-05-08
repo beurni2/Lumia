@@ -238,7 +238,7 @@
   },
   {
     id: "w2_next2_005",
-    hook: "I'm choosing the late fee because the mail looked at me weird",
+    hook: "Mail looked at me. I chose fees.",
     whatToShow: "Creator walks past a stack of unopened mail, makes eye contact with the mail, places a coffee mug on top, and keeps walking like the mail started it.",
     howToFilm: "Frame the unopened mail stack on the hallway table. Walk past the mail, place the coffee mug on top, then keep walking without opening it.",
     caption: "mail blinked first.",
@@ -270,7 +270,7 @@
   },
   {
     id: "w2_next2_007",
-    hook: "My LinkedIn profile and my actual soul have not met in years",
+    hook: "LinkedIn me would not survive my kitchen",
     whatToShow: "Creator shows a staged LinkedIn profile posture at the laptop for one beat, then cuts to eating shredded cheese over the sink in a bathrobe.",
     howToFilm: "Use a quick two-shot contrast. Start with the staged LinkedIn laptop posture, then cut to the private sink-cheese version with no explanation.",
     caption: "LinkedIn has not been briefed.",
@@ -381,7 +381,7 @@
   },
   {
     id: "w2_next2_014",
-    hook: "How I look circling back on an email I definitely ignored",
+    hook: "Circling back from a place of guilt",
     whatToShow: "Creator wears sunglasses at the desk, opens a staged email reply, types “just circling back,” and glances around like hiding from accountability.",
     howToFilm: "Use staged email text. Put on the sunglasses, type the corporate phrase slowly, then look over both shoulders before sending.",
     caption: "circling back from the scene.",
@@ -444,7 +444,7 @@
   },
   {
     id: "w2_next2_018",
-    hook: "Calculating if I have enough social battery for a four-person dinner",
+    hook: "Four-person dinner needs battery approval",
     whatToShow: "Creator counts dinner math on their fingers, recalculates silently on the couch, then lies face-down because the dinner math failed.",
     howToFilm: "Frame the dinner math on the couch. Count on your fingers, recalculate silently, then collapse face-down because the dinner math failed.",
     caption: "four people was not in the budget.",
@@ -754,7 +754,7 @@
   },
   {
     id: "w2_next2_038",
-    hook: "I almost went out, then the floor made a better offer",
+    hook: "One shoe on. Floor won.",
     whatToShow: "Creator puts on one shoe in the hallway, pauses, looks at the floor, then slowly lies down with the shoe still on.",
     howToFilm: "Frame the hallway and shoe. Show the going-out attempt, the pause, and the slow surrender to the floor.",
     caption: "floor had better terms.",
@@ -817,7 +817,7 @@
   },
   {
     id: "w2_next2_042",
-    hook: "Waiting to speak on Zoom turned my face into a hostage video",
+    hook: "Zoom waiting face got legally concerning",
     whatToShow: "Creator sits in a staged Zoom meeting on the laptop, frozen smile getting wider, leaning closer until only their eyes fill the camera.",
     howToFilm: "Use a fake Zoom meeting screen or laptop camera angle. Start normal, hold the frozen smile too long, then slowly lean into the camera.",
     caption: "Zoom face needed supervision.",
@@ -865,7 +865,7 @@
   },
   {
     id: "w2_next2_045",
-    hook: "I walked into the room and my brain left the group chat",
+    hook: "Entered the room. Purpose vanished.",
     whatToShow: "Creator walks into the room, stops with a system-error face, looks around the room, then walks back out without doing anything.",
     howToFilm: "Use a doorway shot into the room. Walk in with purpose, stop with the system-error face, look around the room, then walk back out.",
     caption: "brain disconnected in the doorway.",
@@ -880,7 +880,7 @@
   },
   {
     id: "w2_next2_046",
-    hook: "Finding the end of the tape is my villain origin story",
+    hook: "Tape edge chose war",
     whatToShow: "Creator rotates a roll of clear tape, scratches at the invisible edge, squints harder, then slowly loses composure.",
     howToFilm: "Frame the tape close-up. Show the rotation, the scratching, the squinting, then the tiny breakdown over an invisible edge.",
     caption: "tape chose psychological warfare.",
@@ -895,7 +895,7 @@
   },
   {
     id: "w2_next2_047",
-    hook: "The nice sweater was for a person I stopped being by 10am",
+    hook: "Nice sweater me did not last",
     whatToShow: "Creator starts at the desk in a nice sweater, reveals pajama pants, messy hair, and a coffee mug by 10am.",
     howToFilm: "Start at the desk in the nice sweater. Reveal the pajama pants, messy hair, and coffee mug so the 10am collapse is obvious.",
     caption: "sweater clocked out early.",
@@ -957,7 +957,7 @@
   },
   {
     id: "w2_next2_051",
-    hook: "I said I was fine and made a sandwich with no witnesses",
+    hook: "Fine me built a sad sandwich",
     whatToShow: "Creator sits alone at the kitchen table with a dry sandwich, stares at the sandwich, then takes one silent bite like the sandwich knows too much.",
     howToFilm: "Frame the kitchen table and dry sandwich. Stare at the sandwich, take one silent bite, and keep it quiet and deadpan.",
     caption: "sandwich signed the NDA.",
@@ -1018,7 +1018,7 @@
   },
   {
     id: "w2_next2_055",
-    hook: "I read the terms and conditions with my thumb, not my eyes",
+    hook: "Terms accepted by thumb alone",
     whatToShow: "Creator scrolls fake terms and conditions at light speed, squints like they are studying, then taps accept with fake confidence.",
     howToFilm: "Use a fake terms screen. Scroll way too fast, perform concentration with your face, then tap accept like you absorbed everything.",
     caption: "thumb understood enough.",
@@ -1065,7 +1065,7 @@
   },
   {
     id: "w2_next2_058",
-    hook: "I said there was food at home and the fridge disagreed",
+    hook: "Food at home was propaganda",
     whatToShow: "Creator opens the fridge, finds only a pickle jar or condiment, waits for more food to appear, then slowly closes the fridge door.",
     howToFilm: "Frame the fridge door opening. Show the pickle jar, wait for more food to appear, then close the fridge door with quiet defeat.",
     caption: "fridge said define food.",
@@ -1192,7 +1192,7 @@
   },
   {
     id: "w2_next2_066",
-    hook: "I opened the dating app and remembered I have to be perceived",
+    hook: "Dating app remembered I have a face",
     whatToShow: "Creator opens a fake dating app profile, sees their own profile, turns the phone face-down, and sits extremely still.",
     howToFilm: "Use a fake dating app profile. Show the profile briefly, turn the phone face-down, and sit extremely still like being perceived was too much.",
     caption: "dating app asked me to exist publicly.",
@@ -1224,7 +1224,7 @@
   },
   {
     id: "w2_next2_068",
-    hook: "I reacted with a heart and immediately questioned my whole personality",
+    hook: "Heart reaction felt legally binding",
     whatToShow: "Creator taps a heart reaction on a staged message or post, freezes, tries to undo it, then redoes it and tosses the phone onto the couch.",
     howToFilm: "Frame the staged reaction. Tap the heart, panic, undo and redo if needed, then toss the phone softly onto a cushion.",
     caption: "heart reaction had consequences.",
@@ -1256,7 +1256,7 @@
   },
   {
     id: "w2_next2_070",
-    hook: "I muted the chat and still checked it like a clown",
+    hook: "Muted chat. Checked immediately.",
     whatToShow: "Creator toggles mute on a fake chat, sets the phone down with confidence, then immediately picks it back up to check the same chat.",
     howToFilm: "Use a fake chat screen. Show the mute toggle, set the phone down confidently, then pick it back up immediately.",
     caption: "muted chat, active clown.",
@@ -1320,7 +1320,7 @@
   },
   {
     id: "w2_next2_074",
-    hook: "I checked my rewards points like they were going to save me",
+    hook: "Rewards points arrived empty-handed",
     whatToShow: "Creator opens a fake rewards points screen, sees a tiny balance, then nods like a financial plan has been discovered.",
     howToFilm: "Frame the rewards screen safely. Show the tiny points balance, then hold on the serious nod that pretends this helps.",
     caption: "rewards points had a meeting with hope.",
@@ -1476,7 +1476,7 @@
   },
   {
     id: "w2_next2_084",
-    hook: "Brushing my teeth turned into standing in the bathroom with a podcast",
+    hook: "Toothbrush waited through an entire podcast",
     whatToShow: "Creator stands at the bathroom mirror holding a toothbrush, podcast playing, not brushing, just staring like the bathroom became a waiting room.",
     howToFilm: "Frame the mirror and toothbrush. Let the podcast play or show it staged on the phone, then hold on the non-brushing stare.",
     caption: "toothbrush was present for moral support.",
@@ -1567,7 +1567,7 @@
   },
   {
     id: "w2_next2_090",
-    hook: "I changed into pajamas like I was clocking out of society",
+    hook: "Pajamas ended my public life",
     whatToShow: "Creator walks into the hallway in normal clothes, cuts to pajamas, then gives the camera a formal clock-out nod.",
     howToFilm: "Use a simple before/after hallway cut. Normal clothes first, pajamas second, then the formal nod like society has been dismissed.",
     caption: "society shift ended.",
@@ -1613,7 +1613,7 @@
   },
   {
     id: "w2_next2_093",
-    hook: "I opened the junk email and now the internet thinks I'm interested",
+    hook: "One junk email changed my algorithm",
     whatToShow: "Creator opens a fake junk email, then staged promo notifications begin appearing, and they slowly back away from the laptop.",
     howToFilm: "Use fake inbox/promos. Show the accidental click, then a quick sequence of promo notifications. End with backing away.",
     caption: "junk email told the whole internet.",
@@ -1692,7 +1692,7 @@
   },
   {
     id: "w2_next2_098",
-    hook: "I tried to clean one drawer and found my entire past",
+    hook: "Drawer cleaning became a time capsule",
     whatToShow: "Creator opens a drawer to clean it, pulls out old receipts, a random charger, and an expired coupon, then pauses because the drawer remembered too much.",
     howToFilm: "Shoot the drawer from above. Pull out the old receipts, random charger, and expired coupon, then pause because the drawer becomes a time capsule.",
     caption: "drawer had archival footage.",
@@ -1724,7 +1724,7 @@
   },
   {
     id: "w2_next2_100",
-    hook: "I bought a vacuum with a light and immediately understood adulthood",
+    hook: "Vacuum light revealed the truth",
     whatToShow: "Creator turns on a vacuum with a light, sees dust appear on the floor, then stares at the light like adulthood just made sense.",
     howToFilm: "Dim the room slightly if possible. Turn on the vacuum light, reveal the dust, then hold on the amazed adult realization.",
     caption: "vacuum light changed the room.",

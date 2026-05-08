@@ -279,7 +279,7 @@
     },
   {
       id: "w2_next_007",
-      hook: "I bought oat milk like an adult and it’s still unopened",
+      hook: "Oat milk watched me choose regular milk",
       whatToShow:
         "Creator opens the fridge, proudly points to the unopened oat milk, then reaches around it for the regular milk like the oat milk was decorative.",
       howToFilm:
@@ -452,7 +452,7 @@
     },
   {
       id: "w2_next_017",
-      hook: "I opened my bank app like it owed me emotional support",
+      hook: "Bank app opened and I changed species",
       whatToShow:
         "Creator opens a fake or blurred bank app, face starts hopeful, then goes blank before they close the phone with two careful fingers.",
       howToFilm:
@@ -684,7 +684,7 @@
     },
   {
       id: "w2_next_030",
-      hook: "The second text left my body before my pride could stop it",
+      hook: "Second text sent before self-respect arrived",
       whatToShow:
         "Creator shows a fake chat with two message bubbles, thumb hovers over delete even though the second text is already sent, then they stare into space.",
       howToFilm:
@@ -792,7 +792,7 @@
     },
   {
       id: "w2_next_036",
-      hook: "“We should catch up” text I will never follow through on",
+      hook: "“We should catch up” was decorative",
       whatToShow:
         "Creator types “we should catch up” in a fake chat app, smiles like a good person, then closes the app and sets the phone face-down.",
       howToFilm:
@@ -1006,7 +1006,7 @@
     },
   {
       id: "w2_next_048",
-      hook: "I wrote “email boss” on my list and it’s still there",
+      hook: "“Email boss” survived another day",
       whatToShow:
         "Creator points to “email boss” on a staged to-do list, moves it to tomorrow’s list, then taps the paper like progress happened.",
       howToFilm:
@@ -1077,7 +1077,7 @@
     },
   {
       id: "w2_next_052",
-      hook: "I blocked my own calendar for “me time” and filled it",
+      hook: "My me-time block got overwritten",
       whatToShow:
         "Creator shows a staged calendar block labeled “me time,” then drags another fake meeting/task over it until the block disappears.",
       howToFilm:
@@ -1428,7 +1428,7 @@
     },
   {
       id: "w2_next_072",
-      hook: "Analytics gave me hope and I punished the app for it",
+      hook: "Analytics smiled and I got scared",
       whatToShow:
         "Creator sees a fake positive analytics number, smiles for half a second, then closes the app like hope was too much responsibility.",
       howToFilm:
@@ -1762,7 +1762,7 @@
     },
   {
       id: "w2_next_091",
-      hook: "Remote died during the one scene I was emotionally available for",
+      hook: "Remote died at the emotional part",
       whatToShow:
         "Creator points the remote at a staged paused scene, clicks several times, realizes the remote died, then slowly turns to stare at it.",
       howToFilm:

@@ -92,8 +92,26 @@ function repairFor(
       const seed = candidate ?? entry.anchor;
       return `Add the hook anchor "${seed}" verbatim into whatToShow (≥1 substantive hook token must overlap).`;
     }
-    case "fixable_schema_field":
-      return `Re-author the row with a valid schema — verify hookSeconds (1–3), shotPlan length (≥3), all required fields populated. Hook + anchor look intact, only schema-shape failed.`;
+    case "fixable_schema_field": {
+      // QA-only diagnostic: re-parse the would-be-authored draft and
+      // surface the actual Zod issue path so editors don't chase the
+      // wrong field. NB: this call does NOT loosen any validator; it
+      // only reports the failure path that `authorWesternPackEntryAsIdea`
+      // would hit at runtime. Most common cause observed in W2-P:
+      // `hook must be ≤10 words (target ≤8)`.
+      const wordCount = entry.hook.trim().split(/\s+/).length;
+      const hints: string[] = [];
+      if (wordCount > 10) {
+        hints.push(
+          `hook is ${wordCount} words — ideaSchema requires ≤10 words (target ≤8). Shorten hook.`,
+        );
+      }
+      const tail =
+        hints.length > 0
+          ? hints.join(" ")
+          : `Re-author the row with a valid schema — verify hookSeconds (1–3), shotPlan length (≥3), all required fields populated.`;
+      return `schema_invalid: ${tail} (Most common Zod failure path on this bucket: hook word-count ceiling.)`;
+    }
     case "fixable_filming_mismatch":
       return `Rewrite howToFilm so its tokens overlap whatToShow's verb/object — current howToFilm references nouns absent from the action shot.`;
     case "privacy_safety": {

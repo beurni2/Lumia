@@ -289,7 +289,7 @@
         },
   {
     id: "W2A-007",
-    hook: "filming a gym story from the couch like nobody will notice",
+    hook: "filming gym proof from the couch",
     whatToShow:
       "Creator films a fake gym story angle from the couch, shows only sneakers or a water bottle, then leans back into the cushions.",
     howToFilm:
@@ -345,7 +345,7 @@
         },
   {
     id: "W2C-047",
-    hook: "taking a perfect meal photo and then eating like nobody raised me",
+    hook: "meal photo behaved better than me",
     whatToShow:
       "Creator carefully takes a perfect meal photo, sets phone down, then immediately eats over the counter with zero grace.",
     howToFilm:
@@ -527,7 +527,7 @@
         },
   {
     id: "W2B-005",
-    hook: "watching the typing bubble disappear like it broke up with me",
+    hook: "typing bubble disappeared with my confidence",
     whatToShow:
       "Creator watches fake typing bubbles in a chat, sits up with hope, then the bubble disappears and they slowly sink back down.",
     howToFilm:
@@ -668,7 +668,7 @@
         },
   {
     id: "W2B-037",
-    hook: "seeing my name in the work thread and holding my breath",
+    hook: "my name appeared. breathing stopped.",
     whatToShow:
       "Creator sees their name in a staged work thread, stops breathing for a beat, then slowly opens the message like it might explode.",
     howToFilm:
@@ -711,7 +711,7 @@
         },
   {
     id: "W2C-001",
-    hook: "adding an exclamation point, then deleting it before it exposes me",
+    hook: "exclamation point almost exposed me",
     whatToShow:
       "Creator types a fake message with an exclamation point, stares at it, deletes the exclamation, then rereads the now colder sentence.",
     howToFilm:
@@ -782,7 +782,7 @@
         },
   {
     id: "W2C-022",
-    hook: "doing one reset task and acting like i earned a vacation",
+    hook: "one reset task became vacation proof",
     whatToShow:
       "Creator completes one tiny reset task, like wiping a counter corner, then sits down with vacation-level relief.",
     howToFilm:
@@ -796,7 +796,7 @@
         },
   {
     id: "W2C-026",
-    hook: "replying 'just saw this' like the message wasn't aging in my phone",
+    hook: "“just saw this” was historical fiction",
     whatToShow:
       "Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends the message anyway.",
     howToFilm:
@@ -839,7 +839,7 @@
         },
   {
     id: "W2C-040",
-    hook: "organizing desktop icons to prepare for the work i won't do",
+    hook: "desktop icons got more work than me",
     whatToShow:
       "Creator drags desktop icons into neat rows, leans back proudly, then leaves the actual work file unopened.",
     howToFilm:
@@ -980,7 +980,7 @@
         },
   {
     id: "W2B-044",
-    hook: "walking to the door and remembering my charger like a plot twist",
+    hook: "charger remembered itself at the door",
     whatToShow:
       "Creator walks to the door ready to leave, touches the handle, suddenly remembers the charger, and turns around like the movie changed genres.",
     howToFilm:
@@ -1302,7 +1302,7 @@
       },
   {
     id: "W2A-046",
-    hook: "saying i'll start at 9:00 and treating 9:03 like a lost cause",
+    hook: "9:03 made the day unusable",
     whatToShow:
       "Creator looks at the clock at 9:03, sees the planned 9:00 start time on a note, then closes the laptop like the day is ruined.",
     howToFilm:
@@ -1540,7 +1540,7 @@
         },
   {
     id: "W2C-018",
-    hook: "rereading my own text to see if the vibe is annoying",
+    hook: "rereading my text like evidence",
     whatToShow:
       "Creator rereads a fake sent text, squints at the wording, tilts the phone, then whispers “why did I say it like that?”",
     howToFilm:
