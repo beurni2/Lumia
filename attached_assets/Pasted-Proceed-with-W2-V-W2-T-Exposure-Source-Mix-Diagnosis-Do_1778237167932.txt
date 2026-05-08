@@ -1,0 +1,96 @@
+Proceed with W2-V — W2-T Exposure / Source-Mix Diagnosis.
+
+Do not change production flags.
+Do not change validators.
+Do not redo W2-O.
+Do not import another batch.
+Do not loosen quality gates.
+Do not force W2-T blindly.
+
+Problem:
+W2-T is correctly present in WESTERN_HOOK_PACK_LIVE:
+- live pool size = 355
+- W2-T live count = 78
+- integrity OK
+- tests 1124/1124 green
+
+But runtime LIVE smoke produced:
+- 22 batches
+- 42 W2 ideas
+- W2-I = 42
+- W2-L = 0
+- W2-N = 0
+- W2-T = 0
+
+We need to understand why W2-I dominates selection and why W2-T/L/N get no exposure for the dev creator.
+
+Task 1 — Explain source routing/gating:
+Report the exact path from /api/ideator/generate to W2 candidate selection:
+- where WESTERN_HOOK_PACK_LIVE is read
+- where W2-I/W2-L/W2-N/W2-T candidates are pooled
+- where candidates are scored
+- where per-core best-pick collapse happens
+- where memory/recent-entry suppression happens
+- where source block is ignored or preserved
+- why W2-I dominated 42/42 W2 picks
+
+Task 2 — Clarify OFF behavior:
+In the OFF smoke, both W2 pool flags were removed, but W2-I still appeared 10 times.
+Explain whether this is expected:
+- Is W2-I part of core_native/pattern_variation rather than the W2-O live/approved pool?
+- Which flag gates W2-I?
+- What exactly do LUMINA_W2_WESTERN_LIVE_ENABLED and LUMINA_W2_WESTERN_APPROVED_ENABLED disable?
+- Should “W2 OFF” mean 0 W2 total, or only 0 W2-O approved/live pool entries?
+
+Do not change code until this is explained.
+
+Task 3 — Run a multi-creator exposure probe:
+Use LIVE flag ON, Western/clean.
+Run a longer diagnostic sweep across multiple creator fingerprints / demo creator IDs:
+- at least 10 creators
+- 10 refreshes each
+- count=3
+- regenerate=true after batch 0
+- memory fresh per creator
+- x-lumina-qa-expose-meta:1
+
+Report:
+- total ideas
+- total W2 ideas
+- W2 source distribution:
+  - W2-I
+  - W2-L
+  - W2-N
+  - W2-T
+- per-creator source distribution
+- first-batch source distribution
+- refresh-depth source distribution
+- top 20 selected entryIds
+- top selected source block by score
+- average score by source block if telemetry exposes it
+- why W2-T candidates lose when available
+
+Task 4 — Recommend minimal fix only after diagnosis:
+If W2-T exposure remains near 0 across multiple creators, propose the smallest source-mix control that preserves quality.
+
+Acceptable fix shape:
+- soft source diversity boost, not hard quota
+- only applies when W2-T candidate passes all validators/rubric
+- only applies in Western/clean
+- only nudges among already-eligible live candidates
+- no more than 1 W2-T per 3-card batch unless naturally selected
+- no weakening anti-repeat/memory gates
+- no impact to NG/IN/PH
+- test-covered
+
+Potential behavior target:
+Across 20 refreshes, W2-T should appear sometimes, not dominate:
+- target W2-T share among W2 picks: roughly 15–30%
+- no exact hook repeats
+- no skeleton repeats
+- no batch-level duplicate failures
+- no latency/fallback regression
+
+Deliver:
+- diagnosis report first
+- no code changes unless the diagnosis clearly supports the minimal fix
