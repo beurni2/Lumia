@@ -1468,7 +1468,7 @@
       whatToShow:
         "Creator shows a staged post timestamped 9:07pm, refreshes the post for likes, then checks the time again like the algorithm missed an appointment.",
       howToFilm:
-        "Use a fake post screen. Show the staged post timestamp, refresh the post once or twice, then look at the clock like 9:07pm was supposed to do something.",
+        "Use a fake post screen. Show the staged post timestamped 9:07pm, refreshes the post once or twice, then look at the clock like 9:07pm was supposed to do something.",
       caption: "prime time according to me.",
       anchor: "post",
       comedyFamily: "creator_anxiety",
