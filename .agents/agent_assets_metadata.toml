@@ -245,3 +245,9 @@ id = "qpZfMabwV0_vCJwsuQKHU"
 uri = "file://.local/W2O_RUBRIC_REPORT.md"
 type = "text"
 title = "W2-O Promotion Rubric Report"
+
+[[outputs]]
+id = "-dgHhzKqqHfokYlzw0l_f"
+uri = "file://.local/W2O_REJECT_MANIFEST.md"
+type = "text"
+title = "W2-O Reject + Needs-Rewrite Manifest"

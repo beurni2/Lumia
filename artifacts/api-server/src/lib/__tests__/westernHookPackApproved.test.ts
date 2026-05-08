@@ -278,6 +278,7 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "westernHookPackLive.ts"),
       path.join("lib", "westernPromotionRubric.ts"),
       path.join("qa", "w2oPromotionRubricQa.ts"),
+      path.join("qa", "w2oRejectManifestQa.ts"),
       path.join("lib", "__tests__", "westernHookPackLive.test.ts"),
       path.join("lib", "__tests__", "westernPromotionRubric.test.ts"),
       path.join("lib", "__tests__", "westernActivationMutex.test.ts"),
