@@ -366,8 +366,8 @@
   {
     id: "w2_next2_013",
     hook: "This $12 smoothie was supposed to install a new personality",
-    whatToShow: "Creator takes a sip of the $12 smoothie, waits for a new personality to arrive, checks the phone camera, and realizes nothing installed.",
-    howToFilm: "Show the smoothie price/context safely, take the hopeful sip, wait two beats, then check the camera like the update failed.",
+    whatToShow: "Creator takes a hopeful smoothie sip, waits for a new personality to arrive, checks the phone camera, and realizes nothing installed.",
+    howToFilm: "Show the smoothie sip clearly. Take the hopeful smoothie sip, wait two beats, then check the phone camera like the personality update failed.",
     caption: "smoothie did not install the update.",
     anchor: "smoothie",
     comedyFamily: "self_improvement_attempt",
@@ -1082,8 +1082,8 @@
   {
     id: "w2_next2_059",
     hook: "Low battery turned my living room into an action movie",
-    whatToShow: "Creator sees 1% battery, lunges safely across the couch toward a charger, misses once, then plugs in with dramatic relief.",
-    howToFilm: "Keep the movement safe and controlled. Show the 1% warning, the reach for the charger, the miss, then the final plug-in like a rescue scene.",
+    whatToShow: "Creator sees a 1% battery warning in the living room, lunges safely across the couch toward a charger, misses once, then plugs in dramatically.",
+    howToFilm: "Show the 1% battery warning in the living room, then lunge safely across the couch toward the charger. Miss once, plug in dramatically, and hold the relief.",
     caption: "1% brought out the stunt team.",
     anchor: "battery",
     comedyFamily: "creator_anxiety",

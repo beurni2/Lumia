@@ -1,0 +1,195 @@
+Apply the following editor-approved fixes for the 8 Packet 1/2 conflicts. These are not optional mechanical inventions; they are the approved editorial repair text.
+
+Do not loosen validators.
+Do not extend allowlists unless explicitly stated below.
+Do not change hooks unless specified.
+Preserve IDs.
+
+---
+
+### 1. W2A-041
+
+Keep hook:
+muting the call and becoming a completely different person
+
+Replace anchor:
+mute
+
+Replace whatToShow:
+You speak professionally on a call, hit mute, then instantly become a different person: eating, stretching, or staring into space.
+
+Replace howToFilm:
+Frame the laptop call from the side. The mute click is the switch. Show professional call-you first, then muted-you eating, stretching, or staring into space.
+
+Replace caption:
+mute is my real personality.
+
+Reason:
+Use anchor `mute`, not `muting`, because `mute` appears verbatim in whatToShow and preserves the joke.
+
+---
+
+### 2. W2C-020
+
+Keep hook:
+walking laps because i can't choose which chore to avoid
+
+Replace anchor:
+walking
+
+Replace whatToShow:
+You walk laps around the room, passing laundry, dishes, and a trash bag without touching any of them because choosing one chore would make it real.
+
+Replace howToFilm:
+Shoot the walking loop from one corner. Walk past the laundry, dishes, and trash bag without touching them, then keep walking like movement counts as progress.
+
+Replace caption:
+walking counted as a decision.
+
+Reason:
+Use the visible verb `walk`; do not extend the allowlist.
+
+---
+
+### 3. w2_next_023
+
+Keep hook:
+Cart had three “essentials” and fourteen snacks
+
+Keep anchor:
+cart
+
+Replace whatToShow:
+Creator unloads a staged cart haul onto the kitchen table: three practical items on one side, fourteen snacks forming a much larger pile on the other.
+
+Replace howToFilm:
+Frame the cart haul on the kitchen table. Build the essentials pile first, then build the snack pile until it clearly wins the shot.
+
+Replace caption:
+cart priorities were exposed.
+
+Reason:
+Adds clear whatToShow/howToFilm overlap: cart, haul, kitchen, table, essentials, snack, pile.
+
+---
+
+### 4. w2_next2_013
+
+Keep hook:
+This $12 smoothie was supposed to install a new personality
+
+Keep anchor:
+smoothie
+
+Replace whatToShow:
+Creator takes a hopeful smoothie sip, waits for a new personality to arrive, checks the phone camera, and realizes nothing installed.
+
+Replace howToFilm:
+Show the smoothie sip clearly. Take the hopeful smoothie sip, wait two beats, then check the phone camera like the personality update failed.
+
+Replace caption:
+smoothie did not install the update.
+
+Reason:
+Adds tokenizer-safe overlap: smoothie, sip, phone, camera, personality.
+
+---
+
+### 5. W2-I triplet collision
+
+Resolve the W2-I triplet collision by changing W2A-006, not W2A-041.
+
+For W2A-006:
+
+Keep hook:
+rehearsing a casual reply and still sounding insane
+
+Replace anchor:
+reply
+
+Replace whatToShow:
+You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type a reply that sounds weirdly formal anyway.
+
+Replace howToFilm:
+Film it like a tiny audition. Rehearse the casual reply out loud, then show the formal typed reply and the face that knows it got weird.
+
+Replace caption:
+why did i become customer service.
+
+Reason:
+Use `reply` to break the collision and keep the actual premise centered. W2A-041 should keep anchor `mute`.
+
+---
+
+### 6. w2_next_035
+
+Keep hook:
+I sent the screenshot to the wrong person and left my body
+
+Replace anchor:
+screenshot
+
+Replace whatToShow:
+Creator sees a staged screenshot send confirmation in the wrong chat, freezes with one hand over their mouth, then slowly turns the phone face-down like hiding evidence.
+
+Replace howToFilm:
+Use a staged screenshot and fake chat. Hold on the screenshot send confirmation, freeze, then turn the phone face-down with dramatic calm.
+
+Replace caption:
+wrong chat. correct panic.
+
+Reason:
+Adds `screenshot` verbatim to whatToShow and howToFilm.
+
+---
+
+### 7. w2_next_037
+
+Keep hook:
+Dating app match replied and I left them on read
+
+Keep anchor:
+match
+
+Replace whatToShow:
+Creator gets a staged dating app match reply notification, opens the match reply for half a second, panics, closes the phone, then sits perfectly still.
+
+Replace howToFilm:
+Start on the staged dating app match reply notification. Open the match reply briefly, close the phone too fast, then sit frozen with the phone face-down beside you.
+
+Replace caption:
+wanted attention. received consequences.
+
+Reason:
+Adds overlap: staged, dating, app, match, reply, notification, phone.
+
+---
+
+### 8. w2_next2_059
+
+Keep hook:
+Low battery turned my living room into an action movie
+
+Keep anchor:
+battery
+
+Replace whatToShow:
+Creator sees a 1% battery warning in the living room, lunges safely across the couch toward a charger, misses once, then plugs in dramatically.
+
+Replace howToFilm:
+Show the 1% battery warning in the living room, then lunge safely across the couch toward the charger. Miss once, plug in dramatically, and hold the relief.
+
+Replace caption:
+1% brought out the stunt team.
+
+Reason:
+Adds overlap: battery, warning, living, room, couch, charger, plug.
+
+---
+
+After these fixes:
+1. Rerun the affected unit tests.
+2. Confirm the prior 3 Packet 1 failures are cleared.
+3. Confirm the 5 Packet 2 failures are cleared.
+4. Report live pool size and promote/needs_rewrite/reject counts after fixes.
+5. Then proceed to Packet 3.

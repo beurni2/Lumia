@@ -561,9 +561,9 @@
       id: "w2_next_023",
       hook: "Cart had three “essentials” and fourteen snacks",
       whatToShow:
-        "Creator unloads a staged cart haul onto the kitchen table: three practical items on one side, a giant snack pile on the other.",
+        "Creator unloads a staged cart haul onto the kitchen table: three practical items on one side, fourteen snacks forming a much larger pile on the other.",
       howToFilm:
-        "Build two piles in frame. Count the essentials quickly, then let the snack pile visually take over the shot.",
+        "Frame the cart haul on the kitchen table. Build the essentials pile first, then build the snack pile until it clearly wins the shot.",
       caption: "cart priorities were exposed.",
       anchor: "cart",
       comedyFamily: "self_betrayal",
@@ -776,9 +776,9 @@
       id: "w2_next_035",
       hook: "I sent the screenshot to the wrong person and left my body",
       whatToShow:
-        "Creator sees a fake send confirmation in the wrong chat, freezes with one hand over their mouth, then slowly turns the phone face-down like hiding evidence.",
+        "Creator sees a staged screenshot send confirmation in the wrong chat, freezes with one hand over their mouth, then slowly turns the phone face-down like hiding evidence.",
       howToFilm:
-        "Use a staged chat screen. Hold on the wrong-chat send confirmation, freeze, then turn the phone face-down with dramatic calm. Let the silence do the work.",
+        "Use a staged screenshot and fake chat. Hold on the screenshot send confirmation, freeze, then turn the phone face-down with dramatic calm.",
       caption: "wrong chat. correct panic.",
       anchor: "screenshot",
       comedyFamily: "self_betrayal",
@@ -812,9 +812,9 @@
       id: "w2_next_037",
       hook: "Dating app match replied and I left them on read",
       whatToShow:
-        "Creator gets a fake dating-app reply notification, opens it for half a second, panics, closes the phone, then sits perfectly still like the phone can see them.",
+        "Creator gets a staged dating app match reply notification, opens the match reply for half a second, panics, closes the phone, then sits perfectly still.",
       howToFilm:
-        "Start on the staged reply notification. Open it briefly, close the phone too fast, then sit frozen with the phone face-down beside you.",
+        "Start on the staged dating app match reply notification. Open the match reply briefly, close the phone too fast, then sit frozen with the phone face-down beside you.",
       caption: "wanted attention. received consequences.",
       anchor: "match",
       comedyFamily: "texting_overthinking",

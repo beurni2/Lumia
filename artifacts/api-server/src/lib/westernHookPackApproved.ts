@@ -1047,11 +1047,11 @@
     id: "W2A-006",
     hook: "rehearsing a casual reply and still sounding insane",
     whatToShow:
-      "You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type something weirdly formal anyway.",
+      "You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type a reply that sounds weirdly formal anyway.",
     howToFilm:
-      "Film it like a tiny audition. Rehearse the casual reply once, then show the formal typed version and the face that knows it got weird.",
+      "Film it like a tiny audition. Rehearse the casual reply out loud, then show the formal typed reply and the face that knows it got weird.",
     caption: "why did i become customer service.",
-    anchor: "rehearsing",
+    anchor: "reply",
     comedyFamily: "texting_overthinking",
     emotionalSpike: "self_critique",
     setting: "bedroom",
@@ -1259,9 +1259,9 @@
     whatToShow:
       "You speak professionally on a call, hit mute, then instantly become a different person: eating, stretching, or staring into space.",
     howToFilm:
-      "Frame the laptop call from the side. The mute click is the switch. Make “call you” and “muted you” feel like two separate employees.",
+      "Frame the laptop call from the side. The mute click is the switch. Show professional call-you first, then muted-you eating, stretching, or staring into space.",
     caption: "mute is my real personality.",
-    anchor: "muting",
+    anchor: "mute",
     comedyFamily: "work_school_panic",
     emotionalSpike: "mask_drop",
     setting: "desk",
@@ -1551,9 +1551,9 @@
     id: "W2C-020",
     hook: "walking laps because i can't choose which chore to avoid",
     whatToShow:
-      "You keep walking laps around the room, passing laundry, dishes, and a trash bag, because choosing one chore would make it real.",
+      "You walk laps around the room, passing laundry, dishes, and a trash bag without touching any of them because choosing one chore would make it real.",
     howToFilm:
-      "Shoot a repeated walking loop. Pass each chore without touching it, then keep walking like movement itself counts as progress.",
+      "Shoot the walking loop from one corner. Walk past the laundry, dishes, and trash bag without touching them, then keep walking like movement counts as progress.",
     caption: "walking counted as a decision.",
     anchor: "walking",
     comedyFamily: "task_avoidance",
