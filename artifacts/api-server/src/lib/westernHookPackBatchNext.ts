@@ -195,11 +195,11 @@
       id: "w2_next_002",
       hook: "The takeout bag math that never adds up",
       whatToShow:
-        "Kitchen counter close-up unpacking bag, pulling out twelve sauce packets and three napkins before the actual tiny entrée appears",
+        "Creator unpacks the takeout bag on the kitchen counter, counts twelve sauce packets and three napkins, then finally lifts out one tiny entrée and stares at the bag like it committed fraud.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Kitchen counter close-up unpacking bag, pulling out twelve sauce packets and three napkins before the actual tiny entrée appears. Keep your face flat the whole time; let the silence land.",
-      caption: "actual update: not great.",
-      anchor: "actual",
+        "Lock the phone on the kitchen counter. Pull out the sauce packets one by one like evidence, then reveal the tiny entrée last. End on a flat stare at the oversized bag.",
+      caption: "twelve sauces. one entrée. no explanation.",
+      anchor: "takeout",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
@@ -247,11 +247,11 @@
       id: "w2_next_005",
       hook: "Grocery bags unloaded and the snacks won again",
       whatToShow:
-        "Counter covered in bags, healthy items placed neatly then pushed aside as chip bags take over the frame",
+        "Creator unloads grocery bags onto the counter, places one healthy item down carefully, then keeps pulling out snacks until the chips fully block it from view.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Counter covered in bags, healthy items placed neatly then pushed aside as chip bags take over the frame. Keep your face flat the whole time; let the silence land.",
-      caption: "the bags knows.",
-      anchor: "bags",
+        "Start with the grocery bags in frame. Put the healthy item down like you had a plan, then stack snacks around it until it disappears. End by quietly accepting the snack pile.",
+      caption: "the snacks had numbers.",
+      anchor: "snacks",
       comedyFamily: "self_betrayal",
       emotionalSpike: "instant_regret",
       setting: "kitchen",
@@ -543,10 +543,10 @@
       id: "w2_next_022",
       hook: "I budgeted for coffee and still bought the large",
       whatToShow:
-        "Coffee cup on desk, receipt next to it showing large size",
+        "Creator places a large coffee on the desk, sets the receipt beside it, taps the word “large,” then slowly slides the budget notebook out of frame.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Coffee cup on desk, receipt next to it showing large size. End on a held silent stare; let the realization sit.",
-      caption: "coffee update: not great.",
+        "Frame the coffee, receipt, and budget notebook together. Tap the large size on the receipt, then quietly remove the budget notebook like it no longer applies.",
+      caption: "budget saw the cup and gave up.",
       anchor: "coffee",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
@@ -614,10 +614,10 @@
       id: "w2_next_026",
       hook: "Receipt says $6.99 and my brain says “worth it”",
       whatToShow:
-        "Small item on kitchen table next to receipt, shrug to camera",
+        "Creator places a tiny unnecessary item next to the receipt, points at the $6.99 price, gives one guilty shrug, then moves the item closer like defending it.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Small item on kitchen table next to receipt, shrug to camera. Talk-to-camera between beats; loose, a little frantic.",
-      caption: "no comment on the receipt.",
+        "Shoot from above on the kitchen table. Show the tiny item, the staged receipt, and the shrug. The final beat is moving the item closer like it deserves protection.",
+      caption: "financially small. emotionally loud.",
       anchor: "receipt",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_guilt",
@@ -774,13 +774,13 @@
     },
   {
       id: "w2_next_035",
-      hook: "Screenshot sent to wrong person and I’m dying",
+      hook: "I sent the screenshot to the wrong person and left my body",
       whatToShow:
-        "Phone send confirmation to wrong chat, hand slaps forehead",
+        "Creator sees a fake send confirmation in the wrong chat, freezes with one hand over their mouth, then slowly turns the phone face-down like hiding evidence.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Phone send confirmation to wrong chat, hand slaps forehead. Talk-to-camera between beats; loose, a little frantic.",
-      caption: "wrong situation, ongoing.",
-      anchor: "wrong",
+        "Use a staged chat screen. Hold on the wrong-chat send confirmation, freeze, then turn the phone face-down with dramatic calm. Let the silence do the work.",
+      caption: "wrong chat. correct panic.",
+      anchor: "screenshot",
       comedyFamily: "self_betrayal",
       emotionalSpike: "panic",
       setting: "desk",
@@ -812,10 +812,10 @@
       id: "w2_next_037",
       hook: "Dating app match replied and I left them on read",
       whatToShow:
-        "App match reply notification, me closing phone dramatically",
+        "Creator gets a fake dating-app reply notification, opens it for half a second, panics, closes the phone, then sits perfectly still like the phone can see them.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. App match reply notification, me closing phone dramatically. Punch the final beat with one theatrical reaction.",
-      caption: "the match knows.",
+        "Start on the staged reply notification. Open it briefly, close the phone too fast, then sit frozen with the phone face-down beside you.",
+      caption: "wanted attention. received consequences.",
       anchor: "match",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "quiet_guilt",
@@ -902,10 +902,10 @@
       id: "w2_next_042",
       hook: "Pomodoro timer just rang and I ignored it",
       whatToShow:
-        "Phone timer alarm, me continuing to scroll instead",
+        "Phone timer rings on the desk, creator reaches toward it like they might work, taps stop, then immediately keeps scrolling with the same hand.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Phone timer alarm, me continuing to scroll instead. Punch the final beat with one theatrical reaction.",
-      caption: "timer? never met them.",
+        "Frame the timer and phone clearly. Let the alarm ring, stop it with purpose, then use that same hand to keep scrolling. Keep your face completely blank.",
+      caption: "timer had ambition. i did not.",
       anchor: "timer",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "avoidance_spike",
@@ -1043,10 +1043,10 @@
       id: "w2_next_050",
       hook: "My daily planner is now a snack log",
       whatToShow:
-        "Planner page with crossed tasks replaced by snack doodles",
+        "Creator opens planner to a crossed-out task list, writes “chips,” “coffee,” and “more chips” underneath, then checks one off with real pride.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Planner page with crossed tasks replaced by snack doodles. Punch the final beat with one theatrical reaction.",
-      caption: "planner update: not great.",
+        "Shoot overhead at the planner. Show the task list first, then add the snack entries like they are official responsibilities. End by checking one off.",
+      caption: "finally, a planner that reflects my values.",
       anchor: "planner",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
@@ -1168,10 +1168,10 @@
       id: "w2_next_057",
       hook: "Shared bathroom counter has my stuff and zero of theirs",
       whatToShow:
-        "Bathroom counter with my products dominating, shrug",
+        "Creator pans across a bathroom counter completely covered with their products, finds one tiny empty corner, places another bottle there, then shrugs.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Bathroom counter with my products dominating, shrug. Talk-to-camera between beats; loose, a little frantic.",
-      caption: "the bathroom knows.",
+        "Use a slow counter pan. Show the imbalance clearly, then add one more product into the only open space. End with a guilty shrug.",
+      caption: "shared in theory.",
       anchor: "bathroom",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "self_critique",
@@ -1185,11 +1185,11 @@
       id: "w2_next_058",
       hook: "I folded one towel and called it “laundry day”",
       whatToShow:
-        "Single folded towel on bed, rest of pile untouched",
+        "Creator folds one towel perfectly on the bed, looks proud, then camera tilts to the untouched laundry pile beside it.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Single folded towel on bed, rest of pile untouched. Punch the final beat with one theatrical reaction.",
-      caption: "folded? never met them.",
-      anchor: "folded",
+        "Open on the single towel fold like a serious accomplishment. Hold the proud pause, then tilt to the giant pile still waiting.",
+      caption: "one towel carried the department.",
+      anchor: "towel",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "false_productivity",
       setting: "bedroom",
@@ -1202,10 +1202,10 @@
       id: "w2_next_059",
       hook: "Trash can full and I’m still adding one more thing",
       whatToShow:
-        "Overflowing trash can, hand pushes one last item in",
+        "Creator presses one last item into an overflowing trash can, waits to see if it stays, then slowly backs away when it balances.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Overflowing trash can, hand pushes one last item in. Keep your face flat the whole time; let the silence land.",
-      caption: "trash? never met them.",
+        "Frame the overflowing trash can low and close. Push the final item in, hold the suspense, then back away like you just defused something.",
+      caption: "engineering degree pending.",
       anchor: "trash",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "avoidance_spike",
@@ -1255,11 +1255,11 @@
       id: "w2_next_062",
       hook: "I used their mug and immediately washed it",
       whatToShow:
-        "Mug taken from cabinet, used, washed dramatically",
+        "Creator takes a mug from the cabinet, uses it for one sip, then washes it with suspicious intensity and returns it perfectly.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Mug taken from cabinet, used, washed dramatically. Punch the final beat with one theatrical reaction.",
-      caption: "used situation, ongoing.",
-      anchor: "used",
+        "Show the mug coming out of the cabinet, one tiny sip, then an over-serious wash. End with the mug returned like nothing happened.",
+      caption: "borrowed. panicked. sanitized.",
+      anchor: "mug",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "social_panic",
       setting: "kitchen",
@@ -1289,11 +1289,11 @@
       id: "w2_next_064",
       hook: "Shared grocery list has only my snacks now",
       whatToShow:
-        "Fridge list with crossed healthy items, snacks added",
+        "Creator opens a staged fridge grocery list, crosses out vegetables, adds three snack items, then steps back like the list has evolved.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Fridge list with crossed healthy items, snacks added. End on a held silent stare; let the realization sit.",
-      caption: "the list knows.",
-      anchor: "list",
+        "Frame the fridge list. Cross out one healthy item, add the snack items underneath, then hold on the final list like it speaks for itself.",
+      caption: "democracy failed at snacks.",
+      anchor: "grocery",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "quiet_guilt",
       setting: "kitchen",
@@ -1307,11 +1307,11 @@
       id: "w2_next_065",
       hook: "I took the last paper towel and didn’t replace it",
       whatToShow:
-        "Empty paper towel roll, guilty face",
+        "Creator pulls the final sheet from the paper towel roll, sees the empty cardboard tube, freezes, then quietly turns it so the empty side faces away.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Empty paper towel roll, guilty face. Talk-to-camera between beats; loose, a little frantic.",
-      caption: "the roll knows.",
-      anchor: "roll",
+        "Start close on the last sheet. Pull it off, reveal the empty roll, then rotate the roll like hiding a crime scene.",
+      caption: "not proud. still leaving.",
+      anchor: "paper",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_guilt",
       setting: "kitchen",
@@ -1466,11 +1466,11 @@
       id: "w2_next_074",
       hook: "I posted at 9:07pm like it was prime time",
       whatToShow:
-        "Post timestamp 9:07pm, me checking phone for likes",
+        "Creator shows a staged post timestamped 9:07pm, refreshes for likes, then checks the time again like the algorithm missed an appointment.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Post timestamp 9:07pm, me checking phone for likes. Keep your face flat the whole time; let the silence land.",
-      caption: "timestamp won.",
-      anchor: "timestamp",
+        "Use a fake post screen. Show the timestamp, refresh once or twice, then look at the clock like 9:07pm was supposed to do something.",
+      caption: "prime time according to me.",
+      anchor: "posted",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "impatient_spiral",
       setting: "couch",
@@ -1555,11 +1555,11 @@
       id: "w2_next_079",
       hook: "Wellness journal entry is just “coffee”",
       whatToShow:
-        "Notebook open to “Day 47: coffee” only",
+        "Creator opens a staged wellness journal, writes “coffee” as the full entry, pauses, then underlines it like that explains enough.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Notebook open to “Day 47: coffee” only. End on a held silent stare; let the realization sit.",
-      caption: "me vs the coffee: coffee won.",
-      anchor: "coffee",
+        "Shoot overhead on the journal. Write “coffee,” wait, then underline it with too much confidence. End on the empty rest of the page.",
+      caption: "healing, allegedly.",
+      anchor: "journal",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
@@ -1678,11 +1678,11 @@
       id: "w2_next_086",
       hook: "Morning coffee is now my only productivity",
       whatToShow:
-        "Coffee mug held like trophy, empty desk behind",
+        "Creator holds a coffee mug like a trophy in front of an untouched desk, sets it down, then does absolutely nothing else.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Coffee mug held like trophy, empty desk behind. Keep your face flat the whole time; let the silence land.",
-      caption: "held update: not great.",
-      anchor: "held",
+        "Frame the mug and the empty desk together. Lift the mug like a completed task, set it down, and let the untouched workspace sit in frame.",
+      caption: "task one: coffee. task two: unclear.",
+      anchor: "coffee",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
@@ -1799,10 +1799,10 @@
       id: "w2_next_093",
       hook: "Laptop fan started screaming at 2% battery",
       whatToShow:
-        "Laptop fan noise, screen at 2%, panicked face",
+        "Creator hears the laptop fan ramp up, sees the staged 2% battery warning, then looks between the laptop and charger like choosing who to save.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Laptop fan noise, screen at 2%, panicked face. Punch the final beat with one theatrical reaction.",
-      caption: "laptop situation, ongoing.",
+        "Frame the laptop and charger. Add fan sound if needed, show the 2% warning, then cut to the panicked look between laptop and cord.",
+      caption: "the laptop chose drama.",
       anchor: "laptop",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "performance_panic",
@@ -1817,10 +1817,10 @@
       id: "w2_next_094",
       hook: "Headphones tangled themselves overnight",
       whatToShow:
-        "Headphones pulled from bag, giant knot",
+        "Creator pulls headphones from a bag, reveals a huge knot, shakes the bag once like checking for an explanation, then gives up.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Headphones pulled from bag, giant knot. Keep your face flat the whole time; let the silence land.",
-      caption: "headphones update: not great.",
+        "Start with a normal bag pull. Reveal the knot slowly, then shake the bag like the answer might still be inside. End on the defeated hold.",
+      caption: "they had all night to plan this.",
       anchor: "headphones",
       comedyFamily: "parasocial_object",
       emotionalSpike: "quiet_defeat",
@@ -1834,11 +1834,11 @@
       id: "w2_next_095",
       hook: "Water bottle lid popped off in my bag",
       whatToShow:
-        "Bag opened, water spill visible, defeated sigh",
+        "Creator opens a bag, spots a staged water spill, lifts the loose bottle lid, then slowly closes the bag again like they need a minute.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Bag opened, water spill visible, defeated sigh. End on a held silent stare; let the realization sit.",
-      caption: "water update: not great.",
-      anchor: "water",
+        "Use a safe staged spill. Open the bag, show the loose lid and wet area, then close the bag with quiet defeat.",
+      caption: "hydration betrayed the team.",
+      anchor: "bottle",
       comedyFamily: "parasocial_object",
       emotionalSpike: "quiet_defeat",
       setting: "hallway",
@@ -1886,10 +1886,10 @@
       id: "w2_next_098",
       hook: "Reminder popped up and watched me choose chaos",
       whatToShow:
-        "Phone reminder appears, creator reads it, nods seriously, dismisses it, and keeps doing the opposite",
+        "Phone reminder appears, creator reads it, nods like they understand, dismisses it, then immediately continues doing the opposite task.",
       howToFilm:
-        "Phone on a tripod, one locked-off shot. Phone reminder appears, creator reads it, nods seriously, dismisses it, and keeps doing the opposite. Keep your face flat the whole time; let the silence land.",
-      caption: "reminder update: not great.",
+        "Frame the reminder clearly with generic text. Read it, nod seriously, dismiss it, then continue the exact opposite action without changing expression.",
+      caption: "the reminder witnessed everything.",
       anchor: "reminder",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",

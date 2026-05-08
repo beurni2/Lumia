@@ -1,0 +1,457 @@
+W2-P EDITORIAL REPAIR PACKET 1 — NEEDS_REWRITE ENTRIES
+
+Instructions for coding agent:
+Apply these as repair overrides by ID.
+Preserve all unchanged fields unless explicitly replaced below.
+Do not invent creative rewrites.
+After applying, rerun W2-O rubric and validators.
+
+---
+
+### w2_next_002
+Keep hook:
+The takeout bag math that never adds up
+
+Replace whatToShow:
+Creator unpacks the takeout bag on the kitchen counter, counts twelve sauce packets and three napkins, then finally lifts out one tiny entrée and stares at the bag like it committed fraud.
+
+Replace howToFilm:
+Lock the phone on the kitchen counter. Pull out the sauce packets one by one like evidence, then reveal the tiny entrée last. End on a flat stare at the oversized bag.
+
+Replace caption:
+twelve sauces. one entrée. no explanation.
+
+Replace anchor:
+takeout
+
+---
+
+### w2_next_005
+Keep hook:
+Grocery bags unloaded and the snacks won again
+
+Replace whatToShow:
+Creator unloads grocery bags onto the counter, places one healthy item down carefully, then keeps pulling out snacks until the chips fully block it from view.
+
+Replace howToFilm:
+Start with the grocery bags in frame. Put the healthy item down like you had a plan, then stack snacks around it until it disappears. End by quietly accepting the snack pile.
+
+Replace caption:
+the snacks had numbers.
+
+Replace anchor:
+snacks
+
+---
+
+### w2_next_022
+Keep hook:
+I budgeted for coffee and still bought the large
+
+Replace whatToShow:
+Creator places a large coffee on the desk, sets the receipt beside it, taps the word “large,” then slowly slides the budget notebook out of frame.
+
+Replace howToFilm:
+Frame the coffee, receipt, and budget notebook together. Tap the large size on the receipt, then quietly remove the budget notebook like it no longer applies.
+
+Replace caption:
+budget saw the cup and gave up.
+
+Replace anchor:
+coffee
+
+---
+
+### w2_next_026
+Keep hook:
+Receipt says $6.99 and my brain says “worth it”
+
+Replace whatToShow:
+Creator places a tiny unnecessary item next to the receipt, points at the $6.99 price, gives one guilty shrug, then moves the item closer like defending it.
+
+Replace howToFilm:
+Shoot from above on the kitchen table. Show the tiny item, the staged receipt, and the shrug. The final beat is moving the item closer like it deserves protection.
+
+Replace caption:
+financially small. emotionally loud.
+
+Replace anchor:
+receipt
+
+---
+
+### w2_next_035
+Replace hook:
+I sent the screenshot to the wrong person and left my body
+
+Replace whatToShow:
+Creator sees a fake send confirmation in the wrong chat, freezes with one hand over their mouth, then slowly turns the phone face-down like hiding evidence.
+
+Replace howToFilm:
+Use a staged chat screen. Hold on the wrong-chat send confirmation, freeze, then turn the phone face-down with dramatic calm. Let the silence do the work.
+
+Replace caption:
+wrong chat. correct panic.
+
+Replace anchor:
+screenshot
+
+---
+
+### w2_next_037
+Keep hook:
+Dating app match replied and I left them on read
+
+Replace whatToShow:
+Creator gets a fake dating-app reply notification, opens it for half a second, panics, closes the phone, then sits perfectly still like the phone can see them.
+
+Replace howToFilm:
+Start on the staged reply notification. Open it briefly, close the phone too fast, then sit frozen with the phone face-down beside you.
+
+Replace caption:
+wanted attention. received consequences.
+
+Replace anchor:
+match
+
+---
+
+### w2_next_042
+Keep hook:
+Pomodoro timer just rang and I ignored it
+
+Replace whatToShow:
+Phone timer rings on the desk, creator reaches toward it like they might work, taps stop, then immediately keeps scrolling with the same hand.
+
+Replace howToFilm:
+Frame the timer and phone clearly. Let the alarm ring, stop it with purpose, then use that same hand to keep scrolling. Keep your face completely blank.
+
+Replace caption:
+timer had ambition. i did not.
+
+Replace anchor:
+timer
+
+---
+
+### w2_next_050
+Keep hook:
+My daily planner is now a snack log
+
+Replace whatToShow:
+Creator opens planner to a crossed-out task list, writes “chips,” “coffee,” and “more chips” underneath, then checks one off with real pride.
+
+Replace howToFilm:
+Shoot overhead at the planner. Show the task list first, then add the snack entries like they are official responsibilities. End by checking one off.
+
+Replace caption:
+finally, a planner that reflects my values.
+
+Replace anchor:
+planner
+
+---
+
+### w2_next_057
+Keep hook:
+Shared bathroom counter has my stuff and zero of theirs
+
+Replace whatToShow:
+Creator pans across a bathroom counter completely covered with their products, finds one tiny empty corner, places another bottle there, then shrugs.
+
+Replace howToFilm:
+Use a slow counter pan. Show the imbalance clearly, then add one more product into the only open space. End with a guilty shrug.
+
+Replace caption:
+shared in theory.
+
+Replace anchor:
+bathroom
+
+---
+
+### w2_next_058
+Keep hook:
+I folded one towel and called it “laundry day”
+
+Replace whatToShow:
+Creator folds one towel perfectly on the bed, looks proud, then camera tilts to the untouched laundry pile beside it.
+
+Replace howToFilm:
+Open on the single towel fold like a serious accomplishment. Hold the proud pause, then tilt to the giant pile still waiting.
+
+Replace caption:
+one towel carried the department.
+
+Replace anchor:
+towel
+
+---
+
+### w2_next_059
+Keep hook:
+Trash can full and I’m still adding one more thing
+
+Replace whatToShow:
+Creator presses one last item into an overflowing trash can, waits to see if it stays, then slowly backs away when it balances.
+
+Replace howToFilm:
+Frame the overflowing trash can low and close. Push the final item in, hold the suspense, then back away like you just defused something.
+
+Replace caption:
+engineering degree pending.
+
+Replace anchor:
+trash
+
+---
+
+### w2_next_062
+Keep hook:
+I used their mug and immediately washed it
+
+Replace whatToShow:
+Creator takes a mug from the cabinet, uses it for one sip, then washes it with suspicious intensity and returns it perfectly.
+
+Replace howToFilm:
+Show the mug coming out of the cabinet, one tiny sip, then an over-serious wash. End with the mug returned like nothing happened.
+
+Replace caption:
+borrowed. panicked. sanitized.
+
+Replace anchor:
+mug
+
+---
+
+### w2_next_064
+Keep hook:
+Shared grocery list has only my snacks now
+
+Replace whatToShow:
+Creator opens a staged fridge grocery list, crosses out vegetables, adds three snack items, then steps back like the list has evolved.
+
+Replace howToFilm:
+Frame the fridge list. Cross out one healthy item, add the snack items underneath, then hold on the final list like it speaks for itself.
+
+Replace caption:
+democracy failed at snacks.
+
+Replace anchor:
+grocery
+
+---
+
+### w2_next_065
+Keep hook:
+I took the last paper towel and didn’t replace it
+
+Replace whatToShow:
+Creator pulls the final sheet from the paper towel roll, sees the empty cardboard tube, freezes, then quietly turns it so the empty side faces away.
+
+Replace howToFilm:
+Start close on the last sheet. Pull it off, reveal the empty roll, then rotate the roll like hiding a crime scene.
+
+Replace caption:
+not proud. still leaving.
+
+Replace anchor:
+paper
+
+---
+
+### w2_next_074
+Keep hook:
+I posted at 9:07pm like it was prime time
+
+Replace whatToShow:
+Creator shows a staged post timestamped 9:07pm, refreshes for likes, then checks the time again like the algorithm missed an appointment.
+
+Replace howToFilm:
+Use a fake post screen. Show the timestamp, refresh once or twice, then look at the clock like 9:07pm was supposed to do something.
+
+Replace caption:
+prime time according to me.
+
+Replace anchor:
+posted
+
+---
+
+### w2_next_079
+Keep hook:
+Wellness journal entry is just “coffee”
+
+Replace whatToShow:
+Creator opens a staged wellness journal, writes “coffee” as the full entry, pauses, then underlines it like that explains enough.
+
+Replace howToFilm:
+Shoot overhead on the journal. Write “coffee,” wait, then underline it with too much confidence. End on the empty rest of the page.
+
+Replace caption:
+healing, allegedly.
+
+Replace anchor:
+journal
+
+---
+
+### w2_next_086
+Keep hook:
+Morning coffee is now my only productivity
+
+Replace whatToShow:
+Creator holds a coffee mug like a trophy in front of an untouched desk, sets it down, then does absolutely nothing else.
+
+Replace howToFilm:
+Frame the mug and the empty desk together. Lift the mug like a completed task, set it down, and let the untouched workspace sit in frame.
+
+Replace caption:
+task one: coffee. task two: unclear.
+
+Replace anchor:
+coffee
+
+---
+
+### w2_next_093
+Keep hook:
+Laptop fan started screaming at 2% battery
+
+Replace whatToShow:
+Creator hears the laptop fan ramp up, sees the staged 2% battery warning, then looks between the laptop and charger like choosing who to save.
+
+Replace howToFilm:
+Frame the laptop and charger. Add fan sound if needed, show the 2% warning, then cut to the panicked look between laptop and cord.
+
+Replace caption:
+the laptop chose drama.
+
+Replace anchor:
+laptop
+
+---
+
+### w2_next_094
+Keep hook:
+Headphones tangled themselves overnight
+
+Replace whatToShow:
+Creator pulls headphones from a bag, reveals a huge knot, shakes the bag once like checking for an explanation, then gives up.
+
+Replace howToFilm:
+Start with a normal bag pull. Reveal the knot slowly, then shake the bag like the answer might still be inside. End on the defeated hold.
+
+Replace caption:
+they had all night to plan this.
+
+Replace anchor:
+headphones
+
+---
+
+### w2_next_095
+Keep hook:
+Water bottle lid popped off in my bag
+
+Replace whatToShow:
+Creator opens a bag, spots a staged water spill, lifts the loose bottle lid, then slowly closes the bag again like they need a minute.
+
+Replace howToFilm:
+Use a safe staged spill. Open the bag, show the loose lid and wet area, then close the bag with quiet defeat.
+
+Replace caption:
+hydration betrayed the team.
+
+Replace anchor:
+bottle
+
+---
+
+### w2_next_098
+Keep hook:
+Reminder popped up and watched me choose chaos
+
+Replace whatToShow:
+Phone reminder appears, creator reads it, nods like they understand, dismisses it, then immediately continues doing the opposite task.
+
+Replace howToFilm:
+Frame the reminder clearly with generic text. Read it, nod seriously, dismiss it, then continue the exact opposite action without changing expression.
+
+Replace caption:
+the reminder witnessed everything.
+
+Replace anchor:
+reminder
+
+---
+
+### w2_next2_004
+Keep hook:
+My work-from-home bun became a structural hazard
+
+Replace whatToShow:
+Creator adjusts a leaning work-from-home bun at the desk, the bun slowly collapses, and their glasses get knocked sideways.
+
+Replace howToFilm:
+Shoot from desk height. Start with the bun already leaning, adjust it once, then let the collapse knock the glasses slightly out of place.
+
+Replace caption:
+OSHA was not notified.
+
+Replace anchor:
+bun
+
+---
+
+### w2_next2_050
+Keep hook:
+Plant parenting became witness protection
+
+Replace whatToShow:
+Creator over-waters a struggling plant, whispers an apology, then slides a fake plant in front of it like hiding a witness.
+
+Replace howToFilm:
+Frame both plants. Show the overwatering, the apology, then the fake plant being moved in front like a coverup.
+
+Replace caption:
+the plant has been relocated.
+
+Replace anchor:
+plant
+
+---
+
+### w2_next2_059
+Keep hook:
+Low battery turned my living room into an action movie
+
+Replace whatToShow:
+Creator sees 1% battery, lunges safely across the couch toward a charger, misses once, then plugs in with dramatic relief.
+
+Replace howToFilm:
+Keep the movement safe and controlled. Show the 1% warning, the reach for the charger, the miss, then the final plug-in like a rescue scene.
+
+Replace caption:
+1% brought out the stunt team.
+
+Replace anchor:
+battery
+
+---
+
+### w2_next2_076
+Keep hook:
+I bought the "budget planner" and immediately blew the budget
+
+Replace whatToShow:
+Creator places a new budget planner on the desk, then adds the matching pen, candle, and coffee beside it until the planner is surrounded by purchases.
+
+Replace howToFilm:
+Start with the planner alone. Add each extra purchase one at a time, then end on the full setup looking expensive before any budgeting has happened.
+
+Replace caption:
+budgeting had startup costs.
+
+Replace anchor:
+budget
