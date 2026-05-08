@@ -439,9 +439,9 @@
       whatToShow:
         "Creator shows a staged cart total at $92, pauses, then drops a pack of gum onto the counter like that was somehow still necessary.",
       howToFilm:
-        "Use a fake receipt/cart screen or staged grocery layout. Show the $92 cart total, then add the gum as the final bad decision.",
+        "Use a fake cart total or staged grocery counter. Show the $92 cart total first, then add the gum as the final bad decision.",
       caption: "cart total was already yelling.",
-      anchor: "cart",
+      anchor: "gum",
       comedyFamily: "self_betrayal",
       emotionalSpike: "instant_regret",
       setting: "kitchen",
@@ -939,7 +939,7 @@
       whatToShow:
         "Creator shows a work-from-home mirror check: nice top or hoodie above, pajama pants below, clock visible at 3pm.",
       howToFilm:
-        "Use the mirror as the reveal. Start polished from the waist up, then tilt down to the pajamas and clock.",
+        "Use the mirror as the reveal. Start with the work-from-home outfit from the waist up, then tilt down to the pajamas and show the 3pm clock.",
       caption: "work from home, barely from outfit.",
       anchor: "work",
       comedyFamily: "self_improvement_attempt",
@@ -1170,7 +1170,7 @@
       whatToShow:
         "Creator pans across a bathroom counter completely covered with their products, finds one tiny empty corner, places another bottle there, then shrugs.",
       howToFilm:
-        "Use a slow counter pan. Show the imbalance clearly, then add one more product into the only open space. End with a guilty shrug.",
+        "Use a slow bathroom counter pan. Show your products covering the counter, place one more bottle in the only open corner, then end on the guilty shrug.",
       caption: "shared in theory.",
       anchor: "bathroom",
       comedyFamily: "tiny_public_private_awkwardness",
@@ -1257,7 +1257,7 @@
       whatToShow:
         "Creator takes a mug from the cabinet, uses it for one sip, then washes it with suspicious intensity and returns it perfectly.",
       howToFilm:
-        "Show the mug coming out of the cabinet, one tiny sip, then an over-serious wash. End with the mug returned like nothing happened.",
+        "Show the mug coming out of the cabinet, take one tiny sip, then wash the mug with suspicious intensity and return it perfectly.",
       caption: "borrowed. panicked. sanitized.",
       anchor: "mug",
       comedyFamily: "tiny_public_private_awkwardness",
@@ -1466,11 +1466,11 @@
       id: "w2_next_074",
       hook: "I posted at 9:07pm like it was prime time",
       whatToShow:
-        "Creator shows a staged post timestamped 9:07pm, refreshes for likes, then checks the time again like the algorithm missed an appointment.",
+        "Creator shows a staged post timestamped 9:07pm, refreshes the post for likes, then checks the time again like the algorithm missed an appointment.",
       howToFilm:
-        "Use a fake post screen. Show the timestamp, refresh once or twice, then look at the clock like 9:07pm was supposed to do something.",
+        "Use a fake post screen. Show the staged post timestamp, refresh the post once or twice, then look at the clock like 9:07pm was supposed to do something.",
       caption: "prime time according to me.",
-      anchor: "posted",
+      anchor: "post",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "impatient_spiral",
       setting: "couch",
@@ -1522,9 +1522,9 @@
       whatToShow:
         "Creator pulls to refresh a staged feed, the exact same post returns, and the phone gets set down like it lost privileges.",
       howToFilm:
-        "Frame the pull-to-refresh gesture. Show the same post returning, then place the phone down with parental disappointment.",
+        "Frame the staged feed and the pull-to-refresh gesture. Show the same post returning, then set the phone down with parental disappointment.",
       caption: "refreshed and learned nothing.",
-      anchor: "refreshed",
+      anchor: "refresh",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
@@ -1557,7 +1557,7 @@
       whatToShow:
         "Creator opens a staged wellness journal, writes “coffee” as the full entry, pauses, then underlines it like that explains enough.",
       howToFilm:
-        "Shoot overhead on the journal. Write “coffee,” wait, then underline it with too much confidence. End on the empty rest of the page.",
+        "Shoot overhead on the wellness journal. Write “coffee,” pause at the mostly empty page, then underline the coffee entry with too much confidence.",
       caption: "healing, allegedly.",
       anchor: "journal",
       comedyFamily: "self_improvement_attempt",
@@ -1592,7 +1592,7 @@
       whatToShow:
         "Creator’s alarm rings at 5am, they sit up like a new person, then at 5:12am they are fully back under the blanket.",
       howToFilm:
-        "Show the 5am alarm, the heroic sit-up, then the 5:12am collapse. Make the two versions of you feel like enemies.",
+        "Show the 5am alarm, the heroic sit-up, then the 5:12am collapse back under the blanket. Make the two times feel like enemies.",
       caption: "5am me was unsupervised.",
       anchor: "5am",
       comedyFamily: "self_improvement_attempt",
@@ -1644,9 +1644,9 @@
       whatToShow:
         "Creator does one tiny stretch on the living room floor, immediately stands up satisfied, and rolls the mat away like a class ended.",
       howToFilm:
-        "Use one safe stretch. The joke is the confidence afterward: stand up, nod, and put the mat away way too soon.",
+        "Use one safe tiny stretch on the living room floor. Stand up immediately, roll the mat away, and act like the class is over.",
       caption: "yoga was brief.",
-      anchor: "stretched",
+      anchor: "stretch",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "false_productivity",
       setting: "living_room",
@@ -1714,7 +1714,7 @@
       whatToShow:
         "Phone autocorrects a fake message into something colder than intended, creator notices after sending, freezes, then slowly puts the phone down.",
       howToFilm:
-        "Use a fake chat. Show the autocorrect change, the send, and the delayed realization. End on the frozen face.",
+        "Use a fake message. Show autocorrect changing the word, send the message, then freeze when the colder tone lands.",
       caption: "autocorrect chose violence politely.",
       anchor: "autocorrect",
       comedyFamily: "parasocial_object",
@@ -1749,9 +1749,9 @@
       whatToShow:
         "Creator drops an earbud between couch cushions, reaches in from three angles, then stares into the gap like it became a different address.",
       howToFilm:
-        "Show the earbud drop clearly. Try the reach from different angles, fail, then hold on the impossible couch gap.",
+        "Show the earbud drop between the couch cushions. Try reaching from three angles, fail, then hold on the impossible couch gap.",
       caption: "earbuds found another dimension.",
-      anchor: "earbuds",
+      anchor: "earbud",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
@@ -1819,7 +1819,7 @@
       whatToShow:
         "Creator pulls headphones from a bag, reveals a huge knot, shakes the bag once like checking for an explanation, then gives up.",
       howToFilm:
-        "Start with a normal bag pull. Reveal the knot slowly, then shake the bag like the answer might still be inside. End on the defeated hold.",
+        "Start with the headphones being pulled from the bag. Reveal the giant knot slowly, shake the bag once for answers, then hold the defeated stare.",
       caption: "they had all night to plan this.",
       anchor: "headphones",
       comedyFamily: "parasocial_object",
@@ -1888,7 +1888,7 @@
       whatToShow:
         "Phone reminder appears, creator reads it, nods like they understand, dismisses it, then immediately continues doing the opposite task.",
       howToFilm:
-        "Frame the reminder clearly with generic text. Read it, nod seriously, dismiss it, then continue the exact opposite action without changing expression.",
+        "Frame the phone reminder with generic text. Read the reminder, nod seriously, dismiss it, then continue doing the opposite task without changing expression.",
       caption: "the reminder witnessed everything.",
       anchor: "reminder",
       comedyFamily: "task_avoidance",

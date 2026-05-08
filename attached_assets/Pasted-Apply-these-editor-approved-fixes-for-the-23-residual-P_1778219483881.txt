@@ -1,0 +1,396 @@
+Apply these editor-approved fixes for the 23 residual Packet 2 invariant violations.
+
+Do not loosen validators.
+Do not extend allowlists.
+Do not change hooks unless explicitly stated.
+Preserve IDs.
+Prefer anchor swaps and howToFilm rewrites only.
+After applying, rerun:
+pnpm --filter @workspace/api-server exec tsx src/qa/w2pPacket2LatentViolationsQa.ts
+Then rerun affected tests. If clean, rerun full api-server tests.
+
+---
+
+## A. Triplet collision
+
+### w2_next_016
+
+Keep hook:
+Cart total hit $92 and I still added gum
+
+Replace anchor:
+gum
+
+Replace whatToShow:
+Creator shows a staged cart total at $92, pauses, then drops a pack of gum onto the counter like that was somehow still necessary.
+
+Replace howToFilm:
+Use a fake cart total or staged grocery counter. Show the $92 cart total first, then add the gum as the final bad decision.
+
+Replace caption:
+cart total was already yelling.
+
+Reason:
+Breaks `(self_betrayal | instant_regret | cart)` collision with w2_next2_073 while preserving the joke. `gum` appears naturally in whatToShow/howToFilm.
+
+---
+
+## B. Anchor token missing from whatToShow
+
+### w2_next_074
+
+Keep hook:
+I posted at 9:07pm like it was prime time
+
+Replace anchor:
+post
+
+Replace whatToShow:
+Creator shows a staged post timestamped 9:07pm, refreshes the post for likes, then checks the time again like the algorithm missed an appointment.
+
+Replace howToFilm:
+Use a fake post screen. Show the staged post timestamp, refresh the post once or twice, then look at the clock like 9:07pm was supposed to do something.
+
+Replace caption:
+prime time according to me.
+
+Reason:
+Use `post`, which appears verbatim and also improves howToFilm overlap.
+
+---
+
+### w2_next_077
+
+Keep hook:
+I refreshed the feed and the feed refreshed my patience
+
+Replace anchor:
+refresh
+
+Replace whatToShow:
+Creator pulls to refresh a staged feed, the exact same post returns, and the phone gets set down like it lost privileges.
+
+Replace howToFilm:
+Frame the staged feed and the pull-to-refresh gesture. Show the same post returning, then set the phone down with parental disappointment.
+
+Replace caption:
+refreshed and learned nothing.
+
+Reason:
+Use `refresh`, which appears verbatim in the scene.
+
+---
+
+### w2_next_084
+
+Keep hook:
+I stretched once and called it yoga
+
+Replace anchor:
+stretch
+
+Replace whatToShow:
+Creator does one tiny stretch on the living room floor, immediately stands up satisfied, and rolls the mat away like a class ended.
+
+Replace howToFilm:
+Use one safe tiny stretch on the living room floor. Stand up immediately, roll the mat away, and act like the class is over.
+
+Replace caption:
+yoga was brief.
+
+Reason:
+Use `stretch`, which appears verbatim and improves overlap.
+
+---
+
+### w2_next_090
+
+Keep hook:
+Earbuds fell in the exact spot I can’t reach
+
+Replace anchor:
+earbud
+
+Replace whatToShow:
+Creator drops an earbud between couch cushions, reaches in from three angles, then stares into the gap like it became a different address.
+
+Replace howToFilm:
+Show the earbud drop between the couch cushions. Try reaching from three angles, fail, then hold on the impossible couch gap.
+
+Replace caption:
+earbuds found another dimension.
+
+Reason:
+Use `earbud`, which appears verbatim in whatToShow.
+
+---
+
+### w2_next2_024
+
+Keep hook:
+The “I understood that” face has left the building
+
+Replace anchor:
+face
+
+Replace whatToShow:
+Creator makes the “I understood that” face: aggressive nodding, wide panicked eyes, fake “ohhh okay,” then writes absolutely nothing down.
+
+Replace howToFilm:
+Make the face the whole bit. Nod too hard, say the fake “okay,” then reveal the blank note page.
+
+Replace caption:
+understood nothing. performed everything.
+
+Reason:
+Use `face`, which appears verbatim in whatToShow and preserves the hook’s core.
+
+---
+
+### w2_next2_062
+
+Keep hook:
+I rehearsed the voicemail and still sounded surprised
+
+Replace anchor:
+voicemail
+
+Replace whatToShow:
+Creator rehearses the voicemail calmly, hears the beep, then instantly sounds surprised and says “hi??” like the phone called them.
+
+Replace howToFilm:
+Show the calm voicemail rehearsal first. Let the beep interrupt, then switch into the surprised voice immediately.
+
+Replace caption:
+rehearsed it. forgot the role.
+
+Reason:
+Use `voicemail`, which appears verbatim in whatToShow.
+
+---
+
+## C. W2-L howToFilm ↔ whatToShow overlap repairs
+
+### w2_next_044
+
+Keep hook:
+Work-from-home outfit is still pajamas at 3pm
+
+Keep anchor:
+work
+
+Replace howToFilm:
+Use the mirror as the reveal. Start with the work-from-home outfit from the waist up, then tilt down to the pajamas and show the 3pm clock.
+
+Reason:
+Adds concrete overlap: work, outfit, pajamas, 3pm, mirror, clock.
+
+---
+
+### w2_next_057
+
+Keep hook:
+Shared bathroom counter has my stuff and zero of theirs
+
+Keep anchor:
+bathroom
+
+Replace howToFilm:
+Use a slow bathroom counter pan. Show your products covering the counter, place one more bottle in the only open corner, then end on the guilty shrug.
+
+Reason:
+Adds concrete overlap: bathroom, counter, products, bottle, corner, shrug.
+
+---
+
+### w2_next_062
+
+Keep hook:
+I used their mug and immediately washed it
+
+Keep anchor:
+mug
+
+Replace howToFilm:
+Show the mug coming out of the cabinet, take one tiny sip, then wash the mug with suspicious intensity and return it perfectly.
+
+Reason:
+Adds concrete overlap: mug, cabinet, sip, wash, return.
+
+---
+
+### w2_next_079
+
+Keep hook:
+Wellness journal entry is just “coffee”
+
+Keep anchor:
+journal
+
+Replace howToFilm:
+Shoot overhead on the wellness journal. Write “coffee,” pause at the mostly empty page, then underline the coffee entry with too much confidence.
+
+Reason:
+Adds concrete overlap: wellness, journal, coffee, entry, page.
+
+---
+
+### w2_next_081
+
+Keep hook:
+5am me made promises 5:12am me never respected
+
+Keep anchor:
+5am
+
+Replace howToFilm:
+Show the 5am alarm, the heroic sit-up, then the 5:12am collapse back under the blanket. Make the two times feel like enemies.
+
+Reason:
+Adds concrete overlap: 5am, alarm, sit-up, 5:12am, blanket.
+
+---
+
+### w2_next_088
+
+Keep hook:
+Autocorrect changed my tone and left me with the consequences
+
+Keep anchor:
+autocorrect
+
+Replace howToFilm:
+Use a fake message. Show autocorrect changing the word, send the message, then freeze when the colder tone lands.
+
+Reason:
+Adds concrete overlap: autocorrect, message, word, send, tone.
+
+---
+
+### w2_next_094
+
+Keep hook:
+Headphones tangled themselves overnight
+
+Keep anchor:
+headphones
+
+Replace howToFilm:
+Start with the headphones being pulled from the bag. Reveal the giant knot slowly, shake the bag once for answers, then hold the defeated stare.
+
+Reason:
+Adds concrete overlap: headphones, bag, knot, shake.
+
+---
+
+### w2_next_098
+
+Keep hook:
+Reminder popped up and watched me choose chaos
+
+Keep anchor:
+reminder
+
+Replace howToFilm:
+Frame the phone reminder with generic text. Read the reminder, nod seriously, dismiss it, then continue doing the opposite task without changing expression.
+
+Reason:
+Adds concrete overlap: reminder, generic, text, dismiss, opposite.
+
+---
+
+## D. W2-N howToFilm ↔ whatToShow overlap repairs
+
+### w2_next2_016
+
+Keep hook:
+I said “just looking” and immediately started acting employed
+
+Keep anchor:
+looking
+
+Replace howToFilm:
+Simulate the store moment at home. Say “just looking,” pick up the bread from the pantry, and nod with fake employee seriousness.
+
+Reason:
+Adds concrete overlap: looking, bread, pantry, nod, seriousness.
+
+---
+
+### w2_next2_020
+
+Keep hook:
+7:05am me is not the person 10pm me hired
+
+Keep anchor:
+person
+
+Replace howToFilm:
+Show the 7:05am time, the one sock, and the blank stare on the bed. Let it feel like the person 10pm hired never showed up.
+
+Reason:
+Adds concrete overlap: 7:05am, person, sock, bed, stare.
+
+---
+
+### w2_next2_031
+
+Keep hook:
+I promoted myself to Head of Tomorrow
+
+Keep anchor:
+promoted
+
+Replace howToFilm:
+Start with the blazer over pajamas like a promotion ceremony. Open the laptop, close it immediately, then nod like tomorrow’s department handled it.
+
+Reason:
+Adds concrete overlap: blazer, pajamas, laptop, tomorrow, nod.
+
+---
+
+### w2_next2_032
+
+Keep hook:
+Gym outfit clocked in. I did not.
+
+Keep anchor:
+outfit
+
+Replace howToFilm:
+Frame the gym outfit, the unrolled yoga mat, and the chips together. Eat the chips calmly, then give the mat the guilty look.
+
+Reason:
+Adds concrete overlap: outfit, yoga, mat, chips, guilty.
+
+---
+
+### w2_next2_035
+
+Keep hook:
+Avoiding someone in public turned me into a shelf inspector
+
+Keep anchor:
+avoiding
+
+Replace howToFilm:
+Shoot the avoiding crouch at home. Crouch by the pantry shelves, inspect the canned beans like urgent research, and avoid imaginary eye contact.
+
+Reason:
+Adds concrete overlap: avoiding, crouch, pantry, shelves, beans, inspect.
+
+---
+
+### w2_next2_076
+
+Keep hook:
+I bought the "budget planner" and immediately blew the budget
+
+Keep anchor:
+budget
+
+Replace howToFilm:
+Start with the budget planner alone on the desk. Add the matching pen, candle, and coffee one at a time until the budget setup looks expensive.
+
+Reason:
+Adds concrete overlap: budget, planner, desk, pen, candle, coffee.
