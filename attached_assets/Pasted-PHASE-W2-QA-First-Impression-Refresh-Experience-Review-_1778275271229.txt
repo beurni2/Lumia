@@ -1,0 +1,162 @@
+PHASE W2-QA — First-Impression + Refresh Experience Review
+
+Objective:
+Evaluate the actual Western/clean 3-card user experience after W2-O / W2-P / W2-T / W2-V / W2-R are closed.
+
+This is a product-quality QA phase, not an implementation phase.
+
+The goal is to answer:
+Does Lumina now feel amazing to a first-time Western/clean creator?
+Do the 3 ideas feel human-crafted, funny, realistic, distinct, and filmable?
+Does refresh continue to feel fresh without becoming generic or repetitive?
+
+Current state:
+- W2-O: GO
+- W2-P: GO
+- W2-T: GO
+- W2-V: GO
+- W2-R: GO
+- WESTERN_HOOK_PACK_LIVE = 355
+- W2-T exposure healthy
+- westernHookStyle effective style diversity fixed
+- tests/typecheck green
+- production W2 flags OFF
+- Intended batch mix: usually 2 W2/new-corpus ideas + 1 old/core idea, but never force a weak second W2.
+
+Hard rules:
+- Do not change app/source code.
+- Do not change validators.
+- Do not change production flags.
+- Do not tune selectors.
+- Do not import another batch.
+- Do not implement deterministic variation.
+- Do not change prompts.
+- Do not redo W2-O/W2-P/W2-T/W2-R.
+- This phase is report-only unless I explicitly approve follow-up fixes.
+
+Run configuration:
+- Western/clean
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- 10 simulated creators
+- 10 batches per creator minimum
+- count=3
+- batch 0 regenerate=false
+- batches 1+ regenerate=true
+- fresh memory per creator
+- x-lumina-qa-expose-meta:1
+
+For each creator, capture:
+- all 3 ideas per batch
+- hook
+- whatToShow / scenario
+- caption
+- howToFilm
+- source type: W2-I / W2-L / W2-N / W2-T / core_native / pattern_variation
+- westernPackEntryId if present
+- anchor
+- setting
+- comedyFamily
+- emotionalSpike
+- hookStyle
+- westernHookStyle if present
+- score / quality telemetry if available
+- fallback status
+- latency
+
+Quantitative checks:
+1. Batch composition:
+- how many batches are 2 W2 + 1 old/core
+- how many are 1 W2 + 2 old/core
+- how many are 3 W2
+- how many are 0 W2
+- whether 3 W2 ever happens
+- whether weak second-W2 forcing appears to happen
+
+2. Repetition:
+- exact hook repeats per creator
+- entryId repeats per creator
+- skeleton repeats per creator
+- anchor repeats per creator
+- same setting 3/3
+- same effective hook style 3/3
+- same comedy family 3/3 if measurable
+- all phone/screen-led 3/3
+- all desk/productivity 3/3
+
+3. Source health:
+- W2-I / W2-L / W2-N / W2-T distribution
+- old/core contribution
+- W2-T still visible
+- first-batch source composition
+- refresh source composition
+
+4. Reliability:
+- errors
+- fallback count
+- latency avg/min/max
+- production flags unchanged
+- dev toml restored
+
+Human editorial review:
+Sample at least 30 batches manually across creators.
+
+For each sampled batch, grade:
+- hook clarity: 1–5
+- hook funniness: 1–5
+- human taste: 1–5
+- scenario filmability: 1–5
+- scenario specificity: 1–5
+- caption quality: 1–5
+- howToFilm usefulness: 1–5
+- 3-card diversity: 1–5
+- “would a creator film this today?”: yes / maybe / no
+
+Flag any idea that:
+- feels AI-ish
+- feels generic
+- has a confusing hook
+- has a hook that is too short/cryptic
+- has a scenario that does not match the hook
+- has weak or generic howToFilm
+- has a caption that feels templated
+- requires too much effort
+- requires public filming
+- feels unsafe/private
+- repeats the same vibe as another card in the batch
+- is technically valid but not funny
+
+Acceptance bar:
+- At least 80% of sampled batches should score 4+ on 3-card diversity.
+- At least 80% of sampled ideas should score 4+ on filmability.
+- At least 70% of sampled hooks should score 4+ on funniness.
+- At least 70% of sampled ideas should feel human-crafted.
+- At least 1 idea per batch should feel instantly filmable.
+- 0 ideas should feel unsafe/private.
+- 0 ideas should be obvious AI/template garbage.
+- No batch should feel like 3 versions of the same joke.
+
+Deliverables:
+1. .local/W2QA_FIRST_IMPRESSION_REPORT.md
+2. .local/W2QA_REFRESH_EXPERIENCE_REPORT.md
+3. raw JSON capture
+4. sampled editorial table
+5. top 20 strongest ideas observed
+6. bottom 20 weakest ideas observed
+7. recurring failure patterns, if any
+8. recommendation:
+   - GO: experience is strong enough to move to Film This Now polish
+   - GO with caveats: minor issues, no blocker
+   - NEEDS FIX: list exact fixes needed before moving on
+
+Important:
+Do not fix anything in this phase.
+Do not patch based on vibes.
+Just measure, sample, judge, and report.
+
+The product standard:
+Ideas must feel like a funny human creator with taste wrote them.
+Hooks must be clear and punchy, not cryptic.
+Scenarios must be specific and filmable.
+Captions and howToFilm must help the creator act immediately.
+If something passes validators but feels mediocre, flag it.
