@@ -384,6 +384,13 @@ export type HybridIdeatorResult = {
       westernPackComedyFamily?: string;
       westernPackEmotionalSpike?: string;
       westernPackSetting?: string;
+      /** PHASE W2-QA-FIX-1 (Task C) — generic comedy-family tag that
+       *  works for all sources. For W2 candidates this echoes
+       *  `westernPackComedyFamily`; for `core_native` it carries
+       *  `meta.comedyFamily` when set. Optional (no per-source
+       *  guarantee), but populated whenever any of the source-
+       *  specific family fields is set. */
+      comedyFamily?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -5455,6 +5462,12 @@ export async function runHybridIdeator(
         flagEnabled: true,
         packLength: _w2oActivePool.packLength,
         excludeAxes: _hoistedWesternPackSeenAxes,
+        // PHASE W2-QA-FIX-1 (Task A) — feed the creator id so the
+        // slot-reservation can apply the cold-start first-impression
+        // deterministic quality-band rotation (only fires when the
+        // axes snapshot is structurally empty; refresh batches and
+        // missing-creatorId paths behave exactly as pre-Fix-1).
+        creatorId: input.creator?.id,
         onDiagnostic: (d) => {
           w2sr_diagnostic = d;
         },
@@ -6136,6 +6149,20 @@ export async function runHybridIdeator(
       ).westernPackEmotionalSpike,
       westernPackSetting: (m as { westernPackSetting?: string })
         .westernPackSetting,
+      // PHASE W2-QA-FIX-1 (Task C) — generic `comedyFamily` field
+      // that works for ALL sources (W2 + core_native + pattern_variation).
+      // For W2 candidates this echoes `westernPackComedyFamily`; for
+      // non-W2 candidates it surfaces `meta.comedyFamily` when set
+      // (currently populated by `coreCandidateGenerator` for the
+      // core-native path's family-classifier output). Lets QA
+      // harnesses build cross-source diversity histograms without
+      // having to special-case per source. Pure-additive on the
+      // dev-only `qaTelemetry.perIdea` shape; production callers
+      // ignore the entire qaTelemetry surface.
+      comedyFamily:
+        (m as { westernPackComedyFamily?: string })
+          .westernPackComedyFamily ??
+        (m as { comedyFamily?: string }).comedyFamily,
     };
   });
 

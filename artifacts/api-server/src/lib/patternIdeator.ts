@@ -8223,6 +8223,41 @@ export type PatternMeta = {
  * Returns the entry + its index so PatternMeta can record which
  * phrasing variant actually shipped (rewriter uses this).
  */
+/**
+ * PHASE W2-QA-FIX-1 (Task B) — weak-skeleton suppression list for
+ * the legacy 5-style fallback `HOOK_PHRASINGS_BY_STYLE` pool.
+ *
+ * W2-QA-AUDIT proved `totally_fine_about` ("I am totally fine about
+ * X") was the highest-frequency weak pattern_variation skeleton
+ * shipping (~5% of all ideas) — denial-statement template that
+ * pairs poorly with most scenario noun types and reads as a flat,
+ * non-comedic restatement. The skeleton is NOT removed from the
+ * catalog (preserves the legacy fallback for "rhythm and variety"
+ * per spec PART 1, and avoids any never-under-fill risk in the
+ * narrow case where it is the only validating phrasing for a given
+ * scenario) — it is simply DEMOTED so the picker tries every other
+ * phrasing in the style first and only falls back to it when no
+ * non-blocked phrasing validates.
+ *
+ * Conservative scope: `HOOK_PHRASINGS_BY_STYLE` is the only place
+ * this picker reads. The other 3 brief-listed weak templates ("the
+ * X keeps Y itself", "the X and i are still here. barely.", "i
+ * checked one thing. ruined my day") live in `voiceClusters.ts`'s
+ * `core_native` template pool and are picked by an entirely
+ * different selector — they are deliberately OUT OF SCOPE for this
+ * fix per the brief's "Stop and report if pattern suppression
+ * requires broad selector rewrite" rule. Documented in the W2-QA-
+ * FIX-1 report.
+ */
+const WEAK_PHRASING_SKELETON_BLOCKLIST: ReadonlySet<string> = new Set([
+  "totally_fine_about",
+]);
+
+// PHASE W2-QA-FIX-1 (Task B) — re-export `HookStyle` for the test
+// suite that asserts the weak-skeleton blocklist's structural
+// invariants. Type-only export; no runtime cost.
+export type { HookStyle };
+
 function pickValidatedPhrasing(
   hookStyle: HookStyle,
   scenario: Scenario,
@@ -8235,6 +8270,28 @@ function pickValidatedPhrasing(
   // scenario, style) triples don't all pick phrasings[0]. Defensive
   // double-modulo collapses any sign.
   const start = ((seed % n) + n) % n;
+  // PHASE W2-QA-FIX-1 (Task B) — TWO-PASS walk:
+  //   pass 1: skip any phrasing whose `skeletonId` is on the weak
+  //           blocklist; return the first non-blocked phrasing that
+  //           validates.
+  //   pass 2: if pass 1 returned nothing, walk every phrasing in
+  //           the original rotated order (no blocklist) so we never
+  //           under-fill — a blocked phrasing can still ship when
+  //           it is the ONLY one that validates for this scenario.
+  // Determinism preserved: identical (style, scenario, tone, seed)
+  // ⇒ identical pick across both passes.
+  for (let offset = 0; offset < n; offset++) {
+    const idx = (start + offset) % n;
+    const entry = phrasings[idx]!;
+    if (entry.skeletonId !== undefined &&
+        WEAK_PHRASING_SKELETON_BLOCKLIST.has(entry.skeletonId)) {
+      continue;
+    }
+    const candidate = toneInflect(entry.build(scenario), tone).trim();
+    if (validateHook(candidate)) {
+      return { entry, index: idx, hook: candidate };
+    }
+  }
   for (let offset = 0; offset < n; offset++) {
     const idx = (start + offset) % n;
     const entry = phrasings[idx]!;

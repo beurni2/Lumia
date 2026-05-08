@@ -161,8 +161,111 @@ export interface WesternSlotReservationInput {
   /** PHASE W2-K2 — full per-creator recent-axes snapshot. Optional;
    *  defaults to all-empty Sets (cold-start creator behavior). */
   excludeAxes?: WesternExcludeAxes;
+  /** PHASE W2-QA-FIX-1 (Task A) — creator id, used ONLY for the
+   *  cold-start first-impression deterministic quality-band rotation.
+   *  When set AND `excludeAxes` is structurally empty (no recent
+   *  history => "first batch"-like), the top-1 W2 pick rotates
+   *  across the quality band instead of always selecting `pool[0]`,
+   *  so 10 fresh creators don't all see the same opener. Behaviour
+   *  is otherwise UNCHANGED — refresh batches (non-empty axes), all
+   *  non-Western cohorts, and missing-creatorId paths take the
+   *  pre-Fix-1 deterministic `pool[0]` path. */
+  creatorId?: string;
   /** Optional diagnostic sink — invoked once per call. */
   onDiagnostic?: (d: WesternSlotReservationDiagnostic) => void;
+}
+
+// ---------------------------------------------------------------- //
+// PHASE W2-QA-FIX-1 (Task A) — first-impression deterministic       //
+// quality-band rotation.                                            //
+//                                                                    //
+// W2-QA-AUDIT (`.local/W2QA_AUDIT_REPORT.md`) proved that on cold-  //
+// start (no per-creator recent-axes memory), `pool[0]!` was picked  //
+// unconditionally — so 10 fresh creators got the SAME first idea    //
+// 100% of the time even though several runner-up entries had        //
+// indistinguishable adjusted scores. The fix is purely deterministic //
+// and additive: when `creatorId` is provided AND the axes are       //
+// structurally empty, we build the band of pool entries within K    //
+// quality points of the leader and pick `band[fnv1a(creatorId) %    //
+// band.length]`. K=5 keeps the band tight to the leader so we never //
+// rotate down into materially-weaker candidates; per-batch          //
+// determinism is preserved (same creator + same pool ⇒ same pick).  //
+// On refresh batches (excludeAxes non-empty) the function takes the //
+// pre-Fix-1 deterministic `pool[0]` path verbatim — soft penalties  //
+// and hard memory filters above this point already disambiguate.    //
+// ---------------------------------------------------------------- //
+
+/** Quality-band tolerance in raw qualityScore points (after soft
+ *  penalty adjustment). Tight enough that band members are
+ *  effectively quality-equivalent — never rotates to a materially
+ *  weaker candidate. */
+export const W2_FIRST_IMPRESSION_QUALITY_BAND_K = 5;
+
+/** Pure FNV-1a 32-bit hash over a UTF-16 string. Deterministic,
+ *  no allocations beyond the loop counter. We only need
+ *  `result % bandSize` so the 32-bit truncation collisions don't
+ *  matter for selection fairness. */
+function fnv1aHash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    // 32-bit FNV prime multiplication via shift-add ladder.
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** Returns true when every axis Set is empty — indistinguishable
+ *  from the demo creator's structural cold-start state and from any
+ *  real creator's first idea batch. The DB envelope readers in
+ *  `westernPackCreatorMemory.ts` return all-empty Sets when the
+ *  envelope is missing or empty, so this check intentionally treats
+ *  both "no envelope" and "empty envelope" the same way. */
+function isAxesStructurallyEmpty(axes: WesternExcludeAxes): boolean {
+  return (
+    axes.entryIds.size === 0 &&
+    axes.hooks.size === 0 &&
+    axes.skeletons.size === 0 &&
+    axes.anchors.size === 0 &&
+    axes.families.size === 0 &&
+    axes.spikes.size === 0 &&
+    axes.settings.size === 0 &&
+    axes.hookStyles.size === 0
+  );
+}
+
+/** Pick the cold-start first-impression winner from the post-soft-
+ *  penalty `pool`. Caller must have verified `pool.length >= 1`.
+ *
+ *  The band is `pool[i]` such that `pool[i].qualityScore >=
+ *  pool[0].qualityScore - K` (raw, NOT adjusted, because the
+ *  caller's `adjusted` mapping has already discarded its scores by
+ *  the time this is reached — and on cold-start every soft penalty
+ *  is zero anyway since `axes` is empty, so adjusted === raw here).
+ *  The band always contains at least `pool[0]` (size>=1).
+ *
+ *  Walk the contiguous prefix that meets the band tolerance — `pool`
+ *  is sorted desc by `qualityScore` at the call site, so a single
+ *  scan with an early break is sufficient. */
+export function pickFirstImpressionWinnerForTesting(
+  pool: ReadonlyArray<WesternPackCandidate>,
+  creatorId: string,
+  k: number = W2_FIRST_IMPRESSION_QUALITY_BAND_K,
+): WesternPackCandidate {
+  if (pool.length === 0) {
+    throw new Error(
+      "[w2.first_impression] pool must contain >=1 candidate",
+    );
+  }
+  const leader = pool[0]!;
+  const floor = leader.qualityScore - k;
+  let bandSize = 1;
+  for (let i = 1; i < pool.length; i++) {
+    if (pool[i]!.qualityScore >= floor) bandSize++;
+    else break;
+  }
+  const idx = fnv1aHash32(creatorId) % bandSize;
+  return pool[idx]!;
 }
 
 // ---------------------------------------------------------------- //
@@ -361,6 +464,7 @@ export function applyWesternApprovedPackSlotReservation(
     flagEnabled,
     packLength,
     excludeAxes,
+    creatorId,
     onDiagnostic,
   } = input;
 
@@ -506,8 +610,22 @@ export function applyWesternApprovedPackSlotReservation(
     return selectionBatch;
   }
 
-  // Pick the top-1 W2 unconditionally.
-  const reserved: WesternPackCandidate[] = [pool[0]!];
+  // PHASE W2-QA-FIX-1 (Task A) — first-impression deterministic
+  // quality-band rotation on cold-start. See JSDoc above
+  // `W2_FIRST_IMPRESSION_QUALITY_BAND_K` for the audit context.
+  // On any refresh batch (axes non-empty) OR when `creatorId` is not
+  // supplied (legacy callers / tests / unit fixtures) we take the
+  // pre-Fix-1 `pool[0]!` path verbatim — preserving every existing
+  // test expectation and the deterministic refresh-axis penalty
+  // ordering proven in W2-R / W2-K2.
+  const useFirstImpressionRotation =
+    typeof creatorId === "string" &&
+    creatorId.length > 0 &&
+    isAxesStructurallyEmpty(axes);
+  const firstW2 = useFirstImpressionRotation
+    ? pickFirstImpressionWinnerForTesting(pool, creatorId)
+    : pool[0]!;
+  const reserved: WesternPackCandidate[] = [firstW2];
 
   // Cap the reserved count so we always keep ≥1 non-W2 slot when a
   // non-W2 exists — `maxReserved = min(2, pool.length, desiredCount-1)`.
@@ -538,12 +656,20 @@ export function applyWesternApprovedPackSlotReservation(
   // REQUIRE entryId + normalized hook + skeleton + anchor distinct;
   // PREFER family + spike + setting distinct (skip otherwise so we
   // ship 1 W2 + 2 non-W2 rather than a near-duplicate W2 pair).
+  //
+  // PHASE W2-QA-FIX-1 (Task A) — when first-impression rotation
+  // selected a non-zero pool index for slot-1, the runner-up walk
+  // starts from i=0 and SKIPS the chosen index so the same entry
+  // can't be reserved twice. The post-loop entryId distinctness
+  // gate would already reject a same-entry duplicate, but iterating
+  // from 0 still finds the next-best truly-distinct alternative.
   let secondW2RejectedForDistinctness = false;
   if (maxReserved >= 2 && pool.length >= 2) {
     const top = reserved[0]!;
     const topHook = normHook(top.candidate.idea.hook);
     let foundCandidateButRejected = false;
-    for (let i = 1; i < pool.length; i++) {
+    for (let i = 0; i < pool.length; i++) {
+      if (pool[i] === top) continue;
       const cand = pool[i]!;
       // Hard distinctness gates.
       const entryIdDistinct = cand.entryId !== top.entryId;

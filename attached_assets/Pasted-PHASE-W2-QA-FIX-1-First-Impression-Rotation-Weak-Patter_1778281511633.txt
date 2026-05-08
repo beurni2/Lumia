@@ -1,0 +1,199 @@
+PHASE W2-QA-FIX-1 — First-Impression Rotation + Weak Pattern Suppression
+
+Proceed with the smallest repair supported by W2-QA-AUDIT.
+
+Goal:
+Fix the proven first-impression and weak-pattern issues before moving to W2-FTN.
+
+This is not a broad selector rewrite.
+This is not a corpus phase.
+This is not Film This Now polish.
+This is not deterministic variation.
+This is not a W2-O/W2-R redo.
+
+Audit-proven issues:
+1. First-impression overlap:
+- only 4 distinct first-card hooks across 10 fresh creators
+- first batch dominated by deterministic W2-I + pattern_variation
+- root cause traced to first-batch empty-memory selection:
+  westernPackSlotReservation.ts unconditionally picks the top sorted pool candidate
+- product severity: P1
+
+2. Weak pattern/core outputs:
+- pattern_variation contributes 60% of bottom-20 ideas
+- weak repeated patterns traced to exact templates:
+  - “I am totally fine about X”
+  - “the X keeps Y itself”
+  - “the X and i are still here. barely.”
+  - “i checked one thing. ruined my day”
+  - “the fridge knows i'm lying” overappearing on first open
+- product severity: P1
+
+3. comedyFamily telemetry gap:
+- useful for QA diagnosis
+- not user-facing
+- do only if trivial and non-invasive
+
+Hard rules:
+- Do not change production flags.
+- Do not change validators.
+- Do not change ideaSchema.
+- Do not change Claude prompts.
+- Do not import another batch.
+- Do not implement deterministic variation.
+- Do not rewrite W2-O/W2-R.
+- Do not change W2 corpus content.
+- Do not change hooks/scenarios/captions/howToFilm content unless specifically required by the weak-template suppression logic.
+- Do not touch NG/N1/India/Philippines behavior.
+- Do not use randomness.
+- Preserve deterministic behavior.
+
+Task A — First-impression deterministic top-N rotation
+
+Implement the smallest safe change at the first W2 reserved slot.
+
+Desired behavior:
+- Only applies when creator has empty Western recent memory / first batch.
+- Only applies to Western/clean W2 slot reservation.
+- Instead of always selecting pool[0], choose from a top-N quality band using a deterministic per-creator seed.
+- Suggested N: 5 initially.
+- Use deterministic hash of creatorId or stable creator key.
+- Must preserve reproducibility for the same creator.
+- Must not affect refresh batches.
+- Must not affect non-Western cohorts.
+- Must not allow weak candidates.
+- Must not bypass validators/rubric.
+- First card must still be high quality.
+
+Important:
+If top-N contains candidates with meaningfully lower quality scores, use a quality band instead of fixed N:
+- candidate must be within K points of pool[0]
+- suggested K = 5
+- choose deterministic candidate within that top-quality band
+- never rotate into weak candidates just for variety
+
+Acceptance for Task A:
+- first-card distinct hooks across 10 fresh creators improves materially
+- target: at least 7 distinct first-card hooks across 10 creators if quality band allows
+- first-batch W2-L/N/T may appear only if they are inside the quality band
+- no increase in errors/fallback
+- no duplicate entry/hook/skeleton regressions
+
+Task B — pattern_variation weak-template suppression list
+
+Add a small suppression/downrank layer for the audit-proven weak pattern_variation templates.
+
+Suppress or strongly demote these shapes only when another valid alternative exists:
+- “I am totally fine about {topicNoun}”
+- “the {anchor} keeps {verb} itself”
+- “the {anchor} and i are still here. barely.”
+- “i checked one thing. ruined my day”
+
+Handle “the fridge knows i'm lying” carefully:
+- It is not inherently bad.
+- Do not ban it globally.
+- It should not dominate first open.
+- If it appears repeatedly as first-card/first-batch filler, demote it in empty-memory first-batch pattern_variation selection only.
+
+Rules:
+- Never under-fill the batch.
+- If no valid alternative exists, fallback to existing behavior.
+- Do not weaken validators.
+- Do not make pattern_variation random.
+- Do not remove all dry/deadpan patterns.
+- Do not suppress W2 entries with similar themes unless they match the exact weak legacy template family.
+
+Acceptance for Task B:
+- bottom-20 share from pattern_variation should drop materially in QA rerun.
+- “I am totally fine about...” should not recur repeatedly.
+- “the X keeps Y itself” should not recur repeatedly.
+- “the X and i are still here. barely.” should not recur repeatedly.
+- no fill failures.
+- no Claude fallback increase.
+
+Task C — comedyFamily telemetry gap, only if trivial
+
+If low-risk:
+- add comedyFamily to qaTelemetry.perIdea for W2 when available
+- for non-W2, either emit null or mapped family if already available
+- update harness aggregation to ignore null rather than treating it as zero diversity
+
+Do not expand this into a product logic change.
+
+Tests required:
+
+1. First-impression rotation tests:
+- empty-memory first batch does not always pick pool[0] across different creatorIds
+- same creatorId remains deterministic
+- candidate must be within top-N / quality band
+- W2-I can still win when strongest
+- no weak candidate selected outside quality band
+- refresh behavior unchanged
+
+2. Pattern suppression tests:
+- “I am totally fine about X” suppressed when valid alternative exists
+- “the X keeps Y itself” suppressed when valid alternative exists
+- “the X and i are still here. barely.” suppressed when valid alternative exists
+- “i checked one thing. ruined my day” suppressed when valid alternative exists
+- fallback preserves fill when no alternative exists
+- no W2 suppression unless explicitly matching weak legacy template family
+
+3. Safety/cohort tests:
+- Western/clean only
+- NG/N1 unaffected
+- India/Philippines unaffected
+- validators unchanged
+- no production flag changes
+
+Run:
+- full api-server tests
+- api-server typecheck
+
+Post-fix QA:
+Rerun W2-QA sweep:
+- Western/clean
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- 10 simulated creators
+- 10 batches each
+- count=3
+- batch 0 regenerate=false
+- batches 1+ regenerate=true
+- fresh memory per creator
+- x-lumina-qa-expose-meta:1
+
+Report:
+1. first-card distinct hooks across 10 creators
+2. first-batch source composition
+3. first-batch effective style diversity
+4. pattern_variation share of bottom-20
+5. count of suppressed weak templates
+6. batch composition:
+   - 2 W2 + 1 old/core
+   - 1 W2 + 2 old/core
+   - 3 W2
+7. per-creator entryId/hook/skeleton repeats
+8. in-batch duplicate entry/hook/skeleton
+9. W2-T share
+10. fallback count
+11. latency avg/median/max
+12. errors
+13. production flags unchanged
+
+Success bars:
+- first-card distinct hooks improves materially, target ≥7/10 if quality band allows
+- pattern_variation no longer dominates bottom-20
+- 0 entryId/hook/skeleton regressions
+- 0 unsafe/private content
+- 0 production flag changes
+- 0 validator loosening
+- fallback remains near 0
+- median latency remains healthy
+- the first batch feels less repetitive across creators
+- output quality does not get worse
+
+Stop and report if:
+- first-impression rotation requires broad selector rewrite
+- quality band cannot produce enough variety without weaker ideas
+- pattern suppression causes under-fill or fallback increase
+- non-Western behavior is touched
