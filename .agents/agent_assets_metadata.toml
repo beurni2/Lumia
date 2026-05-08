@@ -209,3 +209,9 @@ id = "T5S16VYy15SNTrEmQx18g"
 uri = "file://.local/W2K_REPORT.md"
 type = "text"
 title = "PHASE W2-K2 — Final Confirmation Report (with Vitest)"
+
+[[outputs]]
+id = "hLBWmH26CbJwVg5rmrNx4"
+uri = "file://.local/W2L_REPORT.md"
+type = "text"
+title = "W2-L Import Report"
