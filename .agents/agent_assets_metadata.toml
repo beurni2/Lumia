@@ -227,3 +227,9 @@ id = "ZD3Nw5TwGt_hl9Ioa8NsU"
 uri = "file://.local/W2N_REPORT.md"
 type = "text"
 title = "W2-N Import Report"
+
+[[outputs]]
+id = "5iwwpRUUAvQ43N8Nb3y1M"
+uri = "file://.local/W2N_RUNTIME_EXPOSURE_SMOKE.md"
+type = "text"
+title = "W2-N Runtime Exposure Smoke Report"

@@ -269,6 +269,8 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "westernHookPackBatchNext.ts"),
       // W2-N — curated batch source (imported by westernHookPackApproved.ts only)
       path.join("lib", "westernHookPackBatchNext2.ts"),
+      // PHASE W2-N runtime exposure smoke (QA-only / dev-only test)
+      path.join("lib", "__tests__", "w2nRuntimeExposureSmoke.test.ts"),
     ];
 
     function walk(dir: string): string[] {

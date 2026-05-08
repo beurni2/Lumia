@@ -1,0 +1,50 @@
+W2-N import is GO for data integrity.
+
+Accepted:
+- 100/100 entries imported
+- approved pool 200 → 300
+- 0 exact hook collisions
+- 0 skeleton collisions
+- 0 bigram-Jaccard collisions
+- 1065/1065 tests passed
+- production flags unchanged
+- no migrations / no public API changes
+- no non-Western W2 leaks
+
+However, runtime exposure of Batch 2 is not proven yet because the Western ON sweep surfaced 0 W2 hits. I understand the explanation that the local pattern engine satisfied all batches before the W2 author gate fired, but that means the expanded 300-entry approved pool was not actually exercised in the runtime sweep.
+
+Please run one small targeted W2 exposure smoke, QA-only/dev only, without changing production behavior:
+
+Goal:
+Verify that the 300-entry approved pool, including W2-N entries, can be selected when the W2 author gate fires.
+
+Acceptable options:
+1. Use an existing QA/test hook that forces or biases W2 approved selection, if one already exists.
+2. Use a fresh Western/default creator state that is known to trigger W2 approved selection.
+3. Temporarily run a dev-only harness path that directly calls the approved W2 candidate selection/reservation function and confirms candidates from all three source blocks are eligible:
+   - W2-I
+   - W2-L / w2_next_*
+   - W2-N / w2_next2_*
+
+Do not add a public API field.
+Do not change production flags.
+Do not loosen validators.
+Do not weaken W2-M local-first behavior.
+Do not force W2 in normal runtime permanently.
+
+Report:
+- whether W2 approved selection was exercised
+- number of selected W2 entries
+- source distribution among selected/eligible entries:
+  - W2-I
+  - W2-L
+  - W2-N
+- whether any `w2_next2_*` entries were eligible
+- whether any `w2_next2_*` entries were selected in the QA-only exposure smoke
+- W2 OFF still suppresses W2
+- non-Western still leaks 0 W2
+- no source changes after 1065/1065 unless reported
+
+Current status:
+W2-N data import GO.
+Runtime exposure needs one targeted smoke because the Western sweep had 0 W2 hits.
