@@ -263,3 +263,9 @@ id = "OipP3kJ_IwvLrzkXmGpJt"
 uri = "file://.local/W2P_CLOSEOUT/REPORT.md"
 type = "text"
 title = "W2-P Closeout Report"
+
+[[outputs]]
+id = "7qEFiSYTSOHT4idtqfU5T"
+uri = "file://.local/W2S_AUDIT/REPORT.md"
+type = "text"
+title = "W2-S Live Pool Diversity Audit"
