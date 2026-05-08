@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export NODE_ENV=development && export LUMINA_NG_PACK_ENABLED=true && export LUMINA_NG_STYLE_PENALTY_ENABLED=true && export LUMINA_W2_WESTERN_APPROVED_ENABLED=true && export LUMINA_W2M_LOCAL_FIRST_REFRESH_ENABLED=true && pnpm run build && pnpm run start",
+    "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

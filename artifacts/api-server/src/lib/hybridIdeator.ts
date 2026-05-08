@@ -411,6 +411,20 @@ export type HybridIdeatorResult = {
      */
     fallbackDecision?: FallbackDecision;
     /**
+     * PHASE W2-O CLOSEOUT — surfaces which W2 pool the orchestrator
+     * resolved for this batch ("live" / "approved" / "none"). The
+     * closeout smoke driver reads this to attribute each batch
+     * without scraping the `phase_w2k.slot_reservation` log.
+     * Additive; production callers ignore qaTelemetry.
+     */
+    w2ActivePoolSource?: "live" | "approved" | "none";
+    /**
+     * PHASE W2-O CLOSEOUT — true when BOTH the staging-pool flag and
+     * the live-pool flag were ON at the W2 activation site. Pairs
+     * with `w2ActivePoolSource` to confirm the mutex picked LIVE.
+     */
+    w2BothFlagsOn?: boolean;
+    /**
      * PHASE W1.1 AUDIT (BI 2026-05-07) — additive cohort-gated funnel
      * snapshot for western/default requests. Populated ONLY when
      * `_w1WesternEligible` (region undefined OR "western"); omitted
@@ -6239,6 +6253,13 @@ export async function runHybridIdeator(
       // PHASE W2-M — explicit fallback decision so the staging QA
       // driver can attribute each batch's path without scraping logs.
       fallbackDecision,
+      // PHASE W2-O CLOSEOUT — surface the resolved W2 pool source so
+      // the closeout smoke driver can attribute each batch to LIVE /
+      // APPROVED / NONE without scraping logs. Additive; production
+      // callers ignore qaTelemetry. Mirrors the
+      // `phase_w2k.slot_reservation` log field of the same name.
+      w2ActivePoolSource: _w2oActivePool.source,
+      w2BothFlagsOn: _w2oActivePool.bothFlagsOn,
       ...(_w1FunnelSnapshot ? { westernFunnel: _w1FunnelSnapshot } : {}),
     },
   };
