@@ -817,7 +817,7 @@
   },
   {
     id: "w2_next2_042",
-    hook: "Zoom waiting face got legally concerning",
+    hook: "Zoom meeting smile got concerning",
     whatToShow: "Creator sits in a staged Zoom meeting on the laptop, frozen smile getting wider, leaning closer until only their eyes fill the camera.",
     howToFilm: "Use a fake Zoom meeting screen or laptop camera angle. Start normal, hold the frozen smile too long, then slowly lean into the camera.",
     caption: "Zoom face needed supervision.",
@@ -1320,7 +1320,7 @@
   },
   {
     id: "w2_next2_074",
-    hook: "Rewards points arrived empty-handed",
+    hook: "My points showed up with no help",
     whatToShow: "Creator opens a fake rewards points screen, sees a tiny balance, then nods like a financial plan has been discovered.",
     howToFilm: "Frame the rewards screen safely. Show the tiny points balance, then hold on the serious nod that pretends this helps.",
     caption: "rewards points had a meeting with hope.",
