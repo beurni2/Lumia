@@ -155,6 +155,47 @@ export const WESTERN_SETTINGS = Object.freeze([
 ] as const);
 export type WesternSetting = (typeof WESTERN_SETTINGS)[number];
 
+// ── PHASE W2-L vocab additions (additive, draft-only) ───────────── //
+//
+// Two new W2-L-only controlled vocabs surfaced by the curated
+// W2-BATCH-NEXT import. They live alongside the W2-A vocabs above
+// and are referenced ONLY by the optional `voiceCluster` /
+// `hookStyle` fields on `WesternHookPackDraftEntry`. Existing draft
+// entries (W2-Batch-A/B/C/D, W2-I) do not set these fields and
+// remain type-valid (the fields are optional).
+//
+// `WESTERN_VOICE_CLUSTERS` — 4 voice-direction labels supplied by
+// editorial review (the same four canonical W2 voice directions).
+// `WESTERN_BATCH_HOOK_STYLES` — 10 hook-shape labels surfaced by
+// the W2-BATCH-NEXT corpus, snake_cased from their editorial labels.
+// Distinct from `ideaGen.ts`'s creator-style `hookStyle` enum
+// (`the_way_i` / `why_do_i` / `contrast` / `curiosity` /
+// `internal_thought`) — that enum classifies a creator's existing
+// hook PRODUCTION patterns; this enum classifies an authored entry's
+// editorial SHAPE label, used as a soft selection axis.
+export const WESTERN_VOICE_CLUSTERS = Object.freeze([
+  "dry_deadpan",
+  "chaotic_confession",
+  "quiet_realization",
+  "overdramatic_reframe",
+] as const);
+export type WesternVoiceCluster = (typeof WESTERN_VOICE_CLUSTERS)[number];
+
+export const WESTERN_BATCH_HOOK_STYLES = Object.freeze([
+  "tiny_documentary",
+  "confession",
+  "object_betrayal",
+  "before_after_self",
+  "accusation",
+  "realization",
+  "calendar_task_betrayal",
+  "domestic_crime_scene",
+  "overdramatic_diagnosis",
+  "fake_tutorial",
+] as const);
+export type WesternBatchHookStyle =
+  (typeof WESTERN_BATCH_HOOK_STYLES)[number];
+
 // ---------------------------------------------------------------- //
 // Atomic draft entry shape (the 10 user-required fields).            //
 // ---------------------------------------------------------------- //
@@ -192,6 +233,31 @@ export type WesternHookPackDraftEntry = {
    *  a real reviewer initials+date string and the live-pack
    *  integrity check MUST reject the sentinel. */
   readonly reviewedBy: typeof PENDING_EDITORIAL_REVIEW;
+
+  // ── PHASE W2-L additive optional fields ─────────────────────── //
+  // Introduced by the W2-BATCH-NEXT import. All five are OPTIONAL
+  // so existing draft entries (W2-Batch-A/B/C/D, W2-I) remain
+  // type-valid without modification. The integrity checker does
+  // NOT enforce presence; it DOES validate vocab membership when a
+  // value is supplied. No runtime path mutates these fields; they
+  // live as read-only editorial / selection-axis metadata.
+  /** Editorial voice-direction label, one of
+   *  `WESTERN_VOICE_CLUSTERS`. Surfaced by the W2-BATCH-NEXT
+   *  import; used downstream as a soft selection axis. */
+  readonly voiceCluster?: WesternVoiceCluster;
+  /** Editorial hook-shape label, one of
+   *  `WESTERN_BATCH_HOOK_STYLES`. Distinct from the creator-style
+   *  hookStyle enum in `ideaGen.ts` — see the vocab comment above
+   *  for the distinction. */
+  readonly hookStyle?: WesternBatchHookStyle;
+  /** Free-text safety / privacy guidance from the curated source.
+   *  Preserved verbatim. Absent / "None" entries leave this unset. */
+  readonly safetyNote?: string;
+  /** Original 1-based row number inside the source batch (e.g.
+   *  `42` for the 42nd row of W2-BATCH-NEXT). Owning batch label
+   *  is derivable from the id prefix via
+   *  `getWesternEntrySourceBatch` in `westernHookPackBatchNext.ts`. */
+  readonly originalBatchNumber?: number;
 };
 
 // ---------------------------------------------------------------- //
@@ -2594,6 +2660,55 @@ export function checkWesternHookPackDraftIntegrity(
         ctx(
           "setting_invalid",
           `setting '${String(entry?.setting)}' not in WESTERN_SETTINGS`,
+        ),
+      );
+    }
+
+    // ── PHASE W2-L optional-field validation ──────────────────────
+    // Only validate when present (fields are optional on the type).
+    if (
+      entry?.voiceCluster !== undefined &&
+      !WESTERN_VOICE_CLUSTERS.includes(entry.voiceCluster as never)
+    ) {
+      failures.push(
+        ctx(
+          "voice_cluster_invalid",
+          `voiceCluster '${String(entry?.voiceCluster)}' not in WESTERN_VOICE_CLUSTERS`,
+        ),
+      );
+    }
+    if (
+      entry?.hookStyle !== undefined &&
+      !WESTERN_BATCH_HOOK_STYLES.includes(entry.hookStyle as never)
+    ) {
+      failures.push(
+        ctx(
+          "hook_style_invalid",
+          `hookStyle '${String(entry?.hookStyle)}' not in WESTERN_BATCH_HOOK_STYLES`,
+        ),
+      );
+    }
+    if (
+      entry?.safetyNote !== undefined &&
+      (typeof entry.safetyNote !== "string" ||
+        entry.safetyNote.trim().length === 0)
+    ) {
+      failures.push(
+        ctx(
+          "safety_note_invalid",
+          "safetyNote, when present, must be a non-empty string",
+        ),
+      );
+    }
+    if (
+      entry?.originalBatchNumber !== undefined &&
+      (!Number.isInteger(entry.originalBatchNumber) ||
+        entry.originalBatchNumber < 1)
+    ) {
+      failures.push(
+        ctx(
+          "original_batch_number_invalid",
+          "originalBatchNumber, when present, must be a positive integer",
         ),
       );
     }

@@ -1,0 +1,97 @@
+Good progress, but do not mark W2-L final GO yet.
+
+The import path and dedupe results are promising:
+- 100/100 parsed and accepted
+- approved pool 100 → 200
+- 0 exact hook duplicates
+- 0 skeleton duplicates
+- 0 bigram-Jaccard >= 0.50
+- no enum widening
+- production OFF
+
+However, two implementation choices need correction before GO.
+
+Issue 1 — Do not drop important curated metadata
+The report says voiceCluster, hookStyle, whyThisWorks, safetyNote, and originalBatchNumber were captured but not stored.
+
+That is too lossy.
+
+Please revise as follows:
+
+1. Store voiceCluster if the existing W2 entry/runtime type can support it additively.
+   - Use the existing 4 values:
+     dry_deadpan
+     chaotic_confession
+     quiet_realization
+     overdramatic_reframe
+   - If runtime type truly cannot store it, explain exactly why and add a test proving no downstream consumer expects it.
+
+2. Normalize hookStyle into the closest existing controlled hookStyle value and store it if the existing structure supports it.
+   - Do not leave it as unnormalized audit-only data if hookStyle is part of W2-K2 axis QA or selection telemetry.
+   - If the existing approved W2 type does not include hookStyle, report that clearly.
+
+3. Preserve safetyNote.
+   - Either store the curated safety/privacy note directly if the entry type supports it, or map it into an internal privacy/safety field/tag.
+   - Do not lose safety guidance for screen, finance, chat, health-data, roommate, and private-content scenarios.
+
+4. Preserve originalBatchNumber/sourceIndex explicitly if possible.
+   - Add sourceBatch: "W2-BATCH-NEXT"
+   - Add originalBatchNumber: 1..100
+   - If the existing structure absolutely cannot support this without schema churn, add a tested helper that derives it from w2_next_NNN and report that constraint.
+
+whyThisWorks may remain editorial-only if the runtime entry type intentionally excludes editorial commentary. But say that explicitly.
+
+Issue 2 — Improve howToFilm synthesis
+The current howToFilm template is too generic:
+“Single static shot, framed on the {anchor}...”
+
+Replace it with per-entry deterministic howToFilm generated from the actual WHAT TO SHOW/scenario.
+
+Required howToFilm quality:
+- 2–3 specific beats from the scenario
+- mention the key prop/action
+- include the ending/payoff beat
+- no generic filler
+- no new premise
+- no public filming requirement
+- no extra actor requirement
+- no expensive props
+
+Example for w2_next_006:
+“Open the fridge, reach for the yogurt, pause on the date, then quietly rotate it to the back like you’re hiding evidence. End on a silent stare into the fridge.”
+
+Do this for all 100 entries.
+
+Add/update tests:
+- every BATCH_NEXT entry has non-generic howToFilm
+- no howToFilm uses the exact generic phrase “Single static shot, framed on”
+- howToFilm includes at least one concrete noun/action from the scenario
+- every entry has unique caption
+- every entry has valid normalized controlled vocab fields
+- voiceCluster preservation or explicitly tested non-support
+- hookStyle preservation or explicitly tested non-support
+- safetyNote preservation/mapping or explicitly tested non-support
+- originalBatchNumber/source recovery is tested
+- approved pool size remains 200
+- W2 production remains OFF
+- no WESTERN_HOOK_PACK_DRAFT runtime import
+- typecheck clean
+- full api-server tests pass
+
+Then rerun/report:
+1. Files changed
+2. Metadata fields stored vs intentionally audit-only
+3. howToFilm generation strategy
+4. examples of 10 generated howToFilm values across different settings
+5. caption duplicate count
+6. hook duplicate count
+7. skeleton duplicate count
+8. bigram-Jaccard collision count
+9. approved pool size
+10. typecheck result
+11. full test result
+12. W2 ON mini-sweep
+13. W2 OFF mini-sweep
+14. non-Western leak smoke
+
+Do not mark W2-L final GO until metadata preservation is clarified and howToFilm is specific per entry.

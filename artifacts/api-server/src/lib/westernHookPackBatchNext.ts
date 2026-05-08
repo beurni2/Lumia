@@ -8,15 +8,36 @@
    *
    *   • single runtime path — entries flow through the SAME approved
    *     pool that W2-K activated; no new public API surface.
-   *   • howToFilm + caption are SYNTHESIZED deterministically here
-   *     from the curated WHAT TO SHOW + voiceCluster + emotionalSpike
-   *     (so every entry stays small and filmable without inviting
-   *     creator-voice editorialization in the import script).
+   *   • howToFilm is SYNTHESIZED deterministically per entry from the
+   *     curated WHAT TO SHOW (each entry's actual beat narration),
+   *     prefixed with a tripod/single-shot framing directive and
+   *     suffixed with a voice-cluster-keyed payoff cue. Result:
+   *     100 distinct howToFilm strings, every one mentioning the
+   *     entry's actual props/actions and ending on a payoff beat —
+   *     no generic "framed on the {anchor}" filler.
+   *   • caption is synthesized deterministically per entry by spike
+   *     bucket × anchor (verified 100/100 distinct).
    *   • freeform vocab from the curated batch (Comedy family,
    *     Emotional spike, Setting) is normalized into the EXISTING
    *     `WESTERN_COMEDY_FAMILIES` / `WESTERN_EMOTIONAL_SPIKES` /
    *     `WESTERN_SETTINGS` controlled vocab — no enum widening was
    *     necessary for any curated entry.
+   *   • voiceCluster is normalized into the W2-L-additive
+   *     `WESTERN_VOICE_CLUSTERS` vocab (4 values supplied by review).
+   *   • hookStyle is normalized into the W2-L-additive
+   *     `WESTERN_BATCH_HOOK_STYLES` vocab (10 values surfaced by the
+   *     curated batch; snake_cased from the editorial labels).
+   *   • safetyNote is preserved verbatim from the curated batch on the
+   *     ~half of entries that carry one (the other half explicitly
+   *     state "None" → stored as the optional field being unset).
+   *   • originalBatchNumber preserves the W2-BATCH-NEXT row number
+   *     (1..100) for editorial traceback. The owning batch label is
+   *     derivable from the id prefix via `getWesternEntrySourceBatch`.
+   *   • whyThisWorks is intentionally NOT carried on the runtime entry
+   *     — the W2 runtime type by design excludes editorial commentary
+   *     (the hook + whatToShow + caption already carry the creative
+   *     intent the runtime needs). The full whyThisWorks text remains
+   *     in the curated source attachment + the W2-L import report.
    *   • anchor is normalized to a single token that appears
    *     (lowercased) in whatToShow — exactly the invariant the W2-I
    *     unit test enforces. Five entries (#36, #66, #74, #81, #86)
@@ -34,12 +55,6 @@
    * Exact-hook, normalized-skeleton (long tokens >=5 chars -> "__",
    * cap 24), bigram-Jaccard >= 0.50, and (anchor|setting|comedyFamily)
    * triple — all enforced at import time. Result: 100/100 accepted.
-   *
-   * The captured-but-not-stored fields (voiceCluster, hookStyle,
-   * whyThisWorks, safetyNote, originalBatchNumber) live in the
-   * `.local/W2L_REPORT.md` import report — they are deliberately
-   * NOT carried on the runtime entry to keep the existing
-   * `WesternHookPackDraftEntry` shape intact (no schema/migration).
    *
    * Production stays OFF — gating still flows through
    * `isWesternApprovedPoolFeatureEnabled` +
@@ -165,12 +180,15 @@
       whatToShow:
         "Fridge door swings open, slow pan across wilting kale bag next to three identical takeout containers, hand grabs yogurt instead, door slams",
       howToFilm:
-        "Single static shot, framed on the fridge. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Fridge door swings open, slow pan across wilting kale bag next to three identical takeout containers, hand grabs yogurt instead, door slams. End on a held silent stare; let the realization sit.",
       caption: "the fridge knows.",
       anchor: "fridge",
       comedyFamily: "anxious_optimism",
       emotionalSpike: "self_critique",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 1,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -179,12 +197,15 @@
       whatToShow:
         "Kitchen counter close-up unpacking bag, pulling out twelve sauce packets and three napkins before the actual tiny entrée appears",
       howToFilm:
-        "Single static shot, framed on the actual. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Kitchen counter close-up unpacking bag, pulling out twelve sauce packets and three napkins before the actual tiny entrée appears. Keep your face flat the whole time; let the silence land.",
       caption: "actual update: not great.",
       anchor: "actual",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "accusation",
+      originalBatchNumber: 2,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -193,12 +214,15 @@
       whatToShow:
         "Microwave door opens, Tupperware sniffed dramatically, single bite taken with full regret face while nodding “it’s fine”",
       howToFilm:
-        "Single static shot, framed on the microwave. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Microwave door opens, tupperware sniffed dramatically, single bite taken with full regret face while nodding “it’s fine”. Punch the final beat with one theatrical reaction.",
       caption: "microwave? never met them.",
       anchor: "microwave",
       comedyFamily: "self_betrayal",
       emotionalSpike: "avoidance_spike",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+      originalBatchNumber: 3,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -207,12 +231,16 @@
       whatToShow:
         "Close-up of uneven carrot chunks next to phone recipe photo, knife pauses mid-chop as I stare in defeat",
       howToFilm:
-        "Single static shot, framed on the close. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Close-up of uneven carrot chunks next to phone recipe photo, knife pauses mid-chop as I stare in defeat. Talk-to-camera between beats; loose, a little frantic.",
       caption: "close update: not great.",
       anchor: "close",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "fake_tutorial",
+    safetyNote: "Avoid showing private recipe accounts or personal tabs.",
+      originalBatchNumber: 4,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -221,12 +249,15 @@
       whatToShow:
         "Counter covered in bags, healthy items placed neatly then pushed aside as chip bags take over the frame",
       howToFilm:
-        "Single static shot, framed on the bags. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Counter covered in bags, healthy items placed neatly then pushed aside as chip bags take over the frame. Keep your face flat the whole time; let the silence land.",
       caption: "the bags knows.",
       anchor: "bags",
       comedyFamily: "self_betrayal",
       emotionalSpike: "instant_regret",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 5,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -235,12 +266,15 @@
       whatToShow:
         "Fridge door opens, hand reaches for yogurt, pauses at the date, gently rotates it to the back like hiding evidence",
       howToFilm:
-        "Single static shot, framed on the yogurt. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Fridge door opens, hand reaches for yogurt, pauses at the date, gently rotates it to the back like hiding evidence. End on a held silent stare; let the realization sit.",
       caption: "yogurt update: not great.",
       anchor: "yogurt",
       comedyFamily: "parasocial_object",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 6,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -249,12 +283,15 @@
       whatToShow:
         "Fridge pull, oat milk carton held up proudly then placed back untouched next to regular milk",
       howToFilm:
-        "Single static shot, framed on the milk. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Fridge pull, oat milk carton held up proudly then placed back untouched next to regular milk. Punch the final beat with one theatrical reaction.",
       caption: "milk update: not great.",
       anchor: "milk",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+      originalBatchNumber: 7,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -263,12 +300,15 @@
       whatToShow:
         "Microwave beeps, food gets opened, poked once, door closes again for “just 12 more seconds”",
       howToFilm:
-        "Single static shot, framed on the food. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Microwave beeps, food gets opened, poked once, door closes again for “just 12 more seconds”. Keep your face flat the whole time; let the silence land.",
       caption: "food math.",
       anchor: "food",
       comedyFamily: "task_avoidance",
       emotionalSpike: "confused_pause",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+      originalBatchNumber: 8,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -277,12 +317,15 @@
       whatToShow:
         "Counter with one empty bowl then three half-used plates of random ingredients",
       howToFilm:
-        "Single static shot, framed on the bowl. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Counter with one empty bowl then three half-used plates of random ingredients. Talk-to-camera between beats; loose, a little frantic.",
       caption: "bowl update: not great.",
       anchor: "bowl",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "realization",
+      originalBatchNumber: 9,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -291,12 +334,15 @@
       whatToShow:
         "Freezer door open, hand shoving ice cream tub deeper, drawer still won’t shut",
       howToFilm:
-        "Single static shot, framed on the freezer. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Freezer door open, hand shoving ice cream tub deeper, drawer still won’t shut. End on a held silent stare; let the realization sit.",
       caption: "freezer won.",
       anchor: "freezer",
       comedyFamily: "parasocial_object",
       emotionalSpike: "polite_rage",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "object_betrayal",
+      originalBatchNumber: 10,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -305,12 +351,15 @@
       whatToShow:
         "One lonely Tupperware centered on the counter, surrounded by empty grocery bags and takeout utensils",
       howToFilm:
-        "Single static shot, framed on the lonely. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. One lonely Tupperware centered on the counter, surrounded by empty grocery bags and takeout utensils. Keep your face flat the whole time; let the silence land.",
       caption: "lonely update: not great.",
       anchor: "lonely",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "overdramatic_diagnosis",
+      originalBatchNumber: 11,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -319,12 +368,15 @@
       whatToShow:
         "Fridge door open, condiments scanned, hand holds up random mustards",
       howToFilm:
-        "Single static shot, framed on the mustards. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Fridge door open, condiments scanned, hand holds up random mustards. Punch the final beat with one theatrical reaction.",
       caption: "mustards update: not great.",
       anchor: "mustards",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 12,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -333,12 +385,16 @@
       whatToShow:
         "Phone note shows “spinach, bananas, salmon,” then camera cuts to chips, coffee, and no bananas",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone note shows “spinach, bananas, salmon, ” then camera cuts to chips, coffee, and no bananas. End on a held silent stare; let the realization sit.",
       caption: "phone math.",
       anchor: "phone",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_realization",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "before_after_self",
+    safetyNote: "Use a staged grocery list, not private notes.",
+      originalBatchNumber: 13,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -347,12 +403,16 @@
       whatToShow:
         "Butter knife hovers, bread drops, slow-motion regret face",
       howToFilm:
-        "Single static shot, framed on the butter. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Butter knife hovers, bread drops, slow-motion regret face. Talk-to-camera between beats; loose, a little frantic.",
       caption: "butter update: not great.",
       anchor: "butter",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "object_betrayal",
+    safetyNote: "Keep floor/counter clean if food is used.",
+      originalBatchNumber: 14,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -361,12 +421,16 @@
       whatToShow:
         "Pot of rice on stove, phone showing pizza tracker, shrug to camera",
       howToFilm:
-        "Single static shot, framed on the rice. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Pot of rice on stove, phone showing pizza tracker, shrug to camera. Keep your face flat the whole time; let the silence land.",
       caption: "rice? never met them.",
       anchor: "rice",
       comedyFamily: "self_betrayal",
       emotionalSpike: "avoidance_spike",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "before_after_self",
+    safetyNote: "Hide delivery address/order details.",
+      originalBatchNumber: 15,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -375,12 +439,15 @@
       whatToShow:
         "Kitchen table with unpacked bags, hand drops one last pack of gum on top",
       howToFilm:
-        "Single static shot, framed on the kitchen. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Kitchen table with unpacked bags, hand drops one last pack of gum on top. Keep your face flat the whole time; let the silence land.",
       caption: "the kitchen knows.",
       anchor: "kitchen",
       comedyFamily: "self_betrayal",
       emotionalSpike: "instant_regret",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "realization",
+      originalBatchNumber: 16,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -389,12 +456,16 @@
       whatToShow:
         "Phone angled away from camera, face goes from hopeful to blank, app gets closed with two fingers",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone angled away from camera, face goes from hopeful to blank, app gets closed with two fingers. Talk-to-camera between beats; loose, a little frantic.",
       caption: "phone situation, ongoing.",
       anchor: "phone",
       comedyFamily: "task_avoidance",
       emotionalSpike: "social_panic",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "accusation",
+    safetyNote: "Use fake or blurred balance screen only.",
+      originalBatchNumber: 17,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -403,12 +474,16 @@
       whatToShow:
         "Phone notification appears, cut to me staring at the app icon like I’m trying to remember who I was",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone notification appears, cut to me staring at the app icon like I’m trying to remember who I was. End on a held silent stare; let the realization sit.",
       caption: "the phone knows.",
       anchor: "phone",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "financial_dread",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Hide any real billing details.",
+      originalBatchNumber: 18,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -417,12 +492,15 @@
       whatToShow:
         "Kitchen table with groceries, fancy cheese placed back in bag while sighing",
       howToFilm:
-        "Single static shot, framed on the back. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Kitchen table with groceries, fancy cheese placed back in bag while sighing. Punch the final beat with one theatrical reaction.",
       caption: "back update: not great.",
       anchor: "back",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 19,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -431,12 +509,16 @@
       whatToShow:
         "Wallet on table, cards fanned out, hand puts one back",
       howToFilm:
-        "Single static shot, framed on the wallet. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Wallet on table, cards fanned out, hand puts one back. Keep your face flat the whole time; let the silence land.",
       caption: "the wallet knows.",
       anchor: "wallet",
       comedyFamily: "self_betrayal",
       emotionalSpike: "instant_regret",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "confession",
+    safetyNote: "Do not show real card numbers.",
+      originalBatchNumber: 20,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -445,12 +527,16 @@
       whatToShow:
         "Car dashboard close-up, hand grabs crumpled receipt, tosses it in glovebox",
       howToFilm:
-        "Single static shot, framed on the receipt. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Car dashboard close-up, hand grabs crumpled receipt, tosses it in glovebox. Talk-to-camera between beats; loose, a little frantic.",
       caption: "the receipt knows.",
       anchor: "receipt",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_guilt",
       setting: "car",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "domestic_crime_scene",
+    safetyNote: "Do not film while driving; hide address/license/receipt details.",
+      originalBatchNumber: 21,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -459,12 +545,16 @@
       whatToShow:
         "Coffee cup on desk, receipt next to it showing large size",
       howToFilm:
-        "Single static shot, framed on the coffee. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Coffee cup on desk, receipt next to it showing large size. End on a held silent stare; let the realization sit.",
       caption: "coffee update: not great.",
       anchor: "coffee",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+    safetyNote: "Hide payment details.",
+      originalBatchNumber: 22,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -473,12 +563,15 @@
       whatToShow:
         "Kitchen table unload, snacks pile visibly larger",
       howToFilm:
-        "Single static shot, framed on the snacks. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Kitchen table unload, snacks pile visibly larger. Punch the final beat with one theatrical reaction.",
       caption: "snacks math.",
       anchor: "snacks",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_realization",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "realization",
+      originalBatchNumber: 23,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -487,12 +580,16 @@
       whatToShow:
         "Phone shows generic payment error, hand slowly turns the phone face-down like ending a conversation",
       howToFilm:
-        "Single static shot, framed on the payment. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone shows generic payment error, hand slowly turns the phone face-down like ending a conversation. Keep your face flat the whole time; let the silence land.",
       caption: "payment update: not great.",
       anchor: "payment",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use a fake/generic payment screen.",
+      originalBatchNumber: 24,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -501,12 +598,16 @@
       whatToShow:
         "Laptop screen subscription list, finger hovers, skips the forgotten one",
       howToFilm:
-        "Single static shot, framed on the laptop. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Laptop screen subscription list, finger hovers, skips the forgotten one. End on a held silent stare; let the realization sit.",
       caption: "laptop update: not great.",
       anchor: "laptop",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "calendar_task_betrayal",
+    safetyNote: "Use fake/blurred subscription list.",
+      originalBatchNumber: 25,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -515,12 +616,16 @@
       whatToShow:
         "Small item on kitchen table next to receipt, shrug to camera",
       howToFilm:
-        "Single static shot, framed on the receipt. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Small item on kitchen table next to receipt, shrug to camera. Talk-to-camera between beats; loose, a little frantic.",
       caption: "no comment on the receipt.",
       anchor: "receipt",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_guilt",
       setting: "kitchen",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "confession",
+    safetyNote: "Hide store/payment details if needed.",
+      originalBatchNumber: 26,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -529,12 +634,16 @@
       whatToShow:
         "Phone lock screen savings alert, finger swipe dismisses it",
       howToFilm:
-        "Single static shot, framed on the savings. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone lock screen savings alert, finger swipe dismisses it. Keep your face flat the whole time; let the silence land.",
       caption: "the savings knows.",
       anchor: "savings",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_guilt",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use fake savings notification.",
+      originalBatchNumber: 27,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -543,12 +652,16 @@
       whatToShow:
         "Phone with typing dots, creator sits upright, fixes posture, then the dots vanish",
       howToFilm:
-        "Single static shot, framed on the typing. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone with typing dots, creator sits upright, fixes posture, then the dots vanish. Talk-to-camera between beats; loose, a little frantic.",
       caption: "typing update: not great.",
       anchor: "typing",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 28,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -557,12 +670,16 @@
       whatToShow:
         "Phone lights up in bed, creator lowers phone and stares straight at the ceiling like it has answers",
       howToFilm:
-        "Single static shot, framed on the ceiling. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone lights up in bed, creator lowers phone and stares straight at the ceiling like it has answers. End on a held silent stare; let the realization sit.",
       caption: "ceiling math.",
       anchor: "ceiling",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "caught_off_guard",
       setting: "bedroom",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 29,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -571,12 +688,16 @@
       whatToShow:
         "Two message bubbles on phone, thumb hovers over delete even though it is already sent",
       howToFilm:
-        "Single static shot, framed on the message. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Two message bubbles on phone, thumb hovers over delete even though it is already sent. Punch the final beat with one theatrical reaction.",
       caption: "the message knows.",
       anchor: "message",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "instant_regret",
       setting: "couch",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 30,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -585,12 +706,16 @@
       whatToShow:
         "Phone recording screen, finger hits delete after long voice note",
       howToFilm:
-        "Single static shot, framed on the voice. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone recording screen, finger hits delete after long voice note. Keep your face flat the whole time; let the silence land.",
       caption: "voice update: not great.",
       anchor: "voice",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use staged voice note; do not reveal private messages.",
+      originalBatchNumber: 31,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -599,12 +724,16 @@
       whatToShow:
         "Phone shows “k,” creator types a huge paragraph, deletes it, then sends “cool”",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone shows “k, ” creator types a huge paragraph, deletes it, then sends “cool”. Talk-to-camera between beats; loose, a little frantic.",
       caption: "still about the phone.",
       anchor: "phone",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "social_panic",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "overdramatic_diagnosis",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 32,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -613,12 +742,16 @@
       whatToShow:
         "Phone shows delivered status, creator checks Wi-Fi, battery, app, then pretends not to care",
       howToFilm:
-        "Single static shot, framed on the delivered. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Phone shows delivered status, creator checks Wi-Fi, battery, app, then pretends not to care. Punch the final beat with one theatrical reaction.",
       caption: "delivered won.",
       anchor: "delivered",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "impatient_spiral",
       setting: "couch",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 33,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -627,12 +760,16 @@
       whatToShow:
         "Phone group chat silence, me staring then typing “haha” then deleting",
       howToFilm:
-        "Single static shot, framed on the group. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone group chat silence, me staring then typing “haha” then deleting. End on a held silent stare; let the realization sit.",
       caption: "group situation, ongoing.",
       anchor: "group",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "social_panic",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+    safetyNote: "Use fake group chat text.",
+      originalBatchNumber: 34,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -641,12 +778,16 @@
       whatToShow:
         "Phone send confirmation to wrong chat, hand slaps forehead",
       howToFilm:
-        "Single static shot, framed on the wrong. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone send confirmation to wrong chat, hand slaps forehead. Talk-to-camera between beats; loose, a little frantic.",
       caption: "wrong situation, ongoing.",
       anchor: "wrong",
       comedyFamily: "self_betrayal",
       emotionalSpike: "panic",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "domestic_crime_scene",
+    safetyNote: "Use fake chat names and staged screenshot.",
+      originalBatchNumber: 35,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -655,12 +796,16 @@
       whatToShow:
         "Phone message thread, me typing then closing app",
       howToFilm:
-        "Single static shot, framed on the message. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone message thread, me typing then closing app. Keep your face flat the whole time; let the silence land.",
       caption: "no comment on the message.",
       anchor: "message",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_guilt",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "realization",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 36,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -669,12 +814,16 @@
       whatToShow:
         "App match reply notification, me closing phone dramatically",
       howToFilm:
-        "Single static shot, framed on the match. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. App match reply notification, me closing phone dramatically. Punch the final beat with one theatrical reaction.",
       caption: "the match knows.",
       anchor: "match",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "quiet_guilt",
       setting: "couch",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "accusation",
+    safetyNote: "Use fake/staged dating-app screen.",
+      originalBatchNumber: 37,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -683,12 +832,16 @@
       whatToShow:
         "Phone typing dots vanish, creator slowly lowers phone onto chest like receiving news",
       howToFilm:
-        "Single static shot, framed on the chest. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone typing dots vanish, creator slowly lowers phone onto chest like receiving news. End on a held silent stare; let the realization sit.",
       caption: "the chest caught me.",
       anchor: "chest",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "quiet_defeat",
       setting: "bedroom",
+      voiceCluster: "quiet_realization",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 38,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -697,12 +850,16 @@
       whatToShow:
         "Phone serious message, “lol” typed, send, immediate regret face",
       howToFilm:
-        "Single static shot, framed on the serious. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone serious message, “lol” typed, send, immediate regret face. Talk-to-camera between beats; loose, a little frantic.",
       caption: "the serious knows.",
       anchor: "serious",
       comedyFamily: "texting_overthinking",
       emotionalSpike: "instant_regret",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "confession",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 39,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -711,12 +868,16 @@
       whatToShow:
         "Laptop calendar block labeled “deep work,” phone scrolls beside it without the creator looking proud",
       howToFilm:
-        "Single static shot, framed on the calendar. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Laptop calendar block labeled “deep work, ” phone scrolls beside it without the creator looking proud. Keep your face flat the whole time; let the silence land.",
       caption: "the calendar knows.",
       anchor: "calendar",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_guilt",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "calendar_task_betrayal",
+    safetyNote: "Avoid showing private calendar details.",
+      originalBatchNumber: 40,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -725,12 +886,16 @@
       whatToShow:
         "Notebook or app list, finger points to one old task, cut to different pens/colors around it",
       howToFilm:
-        "Single static shot, framed on the task. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Notebook or app list, finger points to one old task, cut to different pens/colors around it. End on a held silent stare; let the realization sit.",
       caption: "task update: not great.",
       anchor: "task",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Avoid showing private tasks.",
+      originalBatchNumber: 41,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -739,12 +904,15 @@
       whatToShow:
         "Phone timer alarm, me continuing to scroll instead",
       howToFilm:
-        "Single static shot, framed on the timer. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Phone timer alarm, me continuing to scroll instead. Punch the final beat with one theatrical reaction.",
       caption: "timer? never met them.",
       anchor: "timer",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "avoidance_spike",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "object_betrayal",
+      originalBatchNumber: 42,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -753,12 +921,16 @@
       whatToShow:
         "Laptop productivity page loads, creator stares, closes tab, and immediately opens a blank browser tab",
       howToFilm:
-        "Single static shot, framed on the productivity. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Laptop productivity page loads, creator stares, closes tab, and immediately opens a blank browser tab. Talk-to-camera between beats; loose, a little frantic.",
       caption: "productivity situation, ongoing.",
       anchor: "productivity",
       comedyFamily: "task_avoidance",
       emotionalSpike: "social_panic",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "object_betrayal",
+    safetyNote: "Avoid showing private workspace data.",
+      originalBatchNumber: 43,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -767,12 +939,15 @@
       whatToShow:
         "Mirror shot of pajama pants and hoodie, clock shows 3pm",
       howToFilm:
-        "Single static shot, framed on the mirror. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Mirror shot of pajama pants and hoodie, clock shows 3pm. Keep your face flat the whole time; let the silence land.",
       caption: "mirror update: not great.",
       anchor: "mirror",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "bathroom",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 44,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -781,12 +956,16 @@
       whatToShow:
         "Laptop Slack status still “away,” me actually working",
       howToFilm:
-        "Single static shot, framed on the slack. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Laptop Slack status still “away, ” me actually working. End on a held silent stare; let the realization sit.",
       caption: "slack? never met them.",
       anchor: "slack",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "false_productivity",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+    safetyNote: "Use a staged or blurred workspace screen.",
+      originalBatchNumber: 45,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -795,12 +974,16 @@
       whatToShow:
         "Laptop music app open, hand grabs chips",
       howToFilm:
-        "Single static shot, framed on the laptop. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Laptop music app open, hand grabs chips. Punch the final beat with one theatrical reaction.",
       caption: "laptop? never met them.",
       anchor: "laptop",
       comedyFamily: "self_betrayal",
       emotionalSpike: "false_productivity",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Avoid showing private account details.",
+      originalBatchNumber: 46,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -809,12 +992,16 @@
       whatToShow:
         "Phone calendar invite accepted, creator freezes, then checks the time like it changed",
       howToFilm:
-        "Single static shot, framed on the calendar. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone calendar invite accepted, creator freezes, then checks the time like it changed. Talk-to-camera between beats; loose, a little frantic.",
       caption: "no comment on the calendar.",
       anchor: "calendar",
       comedyFamily: "task_avoidance",
       emotionalSpike: "instant_regret",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "realization",
+    safetyNote: "Hide private invite details.",
+      originalBatchNumber: 47,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -823,12 +1010,16 @@
       whatToShow:
         "Notebook entry “email boss,” crossed nothing out",
       howToFilm:
-        "Single static shot, framed on the email. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Notebook entry “email boss, ” crossed nothing out. Keep your face flat the whole time; let the silence land.",
       caption: "email update: not great.",
       anchor: "email",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "calendar_task_betrayal",
+    safetyNote: "Use a staged task list.",
+      originalBatchNumber: 48,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -837,12 +1028,15 @@
       whatToShow:
         "Standing desk covered with mugs, mail, headphones; creator works from chair beside it",
       howToFilm:
-        "Single static shot, framed on the standing. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Standing desk covered with mugs, mail, headphones; creator works from chair beside it. End on a held silent stare; let the realization sit.",
       caption: "standing update: not great.",
       anchor: "standing",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 49,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -851,12 +1045,16 @@
       whatToShow:
         "Planner page with crossed tasks replaced by snack doodles",
       howToFilm:
-        "Single static shot, framed on the planner. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Planner page with crossed tasks replaced by snack doodles. Punch the final beat with one theatrical reaction.",
       caption: "planner update: not great.",
       anchor: "planner",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+    safetyNote: "Avoid showing private planner details.",
+      originalBatchNumber: 50,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -865,12 +1063,16 @@
       whatToShow:
         "Email inbox with old urgent flag, me sipping coffee",
       howToFilm:
-        "Single static shot, framed on the urgent. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Email inbox with old urgent flag, me sipping coffee. Keep your face flat the whole time; let the silence land.",
       caption: "urgent update: not great.",
       anchor: "urgent",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use a staged/blurred inbox.",
+      originalBatchNumber: 51,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -879,12 +1081,16 @@
       whatToShow:
         "Calendar block labeled “me time,” then new meeting added",
       howToFilm:
-        "Single static shot, framed on the time. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Calendar block labeled “me time, ” then new meeting added. Talk-to-camera between beats; loose, a little frantic.",
       caption: "time update: not great.",
       anchor: "time",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "calendar_task_betrayal",
+    safetyNote: "Use fake or blurred calendar details.",
+      originalBatchNumber: 52,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -893,12 +1099,16 @@
       whatToShow:
         "App streak reset screen, creator looks disappointed for one second, then visibly relieved",
       howToFilm:
-        "Single static shot, framed on the streak. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. App streak reset screen, creator looks disappointed for one second, then visibly relieved. End on a held silent stare; let the realization sit.",
       caption: "streak update: not great.",
       anchor: "streak",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "overdramatic_diagnosis",
+    safetyNote: "Use fake/generic task app screen.",
+      originalBatchNumber: 53,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -907,12 +1117,16 @@
       whatToShow:
         "Sink with single plate, me dramatically gesturing with dish soap",
       howToFilm:
-        "Single static shot, framed on the single. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Sink with single plate, me dramatically gesturing with dish soap. Punch the final beat with one theatrical reaction.",
       caption: "single won.",
       anchor: "single",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "polite_rage",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "accusation",
+    safetyNote: "Avoid showing identifying roommate details.",
+      originalBatchNumber: 54,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -921,12 +1135,15 @@
       whatToShow:
         "Laundry basket in hallway, hand touches it then walks away",
       howToFilm:
-        "Single static shot, framed on the laundry. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Laundry basket in hallway, hand touches it then walks away. Keep your face flat the whole time; let the silence land.",
       caption: "the laundry knows.",
       anchor: "laundry",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_guilt",
       setting: "hallway",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "domestic_crime_scene",
+      originalBatchNumber: 55,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -935,12 +1152,16 @@
       whatToShow:
         "Fridge sticky note with long handwriting, me reading aloud silently",
       howToFilm:
-        "Single static shot, framed on the fridge. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Fridge sticky note with long handwriting, me reading aloud silently. End on a held silent stare; let the realization sit.",
       caption: "fridge won.",
       anchor: "fridge",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "polite_rage",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use a staged note; do not expose real roommate messages.",
+      originalBatchNumber: 56,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -949,12 +1170,15 @@
       whatToShow:
         "Bathroom counter with my products dominating, shrug",
       howToFilm:
-        "Single static shot, framed on the bathroom. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Bathroom counter with my products dominating, shrug. Talk-to-camera between beats; loose, a little frantic.",
       caption: "the bathroom knows.",
       anchor: "bathroom",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "self_critique",
       setting: "bathroom",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "realization",
+      originalBatchNumber: 57,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -963,12 +1187,15 @@
       whatToShow:
         "Single folded towel on bed, rest of pile untouched",
       howToFilm:
-        "Single static shot, framed on the folded. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Single folded towel on bed, rest of pile untouched. Punch the final beat with one theatrical reaction.",
       caption: "folded? never met them.",
       anchor: "folded",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "false_productivity",
       setting: "bedroom",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+      originalBatchNumber: 58,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -977,12 +1204,16 @@
       whatToShow:
         "Overflowing trash can, hand pushes one last item in",
       howToFilm:
-        "Single static shot, framed on the trash. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Overflowing trash can, hand pushes one last item in. Keep your face flat the whole time; let the silence land.",
       caption: "trash? never met them.",
       anchor: "trash",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "avoidance_spike",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Keep shot sanitary; avoid showing personal mail.",
+      originalBatchNumber: 59,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -991,12 +1222,15 @@
       whatToShow:
         "Couch cushion close-up with crumbs, hand brushes half-heartedly",
       howToFilm:
-        "Single static shot, framed on the couch. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Couch cushion close-up with crumbs, hand brushes half-heartedly. End on a held silent stare; let the realization sit.",
       caption: "couch update: not great.",
       anchor: "couch",
       comedyFamily: "self_betrayal",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+      originalBatchNumber: 60,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1005,12 +1239,16 @@
       whatToShow:
         "Shared calendar on phone, empty apartment pan",
       howToFilm:
-        "Single static shot, framed on the shared. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Shared calendar on phone, empty apartment pan. Talk-to-camera between beats; loose, a little frantic.",
       caption: "shared math.",
       anchor: "shared",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "confused_pause",
       setting: "living_room",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "calendar_task_betrayal",
+    safetyNote: "Use fake calendar details; avoid identifying roommate data.",
+      originalBatchNumber: 61,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1019,12 +1257,15 @@
       whatToShow:
         "Mug taken from cabinet, used, washed dramatically",
       howToFilm:
-        "Single static shot, framed on the used. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Mug taken from cabinet, used, washed dramatically. Punch the final beat with one theatrical reaction.",
       caption: "used situation, ongoing.",
       anchor: "used",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "social_panic",
       setting: "kitchen",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "confession",
+      originalBatchNumber: 62,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1033,12 +1274,15 @@
       whatToShow:
         "Carpet with faint vacuum line, foot steps on it",
       howToFilm:
-        "Single static shot, framed on the vacuum. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Carpet with faint vacuum line, foot steps on it. Keep your face flat the whole time; let the silence land.",
       caption: "vacuum update: not great.",
       anchor: "vacuum",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "hallway",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 63,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1047,12 +1291,16 @@
       whatToShow:
         "Fridge list with crossed healthy items, snacks added",
       howToFilm:
-        "Single static shot, framed on the list. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Fridge list with crossed healthy items, snacks added. End on a held silent stare; let the realization sit.",
       caption: "the list knows.",
       anchor: "list",
       comedyFamily: "tiny_public_private_awkwardness",
       emotionalSpike: "quiet_guilt",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "before_after_self",
+    safetyNote: "Use staged list.",
+      originalBatchNumber: 64,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1061,12 +1309,15 @@
       whatToShow:
         "Empty paper towel roll, guilty face",
       howToFilm:
-        "Single static shot, framed on the roll. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Empty paper towel roll, guilty face. Talk-to-camera between beats; loose, a little frantic.",
       caption: "the roll knows.",
       anchor: "roll",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_guilt",
       setting: "kitchen",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "domestic_crime_scene",
+      originalBatchNumber: 65,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1075,12 +1326,16 @@
       whatToShow:
         "Phone drafts scroll, thumb opens one draft, watches it for half a second, exits without posting",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone drafts scroll, thumb opens one draft, watches it for half a second, exits without posting. Keep your face flat the whole time; let the silence land.",
       caption: "me vs the phone: phone won.",
       anchor: "phone",
       comedyFamily: "posting_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Avoid showing private drafts unless staged.",
+      originalBatchNumber: 66,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1089,12 +1344,16 @@
       whatToShow:
         "Phone feed surfaces an old post, creator immediately lowers brightness and looks away",
       howToFilm:
-        "Single static shot, framed on the post. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Phone feed surfaces an old post, creator immediately lowers brightness and looks away. Punch the final beat with one theatrical reaction.",
       caption: "the post caught me.",
       anchor: "post",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "private_embarrassment",
       setting: "couch",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "accusation",
+    safetyNote: "Use own/staged content only.",
+      originalBatchNumber: 67,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1103,12 +1362,15 @@
       whatToShow:
         "Phone camera open, multiple takes, exhausted face",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone camera open, multiple takes, exhausted face. Talk-to-camera between beats; loose, a little frantic.",
       caption: "phone update: not great.",
       anchor: "phone",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "confession",
+      originalBatchNumber: 68,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1117,12 +1379,16 @@
       whatToShow:
         "Post with likes, caption edited to blank",
       howToFilm:
-        "Single static shot, framed on the post. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Post with likes, caption edited to blank. End on a held silent stare; let the realization sit.",
       caption: "post situation, ongoing.",
       anchor: "post",
       comedyFamily: "posting_anxiety",
       emotionalSpike: "self_doubt_spike",
       setting: "phone",
+      voiceCluster: "quiet_realization",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use staged/blurred post details.",
+      originalBatchNumber: 69,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1131,12 +1397,15 @@
       whatToShow:
         "Phone trend page, creator opens camera, pauses, closes it because the sound already feels tired",
       howToFilm:
-        "Single static shot, framed on the trend. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone trend page, creator opens camera, pauses, closes it because the sound already feels tired. Keep your face flat the whole time; let the silence land.",
       caption: "trend update: not great.",
       anchor: "trend",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "realization",
+      originalBatchNumber: 70,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1145,12 +1414,16 @@
       whatToShow:
         "Phone saved folder, creator taps a video thumbnail, shakes head, moves it to another folder",
       howToFilm:
-        "Single static shot, framed on the saved. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone saved folder, creator taps a video thumbnail, shakes head, moves it to another folder. End on a held silent stare; let the realization sit.",
       caption: "saved update: not great.",
       anchor: "saved",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "quiet_realization",
+      hookStyle: "domestic_crime_scene",
+    safetyNote: "Use staged/private-safe thumbnails.",
+      originalBatchNumber: 71,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1159,12 +1432,16 @@
       whatToShow:
         "Analytics screen flashes a positive metric, creator smiles for half a second, then force-closes the app",
       howToFilm:
-        "Single static shot, framed on the analytics. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Analytics screen flashes a positive metric, creator smiles for half a second, then force-closes the app. Punch the final beat with one theatrical reaction.",
       caption: "analytics? never met them.",
       anchor: "analytics",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "avoidance_spike",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use fake/blurred analytics.",
+      originalBatchNumber: 72,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1173,12 +1450,16 @@
       whatToShow:
         "Story reply bubble typing, deleted, retyped, deleted",
       howToFilm:
-        "Single static shot, framed on the story. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Story reply bubble typing, deleted, retyped, deleted. Talk-to-camera between beats; loose, a little frantic.",
       caption: "story won.",
       anchor: "story",
       comedyFamily: "posting_anxiety",
       emotionalSpike: "impatient_spiral",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use fake/staged story reply.",
+      originalBatchNumber: 73,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1187,12 +1468,16 @@
       whatToShow:
         "Post timestamp 9:07pm, me checking phone for likes",
       howToFilm:
-        "Single static shot, framed on the timestamp. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Post timestamp 9:07pm, me checking phone for likes. Keep your face flat the whole time; let the silence land.",
       caption: "timestamp won.",
       anchor: "timestamp",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "impatient_spiral",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "confession",
+    safetyNote: "Use staged post details.",
+      originalBatchNumber: 74,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1201,12 +1486,16 @@
       whatToShow:
         "Phone folder labels like “maybe,” “absolutely not,” and “why did I film this,” creator scrolls silently",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone folder labels like “maybe, ” “absolutely not, ” and “why did I film this, ” creator scrolls silently. End on a held silent stare; let the realization sit.",
       caption: "phone, finally seen.",
       anchor: "phone",
       comedyFamily: "posting_anxiety",
       emotionalSpike: "quiet_realization",
       setting: "phone",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Use staged folder names.",
+      originalBatchNumber: 75,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1215,12 +1504,16 @@
       whatToShow:
         "Phone feed shows a blurred/staged awkward old post or contact, creator scrolls so fast the phone almost drops",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Phone feed shows a blurred/staged awkward old post or contact, creator scrolls so fast the phone almost drops. Punch the final beat with one theatrical reaction.",
       caption: "oh — the phone.",
       anchor: "phone",
       comedyFamily: "posting_anxiety",
       emotionalSpike: "caught_off_guard",
       setting: "couch",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "accusation",
+    safetyNote: "Do not show real people, exes, usernames, or private posts.",
+      originalBatchNumber: 76,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1229,12 +1522,16 @@
       whatToShow:
         "Pull-to-refresh animation, same post returns, creator sets phone down like it lost privileges",
       howToFilm:
-        "Single static shot, framed on the refresh. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Pull-to-refresh animation, same post returns, creator sets phone down like it lost privileges. Talk-to-camera between beats; loose, a little frantic.",
       caption: "refresh update: not great.",
       anchor: "refresh",
       comedyFamily: "creator_anxiety",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use staged/blurred feed.",
+      originalBatchNumber: 77,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1243,12 +1540,15 @@
       whatToShow:
         "Alarm at 7:00, quick cuts of snooze taps, final clock reads 11:48",
       howToFilm:
-        "Single static shot, framed on the alarm. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Alarm at 7:00, quick cuts of snooze taps, final clock reads 11:48. Keep your face flat the whole time; let the silence land.",
       caption: "alarm math.",
       anchor: "alarm",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "time_loss",
       setting: "bedroom",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "calendar_task_betrayal",
+      originalBatchNumber: 78,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1257,12 +1557,16 @@
       whatToShow:
         "Notebook open to “Day 47: coffee” only",
       howToFilm:
-        "Single static shot, framed on the coffee. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Notebook open to “Day 47: coffee” only. End on a held silent stare; let the realization sit.",
       caption: "me vs the coffee: coffee won.",
       anchor: "coffee",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+    safetyNote: "Use staged journal page.",
+      originalBatchNumber: 79,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1271,12 +1575,15 @@
       whatToShow:
         "Bathroom sink, single face wash pump, done",
       howToFilm:
-        "Single static shot, framed on the face. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Bathroom sink, single face wash pump, done. Punch the final beat with one theatrical reaction.",
       caption: "face update: not great.",
       anchor: "face",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "bathroom",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 80,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1285,12 +1592,15 @@
       whatToShow:
         "Alarm rings at 5:00, creator sits up heroically, then instantly lies back down at 5:12",
       howToFilm:
-        "Single static shot, framed on the rings. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Alarm rings at 5:00, creator sits up heroically, then instantly lies back down at 5:12. Talk-to-camera between beats; loose, a little frantic.",
       caption: "rings update: not great.",
       anchor: "rings",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "bedroom",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 81,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1299,12 +1609,16 @@
       whatToShow:
         "Meditation timer open, phone notification distracts, streak broken",
       howToFilm:
-        "Single static shot, framed on the meditation. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Meditation timer open, phone notification distracts, streak broken. Keep your face flat the whole time; let the silence land.",
       caption: "meditation update: not great.",
       anchor: "meditation",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use staged app/notification.",
+      originalBatchNumber: 82,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1313,12 +1627,15 @@
       whatToShow:
         "Phone in bed, thumb scrolls endlessly, book or eye mask sits untouched nearby",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone in bed, thumb scrolls endlessly, book or eye mask sits untouched nearby. End on a held silent stare; let the realization sit.",
       caption: "no comment on the phone.",
       anchor: "phone",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_guilt",
       setting: "bedroom",
+      voiceCluster: "quiet_realization",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 83,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1327,12 +1644,16 @@
       whatToShow:
         "Floor stretch, immediate stand up satisfied",
       howToFilm:
-        "Single static shot, framed on the floor. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Floor stretch, immediate stand up satisfied. Punch the final beat with one theatrical reaction.",
       caption: "floor? never met them.",
       anchor: "floor",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "false_productivity",
       setting: "living_room",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "fake_tutorial",
+    safetyNote: "Avoid unsafe stretching positions.",
+      originalBatchNumber: 84,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1341,12 +1662,16 @@
       whatToShow:
         "Phone sleep data “excellent,” me with tired face",
       howToFilm:
-        "Single static shot, framed on the sleep. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone sleep data “excellent, ” me with tired face. Talk-to-camera between beats; loose, a little frantic.",
       caption: "the sleep caught me.",
       anchor: "sleep",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "exposed_lie",
       setting: "bedroom",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "accusation",
+    safetyNote: "Use fake/blurred health data; avoid medical claims.",
+      originalBatchNumber: 85,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1355,12 +1680,15 @@
       whatToShow:
         "Coffee mug held like trophy, empty desk behind",
       howToFilm:
-        "Single static shot, framed on the held. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Coffee mug held like trophy, empty desk behind. Keep your face flat the whole time; let the silence land.",
       caption: "held update: not great.",
       anchor: "held",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "confession",
+      originalBatchNumber: 86,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1369,12 +1697,15 @@
       whatToShow:
         "Phone bedtime reminder pops up, creator taps “remind me later” while already under blankets",
       howToFilm:
-        "Single static shot, framed on the bedtime. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Phone bedtime reminder pops up, creator taps “remind me later” while already under blankets. End on a held silent stare; let the realization sit.",
       caption: "bedtime? never met them.",
       anchor: "bedtime",
       comedyFamily: "self_improvement_attempt",
       emotionalSpike: "avoidance_spike",
       setting: "bedroom",
+      voiceCluster: "quiet_realization",
+      hookStyle: "calendar_task_betrayal",
+      originalBatchNumber: 87,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1383,12 +1714,16 @@
       whatToShow:
         "Phone text changes a normal word into something colder/weirder, creator notices after sending and freezes",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Phone text changes a normal word into something colder/weirder, creator notices after sending and freezes. Talk-to-camera between beats; loose, a little frantic.",
       caption: "phone won.",
       anchor: "phone",
       comedyFamily: "parasocial_object",
       emotionalSpike: "polite_rage",
       setting: "couch",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use fake chat text.",
+      originalBatchNumber: 88,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1397,12 +1732,15 @@
       whatToShow:
         "Phone at 3%, cord plugs in, battery icon does nothing, creator slowly looks at the cord",
       howToFilm:
-        "Single static shot, framed on the phone. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Phone at 3%, cord plugs in, battery icon does nothing, creator slowly looks at the cord. Punch the final beat with one theatrical reaction.",
       caption: "phone alarm in my chest.",
       anchor: "phone",
       comedyFamily: "parasocial_object",
       emotionalSpike: "panic",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "accusation",
+      originalBatchNumber: 89,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1411,12 +1749,15 @@
       whatToShow:
         "Earbud drops between couch cushions, hand fishes unsuccessfully",
       howToFilm:
-        "Single static shot, framed on the earbud. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Earbud drops between couch cushions, hand fishes unsuccessfully. Keep your face flat the whole time; let the silence land.",
       caption: "earbud update: not great.",
       anchor: "earbud",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "couch",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+      originalBatchNumber: 90,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1425,12 +1766,16 @@
       whatToShow:
         "TV paused, remote click fails, creator stares at remote like it betrayed the plot",
       howToFilm:
-        "Single static shot, framed on the remote. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. TV paused, remote click fails, creator stares at remote like it betrayed the plot. End on a held silent stare; let the realization sit.",
       caption: "remote won.",
       anchor: "remote",
       comedyFamily: "parasocial_object",
       emotionalSpike: "polite_rage",
       setting: "couch",
+      voiceCluster: "quiet_realization",
+      hookStyle: "accusation",
+    safetyNote: "Do not show copyrighted TV content clearly.",
+      originalBatchNumber: 91,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1439,12 +1784,15 @@
       whatToShow:
         "Mouse click fails, creator taps keyboard, shakes mouse, then notices mouse power switch",
       howToFilm:
-        "Single static shot, framed on the mouse. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Mouse click fails, creator taps keyboard, shakes mouse, then notices mouse power switch. Talk-to-camera between beats; loose, a little frantic.",
       caption: "mouse won.",
       anchor: "mouse",
       comedyFamily: "parasocial_object",
       emotionalSpike: "polite_rage",
       setting: "desk",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "realization",
+      originalBatchNumber: 92,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1453,12 +1801,16 @@
       whatToShow:
         "Laptop fan noise, screen at 2%, panicked face",
       howToFilm:
-        "Single static shot, framed on the laptop. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Laptop fan noise, screen at 2%, panicked face. Punch the final beat with one theatrical reaction.",
       caption: "laptop situation, ongoing.",
       anchor: "laptop",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "performance_panic",
       setting: "desk",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "tiny_documentary",
+    safetyNote: "Avoid showing private desktop/app content.",
+      originalBatchNumber: 93,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1467,12 +1819,15 @@
       whatToShow:
         "Headphones pulled from bag, giant knot",
       howToFilm:
-        "Single static shot, framed on the headphones. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Headphones pulled from bag, giant knot. Keep your face flat the whole time; let the silence land.",
       caption: "headphones update: not great.",
       anchor: "headphones",
       comedyFamily: "parasocial_object",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+      originalBatchNumber: 94,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1481,12 +1836,16 @@
       whatToShow:
         "Bag opened, water spill visible, defeated sigh",
       howToFilm:
-        "Single static shot, framed on the water. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Bag opened, water spill visible, defeated sigh. End on a held silent stare; let the realization sit.",
       caption: "water update: not great.",
       anchor: "water",
       comedyFamily: "parasocial_object",
       emotionalSpike: "quiet_defeat",
       setting: "hallway",
+      voiceCluster: "quiet_realization",
+      hookStyle: "domestic_crime_scene",
+    safetyNote: "Avoid showing personal documents inside bag.",
+      originalBatchNumber: 95,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1495,12 +1854,15 @@
       whatToShow:
         "Windowsill plant turning yellow, me watering anyway",
       howToFilm:
-        "Single static shot, framed on the plant. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Windowsill plant turning yellow, me watering anyway. End on a held silent stare; let the realization sit.",
       caption: "the plant knows.",
       anchor: "plant",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_guilt",
       setting: "home",
+      voiceCluster: "quiet_realization",
+      hookStyle: "confession",
+      originalBatchNumber: 96,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1509,12 +1871,15 @@
       whatToShow:
         "Hand holding keys while other hand searches pockets",
       howToFilm:
-        "Single static shot, framed on the keys. Let the action play in one take — no cuts inside the beat. Talk like you are confessing to a friend; loose and a little frantic.",
+        "Phone on a tripod, one locked-off shot. Hand holding keys while other hand searches pockets. Talk-to-camera between beats; loose, a little frantic.",
       caption: "keys math.",
       anchor: "keys",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_realization",
       setting: "hallway",
+      voiceCluster: "chaotic_confession",
+      hookStyle: "realization",
+      originalBatchNumber: 97,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1523,12 +1888,16 @@
       whatToShow:
         "Phone reminder appears, creator reads it, nods seriously, dismisses it, and keeps doing the opposite",
       howToFilm:
-        "Single static shot, framed on the reminder. Let the action play in one take — no cuts inside the beat. Keep your face deadpan and let the silence land.",
+        "Phone on a tripod, one locked-off shot. Phone reminder appears, creator reads it, nods seriously, dismisses it, and keeps doing the opposite. Keep your face flat the whole time; let the silence land.",
       caption: "reminder update: not great.",
       anchor: "reminder",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",
+      voiceCluster: "dry_deadpan",
+      hookStyle: "object_betrayal",
+    safetyNote: "Use generic reminder text.",
+      originalBatchNumber: 98,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1537,12 +1906,15 @@
       whatToShow:
         "Laundry basket dump, creator holds two obviously wrong socks together and accepts it",
       howToFilm:
-        "Single static shot, framed on the laundry. Let the action play in one take — no cuts inside the beat. Lean slightly theatrical on the final beat; treat it like breaking news.",
+        "Phone on a tripod, one locked-off shot. Laundry basket dump, creator holds two obviously wrong socks together and accepts it. Punch the final beat with one theatrical reaction.",
       caption: "laundry math.",
       anchor: "laundry",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "confused_pause",
       setting: "home",
+      voiceCluster: "overdramatic_reframe",
+      hookStyle: "tiny_documentary",
+      originalBatchNumber: 99,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
   {
@@ -1551,13 +1923,28 @@
       whatToShow:
         "Clear counter, one item placed down, then another, then the counter is back to chaos",
       howToFilm:
-        "Single static shot, framed on the clear. Let the action play in one take — no cuts inside the beat. Hold one beat too long after the punchline; small and reflective.",
+        "Phone on a tripod, one locked-off shot. Clear counter, one item placed down, then another, then the counter is back to chaos. End on a held silent stare; let the realization sit.",
       caption: "clear update: not great.",
       anchor: "clear",
       comedyFamily: "tiny_humiliation",
       emotionalSpike: "quiet_defeat",
       setting: "kitchen",
+      voiceCluster: "quiet_realization",
+      hookStyle: "before_after_self",
+      originalBatchNumber: 100,
       reviewedBy: PENDING_EDITORIAL_REVIEW,
     },
     ]);
+
+  /**
+   * Derive the human-readable source-batch label from a W2-L approved
+   * id. Cohorts beyond W2-BATCH-NEXT may be added in future imports;
+   * the helper centralizes the id-prefix → label mapping so consumers
+   * never hard-code the prefix string.
+   */
+  export function getWesternEntrySourceBatch(id: string): string | null {
+    if (typeof id !== "string") return null;
+    if (id.startsWith("w2_next_")) return "W2-BATCH-NEXT";
+    return null;
+  }
   
