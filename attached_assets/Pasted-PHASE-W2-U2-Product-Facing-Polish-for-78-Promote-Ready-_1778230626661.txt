@@ -1,0 +1,742 @@
+PHASE W2-U2 — Product-Facing Polish for 78 Promote-Ready W2-T Entries
+
+Scope:
+Apply these editor-approved caption + howToFilm replacements only for the 78 W2-T entries listed below.
+
+Do not touch the 12 needs_rewrite entries.
+Do not touch the 10 reject entries.
+Do not change hooks.
+Do not change whatToShow.
+Do not change anchor/comedyFamily/emotionalSpike/setting/voiceCluster/hookStyle unless a test directly requires it.
+Do not change validators.
+Do not change production flags.
+Do not sign off reviewedBy yet.
+
+Goal:
+Remove awkward generated captions and generic “Phone on a tripod…” howToFilm copy while preserving every entry’s promote-ready status.
+
+After applying:
+1. Rerun W2-U review.
+2. Confirm all 78 remain promote_ready_pending_editor.
+3. Confirm:
+   - 0 safety failures
+   - 0 hook word-count failures
+   - 0 anchor/cohesion failures
+   - 0 howToFilm/whatToShow failures
+   - 0 duplicate captions
+   - 0 exact hook duplicates
+   - 0 skeleton duplicates
+4. Run full api-server tests.
+5. Report any regression before making additional changes.
+
+---
+
+### w2_t_diversity_001
+Replace howToFilm:
+Start with a normal mirror check. Lean closer beat by beat, checking hair, collar, face, and outfit until the mirror feels like evidence. Hold the final stare for one dry pause.
+
+Replace caption:
+mirror check became a full audit.
+
+---
+
+### w2_t_diversity_002
+Replace howToFilm:
+Frame the towel clearly. Wrap or hang it, let it fall immediately, then stare at the towel like it escalated the morning on purpose.
+
+Replace caption:
+towel chose conflict today.
+
+---
+
+### w2_t_diversity_003
+Replace howToFilm:
+Start with the toothbrush in hand. Before brushing, drift into cleaning the sink, moving bottles, and reorganizing the counter. End on the realization that brushing never happened.
+
+Replace caption:
+toothbrush opened a side quest.
+
+---
+
+### w2_t_diversity_004
+Replace howToFilm:
+Lean over the sink like the bathroom is handled. Spot one tiny mess, wipe it, then keep wiping more of the counter until confidence visibly leaves.
+
+Replace caption:
+sink confidence lasted seconds.
+
+---
+
+### w2_t_diversity_005
+Replace howToFilm:
+Face the mirror with one piece of hair sticking out. Fix it carefully, then reveal another section popping up worse. Let the final look say the hair won.
+
+Replace caption:
+hair picked the worst time.
+
+---
+
+### w2_t_diversity_006
+Replace howToFilm:
+Pan slowly across the bathroom counter: comb, lotion, towel, cup, and random objects everywhere. End on the creator looking at the counter like it explains the whole morning.
+
+Replace caption:
+counter exposed the system.
+
+---
+
+### w2_t_diversity_008
+Replace howToFilm:
+Step into the mirror confidently. Freeze when the reflection disagrees, then slowly remove one accessory, jacket, or hat like the mirror made the call.
+
+Replace caption:
+mirror vetoed the outfit.
+
+---
+
+### w2_t_diversity_009
+Replace howToFilm:
+Secure the towel wrap and take one confident step. Catch the towel slipping, freeze, and let the panic land without overacting.
+
+Replace caption:
+towel wrap had plans.
+
+---
+
+### w2_t_diversity_011
+Replace howToFilm:
+Dry your hands, hang the hand towel neatly, and watch it slide down. Try once more, let it slide again, then hold the polite rage.
+
+Replace caption:
+hand towel refused order.
+
+---
+
+### w2_t_diversity_012
+Replace howToFilm:
+Smile into the mirror like it is a quick check. Adjust posture, change angle, find another problem, then give up into a neutral face.
+
+Replace caption:
+one smile found twelve issues.
+
+---
+
+### w2_t_diversity_013
+Replace howToFilm:
+Turn on the bathroom light and look in the mirror. Step back physically when the lighting hits, like the room just told the truth.
+
+Replace caption:
+bathroom light got honest.
+
+---
+
+### w2_t_diversity_014
+Replace howToFilm:
+Tie the robe belt once, notice it is uneven, then keep adjusting until it somehow looks worse. End on the confused pause.
+
+Replace caption:
+robe belt became math.
+
+---
+
+### w2_t_diversity_015
+Replace howToFilm:
+Use the sink carefully, then look down at the water spot on your shirt. Freeze like the outfit has officially been humbled.
+
+Replace caption:
+sink humbled the outfit.
+
+---
+
+### w2_t_diversity_016
+Replace howToFilm:
+Reach for one item on the bathroom counter. Move three bottles, lose the first item, then stare at the counter like it became a puzzle.
+
+Replace caption:
+getting ready became logistics.
+
+---
+
+### w2_t_diversity_017
+Replace howToFilm:
+Stand at the doorway holding keys. Touch the door handle, freeze, then look back into the room like the mission disappeared.
+
+Replace caption:
+doorway erased the mission.
+
+---
+
+### w2_t_diversity_018
+Replace howToFilm:
+Put on one shoe at the front door. Sit holding the other shoe while remembering another task, then let the one-shoe pause become the punchline.
+
+Replace caption:
+one shoe ended momentum.
+
+---
+
+### w2_t_diversity_019
+Replace howToFilm:
+Reach for the doorknob confidently. Stop mid-grab, pat your pockets, check the bag, and let the doorknob become the doubt trigger.
+
+Replace caption:
+doorknob asked too much.
+
+---
+
+### w2_t_diversity_020
+Replace howToFilm:
+Zip the bag at the doorway and pick it up. Pause, unzip it, and check one item like the packed bag suddenly cannot be trusted.
+
+Replace caption:
+packed bag got suspicious.
+
+---
+
+### w2_t_diversity_021
+Replace howToFilm:
+Walk into the hallway with purpose. Stop suddenly, turn around, and re-enter the room confused like the hallway deleted the plan.
+
+Replace caption:
+hallway deleted the purpose.
+
+---
+
+### w2_t_diversity_022
+Replace howToFilm:
+Reach the doorway ready to leave. Notice the coat, put it on, then realize the whole outfit has changed for the worse.
+
+Replace caption:
+coat joined too late.
+
+---
+
+### w2_t_diversity_023
+Replace howToFilm:
+Crack open the door, then snap back inside for keys, bag, and one random forgotten item. Keep the scramble quick and controlled.
+
+Replace caption:
+door opened three emergencies.
+
+---
+
+### w2_t_diversity_024
+Replace howToFilm:
+Stand fully dressed at the doorway. Pause like leaving is possible, then sit on the nearest chair without removing anything.
+
+Replace caption:
+ready to leave became seated.
+
+---
+
+### w2_t_diversity_025
+Replace howToFilm:
+Spot the keys on the table. Turn away for the jacket, then look back and act like the keys moved by themselves.
+
+Replace caption:
+keys moved spiritually.
+
+---
+
+### w2_t_diversity_027
+Replace howToFilm:
+Tie both shoes at the front door. Stand up, process the effort, then immediately sit back down like the shoes were the whole task.
+
+Replace caption:
+shoes counted as the errand.
+
+---
+
+### w2_t_diversity_028
+Replace howToFilm:
+Swing the bag onto your shoulder at the doorway. Let the strap tangle, miss the confident exit, and reset with embarrassed composure.
+
+Replace caption:
+bag strap ruined the exit.
+
+---
+
+### w2_t_diversity_029
+Replace howToFilm:
+Stride down the hallway with too much confidence. Stop because you forgot something, then shuffle backward with the confidence gone.
+
+Replace caption:
+hallway walk got humbled.
+
+---
+
+### w2_t_diversity_030
+Replace howToFilm:
+Touch the door handle, freeze, and slowly remove your hand. Look back at the couch like it made a better offer.
+
+Replace caption:
+door made me unavailable.
+
+---
+
+### w2_t_diversity_031
+Replace howToFilm:
+Pull the jacket zipper halfway at the entryway. Get stuck, pause, then negotiate silently with the zipper before giving up or trying again.
+
+Replace caption:
+zipper delayed the operation.
+
+---
+
+### w2_t_diversity_033
+Replace howToFilm:
+Open the closet with hope. Pull out one shirt, hold it up, then slowly return it and close the closet like the plan has been rejected.
+
+Replace caption:
+closet rejected the plan.
+
+---
+
+### w2_t_diversity_034
+Replace howToFilm:
+Try putting on the jeans, pause halfway, then sit on the bed and reconsider the entire outfit. Keep the movement comfortable and safe.
+
+Replace caption:
+jeans asked too many questions.
+
+---
+
+### w2_t_diversity_036
+Replace howToFilm:
+Look down at the socks like you are presenting evidence. Lift the wrong sock slowly, then hold the betrayal beat.
+
+Replace caption:
+sock became evidence.
+
+---
+
+### w2_t_diversity_037
+Replace howToFilm:
+Check the outfit in the mirror. Add the jacket, visibly deflate, then remove it like the jacket personally made things worse.
+
+Replace caption:
+jacket made it worse.
+
+---
+
+### w2_t_diversity_039
+Replace howToFilm:
+Lay out the shirts and pants like a serious equation. Swap combinations, pause, and stare as if the outfit became algebra.
+
+Replace caption:
+outfit math defeated me.
+
+---
+
+### w2_t_diversity_040
+Replace howToFilm:
+Try putting on the shirt, find one sleeve inside out, and wrestle it gently. End with the sleeve still feeling victorious.
+
+Replace caption:
+sleeve won the round.
+
+---
+
+### w2_t_diversity_041
+Replace howToFilm:
+Stand in the finished outfit and look down at the shoes. Step backward slowly like the shoes ruined the entire vibe.
+
+Replace caption:
+shoes broke the vibe.
+
+---
+
+### w2_t_diversity_042
+Replace howToFilm:
+Open the closet door with hope. Stare at the clothes, slowly close the door, and look at the floor like morale dropped.
+
+Replace caption:
+closet lowered morale.
+
+---
+
+### w2_t_diversity_045
+Replace howToFilm:
+Hold two shirts, put one on, then immediately remove it. End holding both shirts with no answer and less confidence.
+
+Replace caption:
+shirt swap lost the plot.
+
+---
+
+### w2_t_diversity_046
+Replace howToFilm:
+Face the mirror and notice the hoodie strings are uneven. Pull one side, make the other side worse, and let the correction spiral.
+
+Replace caption:
+hoodie strings chose chaos.
+
+---
+
+### w2_t_diversity_047
+Replace howToFilm:
+Sit in the parked car with hands on the seat or wheel. Lean back and stare forward like the car became a waiting room.
+
+Replace caption:
+car became the waiting room.
+
+---
+
+### w2_t_diversity_049
+Replace howToFilm:
+Try to exit the parked car confidently. Let the seatbelt gently pull you back, then pause in defeat before unbuckling.
+
+Replace caption:
+seatbelt stopped the exit.
+
+---
+
+### w2_t_diversity_051
+Replace howToFilm:
+Arrange the bag, jacket, receipt, and keys on the passenger seat. Lose one item under the pile and search like the seat became a command center.
+
+Replace caption:
+passenger seat became headquarters.
+
+---
+
+### w2_t_diversity_053
+Replace howToFilm:
+Grip the steering wheel in the parked car. Silently hype yourself up, then reach for the door like the wheel heard the whole pep talk.
+
+Replace caption:
+wheel heard the pep talk.
+
+---
+
+### w2_t_diversity_054
+Replace howToFilm:
+Unfold the receipt in the parked car. Glance from the receipt to the bags, then fold it back with silent regret.
+
+Replace caption:
+receipt made the car quiet.
+
+---
+
+### w2_t_diversity_055
+Replace howToFilm:
+Hold the car keys in the parked car. Prepare to leave, then realize something is in the back seat and the errand has multiplied.
+
+Replace caption:
+keys started another crisis.
+
+---
+
+### w2_t_diversity_056
+Replace howToFilm:
+Open the car door from inside and put one foot out. Pause, pull the foot back in, and take one more second before leaving.
+
+Replace caption:
+car door opened too soon.
+
+---
+
+### w2_t_diversity_057
+Replace howToFilm:
+Open the glovebox in the parked car. Reveal napkins and random items, search for one needed thing, and fail with quiet disbelief.
+
+Replace caption:
+glovebox had everything else.
+
+---
+
+### w2_t_diversity_058
+Replace howToFilm:
+Sit in the parked car after arriving. Unbuckle, then rebuckle or lean back like you need an emotional reset before going inside.
+
+Replace caption:
+parked car claimed me.
+
+---
+
+### w2_t_diversity_060
+Replace howToFilm:
+Drop a small item on the floor. Bend halfway, reconsider, then use your foot to slide the item closer like that was the plan.
+
+Replace caption:
+floor item became a project.
+
+---
+
+### w2_t_diversity_061
+Replace howToFilm:
+Attempt a tiny sock slide across the floor. Lose balance slightly, freeze, then pretend the slide was intentional.
+
+Replace caption:
+sock slide got ambitious.
+
+---
+
+### w2_t_diversity_062
+Replace howToFilm:
+Try standing from the couch while tangled in the blanket. Take one slow step, get caught, and return to untangle.
+
+Replace caption:
+blanket refused release.
+
+---
+
+### w2_t_diversity_063
+Replace howToFilm:
+Lie on the pillow and adjust it repeatedly. Sit up looking offended, as if the pillow made a personal decision.
+
+Replace caption:
+pillow rearranged my spine.
+
+---
+
+### w2_t_diversity_064
+Replace howToFilm:
+Sit carefully in the chair. When it squeaks, freeze, then sit even slower like you are negotiating peace with the chair.
+
+Replace caption:
+chair exposed the operation.
+
+---
+
+### w2_t_diversity_065
+Replace howToFilm:
+Walk across the rug and catch your foot slightly. Recover safely, then look back at the rug like it started the problem.
+
+Replace caption:
+rug tried to humble me.
+
+---
+
+### w2_t_diversity_067
+Replace howToFilm:
+Try to leave the couch or bed under the blanket. Let one foot get trapped, reverse carefully, and start the escape again.
+
+Replace caption:
+blanket escape needed strategy.
+
+---
+
+### w2_t_diversity_068
+Replace howToFilm:
+Shuffle in slippers with too much confidence. Stop when one almost slides off, then look down like the slippers betrayed the athlete.
+
+Replace caption:
+slippers lied about my skills.
+
+---
+
+### w2_t_diversity_069
+Replace howToFilm:
+Start standing from the couch. Get halfway up, then sink back down like the couch made a convincing argument.
+
+Replace caption:
+couch accepted my resignation.
+
+---
+
+### w2_t_diversity_073
+Replace howToFilm:
+Approach the chair like you are only resting for a second. Sit down and immediately sink into full dramatic surrender.
+
+Replace caption:
+chair caught the surrender.
+
+---
+
+### w2_t_diversity_074
+Replace howToFilm:
+Pick up the broom to sweep one spot. Notice another spot, then stand still as the broom turns one task into a full job.
+
+Replace caption:
+broom started a whole job.
+
+---
+
+### w2_t_diversity_075
+Replace howToFilm:
+Open the drawer looking for one item. Reveal the messy pile, pause, then close the drawer without solving anything.
+
+Replace caption:
+drawer revealed consequences.
+
+---
+
+### w2_t_diversity_076
+Replace howToFilm:
+Close the cabinet door and watch it swing open again. Push it closed more seriously, then wait to see if it disrespects you twice.
+
+Replace caption:
+cabinet chose disrespect.
+
+---
+
+### w2_t_diversity_078
+Replace howToFilm:
+Zip the bag or jacket confidently. Get stuck halfway, then look directly at the zipper like it waited for confidence to arrive.
+
+Replace caption:
+zipper waited for confidence.
+
+---
+
+### w2_t_diversity_079
+Replace howToFilm:
+Tie the shoelace at the doorway and stand up. Watch it immediately loosen, then hold the stare before bending down again.
+
+Replace caption:
+shoelace resigned immediately.
+
+---
+
+### w2_t_diversity_080
+Replace howToFilm:
+Try folding the reusable bag neatly. Lose the shape, stuff it into itself, and accept quiet defeat.
+
+Replace caption:
+reusable bag folded me.
+
+---
+
+### w2_t_diversity_081
+Replace howToFilm:
+Seal the package with tape. Let the tape stick to your fingers, scissors, or counter instead of the package, then pause in polite rage.
+
+Replace caption:
+tape chose everyone else.
+
+---
+
+### w2_t_diversity_082
+Replace howToFilm:
+Grab the doorknob to leave. Realize your sleeve or bag is caught, let go slowly, and reset like leaving became optional.
+
+Replace caption:
+doorknob made leaving optional.
+
+---
+
+### w2_t_diversity_083
+Replace howToFilm:
+Place the return package by the doorway. Walk past it twice, avoid eye contact, and pretend it became decoration.
+
+Replace caption:
+package became doorway decor.
+
+---
+
+### w2_t_diversity_084
+Replace howToFilm:
+Set items on the kitchen counter like self-checkout. Pretend to scan them, then freeze when one item refuses to scan.
+
+Replace caption:
+counter checkout got tense.
+
+---
+
+### w2_t_diversity_085
+Replace howToFilm:
+Hold the package and return label at the counter. Line it up badly, peel it crooked, then stare at the package like the errand escalated.
+
+Replace caption:
+return label chose violence.
+
+---
+
+### w2_t_diversity_086
+Replace howToFilm:
+Sit stiffly in the chair with a bag in your lap. Look around the living room like you are waiting to be called.
+
+Replace caption:
+waiting room energy found me.
+
+---
+
+### w2_t_diversity_087
+Replace howToFilm:
+Stand at the pantry and compare two items in your hands. Decide on neither, then return both like the pantry judged you.
+
+Replace caption:
+pantry became the aisle.
+
+---
+
+### w2_t_diversity_088
+Replace howToFilm:
+Spread the receipt on the kitchen counter. Point at one line, then look at the item like it betrayed you in court.
+
+Replace caption:
+receipt entered evidence.
+
+---
+
+### w2_t_diversity_089
+Replace howToFilm:
+Place the cereal box on the counter. Rehearse a normal greeting to it, then cringe when the small talk gets too real.
+
+Replace caption:
+cereal box heard too much.
+
+---
+
+### w2_t_diversity_090
+Replace howToFilm:
+Pack the tote bag with one item and stand proudly. Then realize the actual errand item is missing.
+
+Replace caption:
+tote bag looked official.
+
+---
+
+### w2_t_diversity_092
+Replace howToFilm:
+Hold two casual outfit options in the mirror. Inspect both seriously, then change into a third option that solves nothing.
+
+Replace caption:
+casual outfit needed review.
+
+---
+
+### w2_t_diversity_095
+Replace howToFilm:
+Try one jacket at the entryway, look toward the door, then switch jackets. End holding both like weather became imaginary.
+
+Replace caption:
+jacket weather was imaginary.
+
+---
+
+### w2_t_diversity_096
+Replace howToFilm:
+Set out the snack bowl and adjust it with too much care. Step back like the bowl gave the room a hosting personality.
+
+Replace caption:
+snack bowl became hospitality.
+
+---
+
+### w2_t_diversity_098
+Replace howToFilm:
+Stand near the front door and mime hearing a doorbell. Compose yourself, then immediately lose composure before anyone arrives.
+
+Replace caption:
+doorbell practice lowered morale.
+
+---
+
+### w2_t_diversity_099
+Replace howToFilm:
+Sit fully dressed on the couch with shoes and jacket ready. Stay completely still until the outfit starts looking decorative.
+
+Replace caption:
+dressed for plans, became furniture.
+
+---
+
+Post-application checks:
+- Do not change reviewedBy yet.
+- Rerun W2-U.
+- Confirm all 78 polished entries remain promote_ready_pending_editor.
+- Confirm no new failures or collisions.
+- Run full api-server tests.
+- Report before/after examples for at least 10 entries.

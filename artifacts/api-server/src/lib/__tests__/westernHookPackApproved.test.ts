@@ -293,6 +293,7 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("qa", "w2oPromotionRubricQa.ts"),
       path.join("qa", "w2oRejectManifestQa.ts"),
       path.join("qa", "w2oCreativeRepairPacketQa.ts"),
+      path.join("qa", "w2uEditorialReviewPacketQa.ts"),
       // PHASE W2-P — packet-2 latent invariant enumerator (QA-only)
       path.join("qa", "w2pPacket2LatentViolationsQa.ts"),
       path.join("lib", "__tests__", "westernHookPackLive.test.ts"),
