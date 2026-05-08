@@ -1,0 +1,195 @@
+PHASE W2-L — Import Curated Western/W2 Batch 1 With Strict Dedupe + QA
+
+Context:
+We are expanding the approved Western/W2 authored corpus after W2-K2 fixed 2-of-3 W2 delivery and memory/selection freshness.
+
+W2-K2 is GO for behavior:
+- Western/default W2 ON produced 40/60 W2 ideas across 20 batches.
+- Every W2 ON batch delivered exactly 2 W2 + 1 non-W2.
+- 0 batches had 3/3 W2.
+- 0 W2 entryId repeats.
+- 0 exact W2 hook repeats.
+- 0 W2 skeleton repeats.
+- 0 non-Western leaks.
+- W2 OFF produced 0/30 W2.
+- Production remains OFF.
+
+This phase is about importing the first curated W2-BATCH-NEXT set safely and increasing high-quality approved W2 supply.
+
+Hard rules:
+- Production remains OFF.
+- Do not enable W2 in production.
+- Do not remove or replace the old Western corpus.
+- Do not touch Nigerian pack behavior.
+- Do not touch N1 flags.
+- Do not touch Pidgin scorer.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change Claude prompts.
+- Do not add migrations.
+- Do not expose new public API surface.
+- Do not import the raw user-provided draft batch.
+- Import only the curated 100-item batch in this prompt.
+- Preserve original item numbers in a source/originalBatchNumber-style field if the existing structure supports it.
+- Preserve real meta.hookQualityScore behavior for W2 candidates.
+- Keep old corpus / pattern / novelty path active as the third-card breadth layer.
+
+Primary goal:
+Import 100 curated Western/W2 authored candidates into the approved Western promotion candidate path, with strict duplicate prevention against the existing W2/new corpus and existing blessed hook corpora.
+
+Input:
+Use the curated 100-item list provided by the user/ChatGPT, numbered:
+W2-BATCH-NEXT-001 through W2-BATCH-NEXT-100.
+
+Do not use the earlier raw draft. The curated list contains rewrites for weak/duplicate-risk entries.
+
+Implementation requirements:
+1. Add the curated entries to the approved Western runtime source only if they pass dedupe.
+2. Use only APPROVED_WESTERN_PROMOTION_CANDIDATES or the equivalent approved runtime structure already established for W2.
+3. Do not use WESTERN_HOOK_PACK_DRAFT directly in runtime.
+4. Each imported candidate must include:
+   - stable w2EntryId
+   - hook
+   - scenario / WHAT TO SHOW
+   - anchor
+   - comedyFamily
+   - emotionalSpike
+   - setting
+   - voiceCluster
+   - hookStyle
+   - whyThisWorks
+   - safety/privacy note
+   - source/batch metadata if available
+5. Entry IDs should be stable, readable, and non-colliding.
+   Suggested ID format:
+   w2_next_001 through w2_next_100
+   or match existing project naming conventions if different.
+
+Strict dedupe requirements:
+Before import, compare the curated 100 items against:
+- APPROVED_WESTERN_PROMOTION_CANDIDATES
+- WESTERN_HOOK_PACK_DRAFT
+- userBlessedHookCorpus.ts
+- any other existing Western/W2 approved pack files
+- itself
+
+Reject or rewrite before import if any item has:
+- exact hook match
+- normalized hook match
+- normalized hook skeleton match
+- bigram Jaccard >= 0.50 against an existing approved W2 hook
+- same anchor + same hookStyle + same setting as an existing approved W2 item
+- same hook opening / first 3 words as an existing approved W2 item unless the full premise is clearly distinct
+- near-identical WHAT TO SHOW scenario
+- public/private safety issue
+- weak filmability
+- obvious ChatGPT phrasing
+
+Important:
+If any curated item collides with existing W2/new corpus, do not silently import it.
+Rewrite the colliding item in the same spirit, preserve the original number, and report the rewrite.
+
+Add/extend tests:
+1. Curated batch structural integrity:
+   - exactly 100 new entries are present, unless collisions force replacements that still keep count at 100
+   - every entry has required fields
+   - every entry has unique w2EntryId
+   - every hook is non-empty
+   - every WHAT TO SHOW/scenario is non-empty
+   - every anchor/comedyFamily/emotionalSpike/setting/voiceCluster/hookStyle is present
+   - every safety note is present, even if “None”
+
+2. Duplicate prevention:
+   - no exact hook duplicates within imported batch
+   - no normalized hook duplicates within imported batch
+   - no normalized skeleton duplicates within imported batch
+   - no exact hook duplicates against existing APPROVED_WESTERN_PROMOTION_CANDIDATES
+   - no exact hook duplicates against WESTERN_HOOK_PACK_DRAFT
+   - no exact hook duplicates against userBlessedHookCorpus.ts if accessible
+   - no bigram Jaccard >= 0.50 against existing approved W2 hooks, unless an explicit allowlist reason is documented
+
+3. Distribution checks:
+   - voice clusters are reasonably balanced across dry_deadpan, chaotic_confession, quiet_realization, overdramatic_reframe
+   - no single setting dominates excessively
+   - desk + bedroom + couch + phone-screen should not overwhelm the entire batch
+   - anchor diversity remains high
+   - comedyFamily diversity remains high
+   - hookStyle diversity remains high
+
+4. Runtime safety:
+   - W2 runtime still uses approved candidates only
+   - WESTERN_HOOK_PACK_DRAFT is not directly imported into runtime
+   - W2 production flag remains OFF
+   - W2 OFF QA header still suppresses W2 in dev/test only
+   - no public API shape changed
+
+5. Non-Western leak safety:
+   - W2 candidates do not enter ng_pidgin
+   - W2 candidates do not enter ng_light
+   - W2 candidates do not enter ng_clean
+   - W2 candidates do not enter india
+   - W2 candidates do not enter philippines
+
+6. W2-K2 behavior regression:
+   Run a small post-import staging sweep on a single warm dev server:
+   A. W2 ON Western/default:
+      - 10 refreshes
+      - expect 20/30 W2 ideas if enough distinct candidates are available
+      - 0 batches with 3/3 W2
+      - 0 in-batch W2 entryId duplicates
+      - 0 in-batch W2 anchor duplicates
+      - 0 in-batch W2 skeleton duplicates
+      - exact W2 hook repeats should be 0
+      - W2 skeleton repeats should be 0
+   B. W2 OFF Western/default:
+      - 5 refreshes
+      - expect 0 W2 ideas
+   C. Non-Western smoke:
+      - ng_pidgin: 2 refreshes
+      - ng_light: 2 refreshes
+      - ng_clean: 2 refreshes
+      - india: 2 refreshes
+      - philippines: 2 refreshes
+      - expect 0 W2 leaks
+
+QA report required:
+Report all of the following:
+1. Files changed.
+2. Number of curated entries attempted.
+3. Number imported.
+4. Number rewritten due to collision, with original item numbers and before/after hooks.
+5. Number rejected, if any, with reason.
+6. Exact duplicate count before/after.
+7. Skeleton duplicate count before/after.
+8. Bigram-Jaccard collision count before/after.
+9. Voice cluster distribution.
+10. Hook style distribution.
+11. Setting distribution.
+12. Anchor distribution summary.
+13. Comedy family distribution summary.
+14. Runtime import surface confirmation.
+15. Production flag remains OFF.
+16. W2 OFF header still dev/test-only.
+17. W2 ON mini-sweep results.
+18. W2 OFF mini-sweep results.
+19. Non-Western leak smoke results.
+20. Typecheck result.
+21. Test result.
+
+Acceptance gates:
+- 100 total curated W2-BATCH-NEXT items imported or collision-rewritten into approved W2 path.
+- 0 exact hook duplicates.
+- 0 normalized hook duplicates.
+- 0 normalized skeleton duplicates.
+- 0 unsafe screen/privacy scenarios.
+- 0 direct runtime usage of WESTERN_HOOK_PACK_DRAFT.
+- Production remains OFF.
+- Old corpus remains active.
+- W2-K2 2-of-3 behavior does not regress.
+- W2 OFF produces 0 W2.
+- Non-Western leaks = 0.
+- Typecheck clean.
+- Tests pass.
+
+Do not mark GO unless all acceptance gates are met.
+If exact dedupe against userBlessedHookCorpus.ts or another existing corpus file is not possible due to import/access constraints, stop and report exactly what could not be checked. Do not pretend dedupe passed.
