@@ -190,6 +190,7 @@ import {
   getRecentSeenSkeletons,
   recordSeenSkeletons,
 } from "./catalogTemplateCreatorMemory.js";
+import { applyFirstCardQualityBandRotation } from "./firstCardQualityBandRotation.js";
 import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
@@ -5882,6 +5883,53 @@ export async function runHybridIdeator(
   // preserved (cap operates on `score.total`, ranker on the
   // separate `willingnessScore` axis).
   final = annotateAndSortByWillingness(final);
+  // PHASE W2-QA-FIX-2 — cold-start first-card quality-band rotation.
+  // W2-QA-AUDIT-2 (`.local/W2QA_AUDIT_2_POST_MERGE_SLOT0.md`) found
+  // that the willingness re-sort above produces a deterministic
+  // top-1 winner (most often `pattern_variation` "the fridge knows
+  // i'm lying") for every fresh creator with empty taste
+  // calibration — 9/10 cold-start sweeps showed the SAME idea[0].
+  // The rotation:
+  //   • Runs ONLY when `regenerate === false` AND `creatorId` is
+  //     non-empty (cold-start gate; refresh batches keep the pure
+  //     willingness order so freshness signal stays authoritative).
+  //   • Swaps slot-0 with a same-tier near-equal-willingness
+  //     candidate keyed on `fnv1a(creatorId)`. Pure deterministic.
+  //   • Pure reorder: same length, same idea set; only positions 0
+  //     and the swap target change. Cache-write order downstream
+  //     mirrors the swap.
+  //   • Never promotes an ineligible-tier candidate above an
+  //     eligible leader (tier check inside the helper).
+  //   • Never promotes a candidate outside the K-point quality
+  //     band — `K=10` keeps the band tight (FIRST_CARD_QUALITY_BAND_K).
+  // Cohort-agnostic: NG / India / PH cold-start cohorts share the
+  // same "10 fresh creators see the same first card" failure mode
+  // (their slot-0 reservation is also subject to the willingness
+  // re-sort), so applying the rotation unconditionally on cold-
+  // start is correct.
+  {
+    const cidForRotation = input.creator?.id;
+    // Composite cold-start gate (architect feedback): `!regenerate`
+    // alone is too broad — a returning creator's first request of
+    // a new session is also `regenerate=false` but DOES have memory
+    // populated, and the willingness ranker already encodes that
+    // memory via score.freshness / score.personalFit. So we additionally
+    // require the most authoritative empty-memory signal in scope:
+    // `noveltyContext.recentIdeaCoreFamilies` empty (set across every
+    // cohort — Western, NG, IN, PH — via `buildNoveltyContext`). Both
+    // conditions must hold ⇒ true cold-start ⇒ rotate. Either condition
+    // failing ⇒ pure willingness order ships unchanged.
+    const recentCoreFamilies = noveltyContext.recentIdeaCoreFamilies;
+    const memoryEmpty = (recentCoreFamilies?.size ?? 0) === 0;
+    if (
+      !regenerate &&
+      memoryEmpty &&
+      typeof cidForRotation === "string" &&
+      cidForRotation.length > 0
+    ) {
+      final = applyFirstCardQualityBandRotation(final, cidForRotation);
+    }
+  }
   const ideas = gate(final.map((c) => c.idea));
   // Persist as entries so the next regenerate has family +
   // templateId for HARD exclusion, not just hook strings.
