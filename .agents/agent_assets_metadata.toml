@@ -347,3 +347,33 @@ id = "tYr9ZidP6Gr4poDqG_ZNi"
 uri = "file://.local/W2R_CLOSEOUT_REPORT.md"
 type = "text"
 title = "W2-R Closeout Report"
+
+[[outputs]]
+id = "38SJjmaKZ71M12gY3t8lg"
+uri = "file://.local/W2QA_REFRESH_EXPERIENCE_REPORT.md"
+type = "text"
+title = "W2-QA Refresh Experience Report + Final Verdict"
+
+[[outputs]]
+id = "TE_MGC3jFKHEod2alpN9m"
+uri = "file://.local/W2QA_FIRST_IMPRESSION_REPORT.md"
+type = "text"
+title = "W2-QA First-Impression Report"
+
+[[outputs]]
+id = "6H3ITUly83uEfP4UTNHFb"
+uri = "file://.local/qa-runs/w2qa_top_bottom.md"
+type = "text"
+title = "Top 20 / Bottom 20 ideas"
+
+[[outputs]]
+id = "FM80f0LY9qMFp_5TXDV11"
+uri = "file://.local/qa-runs/w2qa_failure_patterns.md"
+type = "text"
+title = "Failure patterns"
+
+[[outputs]]
+id = "XELfc2fV4kJvNCtbqWrXc"
+uri = "file://.local/qa-runs/w2qa_editorial_sample.md"
+type = "text"
+title = "30-batch editorial sample (full text)"
