@@ -293,3 +293,9 @@ id = "ZB7r4GktNKxD9nn_fEnvW"
 uri = "file://.local/W2T_CLOSEOUT_REPORT.md"
 type = "text"
 title = "W2-T / W2-U3 Closeout Report"
+
+[[outputs]]
+id = "FOaVdh5js9aedax5FtOOl"
+uri = "file://.local/W2V_LIVE_PROBE_REPORT.md"
+type = "text"
+title = "W2-V LIVE Multi-Creator Probe Report"
