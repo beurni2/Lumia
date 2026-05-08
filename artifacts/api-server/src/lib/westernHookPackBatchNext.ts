@@ -1946,7 +1946,9 @@
     if (typeof id !== "string") return null;
     // Order matters: the W2-N prefix `w2_next2_` shares the prefix
     // `w2_next` with the W2-L prefix `w2_next_`, so check the longer
-    // (more specific) prefix first.
+    // (more specific) prefix first. The W2-T prefix `w2_t_diversity_`
+    // does not collide with either but is checked alongside.
+    if (id.startsWith("w2_t_diversity_")) return "W2-T-DIVERSITY";
     if (id.startsWith("w2_next2_")) return "W2-BATCH-NEXT-2";
     if (id.startsWith("w2_next_")) return "W2-BATCH-NEXT";
     return null;

@@ -34,6 +34,10 @@ import {
   WESTERN_HOOK_PACK_BATCH_NEXT2,
   WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
 } from "../westernHookPackBatchNext2.js";
+import {
+  WESTERN_HOOK_PACK_DIVERSITY,
+  WESTERN_HOOK_PACK_DIVERSITY_IDS,
+} from "../westernHookPackDiversity.js";
 
 // ---------------------------------------------------------------- //
 // Editorial-cleanliness helpers (mirror the W2-D ranker rubric).
@@ -115,6 +119,13 @@ const VISIBLE_ACTION_VERBS = new Set([
   "inspects", "inspected", "inspecting", "say", "says", "said",
   "saying", "appears", "appear", "appeared", "ends", "end", "ended",
   "ending", "raises",
+  // PHASE W2-T additions — verbs that appear in the W2-T-DIVERSITY
+  // curated whatToShow lines. Same intent as the W2-I/W2-L/W2-N sets.
+  "stride", "strides", "strided", "striding", "grip", "grips", "gripped",
+  "gripping", "hype", "hypes", "hyped", "hyping", "approach", "approaches",
+  "approached", "approaching", "sink", "sinks", "sank", "sunk", "sinking",
+  "folding", "lose", "loses", "lost", "losing", "stuff", "stuffs", "stuffed",
+  "stuffing",
 ]);
 
 function tokens(s: string): string[] {
@@ -137,9 +148,9 @@ function normalizeHookSkeleton(hook: string): string {
 // ---------------------------------------------------------------- //
 
 describe("W2-I — approved Western promotion pool (dark)", () => {
-  it("contains exactly 300 entries (W2-I draft promotion 100 + W2-L curated 100 + W2-N curated 100)", () => {
-    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(300);
-    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(300);
+  it("contains exactly 400 entries (W2-I draft promotion 100 + W2-L curated 100 + W2-N curated 100 + W2-T diversity 100)", () => {
+    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(400);
+    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(400);
   });
 
   it("ids match the candidate ids in order", () => {
@@ -269,6 +280,8 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "westernHookPackBatchNext.ts"),
       // W2-N — curated batch source (imported by westernHookPackApproved.ts only)
       path.join("lib", "westernHookPackBatchNext2.ts"),
+      // W2-T — curated diversity batch source (imported by westernHookPackApproved.ts only)
+      path.join("lib", "westernHookPackDiversity.ts"),
       // PHASE W2-N runtime exposure smoke (QA-only / dev-only test)
       path.join("lib", "__tests__", "w2nRuntimeExposureSmoke.test.ts"),
       // PHASE W2-O — live pool derives from the staging pool via the
@@ -584,6 +597,148 @@ describe("W2-N — curated batch metadata preservation (W2-BATCH-NEXT-2)", () =>
 
   it("whyThisWorks is intentionally NOT carried on the runtime entry", () => {
     for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect((e as Record<string, unknown>).whyThisWorks).toBeUndefined();
+    }
+  });
+});
+
+// ---------------------------------------------------------------- //
+// PHASE W2-T — curated diversity batch metadata preservation         //
+// ---------------------------------------------------------------- //
+
+describe("W2-T — curated diversity batch metadata preservation (W2-T-DIVERSITY)", () => {
+  it("WESTERN_HOOK_PACK_DIVERSITY contains exactly 100 entries", () => {
+    expect(WESTERN_HOOK_PACK_DIVERSITY.length).toBe(100);
+    expect(WESTERN_HOOK_PACK_DIVERSITY_IDS.length).toBe(100);
+  });
+
+  it("every entry preserves voiceCluster from the curated source (vocab member)", () => {
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(e.voiceCluster, `${e.id} missing voiceCluster`).toBeTruthy();
+      expect(
+        WESTERN_VOICE_CLUSTERS.includes(e.voiceCluster as never),
+        `${e.id} voiceCluster '${String(e.voiceCluster)}' not in vocab`,
+      ).toBe(true);
+    }
+  });
+
+  it("every entry preserves hookStyle from the curated source (vocab member)", () => {
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(e.hookStyle, `${e.id} missing hookStyle`).toBeTruthy();
+      expect(
+        WESTERN_BATCH_HOOK_STYLES.includes(e.hookStyle as never),
+        `${e.id} hookStyle '${String(e.hookStyle)}' not in vocab`,
+      ).toBe(true);
+    }
+  });
+
+  it("every entry preserves originalBatchNumber matching its id suffix", () => {
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(e.originalBatchNumber, `${e.id} missing originalBatchNumber`)
+        .toBeTypeOf("number");
+      const suffix = e.id.slice("w2_t_diversity_".length);
+      expect(parseInt(suffix, 10)).toBe(e.originalBatchNumber);
+      expect(e.originalBatchNumber!).toBeGreaterThanOrEqual(1);
+      expect(e.originalBatchNumber!).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("getWesternEntrySourceBatch derives 'W2-T-DIVERSITY' for every diversity id", () => {
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(getWesternEntrySourceBatch(e.id)).toBe("W2-T-DIVERSITY");
+    }
+    // The W2-N and W2-L prefixes must still resolve to their labels.
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(getWesternEntrySourceBatch(e.id)).toBe("W2-BATCH-NEXT-2");
+    }
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT) {
+      expect(getWesternEntrySourceBatch(e.id)).toBe("W2-BATCH-NEXT");
+    }
+  });
+
+  it("safetyNote is preserved when present (non-empty string) and absent otherwise", () => {
+    let withSafety = 0;
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      if (e.safetyNote !== undefined) {
+        expect(typeof e.safetyNote).toBe("string");
+        expect(e.safetyNote.trim().length).toBeGreaterThan(0);
+        withSafety++;
+      }
+    }
+    // The W2-T-DIVERSITY batch carries non-"None." notes on a
+    // meaningful subset (the parked-car block alone supplies ~12).
+    expect(withSafety).toBeGreaterThanOrEqual(15);
+  });
+
+  it("howToFilm is per-entry deterministic (no generic single-static template, all distinct)", () => {
+    const generic = /Single static shot, framed on/i;
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(
+        generic.test(e.howToFilm),
+        `${e.id} uses banned generic template`,
+      ).toBe(false);
+    }
+    const set = new Set(WESTERN_HOOK_PACK_DIVERSITY.map((e) => e.howToFilm));
+    expect(set.size).toBe(WESTERN_HOOK_PACK_DIVERSITY.length);
+  });
+
+  it("howToFilm includes a concrete noun/action token from the entry's whatToShow", () => {
+    const STOP = new Set([
+      "with", "from", "into", "that", "this", "your", "they", "them",
+      "have", "been", "then", "than", "like", "just", "shot", "take",
+      "framed", "static", "single", "phone", "tripod", "locked",
+      "instructions", "filming",
+    ]);
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      const wts = new Set(
+        (e.whatToShow.toLowerCase().match(/[a-z]+/g) ?? []).filter(
+          (t) => t.length >= 4 && !STOP.has(t),
+        ),
+      );
+      const hf = new Set(
+        (e.howToFilm.toLowerCase().match(/[a-z]+/g) ?? []).filter(
+          (t) => t.length >= 4 && !STOP.has(t),
+        ),
+      );
+      let shared = 0;
+      for (const t of hf) if (wts.has(t)) shared++;
+      expect(
+        shared,
+        `${e.id} howToFilm shares only ${shared} substantive tokens with whatToShow`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("captions are 100% distinct within the batch AND vs the W2-L/W2-N batches", () => {
+    const set = new Set(WESTERN_HOOK_PACK_DIVERSITY.map((e) => e.caption));
+    expect(set.size).toBe(WESTERN_HOOK_PACK_DIVERSITY.length);
+    const others = new Set([
+      ...WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.caption),
+      ...WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.caption),
+    ]);
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(
+        others.has(e.caption),
+        `${e.id} caption collides with W2-L/W2-N: "${e.caption}"`,
+      ).toBe(false);
+    }
+  });
+
+  it("hooks are 100% distinct vs the W2-L and W2-N batches", () => {
+    const otherHooks = new Set([
+      ...WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.hook.toLowerCase().trim()),
+      ...WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.hook.toLowerCase().trim()),
+    ]);
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
+      expect(
+        otherHooks.has(e.hook.toLowerCase().trim()),
+        `${e.id} hook duplicates W2-L/W2-N: "${e.hook}"`,
+      ).toBe(false);
+    }
+  });
+
+  it("whyThisWorks is intentionally NOT carried on the runtime entry", () => {
+    for (const e of WESTERN_HOOK_PACK_DIVERSITY) {
       expect((e as Record<string, unknown>).whyThisWorks).toBeUndefined();
     }
   });

@@ -37,11 +37,12 @@ import { scoreHookQuality } from "../hookQuality.js";
 import type { ScoredCandidate } from "../ideaScorer.js";
 import type { WesternHookPackDraftEntry } from "../westernHookPack.js";
 
-type SourceBlock = "W2-I" | "W2-L" | "W2-N";
+type SourceBlock = "W2-I" | "W2-L" | "W2-N" | "W2-T";
 
 /** Bucket by the SOURCE-TABLE entry.id (e.g. `w2_next2_001`), NOT the
  *  hashed runtime `w2EntryIdOf` value. */
 function bucketOf(sourceId: string): SourceBlock {
+  if (sourceId.startsWith("w2_t_diversity_")) return "W2-T";
   if (sourceId.startsWith("w2_next2_")) return "W2-N";
   if (sourceId.startsWith("w2_next_")) return "W2-L";
   return "W2-I";
@@ -62,6 +63,7 @@ function authorAll(entries: readonly WesternHookPackDraftEntry[]): {
     "W2-I": new Map(),
     "W2-L": new Map(),
     "W2-N": new Map(),
+    "W2-T": new Map(),
   };
   for (const entry of entries) {
     const block = bucketOf(entry.id);
@@ -162,18 +164,18 @@ function syntheticNonW2Batch(n: number): ScoredCandidate[] {
 describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
   const approvedPool = APPROVED_WESTERN_PROMOTION_CANDIDATES;
 
-  it("approved pool contains exactly 100 entries from each source block (W2-I / W2-L / W2-N)", () => {
-    const tally: Record<SourceBlock, number> = { "W2-I": 0, "W2-L": 0, "W2-N": 0 };
+  it("approved pool contains exactly 100 entries from each source block (W2-I / W2-L / W2-N / W2-T)", () => {
+    const tally: Record<SourceBlock, number> = { "W2-I": 0, "W2-L": 0, "W2-N": 0, "W2-T": 0 };
     for (const entry of approvedPool) {
       tally[bucketOf(entry.id)]++;
     }
-    expect(approvedPool.length).toBe(300);
-    expect(tally).toEqual({ "W2-I": 100, "W2-L": 100, "W2-N": 100 });
+    expect(approvedPool.length).toBe(400);
+    expect(tally).toEqual({ "W2-I": 100, "W2-L": 100, "W2-N": 100, "W2-T": 100 });
   });
 
   it("the real W2 author + validator pipeline produces ≥1 authored candidate per source block; surfaces per-block fail-reason distribution", () => {
     const { authored, failsByBlock } = authorAll(approvedPool);
-    const okByBlock: Record<SourceBlock, number> = { "W2-I": 0, "W2-L": 0, "W2-N": 0 };
+    const okByBlock: Record<SourceBlock, number> = { "W2-I": 0, "W2-L": 0, "W2-N": 0, "W2-T": 0 };
     for (const a of authored) okByBlock[a.block]++;
 
     // Surface per-block authoring stats so the QA reader sees exactly
@@ -184,8 +186,9 @@ describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
       "W2-I": {},
       "W2-L": {},
       "W2-N": {},
+      "W2-T": {},
     };
-    for (const block of ["W2-I", "W2-L", "W2-N"] as const) {
+    for (const block of ["W2-I", "W2-L", "W2-N", "W2-T"] as const) {
       for (const [, reason] of failsByBlock[block]) {
         reasonsByBlock[block][reason] = (reasonsByBlock[block][reason] ?? 0) + 1;
       }
@@ -204,6 +207,7 @@ describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
     expect(okByBlock["W2-I"]).toBeGreaterThanOrEqual(1);
     expect(okByBlock["W2-L"]).toBeGreaterThanOrEqual(1);
     expect(okByBlock["W2-N"]).toBeGreaterThanOrEqual(1);
+    expect(okByBlock["W2-T"]).toBeGreaterThanOrEqual(1);
   });
 
   it("with flag ON + region=western + clean: slot reservation reserves a W2 entry from the pool (proves W2 author gate is reachable end-to-end)", () => {
@@ -389,6 +393,7 @@ describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
         "W2-I": 0,
         "W2-L": 0,
         "W2-N": 0,
+        "W2-T": 0,
       };
       for (const a of top12) topBlocks[a.block]++;
 
@@ -419,9 +424,9 @@ describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
       );
 
       // Only assert the live-runtime invariant: salt rotation reaches
-      // ALL three source blocks (which is what hybridIdeator relies
-      // on to expose the full 300-entry pool over many requests).
-      expect(blocksHitOverSalt.size).toBe(3);
+      // ALL four source blocks (which is what hybridIdeator relies
+      // on to expose the full 400-entry pool over many requests).
+      expect(blocksHitOverSalt.size).toBe(4);
     } finally {
       delete process.env[WESTERN_APPROVED_POOL_FEATURE_FLAG_ENV];
     }

@@ -45,6 +45,10 @@
     WESTERN_HOOK_PACK_BATCH_NEXT2,
     WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
   } from "./westernHookPackBatchNext2.js";
+  import {
+    WESTERN_HOOK_PACK_DIVERSITY,
+    WESTERN_HOOK_PACK_DIVERSITY_IDS,
+  } from "./westernHookPackDiversity.js";
   import type { Region } from "@workspace/lumina-trends";
   import type { LanguageStyle } from "./tasteCalibration.js";
 
@@ -1669,12 +1673,14 @@
     ...W2I_DRAFT_PROMOTION_IDS,
     ...WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
     ...WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
+    ...WESTERN_HOOK_PACK_DIVERSITY_IDS,
   ]);
 
   export const APPROVED_WESTERN_PROMOTION_CANDIDATES: readonly WesternHookPackDraftEntry[] = Object.freeze([
     ...W2I_DRAFT_PROMOTION_CANDIDATES,
     ...WESTERN_HOOK_PACK_BATCH_NEXT,
     ...WESTERN_HOOK_PACK_BATCH_NEXT2,
+    ...WESTERN_HOOK_PACK_DIVERSITY,
   ]);
 
   /**
@@ -1699,9 +1705,9 @@
   } {
     const failures: string[] = [];
 
-    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 300) {
+    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 400) {
       failures.push(
-        `approved_count_must_be_300 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
+        `approved_count_must_be_400 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
       );
     }
 
@@ -1710,11 +1716,15 @@
     const batchNext2Ids = new Set(
       WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.id),
     );
+    const diversityIds = new Set(
+      WESTERN_HOOK_PACK_DIVERSITY.map((e) => e.id),
+    );
     for (const e of APPROVED_WESTERN_PROMOTION_CANDIDATES) {
       if (
         !draftIds.has(e.id) &&
         !batchNextIds.has(e.id) &&
-        !batchNext2Ids.has(e.id)
+        !batchNext2Ids.has(e.id) &&
+        !diversityIds.has(e.id)
       ) {
         failures.push(`approved_id_not_in_draft_or_batch_next:${e.id}`);
       }
@@ -1752,6 +1762,16 @@
     if (!batchNext2Check.ok) {
       for (const f of batchNext2Check.failures) {
         failures.push(`underlying_batch_next2_failure:${f}`);
+      }
+    }
+
+    // PHASE W2-T — same treatment for the W2-T-DIVERSITY source.
+    const diversityCheck = checkWesternHookPackDraftIntegrity(
+      WESTERN_HOOK_PACK_DIVERSITY,
+    );
+    if (!diversityCheck.ok) {
+      for (const f of diversityCheck.failures) {
+        failures.push(`underlying_diversity_failure:${f}`);
       }
     }
 
