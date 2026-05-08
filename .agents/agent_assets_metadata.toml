@@ -287,3 +287,9 @@ id = "g6coTxcM3x1m0PgcesHzT"
 uri = "file://.local/W2U2_REGRESSION_REPORT.md"
 type = "text"
 title = "W2-U2 Regression Report"
+
+[[outputs]]
+id = "ZB7r4GktNKxD9nn_fEnvW"
+uri = "file://.local/W2T_CLOSEOUT_REPORT.md"
+type = "text"
+title = "W2-T / W2-U3 Closeout Report"
