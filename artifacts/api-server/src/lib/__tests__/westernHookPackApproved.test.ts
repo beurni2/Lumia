@@ -176,16 +176,25 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("approved pool is NOT imported by any runtime path", () => {
-    // Dark-infrastructure invariant: only the approved module itself,
-    // its dedicated test, and the QA driver may reference it. No
-    // runtime path may import it. Ripgrep over src/ excluding those
-    // three files is the cheapest reliable check.
+  it("approved pool is only imported by the W2-K/W2-K2 runtime allowlist", () => {
+    // Originally a dark-infrastructure invariant (no runtime importers
+    // at all). PHASE W2-K intentionally activated the approved pool
+    // as a Western promotion runtime; PHASE W2-K2 extended the wiring
+    // for cross-batch dedup. The guard now asserts the importer set
+    // is exactly the W2-K/W2-K2 allowlist plus the module itself,
+    // its dedicated test, and the QA driver — no NEW accidental
+    // importers may appear.
     const repoSrc = path.resolve(__dirname, "..", "..");
     const allowedSuffixes = [
       path.join("lib", "westernHookPackApproved.ts"),
       path.join("lib", "__tests__", "westernHookPackApproved.test.ts"),
       path.join("qa", "buildWesternDraftQa.ts"),
+      // W2-K runtime activation
+      path.join("lib", "hybridIdeator.ts"),
+      path.join("lib", "westernPackSlotReservation.ts"),
+      path.join("lib", "westernPackAuthor.ts"),
+      // W2-K2 — meta scoring extension
+      path.join("lib", "ideaScorer.ts"),
     ];
 
     function walk(dir: string): string[] {
