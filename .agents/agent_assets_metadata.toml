@@ -299,3 +299,15 @@ id = "FOaVdh5js9aedax5FtOOl"
 uri = "file://.local/W2V_LIVE_PROBE_REPORT.md"
 type = "text"
 title = "W2-V LIVE Multi-Creator Probe Report"
+
+[[outputs]]
+id = "JHbamFBSJQipXUGIKFt6K"
+uri = "file://.local/W2R_BASELINE_DIVERSITY_REPORT.md"
+type = "text"
+title = "W2-R Baseline Diversity Report"
+
+[[outputs]]
+id = "rhbf3xxw0Eq9sC5cArX1R"
+uri = "file://.local/W2R_DIAGNOSIS_REPORT.md"
+type = "text"
+title = "W2-R Diagnosis Report (Task 1)"
