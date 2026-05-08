@@ -1,0 +1,502 @@
+PHASE W2-R — Memory + Diversity Control + Optional Taste-Gated Deterministic Variation
+
+Objective:
+Improve the real creator experience after W2-O / W2-P / W2-T / W2-V by making Western/clean idea refreshes feel fresher, more diverse, more human, and less repetitive across batches.
+
+This is NOT a corpus-expansion phase.
+This is NOT a W2-O redo.
+This is NOT a provider/Claude/prompt phase.
+This is NOT a generic “memory architecture” project.
+This is NOT a random variation engine.
+
+The product goal:
+Every batch should feel like a funny human creator with taste selected three different, filmable ideas — not like a system is recycling the same joke shape.
+
+Current state:
+- W2-O live pool architecture is GO.
+- W2-P repair/live closeout is GO.
+- W2-T diversity batch is integrated.
+- W2-U2 polish is GO.
+- W2-V exposure diagnosis is GO.
+- WESTERN_HOOK_PACK_LIVE = 355.
+- W2-T exposure is healthy:
+  - W2-T = 26.3% of W2 picks.
+  - refresh-only W2-T = 29.5%.
+- Source mix is healthy:
+  - W2-I = 30.1%.
+  - W2-L = 24.7%.
+  - W2-T = 26.3%.
+  - W2-N = 18.8%.
+- In-batch duplicate failures = 0.
+- Claude fallback ≈ 1%.
+- Production W2 remains OFF.
+- The W2-T “missing exposure” issue was a smoke-harness classifier bug, not a runtime selector defect.
+- Do not implement W2-T source-mix fixes.
+
+Main remaining product concern:
+Even with a strong 355-entry live pool, the experience can still feel repetitive if refreshes repeatedly surface similar:
+- anchors
+- settings
+- hook skeletons
+- comedy families
+- hook styles
+- phone/screen-led vibes
+- desk/productivity vibes
+- support-copy templates
+- first-batch W2-I-heavy patterns
+
+W2-R goal:
+Use existing memory and deterministic scoring overlays to improve:
+1. cross-refresh novelty
+2. in-batch diversity
+3. creator-specific recent-exposure suppression
+4. first-batch and refresh-depth variety where safe
+5. support-copy freshness only if it can stay human/tasteful
+
+Hard rules:
+- Do not change production flags.
+- Do not enable W2 in production.
+- Do not loosen validators.
+- Do not change ideaSchema.
+- Do not change Claude prompts.
+- Do not increase Claude usage.
+- Do not add migrations unless explicitly approved.
+- Do not add new database tables.
+- Prefer existing JSONB / existing creator memory fields if persistence is needed.
+- Do not change Nigerian/Pidgin/N1 behavior.
+- Do not change India/Philippines behavior.
+- Do not redo W2-O.
+- Do not import another batch.
+- Do not hard-force W2-T quota.
+- Do not weaken anti-repeat / anti-copy gates.
+- Do not make random or non-deterministic selection changes.
+- Do not ship any change that makes ideas feel more automated, templated, generic, or less human.
+- Quality/taste beats novelty mechanics.
+
+Important product standard:
+The ideas, hooks, scenarios, captions, howToFilm, and Film This Now guidance must feel human, creator-native, realistic, funny, and filmable.
+
+Do not optimize for mechanical diversity if the result feels worse.
+Do not add “clever” automation that creates generic output.
+Do not vary hooks or scenarios in this phase.
+Do not touch the core premise of any curated idea.
+
+Required first step:
+Before editing app logic, produce W2-R diagnosis and baseline reports.
+
+---
+
+TASK 1 — Map Current Western Memory / Selection System
+
+Document the current path for Western/clean idea generation:
+
+- /api/ideator/generate route
+- hybridIdeator path
+- Western live/approved pool gate
+- where WESTERN_HOOK_PACK_LIVE is read
+- how W2 candidates are authored
+- how runtime telemetry IDs map back to source blocks
+- where source blocks are known/lost
+- how candidates are scored
+- where per-core best-pick collapse happens
+- where memory/recent-entry suppression happens
+- how current memory is read/written
+- what creator fields currently store recent ideas
+- what in-process demo memory exists
+- what persists between refreshes
+- how regenerate=true changes selection
+- where anti-repeat gates run
+- where skeleton/anchor/entryId dedupe happens
+- where willingness/hero/retention/novelty scores apply
+- where W2-M local-first fallback skips Claude
+- why first-batch currently skews W2-I
+- whether first-batch W2-I bias is actually harming batch diversity or just source attribution
+
+Output:
+Create `.local/W2R_DIAGNOSIS_REPORT.md`.
+
+The report must include:
+- current flow
+- existing memory fields
+- existing scoring overlays
+- existing dedupe gates
+- existing novelty controls
+- current risk areas
+- recommended minimal implementation plan
+- explicit “do not implement” list
+
+Do not change product code during Task 1.
+
+---
+
+TASK 2 — Baseline Refresh Diversity Harness
+
+Create or extend a report-only W2-R QA harness.
+
+Run Western/clean LIVE dev/staging sweeps:
+
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- 10 creators
+- 20 batches per creator if feasible
+- count=3
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+- fresh memory per creator
+- x-lumina-qa-expose-meta:1
+
+Measure per creator and aggregate:
+
+Basic:
+- total ideas
+- total W2 ideas
+- source mix W2-I / W2-L / W2-N / W2-T
+- core_native / pattern_variation count
+- fallback count
+- latency avg/min/max
+- errors
+
+Repeat / novelty:
+- exact hook repeats per creator
+- entryId repeats per creator
+- normalized hook-skeleton repeats per creator
+- anchor repeats per creator
+- setting repeats per creator
+- comedyFamily repeats per creator
+- emotionalSpike repeats per creator
+- hookStyle repeats per creator
+- source-block streaks
+- top repeated anchors
+- top repeated settings
+- top repeated comedy families
+- top repeated skeletons
+
+Batch-level diversity:
+- in-batch duplicate entryId failures
+- in-batch duplicate hook-skeleton failures
+- in-batch duplicate anchor failures
+- same setting 3/3 batches
+- same comedyFamily 3/3 batches
+- all phone/screen-led 3/3 batches
+- all desk/productivity 3/3 batches
+- all couch/bedroom/kitchen 3/3 batches where avoidable
+- batch source composition
+- first-batch diversity
+- refresh-depth diversity
+
+Human/product quality sampling:
+For at least 20 sampled batches, report:
+- whether the 3 ideas feel meaningfully different
+- whether at least 1 idea feels instantly filmable
+- whether any idea feels generic/AI-ish
+- whether captions/howToFilm feel templated
+- whether the batch repeats the same “kind” of joke even if IDs differ
+
+Output:
+Create `.local/W2R_BASELINE_DIVERSITY_REPORT.md`.
+
+Do not implement changes yet.
+
+---
+
+TASK 3 — Define Acceptance Metrics Before Implementation
+
+Based on the baseline, define acceptance bars.
+
+Default target bars:
+
+Hard targets:
+- 0 exact hook repeats per creator across 20 batches.
+- 0 entryId repeats per creator across 20 batches.
+- 0 in-batch duplicate entryIds.
+- 0 in-batch duplicate hook skeletons.
+- 0 in-batch duplicate anchors where alternatives exist.
+- 0 non-Western W2 leaks.
+- 0 production flag changes.
+- Claude fallback remains rare, ideally ≤2%.
+- No latency regression versus W2-V baseline.
+- Existing tests remain green.
+
+Soft targets:
+- reduce repeated skeletons per creator materially.
+- reduce repeated anchors per creator materially.
+- reduce same-setting 3/3 batches.
+- reduce same-comedyFamily 3/3 batches.
+- reduce all-phone/screen-led 3/3 batches.
+- reduce all-desk/productivity 3/3 batches.
+- maintain W2-T share roughly in 15–30% range over refreshes, but do not hard quota W2-T.
+- first batch should feel diverse enough even if source mix remains W2-I-heavy.
+- every 3-card batch should feel like 3 meaningfully different opportunities.
+
+Human taste targets:
+- no change should make hooks worse.
+- no change should make scenarios less clear.
+- no change should make captions or howToFilm more generic.
+- support copy should feel human, specific, and filmable.
+- if a diversity mechanic makes the best idea worse, do not ship it.
+
+Output:
+Include acceptance bars in `.local/W2R_BASELINE_DIVERSITY_REPORT.md`.
+
+---
+
+TASK 4 — Implement Minimal W2-R Only If Baseline Shows Real Issues
+
+Do not implement architecture for its own sake.
+
+If the baseline shows refresh diversity is already strong enough, stop and recommend no-op.
+
+If the baseline shows meaningful repetition, implement the smallest safe change.
+
+Preferred implementation shape:
+
+A. Recent Exposure Ledger Overlay
+
+Use existing memory structures where possible.
+
+Track recent:
+- westernPackEntryId
+- runtime telemetry id if needed
+- sourceBlock
+- hook
+- normalized hook skeleton
+- anchor
+- setting
+- comedyFamily
+- emotionalSpike
+- hookStyle
+- contentType / filming mode if available
+- timestamp or batch depth
+- whether idea was shown / selected / opened / copied if already available
+
+Rules:
+- Do not create a new DB table.
+- Do not add a migration unless explicitly approved.
+- If persistence already exists in creator JSONB, extend it additively.
+- If only in-process demo memory exists for unauthenticated demo creators, preserve and document that behavior.
+- Must parse old memory documents safely.
+- Must default to empty arrays for older creators.
+- Must cap stored history to a reasonable size.
+- Must not break existing creator records.
+
+B. Cross-Refresh Penalties
+
+Add deterministic soft penalties for recently seen dimensions.
+
+Recommended behavior:
+- same entryId: hard reject or very strong penalty.
+- same exact hook: hard reject or very strong penalty.
+- same hook skeleton: strong penalty.
+- same anchor: medium penalty.
+- same setting: medium penalty.
+- same comedyFamily: medium penalty.
+- same hookStyle: light penalty.
+- same source block repeatedly: light penalty only if source imbalance is observed.
+
+Important:
+- Do not hard-ban quality winners except exact entryId / exact hook.
+- Use soft penalties so strong ideas can still win when alternatives are weak.
+- Do not punish first-session quality too aggressively.
+- Do not create a W2-T quota.
+- Do not weaken existing anti-copy/anti-repeat validators.
+
+C. In-Batch Diversity Guard
+
+When selecting 3 ideas:
+- no duplicate entryId
+- no duplicate hook skeleton
+- no duplicate anchor
+- avoid same setting 3/3 if alternatives exist
+- avoid same comedyFamily 3/3 if alternatives exist
+- avoid all phone/screen-led 3/3 if alternatives exist
+- avoid all desk/productivity 3/3 if alternatives exist
+- preserve max 2 W2 ideas / batch if that is still the intended W2-K2 rule
+- if the second W2 is not distinct enough, fill with old/core idea rather than forcing repetition
+- quality must still win over artificial variety
+
+D. First-Batch Diversity Nudge — Optional
+
+The W2-V probe showed first batch is 100% W2-I because of startIdx=0 / top-of-pool ordering.
+
+Do not “fix” this unless baseline shows first-batch quality/diversity is actually poor.
+
+Allowed minimal fix if needed:
+- soft diversity nudge within already-eligible first-batch candidates
+- no hard source quota
+- no W2-T forced first-card
+- no quality/rubric bypass
+- no memory regression
+- must preserve strong first impression
+
+Do not over-optimize source distribution if the visible ideas already feel diverse and great.
+
+E. Deterministic Variation — Optional, Taste-Gated, Support-Copy Only
+
+Do NOT implement deterministic variation unless the diagnosis shows repeated product-facing copy is hurting the refresh experience.
+
+Do NOT vary hooks in W2-R.
+Do NOT vary WHAT TO SHOW in W2-R.
+Do NOT create new premises.
+Do NOT use Claude or random LLM rewriting.
+Do NOT generate generic alternate wording.
+
+Allowed deterministic variation surfaces only if implemented safely:
+- captions
+- howToFilm phrasing
+- Film This Now copy
+- comfort-mode tips
+- text overlay suggestions
+
+Quality bar:
+Every variant must sound hand-written, creator-native, specific, funny, and clear.
+If a variant sounds generic, templated, overly clever, confusing, or AI-ish, it should not exist.
+
+Rules:
+- deterministic seed = creatorId + entryId + batchDepth or regenerateSalt.
+- preserve hook.
+- preserve anchor.
+- preserve whatToShow.
+- preserve safety note.
+- preserve core scenario.
+- preserve comedyFamily / emotionalSpike.
+- preserve filmability.
+- pass validators.
+- no new safety risk.
+- no hook-length risk.
+- no abstract “vibe” rewrites.
+- no “make it more creative” generation.
+
+Implementation preference:
+Start with memory and diversity control first.
+Only add deterministic variation if it is backed by hand-authored variant templates and tests.
+If the implementation would produce lower-taste copy, defer it.
+
+---
+
+TASK 5 — Tests
+
+Add targeted tests for any implemented changes.
+
+Required if memory/ledger changes are made:
+- recent exposure ledger parsing/back-compat
+- old creator memory records parse cleanly
+- empty/missing memory defaults safely
+- memory cap works
+- shown entryId is stored correctly
+- skeleton/anchor/setting/comedyFamily are stored correctly
+
+Required if scoring penalties are made:
+- exact entryId repeat suppression
+- exact hook repeat suppression
+- skeleton repeat penalty
+- anchor repeat penalty
+- setting repeat penalty
+- comedyFamily repeat penalty
+- no over-penalization when alternatives are weak
+- strong idea can still win if diversity alternatives are poor
+- deterministic behavior with same seed/context
+
+Required if in-batch diversity guard changes are made:
+- no duplicate entryId
+- no duplicate skeleton
+- no duplicate anchor
+- avoid same setting 3/3 when alternatives exist
+- avoid same comedyFamily 3/3 when alternatives exist
+- avoid all phone/screen-led 3/3 when alternatives exist
+- avoid all desk/productivity 3/3 when alternatives exist
+- no W2-T hard quota
+- max 2 W2/batch behavior preserved if existing rule still applies
+- fallback to old/core idea when second W2 is not distinct enough
+
+Required if deterministic variation is implemented:
+- same creatorId + entryId + batchDepth returns same variant
+- different seed can return different safe support copy
+- hook unchanged
+- whatToShow unchanged
+- anchor unchanged
+- safetyNote unchanged
+- no validator failure
+- no generic/blocked caption templates
+- no unsafe filming changes
+
+General:
+- non-Western cohorts unaffected
+- no NG/IN/PH leakage
+- no Claude fallback increase due to W2-R
+- existing W2-O/W2-P/W2-T/W2-V tests still pass
+
+Run:
+- full api-server tests
+- typecheck for affected packages
+
+---
+
+TASK 6 — Runtime QA After Implementation
+
+If changes are implemented, run the same W2-R harness post-change:
+
+- 10 creators
+- 20 batches per creator if feasible
+- Western/clean
+- LIVE flag ON dev/staging only
+- production flags untouched
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+- count=3
+- x-lumina-qa-expose-meta:1
+
+Compare before vs after:
+- exact hook repeats
+- entryId repeats
+- skeleton repeats
+- anchor concentration
+- setting concentration
+- comedyFamily concentration
+- hookStyle concentration
+- same-setting 3/3 batches
+- same-comedyFamily 3/3 batches
+- all-phone/screen 3/3 batches
+- all-desk/productivity 3/3 batches
+- source distribution
+- W2-T share
+- fallback count
+- latency
+- errors
+- qualitative batch diversity sample
+
+Acceptance:
+- diversity improves materially where baseline showed weakness
+- no quality/rubric regression
+- no validator loosening
+- no production flag changes
+- no non-Western leaks
+- no meaningful latency/fallback regression
+- no product-copy degradation
+- no human-taste regression
+
+Output:
+Create `.local/W2R_POST_CHANGE_REPORT.md`.
+
+---
+
+Deliverables
+
+1. `.local/W2R_DIAGNOSIS_REPORT.md`
+2. `.local/W2R_BASELINE_DIVERSITY_REPORT.md`
+3. implementation summary, only if changes are made
+4. tests added/updated, only if changes are made
+5. `.local/W2R_POST_CHANGE_REPORT.md`, only if changes are made
+6. final recommendation:
+   - GO
+   - GO with caveats
+   - NO-OP recommended
+   - revise/revert
+
+Decision rule:
+If diagnosis and baseline show current memory/diversity is already strong enough, stop and recommend no-op.
+If implementation would risk making ideas feel less human, stop and recommend no-op.
+If deterministic variation would produce generic support copy, defer it.
+If the only measured issue is first-batch W2-I source attribution but visible batch quality is good, do not patch.
+
+Final instruction:
+W2-R should make the app feel more human, fresh, diverse, and filmable. If a proposed change is technically interesting but does not improve the actual creator experience, do not implement it.
