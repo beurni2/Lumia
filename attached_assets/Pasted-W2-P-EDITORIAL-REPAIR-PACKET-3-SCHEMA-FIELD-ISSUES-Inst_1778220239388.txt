@@ -1,0 +1,1134 @@
+W2-P EDITORIAL REPAIR PACKET 3 — SCHEMA FIELD ISSUES
+
+Instructions for coding agent:
+Apply these as repair overrides by ID.
+Preserve stable IDs.
+Do not create new entries.
+Do not invent additional creative rewrites.
+For each repaired row, ensure the final runtime shape is valid:
+- hookSeconds within 1–3
+- shotPlan length >= 3 if required
+- required fields populated
+- controlled vocab values valid
+- safetyNote preserved where relevant
+- caption unique
+- howToFilm scenario-specific
+- no validator loosening
+
+---
+
+### w2_next_007
+Keep hook:
+I bought oat milk like an adult and it’s still unopened
+
+Replace whatToShow:
+Creator opens the fridge, proudly points to the unopened oat milk, then reaches around it for the regular milk like the oat milk was decorative.
+
+Replace howToFilm:
+Frame the fridge shelf clearly. Show the oat milk first like evidence of growth, then reach past it for the regular milk. End on a guilty look back at the unopened carton.
+
+Replace caption:
+oat milk was there for character development.
+
+Replace anchor:
+oat
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fridge and reveal unopened oat milk.
+2. Reach around it for the regular milk.
+3. Close on the guilty look back at the oat milk.
+
+---
+
+### w2_next_017
+Keep hook:
+I opened my bank app like it owed me emotional support
+
+Replace whatToShow:
+Creator opens a fake or blurred bank app, face starts hopeful, then goes blank before they close the phone with two careful fingers.
+
+Replace howToFilm:
+Use a staged or blurred banking screen. Start with hopeful body language, let the face drop, then close the phone slowly like ending a difficult conversation.
+
+Replace caption:
+bank app did not provide comfort.
+
+Replace anchor:
+bank
+
+Safety note:
+Use fake or blurred balance screen only.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fake or blurred bank app.
+2. Let hopeful expression turn blank.
+3. Close phone slowly with two fingers.
+
+---
+
+### w2_next_030
+Keep hook:
+The second text left my body before my pride could stop it
+
+Replace whatToShow:
+Creator shows a fake chat with two message bubbles, thumb hovers over delete even though the second text is already sent, then they stare into space.
+
+Replace howToFilm:
+Frame the fake chat. Show the second text already sent, hover over delete like it might help, then hold on the stare when pride realizes it arrived late.
+
+Replace caption:
+pride showed up after send.
+
+Replace anchor:
+second
+
+Safety note:
+Use fake chat text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show fake chat with the second text already sent.
+2. Hover over delete.
+3. End on the regret stare.
+
+---
+
+### w2_next_036
+Keep hook:
+“We should catch up” text I will never follow through on
+
+Replace whatToShow:
+Creator types “we should catch up” in a fake chat, smiles like a good person, then immediately closes the app and sets the phone face-down.
+
+Replace howToFilm:
+Use a staged chat. Type the friendly text, send it, then close the app with the calm of someone who knows no plans are happening.
+
+Replace caption:
+catching up was symbolic.
+
+Replace anchor:
+catch
+
+Safety note:
+Use fake chat text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Type “we should catch up” in fake chat.
+2. Send it with confidence.
+3. Close the app and set phone face-down.
+
+---
+
+### w2_next_048
+Keep hook:
+I wrote “email boss” on my list and it’s still there
+
+Replace whatToShow:
+Creator points to “email boss” on a staged to-do list, moves it to tomorrow’s list, then taps the paper like progress happened.
+
+Replace howToFilm:
+Shoot overhead at the to-do list. Show the task still sitting there, rewrite it onto tomorrow, then end with the proud tap.
+
+Replace caption:
+moved the task. healed nothing.
+
+Replace anchor:
+email
+
+Safety note:
+Use a staged task list.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show “email boss” on the list.
+2. Move it to tomorrow’s list.
+3. Tap the paper like the task was handled.
+
+---
+
+### w2_next_052
+Keep hook:
+I blocked my own calendar for “me time” and filled it
+
+Replace whatToShow:
+Creator shows a staged calendar block labeled “me time,” then drags another fake meeting/task over it until the block disappears.
+
+Replace howToFilm:
+Use a fake calendar screen. Show the “me time” block first, then cover it with another commitment. End on a small nod like self-care was rescheduled.
+
+Replace caption:
+me time lost the negotiation.
+
+Replace anchor:
+calendar
+
+Safety note:
+Use fake or blurred calendar details.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show fake “me time” calendar block.
+2. Add another task/meeting over it.
+3. End on the resigned nod.
+
+---
+
+### w2_next_072
+Keep hook:
+Analytics gave me hope and I punished the app for it
+
+Replace whatToShow:
+Creator sees a fake positive analytics number, smiles for half a second, then force-closes the app like hope was too much responsibility.
+
+Replace howToFilm:
+Use fake or blurred analytics. Let the tiny smile happen, then close the app too fast. Hold on the face that regrets being encouraged.
+
+Replace caption:
+analytics got too supportive.
+
+Replace anchor:
+analytics
+
+Safety note:
+Use fake or blurred analytics.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show fake positive analytics.
+2. Smile briefly.
+3. Force-close the app and freeze.
+
+---
+
+### w2_next_091
+Keep hook:
+Remote died during the one scene I was emotionally available for
+
+Replace whatToShow:
+Creator points remote at a staged paused TV setup, clicks several times, realizes the remote died, then slowly turns to stare at it.
+
+Replace howToFilm:
+Do not show copyrighted TV content clearly. Frame the remote and the reaction. The joke is the timing: click, fail, stare at the remote like it ruined the scene.
+
+Replace caption:
+remote chose the dramatic scene.
+
+Replace anchor:
+remote
+
+Safety note:
+Do not show copyrighted TV content clearly.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Aim remote at staged TV setup.
+2. Click repeatedly with no response.
+3. End on the betrayal stare at the remote.
+
+---
+
+### w2_next2_005
+Keep hook:
+I’m choosing the late fee because the mail looked at me weird
+
+Replace whatToShow:
+Creator walks past a stack of unopened mail, makes eye contact with it, places a coffee mug on top, and keeps walking like the mail started it.
+
+Replace howToFilm:
+Frame the hallway table and mail stack. Walk by, pause at the mail, put the mug on top like a lid, then exit without opening anything.
+
+Replace caption:
+mail blinked first.
+
+Replace anchor:
+mail
+
+Safety note:
+Hide names, addresses, and account details.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show unopened mail stack.
+2. Place mug on top.
+3. Walk away without opening it.
+
+---
+
+### w2_next2_007
+Keep hook:
+My LinkedIn profile and my actual soul have not met in years
+
+Replace whatToShow:
+Creator sits professionally at a laptop for one beat, then cuts to eating shredded cheese over the sink in a bathrobe.
+
+Replace howToFilm:
+Use a quick two-shot contrast. Start with the professional laptop posture, then cut to the private sink-cheese version with no explanation.
+
+Replace caption:
+LinkedIn has not been briefed.
+
+Replace anchor:
+LinkedIn
+
+Safety note:
+Do not show real LinkedIn/profile details.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show professional laptop posture.
+2. Cut to bathrobe at kitchen sink.
+3. Hold on the cheese-over-sink contrast.
+
+---
+
+### w2_next2_014
+Keep hook:
+How I look circling back on an email I definitely ignored
+
+Replace whatToShow:
+Creator wears sunglasses at the desk, opens a staged email reply, types “just circling back,” and glances around like hiding from accountability.
+
+Replace howToFilm:
+Use staged email text. Put on the sunglasses, type the corporate phrase slowly, then look over both shoulders before sending.
+
+Replace caption:
+circling back from the scene.
+
+Replace anchor:
+circling
+
+Safety note:
+Use staged email text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open staged ignored email.
+2. Type “just circling back.”
+3. Glance around before sending.
+
+---
+
+### w2_next2_018
+Keep hook:
+Calculating if I have enough social battery for a four-person dinner
+
+Replace whatToShow:
+Creator counts on fingers, recalculates silently, looks toward the couch, then lies face-down like the dinner math failed.
+
+Replace howToFilm:
+Frame the calculation. Count the imaginary people, pause at four, then collapse face-down as the final answer.
+
+Replace caption:
+four people was not in the budget.
+
+Replace anchor:
+battery
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Count social battery on fingers.
+2. Pause at four.
+3. Collapse face-down on couch.
+
+---
+
+### w2_next2_038
+Keep hook:
+I almost went out, then the floor made a better offer
+
+Replace whatToShow:
+Creator puts on one shoe in the hallway, pauses, looks at the floor, then slowly lies down with the shoe still on.
+
+Replace howToFilm:
+Frame the hallway and shoe. Show the going-out attempt, the pause, and the slow surrender to the floor.
+
+Replace caption:
+floor had better terms.
+
+Replace anchor:
+floor
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Put on one shoe.
+2. Pause and look at floor.
+3. Lie down with the shoe still on.
+
+---
+
+### w2_next2_042
+Keep hook:
+Waiting to speak on Zoom turned my face into a hostage video
+
+Replace whatToShow:
+Creator sits at a staged laptop meeting, frozen smile getting wider, leaning closer until only their eyes fill the camera.
+
+Replace howToFilm:
+Use a fake meeting screen or just the laptop camera angle. Start normal, hold the smile too long, then slowly lean into the camera.
+
+Replace caption:
+Zoom face needed supervision.
+
+Replace anchor:
+Zoom
+
+Safety note:
+Use staged meeting screen.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Sit in staged Zoom posture.
+2. Hold frozen smile too long.
+3. Lean close until eyes fill frame.
+
+---
+
+### w2_next2_045
+Keep hook:
+I walked into the room and my brain left the group chat
+
+Replace whatToShow:
+Creator walks into a room, stops, looks around with a system-error face, then walks back out without doing anything.
+
+Replace howToFilm:
+Use a doorway shot. Enter with purpose, freeze as the thought disappears, then exit like the room rejected the mission.
+
+Replace caption:
+brain disconnected in the doorway.
+
+Replace anchor:
+room
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Walk into room with purpose.
+2. Freeze and look around.
+3. Walk back out empty-handed.
+
+---
+
+### w2_next2_046
+Keep hook:
+Finding the end of the tape is my villain origin story
+
+Replace whatToShow:
+Creator rotates a roll of clear tape, scratches at the invisible edge, squints harder, then slowly loses composure.
+
+Replace howToFilm:
+Frame the tape close-up. Show the rotation, the scratching, the squinting, then the tiny breakdown over an invisible edge.
+
+Replace caption:
+tape chose psychological warfare.
+
+Replace anchor:
+tape
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Rotate clear tape.
+2. Scratch for the edge.
+3. End on the defeated stare.
+
+---
+
+### w2_next2_047
+Keep hook:
+The nice sweater was for a person I stopped being by 10am
+
+Replace whatToShow:
+Creator starts at the desk in a nice sweater, then reveals pajama pants, messy hair, and a coffee mug by 10am.
+
+Replace howToFilm:
+Start framed like a polished work-from-home shot. Then widen or tilt to reveal the 10am collapse below the sweater.
+
+Replace caption:
+sweater clocked out early.
+
+Replace anchor:
+sweater
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Start with polished sweater at desk.
+2. Reveal pajama pants and messy hair.
+3. End on the defeated coffee hold.
+
+---
+
+### w2_next2_051
+Keep hook:
+I said I was fine and made a sandwich with no witnesses
+
+Replace whatToShow:
+Creator sits alone at the kitchen table with a dry sandwich, stares at it, then takes one silent bite like the sandwich knows too much.
+
+Replace howToFilm:
+Keep it quiet and deadpan. Frame the dry sandwich, the stare, and the single bite. Do not overplay emotional distress.
+
+Replace caption:
+sandwich signed the NDA.
+
+Replace anchor:
+sandwich
+
+Safety note:
+Avoid framing mental-health distress as the joke.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show dry sandwich on table.
+2. Stare at it silently.
+3. Take one solemn bite.
+
+---
+
+### w2_next2_055
+Keep hook:
+I read the terms and conditions with my thumb, not my eyes
+
+Replace whatToShow:
+Creator scrolls fake terms and conditions at light speed, squints like they are studying, then taps accept with fake confidence.
+
+Replace howToFilm:
+Use a fake terms screen. Scroll way too fast, perform concentration with your face, then tap accept like you absorbed everything.
+
+Replace caption:
+thumb understood enough.
+
+Replace anchor:
+terms
+
+Safety note:
+Use fake terms screen.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show fake terms screen.
+2. Scroll too fast to read.
+3. Tap accept confidently.
+
+---
+
+### w2_next2_058
+Keep hook:
+I said there was food at home and the fridge disagreed
+
+Replace whatToShow:
+Creator opens the fridge, finds only a pickle jar or condiment, waits for more food to appear, then slowly closes the door.
+
+Replace howToFilm:
+Frame the empty fridge reveal. Hold on the lonely pickle jar, wait one beat too long, then close the fridge with quiet defeat.
+
+Replace caption:
+fridge said define food.
+
+Replace anchor:
+food
+
+Safety note:
+Hide delivery or address info if using phone later.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fridge.
+2. Reveal lonely pickle jar or condiment.
+3. Close fridge slowly.
+
+---
+
+### w2_next2_066
+Keep hook:
+I opened the dating app and remembered I have to be perceived
+
+Replace whatToShow:
+Creator opens a fake dating app profile, sees their own profile, turns the phone face-down, and sits extremely still.
+
+Replace howToFilm:
+Use a staged dating app screen. Show the profile briefly, then turn the phone over like being perceived was too much.
+
+Replace caption:
+dating app asked me to exist publicly.
+
+Replace anchor:
+dating
+
+Safety note:
+Use fake or staged dating screen.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fake dating profile.
+2. Look at own profile.
+3. Turn phone face-down and freeze.
+
+---
+
+### w2_next2_068
+Keep hook:
+I reacted with a heart and immediately questioned my whole personality
+
+Replace whatToShow:
+Creator taps a heart reaction on a staged message or post, freezes, tries to undo it, then redoes it and tosses the phone onto the couch.
+
+Replace howToFilm:
+Frame the staged reaction. Tap the heart, panic, undo and redo if needed, then toss the phone softly onto a cushion.
+
+Replace caption:
+heart reaction had consequences.
+
+Replace anchor:
+heart
+
+Safety note:
+Use fake or staged post/message.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Tap heart reaction.
+2. Freeze and reconsider.
+3. Toss phone onto couch cushion.
+
+---
+
+### w2_next2_070
+Keep hook:
+I muted the chat and still checked it like a clown
+
+Replace whatToShow:
+Creator toggles mute on a fake chat, sets the phone down with confidence, then immediately picks it back up to check the same chat.
+
+Replace howToFilm:
+Use a fake chat screen. Show the mute toggle, the confident phone-down moment, then the instant betrayal of checking again.
+
+Replace caption:
+muted chat, active clown.
+
+Replace anchor:
+muted
+
+Safety note:
+Use fake chat text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Toggle mute on fake chat.
+2. Set phone down confidently.
+3. Pick it back up immediately.
+
+---
+
+### w2_next2_074
+Keep hook:
+I checked my rewards points like they were going to save me
+
+Replace whatToShow:
+Creator opens a fake rewards points screen, sees a tiny balance, then nods like a financial plan has been discovered.
+
+Replace howToFilm:
+Frame the rewards screen safely. Show the tiny points balance, then hold on the serious nod that pretends this helps.
+
+Replace caption:
+rewards points had a meeting with hope.
+
+Replace anchor:
+rewards
+
+Safety note:
+Use fake rewards screen.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fake rewards screen.
+2. Show tiny points balance.
+3. Nod like it solved something.
+
+---
+
+### w2_next2_084
+Keep hook:
+Brushing my teeth turned into standing in the bathroom with a podcast
+
+Replace whatToShow:
+Creator stands at the bathroom mirror holding a toothbrush, podcast playing, not brushing, just staring like the bathroom became a waiting room.
+
+Replace howToFilm:
+Frame the mirror and toothbrush. Let the podcast play or show it staged on the phone, then hold on the non-brushing stare.
+
+Replace caption:
+toothbrush was present for moral support.
+
+Replace anchor:
+brushing
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Hold toothbrush at mirror.
+2. Show podcast playing.
+3. Stand there without brushing.
+
+---
+
+### w2_next2_090
+Keep hook:
+I changed into pajamas like I was clocking out of society
+
+Replace whatToShow:
+Creator walks into the hallway in normal clothes, cuts to pajamas, then gives the camera a formal clock-out nod.
+
+Replace howToFilm:
+Use a simple before/after hallway cut. Normal clothes first, pajamas second, then the formal nod like society has been dismissed.
+
+Replace caption:
+society shift ended.
+
+Replace anchor:
+pajamas
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show normal clothes in hallway.
+2. Cut to pajamas.
+3. Give a formal clock-out nod.
+
+---
+
+### w2_next2_093
+Keep hook:
+I opened the junk email and now the internet thinks I’m interested
+
+Replace whatToShow:
+Creator opens a fake junk email, then staged promo notifications begin appearing, and they slowly back away from the laptop.
+
+Replace howToFilm:
+Use fake inbox/promos. Show the accidental click, then a quick sequence of promo notifications. End with backing away.
+
+Replace caption:
+junk email told the whole internet.
+
+Replace anchor:
+email
+
+Safety note:
+Use staged inbox and notifications.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open fake junk email.
+2. Show staged promo notifications.
+3. Back away from laptop.
+
+---
+
+### w2_next2_098
+Keep hook:
+I tried to clean one drawer and found my entire past
+
+Replace whatToShow:
+Creator opens a drawer to clean it, pulls out old receipts, a random charger, and an expired coupon, then pauses like the drawer remembered too much.
+
+Replace howToFilm:
+Shoot the drawer from above. Pull out each object one at a time, then hold on the pause after the drawer becomes a time capsule.
+
+Replace caption:
+drawer had archival footage.
+
+Replace anchor:
+drawer
+
+Safety note:
+Hide personal documents.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open drawer to clean.
+2. Pull out old receipts, charger, coupon.
+3. Pause like the drawer got personal.
+
+---
+
+### w2_next2_100
+Keep hook:
+I bought a vacuum with a light and immediately understood adulthood
+
+Replace whatToShow:
+Creator turns on a vacuum with a light, sees dust appear on the floor, then stares at the light like adulthood just made sense.
+
+Replace howToFilm:
+Dim the room slightly if possible. Turn on the vacuum light, reveal the dust, then hold on the amazed adult realization.
+
+Replace caption:
+vacuum light changed the room.
+
+Replace anchor:
+vacuum
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Turn on vacuum light.
+2. Reveal dust on floor.
+3. Hold the amazed stare.
+
+---
+
+### W2A-007
+Keep hook:
+filming a gym story from the couch like nobody will notice
+
+Replace whatToShow:
+Creator films a fake gym story angle from the couch, shows only sneakers or a water bottle, then leans back into the cushions.
+
+Replace howToFilm:
+Frame it like a fitness post at first. Reveal the couch context at the end so the “gym story” collapses.
+
+Replace caption:
+gym story, couch production.
+
+Replace anchor:
+gym
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Film sneakers/water bottle like a gym story.
+2. Pull back to reveal couch.
+3. Lean back into cushions.
+
+---
+
+### W2A-046
+Keep hook:
+saying i'll start at 9:00 and treating 9:03 like a lost cause
+
+Replace whatToShow:
+Creator looks at the clock at 9:03, sees the planned 9:00 start time on a note, then closes the laptop like the day is ruined.
+
+Replace howToFilm:
+Show the planned start note, then the 9:03 clock. The joke is treating three minutes like a total collapse.
+
+Replace caption:
+9:03 ruined the department.
+
+Replace anchor:
+start
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show “start at 9:00” note.
+2. Show 9:03 clock.
+3. Close laptop in defeat.
+
+---
+
+### W2B-005
+Keep hook:
+watching the typing bubble disappear like it broke up with me
+
+Replace whatToShow:
+Creator watches fake typing bubbles in a chat, sits up with hope, then the bubble disappears and they slowly sink back down.
+
+Replace howToFilm:
+Use fake chat text. Hold on the typing bubble, show the hopeful posture, then deflate when it vanishes.
+
+Replace caption:
+typing bubble left quietly.
+
+Replace anchor:
+typing
+
+Safety note:
+Use fake chat text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show typing bubble.
+2. Sit up with hope.
+3. Sink back when it disappears.
+
+---
+
+### W2B-037
+Keep hook:
+seeing my name in the work thread and holding my breath
+
+Replace whatToShow:
+Creator sees their name in a staged work thread, stops breathing for a beat, then slowly opens the message like it might explode.
+
+Replace howToFilm:
+Use a staged work thread. Show the name mention, hold the breath, then open the message with extreme caution.
+
+Replace caption:
+name mention activated survival mode.
+
+Replace anchor:
+work
+
+Safety note:
+Use staged work thread.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show staged work thread with name mention.
+2. Hold breath.
+3. Open message slowly.
+
+---
+
+### W2B-044
+Keep hook:
+walking to the door and remembering my charger like a plot twist
+
+Replace whatToShow:
+Creator walks to the door ready to leave, touches the handle, suddenly remembers the charger, and turns around like the movie changed genres.
+
+Replace howToFilm:
+Frame the doorway. Show the confident exit, the hand on the handle, then the charger realization and dramatic turn.
+
+Replace caption:
+charger entered the third act.
+
+Replace anchor:
+charger
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Walk to door ready to leave.
+2. Touch handle.
+3. Turn back after charger realization.
+
+---
+
+### W2C-001
+Keep hook:
+adding an exclamation point, then deleting it before it exposes me
+
+Replace whatToShow:
+Creator types a fake message with an exclamation point, stares at it, deletes the exclamation, then rereads the now colder sentence.
+
+Replace howToFilm:
+Use a fake message draft. Show the exclamation point being added, the hesitation, then the deletion and overthinking stare.
+
+Replace caption:
+punctuation got too revealing.
+
+Replace anchor:
+exclamation
+
+Safety note:
+Use fake message text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Add exclamation point.
+2. Stare at the message.
+3. Delete it and reread.
+
+---
+
+### W2C-018
+Keep hook:
+rereading my own text to see if the vibe is annoying
+
+Replace whatToShow:
+Creator rereads a fake sent text, squints at the wording, tilts the phone, then whispers “why did I say it like that?”
+
+Replace howToFilm:
+Use a staged sent text. Keep it small and real: reread, squint, tilt the phone, and let the regret show.
+
+Replace caption:
+vibe audit failed.
+
+Replace anchor:
+text
+
+Safety note:
+Use fake text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show fake sent text.
+2. Reread with suspicion.
+3. Whisper the regret line.
+
+---
+
+### W2C-022
+Keep hook:
+doing one reset task and acting like i earned a vacation
+
+Replace whatToShow:
+Creator completes one tiny reset task, like wiping a counter corner, then sits down with vacation-level relief.
+
+Replace howToFilm:
+Show the single reset task clearly. The punchline is treating that tiny task like a full life overhaul.
+
+Replace caption:
+one reset task, full sabbatical.
+
+Replace anchor:
+reset
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Wipe one tiny counter area.
+2. Step back proudly.
+3. Sit down like vacation started.
+
+---
+
+### W2C-026
+Keep hook:
+replying 'just saw this' like the message wasn't aging in my phone
+
+Replace whatToShow:
+Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends anyway.
+
+Replace howToFilm:
+Show the old timestamp safely. Type the excuse, look at the timestamp, and send it with fake innocence.
+
+Replace caption:
+just saw this, allegedly.
+
+Replace anchor:
+replying
+
+Safety note:
+Use fake message text.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Open old fake message.
+2. Type “just saw this.”
+3. Send despite old timestamp.
+
+---
+
+### W2C-040
+Keep hook:
+organizing desktop icons to prepare for the work i won't do
+
+Replace whatToShow:
+Creator drags desktop icons into neat rows, leans back proudly, then leaves the actual work file unopened.
+
+Replace howToFilm:
+Use a staged desktop. Show the icon organizing, the proud lean-back, and the untouched work file still sitting there.
+
+Replace caption:
+desktop organized. work untouched.
+
+Replace anchor:
+desktop
+
+Safety note:
+Use staged/blurred desktop.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Organize desktop icons.
+2. Lean back proudly.
+3. Show actual work file unopened.
+
+---
+
+### W2C-047
+Keep hook:
+taking a perfect meal photo and then eating like nobody raised me
+
+Replace whatToShow:
+Creator carefully takes a perfect meal photo, sets phone down, then immediately eats over the counter with zero grace.
+
+Replace howToFilm:
+Start with the polished meal photo moment. Then cut to the unpolished eating reality so the contrast lands.
+
+Replace caption:
+photo had manners. i did not.
+
+Replace anchor:
+meal
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Take polished meal photo.
+2. Set phone down.
+3. Eat in the least polished way possible.

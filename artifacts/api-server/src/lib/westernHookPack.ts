@@ -366,10 +366,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-007",
       hook: "filming a gym story from the couch like nobody will notice",
       whatToShow:
-        "You lie on the couch and angle the camera at sneakers and a water bottle so the gym story posts without anyone noticing the cushion behind you.",
+        "Creator films a fake gym story angle from the couch, shows only sneakers or a water bottle, then leans back into the cushions.",
       howToFilm:
-        "Make it look like you're trying to hide the couch from the frame and failing. A tiny pan revealing the blanket or remote sells the lie without needing a word.",
-      caption: "fitness content, emotionally.",
+        "Frame it like a fitness post at first. Reveal the couch context at the end so the “gym story” collapses.",
+      caption: "gym story, couch production.",
       anchor: "gym",
       comedyFamily: "creator_anxiety" as WesternComedyFamily,
       emotionalSpike: "exposed_lie" as WesternEmotionalSpike,
@@ -912,11 +912,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-046",
       hook: "saying i'll start at 9:00 and treating 9:03 like a lost cause",
       whatToShow:
-        "You look at the clock, see you're three minutes late, and decide the whole schedule is ruined.",
+        "Creator looks at the clock at 9:03, sees the planned 9:00 start time on a note, then closes the laptop like the day is ruined.",
       howToFilm:
-        "Show the time clearly. The overreaction should be tiny but dramatic: laptop slowly closes, you lean back, the day is over.",
-      caption: "missed the ceremonial start time.",
-      anchor: "clock",
+        "Show the planned start note, then the 9:03 clock. The joke is treating three minutes like a total collapse.",
+      caption: "9:03 ruined the department.",
+      anchor: "start",
       comedyFamily: "task_avoidance" as WesternComedyFamily,
       emotionalSpike: "excuse_found" as WesternEmotionalSpike,
       setting: "desk" as WesternSetting,
@@ -1046,14 +1046,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-005",
         hook: "watching the typing bubble disappear like it broke up with me",
         whatToShow:
-          "You stare at a fake 'typing...' bubble, get hopeful, then watch it vanish while your whole face drops.",
+          "Creator watches fake typing bubbles in a chat, sits up with hope, then the bubble disappears and they slowly sink back down.",
         howToFilm:
-          "Keep the phone low in frame and focus on your reaction. The bubble disappearing should be quiet, but your disappointment should say everything.",
-        caption: "the typing bubble had commitment issues.",
+          "Use fake chat text. Hold on the typing bubble, show the hopeful posture, then deflate when it vanishes.",
+        caption: "typing bubble left quietly.",
         anchor: "typing",
         comedyFamily: "texting_overthinking",
         emotionalSpike: "social_panic",
         setting: "living_room",
+        safetyNote: "Use fake chat text.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -1494,14 +1495,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-037",
         hook: "seeing my name in the work thread and holding my breath",
         whatToShow:
-          "A fake work notification shows your name, and you open it like it might contain a tiny court case.",
+          "Creator sees their name in a staged work thread, stops breathing for a beat, then slowly opens the message like it might explode.",
         howToFilm:
-          "Desk shot. Start relaxed, then let the notification change your whole posture. Open it slowly.",
-        caption: "my name should not appear without warning.",
-        anchor: "name",
+          "Use a staged work thread. Show the name mention, hold the breath, then open the message with extreme caution.",
+        caption: "name mention activated survival mode.",
+        anchor: "work",
         comedyFamily: "work_school_panic",
         emotionalSpike: "social_panic",
         setting: "desk",
+        safetyNote: "Use staged work thread.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -1592,10 +1594,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-044",
         hook: "walking to the door and remembering my charger like a plot twist",
         whatToShow:
-          "You walk toward the door, stop suddenly, and pace back to grab the charger off the desk.",
+          "Creator walks to the door ready to leave, touches the handle, suddenly remembers the charger, and turns around like the movie changed genres.",
         howToFilm:
-          "Hallway tracking shot. Keep the walk normal, then make the stop abrupt like your brain just shouted from another room.",
-        caption: "charger remembered me first.",
+          "Frame the doorway. Show the confident exit, the hand on the handle, then the charger realization and dramatic turn.",
+        caption: "charger entered the third act.",
         anchor: "charger",
         comedyFamily: "leaving_house_delay",
         emotionalSpike: "caught_off_guard",
@@ -1700,14 +1702,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-001",
         hook: "adding an exclamation point, then deleting it before it exposes me",
         whatToShow:
-          "You type a simple message, add an exclamation point to seem friendly, stare at it, then delete it like it revealed too much.",
+          "Creator types a fake message with an exclamation point, stares at it, deletes the exclamation, then rereads the now colder sentence.",
         howToFilm:
-          "Keep the phone just off-camera so the screen glow hits your face. Let the smile appear when you add the exclamation point, then slowly fade when you realize it feels desperate.",
-        caption: "punctuation became emotional evidence.",
+          "Use a fake message draft. Show the exclamation point being added, the hesitation, then the deletion and overthinking stare.",
+        caption: "punctuation got too revealing.",
         anchor: "exclamation",
         comedyFamily: "texting_overthinking",
         emotionalSpike: "private_embarrassment",
         setting: "couch",
+        safetyNote: "Use fake message text.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -1938,14 +1941,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-018",
         hook: "rereading my own text to see if the vibe is annoying",
         whatToShow:
-          "You hold the phone at arm's length, squint at your sent message, and slowly realize the vibe came out way too keen.",
+          "Creator rereads a fake sent text, squints at the wording, tilts the phone, then whispers “why did I say it like that?”",
         howToFilm:
-          "Handheld and close. Let your face shift from proud to concerned in three seconds. Keep the fake message simple.",
-        caption: "my own worst pen pal.",
-        anchor: "vibe",
+          "Use a staged sent text. Keep it small and real: reread, squint, tilt the phone, and let the regret show.",
+        caption: "vibe audit failed.",
+        anchor: "text",
         comedyFamily: "texting_overthinking",
         emotionalSpike: "self_critique",
         setting: "living_room",
+        safetyNote: "Use fake text.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -1994,10 +1998,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-022",
         hook: "doing one reset task and acting like i earned a vacation",
         whatToShow:
-          "You wipe one counter as your 'reset' task, put away a single mug, then collapse onto the couch like you completed a full life overhaul.",
+          "Creator completes one tiny reset task, like wiping a counter corner, then sits down with vacation-level relief.",
         howToFilm:
-          "Film the tiny task quickly, then make the reward part slow and dramatic. The imbalance is the joke.",
-        caption: "one surface cleaned, ego restored.",
+          "Show the single reset task clearly. The punchline is treating that tiny task like a full life overhaul.",
+        caption: "one reset task, full sabbatical.",
         anchor: "reset",
         comedyFamily: "task_avoidance",
         emotionalSpike: "false_productivity",
@@ -2050,14 +2054,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-026",
         hook: "replying 'just saw this' like the message wasn't aging in my phone",
         whatToShow:
-          "You look at a three-day-old fake message, pretend to discover it for the first time, and type the reply 'just saw this' like the lie is harmless.",
+          "Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends anyway.",
         howToFilm:
-          "Tight on your eyes doing fake surprise. Then show the timestamp for half a second so the lie has evidence against it.",
-        caption: "a diplomatic lie.",
-        anchor: "reply",
+          "Show the old timestamp safely. Type the excuse, look at the timestamp, and send it with fake innocence.",
+        caption: "just saw this, allegedly.",
+        anchor: "replying",
         comedyFamily: "texting_overthinking",
         emotionalSpike: "exposed_lie",
         setting: "couch",
+        safetyNote: "Use fake message text.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -2246,14 +2251,15 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-040",
         hook: "organizing desktop icons to prepare for the work i won't do",
         whatToShow:
-          "You drag icons into neat rows, empty the trash, and change the background while the actual work document stays blank.",
+          "Creator drags desktop icons into neat rows, leans back proudly, then leaves the actual work file unopened.",
         howToFilm:
-          "Over-the-shoulder at the laptop. The clicking should feel very productive, then reveal the untouched work sitting there.",
-        caption: "optimized everything except my behavior.",
-        anchor: "icons",
+          "Use a staged desktop. Show the icon organizing, the proud lean-back, and the untouched work file still sitting there.",
+        caption: "desktop organized. work untouched.",
+        anchor: "desktop",
         comedyFamily: "task_avoidance",
         emotionalSpike: "avoidance_spike",
         setting: "desk",
+        safetyNote: "Use staged/blurred desktop.",
         reviewedBy: PENDING_EDITORIAL_REVIEW,
       },
     {
@@ -2344,10 +2350,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-047",
         hook: "taking a perfect meal photo and then eating like nobody raised me",
         whatToShow:
-          "You place the meal on a plate, adjust the angle for one perfect photo, then drop the elegance and eat like the camera was never there.",
+          "Creator carefully takes a perfect meal photo, sets phone down, then immediately eats over the counter with zero grace.",
         howToFilm:
-          "Start with the calm influencer shot: plate, angle, little adjustment. Then cut to the real version with messy enthusiasm and zero performance.",
-        caption: "aesthetic lasted six seconds.",
+          "Start with the polished meal photo moment. Then cut to the unpolished eating reality so the contrast lands.",
+        caption: "photo had manners. i did not.",
         anchor: "meal",
         comedyFamily: "food_self_control",
         emotionalSpike: "self_betrayal",
