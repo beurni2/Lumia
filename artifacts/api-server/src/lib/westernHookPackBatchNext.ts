@@ -1944,6 +1944,10 @@
    */
   export function getWesternEntrySourceBatch(id: string): string | null {
     if (typeof id !== "string") return null;
+    // Order matters: the W2-N prefix `w2_next2_` shares the prefix
+    // `w2_next` with the W2-L prefix `w2_next_`, so check the longer
+    // (more specific) prefix first.
+    if (id.startsWith("w2_next2_")) return "W2-BATCH-NEXT-2";
     if (id.startsWith("w2_next_")) return "W2-BATCH-NEXT";
     return null;
   }

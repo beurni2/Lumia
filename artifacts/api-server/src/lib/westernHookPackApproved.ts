@@ -41,6 +41,10 @@
     WESTERN_HOOK_PACK_BATCH_NEXT,
     WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
   } from "./westernHookPackBatchNext.js";
+  import {
+    WESTERN_HOOK_PACK_BATCH_NEXT2,
+    WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
+  } from "./westernHookPackBatchNext2.js";
   import type { Region } from "@workspace/lumina-trends";
   import type { LanguageStyle } from "./tasteCalibration.js";
 
@@ -1644,23 +1648,27 @@
   ]);
 
   /**
-   * PHASE W2-L — public approved-pool exports concatenate the W2-I
-   * draft-promotion ids/candidates with the W2-L curated batch. The
-   * W2-I block stays at the head of the array so the W2-D rubric
-   * ordering is preserved (the slot reservation walks the pool in
-   * order when scores tie). The W2-L block carries its own ids
-   * (`w2_next_NNN`) and is verified against the draft via the
-   * relaxed integrity check below — entries here do NOT live in
-   * `WESTERN_HOOK_PACK_DRAFT`, they live in `WESTERN_HOOK_PACK_BATCH_NEXT`.
+   * PHASE W2-L / W2-N — public approved-pool exports concatenate the
+   * W2-I draft-promotion ids/candidates with the W2-L and W2-N
+   * curated batches. The W2-I block stays at the head of the array so
+   * the W2-D rubric ordering is preserved (the slot reservation walks
+   * the pool in order when scores tie). The W2-L block carries ids
+   * `w2_next_NNN`; the W2-N block carries ids `w2_next2_NNN`. Both
+   * are verified against the draft via the relaxed integrity check
+   * below — entries here do NOT live in `WESTERN_HOOK_PACK_DRAFT`,
+   * they live in `WESTERN_HOOK_PACK_BATCH_NEXT` and
+   * `WESTERN_HOOK_PACK_BATCH_NEXT2` respectively.
    */
   export const APPROVED_WESTERN_PROMOTION_IDS: readonly string[] = Object.freeze([
     ...W2I_DRAFT_PROMOTION_IDS,
     ...WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
+    ...WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
   ]);
 
   export const APPROVED_WESTERN_PROMOTION_CANDIDATES: readonly WesternHookPackDraftEntry[] = Object.freeze([
     ...W2I_DRAFT_PROMOTION_CANDIDATES,
     ...WESTERN_HOOK_PACK_BATCH_NEXT,
+    ...WESTERN_HOOK_PACK_BATCH_NEXT2,
   ]);
 
   /**
@@ -1669,10 +1677,10 @@
    * by any future activation path that wants a runtime guard.
    *
    * Returns `{ ok: true }` when:
-   *   - count is exactly 200 (W2-I draft promotion 100 + W2-L 100)
+   *   - count is exactly 300 (W2-I draft promotion 100 + W2-L 100 + W2-N 100)
    *   - every approved id exists in `WESTERN_HOOK_PACK_DRAFT`
-   *     OR in `WESTERN_HOOK_PACK_BATCH_NEXT` (PHASE W2-L relaxed
-   *     the draft-only constraint to admit the curated batch)
+   *     OR in `WESTERN_HOOK_PACK_BATCH_NEXT` (W2-L)
+   *     OR in `WESTERN_HOOK_PACK_BATCH_NEXT2` (W2-N)
    *   - the underlying draft passes `checkWesternHookPackDraftIntegrity`
    *   - no duplicate hook strings inside the approved pool
    *   - every approved row carries `PENDING_EDITORIAL_REVIEW`
@@ -1685,16 +1693,23 @@
   } {
     const failures: string[] = [];
 
-    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 200) {
+    if (APPROVED_WESTERN_PROMOTION_CANDIDATES.length !== 300) {
       failures.push(
-        `approved_count_must_be_200 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
+        `approved_count_must_be_300 (got ${APPROVED_WESTERN_PROMOTION_CANDIDATES.length})`,
       );
     }
 
     const draftIds = new Set(WESTERN_HOOK_PACK_DRAFT.map((e) => e.id));
     const batchNextIds = new Set(WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.id));
+    const batchNext2Ids = new Set(
+      WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.id),
+    );
     for (const e of APPROVED_WESTERN_PROMOTION_CANDIDATES) {
-      if (!draftIds.has(e.id) && !batchNextIds.has(e.id)) {
+      if (
+        !draftIds.has(e.id) &&
+        !batchNextIds.has(e.id) &&
+        !batchNext2Ids.has(e.id)
+      ) {
         failures.push(`approved_id_not_in_draft_or_batch_next:${e.id}`);
       }
       if (e.reviewedBy !== PENDING_EDITORIAL_REVIEW) {
@@ -1721,6 +1736,16 @@
     if (!batchNextCheck.ok) {
       for (const f of batchNextCheck.failures) {
         failures.push(`underlying_batch_next_failure:${f}`);
+      }
+    }
+
+    // PHASE W2-N — same treatment for the W2-BATCH-NEXT-2 source.
+    const batchNext2Check = checkWesternHookPackDraftIntegrity(
+      WESTERN_HOOK_PACK_BATCH_NEXT2,
+    );
+    if (!batchNext2Check.ok) {
+      for (const f of batchNext2Check.failures) {
+        failures.push(`underlying_batch_next2_failure:${f}`);
       }
     }
 

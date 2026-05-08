@@ -1,0 +1,302 @@
+PHASE W2-N — Import Curated Western/W2 Batch 2 With Strict Dedupe + Runtime QA
+
+Context:
+W2-K2, W2-L R2, and W2-M are GO.
+
+Current system state:
+- W2-K2 fixed W2 2-of-3 memory/selection behavior.
+- W2-L R2 imported the first curated W2 batch and expanded APPROVED_WESTERN_PROMOTION_CANDIDATES from 100 to 200.
+- W2-M fixed refresh latency / Claude fallback control.
+- Tests after W2-M: 1053/1053 passed.
+- W2-M latency improved Western refreshes from ~34s to ~7s avg by preventing regenerate=true from forcing Claude fallback when local candidates are sufficient.
+- Production W2/W2-M flags remain OFF.
+
+Task:
+Import the curated Western/W2 Batch 2 list, W2-BATCH-NEXT2-001 through W2-BATCH-NEXT2-100.
+
+Important:
+Do NOT import the raw uploaded batch. The raw batch was incomplete and had placeholder summaries for entries 061–099.
+Use only the curated 100-item list provided in this prompt.
+
+Hard rules:
+- Production remains OFF.
+- Do not enable W2 in production.
+- Do not enable W2-M in production.
+- Do not remove or replace the old Western corpus.
+- Do not touch Nigerian/Pidgin behavior.
+- Do not touch N1 flags or N1 fast path.
+- Do not touch India/Philippines behavior.
+- Do not loosen validators.
+- Do not change Claude prompts.
+- Do not add migrations.
+- Do not expose new public API surface.
+- Do not use WESTERN_HOOK_PACK_DRAFT directly in runtime.
+- Keep old corpus / pattern / novelty path active as third-card breadth layer.
+- Preserve W2-K2 selection rules.
+- Preserve W2-M local-first fallback behavior.
+
+Implementation direction:
+Use the existing approved W2 runtime path.
+
+Preferred shape:
+- Add a new curated batch module if that matches W2-L structure.
+- Concatenate Batch 2 into APPROVED_WESTERN_PROMOTION_CANDIDATES.
+- Existing approved pool should become 300 total entries after import:
+  - existing 200
+  - plus W2 Batch 2 100
+
+Suggested IDs:
+- w2_next2_001 through w2_next2_100
+or match existing project naming conventions.
+
+Every entry must include:
+- stable w2EntryId
+- hook
+- whatToShow / scenario
+- howToFilm
+- caption
+- anchor
+- comedyFamily
+- emotionalSpike
+- setting
+- voiceCluster
+- hookStyle
+- safetyNote if present
+- originalBatchNumber
+- sourceBatch = W2-BATCH-NEXT2, either stored or derived by tested helper
+
+howToFilm:
+Synthesize per-entry howToFilm from WHAT TO SHOW, similar to W2-L R2:
+- deterministic
+- specific to the scenario
+- no generic “Single static shot, framed on...” template
+- 2–3 concrete beats
+- include payoff/end beat
+- no new premise
+- no public filming requirement
+- no extra actor requirement
+- no expensive props
+- must share substantive tokens with WHAT TO SHOW
+
+caption:
+Generate deterministic short captions:
+- unique across the 100
+- natural
+- no hashtag stuffing
+- no generic “relatable?” filler
+- no duplicate captions from W2-L if possible
+
+Controlled vocabulary:
+Normalize values into existing controlled vocabularies first.
+Do not widen enums unless truly necessary.
+
+Normalize:
+- comedyFamily
+- emotionalSpike
+- setting
+- voiceCluster
+- hookStyle
+
+voiceCluster must map to:
+- dry_deadpan
+- chaotic_confession
+- quiet_realization
+- overdramatic_reframe
+
+If a value is ambiguous:
+- map to closest existing value
+- report the mapping
+- do not create one-off enum fragmentation
+
+Strict dedupe:
+Before import, compare Batch 2 against:
+- existing APPROVED_WESTERN_PROMOTION_CANDIDATES, including W2-L Batch 1
+- WESTERN_HOOK_PACK_DRAFT
+- userBlessedHookCorpus.ts
+- Batch 2 itself
+
+Reject or rewrite before import if any item has:
+- exact hook duplicate
+- normalized hook duplicate
+- normalized hook skeleton duplicate
+- bigram-Jaccard >= 0.50 against existing approved W2 hooks
+- near-identical WHAT TO SHOW / howToFilm scenario
+- same anchor + same hookStyle + same setting as existing approved W2 unless clearly distinct
+- repeated caption
+- public/private safety risk
+- banned/weak phrasing
+- placeholder text
+
+Banned/avoid:
+- “era” as a hook crutch
+- “manic episode”
+- “breakdown”
+- mental-health-coded language as punchline
+- filming strangers
+- hidden-camera premises
+- real bank/account details
+- real chat names
+- real addresses
+- store/public filming unless safely simulated at home
+
+If a collision is found:
+- rewrite the item
+- preserve the original item number
+- report before/after hook
+- report why it changed
+
+Tests required:
+1. Batch 2 structural integrity:
+- exactly 100 Batch 2 entries
+- approved pool size equals 300
+- every entry has required fields
+- every entry has unique id
+- sourceBatch/originalBatchNumber recoverable and tested
+- every caption unique
+- every howToFilm non-generic and scenario-specific
+
+2. Dedupe:
+- no exact hook duplicates within Batch 2
+- no exact hook duplicates against existing approved W2
+- no exact hook duplicates against draft corpus
+- no exact hook duplicates against blessed corpus if accessible
+- no normalized hook duplicates
+- no normalized skeleton duplicates
+- no bigram-Jaccard >= 0.50 collisions unless explicitly justified and allowed
+
+3. Runtime import surface:
+- APPROVED_WESTERN_PROMOTION_CANDIDATES imports Batch 2 through approved path only
+- WESTERN_HOOK_PACK_DRAFT not imported directly by runtime
+- importer allowlist updated only if necessary and still restrictive
+
+4. W2-K2 behavior regression:
+- W2 ON still caps at max 2 W2 per batch
+- W2 OFF produces 0 W2
+- no in-batch W2 entryId/anchor/skeleton duplicates
+- W2 memory still prevents repeated entryIds/hooks/skeletons across refreshes
+
+5. W2-M behavior regression:
+- regenerate=true does not force Claude fallback when local candidates are sufficient
+- fallbackDecision reason works
+- W2-M flag remains dev/staged only
+- production start path unchanged
+
+6. Non-Western safety:
+- ng_pidgin gets 0 W2
+- ng_light gets 0 W2
+- ng_clean gets 0 W2
+- india gets 0 W2
+- philippines gets 0 W2
+
+Runtime QA required:
+Run on one warm dev server.
+
+A. W2 ON Western/default
+- 10 refreshes
+- count=3
+- region=western
+- languageStyle=clean
+- regenerate=true after batch 0
+- x-lumina-qa-expose-meta:1
+- W2 approved flag ON in dev
+- W2-M local-first flag ON in dev
+- fresh seeded Western/default demo creator
+- memory persists across all refreshes
+
+Report:
+- total ideas
+- W2 ideas total
+- batch W2 distribution: 0/1/2/3
+- 3/3 W2 batches
+- distinct W2 entryIds / W2 ideas
+- repeated W2 entryIds
+- exact hook repeats
+- W2 skeleton repeats
+- in-batch entryId duplicates
+- in-batch anchor duplicates
+- in-batch skeleton duplicates
+- old corpus / non-W2 count
+- Claude fallback count
+- fallback reasons
+- latency avg/min/max
+- errored batches
+- how many shipped W2 ideas came from Batch 2
+
+Expected:
+- usually 2 W2 + 1 old-corpus
+- 0 batches with 3 W2
+- 0 repeated W2 entryIds/hooks/skeletons
+- 0 in-batch axis duplicates
+- Claude fallback should remain 0 or near 0 when local candidates are sufficient
+- average latency should remain materially improved from pre-W2-M
+
+B. W2 OFF Western/default
+- 5 refreshes
+- x-lumina-qa-force-w2-off:1
+- count=3
+
+Expected:
+- 0 W2 ideas
+- no errors
+- fallback behavior still local-first where possible
+
+C. Non-Western leak smoke
+- ng_pidgin: 2 refreshes
+- ng_light: 2 refreshes
+- ng_clean: 2 refreshes
+- india: 2 refreshes
+- philippines: 2 refreshes
+
+Expected:
+- 0 W2 leaks
+- 0 errors
+
+Report required:
+1. Files changed
+2. Entries attempted
+3. Entries imported
+4. Entries rewritten due to collision, with before/after hooks
+5. Entries rejected, if any
+6. Final approved pool size
+7. Exact duplicate count
+8. Skeleton duplicate count
+9. Bigram-Jaccard collision count
+10. Caption duplicate count
+11. howToFilm generic-template count
+12. Controlled vocab mappings
+13. Any enum widening, with justification
+14. Voice cluster distribution
+15. Hook style distribution
+16. Setting distribution
+17. Comedy family distribution
+18. Runtime import-surface confirmation
+19. Production flags unchanged
+20. Typecheck result
+21. Full test result
+22. W2 ON runtime sweep
+23. W2 OFF runtime sweep
+24. Non-Western leak smoke
+25. Fallback count and latency after import
+
+Acceptance gates:
+- 100 Batch 2 entries imported or collision-rewritten
+- approved W2 pool size = 300
+- 0 exact hook duplicates
+- 0 normalized hook duplicates
+- 0 normalized skeleton duplicates
+- 0 bigram-Jaccard collisions above threshold unless explicitly justified
+- 0 placeholder entries
+- 0 unsafe screen/privacy/public-filming setups
+- captions unique
+- howToFilm specific per entry
+- production remains OFF
+- no migrations
+- no public API shape change
+- W2-K2 behavior preserved
+- W2-M fallback behavior preserved
+- W2 OFF = 0 W2
+- non-Western leaks = 0
+- typecheck clean
+- tests pass
+
+Do not mark GO unless all acceptance gates are met.

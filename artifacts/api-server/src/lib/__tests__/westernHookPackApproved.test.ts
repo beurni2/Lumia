@@ -30,6 +30,10 @@ import {
   WESTERN_HOOK_PACK_BATCH_NEXT_IDS,
   getWesternEntrySourceBatch,
 } from "../westernHookPackBatchNext.js";
+import {
+  WESTERN_HOOK_PACK_BATCH_NEXT2,
+  WESTERN_HOOK_PACK_BATCH_NEXT2_IDS,
+} from "../westernHookPackBatchNext2.js";
 
 // ---------------------------------------------------------------- //
 // Editorial-cleanliness helpers (mirror the W2-D ranker rubric).
@@ -92,6 +96,25 @@ const VISIBLE_ACTION_VERBS = new Set([
   "piles", "piled", "centered", "centers", "center", "snatch",
   "snatches", "snatched", "matched", "matches", "match", "moved",
   "moves", "move", "moving",
+  // PHASE W2-N additions — verbs that appear in the W2-BATCH-NEXT-2
+  // curated whatToShow lines. Same intent as the W2-I/W2-L sets.
+  "click", "clicks", "clicked", "clicking", "release", "releases",
+  "released", "releasing", "slump", "slumps", "slumped", "slumping",
+  "recreate", "recreates", "recreated", "recreating", "crouch",
+  "crouches", "crouched", "crouching", "hear", "hears", "heard",
+  "hearing", "raise", "raises", "raised", "raising", "clasp",
+  "clasps", "clasped", "clasping", "wrestle", "wrestles", "wrestled",
+  "wrestling", "dive", "dives", "dove", "dived", "diving", "miss",
+  "misses", "missed", "missing", "practice", "practices", "practiced",
+  "practicing", "beep", "beeps", "beeped", "review", "reviews",
+  "reviewed", "reviewing", "remove", "removes", "removed", "removing",
+  "pause", "pauses", "paused", "pausing", "roll", "rolls", "rolled",
+  "rolling", "clank", "clanks", "clanked", "rush", "rushes", "rushed",
+  "rushing", "vacuum", "vacuums", "vacuumed", "vacuuming", "see",
+  "sees", "saw", "seeing", "blinks", "blinked", "blinking", "inspect",
+  "inspects", "inspected", "inspecting", "say", "says", "said",
+  "saying", "appears", "appear", "appeared", "ends", "end", "ended",
+  "ending", "raises",
 ]);
 
 function tokens(s: string): string[] {
@@ -114,9 +137,9 @@ function normalizeHookSkeleton(hook: string): string {
 // ---------------------------------------------------------------- //
 
 describe("W2-I — approved Western promotion pool (dark)", () => {
-  it("contains exactly 200 entries (W2-I draft promotion 100 + W2-L curated 100)", () => {
-    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(200);
-    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(200);
+  it("contains exactly 300 entries (W2-I draft promotion 100 + W2-L curated 100 + W2-N curated 100)", () => {
+    expect(APPROVED_WESTERN_PROMOTION_CANDIDATES.length).toBe(300);
+    expect(APPROVED_WESTERN_PROMOTION_IDS.length).toBe(300);
   });
 
   it("ids match the candidate ids in order", () => {
@@ -244,6 +267,8 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "ideaScorer.ts"),
       // W2-L — curated batch source (imported by westernHookPackApproved.ts only)
       path.join("lib", "westernHookPackBatchNext.ts"),
+      // W2-N — curated batch source (imported by westernHookPackApproved.ts only)
+      path.join("lib", "westernHookPackBatchNext2.ts"),
     ];
 
     function walk(dir: string): string[] {
@@ -400,6 +425,149 @@ describe("W2-L — curated batch metadata preservation", () => {
     // Editorial commentary by design lives in the source attachment
     // and W2-L import report only — never on the runtime row.
     for (const e of WESTERN_HOOK_PACK_BATCH_NEXT) {
+      expect((e as Record<string, unknown>).whyThisWorks).toBeUndefined();
+    }
+  });
+});
+
+// ---------------------------------------------------------------- //
+// PHASE W2-N — curated batch metadata preservation                   //
+// ---------------------------------------------------------------- //
+
+describe("W2-N — curated batch metadata preservation (W2-BATCH-NEXT-2)", () => {
+  it("WESTERN_HOOK_PACK_BATCH_NEXT2 contains exactly 100 entries", () => {
+    expect(WESTERN_HOOK_PACK_BATCH_NEXT2.length).toBe(100);
+    expect(WESTERN_HOOK_PACK_BATCH_NEXT2_IDS.length).toBe(100);
+  });
+
+  it("every entry preserves voiceCluster from the curated source (vocab member)", () => {
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(e.voiceCluster, `${e.id} missing voiceCluster`).toBeTruthy();
+      expect(
+        WESTERN_VOICE_CLUSTERS.includes(e.voiceCluster as never),
+        `${e.id} voiceCluster '${String(e.voiceCluster)}' not in vocab`,
+      ).toBe(true);
+    }
+  });
+
+  it("every entry preserves hookStyle from the curated source (vocab member)", () => {
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(e.hookStyle, `${e.id} missing hookStyle`).toBeTruthy();
+      expect(
+        WESTERN_BATCH_HOOK_STYLES.includes(e.hookStyle as never),
+        `${e.id} hookStyle '${String(e.hookStyle)}' not in vocab`,
+      ).toBe(true);
+    }
+  });
+
+  it("every entry preserves originalBatchNumber matching its id suffix", () => {
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(e.originalBatchNumber, `${e.id} missing originalBatchNumber`)
+        .toBeTypeOf("number");
+      const suffix = e.id.slice("w2_next2_".length);
+      expect(parseInt(suffix, 10)).toBe(e.originalBatchNumber);
+      expect(e.originalBatchNumber!).toBeGreaterThanOrEqual(1);
+      expect(e.originalBatchNumber!).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("getWesternEntrySourceBatch derives 'W2-BATCH-NEXT-2' for every batch id", () => {
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(getWesternEntrySourceBatch(e.id)).toBe("W2-BATCH-NEXT-2");
+    }
+    // The W2-L prefix must still resolve to the W2-L label (the
+    // longer-prefix-first ordering inside the helper is what makes
+    // this work).
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT) {
+      expect(getWesternEntrySourceBatch(e.id)).toBe("W2-BATCH-NEXT");
+    }
+  });
+
+  it("safetyNote is preserved when present (non-empty string) and absent otherwise", () => {
+    let withSafety = 0;
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      if (e.safetyNote !== undefined) {
+        expect(typeof e.safetyNote).toBe("string");
+        expect(e.safetyNote.trim().length).toBeGreaterThan(0);
+        withSafety++;
+      }
+    }
+    // Curated W2-BATCH-NEXT-2 carries non-"None." safety notes on a
+    // meaningful subset of rows — guard against silent total drop.
+    expect(withSafety).toBeGreaterThanOrEqual(20);
+  });
+
+  it("howToFilm is per-entry deterministic (no generic single-static template, all distinct)", () => {
+    const generic = /Single static shot, framed on/i;
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(
+        generic.test(e.howToFilm),
+        `${e.id} uses banned generic template`,
+      ).toBe(false);
+    }
+    const set = new Set(WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.howToFilm));
+    expect(set.size).toBe(WESTERN_HOOK_PACK_BATCH_NEXT2.length);
+  });
+
+  it("howToFilm includes a concrete noun/action token from the entry's whatToShow", () => {
+    const STOP = new Set([
+      "with", "from", "into", "that", "this", "your", "they", "them",
+      "have", "been", "then", "than", "like", "just", "shot", "take",
+      "framed", "static", "single", "phone", "tripod", "locked",
+      "instructions", "filming",
+    ]);
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      const wts = new Set(
+        (e.whatToShow.toLowerCase().match(/[a-z]+/g) ?? []).filter(
+          (t) => t.length >= 4 && !STOP.has(t),
+        ),
+      );
+      const hf = new Set(
+        (e.howToFilm.toLowerCase().match(/[a-z]+/g) ?? []).filter(
+          (t) => t.length >= 4 && !STOP.has(t),
+        ),
+      );
+      let shared = 0;
+      for (const t of hf) if (wts.has(t)) shared++;
+      expect(
+        shared,
+        `${e.id} howToFilm shares only ${shared} substantive tokens with whatToShow`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("captions are 100% distinct within the batch AND vs the W2-L batch", () => {
+    const set = new Set(WESTERN_HOOK_PACK_BATCH_NEXT2.map((e) => e.caption));
+    expect(set.size).toBe(WESTERN_HOOK_PACK_BATCH_NEXT2.length);
+    const w2lCaps = new Set(WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.caption));
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(
+        w2lCaps.has(e.caption),
+        `${e.id} caption collides with W2-L: "${e.caption}"`,
+      ).toBe(false);
+    }
+  });
+
+  it("hooks are 100% distinct vs the W2-L batch and the W2-I draft promotion block", () => {
+    const otherHooks = new Set(
+      WESTERN_HOOK_PACK_BATCH_NEXT.map((e) => e.hook.toLowerCase().trim()),
+    );
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
+      expect(
+        otherHooks.has(e.hook.toLowerCase().trim()),
+        `${e.id} hook duplicates W2-L: "${e.hook}"`,
+      ).toBe(false);
+    }
+  });
+
+  it("integrity check (running draft-level invariants on BATCH_NEXT2) reports ok", () => {
+    const result = checkApprovedWesternPromotionPoolIntegrity();
+    expect(result.failures).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("whyThisWorks is intentionally NOT carried on the runtime entry", () => {
+    for (const e of WESTERN_HOOK_PACK_BATCH_NEXT2) {
       expect((e as Record<string, unknown>).whyThisWorks).toBeUndefined();
     }
   });

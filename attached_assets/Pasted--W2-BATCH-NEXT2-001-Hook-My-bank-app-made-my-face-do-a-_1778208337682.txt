@@ -1,0 +1,1199 @@
+### W2-BATCH-NEXT2-001
+Hook: My bank app made my face do a system update
+WHAT TO SHOW: Creator opens a fake/blurred bank screen, eyebrows lift, jaw tightens, phone slowly turns face-down like the conversation is over.
+Anchor: Balance-check body language
+Comedy family: Financial dread
+Emotional spike: Quiet panic
+Setting: Couch
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Keeps the bank-check anxiety visual without repeating the previous bank-app hook too directly.
+Safety/privacy note: Use fake or blurred banking screen only.
+
+### W2-BATCH-NEXT2-002
+Hook: I started cleaning the fridge and found a second personality
+WHAT TO SHOW: Creator sits on the kitchen floor surrounded by condiments, one sad vegetable, and a trash bag, staring like the fridge won.
+Anchor: Fridge cleanout spiral
+Comedy family: Domestic spiral
+Emotional spike: Quiet defeat
+Setting: Kitchen floor
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Keeps the visual chaos while avoiding mental-health-coded language.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-003
+Hook: This cilantro has been holding me emotionally hostage
+WHAT TO SHOW: Close-up of wilted cilantro in the fridge, creator holds takeout bag nearby, then slowly closes the fridge without making eye contact.
+Anchor: Unused herb guilt
+Comedy family: Grocery guilt
+Emotional spike: Quiet guilt
+Setting: Kitchen fridge
+Voice cluster: quiet_realization
+Hook style: object betrayal
+Why this works: More specific than generic greens guilt and visually easy to film.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-004
+Hook: My work-from-home bun became a structural hazard
+WHAT TO SHOW: Creator adjusts a leaning messy bun at a desk; it slowly collapses and knocks their glasses sideways.
+Anchor: WFH hair collapse
+Comedy family: Physical comedy
+Emotional spike: Self-betrayal
+Setting: Desk
+Voice cluster: overdramatic_reframe
+Hook style: before/after self
+Why this works: Highly visual, low-lift, and distinct from desk-productivity jokes.
+Safety/privacy note: Keep the physical gag gentle.
+
+### W2-BATCH-NEXT2-005
+Hook: I’m choosing the late fee because the mail looked at me weird
+WHAT TO SHOW: Stack of unopened envelopes on a hallway table, creator walks by, places a mug on top, and exits like nothing happened.
+Anchor: Mail avoidance
+Comedy family: Task avoidance
+Emotional spike: Relatable dread
+Setting: Hallway table
+Voice cluster: dry_deadpan
+Hook style: realization
+Why this works: Gives unopened mail a funny antagonist role without using banned “era” phrasing.
+Safety/privacy note: Hide names, addresses, and account details.
+
+### W2-BATCH-NEXT2-006
+Hook: My phone waited until bedtime to choose violence
+WHAT TO SHOW: Creator lying in bed setting an alarm, phone slips onto their face, creator freezes in betrayed silence.
+Anchor: Bedtime phone betrayal
+Comedy family: Object betrayal
+Emotional spike: Tiny betrayal
+Setting: Bed
+Voice cluster: chaotic_confession
+Hook style: object betrayal
+Why this works: Universal physical comedy with almost no setup.
+Safety/privacy note: Keep the physical gag safe and staged.
+
+### W2-BATCH-NEXT2-007
+Hook: My LinkedIn profile and my actual soul have not met in years
+WHAT TO SHOW: Quick cut from professional posture at laptop to creator eating shredded cheese over the sink in a bathrobe.
+Anchor: Professional identity split
+Comedy family: Identity satire
+Emotional spike: Self-aware shame
+Setting: Kitchen sink
+Voice cluster: quiet_realization
+Hook style: domestic crime scene
+Why this works: Strong contrast between curated professional self and private kitchen behavior.
+Safety/privacy note: Do not show real LinkedIn/profile details.
+
+### W2-BATCH-NEXT2-008
+Hook: This email found me absolutely not well
+WHAT TO SHOW: Creator is sorting a junk drawer by color when a laptop notification dings; they stare at it like it interrupted a ceremony.
+Anchor: Email interruption
+Comedy family: Corporate absurdity
+Emotional spike: Relatable dread
+Setting: Living room floor
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Sharp twist on email language with a clear visual counterpoint.
+Safety/privacy note: Use staged email notification only.
+
+### W2-BATCH-NEXT2-009
+Hook: One grocery trip, twelve bags, zero survival instincts
+WHAT TO SHOW: Creator at their own front door overloaded with grocery bags, using their chin to reach the handle instead of putting anything down.
+Anchor: One-trip grocery stubbornness
+Comedy family: Physical comedy
+Emotional spike: High-stakes chaos
+Setting: Front door
+Voice cluster: overdramatic_reframe
+Hook style: fake tutorial
+Why this works: Pure visual struggle and safe to film at home.
+Safety/privacy note: Avoid unsafe strain.
+
+### W2-BATCH-NEXT2-010
+Hook: A new sponge should not have changed my whole week
+WHAT TO SHOW: Creator unboxes a bright new sponge like luxury tech, then slowly holds it up to the sink with awe.
+Anchor: Domestic excitement
+Comedy family: Domestic satire
+Emotional spike: Tiny realization
+Setting: Kitchen
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic diagnosis
+Why this works: Turns a boring adult purchase into a dramatic reveal.
+Safety/privacy note: Avoid visible brand if needed.
+
+### W2-BATCH-NEXT2-011
+Hook: The laundry chair has officially become furniture
+WHAT TO SHOW: Creator tries to sit on the only chair, realizes it is fully occupied by clean laundry, then gently places a laptop on top like accepting defeat.
+Anchor: Laundry chair takeover
+Comedy family: Domestic defeat
+Emotional spike: Quiet defeat
+Setting: Bedroom
+Voice cluster: dry_deadpan
+Hook style: domestic crime scene
+Why this works: The laundry chair is universal and instantly filmable.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-012
+Hook: A three-minute phone call somehow needs a launch sequence
+WHAT TO SHOW: Creator stares at a fake phone number, stretches fingers, takes a breath, hovers over call, then sets the phone down.
+Anchor: Phone-call avoidance
+Comedy family: Task avoidance
+Emotional spike: Micro-panic
+Setting: Desk
+Voice cluster: chaotic_confession
+Hook style: overdramatic diagnosis
+Why this works: Makes the dread of a simple call visible.
+Safety/privacy note: Use fake contact/number.
+
+### W2-BATCH-NEXT2-013
+Hook: This $12 smoothie was supposed to install a new personality
+WHAT TO SHOW: Creator takes a sip, waits for a glow-up, checks phone camera, then realizes nothing changed.
+Anchor: Wellness purchase disappointment
+Comedy family: Wellness satire
+Emotional spike: Tiny betrayal
+Setting: Car
+Voice cluster: quiet_realization
+Hook style: before/after self
+Why this works: Specific wellness purchase with a clear visual payoff.
+Safety/privacy note: Do not film while driving.
+
+### W2-BATCH-NEXT2-014
+Hook: How I look circling back on an email I definitely ignored
+WHAT TO SHOW: Creator wears sunglasses at desk, types slowly, and looks around suspiciously before hitting send.
+Anchor: Follow-up email guilt
+Comedy family: Corporate character
+Emotional spike: Self-aware shame
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: fake tutorial
+Why this works: Physicalizes the awkwardness of pretending a delay was normal.
+Safety/privacy note: Use staged email text.
+
+### W2-BATCH-NEXT2-015
+Hook: Night routine is just switching screens horizontally
+WHAT TO SHOW: Creator turns off TV, sighs, lies down, immediately opens phone inches from face.
+Anchor: Screen-time migration
+Comedy family: Night routine failure
+Emotional spike: Quiet guilt
+Setting: Living room
+Voice cluster: quiet_realization
+Hook style: tiny documentary
+Why this works: The screen migration framing keeps a familiar behavior fresh.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-016
+Hook: I said “just looking” and immediately started acting employed
+WHAT TO SHOW: Creator recreates store guilt at home with pantry items, picking up a loaf/bag and nodding seriously because someone might notice.
+Anchor: Shopper guilt
+Comedy family: Social awkwardness
+Emotional spike: Micro-panic
+Setting: Kitchen pantry
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Safely simulates a public-shopping behavior at home.
+Safety/privacy note: Do not film strangers or store employees.
+
+### W2-BATCH-NEXT2-017
+Hook: Software update has been asking for closure since last month
+WHAT TO SHOW: Laptop update prompt appears, creator clicks “remind me tomorrow” with the calm of someone ending a relationship.
+Anchor: Software-update avoidance
+Comedy family: Digital procrastination
+Emotional spike: Quiet guilt
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: calendar/task betrayal
+Why this works: Gives a tiny prompt emotional stakes and a clean action.
+Safety/privacy note: Hide private desktop content.
+
+### W2-BATCH-NEXT2-018
+Hook: Calculating if I have enough social battery for a four-person dinner
+WHAT TO SHOW: Creator counts on fingers, stares into space, recalculates, then slowly lies face-down on the couch.
+Anchor: Social battery math
+Comedy family: Social overthinking
+Emotional spike: Micro-panic
+Setting: Couch
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic diagnosis
+Why this works: Makes introvert math physical without needing other actors.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-019
+Hook: My treat-yourself logic has entered the courtroom
+WHAT TO SHOW: Creator holds an expensive candle and silently presents evidence for why it saves money because it replaces lights.
+Anchor: Purchase justification
+Comedy family: Spending satire
+Emotional spike: Self-betrayal
+Setting: Living room
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: The “courtroom” framing makes irrational spending logic visual.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-020
+Hook: 7:05am me is not the person 10pm me hired
+WHAT TO SHOW: Creator sits on bed with one sock on, staring at the wall like they’ve just learned about morning.
+Anchor: Morning self-betrayal
+Comedy family: Routine failure
+Emotional spike: Quiet defeat
+Setting: Bedroom
+Voice cluster: quiet_realization
+Hook style: before/after self
+Why this works: More specific than generic “morning person” jokes.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-021
+Hook: Delivery tracking turned me into neighborhood surveillance
+WHAT TO SHOW: Creator peeks through blinds, sees nothing, then dives back to couch before the delivery person arrives.
+Anchor: Delivery-app vigilance
+Comedy family: Takeout micro-panic
+Emotional spike: Micro-panic
+Setting: Living room window
+Voice cluster: chaotic_confession
+Hook style: tiny documentary
+Why this works: Active, visual, and distinct from takeout-bag content.
+Safety/privacy note: Do not film delivery person, address, or neighbors.
+
+### W2-BATCH-NEXT2-022
+Hook: My inbox zero strategy is deleting everything with a tone
+WHAT TO SHOW: Creator rhythmically taps delete on a staged inbox, looking calmer with each stressful-looking subject line.
+Anchor: Inbox avoidance
+Comedy family: Productivity satire
+Emotional spike: False calm
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: fake tutorial
+Why this works: Turns digital avoidance into a repeatable physical rhythm.
+Safety/privacy note: Use staged/blurred inbox.
+
+### W2-BATCH-NEXT2-023
+Hook: This coffee is load-bearing
+WHAT TO SHOW: Creator holds fancy coffee upright; when it gets set down, their posture and face immediately collapse.
+Anchor: Coffee mood support
+Comedy family: Object dependence
+Emotional spike: Tiny realization
+Setting: Car
+Voice cluster: overdramatic_reframe
+Hook style: object betrayal
+Why this works: Short, punchy, and visually immediate.
+Safety/privacy note: Do not film while driving.
+
+### W2-BATCH-NEXT2-024
+Hook: The “I understood that” face has left the building
+WHAT TO SHOW: Creator nods aggressively with wide panicked eyes, mouths “ohhh okay,” then writes down absolutely nothing.
+Anchor: Pretending to understand
+Comedy family: Social awkwardness
+Emotional spike: Micro-panic
+Setting: Hallway
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Facial acting carries the entire bit.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-025
+Hook: My junk drawer has started keeping secrets
+WHAT TO SHOW: Creator opens drawer and pulls out an old remote, mystery key, rubber band ball, and one impossible random object.
+Anchor: Junk drawer mystery
+Comedy family: Domestic absurdity
+Emotional spike: Tiny realization
+Setting: Kitchen drawer
+Voice cluster: quiet_realization
+Hook style: domestic crime scene
+Why this works: Strong visual randomness with no public filming.
+Safety/privacy note: Avoid showing personal documents.
+
+### W2-BATCH-NEXT2-026
+Hook: Add to cart me has never met bank app me
+WHAT TO SHOW: Creator taps “add to cart” with royal confidence, then cuts to eating dry cereal from a mug.
+Anchor: Shopping fantasy vs balance reality
+Comedy family: Spending delusion
+Emotional spike: Self-betrayal
+Setting: Kitchen
+Voice cluster: overdramatic_reframe
+Hook style: before/after self
+Why this works: Clean contrast between fantasy spending and real-life rationing.
+Safety/privacy note: Use fake cart/balance screens.
+
+### W2-BATCH-NEXT2-027
+Hook: I just remembered breathing is supposed to happen automatically
+WHAT TO SHOW: Creator at desk suddenly releases a massive exhale, slumps into chair, then blinks like they rebooted.
+Anchor: Desk tension release
+Comedy family: Physical comedy
+Emotional spike: Tiny realization
+Setting: Desk
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: A tiny office-body reset becomes visible and funny.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-028
+Hook: I bought one seed packet and became unbearable
+WHAT TO SHOW: Creator stares intensely at a damp paper towel with a bean/seed, labeling it like a scientific breakthrough.
+Anchor: Hobby overcommitment
+Comedy family: New-hobby spiral
+Emotional spike: High-stakes chaos
+Setting: Kitchen counter
+Voice cluster: chaotic_confession
+Hook style: overdramatic diagnosis
+Why this works: Keeps hobby intensity without using “breakdown.”
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-029
+Hook: Reading instructions is not part of my brand, apparently
+WHAT TO SHOW: Creator holds a manual upside down, pockets a mystery screw, and tries to force two harmless pieces together.
+Anchor: Assembly overconfidence
+Comedy family: Slapstick
+Emotional spike: Self-betrayal
+Setting: Living room floor
+Voice cluster: dry_deadpan
+Hook style: fake tutorial
+Why this works: High physical comedy with familiar assembly frustration.
+Safety/privacy note: Use safe/light objects only.
+
+### W2-BATCH-NEXT2-030
+Hook: Door-lock doubt has a subscription plan
+WHAT TO SHOW: Creator lies in bed, eyes snap open, quick cut to checking the door, back to bed, then back to the door again.
+Anchor: Lock-check loop
+Comedy family: Anxiety loop comedy
+Emotional spike: Micro-panic
+Setting: Bedroom / hallway
+Voice cluster: chaotic_confession
+Hook style: tiny documentary
+Why this works: Fast cuts make the repetitive thought loop visual.
+Safety/privacy note: Do not show exterior address details.
+
+### W2-BATCH-NEXT2-031
+Hook: I promoted myself to Head of Tomorrow
+WHAT TO SHOW: Creator puts blazer over pajamas, sits at desk, opens laptop, then immediately closes it and nods like a meeting ended.
+Anchor: Procrastination title inflation
+Comedy family: Productivity satire
+Emotional spike: Self-aware shame
+Setting: Desk
+Voice cluster: overdramatic_reframe
+Hook style: confession
+Why this works: More ownable than “CEO of doing it tomorrow.”
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-032
+Hook: Gym outfit clocked in. I did not.
+WHAT TO SHOW: Creator in workout gear sits on an unrolled yoga mat, eats chips, and gives the mat a guilty glance.
+Anchor: Fitness outfit false start
+Comedy family: Wellness attempt fail
+Emotional spike: Self-betrayal
+Setting: Living room floor
+Voice cluster: dry_deadpan
+Hook style: before/after self
+Why this works: Clear visual irony in one shot.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-033
+Hook: I started protecting my last $20 like family property
+WHAT TO SHOW: Creator places a single bill in a tiny jewelry box or envelope, then checks on it like a sleeping baby.
+Anchor: Last-money protection
+Comedy family: Money absurdity
+Emotional spike: Relatable dread
+Setting: Bedroom
+Voice cluster: overdramatic_reframe
+Hook style: tiny documentary
+Why this works: Absurd treatment of a small amount of money is instantly readable.
+Safety/privacy note: Use prop cash if preferred.
+
+### W2-BATCH-NEXT2-034
+Hook: Five more minutes became a missing-person case
+WHAT TO SHOW: Creator hits snooze; quick cut to messy hair, toast in hand, and a confused look at the clock.
+Anchor: Snooze time jump
+Comedy family: Sleep betrayal
+Emotional spike: Time-loss panic
+Setting: Bedroom
+Voice cluster: chaotic_confession
+Hook style: object betrayal
+Why this works: Strong visual time jump with a specific payoff.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-035
+Hook: Avoiding someone in public turned me into a shelf inspector
+WHAT TO SHOW: Creator recreates the moment at home with pantry shelves, crouching to inspect canned beans like it’s urgent research.
+Anchor: Social avoidance crouch
+Comedy family: Social awkwardness
+Emotional spike: Micro-panic
+Setting: Kitchen pantry
+Voice cluster: quiet_realization
+Hook style: tiny documentary
+Why this works: Removes public filming while preserving the relatable behavior.
+Safety/privacy note: Do not film strangers.
+
+### W2-BATCH-NEXT2-036
+Hook: My productivity hack was changing the font and leaving
+WHAT TO SHOW: Creator adjusts a to-do list font, leans back proudly, then closes the laptop without completing anything.
+Anchor: Work-about-work
+Comedy family: Productivity lie
+Emotional spike: False productivity
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: fake tutorial
+Why this works: Better ending than simply changing a list.
+Safety/privacy note: Use staged task list.
+
+### W2-BATCH-NEXT2-037
+Hook: Hunger made me start negotiating with the microwave
+WHAT TO SHOW: Creator watches the microwave spin, whispers “please,” and places both hands on the counter like waiting for medical news.
+Anchor: Microwave hunger countdown
+Comedy family: Appliance drama
+Emotional spike: High-stakes chaos
+Setting: Kitchen
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Hunger-specific appliance interaction makes the familiar microwave beat fresher.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-038
+Hook: I almost went out, then the floor made a better offer
+WHAT TO SHOW: Creator puts on one shoe, pauses, then slowly lies down on the hallway rug with the shoe still on.
+Anchor: Going-out collapse
+Comedy family: Homebody comedy
+Emotional spike: Tiny realization
+Setting: Hallway floor
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: Physicalizes the exact moment of abandoning plans.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-039
+Hook: One chip was a beautiful theory
+WHAT TO SHOW: Creator takes one chip delicately, then jump-cuts to the bag upside down over their mouth.
+Anchor: Snack self-control collapse
+Comedy family: Food self-betrayal
+Emotional spike: Instant regret
+Setting: Couch
+Voice cluster: chaotic_confession
+Hook style: before/after self
+Why this works: Simple, visual, and fast.
+Safety/privacy note: Avoid unsafe eating; stage the gag.
+
+### W2-BATCH-NEXT2-040
+Hook: Self-checkout accused me and I immediately looked guilty
+WHAT TO SHOW: Creator recreates self-checkout at home, hears “unexpected item,” slowly raises hands like they’ve been caught.
+Anchor: Checkout machine guilt
+Comedy family: Social awkwardness
+Emotional spike: Micro-panic
+Setting: Kitchen counter
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: Simulates the universal checkout-machine panic without public filming.
+Safety/privacy note: Do not film in-store shoppers or employees.
+
+### W2-BATCH-NEXT2-041
+Hook: Resetting the router has become a household ritual
+WHAT TO SHOW: Creator kneels in front of router, unplugs it, waits like a ceremony is happening, then gives it a serious nod.
+Anchor: Router ritual
+Comedy family: Tech absurdity
+Emotional spike: High-stakes chaos
+Setting: Living room floor
+Voice cluster: overdramatic_reframe
+Hook style: fake tutorial
+Why this works: Makes ordinary tech troubleshooting feel ceremonial.
+Safety/privacy note: Avoid unsafe handling of outlets.
+
+### W2-BATCH-NEXT2-042
+Hook: Waiting to speak on Zoom turned my face into a hostage video
+WHAT TO SHOW: Creator sits at laptop with frozen smile, leans closer and closer until only their eyes fill the camera.
+Anchor: Zoom turn-taking face
+Comedy family: Remote-work physical comedy
+Emotional spike: Relatable dread
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Strong facial acting and very filmable.
+Safety/privacy note: Use staged meeting screen.
+
+### W2-BATCH-NEXT2-043
+Hook: 9pm bedtime became a documentary about staplers
+WHAT TO SHOW: Creator brushes teeth at 9pm, then at 1am stands in bathroom scrolling a random deep-dive page.
+Anchor: Bedtime research spiral
+Comedy family: Night routine failure
+Emotional spike: Time-loss guilt
+Setting: Bathroom
+Voice cluster: quiet_realization
+Hook style: before/after self
+Why this works: The stapler detail makes a common rabbit hole specific.
+Safety/privacy note: Use fake/neutral webpage.
+
+### W2-BATCH-NEXT2-044
+Hook: Checking the weather by opening the door is my science
+WHAT TO SHOW: Creator opens front door, feels the air, makes a face like they’ve been insulted, closes it immediately.
+Anchor: Doorway weather test
+Comedy family: Dry humor
+Emotional spike: Tiny betrayal
+Setting: Front door
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Minimalist physical comedy anyone can film.
+Safety/privacy note: Avoid showing street/address.
+
+### W2-BATCH-NEXT2-045
+Hook: I walked into the room and my brain left the group chat
+WHAT TO SHOW: Creator enters a room, stops, spins once, then walks back out with a system-error face.
+Anchor: Room-entry forgetfulness
+Comedy family: Physical comedy
+Emotional spike: Tiny realization
+Setting: Doorway
+Voice cluster: chaotic_confession
+Hook style: realization
+Why this works: Familiar brain-glitch moment with easy movement.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-046
+Hook: Finding the end of the tape is my villain origin story
+WHAT TO SHOW: Creator scratches at clear tape, squints, rotates it, and slowly loses composure over the invisible edge.
+Anchor: Tape-edge frustration
+Comedy family: Tiny-task rage
+Emotional spike: Polite rage
+Setting: Kitchen table
+Voice cluster: overdramatic_reframe
+Hook style: object betrayal
+Why this works: High emotion over a tiny task is very Lumina.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-047
+Hook: The nice sweater was for a person I stopped being by 10am
+WHAT TO SHOW: Creator starts in a nice sweater, then reveals pajama shirt underneath and messy hair at desk.
+Anchor: WFH outfit collapse
+Comedy family: Work-from-home decay
+Emotional spike: Self-betrayal
+Setting: Desk
+Voice cluster: quiet_realization
+Hook style: before/after self
+Why this works: Specific visual slide from polished to defeated.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-048
+Hook: My budgeting plan is hoping the app declines me first
+WHAT TO SHOW: Creator sees a fake subscription renewal/payment screen, clasps hands like they’re rooting for failure.
+Anchor: Subscription denial
+Comedy family: Money avoidance
+Emotional spike: Financial dread
+Setting: Couch
+Voice cluster: dry_deadpan
+Hook style: confession
+Why this works: Sharp money joke without exposing real finances.
+Safety/privacy note: Use fake payment/subscription screen.
+
+### W2-BATCH-NEXT2-049
+Hook: Self-help podcast on. Kitchen still losing.
+WHAT TO SHOW: Creator calmly listens to a “get your life together” podcast while standing beside a pile of dirty dishes.
+Anchor: Self-help vs reality
+Comedy family: Productivity irony
+Emotional spike: Self-aware shame
+Setting: Kitchen
+Voice cluster: quiet_realization
+Hook style: tiny documentary
+Why this works: Strong visual contradiction between advice and environment.
+Safety/privacy note: Use staged podcast screen/audio.
+
+### W2-BATCH-NEXT2-050
+Hook: Plant parenting became witness protection
+WHAT TO SHOW: Creator over-waters plant, apologizes, then places a fake plant in front of the struggling one like hiding evidence.
+Anchor: Plant-parent coverup
+Comedy family: Domestic crime scene
+Emotional spike: Tiny betrayal
+Setting: Living room
+Voice cluster: overdramatic_reframe
+Hook style: domestic crime scene
+Why this works: Differentiates from prior yellow-plant entry by adding coverup/payoff.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-051
+Hook: I said I was fine and made a sandwich with no witnesses
+WHAT TO SHOW: Creator sits at kitchen table with a sad dry sandwich, laptop open, staring off like the sandwich asked a hard question.
+Anchor: Fake-fine lunch
+Comedy family: Dry humor
+Emotional spike: Quiet defeat
+Setting: Kitchen table
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Keeps the sad-lunch visual without turning emotional distress into the punchline.
+Safety/privacy note: Avoid framing mental-health distress as the joke.
+
+### W2-BATCH-NEXT2-052
+Hook: My house fund is three coins and a powerful imagination
+WHAT TO SHOW: Creator shakes a jar with a few coins, labels it “future mansion,” and nods with total seriousness.
+Anchor: Savings delusion
+Comedy family: Money satire
+Emotional spike: Financial dread
+Setting: Bedroom
+Voice cluster: overdramatic_reframe
+Hook style: tiny documentary
+Why this works: Absurd finance contrast in one simple prop.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-053
+Hook: Meal prep started with containers and ended with one egg
+WHAT TO SHOW: Creator surrounded by empty containers, places one boiled egg in the middle, and closes the lid like the job is done.
+Anchor: Meal-prep collapse
+Comedy family: Kitchen overcommitment
+Emotional spike: Self-betrayal
+Setting: Kitchen
+Voice cluster: quiet_realization
+Hook style: domestic crime scene
+Why this works: Distinct visual payoff with the single egg.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-054
+Hook: My social media detox had a loading screen
+WHAT TO SHOW: Creator puts phone in drawer, walks away, immediately slides back into frame and opens the drawer like it called them.
+Anchor: Phone-detox failure
+Comedy family: Digital self-betrayal
+Emotional spike: Tiny realization
+Setting: Hallway
+Voice cluster: chaotic_confession
+Hook style: before/after self
+Why this works: Gives the phone agency and avoids generic detox phrasing.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-055
+Hook: I read the terms and conditions with my thumb, not my eyes
+WHAT TO SHOW: Creator scrolls at light speed with intense fake concentration, then taps accept like they studied it.
+Anchor: Terms-and-conditions theater
+Comedy family: Tech behavior satire
+Emotional spike: Self-aware shame
+Setting: Couch
+Voice cluster: dry_deadpan
+Hook style: fake tutorial
+Why this works: Universal digital micro-lie made visual.
+Safety/privacy note: Use fake terms screen.
+
+### W2-BATCH-NEXT2-056
+Hook: Finding a sleep position became contact sport
+WHAT TO SHOW: Creator wrestles pillow/blanket, flips around, then ends upside down with one leg out of frame.
+Anchor: Sleep-position struggle
+Comedy family: Slapstick
+Emotional spike: High-stakes chaos
+Setting: Bed
+Voice cluster: chaotic_confession
+Hook style: tiny documentary
+Why this works: Big physical movement for a low-stakes bedtime problem.
+Safety/privacy note: Keep movement safe.
+
+### W2-BATCH-NEXT2-057
+Hook: Cleaning playlist: four hours. Cleaning: one crumb.
+WHAT TO SHOW: Creator dances with broom, sweeps one crumb, sits down exhausted and checks phone.
+Anchor: Cleaning playlist procrastination
+Comedy family: Productivity self-betrayal
+Emotional spike: False productivity
+Setting: Living room
+Voice cluster: overdramatic_reframe
+Hook style: before/after self
+Why this works: Strong ratio joke and easy one-room setup.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-058
+Hook: I said there was food at home and the fridge disagreed
+WHAT TO SHOW: Creator opens fridge to one pickle jar or condiment, stares, then slowly closes it and grabs car keys/takeout app.
+Anchor: Empty-fridge truth check
+Comedy family: Food denial
+Emotional spike: Relatable dread
+Setting: Kitchen
+Voice cluster: quiet_realization
+Hook style: domestic crime scene
+Why this works: The fridge “disagreed” framing makes a common premise sharper.
+Safety/privacy note: Hide delivery/address info if using phone.
+
+### W2-BATCH-NEXT2-059
+Hook: Low battery turned my living room into an action movie
+WHAT TO SHOW: Creator sees 1% battery, dives toward a charger across the couch/floor, misses once, then plugs in dramatically.
+Anchor: Low-battery sprint
+Comedy family: Tech panic
+Emotional spike: Micro-panic
+Setting: Living room
+Voice cluster: chaotic_confession
+Hook style: object betrayal
+Why this works: Different from charger betrayal because the action is a timed chase.
+Safety/privacy note: Keep movement safe.
+
+### W2-BATCH-NEXT2-060
+Hook: This walk is just me fleeing my own to-do list
+WHAT TO SHOW: Creator in hoodie and sunglasses slowly walks down hallway like a fugitive, while a to-do list sits ignored on table.
+Anchor: Responsibility escape walk
+Comedy family: Stress-management satire
+Emotional spike: Self-aware shame
+Setting: Hallway
+Voice cluster: dry_deadpan
+Hook style: overdramatic diagnosis
+Why this works: Makes “going for a walk” feel like avoidance without needing outdoor filming.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-061
+Hook: My draft response got promoted to emotional thesis
+WHAT TO SHOW: Phone shows a short text draft, creator keeps adding lines, scrolls, then deletes it all and sends “sure.”
+Anchor: Overwritten reply
+Comedy family: Texting overthinking
+Emotional spike: Social panic
+Setting: Couch
+Voice cluster: chaotic_confession
+Hook style: tiny documentary
+Why this works: Clear texting escalation with a strong final reversal.
+Safety/privacy note: Use fake chat text.
+
+### W2-BATCH-NEXT2-062
+Hook: I rehearsed the voicemail and still sounded surprised
+WHAT TO SHOW: Creator practices calmly, call beeps, then they immediately panic and say “hi??” like they found the phone.
+Anchor: Voicemail performance fail
+Comedy family: Phone-call awkwardness
+Emotional spike: Micro-panic
+Setting: Desk
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: Turns a tiny phone task into a filmable performance beat.
+Safety/privacy note: Use fake contact/number.
+
+### W2-BATCH-NEXT2-063
+Hook: The group chat liked my message and I became suspicious
+WHAT TO SHOW: Creator sees several reactions on a message, narrows eyes, rereads it like evidence, then locks phone.
+Anchor: Group-chat reaction overanalysis
+Comedy family: Social micro-panic
+Emotional spike: Self-doubt spike
+Setting: Kitchen table
+Voice cluster: quiet_realization
+Hook style: accusation
+Why this works: Fresh angle on chat anxiety that is not just read receipts.
+Safety/privacy note: Use fake group chat.
+
+### W2-BATCH-NEXT2-064
+Hook: My typing indicator disappeared into witness protection
+WHAT TO SHOW: Phone shows typing dots, creator sits up, dots vanish, creator slowly lowers phone like receiving bad news.
+Anchor: Vanishing typing dots
+Comedy family: Texting overthinking
+Emotional spike: Quiet defeat
+Setting: Bed
+Voice cluster: quiet_realization
+Hook style: object betrayal
+Why this works: Familiar but visually clean and emotionally specific.
+Safety/privacy note: Use fake chat text.
+
+### W2-BATCH-NEXT2-065
+Hook: “No worries” was not written by my nervous system
+WHAT TO SHOW: Creator types “no worries,” sends it, then immediately paces behind the phone like there are many worries.
+Anchor: Polite text contradiction
+Comedy family: Social masking comedy
+Emotional spike: Social panic
+Setting: Couch
+Voice cluster: dry_deadpan
+Hook style: confession
+Why this works: Strong contrast between message tone and body language.
+Safety/privacy note: Use fake chat text.
+
+### W2-BATCH-NEXT2-066
+Hook: I opened the dating app and remembered I have to be perceived
+WHAT TO SHOW: Creator opens a staged dating profile screen, immediately turns phone face-down, then sits very still.
+Anchor: Dating-app visibility
+Comedy family: Dating micro-panic
+Emotional spike: Private embarrassment
+Setting: Bed
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: Focuses on being perceived rather than repeating match/read-receipt premises.
+Safety/privacy note: Use fake/staged dating screen.
+
+### W2-BATCH-NEXT2-067
+Hook: My “wyd” reply needed a legal department
+WHAT TO SHOW: Creator types three different replies to “wyd,” deletes each, then sends the most boring possible answer.
+Anchor: Casual-text pressure
+Comedy family: Texting overthinking
+Emotional spike: Micro-panic
+Setting: Couch
+Voice cluster: chaotic_confession
+Hook style: overdramatic diagnosis
+Why this works: Takes a tiny message and makes the decision process visual.
+Safety/privacy note: Use fake chat text.
+
+### W2-BATCH-NEXT2-068
+Hook: I reacted with a heart and immediately questioned my whole personality
+WHAT TO SHOW: Creator taps a heart reaction, freezes, tries to undo, then redoes it and throws phone onto cushion.
+Anchor: Reaction-button regret
+Comedy family: Social micro-panic
+Emotional spike: Instant regret
+Setting: Couch
+Voice cluster: overdramatic_reframe
+Hook style: confession
+Why this works: Specific social-media action with quick physical panic.
+Safety/privacy note: Use fake/staged post or message.
+
+### W2-BATCH-NEXT2-069
+Hook: The “quick reply” tab has been open since breakfast
+WHAT TO SHOW: Laptop or phone shows a reply draft; creator walks past it at different times with different snacks.
+Anchor: Reply procrastination
+Comedy family: Task avoidance
+Emotional spike: Quiet guilt
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: calendar/task betrayal
+Why this works: Shows time passing without needing a complex setup.
+Safety/privacy note: Use staged email/message text.
+
+### W2-BATCH-NEXT2-070
+Hook: I muted the chat and still checked it like a clown
+WHAT TO SHOW: Creator toggles mute, sets phone down, immediately picks it back up and checks the same chat.
+Anchor: Muted-chat hypocrisy
+Comedy family: Social self-betrayal
+Emotional spike: Self-aware shame
+Setting: Kitchen counter
+Voice cluster: chaotic_confession
+Hook style: before/after self
+Why this works: Contradiction is clear, visual, and relatable.
+Safety/privacy note: Use fake chat text.
+
+### W2-BATCH-NEXT2-071
+Hook: My subscription list is just a haunted house with prices
+WHAT TO SHOW: Creator scrolls a fake subscription list, sees one they forgot, slowly backs away from laptop.
+Anchor: Subscription audit dread
+Comedy family: Money avoidance
+Emotional spike: Financial dread
+Setting: Desk
+Voice cluster: dry_deadpan
+Hook style: domestic crime scene
+Why this works: Freshly frames subscriptions as jump scares.
+Safety/privacy note: Use fake/blurred subscription list.
+
+### W2-BATCH-NEXT2-072
+Hook: The free trial remembered me with interest
+WHAT TO SHOW: Phone notification for a fake trial ending/charge, creator holds phone at arm’s length like it’s contaminated.
+Anchor: Free-trial betrayal
+Comedy family: Digital money trap
+Emotional spike: Caught off guard
+Setting: Couch
+Voice cluster: quiet_realization
+Hook style: object betrayal
+Why this works: Distinct from generic forgotten subscription by focusing on trial-to-charge betrayal.
+Safety/privacy note: Use fake notification.
+
+### W2-BATCH-NEXT2-073
+Hook: My cart total needed a moment of silence
+WHAT TO SHOW: Creator reviews fake cart, slowly removes one item, pauses, then removes three more.
+Anchor: Cart-total reality check
+Comedy family: Spending delusion
+Emotional spike: Instant regret
+Setting: Desk
+Voice cluster: overdramatic_reframe
+Hook style: tiny documentary
+Why this works: Clear visual sequence from confidence to defeat.
+Safety/privacy note: Use fake shopping cart.
+
+### W2-BATCH-NEXT2-074
+Hook: I checked my rewards points like they were going to save me
+WHAT TO SHOW: Creator opens fake rewards screen, sees tiny points balance, still nods like a financial plan exists.
+Anchor: Rewards-points delusion
+Comedy family: Money satire
+Emotional spike: False hope
+Setting: Kitchen table
+Voice cluster: dry_deadpan
+Hook style: realization
+Why this works: Specific money behavior not covered by prior bank/subscription jokes.
+Safety/privacy note: Use fake rewards screen.
+
+### W2-BATCH-NEXT2-075
+Hook: Splitwise turned brunch into a courtroom
+WHAT TO SHOW: Creator looks at a fake shared-expense screen, points at one line item, then silently opens calculator.
+Anchor: Shared-expense tension
+Comedy family: Money micro-drama
+Emotional spike: Polite rage
+Setting: Couch
+Voice cluster: quiet_realization
+Hook style: accusation
+Why this works: Very specific adulting/social money tension.
+Safety/privacy note: Use fake expense names and amounts.
+
+### W2-BATCH-NEXT2-076
+Hook: I bought the “budget planner” and immediately blew the budget
+WHAT TO SHOW: Creator places a new planner on desk, then sets an unnecessary cute pen/candle/coffee beside it.
+Anchor: Budget-tool contradiction
+Comedy family: Self-improvement attempt
+Emotional spike: Self-betrayal
+Setting: Desk
+Voice cluster: overdramatic_reframe
+Hook style: before/after self
+Why this works: The tool meant to fix spending becomes part of the spending.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-077
+Hook: My receipt folder is just a museum of poor decisions
+WHAT TO SHOW: Creator opens a folder/drawer full of receipts, picks one up, winces, and places it back carefully.
+Anchor: Receipt archive shame
+Comedy family: Domestic money crime scene
+Emotional spike: Quiet guilt
+Setting: Desk drawer
+Voice cluster: dry_deadpan
+Hook style: domestic crime scene
+Why this works: Makes old receipts tactile and funny.
+Safety/privacy note: Hide store/payment details.
+
+### W2-BATCH-NEXT2-078
+Hook: I rounded the price down and called it budgeting
+WHAT TO SHOW: Creator sees fake price $47.99, writes “$40-ish” on a note, then looks proud.
+Anchor: Price-rounding delusion
+Comedy family: Money rationalization
+Emotional spike: False productivity
+Setting: Kitchen table
+Voice cluster: chaotic_confession
+Hook style: fake tutorial
+Why this works: Tiny math lie is specific and easy to film.
+Safety/privacy note: Use fake price/receipt.
+
+### W2-BATCH-NEXT2-079
+Hook: My wallet made a noise I have never heard before
+WHAT TO SHOW: Creator opens wallet, one lonely card/receipt shifts, creator listens like the wallet is speaking.
+Anchor: Empty-wallet drama
+Comedy family: Money absurdity
+Emotional spike: Quiet panic
+Setting: Bedroom
+Voice cluster: quiet_realization
+Hook style: tiny documentary
+Why this works: Turns lack of money into an object-performance bit.
+Safety/privacy note: Do not show card numbers.
+
+### W2-BATCH-NEXT2-080
+Hook: The coupon expired and took my dignity with it
+WHAT TO SHOW: Creator holds coupon/phone code, tries it, sees fake “expired,” then slowly sets item back down.
+Anchor: Coupon defeat
+Comedy family: Tiny humiliation
+Emotional spike: Quiet defeat
+Setting: Kitchen counter
+Voice cluster: dry_deadpan
+Hook style: object betrayal
+Why this works: Low-stakes money disappointment with a clean physical ending.
+Safety/privacy note: Use fake coupon/code.
+
+### W2-BATCH-NEXT2-081
+Hook: My alarm is now just a suggestion with sound
+WHAT TO SHOW: Alarm rings, creator pats around for phone, taps snooze without opening eyes, then gives a thumbs-up to nobody.
+Anchor: Alarm authority collapse
+Comedy family: Morning routine failure
+Emotional spike: Quiet defeat
+Setting: Bed
+Voice cluster: dry_deadpan
+Hook style: object betrayal
+Why this works: Distinct from prior snooze time-jump by focusing on disrespecting the alarm.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-082
+Hook: I woke up early and immediately used it wrong
+WHAT TO SHOW: Creator wakes early, looks proud, then spends the extra time scrolling under blanket.
+Anchor: Early-morning misuse
+Comedy family: Routine failure
+Emotional spike: False productivity
+Setting: Bed
+Voice cluster: quiet_realization
+Hook style: before/after self
+Why this works: Clear contradiction and very filmable.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-083
+Hook: My nighttime water became a bedside art installation
+WHAT TO SHOW: Creator places one water cup on nightstand; cut to several half-full cups arranged like a gallery.
+Anchor: Bedside water collection
+Comedy family: Domestic absurdity
+Emotional spike: Quiet realization
+Setting: Bedroom
+Voice cluster: quiet_realization
+Hook style: tiny documentary
+Why this works: Fresh domestic detail not in prior routine entries.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-084
+Hook: Brushing my teeth turned into standing in the bathroom with a podcast
+WHAT TO SHOW: Creator holds toothbrush, podcast plays, they stare into mirror for too long without brushing.
+Anchor: Bathroom task drift
+Comedy family: Night routine drift
+Emotional spike: Time-loss guilt
+Setting: Bathroom mirror
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Specific night-routine delay with a strong stillness beat.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-085
+Hook: My sleep mask is just a decorative surrender flag
+WHAT TO SHOW: Creator puts on sleep mask, then lifts it immediately to check phone.
+Anchor: Sleep-tool hypocrisy
+Comedy family: Wellness attempt fail
+Emotional spike: Self-betrayal
+Setting: Bed
+Voice cluster: quiet_realization
+Hook style: object betrayal
+Why this works: Uses a small prop to show failed sleep discipline.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-086
+Hook: Morning stretch made one sound and I cancelled fitness
+WHAT TO SHOW: Creator does one small stretch, hears/acts out a tiny creak, then carefully sits back down.
+Anchor: Stretching false start
+Comedy family: Physical comedy
+Emotional spike: Caught off guard
+Setting: Living room floor
+Voice cluster: overdramatic_reframe
+Hook style: fake tutorial
+Why this works: Physical and low-lift without needing a gym setup.
+Safety/privacy note: Keep movement safe.
+
+### W2-BATCH-NEXT2-087
+Hook: My breakfast plan lost to standing over the sink
+WHAT TO SHOW: Creator opens cabinet, looks at bowl, then eats something directly over the sink with quiet acceptance.
+Anchor: Breakfast shortcut defeat
+Comedy family: Routine failure
+Emotional spike: Quiet defeat
+Setting: Kitchen sink
+Voice cluster: dry_deadpan
+Hook style: domestic crime scene
+Why this works: Strong private-life visual distinct from coffee and takeout.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-088
+Hook: I made the bed and immediately needed emotional proof
+WHAT TO SHOW: Creator smooths blanket, steps back proudly, takes a photo, then sits on bed and ruins one corner.
+Anchor: Made-bed validation
+Comedy family: Tiny accomplishment
+Emotional spike: False productivity
+Setting: Bedroom
+Voice cluster: overdramatic_reframe
+Hook style: before/after self
+Why this works: Turns a small chore into a dramatic achievement.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-089
+Hook: My lunch break became a meeting with my pillow
+WHAT TO SHOW: Creator sets lunch on desk, glances at couch/bed pillow, then lies down holding the lunch container.
+Anchor: Lunch-break collapse
+Comedy family: Workday fatigue
+Emotional spike: Quiet defeat
+Setting: Couch
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: Visualizes the afternoon energy crash.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-090
+Hook: I changed into pajamas like I was clocking out of society
+WHAT TO SHOW: Creator walks in wearing normal clothes, cuts to pajamas, then gives a formal nod to the camera.
+Anchor: Pajama transition ceremony
+Comedy family: Homebody ritual
+Emotional spike: Relief
+Setting: Hallway
+Voice cluster: dry_deadpan
+Hook style: overdramatic diagnosis
+Why this works: Makes an ordinary clothing change feel ceremonial.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-091
+Hook: The tape measure just attacked my confidence
+WHAT TO SHOW: Creator measures a small space, tape snaps back loudly, creator freezes like the room insulted them.
+Anchor: Measuring-task betrayal
+Comedy family: Object betrayal
+Emotional spike: Tiny betrayal
+Setting: Living room
+Voice cluster: chaotic_confession
+Hook style: object betrayal
+Why this works: Fresh object-based adulting gag with movement.
+Safety/privacy note: Use tape measure safely.
+
+### W2-BATCH-NEXT2-092
+Hook: My reusable bag collection has become a personality test
+WHAT TO SHOW: Creator opens closet/pantry to too many tote bags, pulls one out, then finds three more inside it.
+Anchor: Tote-bag accumulation
+Comedy family: Domestic absurdity
+Emotional spike: Quiet realization
+Setting: Closet
+Voice cluster: quiet_realization
+Hook style: domestic crime scene
+Why this works: Specific modern household clutter with a nice reveal.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-093
+Hook: I opened the junk email and now the internet thinks I’m interested
+WHAT TO SHOW: Creator clicks one fake promo email, then quick cuts to more staged promo notifications appearing.
+Anchor: Algorithm/promo regret
+Comedy family: Digital consequence
+Emotional spike: Instant regret
+Setting: Desk
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: Different from social algorithm posts; focused on email/promos.
+Safety/privacy note: Use staged inbox/notifications.
+
+### W2-BATCH-NEXT2-094
+Hook: My reusable water bottle is just a loud metal pet
+WHAT TO SHOW: Bottle rolls off couch/table, clanks loudly, creator rushes to stop it like it caused trouble.
+Anchor: Bottle noise betrayal
+Comedy family: Object chaos
+Emotional spike: Polite rage
+Setting: Living room
+Voice cluster: dry_deadpan
+Hook style: object betrayal
+Why this works: Very visual and sound-driven.
+Safety/privacy note: Avoid breaking objects/floor.
+
+### W2-BATCH-NEXT2-095
+Hook: I bought storage bins and created more things to store
+WHAT TO SHOW: Creator stacks empty bins, then fills one with other bags/boxes from the bin purchase.
+Anchor: Organizing-product paradox
+Comedy family: Domestic spiral
+Emotional spike: Self-aware shame
+Setting: Bedroom
+Voice cluster: overdramatic_reframe
+Hook style: realization
+Why this works: Fresh organization joke distinct from fridge/planner.
+Safety/privacy note: None.
+
+### W2-BATCH-NEXT2-096
+Hook: The fitted sheet asked for combat
+WHAT TO SHOW: Creator tries folding a fitted sheet, gets trapped in corners, then sets it down folded terribly.
+Anchor: Fitted-sheet defeat
+Comedy family: Physical comedy
+Emotional spike: Polite rage
+Setting: Bedroom
+Voice cluster: chaotic_confession
+Hook style: fake tutorial
+Why this works: Strong physical domestic comedy in one room.
+Safety/privacy note: Keep movement safe.
+
+### W2-BATCH-NEXT2-097
+Hook: My calendar reminder arrived after my motivation left
+WHAT TO SHOW: Reminder pops up, creator looks at it, then pans to them already under blanket/on couch.
+Anchor: Reminder timing mismatch
+Comedy family: Task avoidance
+Emotional spike: Quiet defeat
+Setting: Couch
+Voice cluster: quiet_realization
+Hook style: calendar/task betrayal
+Why this works: Different from dismissing reminders; the timing is the joke.
+Safety/privacy note: Use generic reminder text.
+
+### W2-BATCH-NEXT2-098
+Hook: I tried to clean one drawer and found my entire past
+WHAT TO SHOW: Creator opens drawer, pulls out old receipts, random charger, expired coupon, and pauses like memories attacked.
+Anchor: Drawer time capsule
+Comedy family: Domestic archaeology
+Emotional spike: Quiet realization
+Setting: Desk drawer
+Voice cluster: dry_deadpan
+Hook style: tiny documentary
+Why this works: Strong prop-based discovery sequence.
+Safety/privacy note: Hide personal documents.
+
+### W2-BATCH-NEXT2-099
+Hook: The smoke detector chirp chose psychological warfare
+WHAT TO SHOW: Creator stands still in hallway listening, chirp happens, creator turns the wrong direction, chirp stops.
+Anchor: Mystery chirp hunt
+Comedy family: Home-object betrayal
+Emotional spike: Polite rage
+Setting: Hallway
+Voice cluster: overdramatic_reframe
+Hook style: object betrayal
+Why this works: Sound-based household frustration with clear movement.
+Safety/privacy note: Do not disable safety devices improperly; stage sound if needed.
+
+### W2-BATCH-NEXT2-100
+Hook: I bought a vacuum with a light and immediately understood adulthood
+WHAT TO SHOW: Creator vacuums in the dark, mesmerized by the light revealing dust, looking like they found meaning.
+Anchor: Vacuum-light revelation
+Comedy family: Domestic satire
+Emotional spike: Tiny realization
+Setting: Living room floor
+Voice cluster: overdramatic_reframe
+Hook style: realization
+Why this works: Strong domestic “aging” punchline and visually satisfying ending.
+Safety/privacy note: None.
