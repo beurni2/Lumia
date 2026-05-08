@@ -1083,7 +1083,7 @@
       howToFilm:
         "Use a fake calendar screen. Show the “me time” block first, then cover it with another commitment. End on a small nod like self-care was rescheduled.",
       caption: "me time lost the negotiation.",
-      anchor: "calendar",
+      anchor: "me",
       comedyFamily: "task_avoidance",
       emotionalSpike: "quiet_defeat",
       setting: "desk",

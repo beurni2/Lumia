@@ -1696,7 +1696,7 @@
     whatToShow: "Creator opens a drawer to clean it, pulls out old receipts, a random charger, and an expired coupon, then pauses because the drawer remembered too much.",
     howToFilm: "Shoot the drawer from above. Pull out the old receipts, random charger, and expired coupon, then pause because the drawer becomes a time capsule.",
     caption: "drawer had archival footage.",
-    anchor: "drawer",
+    anchor: "receipts",
     comedyFamily: "anxious_optimism",
     emotionalSpike: "quiet_realization",
     setting: "desk",

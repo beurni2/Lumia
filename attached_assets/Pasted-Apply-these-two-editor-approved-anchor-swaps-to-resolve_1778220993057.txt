@@ -1,0 +1,71 @@
+Apply these two editor-approved anchor swaps to resolve the Packet 3 triplet collisions.
+
+Do not loosen validators.
+Do not change comedyFamily or emotionalSpike.
+Do not change hooks.
+Do not change production flags.
+Preserve IDs.
+
+---
+
+### Collision 1 — w2_next_052
+
+Keep hook:
+I blocked my own calendar for “me time” and filled it
+
+Replace anchor:
+me_time
+
+If anchor values cannot use underscore tokens, use:
+me
+
+Keep whatToShow:
+Creator shows a staged calendar block labeled “me time,” then drags another fake meeting/task over it until the block disappears.
+
+Keep howToFilm:
+Use a fake calendar screen. Show the “me time” block first, then cover it with another commitment. End on a small nod like self-care was rescheduled.
+
+Keep caption:
+me time lost the negotiation.
+
+Reason:
+Do not use `calendar` because it collides with w2_next2_097 on:
+task_avoidance | quiet_defeat | calendar
+
+Use `me_time` because it is the specific premise of this entry and appears naturally in both whatToShow and howToFilm. If the anchor tokenizer requires a single plain token, use `me`.
+
+---
+
+### Collision 2 — w2_next2_098
+
+Keep hook:
+I tried to clean one drawer and found my entire past
+
+Replace anchor:
+receipts
+
+Keep whatToShow:
+Creator opens a drawer to clean it, pulls out old receipts, a random charger, and an expired coupon, then pauses because the drawer remembered too much.
+
+Keep howToFilm:
+Shoot the drawer from above. Pull out the old receipts, random charger, and expired coupon, then pause because the drawer becomes a time capsule.
+
+Keep caption:
+drawer had archival footage.
+
+Reason:
+Do not use `drawer` because it collides with w2_next2_025 on:
+anxious_optimism | quiet_realization | drawer
+
+Use `receipts` because it is concrete, appears in both whatToShow and howToFilm, and preserves the “found my entire past” premise.
+
+---
+
+After applying:
+1. Rerun the latent enumerator.
+2. Confirm triplet collisions = 0.
+3. Confirm anchor-missing = 0.
+4. Confirm W2-L/W2-N overlap shortfalls = 0.
+5. If clean, run affected tests.
+6. If affected tests pass, run full api-server tests.
+7. Then rerun rubric and report final Packet 3 promote / needs_rewrite / reject counts and live pool size.
