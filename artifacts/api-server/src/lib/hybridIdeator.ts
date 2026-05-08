@@ -5433,6 +5433,12 @@ export async function runHybridIdeator(
           // `pickHookStyle` inside the W2 author). Used only by the
           // soft recent-axis penalty downstream.
           hookStyle: authored.idea.hookStyle,
+          // PHASE W2-R-FIX1 (Path C) — curated 10-value
+          // WesternBatchHookStyle from the pack entry, set by the
+          // W2 author. Slot reservation reads
+          // `westernHookStyle ?? hookStyle` for the soft penalty
+          // axis so curated granularity is preserved end-to-end.
+          westernHookStyle: authored.idea.westernHookStyle,
           qualityScore: score,
         });
       }
@@ -5482,7 +5488,16 @@ export async function runHybridIdeator(
           setting: meta.westernPackSetting,
           // PHASE W2-R — feed `idea.hookStyle` into the recent-axis
           // memory so subsequent batches' soft penalty can fire.
-          hookStyle: c.idea.hookStyle,
+          //
+          // PHASE W2-R-FIX1 (Path C): use the SAME effective key
+          // the slot-reservation penalty reads
+          // (`westernHookStyle ?? hookStyle`) so the membership
+          // check on subsequent batches compares like-with-like.
+          // For W2-authored ideas this stores the curated 10-value
+          // `WesternBatchHookStyle`; for any legacy / non-W2 row
+          // that ever reaches this site it falls back to the
+          // 5-value `hookStyle`.
+          hookStyle: c.idea.westernHookStyle ?? c.idea.hookStyle,
         });
       }
       logger.info(

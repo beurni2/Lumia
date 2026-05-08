@@ -85,6 +85,15 @@ export interface WesternPackCandidate {
    *  (non-optional) because every authored W2 idea has it set by
    *  `pickHookStyle` in `westernPackAuthor`. */
   hookStyle: string;
+  /** PHASE W2-R-FIX1 (Path C) — OPTIONAL curated W2-pack hook-style
+   *  (`WesternBatchHookStyle`, 10 values). Populated only for W2-
+   *  authored candidates from `entry.hookStyle`. Distinct from
+   *  `hookStyle` above (which is the 5-value `HookStyle` shape
+   *  classifier from `pickHookStyle()`). The W2-R soft penalty
+   *  reads `westernHookStyle ?? hookStyle` so curated granularity
+   *  is preserved end-to-end. Optional — non-W2 paths cannot reach
+   *  this struct, but the field is typed optional defensively. */
+  westernHookStyle?: string;
   /** Higher is better. Used to rank the pool. */
   qualityScore: number;
 }
@@ -459,7 +468,19 @@ export function applyWesternApprovedPackSlotReservation(
     // PHASE W2-R — soft penalty for repeating the creator's recent
     // hookStyle. Light enough that a strong candidate can still win
     // when no alternative exists; deterministic.
-    if (w.hookStyle && axes.hookStyles.has(w.hookStyle))
+    //
+    // PHASE W2-R-FIX1 (Path C): effective style key prefers the
+    // curated 10-value `westernHookStyle` (set by W2 author from
+    // `entry.hookStyle`) over the 5-value `hookStyle` shape
+    // classifier. The recent-axes set (`axes.hookStyles`) is fed
+    // by `recordW2InMemorySeen` with the SAME effective key
+    // (hybridIdeator passes `westernHookStyle ?? hookStyle`), so
+    // both sides of this membership check use the same vocabulary
+    // for any given W2 idea. Non-W2 candidates have no
+    // `westernHookStyle` and fall back to the legacy 5-value path
+    // — pre-Path-C behaviour preserved exactly.
+    const effectiveHookStyle = w.westernHookStyle ?? w.hookStyle;
+    if (effectiveHookStyle && axes.hookStyles.has(effectiveHookStyle))
       pen += W2K2_SOFT_PENALTY.hookStyle;
     return { w, adjusted: w.qualityScore - pen };
   });

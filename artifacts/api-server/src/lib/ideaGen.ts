@@ -110,6 +110,13 @@ import type { OnboardingSeed } from "./onboardingSeed";
 // scaffolding so the model writes a premise BEFORE picking a
 // pattern; the existing structure then derives off the premise.
 import { renderDefaultTastePromptBlock } from "./defaultTasteProfile";
+// PHASE W2-R-FIX1 (Path C) — curated 10-value W2 hook-style
+// taxonomy. Imported as a runtime constant so `z.enum` can use it
+// directly. `westernHookPack.ts` does NOT import from `ideaGen.ts`,
+// so there is no circular-import risk (verified at edit time).
+import { WESTERN_BATCH_HOOK_STYLES } from "./westernHookPack.js";
+const WESTERN_BATCH_HOOK_STYLES_FOR_SCHEMA =
+  WESTERN_BATCH_HOOK_STYLES as unknown as readonly [string, ...string[]];
 // PHASE Y — PREMISE CORE LIBRARY. When the caller (hybridIdeator)
 // pre-selects 1-N cores for this batch, we render them as a
 // SYSTEM-prompt block immediately above the premise-first
@@ -258,6 +265,39 @@ export const ideaSchema = z.object({
     "curiosity",
     "internal_thought",
   ]),
+  /**
+   * PHASE W2-R-FIX1 (Path C) — OPTIONAL curated W2-pack hook-style
+   * tag, typed against the 10-value `WesternBatchHookStyle`
+   * taxonomy (tiny_documentary / confession / object_betrayal /
+   * before_after_self / accusation / realization /
+   * calendar_task_betrayal / domestic_crime_scene /
+   * overdramatic_diagnosis / fake_tutorial).
+   *
+   * This is a deliberate parallel field — NOT a replacement for
+   * `hookStyle`. The 5-value `hookStyle` enum above is a SHAPE
+   * classifier (the_way_i / why_do_i / contrast / curiosity /
+   * internal_thought) and is computed by `pickHookStyle()` for
+   * every authored W2 idea. The 10-value `westernHookStyle` is a
+   * GENRE / comedic-device classifier carried verbatim from the
+   * curated W2 pack entry (`entry.hookStyle`). The two enums have
+   * zero overlap (root-cause audit:
+   * `.local/W2R_DIVERSITY_ROOT_CAUSE_AUDIT.md`).
+   *
+   * Populated only by `westernPackAuthor` for W2-authored ideas.
+   * Left undefined for catalog / NG / IN / PH / Claude-fallback
+   * ideas. Consumed by the W2-R slot-reservation soft penalty,
+   * which reads `westernHookStyle ?? hookStyle` so the curated
+   * granularity is preserved end-to-end and the dominant
+   * `internal_thought` collapse is broken without remapping the
+   * global `hookStyle` enum.
+   *
+   * SAFETY: optional → existing legacy ideas without this field
+   * still parse. No DB migration required (lives in JSONB idea
+   * payload). No production flag.
+   */
+  westernHookStyle: z
+    .enum(WESTERN_BATCH_HOOK_STYLES_FOR_SCHEMA)
+    .optional(),
   /**
    * TRIGGER CATEGORY (per-batch variety gate). Coarse classification
    * of the trigger so the batch-level variety rule can enforce

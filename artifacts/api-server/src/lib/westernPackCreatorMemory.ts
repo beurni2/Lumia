@@ -223,6 +223,23 @@ function collectW2EntryIds(raw: unknown, out: string[]): void {
  * entryId so the hooks-set works for legacy envelopes that didn't
  * stamp the explicit axis fields yet.
  */
+// PHASE W2-R-FIX1 (Path C) — exported under a `__forTests` alias so
+// the persisted-cache mining path can be regression-tested without
+// going through the DB stack. Not part of the public API.
+export const __collectW2AxesForTests = (
+  raw: unknown,
+  acc: {
+    entryIds: string[];
+    hooks: string[];
+    skeletons: string[];
+    anchors: string[];
+    families: string[];
+    spikes: string[];
+    settings: string[];
+    hookStyles: string[];
+  },
+): void => collectW2Axes(raw, acc);
+
 function collectW2Axes(
   raw: unknown,
   acc: {
@@ -243,7 +260,7 @@ function collectW2Axes(
   }
   if (typeof raw !== "object") return;
   const obj = raw as CachedEntryWithW2Axes & {
-    idea?: { hook?: unknown; hookStyle?: unknown };
+    idea?: { hook?: unknown; hookStyle?: unknown; westernHookStyle?: unknown };
   } & Record<string, unknown>;
   const id = obj.westernPackEntryId;
   const isW2Entry = typeof id === "string" && id.length > 0;
@@ -256,13 +273,32 @@ function collectW2Axes(
         : undefined;
     if (hook && acc.hooks.length < WESTERN_PACK_MEMORY_CAP)
       acc.hooks.push(normHookForMemory(hook));
-    // PHASE W2-R — mine `idea.hookStyle` (HookStyle enum) directly
-    // off the cached idea. No new envelope field required because
-    // the full Idea is already persisted by `tryParseEntries`.
-    const hs =
-      obj.idea && typeof (obj.idea as { hookStyle?: unknown }).hookStyle === "string"
-        ? ((obj.idea as { hookStyle: string }).hookStyle)
+    // PHASE W2-R — mine the hook-style memory axis directly off the
+    // cached idea. No new envelope field required because the full
+    // Idea is already persisted by `tryParseEntries`.
+    //
+    // PHASE W2-R-FIX1 (Path C) — prefer the curated 10-value
+    // `idea.westernHookStyle` when present (W2-authored ideas), and
+    // fall back to the legacy 5-value `idea.hookStyle`. This keeps
+    // the persisted memory axis aligned with the slot-reservation
+    // penalty axis (`effectiveHookStyle = w.westernHookStyle ??
+    // w.hookStyle`) across process restart / cross-instance reads.
+    // Old persisted rows that predate Path C have no
+    // `westernHookStyle` field and so transparently fall through to
+    // `hookStyle`, preserving prior behavior.
+    const ideaObj =
+      obj.idea && typeof obj.idea === "object"
+        ? (obj.idea as { hookStyle?: unknown; westernHookStyle?: unknown })
         : undefined;
+    const whs =
+      ideaObj && typeof ideaObj.westernHookStyle === "string"
+        ? ideaObj.westernHookStyle
+        : undefined;
+    const legacyHs =
+      ideaObj && typeof ideaObj.hookStyle === "string"
+        ? ideaObj.hookStyle
+        : undefined;
+    const hs = whs ?? legacyHs;
     if (hs && hs.length > 0 && acc.hookStyles.length < WESTERN_PACK_MEMORY_CAP)
       acc.hookStyles.push(hs);
     const skel = obj.westernPackHookSkeleton;

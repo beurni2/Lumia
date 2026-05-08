@@ -305,6 +305,144 @@ describe("W2-R — hookStyle soft penalty wiring", () => {
     expect(r1.map((c) => c.idea.hook)).toEqual(r2.map((c) => c.idea.hook));
   });
 
+  // ──────────────────────────────────────────────────────────── //
+  //  PHASE W2-R-FIX1 (Path C) — `westernHookStyle` precedence    //
+  //  on the penalty axis. The penalty key is now                  //
+  //  `westernHookStyle ?? hookStyle`, so curated 10-value         //
+  //  WesternBatchHookStyle granularity is preserved end-to-end    //
+  //  for W2-authored ideas; non-W2 candidates fall back to the    //
+  //  legacy 5-value HookStyle path unchanged.                     //
+  // ──────────────────────────────────────────────────────────── //
+
+  it("PATH-C: westernHookStyle takes precedence over hookStyle in the penalty axis", () => {
+    // candA: shape hookStyle=internal_thought (would hit recent set
+    //        under legacy semantics) BUT curated westernHookStyle is
+    //        a fresh value `tiny_documentary` not in the recent set
+    //        → effective key = "tiny_documentary" → no penalty.
+    // candB: shape hookStyle=curiosity (fresh under legacy) AND
+    //        curated westernHookStyle="confession" which IS in the
+    //        recent set → effective key = "confession" → penalised.
+    // Tied raw quality 50; A should win because Path C inverts the
+    // legacy decision: the GENRE axis overrides the SHAPE axis.
+    const candA: WesternPackCandidate = {
+      ...mkCand(1, { hookStyle: "internal_thought", qualityScore: 50 }),
+      westernHookStyle: "tiny_documentary",
+    };
+    const candB: WesternPackCandidate = {
+      ...mkCand(2, { hookStyle: "curiosity", qualityScore: 50 }),
+      westernHookStyle: "confession",
+    };
+    const result = applyWesternApprovedPackSlotReservation({
+      ...COMMON,
+      w2Candidates: [candA, candB],
+      excludeAxes: emptyAxes({
+        // Recent set holds curated GENRE labels (what hybridIdeator
+        // now records). It does NOT contain the shape labels.
+        hookStyles: new Set(["confession"]),
+      }),
+    });
+    // Top-1 is candA (effective key tiny_documentary not in recent
+    // set; candB's effective key confession IS in recent set so it
+    // takes the -1.0 penalty and loses on adjusted score).
+    expect(result[0]!.idea.hook).toContain("number 1");
+    expect(result[0]!.idea.hookStyle).toBe("internal_thought");
+  });
+
+  it("PATH-C: falls back to hookStyle when westernHookStyle is undefined (legacy path preserved)", () => {
+    // Neither candidate has westernHookStyle → effective key reduces
+    // to the legacy 5-value hookStyle. candA's hookStyle is in the
+    // recent set so it loses; candB wins. Bit-for-bit identical to
+    // pre-Path-C semantics.
+    const candA = mkCand(1, { hookStyle: "internal_thought", qualityScore: 50 });
+    const candB = mkCand(2, { hookStyle: "curiosity", qualityScore: 50 });
+    expect(candA.westernHookStyle).toBeUndefined();
+    expect(candB.westernHookStyle).toBeUndefined();
+    const result = applyWesternApprovedPackSlotReservation({
+      ...COMMON,
+      w2Candidates: [candA, candB],
+      excludeAxes: emptyAxes({
+        hookStyles: new Set(["internal_thought"]),
+      }),
+    });
+    expect(result[0]!.idea.hookStyle).toBe("curiosity");
+  });
+
+  it("PATH-C: mixed pool — candidate with westernHookStyle defined uses it; candidate without falls back to hookStyle (per-candidate independence)", () => {
+    // candA has westernHookStyle=tiny_documentary (NOT in recent
+    //   set) → no penalty. Raw 50.
+    // candB has NO westernHookStyle, hookStyle=curiosity (NOT in
+    //   recent set under either vocabulary) → no penalty. Raw 49.
+    // candC has westernHookStyle=confession (IN recent set) → -1.
+    //   Raw 51 → adjusted 50.
+    // Expected adjusted: A=50, B=49, C=50; A wins on tie via raw
+    // qualityScore desc tiebreak (A 50 = C 50 at adjusted, but A
+    // raw 50 < C raw 51 — so C wins the tiebreak). Let's design more
+    // carefully: assert top-1 is C? No — confirm that C's penalty
+    // fires by setting C raw 50.5 → adjusted 49.5 < A 50, so A
+    // wins. And B (49) is last.
+    const candA: WesternPackCandidate = {
+      ...mkCand(1, { hookStyle: "internal_thought", qualityScore: 50 }),
+      westernHookStyle: "tiny_documentary",
+    };
+    const candB = mkCand(2, { hookStyle: "curiosity", qualityScore: 49 });
+    const candC: WesternPackCandidate = {
+      ...mkCand(3, { hookStyle: "internal_thought", qualityScore: 50.5 }),
+      westernHookStyle: "confession",
+    };
+    const result = applyWesternApprovedPackSlotReservation({
+      ...COMMON,
+      w2Candidates: [candA, candB, candC],
+      excludeAxes: emptyAxes({
+        hookStyles: new Set(["confession"]),
+      }),
+    });
+    // A wins on the curated axis (its W2 genre is fresh, beats C's
+    // raw 0.5-point lead minus the 1.0 penalty).
+    expect(result[0]!.idea.hook).toContain("number 1");
+  });
+
+  it("PATH-C: shape-vocab token in recent set does NOT penalise a W2 candidate whose westernHookStyle is fresh (vocabulary isolation)", () => {
+    // Recent set is polluted with a SHAPE token (internal_thought)
+    // — defends against an accidental cross-vocab match. The W2
+    // candidate's effective key is its GENRE token (object_betrayal)
+    // which is NOT in the set, so no penalty fires.
+    const candA: WesternPackCandidate = {
+      ...mkCand(1, { hookStyle: "internal_thought", qualityScore: 50 }),
+      westernHookStyle: "object_betrayal",
+    };
+    const candB = mkCand(2, { hookStyle: "curiosity", qualityScore: 49 });
+    const result = applyWesternApprovedPackSlotReservation({
+      ...COMMON,
+      w2Candidates: [candA, candB],
+      excludeAxes: emptyAxes({
+        // Polluted with the shape token — Path C must IGNORE this
+        // for candA because its effective key is the genre token.
+        hookStyles: new Set(["internal_thought"]),
+      }),
+    });
+    // Without Path C, candA would lose 1.0 → adjusted 49 = candB,
+    // tiebreak on raw → A wins anyway. To make the assertion
+    // meaningful, lower candA so the penalty would have flipped it:
+    const candA2: WesternPackCandidate = {
+      ...mkCand(10, { hookStyle: "internal_thought", qualityScore: 49.5 }),
+      westernHookStyle: "object_betrayal",
+    };
+    const candB2 = mkCand(11, { hookStyle: "curiosity", qualityScore: 49 });
+    const result2 = applyWesternApprovedPackSlotReservation({
+      ...COMMON,
+      w2Candidates: [candA2, candB2],
+      excludeAxes: emptyAxes({
+        hookStyles: new Set(["internal_thought"]),
+      }),
+    });
+    // Pre-Path-C: A would be 49.5 - 1.0 = 48.5 < B 49 → B wins.
+    // Path C: effective key is "object_betrayal" not in set → A
+    // keeps 49.5 > B 49 → A wins.
+    expect(result2[0]!.idea.hook).toContain("number 10");
+    // Sanity for the higher-score case above too.
+    expect(result[0]!.idea.hook).toContain("number 1");
+  });
+
   it("non-Western cohort short-circuits to identity (penalty never fires)", () => {
     // Activation guard is region/languageStyle-gated; passing region
     // = "nigeria" must produce identity output regardless of penalty

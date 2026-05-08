@@ -449,6 +449,16 @@ export function authorWesternPackEntryAsIdea(
     emotionalSpike: W2_SPIKE_MAP[entry.emotionalSpike],
     structure: W2_FAMILY_STRUCTURE[entry.comedyFamily],
     hookStyle: pickHookStyle(hookLower),
+    // PHASE W2-R-FIX1 (Path C) — preserve the curated 10-value
+    // `WesternBatchHookStyle` from the pack entry verbatim. The
+    // 5-value `hookStyle` above is a SHAPE classifier and gets
+    // collapsed by `pickHookStyle()`; this parallel field carries
+    // the GENRE / comedic-device classifier from the curator and
+    // is consumed by the W2-R slot-reservation soft penalty
+    // (`westernHookStyle ?? hookStyle`) to break the dominant
+    // `internal_thought` collapse without remapping the global
+    // `hookStyle` enum.
+    westernHookStyle: entry.hookStyle,
     triggerCategory: W2_SETTING_TRIGGER_CATEGORY[entry.setting],
     setting: W2_SETTING_MAP[entry.setting],
     script,

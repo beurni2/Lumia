@@ -1,0 +1,95 @@
+Approve Path C, with strict scope.
+
+Proceed with W2-R-FIX1 using a new optional W2-only field:
+westernHookStyle
+
+Reason:
+The root-cause report proved HookStyle and WesternBatchHookStyle are different taxonomies with zero overlap:
+- Idea["hookStyle"] is a 5-value regex/shape classifier.
+- WesternBatchHookStyle is a 10-value curatorial comedy-device taxonomy.
+- Mapping W2’s 10 values into the 5 global HookStyle values would partially recreate the collapse we are trying to fix.
+- Widening global HookStyle would have a larger blast radius across non-W2 paths.
+
+Path C is approved because it is additive, W2-scoped, and preserves the actual human-curated taste signal.
+
+Scope:
+- Add optional westernHookStyle field to ideaSchema / Idea type.
+- Type it only against WesternBatchHookStyle.
+- Populate it only for W2-authored ideas.
+- Leave existing hookStyle unchanged.
+- Keep hookStyle as the existing 5-value field.
+- Slot reservation / W2-R style penalty should use:
+  westernHookStyle if present
+  else hookStyle
+- Non-W2 candidates continue using hookStyle only.
+- No change to hooks.
+- No change to whatToShow.
+- No change to captions/howToFilm.
+- No change to validators beyond allowing this optional metadata field.
+- No Claude prompt changes.
+- No production flag changes.
+- No migrations.
+- No W2-O rewrite.
+- No NG/N1/India/Philippines behavior changes.
+
+Implementation preference:
+1. Add westernHookStyle as optional metadata, not a replacement for hookStyle.
+2. Populate from entry.hookStyle in westernPackAuthor.ts.
+3. Update W2 recent-axis memory to track westernHookStyle when present.
+4. Update slot-reservation style penalty axis to read westernHookStyle ?? hookStyle.
+5. Keep existing hookStyle penalty default = 1.0.
+6. Do not tune penalty weight in this pass.
+7. Do not implement deterministic variation.
+8. Do not implement first-batch interleave.
+9. Do not implement phone-flavor metadata.
+
+Tests required:
+- W2-authored idea preserves westernHookStyle from the pack entry.
+- Existing hookStyle remains valid and unchanged.
+- Non-W2 idea has no westernHookStyle unless explicitly expected.
+- Slot reservation uses westernHookStyle for W2 style penalty.
+- Slot reservation falls back to hookStyle for non-W2 candidates.
+- Old ideas without westernHookStyle still parse.
+- NG/N1/India/Philippines unaffected.
+- Full api-server tests green.
+- Typecheck green.
+
+Post-change runtime QA:
+Run W2-R diversity harness again:
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- Western/clean
+- 10 creators
+- 12–20 batches each if feasible
+- count=3
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+- x-lumina-qa-expose-meta:1
+
+Report:
+- internal_thought share using existing hookStyle
+- westernHookStyle distribution for W2 ideas
+- allSameStyle using the effective style axis: westernHookStyle ?? hookStyle
+- distinct effective style count
+- W2-T share
+- W2-I/W2-L/W2-N/W2-T distribution
+- in-batch duplicate failures
+- entryId/hook/skeleton repeats
+- fallback count
+- latency avg/min/max
+- errors
+- production flags unchanged
+
+Expected:
+- effective style diversity should improve materially.
+- allSameStyle should drop materially.
+- W2-T share remains ≥15%.
+- no exact hook / entryId / skeleton regression.
+- no fallback or latency regression.
+- tests green.
+
+Stop and report before broadening scope if:
+- adding westernHookStyle requires non-W2 type rewrites
+- any validator starts rejecting existing ideas
+- any non-W2 cohort changes behavior
+- the optional field becomes more invasive than expected
