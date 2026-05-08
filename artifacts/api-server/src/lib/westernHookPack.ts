@@ -870,10 +870,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
       id: "W2A-043",
       hook: "rewatching my own video like i'm investigating a crime",
       whatToShow:
-        "You open the video, tap pause on a weird face, lean in to squint at it, and reconsider posting.",
+        "You sit at your desk rewatching your own video, pause on one frame, zoom in slightly, and stare like you found evidence.",
       howToFilm:
-        "Use a fake clip or your camera roll blurred. The zoom-in is the punchline. React like you found evidence against yourself.",
-      caption: "editor, detective, victim.",
+        "Film over your shoulder at the desk. Show your own staged video playing, pause on one frame, zoom in slightly, then stare at the screen like the video became evidence.",
+      caption: "reviewing the footage changed me.",
       anchor: "video",
       comedyFamily: "creator_anxiety" as WesternComedyFamily,
       emotionalSpike: "private_embarrassment" as WesternEmotionalSpike,
@@ -1159,11 +1159,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2B-013",
         hook: "reordering clips forever just to use the first take",
         whatToShow:
-          "You drag clips around a fake editing timeline, overthink the order, then return everything to how it started.",
+          "You drag clips around in a staged editing timeline, try three different orders, then put the first take back exactly where it started.",
         howToFilm:
-          "Shoot from desk level with the timeline visible. The funny part is the loop: confident rearranging, confusion, then quiet surrender to the original.",
-        caption: "editing in a circle.",
-        anchor: "timeline",
+          "Frame the staged editing timeline. Drag the clips into a new order, undo it, drag them again, then return the first take to the front like nothing happened.",
+        caption: "the first take waited patiently.",
+        anchor: "clips",
         comedyFamily: "creator_anxiety",
         emotionalSpike: "self_critique",
         setting: "desk",
@@ -1843,10 +1843,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-011",
         hook: "hiding my phone like i'm not allowed to exist",
         whatToShow:
-          "You are scrolling, hear footsteps, shove the phone under a pillow, then pretend to be doing something painfully innocent.",
+          "You hear someone nearby, quickly slide your phone under a pillow or notebook, then sit too still like the phone exposed you.",
         howToFilm:
-          "Use a wide shot so the panic move is obvious. The fake activity should be awkwardly unconvincing, like holding a book upside down.",
-        caption: "nothing suspicious, just suddenly literate.",
+          "Frame the phone in your hand first. React to the nearby sound, slide the phone under a pillow or notebook, then freeze in place like you were caught existing.",
+        caption: "phone went into witness protection.",
         anchor: "phone",
         comedyFamily: "tiny_public_private_awkwardness",
         emotionalSpike: "caught_off_guard",
@@ -2069,10 +2069,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-027",
         hook: "putting my phone away and visiting it four minutes later",
         whatToShow:
-          "You bravely leave your phone in another room, sit down to work, then immediately invent a reason to go check it.",
+          "You place your phone face-down across the room, sit proudly for one beat, then quietly walk back and check it four minutes later.",
         howToFilm:
-          "Film it like a tiny heist. The first walk away should feel proud; the return should feel sneaky and pathetic.",
-        caption: "i failed as my own security guard.",
+          "Show the phone being placed face-down across the room. Sit down like you solved something, then walk back to the phone and check it after the “four minutes later” beat.",
+        caption: "phone had visiting hours.",
         anchor: "phone",
         comedyFamily: "phone_distraction",
         emotionalSpike: "self_betrayal",
@@ -2294,10 +2294,10 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-043",
         hook: "scrubbing the sink because a deadline is chasing me",
         whatToShow:
-          "You clean the sink with intense focus while the deadline sits visible on a laptop in the background.",
+          "You scrub the sink with unnecessary intensity, glance at a staged deadline reminder, then scrub the same clean spot even harder.",
         howToFilm:
-          "Shoot it like an action montage. The sink should look heroic, but the laptop in the background should expose the truth.",
-        caption: "cleaning is just panic with supplies.",
+          "Frame the sink and sponge. Scrub one already-clean spot, glance at the staged deadline reminder, then scrub the sink harder like the deadline lives there.",
+        caption: "deadline avoided via sink maintenance.",
         anchor: "sink",
         comedyFamily: "task_avoidance",
         emotionalSpike: "avoidance_spike",

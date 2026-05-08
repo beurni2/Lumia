@@ -1,0 +1,180 @@
+W2-P EDITORIAL REPAIR PACKET 4 — FILMING MISMATCH
+
+Instructions for coding agent:
+Apply these as repair overrides by ID.
+Prefer changing howToFilm only unless the whatToShow needs a tiny alignment repair.
+Do not loosen validators.
+Do not change production flags.
+Do not create new IDs.
+Preserve hooks unless explicitly replaced.
+After applying:
+1. Run latent enumerator.
+2. Run affected tests.
+3. Run full api-server tests.
+4. Rerun W2-O rubric.
+5. Report promote / needs_rewrite / reject and live pool size.
+
+---
+
+### W2A-043
+
+Keep hook:
+rewatching my own video like i'm investigating a crime
+
+Replace whatToShow:
+You sit at your desk rewatching your own video, pause on one frame, zoom in slightly, and stare like you found evidence.
+
+Replace howToFilm:
+Film over your shoulder at the desk. Show your own staged video playing, pause on one frame, zoom in slightly, then stare at the screen like the video became evidence.
+
+Replace caption:
+reviewing the footage changed me.
+
+Replace anchor:
+video
+
+Reason:
+Aligns howToFilm directly with the visible scene: desk, video, pause, frame, zoom, stare, evidence. Avoids abstract “crime” staging while preserving the investigative joke.
+
+Safety note:
+Use your own staged video only; do not show private drafts or other people.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show your own staged video playing on screen.
+2. Pause and zoom on one frame.
+3. End on the evidence-stare.
+
+---
+
+### W2B-013
+
+Keep hook:
+reordering clips forever just to use the first take
+
+Replace whatToShow:
+You drag clips around in a staged editing timeline, try three different orders, then put the first take back exactly where it started.
+
+Replace howToFilm:
+Frame the staged editing timeline. Drag the clips into a new order, undo it, drag them again, then return the first take to the front like nothing happened.
+
+Replace caption:
+the first take waited patiently.
+
+Replace anchor:
+clips
+
+Reason:
+Removes the family-verb leak and makes the filmable action concrete: clips, timeline, drag, order, first take. The howToFilm now mirrors the visible editing action.
+
+Safety note:
+Use staged clips/timeline; avoid showing private drafts or client work.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show staged editing timeline.
+2. Drag clips into different orders.
+3. Put the first take back in front.
+
+---
+
+### W2C-011
+
+Keep hook:
+hiding my phone like i'm not allowed to exist
+
+Replace whatToShow:
+You hear someone nearby, quickly slide your phone under a pillow or notebook, then sit too still like the phone exposed you.
+
+Replace howToFilm:
+Frame the phone in your hand first. React to the nearby sound, slide the phone under a pillow or notebook, then freeze in place like you were caught existing.
+
+Replace caption:
+phone went into witness protection.
+
+Replace anchor:
+phone
+
+Reason:
+Makes the action concrete and solo-filmable: phone, sound, slide, pillow/notebook, freeze. Avoids vague “hiding” language without a visible prop/action match.
+
+Safety note:
+Stage the nearby sound; do not film another person without consent.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show phone in hand.
+2. Slide phone under pillow/notebook.
+3. Freeze like you were caught.
+
+---
+
+### W2C-027
+
+Keep hook:
+putting my phone away and visiting it four minutes later
+
+Replace whatToShow:
+You place your phone face-down across the room, sit proudly for one beat, then quietly walk back and check it four minutes later.
+
+Replace howToFilm:
+Show the phone being placed face-down across the room. Sit down like you solved something, then walk back to the phone and check it after the “four minutes later” beat.
+
+Replace caption:
+phone had visiting hours.
+
+Replace anchor:
+phone
+
+Reason:
+Aligns howToFilm with whatToShow through exact concrete beats: phone, face-down, room, sit, walk back, check, four minutes. The joke stays realistic and human.
+
+Safety note:
+Use a staged phone screen if visible.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Place phone face-down across the room.
+2. Sit proudly for one beat.
+3. Return and check it after the time jump.
+
+---
+
+### W2C-043
+
+Keep hook:
+scrubbing the sink because a deadline is chasing me
+
+Replace whatToShow:
+You scrub the sink with unnecessary intensity, glance at a staged deadline reminder, then scrub the same clean spot even harder.
+
+Replace howToFilm:
+Frame the sink and sponge. Scrub one already-clean spot, glance at the staged deadline reminder, then scrub the sink harder like the deadline lives there.
+
+Replace caption:
+deadline avoided via sink maintenance.
+
+Replace anchor:
+sink
+
+Reason:
+Removes abstract “chasing” from the scene and ties howToFilm to visible objects/actions: sink, sponge, scrub, clean spot, deadline reminder.
+
+Safety note:
+Use a staged reminder; avoid showing private work details.
+
+Suggested hookSeconds:
+2
+
+Suggested shotPlan:
+1. Show sink and sponge.
+2. Scrub one clean spot too intensely.
+3. Glance at fake deadline and scrub harder.
