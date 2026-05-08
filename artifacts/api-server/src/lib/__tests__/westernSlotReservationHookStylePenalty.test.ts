@@ -24,7 +24,9 @@ import { describe, expect, it } from "vitest";
 import type { ScoredCandidate } from "../ideaScorer.js";
 import {
   W2K2_SOFT_PENALTY,
+  W2_HOOK_STYLE_PENALTY_DEFAULT,
   applyWesternApprovedPackSlotReservation,
+  resolveHookStylePenaltyFromEnv,
   type WesternExcludeAxes,
   type WesternPackCandidate,
 } from "../westernPackSlotReservation.js";
@@ -99,8 +101,57 @@ const COMMON = {
 } as const;
 
 describe("W2-R — hookStyle soft penalty wiring", () => {
-  it("hookStyle penalty constant equals 1.0", () => {
-    expect(W2K2_SOFT_PENALTY.hookStyle).toBe(1.0);
+  it("hookStyle penalty matches resolveHookStylePenaltyFromEnv() at module load", () => {
+    // PHASE W2-R-A2 — the constant is now env-overridable. Whatever
+    // env state the test process was launched in, the module-load-time
+    // constant must equal what `resolveHookStylePenaltyFromEnv()`
+    // returns for that same env state. This stays correct whether the
+    // env is unset (→ default 1.0) or set to a valid value (→ that
+    // value), and explicitly accepts `0` as a valid override.
+    expect(W2K2_SOFT_PENALTY.hookStyle).toBe(resolveHookStylePenaltyFromEnv());
+    if (
+      process.env.LUMINA_W2_HOOKSTYLE_PENALTY === undefined ||
+      process.env.LUMINA_W2_HOOKSTYLE_PENALTY === ""
+    ) {
+      expect(W2K2_SOFT_PENALTY.hookStyle).toBe(W2_HOOK_STYLE_PENALTY_DEFAULT);
+      expect(W2_HOOK_STYLE_PENALTY_DEFAULT).toBe(1.0);
+    }
+  });
+
+  it("resolveHookStylePenaltyFromEnv parses valid inputs and rejects invalid ones to default", () => {
+    // Valid: returns the parsed numeric value (including 0).
+    expect(resolveHookStylePenaltyFromEnv("0")).toBe(0);
+    expect(resolveHookStylePenaltyFromEnv("1")).toBe(1);
+    expect(resolveHookStylePenaltyFromEnv("1.0")).toBe(1.0);
+    expect(resolveHookStylePenaltyFromEnv("5")).toBe(5);
+    expect(resolveHookStylePenaltyFromEnv("10")).toBe(10);
+    expect(resolveHookStylePenaltyFromEnv("100")).toBe(100);
+    // Unset/empty: returns default.
+    expect(resolveHookStylePenaltyFromEnv(undefined)).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    // Invalid: unparseable, out-of-range, NaN, Infinity → default.
+    expect(resolveHookStylePenaltyFromEnv("abc")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("-1")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("101")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("Infinity")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("-Infinity")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
+    expect(resolveHookStylePenaltyFromEnv("NaN")).toBe(
+      W2_HOOK_STYLE_PENALTY_DEFAULT,
+    );
   });
 
   it("setting penalty bumped 0.5 → 1.0", () => {
@@ -171,17 +222,12 @@ describe("W2-R — hookStyle soft penalty wiring", () => {
       w2Candidates: [candA, candB],
       excludeAxes: emptyAxes({ settings: new Set(["couch"]) }),
     });
-    expect(result[0]!.candidate ?? result[0]!).toBeDefined();
     // Top-1 should be B (fresh setting) thanks to the bumped weight.
-    const topMeta = (result[0]!.meta as { westernPackEntryId?: string })
-      ?.westernPackEntryId;
     // No meta is stamped in this synthetic fixture; assert via hook
     // text instead (B's hook contains "number 2").
     expect(result[0]!.idea.hook).toContain("number 2");
     // Sanity: confirm we're testing the new weight, not the old.
     expect(W2K2_SOFT_PENALTY.setting).toBeGreaterThan(0.5);
-    // (Suppress unused-var lint on topMeta.)
-    void topMeta;
   });
 
   it("hard entryId rejection still dominates the hookStyle penalty", () => {

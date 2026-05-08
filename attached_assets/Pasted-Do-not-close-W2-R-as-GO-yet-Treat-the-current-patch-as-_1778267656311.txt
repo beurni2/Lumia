@@ -1,0 +1,95 @@
+Do not close W2-R as GO yet.
+
+Treat the current patch as safe scaffolding only:
+- tests are green
+- no hard guardrails regressed
+- production flags unchanged
+- W2-T share improved
+- but the actual target metrics did not materially improve
+
+The phase is not complete because:
+- internal_thought stayed ~94%
+- allSameStyle remains extremely high
+- phone anchor got slightly worse
+- desk/couch concentration barely moved
+
+Proceed with W2-R-A2, but keep it surgical.
+
+Goal:
+Find the smallest selector change that materially improves hookStyle / flavor diversity without hurting quality.
+
+Do not add new architecture.
+Do not add migrations.
+Do not vary hooks.
+Do not vary scenarios.
+Do not implement deterministic variation.
+Do not touch captions/howToFilm.
+Do not change validators.
+Do not change production flags.
+Do not redo W2-O.
+Do not hard-quota W2-T or any source block.
+
+W2-R-A2 scope:
+
+1. First, run a tiny score-sensitivity probe.
+Report how often a hookStyle penalty of:
+- 3
+- 5
+- 8
+- 10
+
+would have changed selected candidates on the captured post-change run.
+
+For each weight, estimate:
+- internal_thought share
+- allSameStyle batches
+- W2-T share
+- average hookQualityScore delta if available
+- number of changed selections
+- whether changed selections still pass validators/rubric
+- any obvious quality downgrade
+
+Do this report-only first if feasible.
+
+2. If the sensitivity probe shows a safe weight, implement the smallest change:
+- raise hookStyle penalty from 1.0 to the lowest effective value
+- do not use a hard source quota
+- do not use random rotation
+- do not demote clearly superior hero ideas unless alternatives are score-near enough
+
+3. If weight alone cannot move the metric without hurting quality, do not force it.
+Instead propose a small in-batch style guard:
+- avoid 3/3 same hookStyle only when a validator-passing, score-near alternative exists
+- do not force weak ideas
+- do not change first card if it is clearly the strongest hero idea
+
+4. Keep the setting penalty at 1.0 for now unless the probe shows a safe reason to adjust.
+
+5. Do not implement phone-flavor metadata yet.
+Phone overuse is real, but do not add a brittle classifier in this pass.
+
+6. After A2, rerun the W2-R harness:
+- Western/clean
+- LIVE flag ON dev only
+- production flags untouched
+- 10 creators
+- 12–20 batches each, feasible
+- count=3
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+
+Acceptance for A2:
+- tests green
+- typecheck green
+- production flags unchanged
+- per-creator entryId repeats remain 0
+- exact hook repeats remain 0
+- skeleton repeats remain 0 or near 0
+- W2-T share remains ≥15%
+- fallback does not meaningfully increase
+- latency does not meaningfully regress
+- internal_thought share improves materially
+- allSameStyle improves materially
+- no obvious quality downgrade
+
+If A2 still does not materially improve diversity, stop and recommend revert/hold rather than stacking more mechanics.

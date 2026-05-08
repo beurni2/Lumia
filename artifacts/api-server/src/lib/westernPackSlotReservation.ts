@@ -308,13 +308,36 @@ function w2EntryIdOf(c: ScoredCandidate): string | undefined {
  *  concentration and the dominant `internal_thought` hookStyle
  *  collapse (94.6% of all W2 ideas at baseline). Both are SOFT
  *  penalties only — no hard ban, validators unchanged, the strongest
- *  candidate can still win when alternatives are weak. */
+ *  candidate can still win when alternatives are weak.
+ *
+ *  PHASE W2-R-A2 (sensitivity probe): `hookStyle` weight is read from
+ *  the `LUMINA_W2_HOOKSTYLE_PENALTY` env var when set (parsed as a
+ *  finite non-negative number ≤100). When unset / unparseable / out
+ *  of range, falls back to the W2-R default of 1.0. Env-override is
+ *  resolved once at module load so behavior remains deterministic
+ *  across requests within a process. The override exists ONLY for
+ *  the offline sensitivity-probe sweep — production toml does not
+ *  set this var, so production behavior is byte-identical to W2-R. */
+export const W2_HOOK_STYLE_PENALTY_DEFAULT = 1.0;
+/** Exported for unit tests so we can verify env parsing without
+ *  module-reload acrobatics. Production code path goes through the
+ *  module-load-time `W2K2_SOFT_PENALTY.hookStyle` constant below. */
+export function resolveHookStylePenaltyFromEnv(
+  raw: string | undefined = process.env.LUMINA_W2_HOOKSTYLE_PENALTY,
+): number {
+  if (raw === undefined || raw === "") return W2_HOOK_STYLE_PENALTY_DEFAULT;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 100) {
+    return W2_HOOK_STYLE_PENALTY_DEFAULT;
+  }
+  return n;
+}
 export const W2K2_SOFT_PENALTY = {
   anchor: 2.0,
   family: 1.0,
   setting: 1.0,
   spike: 0.5,
-  hookStyle: 1.0,
+  hookStyle: resolveHookStylePenaltyFromEnv(),
 } as const;
 
 export function applyWesternApprovedPackSlotReservation(
