@@ -398,8 +398,8 @@
   {
     id: "w2_next2_015",
     hook: "Night routine is just switching screens horizontally",
-    whatToShow: "Creator starts a night routine by turning off the TV, lies down horizontally, then immediately opens the phone inches from their face.",
-    howToFilm: "Show the TV turning off, the horizontal move to the couch or bed, then the phone lighting up. The routine is just screen migration.",
+    whatToShow: "Creator starts a night routine by turning off the TV, lies horizontally, then immediately opens the phone inches from their face.",
+    howToFilm: "Show the night routine starting with the TV turning off. Then show the horizontal lie-down and the phone opening inches from the face, like the routine simply changed screens.",
     caption: "night routine changed devices.",
     anchor: "night",
     comedyFamily: "procrastination_theatre",

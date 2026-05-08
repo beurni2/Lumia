@@ -1047,11 +1047,11 @@
     id: "W2A-006",
     hook: "rehearsing a casual reply and still sounding insane",
     whatToShow:
-      "You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type a reply that sounds weirdly formal anyway.",
+      "You sit on the bed rehearsing a casual reply out loud, say “yeah, sounds good” normally, then type a casual reply that somehow sounds weirdly formal anyway.",
     howToFilm:
-      "Film it like a tiny audition. Rehearse the casual reply out loud, then show the formal typed reply and the face that knows it got weird.",
+      "Film it like a tiny audition. Rehearse the casual reply out loud, then show the casual typed reply and the face that knows it got weird.",
     caption: "why did i become customer service.",
-    anchor: "reply",
+    anchor: "casual",
     comedyFamily: "texting_overthinking",
     emotionalSpike: "self_critique",
     setting: "bedroom",
@@ -1555,7 +1555,7 @@
     howToFilm:
       "Shoot the walking loop from one corner. Walk past the laundry, dishes, and trash bag without touching them, then keep walking like movement counts as progress.",
     caption: "walking counted as a decision.",
-    anchor: "walking",
+    anchor: "walk",
     comedyFamily: "task_avoidance",
     emotionalSpike: "decision_avoidance",
     setting: "hallway",

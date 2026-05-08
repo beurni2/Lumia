@@ -722,9 +722,9 @@
       id: "w2_next_032",
       hook: "They said “k” and I assembled a legal defense",
       whatToShow:
-        "Phone shows a fake text that says “k,” creator types a huge defense paragraph, deletes it, then sends “cool” with visible spiritual damage.",
+        "Phone shows a fake “k” text, creator types a huge legal defense paragraph, deletes the paragraph, then sends “cool” with visible spiritual damage.",
       howToFilm:
-        "Start tight on the “k.” Show the long paragraph building, delete it all, then send “cool” like you just represented yourself in court.",
+        "Start tight on the fake “k” text. Show the legal defense paragraph building, delete the paragraph, then send “cool” like you just represented yourself in court.",
       caption: "“k” required legal counsel.",
       anchor: "legal",
       comedyFamily: "texting_overthinking",
