@@ -215,3 +215,9 @@ id = "hLBWmH26CbJwVg5rmrNx4"
 uri = "file://.local/W2L_REPORT.md"
 type = "text"
 title = "W2-L Import Report (R2 — metadata + per-entry howToFilm)"
+
+[[outputs]]
+id = "9rLTOLiZuv0CDZopIV4xB"
+uri = "file://.local/W2M_REPORT.md"
+type = "text"
+title = "W2-M Report — Refresh Latency + Claude Fallback Control"
