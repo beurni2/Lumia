@@ -88,6 +88,11 @@ import { composeWhyThisFitsYou } from "./whyThisFitsYou";
 // normalize function the validator uses internally.
 import { normalizeHookFingerprint } from "./comedyValidation";
 import { validateScenarioCoherence } from "./scenarioCoherence";
+import {
+  decideFallbackPlan,
+  isW2mLocalFirstRefreshEnabled,
+  type FallbackDecision,
+} from "./fallbackDecisionPlan";
 // PHASE Y (PREMISE CORE LIBRARY) — orchestrator owns the core-
 // selection step (anti-recent + family-rotation are cross-batch
 // concerns the picker can't see from inside `generateIdeas`). The
@@ -393,6 +398,16 @@ export type HybridIdeatorResult = {
     coreNative?: {
       antiCopyRejects: AntiCopyRejectsTelemetry;
     };
+    /**
+     * PHASE W2-M — single explicit fallback decision per request.
+     * `needFallback` mirrors `usedFallback` on the result; `reason`
+     * is one of the seven `FallbackReason` enum values explaining
+     * exactly which gate fired (or which short-circuited Claude).
+     * Always populated when `qaTelemetry` is present so the staging
+     * QA driver can attribute every batch's path without scraping
+     * logs. Strictly additive — production callers ignore it.
+     */
+    fallbackDecision?: FallbackDecision;
     /**
      * PHASE W1.1 AUDIT (BI 2026-05-07) — additive cohort-gated funnel
      * snapshot for western/default requests. Populated ONLY when
@@ -4582,6 +4597,16 @@ export async function runHybridIdeator(
       flagEnabled: isNigerianPackFeatureEnabled(),
       packLength: NIGERIAN_HOOK_PACK.length,
     }) && localResult.kept.length >= desiredCount + 2;
+  // PHASE W2-M — read the staging-only local-first-refresh flag once
+  // per request. When OFF (production default), `decideFallbackPlan`
+  // below returns `regenerate_legacy_force` for non-N1 regenerate
+  // requests — byte-identical to pre-W2-M behavior. When ON, the
+  // helper recognizes that a selection.batch filled with passing
+  // guards already satisfies regenerate's freshness intent locally
+  // (excludeHooks + memory dedupe applied to `merged` at L4356) and
+  // skips the Claude round-trip.
+  const w2mLocalFirstRefreshEnabledForRequest =
+    isW2mLocalFirstRefreshEnabled();
   const layer1CoreAwareTriggered = regenerate && !n1LiveSkipFallback;
   // PHASE N1-LIVE-HARDEN P3 — skip the Claude fallback round-trip
   // when the local pool already satisfies the batch on a
@@ -4611,18 +4636,34 @@ export async function runHybridIdeator(
   // `!selection.guardsPassed`) MUST still trigger fallback — local
   // pool counts (`localResult.kept`) are pre-selection and don't
   // prove the actual batch was filled or passed diversity guards.
+  // PHASE W2-M — fallback decision delegated to the pure helper
+  // `decideFallbackPlan`. Helper preserves pre-W2-M semantics exactly
+  // when `w2mLocalFirstRefreshEnabledForRequest` is false (production
+  // default). When the flag is on, regenerate=true requests skip
+  // Claude when the local pool is sufficient (excludeHooks + memory
+  // dedupe were already applied to `merged` at L4356, so a passing
+  // selection has structurally satisfied freshness locally).
+  const fallbackDecision: FallbackDecision = decideFallbackPlan({
+    regenerate,
+    desiredCount,
+    localKept: localResult.kept.length,
+    mergedSize: merged.length,
+    selectionBatchSize: selection.batch.length,
+    selectionGuardsPassed: selection.guardsPassed,
+    n1LiveSkipFallback,
+    w2mLocalFirstRefreshEnabled: w2mLocalFirstRefreshEnabledForRequest,
+  });
+  const needFallback = fallbackDecision.needFallback;
+  // Backward-compat aliases — the W1.1 audit funnel snapshot + the
+  // existing P3 info log read these names. P3 still implies the same
+  // condition (non-regenerate + local sufficient + merged + selection
+  // OK); W2-M adds a second always-on `not_needed_w2m_local_sufficient`
+  // path on the regenerate branch. Both surface as false when
+  // fallback fires for any reason.
   const p3SkipFallbackLocalSufficient =
-    !regenerate &&
-    localResult.kept.length >= desiredCount &&
-    merged.length >= 3 &&
-    selection.batch.length >= desiredCount &&
-    selection.guardsPassed;
-  const needFallback =
-    layer1CoreAwareTriggered && !p3SkipFallbackLocalSufficient
-      ? true
-      : merged.length < 3 ||
-        selection.batch.length < desiredCount ||
-        !selection.guardsPassed;
+    fallbackDecision.reason === "not_needed_p3_local_sufficient";
+  const w2mSkipFallbackLocalSufficient =
+    fallbackDecision.reason === "not_needed_w2m_local_sufficient";
   // PHASE W1.1 AUDIT (BI 2026-05-07) — snapshot the trigger booleans
   // at the DECISION point (right where `needFallback` is computed),
   // before fallback / reselect / mutation can mutate `merged` /
@@ -4643,6 +4684,26 @@ export async function runHybridIdeator(
         regenerate,
       },
       "hybrid_ideator.p3_skip_fallback_local_sufficient",
+    );
+  }
+  // PHASE W2-M — emit a structured log when the W2-M skip fires so
+  // the staging QA driver can confirm the path was taken without
+  // scraping `qaTelemetry`. Always pairs with a regenerate=true
+  // request and a non-N1 cohort.
+  if (w2mSkipFallbackLocalSufficient) {
+    logger.info(
+      {
+        creatorId: input.creator?.id,
+        region: input.region ?? null,
+        languageStyle: calibration?.languageStyle ?? null,
+        desiredCount,
+        localKept: localResult.kept.length,
+        mergedSize: merged.length,
+        selectionBatchSize: selection.batch.length,
+        guardsPassed: selection.guardsPassed,
+        regenerate,
+      },
+      "hybrid_ideator.w2m_skip_fallback_local_sufficient",
     );
   }
   if (needFallback) {
@@ -6150,6 +6211,9 @@ export async function runHybridIdeator(
       coreNative: {
         antiCopyRejects: coreNativeResult.stats.antiCopyRejects,
       },
+      // PHASE W2-M — explicit fallback decision so the staging QA
+      // driver can attribute each batch's path without scraping logs.
+      fallbackDecision,
       ...(_w1FunnelSnapshot ? { westernFunnel: _w1FunnelSnapshot } : {}),
     },
   };

@@ -1,0 +1,271 @@
+PHASE W2-M — Refresh Latency + Claude Fallback Control
+
+Context:
+W2-K2 and W2-L R2 are GO.
+
+Current state:
+- W2-K2 fixed memory/selection behavior.
+- W2-L R2 imported the next 100 curated W2 entries.
+- Approved Western/W2 pool is now 200.
+- Western/default runtime behavior is clean:
+  - W2 ON mini-sweep: 19/30 W2 ideas, 9/10 batches had 2 W2, 1/10 had 1 W2 due to distinctness rejection.
+  - 0 W2 entryId repeats.
+  - 0 exact hook repeats.
+  - 0 W2 skeleton repeats.
+  - 0 in-batch entryId/anchor/skeleton duplicates.
+  - 0 batches with 3/3 W2.
+  - W2 OFF produced 0/15 W2.
+  - Non-Western leak smoke produced 0 W2 leaks.
+- Typecheck clean.
+- Vitest green: 52 files / 1021 tests passed.
+
+Problem:
+Refresh latency is bad.
+
+Observed W2-L R2 runtime sweep:
+- W2 ON avg/min/max latency: 34.3s / 2.1s / 46.0s
+- W2 OFF avg/min/max latency: 35.2s / 27.3s / 52.0s
+- Report says regenerate=true batches triggered Claude fallback.
+- Since W2 OFF is also slow, this is not purely W2 pool expansion. It is a refresh/fallback-control issue.
+
+Goal:
+Make refresh latency reliable and fast without lowering output quality or weakening validators.
+
+Primary target:
+For Western/default refreshes, when local deterministic/W2/pattern candidates are sufficient, avoid Claude fallback.
+
+Hard rules:
+- Do not loosen validators.
+- Do not weaken safety/privacy checks.
+- Do not reduce W2 distinctness rules.
+- Do not remove old corpus / pattern / novelty third-card path.
+- Do not break W2-K2 2-of-3 behavior.
+- Do not change public API shape.
+- Do not add migrations.
+- Do not enable production W2.
+- Do not change Claude prompts unless absolutely necessary and reported first.
+- Do not touch Nigerian/Pidgin/India/Philippines behavior except for smoke testing.
+- Do not hide failures by returning lower-quality malformed ideas.
+- Do not mark GO unless runtime latency improves and W2 behavior remains clean.
+
+Investigation first:
+Trace why regenerate=true triggers Claude fallback.
+
+Add internal QA telemetry/logging if needed, but do not expose new public fields.
+
+For each refresh batch, report:
+- candidate counts at each stage:
+  - approved W2 candidate count before filters
+  - approved W2 candidate count after memory/dedupe filters
+  - approved W2 selected count
+  - old corpus / pattern candidate count before filters
+  - old corpus / pattern selected count
+  - total local candidates before validators
+  - total local candidates after validators
+- fallback decision reason:
+  - insufficient_local_candidates
+  - validators_rejected_too_many
+  - distinctness_rejected_second_w2
+  - old_corpus_slot_unfilled
+  - regenerate_forced_fallback
+  - cache_miss
+  - unknown
+- Claude fallback used: yes/no
+- Claude fallback duration if used
+- final batch composition
+- latency breakdown if available
+
+Expected diagnosis:
+We need to know whether fallback is happening because:
+1. regenerate=true bypasses useful cached/local pools too aggressively
+2. old corpus / pattern third slot fails too often
+3. W2 candidates are selected but then rejected downstream
+4. validators reject local candidates excessively
+5. distinctness rules block second W2 and fallback tries Claude instead of filling old corpus
+6. W2 OFF path lacks enough local old-corpus candidates
+7. fallback is being invoked by stale pre-W2 logic even when 3 local candidates are available
+
+Implementation direction:
+Prefer a local-first refresh strategy.
+
+Required behavior:
+1. On Western/default refresh with W2 enabled:
+   - Try to fill locally first.
+   - Target 2 W2 + 1 old-corpus/pattern/novelty.
+   - If second W2 fails distinctness, use 1 W2 + 2 old-corpus/pattern/novelty.
+   - Only call Claude if fewer than 3 valid local ideas remain after local backfill attempts.
+
+2. On Western/default refresh with W2 OFF:
+   - Use old corpus / pattern / novelty local path first.
+   - Only call Claude if fewer than 3 valid local ideas remain after local backfill attempts.
+
+3. regenerate=true should mean:
+   - avoid repeating visible/recent hooks
+   - use excludeHooks / memory / novelty pressure
+   - do not blindly force Claude fallback
+
+4. Claude fallback should be last resort, not normal refresh path.
+
+5. If local pool has enough valid candidates:
+   - return immediately without Claude
+   - preserve validators
+   - preserve quality scoring
+   - preserve W2 memory updates
+
+Potential fixes to consider:
+- Add a local backfill loop before Claude fallback.
+- Increase deterministic local candidate pool breadth before validators.
+- Ensure old corpus / pattern third-card path can satisfy refreshes without Claude.
+- Make regenerate=true apply stronger exclude/dedupe penalties, not provider fallback.
+- Add a “fallback not needed if localValidCount >= count” guard.
+- Add telemetry for fallbackReason to make future regressions obvious.
+- If Claude fallback still fires, require a specific reason enum, not a vague branch.
+
+Tests required:
+Add or update tests for:
+
+1. Local-first refresh behavior
+- Given enough valid W2 + old-corpus local candidates, regenerate=true does not call Claude.
+- Given enough old-corpus local candidates with W2 OFF, regenerate=true does not call Claude.
+- Given second W2 distinctness rejection but enough old-corpus candidates, system returns 1 W2 + 2 old-corpus without Claude.
+- Given 2 valid W2 + 1 valid old-corpus candidate, system returns 3 local ideas and does not fallback.
+
+2. Fallback gating
+- Claude fallback only fires when fewer than 3 valid local candidates remain after local backfill.
+- fallbackReason is populated when fallback fires.
+- fallbackReason is absent or “not_needed” when local path succeeds.
+- regenerate=true alone is not a valid fallback reason.
+
+3. W2 behavior regression
+- W2 ON still caps at max 2 W2 per batch.
+- W2 ON still avoids in-batch duplicate W2 entryId/anchor/skeleton.
+- W2 memory still prevents repeated W2 entryIds/hooks/skeletons across refreshes.
+- W2 OFF still produces 0 W2.
+
+4. Non-Western safety
+- ng_pidgin still gets 0 W2.
+- ng_light still gets 0 W2.
+- ng_clean still gets 0 W2.
+- india still gets 0 W2.
+- philippines still gets 0 W2.
+
+5. No API/schema churn
+- no public response shape changes unless QA-only metadata is gated behind x-lumina-qa-expose-meta
+- no migration
+- production W2 flag remains OFF
+
+Runtime QA required:
+Run against one warm dev server.
+
+A. Western/default W2 ON latency sweep
+- 10 refreshes
+- count=3
+- region=western
+- languageStyle=clean
+- regenerate=true after batch 0
+- x-lumina-qa-expose-meta:1
+- LUMINA_W2_WESTERN_APPROVED_ENABLED=true
+- fresh seeded Western/default demo creator
+- memory persists across all 10 refreshes
+
+Report:
+- ideas total
+- W2 ideas total
+- batch W2 distribution: 0/1/2/3
+- distinct W2 entryIds / W2 ideas
+- repeated W2 entryIds
+- exact hook repeats
+- W2 skeleton repeats
+- in-batch entryId duplicates
+- in-batch anchor duplicates
+- in-batch skeleton duplicates
+- old corpus / non-W2 count
+- Claude fallback count
+- fallback reasons
+- latency avg/min/max
+- errored batches
+
+Target:
+- 0 errors
+- about 2 W2 per batch when distinct candidates are available
+- 0 batches with 3 W2
+- 0 repeated W2 entryIds/hooks/skeletons
+- Claude fallback should be 0 or materially lower than before
+- avg latency should materially improve from ~34s
+- target avg latency: under 8s if no Claude fallback
+- max latency: ideally under 15s, unless one legitimate fallback occurs
+
+B. Western/default W2 OFF latency sweep
+- 5 refreshes
+- count=3
+- x-lumina-qa-force-w2-off:1
+- x-lumina-qa-expose-meta:1
+- same warm server
+
+Report:
+- W2 ideas total
+- Claude fallback count
+- fallback reasons
+- latency avg/min/max
+- errors
+
+Target:
+- 0 W2
+- Claude fallback 0 or materially lower than before
+- avg latency materially improved from ~35s
+
+C. Non-Western leak smoke
+- ng_pidgin: 2 refreshes
+- ng_light: 2 refreshes
+- ng_clean: 2 refreshes
+- india: 2 refreshes
+- philippines: 2 refreshes
+
+Report:
+- W2 leak count per cohort
+- errors
+- fallback count if available
+
+Target:
+- 0 W2 leaks
+- 0 errors
+
+D. Optional stress sweep if time allows
+- Western/default W2 ON
+- 20 refreshes
+- only if the 10-refresh sweep is clean and fast
+
+Report required:
+1. Root cause of slow refreshes.
+2. Files changed.
+3. Whether Claude fallback gating changed.
+4. Whether regenerate=true semantics changed.
+5. Fallback reason taxonomy.
+6. Test result.
+7. Typecheck result.
+8. W2 ON latency sweep.
+9. W2 OFF latency sweep.
+10. Non-Western leak smoke.
+11. Production flag confirmation.
+12. Public API/schema confirmation.
+13. Any remaining latency caveats.
+
+Acceptance gates:
+- Typecheck clean.
+- Tests pass.
+- No migrations.
+- No public API shape change.
+- Production W2 remains OFF.
+- W2 ON still behaves correctly:
+  - usually 2 W2 + 1 old-corpus
+  - never 3 W2 by default
+  - no W2 entryId/hook/skeleton repeats in the sweep
+  - no in-batch W2 axis duplicates
+- W2 OFF produces 0 W2.
+- Non-Western leaks = 0.
+- Claude fallback is no longer normal refresh behavior when local candidates are sufficient.
+- regenerate=true does not by itself force Claude fallback.
+- Average refresh latency materially improves from the W2-L R2 baseline.
+- Fallback, if used, has an explicit reason.
+
+Do not optimize by weakening quality gates. The correct fix is local-first fallback control, not accepting worse ideas.
