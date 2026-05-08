@@ -1,0 +1,69 @@
+Do not close W2-QA-FIX-1 as GO.
+
+Treat the implementation as safe but incomplete:
+- tests green
+- production flags untouched
+- no reliability regression
+- W2 first-impression rotation works in unit tests
+- but the actual first-card diversity target failed because pattern_variation wins slot 0 before W2 rotation matters
+
+Main failed metric:
+- first-card distinct hooks across 10 creators = 2/10
+- 9/10 first cards are "the fridge knows i'm lying"
+- pattern_variation wins idea[0] in 36/40 batches
+
+Do not patch yet.
+
+Proceed with W2-QA-AUDIT-2 — Post-Merge Slot-0 Root-Cause Audit.
+
+Goal:
+Explain exactly why pattern_variation dominates slot 0 and why "the fridge knows i'm lying" wins across cold-start creators.
+
+Audit only. No code changes.
+
+Trace:
+1. Where pattern_variation candidates enter the merged pool.
+2. Where W2 reserved candidates enter the merged pool.
+3. Whether W2 reservation happens before or after slot-0 ordering.
+4. Which function decides final idea[0].
+5. What score/ranking puts "the fridge knows i'm lying" above W2 candidates.
+6. Whether first-card order is based on:
+   - score
+   - array order
+   - source priority
+   - cache/pattern priority
+   - novelty/willingness score
+   - fallback/core_native ordering
+7. Whether W2 reserved ideas are inserted but then sorted behind pattern_variation.
+8. Whether this behavior is only cold-start or also refresh.
+9. Whether the same behavior would happen for real authenticated creators, not just demo.
+10. Whether there is already a safe final composition hook where first-card rotation can be applied without changing candidate generation.
+
+Also audit "the fridge knows i'm lying":
+- source file/template
+- why it passes and scores high
+- why it repeats on empty memory
+- whether it should be first-impression eligible
+- whether demotion should be first-batch only or global
+- whether it is a good idea being overused or a weak idea
+
+Deliver:
+.local/W2QA_AUDIT_2_POST_MERGE_SLOT0.md
+
+Required recommendation:
+Give 2-3 minimal fix options, ranked by risk:
+A. first-card post-merge deterministic top-N rotation
+B. first-batch pattern_variation slot-0 demotion if repeated/high-overlap
+C. force first slot from W2 reserved candidates only on first batch
+D. suppress "the fridge knows i'm lying" from first-card eligibility only
+
+For each option:
+- files touched
+- risk
+- whether it preserves 2 W2 + 1 old/core
+- whether it can under-fill
+- whether it affects refresh
+- whether it affects non-Western cohorts
+- tests needed
+
+Do not implement until I choose a fix.
