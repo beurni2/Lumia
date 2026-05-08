@@ -1,0 +1,388 @@
+Apply these editor-approved fixes for the 17 Packet 3 latent violations.
+
+Do not loosen validators.
+Do not extend tokenizer/allowlists.
+Do not change production flags.
+Preserve IDs.
+Prefer anchor swaps and verb-form alignment only.
+After applying, rerun the latent-violation enumerator first.
+
+---
+
+## A. Anchor token missing from whatToShow
+
+### W2C-026
+
+Keep hook:
+replying 'just saw this' like the message wasn't aging in my phone
+
+Replace anchor:
+message
+
+Replace whatToShow:
+Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends the message anyway.
+
+Replace howToFilm:
+Show the old fake message timestamp safely. Type “just saw this,” glance at the timestamp, then send the message with fake innocence.
+
+Replace caption:
+just saw this, allegedly.
+
+Reason:
+Use `message`, which appears verbatim in whatToShow/howToFilm and preserves the reply premise.
+
+---
+
+### w2_next2_007
+
+Keep hook:
+My LinkedIn profile and my actual soul have not met in years
+
+Keep anchor:
+LinkedIn
+
+Replace whatToShow:
+Creator shows a staged LinkedIn profile posture at the laptop for one beat, then cuts to eating shredded cheese over the sink in a bathrobe.
+
+Replace howToFilm:
+Use a quick two-shot contrast. Start with the staged LinkedIn laptop posture, then cut to the private sink-cheese version with no explanation.
+
+Replace caption:
+LinkedIn has not been briefed.
+
+Reason:
+Keep `LinkedIn` because it is the actual hook anchor; add it naturally to whatToShow/howToFilm.
+
+---
+
+### w2_next2_018
+
+Keep hook:
+Calculating if I have enough social battery for a four-person dinner
+
+Replace anchor:
+dinner
+
+Replace whatToShow:
+Creator counts on fingers, recalculates the dinner math silently, looks toward the couch, then lies face-down like the dinner math failed.
+
+Replace howToFilm:
+Frame the dinner math calculation. Count on fingers, pause at four people, then collapse face-down on the couch as the final answer.
+
+Replace caption:
+four people was not in the budget.
+
+Reason:
+Use `dinner`, which is concrete in the scene and avoids forcing `battery` into whatToShow unnaturally.
+
+---
+
+### w2_next2_042
+
+Keep hook:
+Waiting to speak on Zoom turned my face into a hostage video
+
+Keep anchor:
+Zoom
+
+Replace whatToShow:
+Creator sits in a staged Zoom meeting on the laptop, frozen smile getting wider, leaning closer until only their eyes fill the camera.
+
+Replace howToFilm:
+Use a fake Zoom meeting screen or laptop camera angle. Start normal, hold the frozen smile too long, then slowly lean into the camera.
+
+Replace caption:
+Zoom face needed supervision.
+
+Reason:
+Keep `Zoom`; add it naturally to whatToShow/howToFilm.
+
+---
+
+### w2_next2_070
+
+Keep hook:
+I muted the chat and still checked it like a clown
+
+Replace anchor:
+mute
+
+Replace whatToShow:
+Creator toggles mute on a fake chat, sets the phone down with confidence, then immediately picks it back up to check the same chat.
+
+Replace howToFilm:
+Use a fake chat screen. Show the mute toggle, set the phone down confidently, then pick it back up immediately.
+
+Replace caption:
+muted chat, active clown.
+
+Reason:
+Use `mute`, which appears verbatim in whatToShow and preserves the joke.
+
+---
+
+## B. W2-L howToFilm ↔ whatToShow overlap repairs
+
+### w2_next_036
+
+Keep hook:
+“We should catch up” text I will never follow through on
+
+Keep anchor:
+catch
+
+Replace whatToShow:
+Creator types “we should catch up” in a fake chat app, smiles like a good person, then closes the app and sets the phone face-down.
+
+Replace howToFilm:
+Use a fake chat app. Type “we should catch up,” smile like you mean it, then close the app and set the phone face-down.
+
+Replace caption:
+catching up was symbolic.
+
+Reason:
+Aligns overlap on chat, app, type/types, smile/smiles, close/closes, phone.
+
+---
+
+### w2_next_048
+
+Keep hook:
+I wrote “email boss” on my list and it’s still there
+
+Keep anchor:
+email
+
+Replace whatToShow:
+Creator points to “email boss” on a staged to-do list, moves it to tomorrow’s list, then taps the paper like progress happened.
+
+Replace howToFilm:
+Shoot overhead at the staged to-do list. Show “email boss,” move it to tomorrow’s list, then tap the paper like progress happened.
+
+Replace caption:
+moved the task. healed nothing.
+
+Reason:
+Aligns overlap on email, boss, staged, list, tomorrow, tap, paper.
+
+---
+
+### w2_next_072
+
+Keep hook:
+Analytics gave me hope and I punished the app for it
+
+Keep anchor:
+analytics
+
+Replace whatToShow:
+Creator sees a fake positive analytics number, smiles for half a second, then closes the app like hope was too much responsibility.
+
+Replace howToFilm:
+Use fake analytics. Show the positive number, smile for half a second, then close the app too fast like being encouraged became responsibility.
+
+Replace caption:
+analytics got too supportive.
+
+Reason:
+Aligns overlap on fake, analytics, positive, number, smile, close, app.
+
+---
+
+### w2_next_091
+
+Keep hook:
+Remote died during the one scene I was emotionally available for
+
+Keep anchor:
+remote
+
+Replace whatToShow:
+Creator points the remote at a staged paused scene, clicks several times, realizes the remote died, then slowly turns to stare at it.
+
+Replace howToFilm:
+Frame the remote and staged paused scene. Click several times, realize the remote died, then turn into the slow betrayal stare.
+
+Replace caption:
+remote chose the dramatic scene.
+
+Reason:
+Aligns overlap on remote, staged, paused, scene, click/clicks, died, stare.
+
+---
+
+## C. W2-N howToFilm ↔ whatToShow overlap repairs
+
+### w2_next2_005
+
+Keep hook:
+I’m choosing the late fee because the mail looked at me weird
+
+Keep anchor:
+mail
+
+Replace whatToShow:
+Creator walks past a stack of unopened mail, makes eye contact with the mail, places a coffee mug on top, and keeps walking like the mail started it.
+
+Replace howToFilm:
+Frame the unopened mail stack on the hallway table. Walk past the mail, place the coffee mug on top, then keep walking without opening it.
+
+Replace caption:
+mail blinked first.
+
+Reason:
+Aligns overlap on mail, stack, unopened, coffee, mug, walking/walk.
+
+---
+
+### w2_next2_018
+
+Keep hook:
+Calculating if I have enough social battery for a four-person dinner
+
+Keep anchor:
+dinner
+
+Replace whatToShow:
+Creator counts dinner math on their fingers, recalculates silently on the couch, then lies face-down because the dinner math failed.
+
+Replace howToFilm:
+Frame the dinner math on the couch. Count on your fingers, recalculate silently, then collapse face-down because the dinner math failed.
+
+Replace caption:
+four people was not in the budget.
+
+Reason:
+This is the same entry as the anchor fix; aligns overlap on dinner, math, fingers, couch, count/counts.
+
+---
+
+### w2_next2_045
+
+Keep hook:
+I walked into the room and my brain left the group chat
+
+Keep anchor:
+room
+
+Replace whatToShow:
+Creator walks into the room, stops with a system-error face, looks around the room, then walks back out without doing anything.
+
+Replace howToFilm:
+Use a doorway shot into the room. Walk in with purpose, stop with the system-error face, look around the room, then walk back out.
+
+Replace caption:
+brain disconnected in the doorway.
+
+Reason:
+Aligns overlap on room, walk/walks, stop/stops, face, around.
+
+---
+
+### w2_next2_047
+
+Keep hook:
+The nice sweater was for a person I stopped being by 10am
+
+Keep anchor:
+sweater
+
+Replace whatToShow:
+Creator starts at the desk in a nice sweater, reveals pajama pants, messy hair, and a coffee mug by 10am.
+
+Replace howToFilm:
+Start at the desk in the nice sweater. Reveal the pajama pants, messy hair, and coffee mug so the 10am collapse is obvious.
+
+Replace caption:
+sweater clocked out early.
+
+Reason:
+Aligns overlap on desk, nice, sweater, reveal/reveals, pajama, messy, hair, coffee, mug, 10am.
+
+---
+
+### w2_next2_051
+
+Keep hook:
+I said I was fine and made a sandwich with no witnesses
+
+Keep anchor:
+sandwich
+
+Replace whatToShow:
+Creator sits alone at the kitchen table with a dry sandwich, stares at the sandwich, then takes one silent bite like the sandwich knows too much.
+
+Replace howToFilm:
+Frame the kitchen table and dry sandwich. Stare at the sandwich, take one silent bite, and keep it quiet and deadpan.
+
+Replace caption:
+sandwich signed the NDA.
+
+Reason:
+Aligns overlap on kitchen, table, dry, sandwich, stare/stares, bite.
+
+---
+
+### w2_next2_058
+
+Keep hook:
+I said there was food at home and the fridge disagreed
+
+Keep anchor:
+food
+
+Replace whatToShow:
+Creator opens the fridge, finds only a pickle jar or condiment, waits for more food to appear, then slowly closes the fridge door.
+
+Replace howToFilm:
+Frame the fridge door opening. Show the pickle jar, wait for more food to appear, then close the fridge door with quiet defeat.
+
+Replace caption:
+fridge said define food.
+
+Reason:
+Aligns overlap on fridge, door, pickle, jar, wait/waits, food, close/closes.
+
+---
+
+### w2_next2_066
+
+Keep hook:
+I opened the dating app and remembered I have to be perceived
+
+Keep anchor:
+dating
+
+Replace whatToShow:
+Creator opens a fake dating app profile, sees their own profile, turns the phone face-down, and sits extremely still.
+
+Replace howToFilm:
+Use a fake dating app profile. Show the profile briefly, turn the phone face-down, and sit extremely still like being perceived was too much.
+
+Replace caption:
+dating app asked me to exist publicly.
+
+Reason:
+Aligns overlap on fake, dating, app, profile, phone, face-down, still.
+
+---
+
+### w2_next2_098
+
+Keep hook:
+I tried to clean one drawer and found my entire past
+
+Keep anchor:
+drawer
+
+Replace whatToShow:
+Creator opens a drawer to clean it, pulls out old receipts, a random charger, and an expired coupon, then pauses because the drawer remembered too much.
+
+Replace howToFilm:
+Shoot the drawer from above. Pull out the old receipts, random charger, and expired coupon, then pause because the drawer becomes a time capsule.
+
+Replace caption:
+drawer had archival footage.
+
+Reason:
+Aligns overlap on drawer, old, receipts, charger, expired, coupon, pause/pauses.
