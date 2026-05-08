@@ -281,3 +281,9 @@ id = "1H_Pm1AA8ADRS5LTwo736"
 uri = "file://.local/W2U_REVIEW_PACKET.md"
 type = "text"
 title = "W2-U Editorial Review Packet (W2-T, 100 entries)"
+
+[[outputs]]
+id = "g6coTxcM3x1m0PgcesHzT"
+uri = "file://.local/W2U2_REGRESSION_REPORT.md"
+type = "text"
+title = "W2-U2 Regression Report"
