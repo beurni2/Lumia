@@ -427,3 +427,102 @@ describe("PHASE W2-N runtime exposure smoke (QA-only / dev-only)", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------- //
+// PHASE W2-O — Live promotion gate runtime smoke.                    //
+//                                                                    //
+// Verifies that with the new live-pool flag                          //
+// `LUMINA_W2_WESTERN_LIVE_ENABLED=true`:                             //
+//   • the W2-K2 author + slot-reservation chain selects a LIVE entry //
+//   • the live pool's reservation honors the cohort guard (no leak   //
+//     into NG / IN / PH cohorts)                                     //
+//   • the staging-pool flag is NOT required (live can run alone)     //
+// ---------------------------------------------------------------- //
+
+describe("PHASE W2-O live promotion gate runtime smoke", () => {
+  it("with LUMINA_W2_WESTERN_LIVE_ENABLED=true: slot reservation selects a LIVE entry on a Western cohort", async () => {
+    const { WESTERN_HOOK_PACK_LIVE_AS_DRAFT, WESTERN_LIVE_POOL_FEATURE_FLAG_ENV } =
+      await import("../westernHookPackLive.js");
+    const { getActiveWesternPool } = await import(
+      "../westernPackSlotReservation.js"
+    );
+    process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV] = "true";
+    try {
+      const resolution = getActiveWesternPool({
+        region: "western",
+        languageStyle: "clean",
+      });
+      expect(resolution.source).toBe("live");
+      expect(resolution.entries.length).toBe(WESTERN_HOOK_PACK_LIVE_AS_DRAFT.length);
+
+      const { authored } = authorAll(resolution.entries);
+      expect(authored.length).toBeGreaterThanOrEqual(1);
+      const candidates = authored.map((a) => a.candidate);
+      const selectionBatch = syntheticNonW2Batch(3);
+      let diag: WesternSlotReservationDiagnostic | undefined;
+      const composed = applyWesternApprovedPackSlotReservation({
+        selectionBatch,
+        w2Candidates: candidates,
+        desiredCount: 3,
+        region: "western",
+        languageStyle: "clean",
+        flagEnabled: true,
+        packLength: resolution.packLength,
+        onDiagnostic: (d) => {
+          diag = d;
+        },
+      });
+      expect(diag).toBeDefined();
+      expect(diag!.shortCircuited).toBe(false);
+      expect(diag!.w2Reserved).toBeGreaterThanOrEqual(1);
+      const reservedIds = composed
+        .map((c) => (c.meta as { westernPackEntryId?: string }).westernPackEntryId)
+        .filter((x): x is string => typeof x === "string");
+      expect(reservedIds.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      delete process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV];
+    }
+  });
+
+  it("LIVE flag ON + nigeria cohort: resolver returns 'none' (no W2 leak)", async () => {
+    const { WESTERN_LIVE_POOL_FEATURE_FLAG_ENV } = await import(
+      "../westernHookPackLive.js"
+    );
+    const { getActiveWesternPool } = await import(
+      "../westernPackSlotReservation.js"
+    );
+    process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV] = "true";
+    try {
+      const r = getActiveWesternPool({
+        region: "nigeria",
+        languageStyle: "pidgin",
+      });
+      expect(r.source).toBe("none");
+      expect(r.entries.length).toBe(0);
+    } finally {
+      delete process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV];
+    }
+  });
+
+  it("both flags ON: resolver picks LIVE and signals bothFlagsOn=true", async () => {
+    const { WESTERN_LIVE_POOL_FEATURE_FLAG_ENV } = await import(
+      "../westernHookPackLive.js"
+    );
+    const { getActiveWesternPool } = await import(
+      "../westernPackSlotReservation.js"
+    );
+    process.env[WESTERN_APPROVED_POOL_FEATURE_FLAG_ENV] = "true";
+    process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV] = "true";
+    try {
+      const r = getActiveWesternPool({
+        region: "western",
+        languageStyle: "clean",
+      });
+      expect(r.source).toBe("live");
+      expect(r.bothFlagsOn).toBe(true);
+    } finally {
+      delete process.env[WESTERN_APPROVED_POOL_FEATURE_FLAG_ENV];
+      delete process.env[WESTERN_LIVE_POOL_FEATURE_FLAG_ENV];
+    }
+  });
+});

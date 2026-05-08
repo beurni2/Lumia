@@ -51,7 +51,19 @@
 import type { ScoredCandidate } from "./ideaScorer.js";
 import type { Region } from "@workspace/lumina-trends";
 import type { LanguageStyle } from "./tasteCalibration.js";
-import { canActivateWesternApprovedPool } from "./westernHookPackApproved.js";
+import {
+  APPROVED_WESTERN_PROMOTION_CANDIDATES,
+  canActivateWesternApprovedPool,
+  getEligibleWesternApprovedEntries,
+  isWesternApprovedPoolFeatureEnabled,
+} from "./westernHookPackApproved.js";
+import {
+  WESTERN_HOOK_PACK_LIVE,
+  canActivateWesternLivePool,
+  getEligibleWesternLiveEntries,
+  isWesternLivePoolFeatureEnabled,
+} from "./westernHookPackLive.js";
+import type { WesternHookPackDraftEntry } from "./westernHookPack.js";
 
 /** Telemetry / classification metadata required for the distinctness check. */
 export interface WesternPackCandidate {
@@ -130,6 +142,138 @@ export interface WesternSlotReservationInput {
   excludeAxes?: WesternExcludeAxes;
   /** Optional diagnostic sink — invoked once per call. */
   onDiagnostic?: (d: WesternSlotReservationDiagnostic) => void;
+}
+
+// ---------------------------------------------------------------- //
+// PHASE W2-O — Active-pool resolver + activation mutex.              //
+//                                                                    //
+// Two independent staging-only env flags now gate the Western pack:  //
+//   • LUMINA_W2_WESTERN_APPROVED_ENABLED — staging pool (300 entries //
+//     all PENDING_EDITORIAL_REVIEW, no real editorial gate).          //
+//   • LUMINA_W2_WESTERN_LIVE_ENABLED      — editor-signed live pool   //
+//     (W2-O rubric-derived; reviewedBy = WESTERN_LIVE_PROMOTION_SIGNOFF). //
+//                                                                    //
+// Resolution rule (mutex at activation site):                        //
+//   1. If LIVE flag is ON and the live-pool guard passes → LIVE.     //
+//      (`bothFlagsOn` is reported back so the caller can emit a      //
+//      loud warning when APPROVED is also ON — the live pool wins   //
+//      to preserve the editor-signed bar.)                           //
+//   2. Else if APPROVED flag is ON and the staging guard passes →    //
+//      APPROVED.                                                     //
+//   3. Else → no active pool (caller short-circuits W2-K reservation).//
+//                                                                    //
+// Both guards are individually identical to the W2-K activation      //
+// guard (region∈{undef,"western"} + lang∈{undef,null,"clean"} +      //
+// flag ON + pool non-empty), so NG / IN / PH cohorts are excluded   //
+// from BOTH pools by the same axes.                                  //
+// ---------------------------------------------------------------- //
+
+export type ActiveWesternPoolSource = "live" | "approved" | "none";
+
+export interface ActiveWesternPoolInput {
+  region: Region | undefined;
+  languageStyle: LanguageStyle | null | undefined;
+  /** Read of `LUMINA_W2_WESTERN_APPROVED_ENABLED`. Optional — defaults
+   *  to `isWesternApprovedPoolFeatureEnabled()`. */
+  approvedFlagEnabled?: boolean;
+  /** Read of `LUMINA_W2_WESTERN_LIVE_ENABLED`. Optional — defaults
+   *  to `isWesternLivePoolFeatureEnabled()`. */
+  liveFlagEnabled?: boolean;
+}
+
+export interface ActiveWesternPoolResolution {
+  /** Which pool the caller should source candidates from. `"none"`
+   *  means no W2 reservation should run (cohort-mismatch or both
+   *  flags OFF). */
+  readonly source: ActiveWesternPoolSource;
+  /** The eligible entries for the resolved pool, returned in the
+   *  shape `WesternHookPackDraftEntry[]` so the existing W2-K author
+   *  + slot-reservation chain can consume them without branching. */
+  readonly entries: readonly WesternHookPackDraftEntry[];
+  /** The full pool length (used by `applyWesternApprovedPackSlotReservation`'s
+   *  `packLength` activation arg). */
+  readonly packLength: number;
+  /** True when both `LUMINA_W2_WESTERN_APPROVED_ENABLED` and
+   *  `LUMINA_W2_WESTERN_LIVE_ENABLED` are ON. The caller should emit
+   *  a loud warning log in this case (live wins). */
+  readonly bothFlagsOn: boolean;
+  /** Echo of the resolved approved/live flag values at decision time
+   *  for telemetry. */
+  readonly approvedFlagEnabled: boolean;
+  readonly liveFlagEnabled: boolean;
+}
+
+/**
+ * Resolve which Western pool is active for the current request.
+ * Pure function over the four inputs (region / languageStyle +
+ * the two flag values). When both flags are ON the live pool wins
+ * — `bothFlagsOn` is set so the caller can emit a loud warning.
+ */
+export function getActiveWesternPool(
+  input: ActiveWesternPoolInput,
+): ActiveWesternPoolResolution {
+  const approvedFlagEnabled =
+    input.approvedFlagEnabled ?? isWesternApprovedPoolFeatureEnabled();
+  const liveFlagEnabled =
+    input.liveFlagEnabled ?? isWesternLivePoolFeatureEnabled();
+  const bothFlagsOn = approvedFlagEnabled && liveFlagEnabled;
+
+  // 1. Prefer LIVE when its flag is ON and its guard passes.
+  if (
+    canActivateWesternLivePool({
+      region: input.region,
+      languageStyle: input.languageStyle,
+      flagEnabled: liveFlagEnabled,
+      packLength: WESTERN_HOOK_PACK_LIVE.length,
+    })
+  ) {
+    return {
+      source: "live",
+      entries: getEligibleWesternLiveEntries({
+        region: input.region,
+        languageStyle: input.languageStyle,
+        flagEnabled: liveFlagEnabled,
+        packLength: WESTERN_HOOK_PACK_LIVE.length,
+      }),
+      packLength: WESTERN_HOOK_PACK_LIVE.length,
+      bothFlagsOn,
+      approvedFlagEnabled,
+      liveFlagEnabled,
+    };
+  }
+
+  // 2. Fall back to APPROVED.
+  if (
+    canActivateWesternApprovedPool({
+      region: input.region,
+      languageStyle: input.languageStyle,
+      flagEnabled: approvedFlagEnabled,
+      packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+    })
+  ) {
+    return {
+      source: "approved",
+      entries: getEligibleWesternApprovedEntries({
+        region: input.region,
+        languageStyle: input.languageStyle,
+        flagEnabled: approvedFlagEnabled,
+        packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+      }),
+      packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+      bothFlagsOn,
+      approvedFlagEnabled,
+      liveFlagEnabled,
+    };
+  }
+
+  return {
+    source: "none",
+    entries: [],
+    packLength: 0,
+    bothFlagsOn,
+    approvedFlagEnabled,
+    liveFlagEnabled,
+  };
 }
 
 function normHook(h: string): string {

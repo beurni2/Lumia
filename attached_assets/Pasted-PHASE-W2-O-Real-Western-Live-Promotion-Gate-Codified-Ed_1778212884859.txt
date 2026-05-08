@@ -1,0 +1,234 @@
+PHASE W2-O — Real Western Live Promotion Gate + Codified Editorial Rubric
+
+Context:
+We discovered an approval semantics mismatch.
+
+Current facts:
+- The original Western draft source has 157 entries.
+- W2-I promoted the top 100 via an offline W2-D editorial ranker.
+- That ranking is only encoded as W2I_DRAFT_PROMOTION_IDS order.
+- The ranking rubric/scores are not in the repo.
+- W2-L and W2-N did not go through the same W2-D editorial ranking process.
+- W2-L and W2-N were ChatGPT-curated, deduped, normalized, tested, and appended directly to APPROVED_WESTERN_PROMOTION_CANDIDATES.
+- reviewedBy = PENDING_EDITORIAL_REVIEW does not block runtime selection.
+- When LUMINA_W2_WESTERN_APPROVED_ENABLED=true, all 300 entries are equally runtime-selectable.
+- The current APPROVED_WESTERN_PROMOTION_CANDIDATES name is misleading: it means staging validated curation rows, not editor-signed production-ready live entries.
+- Author-pipeline survival is uneven:
+  - W2-I: 79/100 author OK
+  - W2-L: 66/100 author OK
+  - W2-N: 56/100 author OK
+
+Goal:
+Create a real, reproducible editorial promotion gate before any production rollout or more bulk W2 imports.
+
+Primary objective:
+Distinguish between:
+1. staging candidate pool / wider QA pool
+2. editor-signed live Western promotion pool
+
+Do not change production behavior yet.
+
+Hard rules:
+- Production remains OFF.
+- Do not enable Western W2 live in production.
+- Do not delete APPROVED_WESTERN_PROMOTION_CANDIDATES.
+- Keep APPROVED_WESTERN_PROMOTION_CANDIDATES as the staging / wider-net QA pool.
+- Do not loosen validators.
+- Do not change Claude prompts.
+- Do not add migrations.
+- Do not expose public API changes.
+- Do not touch Nigerian/Pidgin/N1 behavior.
+- Do not touch India/Philippines behavior.
+- Preserve W2-K2 memory/selection behavior.
+- Preserve W2-M local-first fallback behavior.
+- Do not source-boost W2-I vs W2-L vs W2-N in runtime selection. The live survivor pool should be flat after promotion.
+
+Required work:
+
+1. Codify editorial rubric in repo
+Create a reproducible rubric module, suggested:
+artifacts/api-server/src/qa/westernPromotionRubric.ts
+
+The rubric should score each W2 candidate on production-readiness.
+
+Suggested dimensions:
+- hook punch / scroll-stop
+- hook naturalness / non-AI feel
+- scenario filmability
+- scenario specificity
+- hook-to-scenario cohesion
+- visible action strength
+- low-lift solo filming
+- safety/privacy confidence
+- comedy payoff clarity
+- freshness vs existing approved pool
+- non-duplication / skeleton novelty
+- setting/anchor/family diversity contribution
+- validator survival
+
+Rubric should produce:
+- total score
+- per-dimension scores
+- reject reasons
+- warning reasons
+- final recommendation:
+  - promote
+  - needs_rewrite
+  - reject
+
+2. Run rubric across all 300 current staging candidates
+Inputs:
+- W2-I 100
+- W2-L 100
+- W2-N 100
+
+For each entry, determine:
+- source block
+- entry id
+- hook
+- author pipeline status
+- validator survival status
+- rubric score
+- recommendation
+- reject/needs-rewrite reasons
+
+Important:
+Entries that fail authorWesternPackEntryAsIdea or core validators should not enter the live pool.
+They should be marked rejected or needs_rewrite.
+
+3. Create rejected/needs-review visibility artifacts
+Add constants or generated report artifacts, depending on existing repo style:
+- WESTERN_HOOK_PACK_REJECTED_IDS
+- WESTERN_HOOK_PACK_NEEDS_REWRITE_IDS
+or equivalent QA report output.
+
+Do not hide validator-failing entries.
+
+4. Create WESTERN_HOOK_PACK_LIVE
+Create a new live pool module, suggested:
+artifacts/api-server/src/lib/westernHookPackLive.ts
+
+This should contain only promoted, editor-signed entries.
+
+For now, if actual human initials are not available, use a staged signoff field such as:
+reviewedBy: "W2O_SYSTEM_RUBRIC_2026-05-08"
+
+But make the integrity semantics clear:
+- LIVE pool must reject reviewedBy = PENDING_EDITORIAL_REVIEW.
+- LIVE pool must reject missing reviewedBy.
+- LIVE pool must include only promote-recommended entries.
+- LIVE pool must pass the same hook/skeleton/dedupe/integrity checks.
+- LIVE pool must preserve stable IDs.
+
+5. Add live activation flag
+Add a new flag:
+LUMINA_W2_WESTERN_LIVE_ENABLED
+
+Behavior:
+- If LIVE flag is ON, runtime selects from WESTERN_HOOK_PACK_LIVE.
+- If APPROVED staging flag is ON, runtime selects from APPROVED_WESTERN_PROMOTION_CANDIDATES.
+- These two flags must be mutually exclusive at runtime.
+- If both are set, fail closed or prefer LIVE and log loudly — choose the safer explicit behavior and test it.
+- Production remains OFF unless explicitly configured later.
+
+Do not change current staging behavior unless the new flag is set.
+
+6. Preserve current staging pool
+Do not delete or shrink APPROVED_WESTERN_PROMOTION_CANDIDATES.
+It remains useful for QA and future batch staging.
+
+7. Tests required
+Add tests for:
+
+Rubric:
+- every candidate receives a deterministic score
+- reject/needs_rewrite/promote reasons are stable
+- validator-failing entries cannot be recommended promote
+- duplicate/skeleton collision risk lowers score or rejects
+- unsafe/private/public-filming risk lowers score or rejects
+- low filmability lowers score or rejects
+
+Live pool:
+- LIVE pool excludes PENDING_EDITORIAL_REVIEW
+- LIVE pool rejects missing reviewedBy
+- LIVE pool contains only promoted entries
+- LIVE pool has unique IDs
+- LIVE pool has no exact hook duplicates
+- LIVE pool has no normalized hook duplicates
+- LIVE pool has no skeleton duplicates
+- LIVE pool passes integrity
+- LIVE pool size is reported, not hardcoded blindly
+
+Activation:
+- staging flag returns APPROVED staging pool
+- live flag returns LIVE pool
+- both flags set behavior is tested
+- neither flag set keeps current behavior OFF
+- production flags remain OFF
+- non-Western gates still block W2
+- W2-K2 slot reservation works with live pool
+- W2-M fallback logic unchanged
+
+Runtime smoke:
+A. LIVE flag ON western/default:
+- 10 refreshes
+- count=3
+- region=western
+- languageStyle=clean
+- x-lumina-qa-expose-meta:1
+- fresh seeded demo creator
+- report W2 ideas, live source count, repeated IDs/hooks/skeletons, latency, fallback reasons
+
+B. STAGING approved flag ON western/default:
+- 5 refreshes
+- confirms old staging path still works
+
+C. Both flags ON:
+- confirm expected safe behavior
+
+D. W2 OFF:
+- confirm 0 W2
+
+E. Non-Western smoke:
+- ng_pidgin, ng_light, ng_clean, india, philippines
+- 0 W2 leaks
+
+Report required:
+1. Files changed
+2. Rubric dimensions and weights
+3. Total candidates scored
+4. Promote / needs_rewrite / reject counts by source block:
+   - W2-I
+   - W2-L
+   - W2-N
+5. Top promoted entries by score
+6. Bottom rejected entries by score
+7. Common reject reasons
+8. Common rewrite reasons
+9. LIVE pool size
+10. LIVE pool source distribution
+11. Whether any W2-L/W2-N entries promoted
+12. Whether any W2-I entries demoted/rejected
+13. Production flag status
+14. Typecheck result
+15. Full test result
+16. Runtime smoke results
+17. Any remaining ambiguity in approval semantics
+
+Acceptance gates:
+- Production remains OFF.
+- APPROVED staging pool preserved.
+- LIVE pool created separately.
+- reviewedBy=PENDING_EDITORIAL_REVIEW cannot enter LIVE.
+- Runtime selection semantics are unambiguous.
+- Validator-failing entries cannot enter LIVE.
+- Live pool has no exact/skeleton duplicates.
+- Live flag and staging flag behavior tested.
+- W2-K2 behavior preserved.
+- W2-M behavior preserved.
+- W2 OFF = 0 W2.
+- Non-Western leaks = 0.
+- Typecheck clean.
+- Tests pass.
+
+Do not import another W2 batch until W2-O approval semantics are fixed.

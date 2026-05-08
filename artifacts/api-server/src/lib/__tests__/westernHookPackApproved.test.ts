@@ -271,6 +271,16 @@ describe("W2-I — approved Western promotion pool (dark)", () => {
       path.join("lib", "westernHookPackBatchNext2.ts"),
       // PHASE W2-N runtime exposure smoke (QA-only / dev-only test)
       path.join("lib", "__tests__", "w2nRuntimeExposureSmoke.test.ts"),
+      // PHASE W2-O — live pool derives from the staging pool via the
+      // promotion rubric. The QA driver / live-pool tests / activation
+      // mutex test all transitively reference the staging pool through
+      // `westernHookPackLive.ts`.
+      path.join("lib", "westernHookPackLive.ts"),
+      path.join("lib", "westernPromotionRubric.ts"),
+      path.join("qa", "w2oPromotionRubricQa.ts"),
+      path.join("lib", "__tests__", "westernHookPackLive.test.ts"),
+      path.join("lib", "__tests__", "westernPromotionRubric.test.ts"),
+      path.join("lib", "__tests__", "westernActivationMutex.test.ts"),
     ];
 
     function walk(dir: string): string[] {

@@ -144,12 +144,13 @@ import {
   getRecentSeenEntriesOrdered,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
-import {
-  isWesternApprovedPoolFeatureEnabled,
-  canActivateWesternApprovedPool,
-  getEligibleWesternApprovedEntries,
-  APPROVED_WESTERN_PROMOTION_CANDIDATES,
-} from "./westernHookPackApproved.js";
+// PHASE W2-O — Western pool selection now flows through the
+// `getActiveWesternPool` resolver in `westernPackSlotReservation.ts`,
+// which internally consults BOTH staging-pool flag
+// (`LUMINA_W2_WESTERN_APPROVED_ENABLED`) and live-pool flag
+// (`LUMINA_W2_WESTERN_LIVE_ENABLED`) and returns the resolved entries
+// + `bothFlagsOn` mutex signal. The hybrid ideator no longer imports
+// the per-pool helpers directly.
 import {
   authorWesternPackEntryAsIdea,
   normalizeWesternHookSkeleton,
@@ -164,6 +165,7 @@ import {
 } from "./westernPackCreatorMemory.js";
 import {
   applyWesternApprovedPackSlotReservation,
+  getActiveWesternPool,
   type WesternPackCandidate,
   type WesternSlotReservationDiagnostic,
 } from "./westernPackSlotReservation.js";
@@ -4142,14 +4144,21 @@ export async function runHybridIdeator(
   // region∈{undefined,"western"} + languageStyle∈{undefined,null,"clean"} +
   // flag ON + non-empty pool. Non-eligible cohorts pay zero DB cost
   // (helper short-circuits to empty Set without touching the row).
-  const _w2kEligible =
-    !input.qaForceW2Off &&
-    canActivateWesternApprovedPool({
-      region: input.region,
-      languageStyle: _hoistedLanguageStyle,
-      flagEnabled: isWesternApprovedPoolFeatureEnabled(),
-      packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
-    });
+  // PHASE W2-O — eligibility now considers BOTH the staging-pool flag
+  // (`LUMINA_W2_WESTERN_APPROVED_ENABLED`) and the new live-pool flag
+  // (`LUMINA_W2_WESTERN_LIVE_ENABLED`). The shared per-creator memory
+  // hoist below still runs once per request — the cohort gate (region
+  // + languageStyle) is identical for both pools so a single read
+  // covers either source. `_w2oActivePool` is `"none"` when neither
+  // flag is on (or cohort mismatches), so non-eligible cohorts pay
+  // zero DB cost as before.
+  const _w2oActivePool = input.qaForceW2Off
+    ? { source: "none" as const, entries: [] as readonly WesternHookPackDraftEntry[], packLength: 0, bothFlagsOn: false, approvedFlagEnabled: false, liveFlagEnabled: false }
+    : getActiveWesternPool({
+        region: input.region,
+        languageStyle: _hoistedLanguageStyle,
+      });
+  const _w2kEligible = _w2oActivePool.source !== "none";
   // PHASE W2-K2 — single DB read returns ALL recent W2 axes (entryIds
   // + hooks + skeletons + anchors + families + spikes + settings).
   // Replaces the W2-K entry-id-only read; same activation gate so
@@ -5313,12 +5322,22 @@ export async function runHybridIdeator(
   {
     let w2sr_diagnostic: WesternSlotReservationDiagnostic | null = null;
     if (_w2kEligible) {
-      const w2EligibleEntries = getEligibleWesternApprovedEntries({
-        region: input.region,
-        languageStyle: _hoistedLanguageStyle,
-        flagEnabled: isWesternApprovedPoolFeatureEnabled(),
-        packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
-      });
+      // PHASE W2-O — both flags ON: the resolver prefers LIVE; emit a
+      // loud warning so an operator notices the mutex collision in
+      // staging logs. The flag short-circuit lives outside the hot
+      // loop (one log per request, only when both are on).
+      if (_w2oActivePool.bothFlagsOn) {
+        logger.warn(
+          {
+            phase: "w2o.both_flags_on_prefer_live",
+            resolvedSource: _w2oActivePool.source,
+            approvedFlagEnabled: _w2oActivePool.approvedFlagEnabled,
+            liveFlagEnabled: _w2oActivePool.liveFlagEnabled,
+          },
+          "Both LUMINA_W2_WESTERN_APPROVED_ENABLED and LUMINA_W2_WESTERN_LIVE_ENABLED are ON; preferring LIVE pool",
+        );
+      }
+      const w2EligibleEntries = _w2oActivePool.entries;
       // Filter eligible entries by per-creator memory BEFORE authoring
       // — saves validator cost on entries we'd reject anyway.
       const memoryFiltered: WesternHookPackDraftEntry[] =
@@ -5401,8 +5420,12 @@ export async function runHybridIdeator(
         desiredCount,
         region: input.region,
         languageStyle: _hoistedLanguageStyle,
-        flagEnabled: isWesternApprovedPoolFeatureEnabled(),
-        packLength: APPROVED_WESTERN_PROMOTION_CANDIDATES.length,
+        // PHASE W2-O — `flagEnabled: true` + the resolver's pack
+        // length is sufficient to clear the slot-reservation guard
+        // for either pool (guard semantics are identical between
+        // approved + live; the resolver already proved activation).
+        flagEnabled: true,
+        packLength: _w2oActivePool.packLength,
         excludeAxes: _hoistedWesternPackSeenAxes,
         onDiagnostic: (d) => {
           w2sr_diagnostic = d;
@@ -5443,6 +5466,8 @@ export async function runHybridIdeator(
           activated: true,
           region: input.region ?? null,
           languageStyle: _hoistedLanguageStyle,
+          // PHASE W2-O — surface which pool was active for this batch.
+          activePoolSource: _w2oActivePool.source,
           eligiblePool: w2EligibleEntries.length,
           memoryFiltered: memoryFiltered.length,
           authored: w2Candidates.length,
