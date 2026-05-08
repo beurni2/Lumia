@@ -1,0 +1,89 @@
+Proceed with W2-U3 — Editor Sign-Off for 78 Polished W2-T Promote-Ready Entries.
+
+Scope:
+Only update reviewedBy for the 78 W2-T entries currently marked:
+promote_ready_pending_editor
+
+Do not sign off:
+- the 12 needs_rewrite entries
+- the 10 reject entries
+- any entry with author/validator/rubric failure
+- any entry not in the current W2-U2 clean promote-ready list
+
+Rules:
+- Do not change hooks.
+- Do not change whatToShow.
+- Do not change howToFilm.
+- Do not change captions.
+- Do not change anchors/vocab fields.
+- Do not change validators.
+- Do not change production flags.
+- Do not change W2-K2 selection/memory behavior.
+- Do not change W2-M fallback behavior.
+- Do not touch N1 / India / Philippines behavior.
+
+Action:
+Replace reviewedBy:
+PENDING_EDITORIAL_REVIEW
+
+with a real editor stamp, for example:
+W2_U3_EDITORIAL_SIGNOFF_2026_05_08
+
+Only on the 78 clean W2-T promote-ready entries.
+
+After applying:
+1. Rerun W2-U packet.
+2. Confirm:
+   - the 78 entries are no longer blocked by reviewedBy
+   - promote-ready signed-off count = 78
+   - needs_rewrite remains 12
+   - reject remains 10
+   - safety failures = 0
+   - hook word-count failures = 0
+   - anchor/cohesion failures = 0
+   - howToFilm/whatToShow failures = 0
+   - duplicate captions = 0
+   - exact-hook collisions = 0
+   - skeleton duplicates = 0
+
+3. Rerun W2-O rubric/live pool integrity.
+4. Confirm WESTERN_HOOK_PACK_LIVE includes the 78 signed-off W2-T entries.
+5. Report new live pool size.
+
+Expected:
+- current live pool from W2-U projection: 355
+- projected after W2-T signoff: 433
+- W2-T contribution: +78
+
+6. Run full api-server tests.
+
+7. Run targeted runtime/diversity smoke:
+- LIVE flag ON
+- Western/clean
+- count=3
+- regenerate=true after batch 0
+- 10–20 refreshes
+- x-lumina-qa-expose-meta:1
+
+Report:
+- total batches
+- total ideas
+- total W2 ideas
+- total W2-T ideas
+- activePoolSource
+- source distribution W2-I / W2-L / W2-N / W2-T
+- entryId repeats
+- skeleton repeats
+- exact hook repeats
+- anchor repeats
+- setting distribution
+- phone/screen-led rate
+- bathroom/mirror count
+- hallway/doorway count
+- parked car count
+- physical body comedy count
+- fallback count
+- latency avg/min/max
+- errors
+
+8. Confirm production flags remain untouched.
