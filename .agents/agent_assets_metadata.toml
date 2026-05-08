@@ -233,3 +233,15 @@ id = "5iwwpRUUAvQ43N8Nb3y1M"
 uri = "file://.local/W2N_RUNTIME_EXPOSURE_SMOKE.md"
 type = "text"
 title = "W2-N Runtime Exposure Smoke Report"
+
+[[outputs]]
+id = "d8tM7PhozxB7rndvNj03m"
+uri = "file://.local/W2O_REPORT.md"
+type = "text"
+title = "W2-O Phase Report"
+
+[[outputs]]
+id = "qpZfMabwV0_vCJwsuQKHU"
+uri = "file://.local/W2O_RUBRIC_REPORT.md"
+type = "text"
+title = "W2-O Promotion Rubric Report"
