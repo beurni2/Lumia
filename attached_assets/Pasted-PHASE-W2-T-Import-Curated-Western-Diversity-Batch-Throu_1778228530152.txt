@@ -1,0 +1,252 @@
+PHASE W2-T — Import Curated Western Diversity Batch Through Staging + Live Promotion Gate
+
+Use the W2-T CURATED DIVERSITY BATCH — FINAL 100 list provided in this prompt.
+
+Important:
+This final curated list supersedes all previous W2-T candidate batches and earlier curated drafts.
+Do not use earlier W2-T lists unless only for comparison.
+Do not import raw uploaded batches directly.
+
+Goal:
+Import this 100-entry Western diversity expansion batch as staging candidates, then run it through the existing W2-O/W2-P live promotion gate.
+
+Do not import directly into WESTERN_HOOK_PACK_LIVE.
+Do not bypass rubric.
+Do not bypass validators.
+
+Context:
+Current Western live pool:
+- WESTERN_HOOK_PACK_LIVE = 284
+- W2-P closeout passed
+- 1113/1113 tests green
+- runtime smoke passed
+- production W2 remains OFF
+- W2-S audit showed diversity gaps:
+  - phone/screen-led too high
+  - desk/kitchen/bedroom/couch too concentrated
+  - physical body comedy too low
+  - parked car too low
+  - bathroom/mirror too low
+  - getting-ready/closet too low
+  - leaving-house delay under target
+
+This batch is designed to fix those gaps:
+- bathroom / mirror / getting-ready
+- hallway / doorway / leaving-house delay
+- closet / outfit
+- parked car
+- physical body comedy
+- non-phone object betrayal
+- errands simulated at home
+- social plans without extra actors
+
+Hard rules:
+- Production remains OFF.
+- Do not enable W2 live in production.
+- Do not loosen validators.
+- Do not change ideaSchema.
+- Do not change Claude prompts.
+- Do not add migrations.
+- Do not expose public API changes.
+- Preserve W2-O staging/live separation.
+- Preserve W2-K2 selection/memory behavior.
+- Preserve W2-M local-first fallback behavior.
+- Do not touch Nigerian/Pidgin/N1 behavior.
+- Do not touch India/Philippines behavior.
+
+Import direction:
+- Add this batch as staging candidates, not direct live entries.
+- Suggested sourceBatch: W2-T_DIVERSITY
+- Suggested IDs:
+  - w2_t_diversity_001 through w2_t_diversity_100
+- Preserve original visible numbering in metadata if possible.
+
+For each entry, map fields:
+- hook
+- whatToShow
+- anchor
+- comedyFamily
+- emotionalSpike
+- setting
+- voiceCluster
+- hookStyle
+- whyThisWorks
+- safetyNote
+
+Generate deterministic runtime-required fields if needed:
+- howToFilm
+- caption
+- hookSeconds
+- shotPlan
+
+howToFilm requirements:
+- Specific to WHAT TO SHOW.
+- Must share at least 3 substantive tokens with WHAT TO SHOW.
+- Must include the same concrete prop/action.
+- No generic static-shot template.
+- 2–3 concrete beats.
+- No new premise.
+- No extra actors.
+- No public filming.
+- No unsafe movement.
+
+caption requirements:
+- Short and human.
+- No hashtag stuffing.
+- No “relatable?” filler.
+- No repeated “the ___ knows” template.
+- No “update: not great” template.
+- Unique within batch.
+
+Hook validation:
+- Every hook must be ≤10 words.
+- Prefer 7–10 words when needed for clarity.
+- Do not make hooks cryptic.
+- If any hook exceeds 10 words, report it and request editor rewrite.
+- Do not auto-shorten hooks creatively.
+
+Anchor validation:
+- Every anchor should appear verbatim in WHAT TO SHOW.
+- If any anchor does not appear, prefer a minimal anchor swap to a concrete token already in WHAT TO SHOW.
+- Report all anchor swaps.
+- Avoid generic anchors like actual, moment, thing, person, situation, back, close.
+- If a multi-word anchor is unsupported, normalize to the safest concrete token:
+  - bathroom counter → counter
+  - hand towel → towel
+  - bathroom light → light
+  - robe belt → belt
+  - door handle → door or doorknob
+  - jacket zipper → zipper
+  - car seat → car or seat
+  - parked car → car
+  - steering wheel → wheel
+  - car keys → keys
+  - car door → door
+  - sock slide → sock
+  - guest pillow → pillow
+  - snack bowl → bowl
+  - front door → door
+
+Dedupe required:
+Compare this batch against:
+- WESTERN_HOOK_PACK_LIVE
+- APPROVED_WESTERN_PROMOTION_CANDIDATES
+- WESTERN_HOOK_PACK_DRAFT
+- userBlessedHookCorpus.ts
+- this batch itself
+
+Reject or report collisions for:
+- exact hook duplicate
+- normalized hook duplicate
+- normalized skeleton duplicate
+- bigram-Jaccard >= 0.50
+- same comedyFamily + emotionalSpike + anchor triplet collision
+- repeated unsafe public/private filming setup
+- repeated overused existing W2 theme
+
+Especially check against current overused themes:
+- phone/text/app/email/calendar
+- bank/subscription
+- desk productivity
+- fridge/meal-prep/takeout
+- charger/battery
+- snooze
+- drafts/algorithm
+- plant parent
+- laundry chair
+
+Tests required:
+1. Batch structural integrity:
+- exactly 100 W2-T entries
+- no missing fields
+- unique IDs
+- all hooks ≤10 words
+- no placeholder text
+- no missing safety notes for parked car entries
+- car entries include “Film while parked only. Do not film while driving.”
+
+2. Anchor/cohesion:
+- anchor appears in WHAT TO SHOW, or normalized anchor appears after mapping
+- no anchor missing
+- no triplet collisions
+- howToFilm ↔ whatToShow overlap passes
+
+3. Dedupe:
+- no exact hook duplicates
+- no normalized hook duplicates
+- no skeleton duplicates
+- no bigram-Jaccard >= 0.50 collisions unless explicitly reported and editor-approved
+
+4. Safety:
+- no public filming requirement
+- no filming strangers
+- no private screens/accounts/cards/addresses/chats
+- no unsafe car filming
+- no unsafe physical movement
+- no mental-health-coded punchlines
+
+5. Rubric/live promotion:
+- Run W2-O rubric over staging pool including W2-T.
+- Report how many W2-T entries promote / need rewrite / reject.
+- Do not force promote.
+- Do not lower rubric threshold.
+- Do not add W2-T entries to live unless rubric promotes them.
+
+6. Runtime smoke after promotion:
+If W2-T entries promote, run a targeted diversity smoke:
+- LIVE flag ON
+- Western/clean
+- count=3
+- regenerate=true after batch 0
+- 10–20 refreshes
+- report W2-T picks
+- report entry repeats
+- skeleton repeats
+- anchor repeats
+- setting distribution
+- phone/screen-led rate
+- bathroom/mirror count
+- hallway/doorway count
+- parked car count
+- physical body comedy count
+- fallback count
+- latency avg/min/max
+
+Report required:
+1. Files changed
+2. Entries attempted
+3. Entries imported to staging
+4. Anchor normalization mappings
+5. Hook word-count failures, if any
+6. Exact duplicates
+7. Skeleton duplicates
+8. Bigram collisions
+9. Triplet collisions
+10. Safety rejections
+11. Rubric results for W2-T:
+   - promote
+   - needs_rewrite
+   - reject
+12. New live pool size
+13. W2-T live source distribution
+14. Diversity deltas versus W2-S:
+   - phone/screen-led %
+   - bathroom/mirror count
+   - hallway/doorway count
+   - parked car count
+   - physical body comedy count
+   - closet/outfit count
+15. Full tests result
+16. Runtime smoke result
+17. Production flags unchanged
+
+Acceptance:
+- 100 entries imported to staging or clearly reported if rejected before import
+- production remains OFF
+- validators unchanged
+- tests green
+- no W2 leaks
+- no unsafe car/public/private filming
+- W2-T improves live-pool diversity materially
+
+Do not mark W2-T GO unless the full suite is green and production flags remain untouched.

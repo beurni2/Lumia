@@ -1,0 +1,1201 @@
+W2-T CURATED DIVERSITY BATCH — FINAL 100
+
+### W2-T-DIVERSITY-001
+Hook: Mirror check turned into a full investigation
+WHAT TO SHOW: Stand at the mirror ready to leave, then slowly lean closer, checking hair, collar, face, and outfit like you found evidence.
+Anchor: mirror
+Comedy family: getting_ready
+Emotional spike: private_embarrassment
+Setting: mirror
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The mirror creates immediate visible action, and the over-serious inspection feels human and filmable.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-002
+Hook: The towel fell and took my patience with it
+WHAT TO SHOW: Wrap or hang a towel, watch the towel fall immediately, then stare at it like it personally escalated the morning.
+Anchor: towel
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: bathroom
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The falling towel is a clear visual beat, and the reaction makes a tiny failure feel huge.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-003
+Hook: My toothbrush started a side quest
+WHAT TO SHOW: Pick up a toothbrush, then accidentally clean the sink, move bottles, and reorganize the counter before brushing.
+Anchor: toothbrush
+Comedy family: routine_failure
+Emotional spike: time_loss
+Setting: sink
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The toothbrush anchors a visible task drift that feels specific and not screen-based.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-004
+Hook: The sink looked clean until I got confident
+WHAT TO SHOW: Lean over the sink proudly, then notice one tiny mess and start wiping more and more of the counter.
+Anchor: sink
+Comedy family: domestic_absurdity
+Emotional spike: instant_regret
+Setting: bathroom
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: It turns a quick bathroom check into visible escalating action with a clear payoff.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-005
+Hook: My hair chose violence at the worst time
+WHAT TO SHOW: Face the mirror with one piece of hair sticking out, fix it, then watch another section pop up worse.
+Anchor: hair
+Comedy family: getting_ready
+Emotional spike: tiny_panic
+Setting: mirror
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: Hair misbehavior is visual, solo-filmable, and instantly understandable without narration.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-006
+Hook: The bathroom counter exposed my planning system
+WHAT TO SHOW: Pan across the bathroom counter: comb, lotion, towel, cup, and random objects scattered like a failed command center.
+Anchor: counter
+Comedy family: domestic_crime_scene
+Emotional spike: quiet_realization
+Setting: bathroom
+Voice cluster: quiet_realization
+Hook style: domestic_crime_scene
+Why this works: The counter gives a strong visual crime-scene frame while staying low-lift and personal.
+Safety/privacy note: Hide private products or labels if needed.
+
+### W2-T-DIVERSITY-007
+Hook: I washed my face and trusted the universe
+WHAT TO SHOW: Wash at the sink, look refreshed in the mirror, then immediately notice a shirt stain or hair problem.
+Anchor: sink
+Comedy family: routine_failure
+Emotional spike: false_confidence
+Setting: bathroom
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The reset-to-problem reversal is visual and quick, with no screen dependency.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-008
+Hook: The mirror approved nothing and explained everything
+WHAT TO SHOW: Step into the mirror frame confidently, freeze, then slowly remove one accessory, jacket, or hat.
+Anchor: mirror
+Comedy family: outfit_panic
+Emotional spike: private_embarrassment
+Setting: mirror
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The mirror functions like a silent judge, and the outfit change gives the scene movement.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-009
+Hook: My towel wrap had other plans
+WHAT TO SHOW: Secure a towel wrap, take one confident step, then catch the towel slipping and freeze in panic.
+Anchor: towel
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: bathroom
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: The movement is safe, small, and visually funny because confidence collapses immediately.
+Safety/privacy note: Keep framing modest and comfortable.
+
+### W2-T-DIVERSITY-010
+Hook: Skincare made me act employed by my face
+WHAT TO SHOW: Line up simple skincare items by the mirror, apply one thing carefully, then nod like you managed a department.
+Anchor: mirror
+Comedy family: getting_ready
+Emotional spike: false_confidence
+Setting: bathroom
+Voice cluster: dry_deadpan
+Hook style: overdramatic_diagnosis
+Why this works: The joke makes a small routine feel absurdly official through clear hand movement.
+Safety/privacy note: Avoid medical or skin-condition claims.
+
+### W2-T-DIVERSITY-011
+Hook: The hand towel refused basic cooperation
+WHAT TO SHOW: Dry your hands with a hand towel, try to hang it neatly, then watch it slide down twice.
+Anchor: towel
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: bathroom
+Voice cluster: quiet_realization
+Hook style: object_betrayal
+Why this works: A tiny bathroom object creates a simple repeatable physical gag.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-012
+Hook: I practiced one smile and found twelve problems
+WHAT TO SHOW: Smile into the mirror, adjust posture, change angle, then give up and make a neutral face.
+Anchor: mirror
+Comedy family: social_overthinking
+Emotional spike: private_embarrassment
+Setting: mirror
+Voice cluster: chaotic_confession
+Hook style: tiny_documentary
+Why this works: The mirror-based self-review is instantly relatable and visually contained.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-013
+Hook: The bathroom light changed my whole identity
+WHAT TO SHOW: Turn on the bathroom light, look in the mirror, then physically step back like the lighting told the truth.
+Anchor: light
+Comedy family: getting_ready
+Emotional spike: caught_off_guard
+Setting: bathroom
+Voice cluster: overdramatic_reframe
+Hook style: accusation
+Why this works: Lighting becomes the antagonist, and the reaction gives a clear visual punchline.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-014
+Hook: My robe belt became a physics problem
+WHAT TO SHOW: Try tying a robe belt, accidentally make it uneven, then keep adjusting until it looks worse.
+Anchor: belt
+Comedy family: physical_comedy
+Emotional spike: confused_pause
+Setting: bathroom
+Voice cluster: dry_deadpan
+Hook style: fake_tutorial
+Why this works: The visible tying struggle creates safe physical comedy from a mundane object.
+Safety/privacy note: Keep framing modest and comfortable.
+
+### W2-T-DIVERSITY-015
+Hook: The sink splash humbled my whole outfit
+WHAT TO SHOW: Use the sink carefully, then look down at a fresh water spot on your shirt and freeze.
+Anchor: sink
+Comedy family: tiny_humiliation
+Emotional spike: instant_regret
+Setting: bathroom
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The water spot is a concrete visual payoff that everyone understands immediately.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-016
+Hook: Getting ready became mostly moving bottles around
+WHAT TO SHOW: Reach for one item on the bathroom counter, move three bottles, lose the first item, then stare at the mess.
+Anchor: counter
+Comedy family: getting_ready
+Emotional spike: time_loss
+Setting: bathroom
+Voice cluster: chaotic_confession
+Hook style: tiny_documentary
+Why this works: The action is specific, visual, and expands the getting-ready category without screens.
+Safety/privacy note: Hide private labels if needed.
+
+### W2-T-DIVERSITY-017
+Hook: I reached the door and forgot the mission
+WHAT TO SHOW: Stand at the doorway holding keys, touch the door handle, then freeze and look back into the room confused.
+Anchor: doorway
+Comedy family: leaving_house_delay
+Emotional spike: confused_pause
+Setting: doorway
+Voice cluster: dry_deadpan
+Hook style: realization
+Why this works: The doorway reset is visual, specific, and instantly recognizable as leaving-house chaos.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-018
+Hook: One shoe on and the plan collapsed
+WHAT TO SHOW: Put on one shoe at the front door, then sit there holding the other shoe while remembering another task.
+Anchor: shoe
+Comedy family: leaving_house_delay
+Emotional spike: time_loss
+Setting: front_door
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The one-shoe image clearly shows interruption and makes the delay physical.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-019
+Hook: The doorknob asked if I was actually ready
+WHAT TO SHOW: Reach for the doorknob confidently, stop mid-grab, then pat pockets and check your bag again.
+Anchor: doorknob
+Comedy family: leaving_house_delay
+Emotional spike: tiny_panic
+Setting: doorway
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The doorknob triggers visible second-guessing and keeps the scene low-lift.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-020
+Hook: My bag got packed and immediately became suspicious
+WHAT TO SHOW: Zip a bag at the doorway, pick it up, pause, then unpack one item to check if it exists.
+Anchor: bag
+Comedy family: adulting_panic
+Emotional spike: avoidance_spike
+Setting: entryway
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: The packed bag becomes a source of doubt, giving clear object-driven action.
+Safety/privacy note: Do not show IDs, cards, or private documents.
+
+### W2-T-DIVERSITY-021
+Hook: The hallway erased my entire purpose
+WHAT TO SHOW: Walk into the hallway with purpose, stop suddenly, turn around, then re-enter the room confused.
+Anchor: hallway
+Comedy family: leaving_house_delay
+Emotional spike: confused_pause
+Setting: hallway
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The hallway is underused and gives a clean spatial reset gag.
+Safety/privacy note: Avoid filming neighbors or private building details.
+
+### W2-T-DIVERSITY-022
+Hook: My coat joined the argument too late
+WHAT TO SHOW: Reach the doorway ready to leave, notice the coat, put it on, then realize the outfit feels wrong.
+Anchor: coat
+Comedy family: leaving_house_delay
+Emotional spike: instant_regret
+Setting: entryway
+Voice cluster: quiet_realization
+Hook style: object_betrayal
+Why this works: The coat creates a last-second reversal with visible outfit adjustment.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-023
+Hook: I opened the door and remembered three emergencies
+WHAT TO SHOW: Crack open the door, then quickly turn back to grab keys, bag, and one random forgotten item.
+Anchor: door
+Comedy family: leaving_house_delay
+Emotional spike: tiny_panic
+Setting: front_door
+Voice cluster: chaotic_confession
+Hook style: before_after_self
+Why this works: The door opening acts as the trigger for a fast, filmable scramble.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-024
+Hook: Ready to leave became ready to sit down
+WHAT TO SHOW: Stand fully dressed at the doorway, pause, then sit on the nearest chair without taking anything off.
+Anchor: doorway
+Comedy family: homebody_comedy
+Emotional spike: quiet_defeat
+Setting: doorway
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The reversal is simple: all the leaving signals end in sitting.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-025
+Hook: The keys moved after I spiritually found them
+WHAT TO SHOW: Spot the keys on a table, turn to grab a jacket, then look back and act like the keys disappeared.
+Anchor: keys
+Comedy family: domestic_absurdity
+Emotional spike: caught_off_guard
+Setting: entryway
+Voice cluster: overdramatic_reframe
+Hook style: domestic_crime_scene
+Why this works: It refreshes the key-search premise by making the “lost” moment happen after discovery.
+Safety/privacy note: Do not show address tags or identifiable key details.
+
+### W2-T-DIVERSITY-026
+Hook: The doorway turned my brain into airport security
+WHAT TO SHOW: At the doorway, pat every pocket, check the bag, check the coat, then repeat once more.
+Anchor: doorway
+Comedy family: leaving_house_delay
+Emotional spike: adulting_panic
+Setting: doorway
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The airport-security comparison creates a clear physical routine without needing props beyond pockets.
+Safety/privacy note: Avoid showing private documents.
+
+### W2-T-DIVERSITY-027
+Hook: I put my shoes on and lost momentum
+WHAT TO SHOW: Tie both shoes at the front door, stand up, then immediately sit back down like the task was enough.
+Anchor: shoes
+Comedy family: routine_failure
+Emotional spike: quiet_defeat
+Setting: front_door
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The visible completion of one step becomes the reason the whole mission stalls.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-028
+Hook: The bag strap attacked my exit timing
+WHAT TO SHOW: Swing a bag onto your shoulder at the doorway, get tangled in the strap, then miss your confident exit.
+Anchor: strap
+Comedy family: physical_comedy
+Emotional spike: private_embarrassment
+Setting: doorway
+Voice cluster: chaotic_confession
+Hook style: object_betrayal
+Why this works: The strap creates safe physical comedy and a clear leaving-house delay.
+Safety/privacy note: Keep movement slow and safe.
+
+### W2-T-DIVERSITY-029
+Hook: My hallway walk had too much confidence
+WHAT TO SHOW: Stride down the hallway confidently, then stop because you forgot one item and shuffle backward.
+Anchor: hallway
+Comedy family: leaving_house_delay
+Emotional spike: instant_regret
+Setting: hallway
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The confident walk followed by reversal is clean, physical, and easy to shoot.
+Safety/privacy note: Avoid filming neighbors or private building details.
+
+### W2-T-DIVERSITY-030
+Hook: I touched the door and became unavailable
+WHAT TO SHOW: Touch the door handle, freeze, then slowly take your hand off and look back at the couch.
+Anchor: door
+Comedy family: homebody_comedy
+Emotional spike: avoidance_spike
+Setting: front_door
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The door handle becomes the final emotional test before leaving.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-031
+Hook: The jacket zipper delayed the whole operation
+WHAT TO SHOW: At the doorway, pull a jacket zipper halfway, get stuck, then stand there negotiating with it silently.
+Anchor: zipper
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: entryway
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The zipper is concrete, physical, and turns leaving into a tiny battle.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-032
+Hook: I forgot something and chose emotional collapse
+WHAT TO SHOW: Step through the doorway, remember something, then slowly return inside with full-body disappointment.
+Anchor: doorway
+Comedy family: leaving_house_delay
+Emotional spike: quiet_defeat
+Setting: doorway
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The action is simple, and the exaggerated return makes the forgotten item feel absurdly heavy.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-033
+Hook: My closet rejected the entire plan
+WHAT TO SHOW: Open the closet, pull out one shirt, hold it up, then slowly put it back and close the closet.
+Anchor: closet
+Comedy family: outfit_panic
+Emotional spike: quiet_defeat
+Setting: closet
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The closet gives immediate visual action and avoids the overused bedroom-scroll setup.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-034
+Hook: My jeans asked questions I was not ready for
+WHAT TO SHOW: Try to put on jeans, pause halfway, then sit on the bed and reconsider the entire outfit.
+Anchor: jeans
+Comedy family: outfit_panic
+Emotional spike: private_embarrassment
+Setting: bedroom
+Voice cluster: overdramatic_reframe
+Hook style: accusation
+Why this works: The jeans become the source of conflict, with a clear visual hesitation.
+Safety/privacy note: Keep movement safe and comfortable.
+
+### W2-T-DIVERSITY-035
+Hook: The hanger fought harder than expected
+WHAT TO SHOW: Pull a shirt from a hanger, get the hanger caught, then shake it gently while trying to stay calm.
+Anchor: hanger
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: closet
+Voice cluster: chaotic_confession
+Hook style: object_betrayal
+Why this works: The hanger creates low-risk physical comedy in a setting the current pool underuses.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-036
+Hook: One sock became a personal attack
+WHAT TO SHOW: Look down at one normal sock and one wrong sock, then slowly lift your foot like evidence.
+Anchor: sock
+Comedy family: outfit_panic
+Emotional spike: caught_off_guard
+Setting: bedroom
+Voice cluster: quiet_realization
+Hook style: domestic_crime_scene
+Why this works: The mismatched sock is a simple visual punchline with no setup burden.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-037
+Hook: My jacket made the whole outfit worse
+WHAT TO SHOW: Check outfit in mirror, add a jacket, then visibly deflate and remove it with disappointment.
+Anchor: jacket
+Comedy family: outfit_panic
+Emotional spike: instant_regret
+Setting: mirror
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The jacket creates a clean before-and-after reveal and solves the getting-ready diversity gap.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-038
+Hook: The belt chose today for character development
+WHAT TO SHOW: Thread a belt through loops, miss one loop, notice it late, then start over with visible defeat.
+Anchor: belt
+Comedy family: object_betrayal
+Emotional spike: quiet_defeat
+Setting: bedroom
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The belt is a concrete prop and the restart gives a clear visual payoff.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-039
+Hook: My outfit needed math I did not study
+WHAT TO SHOW: Lay out two shirts and one pair of pants, swap combinations, then stare like the outfit became algebra.
+Anchor: outfit
+Comedy family: outfit_panic
+Emotional spike: confused_pause
+Setting: bedroom
+Voice cluster: quiet_realization
+Hook style: overdramatic_diagnosis
+Why this works: The visible swapping makes outfit indecision specific and filmable.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-040
+Hook: The sleeve went inside out and won
+WHAT TO SHOW: Try to put on a shirt, discover one sleeve is inside out, then wrestle it gently and give up.
+Anchor: sleeve
+Comedy family: physical_comedy
+Emotional spike: polite_rage
+Setting: bedroom
+Voice cluster: chaotic_confession
+Hook style: object_betrayal
+Why this works: The sleeve provides safe, contained movement and a clear object conflict.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-041
+Hook: My shoes disagreed with the entire vibe
+WHAT TO SHOW: Stand in a finished outfit, look down at shoes, then step backward like the shoes betrayed the plan.
+Anchor: shoes
+Comedy family: outfit_panic
+Emotional spike: instant_regret
+Setting: mirror
+Voice cluster: dry_deadpan
+Hook style: accusation
+Why this works: The shoes become the visual twist that collapses the outfit.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-042
+Hook: The closet door opened and lowered morale
+WHAT TO SHOW: Open the closet door with hope, stare at clothes, then slowly close it and look at the floor.
+Anchor: closet
+Comedy family: outfit_panic
+Emotional spike: quiet_defeat
+Setting: closet
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The door opening and closing gives a simple emotional arc with a concrete anchor.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-043
+Hook: My sweater trapped me in negotiations
+WHAT TO SHOW: Pull on a sweater, get stuck for one second, then emerge with hair or collar messed up.
+Anchor: sweater
+Comedy family: physical_comedy
+Emotional spike: private_embarrassment
+Setting: bedroom
+Voice cluster: chaotic_confession
+Hook style: tiny_documentary
+Why this works: The sweater struggle is safe, visible, and naturally comedic.
+Safety/privacy note: Keep movement gentle and safe.
+
+### W2-T-DIVERSITY-044
+Hook: The button entered a long-term conflict
+WHAT TO SHOW: Try fastening one button, miss the hole, try again, then look down at the shirt like it escalated.
+Anchor: button
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: bedroom
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The button creates tiny tactile comedy that is easy to understand visually.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-045
+Hook: I changed shirts and lost the plot
+WHAT TO SHOW: Hold two shirts, put one on, immediately remove it, then stand holding both with no clear answer.
+Anchor: shirts
+Comedy family: outfit_panic
+Emotional spike: time_loss
+Setting: bedroom
+Voice cluster: quiet_realization
+Hook style: confession
+Why this works: The repeated shirt swap is visible and captures realistic outfit indecision.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-046
+Hook: Hoodie strings ruined my leadership
+WHAT TO SHOW: Look in the mirror, notice uneven hoodie strings, pull one side, then make the other side worse.
+Anchor: hoodie
+Comedy family: object_betrayal
+Emotional spike: tiny_panic
+Setting: mirror
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The hoodie strings are a small but concrete visual problem with escalating corrections.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-047
+Hook: The car seat became a waiting room
+WHAT TO SHOW: Sit in the parked car, hands on the seat or wheel, then lean back and stare forward like you need a minute before going inside.
+Anchor: car
+Comedy family: homebody_comedy
+Emotional spike: avoidance_spike
+Setting: parked_car
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The parked car gives a distinct setting and captures the pre-errand pause clearly.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-048
+Hook: I rehearsed hello like it had choreography
+WHAT TO SHOW: In the parked car, practice a normal wave and greeting, then immediately look embarrassed at yourself.
+Anchor: car
+Comedy family: social_overthinking
+Emotional spike: private_embarrassment
+Setting: parked_car
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: The solo rehearsal is funny, human, and does not require another actor.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-049
+Hook: The seatbelt trapped my dramatic exit
+WHAT TO SHOW: Try to leave the parked car confidently, forget the seatbelt, get pulled back gently, then pause in defeat.
+Anchor: seatbelt
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: parked_car
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The seatbelt creates safe physical comedy and a sharp visual reversal.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-050
+Hook: Car mirror confidence lasted exactly four seconds
+WHAT TO SHOW: Check yourself in the car mirror, nod confidently, then notice one detail and start fixing everything.
+Anchor: mirror
+Comedy family: getting_ready
+Emotional spike: instant_regret
+Setting: parked_car
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The car mirror expands mirror comedy into a fresher setting with clear action.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-051
+Hook: The passenger seat became my command center
+WHAT TO SHOW: Arrange a bag, jacket, receipt, and keys on the passenger seat, then lose one item under the pile.
+Anchor: seat
+Comedy family: adulting_panic
+Emotional spike: confused_pause
+Setting: parked_car
+Voice cluster: dry_deadpan
+Hook style: domestic_crime_scene
+Why this works: The passenger seat gives a fresh contained staging area for errand chaos.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-052
+Hook: I arrived early and still wasn’t ready
+WHAT TO SHOW: Sit in the parked car, check the door outside, adjust jacket, then continue sitting instead of leaving.
+Anchor: car
+Comedy family: social_overthinking
+Emotional spike: avoidance_spike
+Setting: parked_car
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The joke is about emotional readiness, shown through visible non-action and outfit adjusting.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-053
+Hook: The steering wheel heard my entire pep talk
+WHAT TO SHOW: Grip the steering wheel in the parked car and silently hype yourself up before opening the door.
+Anchor: wheel
+Comedy family: anxious_optimism
+Emotional spike: false_confidence
+Setting: parked_car
+Voice cluster: overdramatic_reframe
+Hook style: tiny_documentary
+Why this works: The steering wheel anchors a private pep talk without needing dialogue or screens.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-054
+Hook: The receipt made the car very quiet
+WHAT TO SHOW: In the parked car, unfold a receipt, glance at the bags, then fold it back with silent regret.
+Anchor: receipt
+Comedy family: adulting_panic
+Emotional spike: quiet_realization
+Setting: parked_car
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The receipt is a concrete prop and the silence sells the financial realization safely.
+Safety/privacy note: Film while parked only. Do not film while driving. Hide payment/store details if needed.
+
+### W2-T-DIVERSITY-055
+Hook: My car keys started the second errand crisis
+WHAT TO SHOW: Hold car keys in the parked car, prepare to leave, then realize you need something from the back seat.
+Anchor: keys
+Comedy family: errand_theatre
+Emotional spike: tiny_panic
+Setting: parked_car
+Voice cluster: chaotic_confession
+Hook style: accusation
+Why this works: The keys trigger another visible mini-task instead of the expected exit.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-056
+Hook: The car door opened before my courage did
+WHAT TO SHOW: Open the car door from inside, pause with one foot out, then pull the foot back in for one more second.
+Anchor: door
+Comedy family: homebody_comedy
+Emotional spike: avoidance_spike
+Setting: parked_car
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The one-foot-out pose clearly shows hesitation before facing the errand or plan.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-057
+Hook: The glovebox contained everything except maturity
+WHAT TO SHOW: Open the glovebox in the parked car, reveal napkins and random items, then fail to find the one needed thing.
+Anchor: glovebox
+Comedy family: domestic_absurdity
+Emotional spike: confused_pause
+Setting: parked_car
+Voice cluster: dry_deadpan
+Hook style: domestic_crime_scene
+Why this works: The glovebox is a fresh physical archive and creates visual search comedy.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-058
+Hook: I parked and became emotionally unavailable
+WHAT TO SHOW: Sit in the parked car after arriving, unbuckle, then rebuckle or lean back like you need a reset.
+Anchor: car
+Comedy family: homebody_comedy
+Emotional spike: quiet_defeat
+Setting: parked_car
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The parked car setting directly fills the diversity gap with a familiar solo behavior.
+Safety/privacy note: Film while parked only. Do not film while driving.
+
+### W2-T-DIVERSITY-059
+Hook: I stood up like my knees signed approval
+WHAT TO SHOW: Rise from a chair too confidently, pause halfway, then adjust your stance like the chair exposed you.
+Anchor: chair
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: living_room
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The chair-to-stand motion is safe, visible, and grounded in everyday body comedy.
+Safety/privacy note: Keep movement gentle and safe.
+
+### W2-T-DIVERSITY-060
+Hook: The floor item became a whole commitment
+WHAT TO SHOW: Drop a small item on the floor, look down, bend halfway, then reconsider and use your foot to move it closer.
+Anchor: floor
+Comedy family: physical_comedy
+Emotional spike: quiet_defeat
+Setting: floor
+Voice cluster: quiet_realization
+Hook style: realization
+Why this works: The floor gives a simple physical problem and the lazy workaround is visually funny.
+Safety/privacy note: Keep movement safe and avoid strain.
+
+### W2-T-DIVERSITY-061
+Hook: My sock slide had too much ambition
+WHAT TO SHOW: Attempt a tiny sock slide across the floor, immediately lose balance slightly, then freeze and pretend it was planned.
+Anchor: sock
+Comedy family: physical_comedy
+Emotional spike: private_embarrassment
+Setting: floor
+Voice cluster: chaotic_confession
+Hook style: before_after_self
+Why this works: The sock slide is physical, low-prop, and adds movement diversity when kept safe.
+Safety/privacy note: Use a clear floor and keep movement small.
+
+### W2-T-DIVERSITY-062
+Hook: The blanket refused to release its hostage
+WHAT TO SHOW: Try to stand from the couch while tangled in a blanket, take one step, then return to untangle.
+Anchor: blanket
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: couch
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The blanket creates safe, visible resistance and a clear physical gag.
+Safety/privacy note: Keep steps slow and avoid tripping.
+
+### W2-T-DIVERSITY-063
+Hook: The pillow rearranged my spine without permission
+WHAT TO SHOW: Lie on a pillow, adjust it repeatedly, then sit up looking personally offended by the pillow.
+Anchor: pillow
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: bedroom
+Voice cluster: dry_deadpan
+Hook style: accusation
+Why this works: The pillow creates contained physical comedy around an ordinary comfort failure.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-064
+Hook: My chair squeaked and exposed the operation
+WHAT TO SHOW: Sit carefully in a chair, hear a squeak, freeze, then sit even slower like negotiating peace.
+Anchor: chair
+Comedy family: physical_comedy
+Emotional spike: private_embarrassment
+Setting: living_room
+Voice cluster: quiet_realization
+Hook style: object_betrayal
+Why this works: The chair sound creates a clear physical reaction without needing another person.
+Safety/privacy note: Use a stable chair.
+
+### W2-T-DIVERSITY-065
+Hook: The rug tried to humble my confidence
+WHAT TO SHOW: Walk across a rug, catch your foot slightly, then look back at the rug like it started something.
+Anchor: rug
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: living_room
+Voice cluster: overdramatic_reframe
+Hook style: accusation
+Why this works: The rug is a concrete household anchor and the reaction makes it safe comedy.
+Safety/privacy note: Use a safe, tiny stumble only; avoid actual tripping.
+
+### W2-T-DIVERSITY-066
+Hook: I bent down and aged seven minutes
+WHAT TO SHOW: Bend to pick up one object, pause dramatically, then stand up slowly holding the item like a trophy.
+Anchor: object
+Comedy family: physical_comedy
+Emotional spike: quiet_defeat
+Setting: floor
+Voice cluster: dry_deadpan
+Hook style: overdramatic_diagnosis
+Why this works: The physical action is simple, funny, and not dependent on phones or screens.
+Safety/privacy note: Keep movement gentle and safe.
+
+### W2-T-DIVERSITY-067
+Hook: The blanket escape needed more strategy
+WHAT TO SHOW: Try to leave bed or couch under a blanket, get one foot trapped, then carefully reverse and start again.
+Anchor: blanket
+Comedy family: physical_comedy
+Emotional spike: time_loss
+Setting: couch
+Voice cluster: chaotic_confession
+Hook style: tiny_documentary
+Why this works: The trapped foot gives a visual mini-story with safe, low-risk movement.
+Safety/privacy note: Keep movement slow and avoid tripping.
+
+### W2-T-DIVERSITY-068
+Hook: My slippers gave me false athletic confidence
+WHAT TO SHOW: Shuffle quickly in slippers, stop when one almost slides off, then look down with betrayed confidence.
+Anchor: slippers
+Comedy family: physical_comedy
+Emotional spike: false_confidence
+Setting: hallway
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The slippers create a safe movement gag and a clear confidence collapse.
+Safety/privacy note: Keep movement slow and controlled.
+
+### W2-T-DIVERSITY-069
+Hook: The couch accepted my failed escape attempt
+WHAT TO SHOW: Start standing from the couch, get halfway up, then sink back down like the couch made a strong argument.
+Anchor: couch
+Comedy family: homebody_comedy
+Emotional spike: quiet_defeat
+Setting: couch
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The half-stand is a clear physical action that turns comfort into the antagonist.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-070
+Hook: I stretched once and needed a statement
+WHAT TO SHOW: Do one small stretch, pause dramatically, then sit down like the stretch required formal recovery.
+Anchor: stretch
+Comedy family: physical_comedy
+Emotional spike: false_confidence
+Setting: living_room
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The exaggerated recovery from a tiny stretch is visual and easy to shoot.
+Safety/privacy note: Keep the stretch gentle and safe.
+
+### W2-T-DIVERSITY-071
+Hook: The pillow fight was against my comfort
+WHAT TO SHOW: Fluff a pillow aggressively, place it behind you, then immediately pull it out because it feels wrong.
+Anchor: pillow
+Comedy family: physical_comedy
+Emotional spike: polite_rage
+Setting: bedroom
+Voice cluster: chaotic_confession
+Hook style: fake_tutorial
+Why this works: The repeated pillow adjustment turns comfort-seeking into visible conflict.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-072
+Hook: My balance left before the errand did
+WHAT TO SHOW: Stand on one foot to put on a shoe, wobble safely, then sit down with instant humility.
+Anchor: shoe
+Comedy family: physical_comedy
+Emotional spike: caught_off_guard
+Setting: entryway
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The shoe creates practical, safe movement and a clear humility beat.
+Safety/privacy note: Use a wall or chair nearby for balance.
+
+### W2-T-DIVERSITY-073
+Hook: The chair caught me sitting down emotionally
+WHAT TO SHOW: Approach a chair like you are just resting briefly, then sink into it with full dramatic surrender.
+Anchor: chair
+Comedy family: homebody_comedy
+Emotional spike: quiet_defeat
+Setting: living_room
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The chair turns a small pause into a visible surrender scene.
+Safety/privacy note: Use a stable chair.
+
+### W2-T-DIVERSITY-074
+Hook: The broom made cleaning legally binding
+WHAT TO SHOW: Pick up a broom to sweep one spot, notice another spot, then stand there realizing the broom started a whole job.
+Anchor: broom
+Comedy family: object_betrayal
+Emotional spike: instant_regret
+Setting: kitchen_counter
+Voice cluster: quiet_realization
+Hook style: object_betrayal
+Why this works: The broom anchors a non-screen task that visibly expands beyond the plan.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-075
+Hook: The drawer opened and revealed consequences
+WHAT TO SHOW: Open a drawer looking for one item, find a messy pile, then slowly close the drawer without solving anything.
+Anchor: drawer
+Comedy family: domestic_absurdity
+Emotional spike: avoidance_spike
+Setting: bedroom
+Voice cluster: dry_deadpan
+Hook style: domestic_crime_scene
+Why this works: The drawer creates a fast reveal and a relatable avoidance payoff.
+Safety/privacy note: Avoid showing private documents.
+
+### W2-T-DIVERSITY-076
+Hook: The cabinet door chose public disrespect
+WHAT TO SHOW: Close a cabinet door, watch it swing open again, then push it closed with increasing seriousness.
+Anchor: cabinet
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: kitchen_counter
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The repeated cabinet movement creates a simple object-vs-person scene.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-077
+Hook: The lid refused the entire household
+WHAT TO SHOW: Try to place a lid on a container, rotate it several times, then realize it belongs to something else.
+Anchor: lid
+Comedy family: object_betrayal
+Emotional spike: confused_pause
+Setting: kitchen_counter
+Voice cluster: chaotic_confession
+Hook style: fake_tutorial
+Why this works: The lid mismatch is visual, specific, and not another fridge/takeout joke.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-078
+Hook: The zipper waited until confidence arrived
+WHAT TO SHOW: Zip a bag or jacket confidently, get stuck halfway, then look directly at the zipper like it planned this.
+Anchor: zipper
+Comedy family: object_betrayal
+Emotional spike: instant_regret
+Setting: entryway
+Voice cluster: dry_deadpan
+Hook style: accusation
+Why this works: The zipper provides a clean, familiar object conflict with visible action.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-079
+Hook: The shoelace resigned during business hours
+WHAT TO SHOW: Tie a shoelace at the doorway, stand up, then watch the shoelace immediately loosen.
+Anchor: shoelace
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: doorway
+Voice cluster: overdramatic_reframe
+Hook style: object_betrayal
+Why this works: The shoelace is concrete, visual, and directly tied to leaving-house delay.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-080
+Hook: The reusable bag folded me into confusion
+WHAT TO SHOW: Try folding a reusable bag neatly, lose the shape, then stuff it into itself with quiet defeat.
+Anchor: bag
+Comedy family: object_betrayal
+Emotional spike: confused_pause
+Setting: kitchen_counter
+Voice cluster: quiet_realization
+Hook style: tiny_documentary
+Why this works: The reusable bag creates object comedy without repeating grocery cart or takeout themes.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-081
+Hook: The tape stuck to everyone except the package
+WHAT TO SHOW: Seal a package with tape, get the tape stuck to your fingers, scissors, or counter instead.
+Anchor: tape
+Comedy family: object_betrayal
+Emotional spike: polite_rage
+Setting: kitchen_counter
+Voice cluster: chaotic_confession
+Hook style: object_betrayal
+Why this works: Tape is a perfect low-prop antagonist with clear visible action.
+Safety/privacy note: Keep scissors or sharp tools out of frame if not needed.
+
+### W2-T-DIVERSITY-082
+Hook: The doorknob made leaving optional again
+WHAT TO SHOW: Grab the doorknob, realize your sleeve or bag is caught, then slowly let go and reset.
+Anchor: doorknob
+Comedy family: object_betrayal
+Emotional spike: quiet_defeat
+Setting: front_door
+Voice cluster: dry_deadpan
+Hook style: object_betrayal
+Why this works: The doorknob creates a physical interruption right at the exit point.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-083
+Hook: The package became a doorway decoration
+WHAT TO SHOW: Place a return package by the doorway, walk past it twice, then pretend not to see it.
+Anchor: package
+Comedy family: errand_theatre
+Emotional spike: avoidance_spike
+Setting: doorway
+Voice cluster: dry_deadpan
+Hook style: domestic_crime_scene
+Why this works: The package makes errand avoidance visible while staying fully at home.
+Safety/privacy note: Hide names, addresses, and labels.
+
+### W2-T-DIVERSITY-084
+Hook: Kitchen counter checkout had unexpected pressure
+WHAT TO SHOW: Set items on the kitchen counter like self-checkout, pretend to scan them, then freeze when one item will not “scan.”
+Anchor: counter
+Comedy family: errand_theatre
+Emotional spike: tiny_panic
+Setting: kitchen_counter
+Voice cluster: chaotic_confession
+Hook style: fake_tutorial
+Why this works: It simulates an errand at home with visible action and no public filming.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-085
+Hook: The return label became a full obstacle
+WHAT TO SHOW: Hold a package and return label, line it up badly, peel it crooked, then stare at the package.
+Anchor: label
+Comedy family: errand_theatre
+Emotional spike: polite_rage
+Setting: kitchen_counter
+Voice cluster: quiet_realization
+Hook style: object_betrayal
+Why this works: The label gives concrete hand action and makes return procrastination specific.
+Safety/privacy note: Hide names, addresses, and labels.
+
+### W2-T-DIVERSITY-086
+Hook: I recreated the waiting room too accurately
+WHAT TO SHOW: Sit stiffly in a chair, hold a bag in your lap, look around your living room like you are waiting to be called.
+Anchor: chair
+Comedy family: errand_theatre
+Emotional spike: private_embarrassment
+Setting: living_room
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The chair and posture create waiting-room energy without any real appointment or public setting.
+Safety/privacy note: Avoid medical framing or private health details.
+
+### W2-T-DIVERSITY-087
+Hook: My pantry became a grocery aisle with judgment
+WHAT TO SHOW: Stand at the pantry, compare two items in your hands like you are shopping, then choose neither.
+Anchor: pantry
+Comedy family: errand_theatre
+Emotional spike: confused_pause
+Setting: kitchen_counter
+Voice cluster: quiet_realization
+Hook style: tiny_documentary
+Why this works: It creates grocery-style decision comedy at home without repeating cart or takeout jokes.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-088
+Hook: The receipt review became a small trial
+WHAT TO SHOW: Spread a receipt on the kitchen counter, point at one line, then look at the item like it betrayed you.
+Anchor: receipt
+Comedy family: errand_theatre
+Emotional spike: quiet_realization
+Setting: kitchen_counter
+Voice cluster: overdramatic_reframe
+Hook style: domestic_crime_scene
+Why this works: The receipt becomes evidence, and the action is clear without showing private apps.
+Safety/privacy note: Hide payment/store details if needed.
+
+### W2-T-DIVERSITY-089
+Hook: I practiced small talk with a cereal box
+WHAT TO SHOW: Place a cereal box on the counter, rehearse a normal greeting to it, then immediately cringe.
+Anchor: box
+Comedy family: errand_theatre
+Emotional spike: private_embarrassment
+Setting: kitchen_counter
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: The cereal box replaces another person, making social rehearsal solo-filmable and visual.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-090
+Hook: The tote bag made errands look official
+WHAT TO SHOW: Pack a tote bag with one item, stand proudly, then realize you forgot the actual errand item.
+Anchor: bag
+Comedy family: errand_theatre
+Emotional spike: instant_regret
+Setting: entryway
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The tote bag gives a physical symbol of preparedness that collapses quickly.
+Safety/privacy note: Do not show IDs, cards, or private documents.
+
+### W2-T-DIVERSITY-091
+Hook: I got ready for plans and sat down
+WHAT TO SHOW: Stand fully dressed near the mirror, grab your bag, then sit on the couch like the preparation was the event.
+Anchor: bag
+Comedy family: social_overthinking
+Emotional spike: quiet_defeat
+Setting: living_room
+Voice cluster: dry_deadpan
+Hook style: before_after_self
+Why this works: The hook is clear, and the sit-down reversal is visually funny without other actors.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-092
+Hook: My casual outfit required a legal review
+WHAT TO SHOW: Hold two casual outfit options, inspect both in the mirror, then change into a third unrelated option.
+Anchor: outfit
+Comedy family: social_overthinking
+Emotional spike: time_loss
+Setting: mirror
+Voice cluster: overdramatic_reframe
+Hook style: overdramatic_diagnosis
+Why this works: The outfit choice gives visible action and captures social-plan overthinking.
+Safety/privacy note: Avoid showing private background details.
+
+### W2-T-DIVERSITY-093
+Hook: I rehearsed a normal greeting and made it weird
+WHAT TO SHOW: Stand in the hallway, practice saying hello to an empty room, then stop because it sounded unnatural.
+Anchor: hallway
+Comedy family: social_overthinking
+Emotional spike: private_embarrassment
+Setting: hallway
+Voice cluster: chaotic_confession
+Hook style: confession
+Why this works: The empty-room rehearsal is specific, solo-filmable, and not dependent on texts.
+Safety/privacy note: Avoid filming neighbors or private building details.
+
+### W2-T-DIVERSITY-094
+Hook: The guest pillow created fake responsibility
+WHAT TO SHOW: Place a guest pillow on the couch, adjust it three times, then notice the rest of the room is messy.
+Anchor: pillow
+Comedy family: social_overthinking
+Emotional spike: adulting_panic
+Setting: living_room
+Voice cluster: quiet_realization
+Hook style: domestic_crime_scene
+Why this works: The pillow shows visible preparation for guests without needing guests on camera.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-095
+Hook: I picked a jacket for imaginary weather
+WHAT TO SHOW: Try one jacket, look toward the door, switch jackets, then stand holding both like there is no answer.
+Anchor: jacket
+Comedy family: social_overthinking
+Emotional spike: confused_pause
+Setting: entryway
+Voice cluster: dry_deadpan
+Hook style: tiny_documentary
+Why this works: The jacket decision is visual, low-lift, and different from phone-led plan anxiety.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-096
+Hook: The snack bowl became my hosting personality
+WHAT TO SHOW: Set out a snack bowl, adjust it seriously, then stand back like the room suddenly has hospitality.
+Anchor: bowl
+Comedy family: social_overthinking
+Emotional spike: false_confidence
+Setting: living_room
+Voice cluster: overdramatic_reframe
+Hook style: tiny_documentary
+Why this works: The snack bowl is a simple prop that makes “having people over” visual without extra actors.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-097
+Hook: I practiced being relaxed and failed immediately
+WHAT TO SHOW: Sit on the couch in a casual pose for plans, adjust your arms, legs, and face until it looks worse.
+Anchor: couch
+Comedy family: social_overthinking
+Emotional spike: private_embarrassment
+Setting: couch
+Voice cluster: chaotic_confession
+Hook style: fake_tutorial
+Why this works: The body-position adjustments make social anxiety visible without screens or other people.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-098
+Hook: The doorbell practice lowered morale
+WHAT TO SHOW: Stand near the front door, mime hearing a doorbell, compose yourself, then immediately lose composure.
+Anchor: doorbell
+Comedy family: social_overthinking
+Emotional spike: tiny_panic
+Setting: front_door
+Voice cluster: quiet_realization
+Hook style: before_after_self
+Why this works: The imagined doorbell creates clear preparation energy without recording real visitors.
+Safety/privacy note: Avoid showing address or exterior details.
+
+### W2-T-DIVERSITY-099
+Hook: I dressed for plans and became furniture
+WHAT TO SHOW: Sit fully dressed on the couch, shoes on, jacket ready, completely still like a decorative object.
+Anchor: couch
+Comedy family: homebody_comedy
+Emotional spike: avoidance_spike
+Setting: couch
+Voice cluster: dry_deadpan
+Hook style: realization
+Why this works: The full outfit plus total stillness creates a strong visual contradiction.
+Safety/privacy note: None.
+
+### W2-T-DIVERSITY-100
+Hook: My entrance wave had too many drafts
+WHAT TO SHOW: Practice entering the room and waving, reset twice, then choose the smallest awkward wave possible.
+Anchor: wave
+Comedy family: social_overthinking
+Emotional spike: private_embarrassment
+Setting: doorway
+Voice cluster: chaotic_confession
+Hook style: tiny_documentary
+Why this works: The repeated wave attempts are physical, solo-filmable, and distinct from chat-based social panic.
+Safety/privacy note: None.
