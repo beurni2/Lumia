@@ -1,0 +1,206 @@
+Proceed with W2-R Task 4 — minimal measured implementation.
+
+Do not build a large memory architecture.
+Do not add migrations.
+Do not add new DB tables.
+Do not implement deterministic variation.
+Do not vary hooks.
+Do not vary whatToShow.
+Do not vary captions/howToFilm/Film This Now in this phase.
+Do not change validators.
+Do not change ideaSchema.
+Do not change Claude prompts.
+Do not change production flags.
+Do not redo W2-O.
+Do not hard-quota W2-T or any source block.
+Do not touch NG/N1/India/Philippines behavior.
+
+Reason:
+W2-R baseline shows per-creator hard anti-repeat is already effective:
+- entryId repeats per creator = 0
+- exact hook repeats per creator = 0
+- skeleton repeats per creator = 0–1
+- in-batch duplicate entryId/hook/skeleton = 0
+
+So do NOT implement a broad new memory ledger.
+
+Measured problems to fix:
+1. hookStyle collapse:
+   - internal_thought = 94.6%
+   - allSameStyle batches ≈ 80%
+
+2. setting concentration:
+   - desk/couch/kitchen/bed dominate
+
+3. phone anchor overuse:
+   - phone = 23.2% of W2 anchor occurrences
+
+4. first-batch W2-I lock:
+   - first batch W2-I = 100%
+   - only fix this softly if visible quality is preserved
+
+5. measurement gap:
+   - comedyFamily was not captured correctly in the baseline
+   - voiceCluster was not captured
+
+Implementation scope:
+
+A. Add hookStyle recent-exposure soft penalty
+
+Add hookStyle to the existing W2 recent-axis system if it is already available on the authored idea/metadata.
+
+Behavior:
+- recent same hookStyle gets a light-to-medium penalty
+- suggested starting penalty: -1.0
+- stronger than setting’s current -0.5, lighter than anchor’s -2.0
+- deterministic only
+- no hard ban
+- no quality bypass
+- only applies in Western/W2 selection path
+
+Goal:
+Reduce allSameStyle batches materially without forcing weak ideas.
+
+B. Tune existing anchor/setting penalties slightly
+
+Current W2 soft penalties:
+- anchor: -2.0
+- family: -1.0
+- setting: -0.5
+- spike: -0.5
+
+Baseline shows:
+- phone anchor still too high
+- settings desk/couch/kitchen/bed still too concentrated
+
+Adjust carefully:
+- setting penalty: consider -0.5 → -1.0
+- anchor penalty: keep -2.0 generally, but consider an additional small penalty for high-frequency anchors like phone if already recently seen
+- do not over-penalize if alternatives are weak
+- do not reduce quality by forcing bad candidates
+
+C. Add phone/screen-led flavor penalty only if safely derivable
+
+If candidate metadata or scenario text can reliably derive a `phone_screen_led` flavor:
+- apply a soft penalty when recent batch/history already contains phone/screen-led ideas
+- apply only when alternatives exist
+- avoid all-phone/screen-led 3/3 batches
+- do not hard-ban phone ideas
+- do not change validators
+
+If this derivation would be brittle or require large new metadata, do not implement it in this pass. Report as deferred.
+
+D. First-batch source-diversity nudge — optional and conservative
+
+Baseline confirms first batch W2-I = 100%.
+
+Implement only a soft nudge if it can preserve first-impression quality:
+- no hard quota
+- no forced W2-T first card
+- no source block rotation that ignores score
+- no quality/rubric bypass
+
+Allowed shape:
+- when creator has no recent W2 memory and multiple candidates are score-near-tied, add a tiny novelty/source-position nudge so W2-L/N/T can compete with W2-I
+- only among validator-passing, rubric-live entries
+- only if score gap is small
+- first card should still be the strongest hero idea
+
+If risky, defer and report.
+
+E. Fix baseline harness measurement gaps
+
+Before/alongside post-change report, improve the W2-R harness attribution so it captures:
+- comedyFamily correctly
+- voiceCluster if available
+- sourceBlock correctly using the W2-V reverse lookup map
+- per-core/coreId if available without app changes
+
+This is harness/reporting only unless source metadata is already emitted.
+
+Tests required:
+
+1. hookStyle penalty tests:
+- recent same hookStyle receives penalty
+- different hookStyle does not receive penalty
+- exact entryId/hook/skeleton hard rejects still dominate
+- strong candidate can still win if alternatives are weak
+- deterministic output with same context
+
+2. setting/anchor tuning tests:
+- repeated setting receives penalty
+- repeated anchor receives penalty
+- phone anchor is not hard-banned
+- no over-penalization when candidates are sparse
+
+3. in-batch diversity tests:
+- no duplicate entryId
+- no duplicate hook skeleton
+- no duplicate anchor
+- avoid allSameStyle 3/3 when alternatives exist
+- avoid same setting 3/3 when alternatives exist
+- avoid all phone/screen-led 3/3 if phone flavor is implemented and alternatives exist
+
+4. first-batch nudge tests, only if implemented:
+- no hard source quota
+- W2-I can still win when clearly best
+- W2-L/N/T can surface when score-near-tied
+- first card quality not demoted by source mechanics
+
+5. cohort safety:
+- non-Western cohorts unaffected
+- NG/N1 unaffected
+- India/Philippines unaffected
+- no W2 leak outside Western/clean
+
+Run:
+- full api-server tests
+- typecheck for affected packages
+
+Post-change runtime QA:
+Run the W2-R harness again:
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- 10 creators
+- 20 batches per creator if feasible
+- count=3
+- regenerate=false on batch 0
+- regenerate=true after batch 0
+- fresh memory per creator
+- x-lumina-qa-expose-meta:1
+
+Compare before vs after:
+
+Hard must-not-regress:
+- per-creator entryId repeats = 0
+- per-creator exact-hook repeats = 0
+- in-batch duplicate entryId = 0
+- in-batch duplicate hook = 0
+- in-batch duplicate skeleton = 0
+- W2-T remains ≥15% of W2 picks
+- fallback rate does not meaningfully increase
+- latency does not meaningfully regress
+- non-Western leaks = 0
+- production flags unchanged
+
+Target improvements:
+- internal_thought share: 94.6% → materially lower, target ≤70% if realistic
+- allSameStyle batches: 80% → materially lower, target ≤30% if realistic
+- phone anchor share: 23.2% → lower, target near ≤12% if quality allows
+- desk+couch setting share: lower, target near ≤50% if quality allows
+- first-batch W2-I share: 100% → lower only if quality remains strong
+- visible batch quality should feel more varied, not worse
+
+Deliver:
+1. implementation summary
+2. files changed
+3. tests added/updated
+4. post-change W2-R report
+5. before/after metrics table
+6. final verdict:
+   - GO
+   - GO with caveats
+   - revert/revise
+
+Important:
+If the implementation reduces human taste, makes outputs feel mechanical, or harms the best idea selection, stop and recommend revert/revise.

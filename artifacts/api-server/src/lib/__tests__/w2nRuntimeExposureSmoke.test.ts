@@ -105,6 +105,8 @@ function authorAll(entries: readonly WesternHookPackDraftEntry[]): {
         anchor: entry.anchor,
         emotionalSpike: entry.emotionalSpike,
         hookSkeleton: normalizeWesternHookSkeleton(entry.hook),
+        // PHASE W2-R — required field; smoke fixture uses the default.
+        hookStyle: "internal_thought",
         qualityScore: score,
       },
     });

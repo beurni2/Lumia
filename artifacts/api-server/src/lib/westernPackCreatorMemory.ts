@@ -60,6 +60,12 @@ const inMemoryDemoAxes = new Map<
     families: string[];
     spikes: string[];
     settings: string[];
+    /** PHASE W2-R — `idea.hookStyle` (HookStyle enum from
+     *  `ideaGen`, NOT `WesternBatchHookStyle`). Mined to drive the
+     *  W2-R soft penalty in `westernPackSlotReservation`. Same
+     *  bounded-LRU semantics as the other axes; cap mirrors
+     *  WESTERN_PACK_MEMORY_CAP. */
+    hookStyles: string[];
   }
 >();
 
@@ -87,6 +93,8 @@ export function recordW2InMemorySeen(
     family?: string;
     spike?: string;
     setting?: string;
+    /** PHASE W2-R — `idea.hookStyle` enum (e.g. `internal_thought`). */
+    hookStyle?: string;
   },
 ): void {
   if (!creatorId) return;
@@ -105,6 +113,7 @@ export function recordW2InMemorySeen(
       families: [],
       spikes: [],
       settings: [],
+      hookStyles: [],
     };
     inMemoryDemoAxes.set(creatorId, bucket);
   }
@@ -115,6 +124,7 @@ export function recordW2InMemorySeen(
   if (axes.family) pushBounded(bucket.families, axes.family);
   if (axes.spike) pushBounded(bucket.spikes, axes.spike);
   if (axes.setting) pushBounded(bucket.settings, axes.setting);
+  if (axes.hookStyle) pushBounded(bucket.hookStyles, axes.hookStyle);
 }
 
 /** Test-only: clears the in-memory map. Not called from production
@@ -143,6 +153,12 @@ export interface WesternRecentAxes {
   families: ReadonlySet<string>;
   spikes: ReadonlySet<string>;
   settings: ReadonlySet<string>;
+  /** PHASE W2-R — recent `idea.hookStyle` values seen by this
+   *  creator. Set membership is consumed by the W2 slot reservation's
+   *  soft penalty (light penalty per hit; not a hard reject) to
+   *  reduce the dominant `internal_thought` collapse measured at
+   *  baseline. */
+  hookStyles: ReadonlySet<string>;
 }
 
 const EMPTY_AXES: WesternRecentAxes = {
@@ -153,6 +169,7 @@ const EMPTY_AXES: WesternRecentAxes = {
   families: new Set(),
   spikes: new Set(),
   settings: new Set(),
+  hookStyles: new Set(),
 };
 
 /** Lower-case + collapse whitespace; matches what the slot
@@ -216,6 +233,7 @@ function collectW2Axes(
     families: string[];
     spikes: string[];
     settings: string[];
+    hookStyles: string[];
   },
 ): void {
   if (raw === null || raw === undefined) return;
@@ -225,7 +243,7 @@ function collectW2Axes(
   }
   if (typeof raw !== "object") return;
   const obj = raw as CachedEntryWithW2Axes & {
-    idea?: { hook?: unknown };
+    idea?: { hook?: unknown; hookStyle?: unknown };
   } & Record<string, unknown>;
   const id = obj.westernPackEntryId;
   const isW2Entry = typeof id === "string" && id.length > 0;
@@ -238,6 +256,15 @@ function collectW2Axes(
         : undefined;
     if (hook && acc.hooks.length < WESTERN_PACK_MEMORY_CAP)
       acc.hooks.push(normHookForMemory(hook));
+    // PHASE W2-R — mine `idea.hookStyle` (HookStyle enum) directly
+    // off the cached idea. No new envelope field required because
+    // the full Idea is already persisted by `tryParseEntries`.
+    const hs =
+      obj.idea && typeof (obj.idea as { hookStyle?: unknown }).hookStyle === "string"
+        ? ((obj.idea as { hookStyle: string }).hookStyle)
+        : undefined;
+    if (hs && hs.length > 0 && acc.hookStyles.length < WESTERN_PACK_MEMORY_CAP)
+      acc.hookStyles.push(hs);
     const skel = obj.westernPackHookSkeleton;
     if (typeof skel === "string" && skel.length > 0 &&
         acc.skeletons.length < WESTERN_PACK_MEMORY_CAP)
@@ -269,7 +296,8 @@ function collectW2Axes(
     acc.anchors.length >= WESTERN_PACK_MEMORY_CAP &&
     acc.families.length >= WESTERN_PACK_MEMORY_CAP &&
     acc.spikes.length >= WESTERN_PACK_MEMORY_CAP &&
-    acc.settings.length >= WESTERN_PACK_MEMORY_CAP;
+    acc.settings.length >= WESTERN_PACK_MEMORY_CAP &&
+    acc.hookStyles.length >= WESTERN_PACK_MEMORY_CAP;
   if (allCapsHit) return;
   for (const v of Object.values(obj)) {
     if (v !== null && (typeof v === "object" || Array.isArray(v))) {
@@ -346,6 +374,7 @@ export const getRecentSeenWesternAxes = async (
       families: [] as string[],
       spikes: [] as string[],
       settings: [] as string[],
+      hookStyles: [] as string[],
     };
     if (raw !== null && raw !== undefined) collectW2Axes(raw, acc);
     // PHASE W2-K2 — merge in-memory demo fallback. Idempotent:
@@ -363,6 +392,7 @@ export const getRecentSeenWesternAxes = async (
       for (const v of mem.families) acc.families.push(v);
       for (const v of mem.spikes) acc.spikes.push(v);
       for (const v of mem.settings) acc.settings.push(v);
+      for (const v of mem.hookStyles) acc.hookStyles.push(v);
     }
     return {
       entryIds: new Set(acc.entryIds),
@@ -372,6 +402,7 @@ export const getRecentSeenWesternAxes = async (
       families: new Set(acc.families),
       spikes: new Set(acc.spikes),
       settings: new Set(acc.settings),
+      hookStyles: new Set(acc.hookStyles),
     };
   } catch (err) {
     logger.warn(

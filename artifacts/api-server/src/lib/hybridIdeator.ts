@@ -4187,6 +4187,10 @@ export async function runHybridIdeator(
         families: new Set<string>(),
         spikes: new Set<string>(),
         settings: new Set<string>(),
+        // PHASE W2-R — empty default keeps non-eligible cohorts on the
+        // zero-DB-cost path; the soft-penalty branch reads it as a
+        // never-hits Set.
+        hookStyles: new Set<string>(),
       };
   const _hoistedWesternPackSeenIds: ReadonlySet<string> =
     _hoistedWesternPackSeenAxes.entryIds;
@@ -5425,6 +5429,10 @@ export async function runHybridIdeator(
           // can read them without re-deriving from `entry`.
           emotionalSpike: entry.emotionalSpike,
           hookSkeleton: normalizeWesternHookSkeleton(entry.hook),
+          // PHASE W2-R — `idea.hookStyle` (HookStyle enum, set by
+          // `pickHookStyle` inside the W2 author). Used only by the
+          // soft recent-axis penalty downstream.
+          hookStyle: authored.idea.hookStyle,
           qualityScore: score,
         });
       }
@@ -5472,6 +5480,9 @@ export async function runHybridIdeator(
           family: meta.westernPackComedyFamily,
           spike: meta.westernPackEmotionalSpike,
           setting: meta.westernPackSetting,
+          // PHASE W2-R — feed `idea.hookStyle` into the recent-axis
+          // memory so subsequent batches' soft penalty can fire.
+          hookStyle: c.idea.hookStyle,
         });
       }
       logger.info(

@@ -77,6 +77,14 @@ export interface WesternPackCandidate {
    *  `normalizeWesternHookSkeleton(entry.hook)` value. */
   emotionalSpike: string;
   hookSkeleton: string;
+  /** PHASE W2-R — `idea.hookStyle` (HookStyle enum from `ideaGen`,
+   *  e.g. `internal_thought`, `curiosity`, `why_do_i`, `contrast`).
+   *  Distinct from `entry.hookStyle` (WesternBatchHookStyle, narrower
+   *  authoring vocabulary). Consumed by the W2-R soft penalty to
+   *  rotate hookStyle pressure across consecutive batches. Required
+   *  (non-optional) because every authored W2 idea has it set by
+   *  `pickHookStyle` in `westernPackAuthor`. */
+  hookStyle: string;
   /** Higher is better. Used to rank the pool. */
   qualityScore: number;
 }
@@ -93,6 +101,9 @@ export interface WesternExcludeAxes {
   families: ReadonlySet<string>;
   spikes: ReadonlySet<string>;
   settings: ReadonlySet<string>;
+  /** PHASE W2-R — recent `idea.hookStyle` values for this creator.
+   *  Soft penalty only; never a hard reject. */
+  hookStyles: ReadonlySet<string>;
 }
 
 const EMPTY_AXES: WesternExcludeAxes = {
@@ -103,6 +114,7 @@ const EMPTY_AXES: WesternExcludeAxes = {
   families: new Set(),
   spikes: new Set(),
   settings: new Set(),
+  hookStyles: new Set(),
 };
 
 export interface WesternSlotReservationDiagnostic {
@@ -289,12 +301,20 @@ function w2EntryIdOf(c: ScoredCandidate): string | undefined {
 }
 
 /** Score adjustment magnitudes — see file-header algorithm step 2.
- *  Constants exported so QA can reproduce ranking offline. */
+ *  Constants exported so QA can reproduce ranking offline.
+ *
+ *  PHASE W2-R: `setting` bumped 0.5 → 1.0 and `hookStyle: 1.0` added
+ *  to address the measured `desk/couch/kitchen/bed` setting
+ *  concentration and the dominant `internal_thought` hookStyle
+ *  collapse (94.6% of all W2 ideas at baseline). Both are SOFT
+ *  penalties only — no hard ban, validators unchanged, the strongest
+ *  candidate can still win when alternatives are weak. */
 export const W2K2_SOFT_PENALTY = {
   anchor: 2.0,
   family: 1.0,
-  setting: 0.5,
+  setting: 1.0,
   spike: 0.5,
+  hookStyle: 1.0,
 } as const;
 
 export function applyWesternApprovedPackSlotReservation(
@@ -413,6 +433,11 @@ export function applyWesternApprovedPackSlotReservation(
       pen += W2K2_SOFT_PENALTY.setting;
     if (axes.spikes.has(w.emotionalSpike))
       pen += W2K2_SOFT_PENALTY.spike;
+    // PHASE W2-R — soft penalty for repeating the creator's recent
+    // hookStyle. Light enough that a strong candidate can still win
+    // when no alternative exists; deterministic.
+    if (w.hookStyle && axes.hookStyles.has(w.hookStyle))
+      pen += W2K2_SOFT_PENALTY.hookStyle;
     return { w, adjusted: w.qualityScore - pen };
   });
   adjusted.sort((a, b) =>
