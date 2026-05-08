@@ -257,3 +257,9 @@ id = "7Fm5tz1RM3rM-5HeIzspn"
 uri = "file://.local/W2O_REPAIR_PACKET.md"
 type = "text"
 title = "W2-O Creative Repair Packet (125 entries)"
+
+[[outputs]]
+id = "OipP3kJ_IwvLrzkXmGpJt"
+uri = "file://.local/W2P_CLOSEOUT/REPORT.md"
+type = "text"
+title = "W2-P Closeout Report"
