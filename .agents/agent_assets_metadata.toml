@@ -251,3 +251,9 @@ id = "-dgHhzKqqHfokYlzw0l_f"
 uri = "file://.local/W2O_REJECT_MANIFEST.md"
 type = "text"
 title = "W2-O Reject + Needs-Rewrite Manifest"
+
+[[outputs]]
+id = "7Fm5tz1RM3rM-5HeIzspn"
+uri = "file://.local/W2O_REPAIR_PACKET.md"
+type = "text"
+title = "W2-O Creative Repair Packet (125 entries)"
