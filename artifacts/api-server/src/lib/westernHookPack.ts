@@ -2054,11 +2054,11 @@ export const WESTERN_HOOK_PACK_DRAFT: readonly WesternHookPackDraftEntry[] =
         id: "W2C-026",
         hook: "replying 'just saw this' like the message wasn't aging in my phone",
         whatToShow:
-          "Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends anyway.",
+          "Creator opens a fake old message, types “just saw this,” glances at the old timestamp, then sends the message anyway.",
         howToFilm:
-          "Show the old timestamp safely. Type the excuse, look at the timestamp, and send it with fake innocence.",
+          "Show the old fake message timestamp safely. Type “just saw this,” glance at the timestamp, then send the message with fake innocence.",
         caption: "just saw this, allegedly.",
-        anchor: "replying",
+        anchor: "message",
         comedyFamily: "texting_overthinking",
         emotionalSpike: "exposed_lie",
         setting: "couch",

@@ -794,9 +794,9 @@
       id: "w2_next_036",
       hook: "“We should catch up” text I will never follow through on",
       whatToShow:
-        "Creator types “we should catch up” in a fake chat, smiles like a good person, then immediately closes the app and sets the phone face-down.",
+        "Creator types “we should catch up” in a fake chat app, smiles like a good person, then closes the app and sets the phone face-down.",
       howToFilm:
-        "Use a staged chat. Type the friendly text, send it, then close the app with the calm of someone who knows no plans are happening.",
+        "Use a fake chat app. Type “we should catch up,” smile like you mean it, then close the app and set the phone face-down.",
       caption: "catching up was symbolic.",
       anchor: "catch",
       comedyFamily: "task_avoidance",
@@ -1010,7 +1010,7 @@
       whatToShow:
         "Creator points to “email boss” on a staged to-do list, moves it to tomorrow’s list, then taps the paper like progress happened.",
       howToFilm:
-        "Shoot overhead at the to-do list. Show the task still sitting there, rewrite it onto tomorrow, then end with the proud tap.",
+        "Shoot overhead at the staged to-do list. Show “email boss,” move it to tomorrow’s list, then tap the paper like progress happened.",
       caption: "moved the task. healed nothing.",
       anchor: "email",
       comedyFamily: "self_improvement_attempt",
@@ -1430,9 +1430,9 @@
       id: "w2_next_072",
       hook: "Analytics gave me hope and I punished the app for it",
       whatToShow:
-        "Creator sees a fake positive analytics number, smiles for half a second, then force-closes the app like hope was too much responsibility.",
+        "Creator sees a fake positive analytics number, smiles for half a second, then closes the app like hope was too much responsibility.",
       howToFilm:
-        "Use fake or blurred analytics. Let the tiny smile happen, then close the app too fast. Hold on the face that regrets being encouraged.",
+        "Use fake analytics. Show the positive number, smile for half a second, then close the app too fast like being encouraged became responsibility.",
       caption: "analytics got too supportive.",
       anchor: "analytics",
       comedyFamily: "creator_anxiety",
@@ -1764,9 +1764,9 @@
       id: "w2_next_091",
       hook: "Remote died during the one scene I was emotionally available for",
       whatToShow:
-        "Creator points remote at a staged paused TV setup, clicks several times, realizes the remote died, then slowly turns to stare at it.",
+        "Creator points the remote at a staged paused scene, clicks several times, realizes the remote died, then slowly turns to stare at it.",
       howToFilm:
-        "Do not show copyrighted TV content clearly. Frame the remote and the reaction. The joke is the timing: click, fail, stare at the remote like it ruined the scene.",
+        "Frame the remote and staged paused scene. Click several times, realize the remote died, then turn into the slow betrayal stare.",
       caption: "remote chose the dramatic scene.",
       anchor: "remote",
       comedyFamily: "parasocial_object",
