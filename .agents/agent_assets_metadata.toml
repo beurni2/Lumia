@@ -395,3 +395,9 @@ id = "DNo0aQuXxhuNSW49FZVaZ"
 uri = "file://.local/W2QA_AUDIT_2_POST_MERGE_SLOT0.md"
 type = "text"
 title = "W2-QA-AUDIT-2 — Post-Merge Slot-0 Root-Cause Audit"
+
+[[outputs]]
+id = "ANDk862jTzTCalCYl-mJc"
+uri = "file://.local/W2QAFIX2_REPORT.md"
+type = "text"
+title = "W2-QA-FIX-2 — Final-Composition First-Card Rotation Report"
