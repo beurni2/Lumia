@@ -22,11 +22,10 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 202 approved · 15 rejected
+ * INGEST SUMMARY: 203 approved · 14 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-290 [REWRITE] → scoreNigerianPackEntry 31 < floor 40 (visceral=5 naturalness=-5 contradiction=3 anchor=5 filmable=10 brevity=13)
  *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
@@ -1487,6 +1486,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       domain: "money",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-290 [REWRITE] · cluster: views_refresh
+      hook: "post refresh caught my no-care lie",
+      whatToShow: "Show a fake post screen with 'I don't care' above it. Refresh the post once, put the phone down, then pick it back up and refresh again like the numbers are calling you.",
+      howToFilm: "Frame the post screen over your shoulder so the refresh motion and view count are readable. Let the first refresh look casual, then cut on the second refresh happening immediately after you put the phone down.",
+      caption: "lie with analytics.",
+      anchor: "refresh",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-292 · cluster: caption_struggle
