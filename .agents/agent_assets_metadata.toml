@@ -449,3 +449,9 @@ id = "BSSiOW8qM3B-luxkPoM2g"
 uri = "file://.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_FULL.md"
 type = "text"
 title = "W2-FTN-E1 — Full W2-N Repair Packet (53 entries)"
+
+[[outputs]]
+id = "ODTnQxu-CBJO_b9NTjEzw"
+uri = "file://.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_HARDENED.md"
+type = "text"
+title = "W2-FTN-E2 — Hardened W2-N Prefix Repair Packet (53 entries, READY_TO_APPLY)"
