@@ -569,3 +569,9 @@ id = "vtCLnlJLu5YBMVtjbAn6B"
 uri = "file://.local/qa-runs/n1_chunk_a_rejected_source_packet.json"
 type = "unspecified"
 title = "N1 Chunk A-R Rejected Source Packet (JSON)"
+
+[[outputs]]
+id = "Lz4BWQb5fjJt1e2CzGB7D"
+uri = "file://.local/N1_ELEVATION_P1_CHUNK_A_R_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P1 Chunk A-R Apply Report"

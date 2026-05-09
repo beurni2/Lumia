@@ -1,0 +1,347 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Apply Chunk A-R rejected-entry rewrites.
+
+Context:
+Chunk A applied 8/19 entries successfully. The remaining 11 were rejected by codegen and were safely reverted. The rejected-source packet is accepted.
+
+Important cause:
+The overlay pipeline uses Map last-wins by draftId. If a new overlay block leaves a field empty, it falls back to the worksheet baseline, not to a previous overlay. Therefore, for these 11 rejected entries, restate the full intended overlay fields in `.local/REGIONAL_N1_REWRITES.yaml`.
+
+Method:
+Use Option A only:
+- update `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit `nigerianHookPackApproved.ts`.
+Do not edit the worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, or mobile files.
+Do not proceed to Chunk B.
+Do not invent or improve copy.
+
+Reviewer stamp:
+`BI 2026-05-09`
+
+Apply the exact overlay copy below. For each listed draftId, include reviewedBy: "BI 2026-05-09".
+
+============================================================
+CHUNK A-R REWRITES — APPLY EXACTLY
+============================================================
+
+## 1. DRAFT-242 / `ng_9d1c58f9`
+
+Set `newAnchor`:
+
+"torch"
+
+Set `rewrittenHook`:
+
+"phone torch led me straight into chair"
+
+Set `rewrittenWhatToShow`:
+
+"Turn on your phone torch and walk through the room carefully. The torch catches one chair late, your leg meets it first, and you stop to shine the light on the chair like it planned the attack."
+
+Set `rewrittenHowToFilm`:
+
+"Shoot from the doorway with the torch beam visible on the floor. Follow the light to the chair, let the small hit happen, then end on the torch pointing at the chair like you are questioning a suspect."
+
+Set `rewrittenCaption`:
+
+"night navigation by phone."
+
+---
+
+## 2. DRAFT-272 / `ng_b24bde12`
+
+Set `newAnchor`:
+
+"aunty"
+
+Set `rewrittenHook`:
+
+"aunty ask marriage question like exam"
+
+Set `rewrittenWhatToShow`:
+
+"Sit at a family gathering while aunty asks one question after another. You smile, reach for your drink, then look up at the ceiling like maybe the answer is written there."
+
+Set `rewrittenHowToFilm`:
+
+"Frame yourself seated with aunty as an off-camera voice or empty chair beside frame. Let your smile get smaller after each question, then cut on the ceiling look like you are searching for rescue."
+
+Set `rewrittenCaption`:
+
+"family gathering turned oral exam."
+
+---
+
+## 3. DRAFT-290 / `ng_b83a3fa3`
+
+Set `newAnchor`:
+
+"refresh"
+
+Set `rewrittenHook`:
+
+"i said no care, then refresh became my job"
+
+Set `rewrittenWhatToShow`:
+
+"Show a fake post screen with 'I don't care' written above it. Your thumb hits refresh once, then again, then faster, until you turn the phone face-down like the screen caught you working overtime."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the post screen and your thumb close enough that each refresh is clear. Keep your face partly in frame for the denial, then cut on the phone going face-down like evidence being hidden."
+
+Set `rewrittenCaption`:
+
+"lie with analytics."
+
+---
+
+## 4. DRAFT-075 / `ng_474a1336`
+
+Set `newAnchor`:
+
+"post"
+
+Set `rewrittenHook`:
+
+"post said no care, thumb said refresh"
+
+Set `rewrittenWhatToShow`:
+
+"Show a fake post screen with 'I don't care' above it. Your thumb refreshes immediately, pauses, then refreshes again like the post is now supervising your peace."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the post screen from over the shoulder so the refresh motion is obvious. Let the first refresh look accidental, then cut on the second one proving the lie has collapsed."
+
+Set `rewrittenCaption`:
+
+"the lie was still loading."
+
+---
+
+## 5. DRAFT-008 / `ng_39aeff9a`
+
+Set `newAnchor`:
+
+"chat"
+
+Set `rewrittenHook`:
+
+"chat said no wahala, then opened full wahala"
+
+Set `rewrittenWhatToShow`:
+
+"Show a fake chat where someone sends the full plan after you already replied 'no wahala.' You scroll through the details, pause on your own message, then stare like you signed before reading."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the chat over your shoulder so the old 'no wahala' reply and new details are visible. Let your hand scroll, stop on your own message, then cut on your face realizing the chat has trapped you."
+
+Set `rewrittenCaption`:
+
+"reading before replying is self-care."
+
+---
+
+## 6. DRAFT-011 / `ng_a6000f76`
+
+Set `newAnchor`:
+
+"transport"
+
+Set `rewrittenHook`:
+
+"transport fare expose my outside courage"
+
+Set `rewrittenWhatToShow`:
+
+"Show notes app with a fake transport budget. You add the transport numbers, pause, then slowly change your clothes back to house clothes."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the notes app, your outfit, and the transport total in one simple setup. Start with your going-out confidence, let the total stop you, then cut on you changing back to house clothes."
+
+Set `rewrittenCaption`:
+
+"outside is now a subscription."
+
+---
+
+## 7. DRAFT-021 / `ng_d3c94e98`
+
+Set `newAnchor`:
+
+"data"
+
+Set `rewrittenHook`:
+
+"data see one video and start crying"
+
+Set `rewrittenWhatToShow`:
+
+"Show a fake data warning screen. You pause the video, stare at the data warning, then lower the brightness like that will save anything."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the phone so the paused video and data warning are both readable. Let your hand lower the brightness with full seriousness, then cut on the warning still showing."
+
+Set `rewrittenCaption`:
+
+"data has trust issues."
+
+---
+
+## 8. DRAFT-025 / `ng_e91e55a9`
+
+Set `newAnchor`:
+
+"data"
+
+Set `rewrittenHook`:
+
+"data don vanish after one TikTok"
+
+Set `rewrittenWhatToShow`:
+
+"Show fake data balance before and after one scroll. Your thumb hovers over 'buy data,' you check your face like the money might appear there, then close the app."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the phone so the data balance and 'buy data' button are readable. Hold on your thumb hovering over the button, then cut when you close the app like pretending is cheaper."
+
+Set `rewrittenCaption`:
+
+"one video, one financial decision."
+
+---
+
+## 9. DRAFT-202 / `ng_2d5fe3de`
+
+Set `newAnchor`:
+
+"gif"
+
+Set `rewrittenHook`:
+
+"one GIF hijack the whole group question"
+
+Set `rewrittenWhatToShow`:
+
+"Type 'who's free this weekend?' into a fake group chat. One running-away GIF enters, laughing reactions follow, and you slowly delete the serious follow-up like the gif has already answered for everybody."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the group chat close enough to show your question, the gif, and the reactions. Let your thumb start typing a serious reply, then delete it and cut on the chat becoming useless with confidence."
+
+Set `rewrittenCaption`:
+
+"simple question, cinema reply."
+
+---
+
+## 10. DRAFT-282 / `ng_fadf8773`
+
+Set `newAnchor`:
+
+"banking"
+
+Set `rewrittenHook`:
+
+"banking no show salary, peace don vanish"
+
+Set `rewrittenWhatToShow`:
+
+"Open a fake banking app and refresh the balance. Nothing changes. Refresh the banking app again, sit up straighter like posture can help, then slowly place the phone down."
+
+Set `rewrittenHowToFilm`:
+
+"Frame the banking app over your shoulder so the unchanged balance is visible. Let the second refresh feel serious, then cut on the phone going down while your face says payday is hiding."
+
+Set `rewrittenCaption`:
+
+"payday playing hard to get."
+
+---
+
+## 11. DRAFT-356 / `ng_e2c1baea`
+
+Set `newAnchor`:
+
+"dm"
+
+Set `rewrittenHook`:
+
+"one innocent dm don start full investigation."
+
+Set `rewrittenWhatToShow`:
+
+"A fake dm pops up and your face changes before you can hide it. Someone nearby notices, leans in, and you quickly tilt the phone away like the dm has entered family court."
+
+Set `rewrittenHowToFilm`:
+
+"Frame your phone and face from the side so the dm notification and your reaction both read. Let the nearby person lean in, then cut on you hiding the screen like the investigation has officially opened."
+
+Set `rewrittenCaption`:
+
+"dm no dey stay private."
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+After applying Chunk A-R, run:
+
+1. Codegen:
+   tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts
+
+2. Nigerian pack-specific tests.
+
+3. Full api-server test suite.
+
+4. TypeScript:
+   pnpm --filter @workspace/api-server exec tsc --noEmit
+
+5. Static checks:
+   - all 11 Chunk A-R overlays are accepted by codegen
+   - total approved count remains 204
+   - rejected count remains the same 13 pre-existing rows
+   - `BI 2026-05-09` stamp count should increase from 8 to 19
+   - all 19 Chunk A entries are now stamped `BI 2026-05-09`
+   - all 11 A-R entries pass anchor cohesion
+   - no old seven howToFilm templates remain in the 19 Chunk A entries
+   - no stereotype tokens in user-facing fields of the 19 Chunk A entries:
+     NEPA, nepa, jollof, village people, my enemies
+   - no broken abstract-anchor filming remains:
+     Keep the care centered
+     Keep the wahala centered
+     Keep the peace centered
+     Keep the energy centered
+     Keep the vibe centered
+     Keep the lie centered
+     Keep the damage centered
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+1. Confirm Option A was used.
+2. Files changed.
+3. Confirm no worksheet edits.
+4. Confirm approved file was regenerated by codegen, not hand-edited.
+5. List all 11 A-R entries and fields changed.
+6. Confirm all 19 Chunk A entries are now accepted/stamped.
+7. Nigerian pack test results.
+8. Full api-server suite result.
+9. TypeScript result.
+10. Static check results.
+11. Any codegen rejection details, if any.
+12. Confirm Chunk B was not executed.
