@@ -22,10 +22,11 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 203 approved · 14 rejected
+ * INGEST SUMMARY: 202 approved · 15 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
+ *   • DRAFT-151 [REWRITE] → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
@@ -824,17 +825,6 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "peace with evidence.",
       anchor: "snack",
       domain: "home",
-      pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
-    }),
-    Object.freeze({
-      // source: DRAFT-151 · cluster: boss_email
-      hook: "oga sent email at 11:59 p.m. like sleep is illegal",
-      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly, open laptop, and stare at the screen.",
-      howToFilm: "Bed-level handheld, low angle, one take.",
-      caption: "bedtime became office hours.",
-      anchor: "email",
-      domain: "work",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
     }),

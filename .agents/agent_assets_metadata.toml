@@ -815,3 +815,15 @@ id = "K6Wd7-HmidN3iPdYIpYAF"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_final_repair_overlay.yaml"
 type = "unspecified"
 title = "Final repair overlay snapshot (2 entries)"
+
+[[outputs]]
+id = "LwS8qBghjrYpnE39SBoqW"
+uri = "file://.local/N1_ELEVATION_P2_BATCH2_CHUNKA_DRAFT151_REPLACEMENT_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P2 — DRAFT-151 replacement report (FAIL + regression)"
+
+[[outputs]]
+id = "KYmjd_cZvo_sZE_LcqlkB"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_draft151_replacement_overlay.yaml"
+type = "unspecified"
+title = "DRAFT-151 replacement overlay snapshot"

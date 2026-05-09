@@ -1,0 +1,171 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 Chunk A replacement for DRAFT-348.
+
+Context:
+Batch 2 Chunk A is at 29/30 accepted.
+DRAFT-348 has failed three times:
+- baseline scored 39 < 40
+- first repair scored 37 < 40
+- final repair scored 37 < 40
+
+Do not keep repairing DRAFT-348 in this phase. It is now circular work.
+
+Goal:
+Remove DRAFT-348 from Chunk A acceptance target and replace it with DRAFT-151.
+
+Important:
+DRAFT-151 was previously excluded because it was semantically close to an earlier late-night oga-email idea. For this replacement, avoid that duplicate by changing the angle away from late-night/sleep. Make it about the work-email panic itself, not bedtime.
+
+Use Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit generated approved file.
+Do not edit worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, mobile files, or regional-decoration.
+Do not modify the 29 already-landed Chunk A entries.
+Do not proceed to Chunk B.
+
+Critical:
+Map last-wins means each overlay block must restate ALL fields.
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+REPLACEMENT OVERLAY — APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-151
+  newAnchor: email
+  rewrittenHook: "email landed and my confidence left the meeting"
+  rewrittenWhatToShow: "Open a work email expecting one simple update. The email has three bullet points, one attachment, and one 'quick question.' You sit back, close one eye, then reopen the email like it has multiplied."
+  rewrittenHowToFilm: "Frame the email screen and your face from desk level. Let the first confident open happen, then cut on your slow lean-back when the quick question becomes full assignment."
+  rewrittenCaption: "quick question, long suffering."
+  reviewedBy: "BI 2026-05-09"
+
+============================================================
+DRAFT-348 HANDLING
+============================================================
+
+Do not attempt another DRAFT-348 repair.
+
+Confirm:
+- DRAFT-348 remains rejected / not part of the accepted Chunk A set.
+- DRAFT-151 is the replacement 30th accepted Chunk A entry.
+- Chunk A accepted count should become 30/30 by counting the 29 already-landed entries + DRAFT-151.
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Save proposed overlay as:
+
+`.local/qa-runs/n1_p2_batch2_chunk_a_draft151_replacement_overlay.yaml`
+
+Run:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_p2_batch2_chunk_a_draft151_replacement_overlay.yaml`
+
+If preflight flags a real hard failure, stop and report before appending.
+
+Expected:
+- exactly 1 overlay block
+- no old boilerplate howToFilm
+- no `Keep the X centered`
+- no stereotype-token hits
+- no mock pidgin
+- anchor `email` appears in hook and whatToShow
+- hook/whatToShow overlap passes
+- no late-night/sleep/bedtime duplicate angle
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact DRAFT-151 overlay block to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- approved count returns to 204
+- rejected count returns to 13 pre-existing + DRAFT-348 if DRAFT-348 overlay remains rejected, OR otherwise explain exact count clearly
+- rejected-from-rewrites should no longer block Chunk A acceptance because DRAFT-348 is dropped from Chunk A target
+- DRAFT-151 is accepted
+- Chunk A has 30 accepted entries total
+- Chunk B was not executed
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused Nigerian pack tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+3. Static checks on accepted Chunk A set of 30 entries:
+- no old filming boilerplate
+- no `Phone-level lock-off`
+- no `Desk-height lock-off`
+- no `Counter-level lock-off`
+- no `Couch-level handheld`
+- no `Bed-level handheld`
+- no `Door-side handheld`
+- no `Mirror lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the \w+ centered`
+- no user-facing NEPA / nepa / jollof / buka / village people / my enemies / yahoo boy / 419
+- no `direct to camera`
+- no `deliberately`
+- no `on purpose`
+- no `with intent`
+- no `look straight at the lens`
+- anchor appears in hook and whatToShow for all accepted Chunk A entries
+- hook/whatToShow scenario token overlap passes for all accepted Chunk A entries
+- no empty fields
+- no duplicate hooks
+- no duplicate howToFilm
+- no semantic duplicate with the earlier late-night oga-email entry
+
+Full api-server suite is optional unless codegen/static/tests show risk.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Preflight result.
+4. Codegen result.
+5. Approved/rejected counts, with DRAFT-348 status clearly explained.
+6. Confirmation DRAFT-151 accepted.
+7. Confirmation Chunk A has 30 accepted entries.
+8. Nigerian pack test result.
+9. TypeScript result.
+10. Static check result.
+11. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration untouched
+   - 29 previously landed Chunk A entries not modified
+   - DRAFT-348 not repaired again
+   - Chunk B not executed
+
+Do not include long tables unless something fails.
+Do not ask for next steps.
