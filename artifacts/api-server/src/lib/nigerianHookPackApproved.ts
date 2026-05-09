@@ -22,7 +22,7 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 203 approved · 14 rejected
+ * INGEST SUMMARY: 204 approved · 13 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
@@ -33,7 +33,6 @@
  *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
- *   • DRAFT-356 [REWRITE] → validateScenarioCoherence: show_missing_hook_anchor
  *   • DRAFT-367 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
  *   • DRAFT-371 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-372 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
@@ -2080,6 +2079,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       domain: "phone",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: DRAFT-356 [REWRITE] · cluster: messages
+      hook: "one innocent dm started full investigation.",
+      whatToShow: "A fake dm pops up and your face changes before you can hide it. Someone nearby notices the innocent message, leans in, and you quickly tilt the phone away like the investigation has started.",
+      howToFilm: "Frame your phone and face from the side so the dm notification and your reaction both read. Let the nearby person lean in, then cut on you hiding the screen like the investigation has officially opened.",
+      caption: "dm no dey stay private.",
+      anchor: "dm",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-357 [REWRITE] · cluster: messages

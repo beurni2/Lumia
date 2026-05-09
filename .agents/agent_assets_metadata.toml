@@ -581,3 +581,9 @@ id = "qgYk8qNmS7n3mI1CoNu6x"
 uri = "file://.local/N1_ELEVATION_P1_CHUNK_A_R2_REPORT.md"
 type = "text"
 title = "N1-ELEVATION-P1 Chunk A-R2 Two-Entry Repair Report"
+
+[[outputs]]
+id = "MT_HWFIBYQLG-SrRJgV4P"
+uri = "file://.local/N1_ELEVATION_P1_CHUNK_A_R3_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P1 Chunk A-R3 Final Repair Report"
