@@ -1,0 +1,13 @@
+{
+  "task": "F3-FALLBACK-GAP-ONLY FIX (Option F from .local/F3_FALLBACK_ROOT_CAUSE_AUDIT.md). Adds staging-only env flag LUMINA_FALLBACK_GAP_ONLY that narrows the guards_failed rail in decideFallbackPlan: when flag ON and localKept >= max(3, desiredCount) and guards failed, returns { needFallback: false, reason: 'not_needed_gap_only_local_sufficient' } instead of forcing Claude fallback. Hard rails (merged_pool_too_small, selection_underfilled) MUST still fire first regardless of flag. Production env intentionally untouched. Default OFF. Wire-up at hybridIdeator decideFallbackPlan call site, plus a new info log mirroring the W2-M skip log shape. Tests must cover: parity (flag OFF), skip cases, sub-floor protection, and hard-rail precedence. Look for: (1) any way the new branch could under-fill or skip a hard-rail case, (2) ordering bugs vs N1-live-skip / W2-M skip / P3 skip, (3) the env helper being too permissive (e.g. accepting '0'/'false' as truthy), (4) the test fixture parity (existing tests must still pass bit-for-bit when flag OFF), (5) any prompt/validator/timeout/corpus drift, (6) any production env contamination.",
+  "relevantFiles": [
+    "artifacts/api-server/src/lib/fallbackDecisionPlan.ts",
+    "artifacts/api-server/src/lib/hybridIdeator.ts",
+    "artifacts/api-server/src/lib/__tests__/fallbackDecisionPlan.test.ts",
+    "artifacts/api-server/.replit-artifact/artifact.toml",
+    ".local/F3_FALLBACK_GAP_ONLY_REPORT.md",
+    ".local/F3_FALLBACK_ROOT_CAUSE_AUDIT.md"
+  ],
+  "responsibility": "evaluate_task",
+  "includeGitDiff": true
+}

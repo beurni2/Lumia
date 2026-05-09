@@ -1,0 +1,199 @@
+You are working in the Lumina monorepo.
+
+Phase:
+F3-FALLBACK-GAP-ONLY FIX.
+
+Context:
+The F3 fallback root-cause audit is accepted.
+
+Root cause:
+The 45s timeout is a symptom, not the core issue. The fallback path is currently structured as a full-batch rebuild and is triggered on `guards_failed` even when the local pool is already complete. In F3, localKept was far above desiredCount, fallback still triggered, Claude was asked for the full desiredCount=10, timed out, and local best-effort shipped anyway. Result: ~50s latency tax, 0 fallback ideas served.
+
+Goal:
+Implement the smallest safe fix recommended by the audit:
+
+Make fallback fire on `guards_failed` only when there is an actual local-pool gap.
+
+Do not change prompts.
+Do not change model/provider.
+Do not change timeout.
+Do not change corpus.
+Do not change validators.
+Do not loosen gates.
+Do not change public API shape.
+
+============================================================
+APPROVED FIX
+============================================================
+
+Implement Option F:
+
+When fallback reason would be `guards_failed`, only set `needFallback = true` if:
+
+localKept < max(3, desiredCount)
+
+If localKept >= max(3, desiredCount), do NOT call fallback for guards_failed. Ship local best-effort through the existing local selection path.
+
+Important:
+Hard failure rails must remain unchanged:
+- merged_pool_too_small
+- selection_underfilled
+- any existing true under-fill / local shortage condition
+
+Fallback should still fire when the local pool is actually too small.
+
+============================================================
+FLAG / ROLLOUT REQUIREMENT
+============================================================
+
+Add this behind a new flag:
+
+LUMINA_FALLBACK_GAP_ONLY
+
+Behavior:
+- Flag OFF: preserve current behavior bit-for-bit.
+- Flag ON: apply the new guards_failed gap-only rule.
+
+Do not change production flags.
+If a dev/staging config file already has non-production flags, you may add the flag there only if consistent with project conventions. Do not touch production env.
+
+============================================================
+FILES LIKELY TO TOUCH
+============================================================
+
+Expected source files:
+- artifacts/api-server/src/lib/fallbackDecisionPlan.ts
+- artifacts/api-server/src/lib/hybridIdeator.ts
+
+Expected test file:
+- artifacts/api-server/src/lib/__tests__/fallbackDecisionPlan.test.ts
+
+Do not touch:
+- ideaGen.ts
+- ai.ts
+- prompts
+- corpus files
+- validators
+- schemas
+- selectors
+- scoring
+- mobile files
+- migrations
+- public API route shape
+- production flags
+
+============================================================
+IMPLEMENTATION DETAILS
+============================================================
+
+1. Inspect `fallbackDecisionPlan.ts`.
+
+2. Identify the `guards_failed` branch.
+
+3. Thread enough data into the decision function to know:
+   - localKept
+   - desiredCount
+   - whether `LUMINA_FALLBACK_GAP_ONLY` is enabled
+
+If localKept is already available under another name, use that. Do not add heavy plumbing.
+
+4. New rule:
+
+If flag ON and reason is guards_failed:
+- if localKept < Math.max(3, desiredCount), fallback still fires
+- if localKept >= Math.max(3, desiredCount), fallback does not fire
+
+5. Make sure telemetry still clearly reports what happened.
+Suggested fallback/skip reason:
+- `not_needed_gap_only_local_sufficient`
+or equivalent existing naming style.
+
+6. Keep the best-effort local ship path unchanged.
+
+7. Do not alter Claude timeout.
+
+8. Do not change fallback count/request size in this phase.
+
+============================================================
+TESTS
+============================================================
+
+Add or update focused tests in `fallbackDecisionPlan.test.ts`.
+
+Required cases:
+
+1. Flag OFF parity:
+   - guards_failed + localKept >= desiredCount still triggers fallback exactly as before.
+
+2. Flag ON:
+   - guards_failed + localKept >= desiredCount does NOT trigger fallback.
+   - reason should indicate local sufficient / gap-only skip.
+
+3. Flag ON:
+   - guards_failed + localKept < desiredCount DOES trigger fallback.
+
+4. Flag ON:
+   - guards_failed + localKept < 3 DOES trigger fallback.
+
+5. Hard rails unchanged:
+   - merged_pool_too_small still triggers fallback even if flag ON.
+   - selection_underfilled still triggers fallback even if flag ON.
+
+6. Boundary:
+   - desiredCount=10, localKept=10, flag ON → no fallback.
+   - desiredCount=10, localKept=9, flag ON → fallback.
+   - desiredCount=3, localKept=3, flag ON → no fallback.
+   - desiredCount=3, localKept=2, flag ON → fallback.
+
+Tests should prove no under-fill risk is introduced.
+
+============================================================
+QA AFTER IMPLEMENTATION
+============================================================
+
+Run:
+
+1. Focused fallback decision tests.
+2. Full api-server suite.
+3. API-server TypeScript:
+   pnpm --filter @workspace/api-server exec tsc --noEmit
+
+4. Re-run the F3 fallback stress sweep with the new flag ON in dev/staging only.
+
+Expected with flag ON:
+- forced previous F3-style guards_failed batches should no longer call Claude when localKept >= desiredCount
+- average batch duration should drop sharply from ~58s toward local-only timing
+- under-fill remains 0
+- final source mix remains local sources only for those cases
+- no fallback timeout spam on guards_failed local-sufficient batches
+
+5. Optional parity check with flag OFF:
+- behavior should match old fallback behavior.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+1. Files changed.
+2. Exact fallback decision rule before/after.
+3. Flag name and default behavior.
+4. Confirmation production flags were not changed.
+5. Test results:
+   - focused tests
+   - full api-server suite
+   - TypeScript
+6. F3 stress re-run result with flag ON:
+   - total batches
+   - under-fill count
+   - fallback calls
+   - fallback timeout count
+   - avg/p50/p95 latency
+   - source distribution
+7. Confirmation hard rails still trigger fallback.
+8. Confirmation no prompts/model/provider/timeout/corpus/schema/validator/API changes.
+9. Any risks.
+
+Important:
+This is a latency/value fix, not a quality rewrite. Do not broaden the task.

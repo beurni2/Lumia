@@ -14,6 +14,7 @@ const baseHealthyLocal: FallbackDecisionInput = {
   selectionGuardsPassed: true,
   n1LiveSkipFallback: false,
   w2mLocalFirstRefreshEnabled: false,
+  fallbackGapOnlyEnabled: false,
 };
 
 describe("decideFallbackPlan — hard failure paths (always trigger fallback)", () => {
@@ -230,6 +231,193 @@ describe("decideFallbackPlan — W2-M (regenerate-aware) skip", () => {
       w2mLocalFirstRefreshEnabled: true,
     });
     expect(r.reason).toBe("not_needed_p3_local_sufficient");
+  });
+});
+
+describe("decideFallbackPlan — F3-FALLBACK-GAP-ONLY (guards_failed narrowing)", () => {
+  // F3 audit proved the guards_failed rail fired 12/12 times in the
+  // stress sweep with localKept ≫ desiredCount, every Claude call timed
+  // out at 45 s, and 0/120 served ideas were Claude. The gap-only flag
+  // narrows guards_failed to fire only when the local pool is
+  // structurally too thin to ship best-effort.
+
+  it("flag OFF + guards_failed: still triggers fallback (parity)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      fallbackGapOnlyEnabled: false,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("flag ON + guards_failed + localKept >= desiredCount: SKIPS fallback with gap-only reason", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      desiredCount: 3,
+      localKept: 5,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({
+      needFallback: false,
+      reason: "not_needed_gap_only_local_sufficient",
+    });
+  });
+
+  it("flag ON + guards_failed + localKept < desiredCount: still triggers guards_failed fallback (no false skip)", () => {
+    // selectionBatchSize == desiredCount so selection_underfilled does NOT
+    // pre-empt; localKept < desiredCount so the gap-only floor doesn't
+    // skip; guards_failed is the rail we're exercising.
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      desiredCount: 5,
+      localKept: 4,
+      mergedSize: 5,
+      selectionBatchSize: 5,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("flag ON + guards_failed + localKept < 3 (sub-floor): still triggers guards_failed fallback", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      desiredCount: 3,
+      localKept: 2,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("hard rails unchanged: merged_pool_too_small fires regardless of gap-only flag", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      mergedSize: 2,
+      localKept: 100,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({
+      needFallback: true,
+      reason: "merged_pool_too_small",
+    });
+  });
+
+  it("hard rails unchanged: selection_underfilled fires regardless of gap-only flag", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      selectionBatchSize: 2,
+      desiredCount: 3,
+      localKept: 100,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({
+      needFallback: true,
+      reason: "selection_underfilled",
+    });
+  });
+
+  // Boundary cases from the spec
+  it("boundary: desiredCount=10, localKept=10, flag ON → no fallback", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      selectionBatchSize: 10,
+      desiredCount: 10,
+      localKept: 10,
+      mergedSize: 10,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r.needFallback).toBe(false);
+    expect(r.reason).toBe("not_needed_gap_only_local_sufficient");
+  });
+
+  it("boundary: desiredCount=10, localKept=9, flag ON → fallback", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      selectionBatchSize: 10,
+      desiredCount: 10,
+      localKept: 9,
+      mergedSize: 10,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("boundary: desiredCount=3, localKept=3, flag ON → no fallback", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      desiredCount: 3,
+      localKept: 3,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r.needFallback).toBe(false);
+    expect(r.reason).toBe("not_needed_gap_only_local_sufficient");
+  });
+
+  it("boundary: desiredCount=3, localKept=2, flag ON → fallback (sub-3 floor)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      desiredCount: 3,
+      localKept: 2,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("boundary: desiredCount=1 (sub-floor), localKept=2, flag ON → fallback (max(3, desiredCount) floor enforced)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      selectionBatchSize: 1,
+      desiredCount: 1,
+      localKept: 2,
+      mergedSize: 3,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({ needFallback: true, reason: "guards_failed" });
+  });
+
+  it("boundary: desiredCount=1, localKept=3, flag ON → no fallback (meets 3-floor)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      selectionGuardsPassed: false,
+      selectionBatchSize: 1,
+      desiredCount: 1,
+      localKept: 3,
+      mergedSize: 3,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r.needFallback).toBe(false);
+    expect(r.reason).toBe("not_needed_gap_only_local_sufficient");
+  });
+
+  it("flag ON + guards_passed + non-regenerate: P3 skip still wins (gap-only does not change healthy paths)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      regenerate: false,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r.reason).toBe("not_needed_p3_local_sufficient");
+  });
+
+  it("flag ON does not affect regenerate + guards passed (W2-M / regenerate_legacy paths unchanged)", () => {
+    const r = decideFallbackPlan({
+      ...baseHealthyLocal,
+      regenerate: true,
+      w2mLocalFirstRefreshEnabled: false,
+      fallbackGapOnlyEnabled: true,
+    });
+    expect(r).toEqual({
+      needFallback: true,
+      reason: "regenerate_legacy_force",
+    });
   });
 });
 

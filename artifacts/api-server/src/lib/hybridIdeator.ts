@@ -90,6 +90,7 @@ import { normalizeHookFingerprint } from "./comedyValidation";
 import { validateScenarioCoherence } from "./scenarioCoherence";
 import {
   decideFallbackPlan,
+  isFallbackGapOnlyEnabled,
   isW2mLocalFirstRefreshEnabled,
   type FallbackDecision,
 } from "./fallbackDecisionPlan";
@@ -4655,6 +4656,17 @@ export async function runHybridIdeator(
   // skips the Claude round-trip.
   const w2mLocalFirstRefreshEnabledForRequest =
     isW2mLocalFirstRefreshEnabled();
+  // PHASE F3-FALLBACK-GAP-ONLY (BI 2026-05-09) — staging-only flag. Read
+  // once per request. When OFF (production default), `decideFallbackPlan`
+  // returns `guards_failed` exactly as before for diversity-only
+  // selection failures. When ON, the helper returns
+  // `not_needed_gap_only_local_sufficient` whenever the local pool is
+  // structurally sufficient (`localKept >= max(3, desiredCount)`),
+  // skipping the Claude round-trip on a path the F3 audit proved
+  // contributed 0/120 ideas while adding ~50 s per request. Hard
+  // under-fill rails (`merged_pool_too_small`, `selection_underfilled`)
+  // are unaffected by this flag.
+  const fallbackGapOnlyEnabledForRequest = isFallbackGapOnlyEnabled();
   const layer1CoreAwareTriggered = regenerate && !n1LiveSkipFallback;
   // PHASE N1-LIVE-HARDEN P3 — skip the Claude fallback round-trip
   // when the local pool already satisfies the batch on a
@@ -4700,6 +4712,7 @@ export async function runHybridIdeator(
     selectionGuardsPassed: selection.guardsPassed,
     n1LiveSkipFallback,
     w2mLocalFirstRefreshEnabled: w2mLocalFirstRefreshEnabledForRequest,
+    fallbackGapOnlyEnabled: fallbackGapOnlyEnabledForRequest,
   });
   const needFallback = fallbackDecision.needFallback;
   // Backward-compat aliases — the W1.1 audit funnel snapshot + the
@@ -4752,6 +4765,30 @@ export async function runHybridIdeator(
         regenerate,
       },
       "hybrid_ideator.w2m_skip_fallback_local_sufficient",
+    );
+  }
+  // PHASE F3-FALLBACK-GAP-ONLY — emit a structured info log when the
+  // gap-only skip fires so the QA driver can confirm the path was taken
+  // without scraping `qaTelemetry`. Always pairs with
+  // `selection.guardsPassed === false` AND `localResult.kept.length >=
+  // max(3, desiredCount)` AND the staging flag ON. F3 stress sweep
+  // baseline: this would have fired 12/12 forced batches.
+  if (
+    fallbackDecision.reason === "not_needed_gap_only_local_sufficient"
+  ) {
+    logger.info(
+      {
+        creatorId: input.creator?.id,
+        region: input.region ?? null,
+        languageStyle: calibration?.languageStyle ?? null,
+        desiredCount,
+        localKept: localResult.kept.length,
+        mergedSize: merged.length,
+        selectionBatchSize: selection.batch.length,
+        guardsPassed: selection.guardsPassed,
+        regenerate,
+      },
+      "hybrid_ideator.f3_skip_fallback_gap_only_local_sufficient",
     );
   }
   if (needFallback) {

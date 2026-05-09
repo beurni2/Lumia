@@ -55,6 +55,7 @@ export type FallbackReason =
   | "not_needed_p3_local_sufficient"
   | "not_needed_w2m_local_sufficient"
   | "not_needed_n1_live_skip"
+  | "not_needed_gap_only_local_sufficient"
   | "merged_pool_too_small"
   | "selection_underfilled"
   | "guards_failed"
@@ -74,6 +75,19 @@ export type FallbackDecisionInput = Readonly<{
   selectionGuardsPassed: boolean;
   n1LiveSkipFallback: boolean;
   w2mLocalFirstRefreshEnabled: boolean;
+  /**
+   * PHASE F3-FALLBACK-GAP-ONLY — staging-only flag-gated narrowing of
+   * the `guards_failed` rail. Default false. When true AND the
+   * `guards_failed` rail would have fired AND the local pool is
+   * structurally sufficient (`localKept >= max(3, desiredCount)`), the
+   * decider returns `not_needed_gap_only_local_sufficient` instead of
+   * triggering the Claude round-trip. The two true under-fill rails
+   * (`merged_pool_too_small`, `selection_underfilled`) are unaffected
+   * and still fire regardless of this flag — we only short-circuit
+   * the diversity-only failure path that the F3 audit proved
+   * contributed 0/120 ideas while adding ~50 s per request.
+   */
+  fallbackGapOnlyEnabled: boolean;
 }>;
 
 export function decideFallbackPlan(
@@ -88,6 +102,7 @@ export function decideFallbackPlan(
     selectionGuardsPassed,
     n1LiveSkipFallback,
     w2mLocalFirstRefreshEnabled,
+    fallbackGapOnlyEnabled,
   } = input;
 
   // Hard failure paths — these match the legacy needFallback cascade
@@ -101,6 +116,29 @@ export function decideFallbackPlan(
     return { needFallback: true, reason: "selection_underfilled" };
   }
   if (!selectionGuardsPassed) {
+    // PHASE F3-FALLBACK-GAP-ONLY (BI 2026-05-09) — staging-only narrowing
+    // of the guards_failed rail. The F3 LLM-fallback stress sweep proved
+    // the guards_failed branch fired 12/12 times with `localKept` far
+    // above `desiredCount` (avg 23 ≫ 10), every Claude call timed out at
+    // the 45 s P4 wrapper, and **0/120 served ideas were sourced from
+    // the fallback** — i.e. ~50 s of pure latency tax with zero
+    // observable user-quality contribution. When the flag is ON AND the
+    // local pool is structurally sufficient (`localKept >= max(3,
+    // desiredCount)`), the existing best-effort ship path downstream
+    // already produces a complete batch from the local pool, so the
+    // Claude round-trip is skipped. The hard floor `max(3, desiredCount)`
+    // mirrors the `merged_pool_too_small` (<3) and `selection_underfilled`
+    // (<desiredCount) rails so we never skip on a thin pool. Flag-OFF
+    // path is byte-identical to the pre-F3 cascade.
+    if (
+      fallbackGapOnlyEnabled &&
+      localKept >= Math.max(3, desiredCount)
+    ) {
+      return {
+        needFallback: false,
+        reason: "not_needed_gap_only_local_sufficient",
+      };
+    }
     return { needFallback: true, reason: "guards_failed" };
   }
 
@@ -155,4 +193,15 @@ export function decideFallbackPlan(
  */
 export function isW2mLocalFirstRefreshEnabled(): boolean {
   return process.env.LUMINA_W2M_LOCAL_FIRST_REFRESH_ENABLED === "true";
+}
+
+/**
+ * PHASE F3-FALLBACK-GAP-ONLY (BI 2026-05-09) — resolves the staging-only
+ * `LUMINA_FALLBACK_GAP_ONLY` env flag. Default OFF — production stays
+ * byte-identical to pre-F3 behavior until the flag is set on a
+ * dev / staging start path. See the `fallbackGapOnlyEnabled` field
+ * docstring on `FallbackDecisionInput` for the full semantic contract.
+ */
+export function isFallbackGapOnlyEnabled(): boolean {
+  return process.env.LUMINA_FALLBACK_GAP_ONLY === "true";
 }
