@@ -62,6 +62,7 @@ import {
 } from "./authoredScenarioPlans.js";
 import { decorateForRegion } from "./regionProfile.js";
 import type { Region } from "@workspace/lumina-trends";
+import type { LanguageStyle } from "./tasteCalibration.js";
 import { pickFromPoolWithGate } from "./wtsHtfQualityGate.js";
 
 // ---------------------------------------------------------------- //
@@ -159,6 +160,16 @@ export type CohesiveAuthorInput = {
    *  on those paths. See `regionProfile.ts` for the safety
    *  contract decoration text is hand-vetted against. */
   region?: Region;
+  /** PHASE N1-ELEVATION-P1 — optional creator language style.
+   *  Threaded through to `decorateForRegion` so the
+   *  `region === "nigeria"` decoration branch is symmetric with
+   *  the N1 pack-activation cohort gate (`canActivateNigerianPack`)
+   *  and only runs for `pidgin` / `light_pidgin`. `clean` and
+   *  `null` short-circuit to identity for nigeria, preventing
+   *  NEPA/buka/jollof decoration from leaking into ng_clean /
+   *  ng_null catalog/core_native outputs. India / Philippines /
+   *  western behavior is unchanged regardless of this value. */
+  languageStyle?: LanguageStyle | null;
 };
 
 export type CohesiveAuthorResult =
@@ -967,6 +978,11 @@ export function authorCohesiveIdea(
     caption: parsed.data.caption,
     howToFilm: parsed.data.howToFilm,
     whyItWorks: parsed.data.whyItWorks,
+    // PHASE N1-ELEVATION-P1 — symmetric languageStyle gate. For
+    // region===nigeria, clean/null short-circuit to identity in
+    // the adapter; pidgin/light_pidgin keep the existing
+    // decoration behavior. Other regions ignore this field.
+    languageStyle: input.languageStyle ?? null,
   });
   const decoratedIdea: Idea =
     decoration.decorated.length === 0

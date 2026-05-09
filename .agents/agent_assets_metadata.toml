@@ -712,7 +712,7 @@ title = "N1 Batch 2.0 Hot-6 Runtime Recheck — ACCEPT WITH FOLLOW-UP"
 id = "i20uMOodB3wbms9LUbYpS"
 uri = "file://.local/qa-runs/n1_batch2_hot6_runtime_recheck_summary.json"
 type = "unspecified"
-title = "Post-fix runtime recheck summary"
+title = "Hot-6 pack-active recheck summary (post-fix)"
 
 [[outputs]]
 id = "4Qi2rnsSkocWBQbmeFnKL"
@@ -755,3 +755,15 @@ id = "5fNHOjIwXtTalJfhVRJpt"
 uri = "file://.local/qa-runs/n1_regional_decoration_repro.json"
 type = "unspecified"
 title = "Read-only decorateForRegion repro (5 regions × 4 domains)"
+
+[[outputs]]
+id = "kbryNCWg32yxhuvzpDVyE"
+uri = "file://.local/N1_REGIONAL_DECORATION_FIX_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P1 Fix Report — SHIPPED (60/60 Hot-6 pack delivery, 1323/1323 suite green)"
+
+[[outputs]]
+id = "pYyVhJjri-8TGpTEHipxD"
+uri = "file://.local/qa-runs/n1_regional_decoration_fix_repro.json"
+type = "unspecified"
+title = "Fix repro (verdict=PASS)"

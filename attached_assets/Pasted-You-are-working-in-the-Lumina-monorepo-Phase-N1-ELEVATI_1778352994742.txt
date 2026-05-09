@@ -1,0 +1,165 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Regional-decoration clean/null fix.
+
+Context:
+The Nigerian pack-active path is accepted and must not be touched:
+- Batch 1: 45/45 entries complete and runtime-accepted
+- Batch 2.0 Hot-6: 6/6 complete
+- DRAFT-172 airtime patch complete
+- Latest pack-active runtime recheck: 60/60 pack delivery
+- 0 banned-filming hits
+- 0 stereotype hits
+- 0 mock-pidgin hits
+- 0 scenario-coherence failures
+- 0 structural failures
+
+Regional-decoration audit is accepted:
+- Issue confirmed.
+- Injection site: `decorateForRegion` in `artifacts/api-server/src/lib/regionProfile.ts`.
+- Product call site: `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`.
+- Affected fields: `caption`, `howToFilm`, `whyItWorks`.
+- Affected path: Nigerian catalog/core_native outputs, including `ng_clean` and `ng_null`.
+- Pack path is untouched because `nigerianPackAuthor.ts` does not call `decorateForRegion`.
+- Production/staging reachable.
+- Risky Nigerian decoration tokens: `NEPA`, `buka`, `jollof`.
+- Recommended fix: add `languageStyle` gating so Nigerian decoration only runs for `pidgin` / `light_pidgin`; `clean` and `null` return identity.
+- India / Philippines decoration must remain unchanged.
+- Western must remain identity.
+
+Goal:
+Implement the smallest safe source-code fix:
+- Add optional `languageStyle` support to `decorateForRegion`.
+- For `region === "nigeria"`, return identity when `languageStyle` is NOT `pidgin` or `light_pidgin`.
+- Pass the existing languageStyle from `cohesiveIdeaAuthor` into `decorateForRegion`.
+- Add/update focused tests.
+
+Do not modify:
+- Nigerian pack corpus
+- `nigerianHookPackApproved.ts`
+- `nigerianPackAuthor.ts`
+- worksheet CSV
+- rewrite YAML
+- validators/scorers/selectors/prompts unless absolutely required
+- schema/API/mobile files
+- feature flags/env/migrations
+
+============================================================
+IMPLEMENTATION REQUIREMENTS
+============================================================
+
+1. In `artifacts/api-server/src/lib/regionProfile.ts`:
+
+- Extend the decoration input type/interface to accept:
+  `languageStyle?: LanguageStyle | null`
+
+Use the existing `LanguageStyle` type if available in this file/project. If importing the type creates a circular dependency, use the existing local union/type pattern used elsewhere, but do not widen behavior beyond current accepted values.
+
+- Update `decorateForRegion(...)` so:
+  - `region === undefined` → identity, unchanged
+  - `region === "western"` → identity, unchanged
+  - `region === "nigeria"` AND `languageStyle` is neither `"pidgin"` nor `"light_pidgin"` → identity
+  - `region === "nigeria"` AND `languageStyle` is `"pidgin"` or `"light_pidgin"` → existing Nigerian decoration behavior unchanged
+  - `region === "india"` → existing behavior unchanged regardless of languageStyle
+  - `region === "philippines"` → existing behavior unchanged regardless of languageStyle
+
+Do not edit Nigerian phrase tables in this phase.
+
+2. In `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`:
+
+- Pass the existing language style into `decorateForRegion`.
+- Prefer:
+  `input.tasteCalibration?.languageStyle ?? null`
+  or the existing local equivalent if languageStyle is stored differently in the author input.
+
+3. Tests:
+
+Add or update focused tests.
+
+Required coverage:
+- `decorateForRegion({ region: "nigeria", domain: "mornings", languageStyle: "clean", ... })` returns identity.
+- `decorateForRegion({ region: "nigeria", domain: "mornings", languageStyle: null, ... })` returns identity.
+- `decorateForRegion({ region: "nigeria", domain: "mornings", languageStyle: "pidgin", ... })` still decorates.
+- `decorateForRegion({ region: "nigeria", domain: "mornings", languageStyle: "light_pidgin", ... })` still decorates.
+- `decorateForRegion({ region: "india", ..., languageStyle: "clean" })` still decorates as before.
+- `decorateForRegion({ region: "philippines", ..., languageStyle: null })` still decorates as before.
+- `decorateForRegion({ region: "western", ... })` returns identity.
+
+If there is already a `regionProfile.test.ts`, add there. If not, create the smallest appropriate test file under `src/lib/__tests__/`.
+
+Optional but preferred:
+- A `cohesiveIdeaAuthor` or author-path integration test proving `region=nigeria + languageStyle=clean` does not emit `NEPA`, `buka`, or `jollof` in `caption`, `howToFilm`, or `whyItWorks`.
+
+============================================================
+READ-ONLY REPRO / QA
+============================================================
+
+After implementation, run a small diagnostic similar to the audit repro and confirm:
+
+- Nigeria + clean → 0 decorated surfaces
+- Nigeria + null → 0 decorated surfaces
+- Nigeria + pidgin → still decorated
+- Nigeria + light_pidgin → still decorated
+- India → still decorated
+- Philippines → still decorated
+- Western → identity
+
+Save any useful QA output to:
+
+`.local/qa-runs/n1_regional_decoration_fix_repro.json`
+
+============================================================
+VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused region/decorator tests:
+Run the new/updated test file directly.
+
+3. Nigerian pack-specific tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+4. Hot-6 pack-active runtime recheck if available:
+Run the existing `.local/scripts/n1Batch2Hot6RuntimeRecheck.ts` to confirm pack-active path still has:
+- 60/60 pack delivery
+- 0 banned-filming hits
+- 0 stereotype hits
+- 0 mock-pidgin hits
+- 0 scenario-coherence failures
+- 0 structural failures
+
+5. Full api-server suite:
+Run only if source changes or tests indicate broader risk, or if repo convention requires it. Since this touches shared `regionProfile.ts` and `cohesiveIdeaAuthor.ts`, full suite is recommended if it is reasonably fast.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Exact behavior change.
+4. Tests added/updated.
+5. Verification results:
+   - TypeScript
+   - focused tests
+   - Nigerian pack tests
+   - Hot-6 runtime recheck
+   - full suite if run
+6. Confirm:
+   - Nigerian pack corpus untouched
+   - rewrite YAML untouched
+   - worksheet untouched
+   - no API/schema/mobile/migration/flag changes
+   - India/Philippines behavior unchanged
+   - Western identity unchanged
+7. Any failure or risk.
+
+Do not include long code dumps.
+Do not ask for next steps.

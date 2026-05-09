@@ -63,6 +63,7 @@
 import type { Region } from "@workspace/lumina-trends";
 import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
 import type { Idea } from "./ideaGen.js";
+import type { LanguageStyle } from "./tasteCalibration.js";
 import type { VoiceClusterId } from "./voiceClusters.js";
 
 // ---------------------------------------------------------------- //
@@ -497,6 +498,17 @@ export type RegionDecorationInput = {
   caption: string;
   howToFilm: string;
   whyItWorks: string;
+  /** PHASE N1-ELEVATION-P1 — optional creator language style. Used
+   *  ONLY to gate the `region === "nigeria"` branch: Nigerian
+   *  decoration is symmetric with the N1 pack-activation cohort
+   *  gate (`canActivateNigerianPack`) and only runs when
+   *  `languageStyle ∈ {"pidgin", "light_pidgin"}`. `clean` and
+   *  `null` short-circuit to identity for nigeria so the
+   *  catalog/core_native path never injects NEPA/buka/jollof
+   *  decoration into ng_clean / ng_null cohorts. India,
+   *  Philippines, western, and undefined are unaffected by this
+   *  parameter — they keep their pre-P1 behavior. */
+  languageStyle?: LanguageStyle | null;
 };
 
 export type RegionDecorationOutput = {
@@ -516,8 +528,25 @@ export type RegionDecorationOutput = {
 export function decorateForRegion(
   input: RegionDecorationInput,
 ): RegionDecorationOutput {
-  const { region, domain, caption, howToFilm, whyItWorks } = input;
+  const { region, domain, caption, howToFilm, whyItWorks, languageStyle } =
+    input;
   if (!region || region === "western") {
+    return { caption, howToFilm, whyItWorks, decorated: [] };
+  }
+  // PHASE N1-ELEVATION-P1 — symmetric with the N1 pack-activation
+  // cohort gate. Nigerian decoration only runs when the creator's
+  // language style is `pidgin` or `light_pidgin`. `clean` / `null`
+  // (and any future non-pidgin value) return identity so the
+  // catalog/core_native path never injects NEPA/buka/jollof
+  // decoration into ng_clean / ng_null cohorts. India and
+  // Philippines are intentionally NOT gated on languageStyle here
+  // — their decoration is non-stereotype daily-life context that
+  // the audit confirmed is safe across language-style values.
+  if (
+    region === "nigeria" &&
+    languageStyle !== "pidgin" &&
+    languageStyle !== "light_pidgin"
+  ) {
     return { caption, howToFilm, whyItWorks, decorated: [] };
   }
   const profile = REGION_PROFILES[region];

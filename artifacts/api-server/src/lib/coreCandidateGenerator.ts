@@ -1293,6 +1293,13 @@ export function generateCoreCandidates(
         // the adapter, so cold-start and western creators are
         // byte-identical to pre-R1.
         ...(input.region ? { region: input.region } : {}),
+        // PHASE N1-ELEVATION-P1 — thread the precomputed
+        // `packLanguageStyle` (= `tasteCalibration?.languageStyle ??
+        // null`) so the `decorateForRegion` adapter can apply its
+        // symmetric NG cohort gate. `clean` / `null` short-circuit
+        // Nigerian decoration to identity inside the adapter.
+        // Non-NG regions ignore the value.
+        languageStyle: packLanguageStyle,
       });
       if (!result.ok) {
         const r = result.reason as CohesiveAuthorRejectionReason;
