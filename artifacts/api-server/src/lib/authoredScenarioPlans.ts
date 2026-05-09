@@ -98,8 +98,7 @@ const PLANS: ReadonlyArray<AuthoredScenarioPlan> = [
       "Start typing a reply, delete it, switch to another tab, then come back to the inbox " +
       "and mark nothing as read. Close the laptop halfway and then reopen it because the inbox is still there.",
     howToFilm:
-      "Phone propped over your shoulder pointing at the laptop, or phone on a shelf with the inbox " +
-      "screen filling most of the frame. Single take, no music. Cut the second you reopen the laptop after fake-closing it.",
+      "Frame the laptop or inbox over your shoulder so the unread count is visible while your face stays in profile. Start with your hand ready to be responsible, let the number stop you, then close the laptop or turn away at the exact moment avoidance wins.",
     shotPlan: Object.freeze([
       "Setup: laptop or phone open to the inbox, unread count visible.",
       "Action: type a reply, delete it, switch tabs, come back to the inbox, mark nothing read.",
@@ -139,8 +138,7 @@ const PLANS: ReadonlyArray<AuthoredScenarioPlan> = [
       "The hand slides the phone under the pillow or pulls the blanket over it while the alarm keeps buzzing. " +
       "End on the blanket slowly covering the alarm.",
     howToFilm:
-      "Locked-off shot from the side of the bed, alarm screen visible the whole take. Just one hand and the phone in frame — face stays under the covers. " +
-      "Single take, the alarm sound is the audio. Cut on the blanket fully covering the alarm.",
+      "Frame the bed and alarm together from beside the nightstand so the phone is clearly the villain. Let your hand enter first, hover like you might become a new person, then hit snooze and disappear back into the blanket.",
     shotPlan: Object.freeze([
       "Setup: phone on nightstand or pillow, alarm ringing on screen.",
       "Action: hand snoozes once; alarm rings again; hand slides phone under pillow/blanket.",

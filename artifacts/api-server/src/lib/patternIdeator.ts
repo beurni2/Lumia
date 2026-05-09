@@ -7666,12 +7666,16 @@ function fixDTokenize(text: string): string[] {
  * window). Some templates substitute `topicNoun` (kitchen, desk) for
  * specificity; others are scenario-agnostic (face_reaction_deadpan).
  */
-const HOW_TO_FILM_BY_VISUAL_ACTION: Record<
+export const HOW_TO_FILM_BY_VISUAL_ACTION: Record<
   VisualActionPattern,
   (s: Scenario) => string
 > = {
-  phone_scroll_freeze: (s) =>
-    `Hold the phone vertically right at face level so the screen glow lights you. Single static shot, ${s.settingDetail}. Let the scroll itself be the action — no cutaways, no music. Brightness all the way up so the glow reads on camera.`,
+  // PHASE W2-AUTHOR HYBRID — rewritten to drop the "Single static
+  // shot" boilerplate. Preserves the original intent (face-level
+  // phone, screen glow, scroll/freeze behavior) while landing a
+  // concrete, V2-grammar filming direction.
+  phone_scroll_freeze: (_s) =>
+    `Hold the phone vertically at face level so the screen glow lights you and the room stays visible behind it. Start mid-scroll, freeze on the exact message or post that changes your mood, then let your thumb hover like even it knows this is a bad idea.`,
   text_message_panic: () =>
     `Tight overhead on the phone — keyboard and unread thread fill the whole frame. Don't show your face; the thumb hesitation IS the shot. Hold for a beat after the screen locks before cutting.`,
   kitchen_contradiction: (s) =>
@@ -7698,8 +7702,12 @@ const HOW_TO_FILM_BY_VISUAL_ACTION: Record<
   },
   social_awkward_walkaway: () =>
     `Two angles: wide of the hallway for the encounter (8 sec), hard cut to tight on your face for the cringe walk back (4 sec). Cut on the wave, not after.`,
+  // PHASE W2-AUTHOR HYBRID — rewritten to drop the "Single
+  // locked-off shot" boilerplate. Preserves the original intent
+  // (eye-level/face emphasis, silence/deadpan) while landing a
+  // concrete, V2-grammar filming direction.
   face_reaction_deadpan: () =>
-    `Phone at eye level, your face fills two-thirds of the frame. Single locked-off shot. Let the silence run — no music, no cuts, no movement. The deadpan IS the entire video.`,
+    `Frame your face close enough that every tiny reaction reads, with the background simple and still. Keep your eyes on the thing that caused the problem, barely move, then end on the smallest possible look like you already accepted the disaster.`,
   mirror_self_call_out: () =>
     `Film straight into the bathroom mirror with the phone at chest height in your other hand. The reflection IS the shot — your eyes lock on yours for the whole beat. Bathroom light only, no overhead.`,
   doorway_retreat: () =>

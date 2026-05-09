@@ -1,0 +1,345 @@
+You are working in the Lumina monorepo.
+
+Goal:
+Upgrade Lumina’s runtime authoring path so every generated idea’s `whatToShow` and `howToFilm` moves toward the W2-FTN-E3 V2 quality standard. This is NOT a static 53-entry patch. This is a generator-level upgrade.
+
+Important:
+The user explicitly does not want circular, cosmetic, or worthless work. Implement only real source-level changes that affect generated ideas. Do not loosen validators. Do not change schema. Do not change production flags. Do not modify W2/N1 corpus literals. Do not introduce LLM rewriting. Do not increase Claude/model usage.
+
+Use the uploaded audit + repair plan as source of truth:
+- W2-AUTHOR — Authoring Surface Audit
+- W2-AUTHOR — Repair Plan
+
+Implement the recommended HYBRID-UPGRADE:
+B. Per-source template upgrade
+C. Light deterministic quality gate
+
+The main quality cliff is `cohesiveIdeaAuthor` Path B, not the already-curated W2/N1 corpus path. The Path B rewrite must make long-tail `whatToShow` and `howToFilm` feel authored: human contradiction first, visible action second, object/action carries the joke, concrete filming direction last.
+
+Files to touch:
+1. `artifacts/api-server/src/lib/patternIdeator.ts`
+2. `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`
+3. `artifacts/api-server/src/lib/authoredScenarioPlans.ts`
+4. `artifacts/api-server/src/lib/wtsHtfQualityGate.ts` NEW
+5. `artifacts/api-server/src/lib/westernPackAuthor.ts`
+6. `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+7. `artifacts/api-server/src/lib/ideaGen.ts`
+8. Add tests only. Do not modify unrelated runtime files.
+
+Hard no-touch list:
+- Do not modify W2-I / W2-L / W2-N / W2-T / W2-Live corpus entries.
+- Do not modify N1 approved/draft/live corpus entries.
+- Do not modify `westernPromotionRubric.ts`, `westernHookQuality.ts`, `comedyValidation.ts`, or `scenarioCoherence.ts` semantics.
+- Do not change `ideaSchema`.
+- Do not change selector logic.
+- Do not change production flags, env flags, `.replit`, `artifact.toml`, or start scripts.
+- Do not add randomization.
+- Do not add migrations.
+- Do not add new API fields.
+- Do not increase Claude usage.
+
+============================================================
+PART 1 — Add deterministic quality gate
+============================================================
+
+Create:
+
+`artifacts/api-server/src/lib/wtsHtfQualityGate.ts`
+
+Export:
+- `WTS_HTF_BANNED_RE`
+- `passesV2Gate(whatToShow: string, howToFilm: string): boolean`
+- `pickFromPoolWithGate<T>(pool: readonly T[], idx: number, render: (item: T, absoluteIdx: number) => { value: T; whatToShow: string; howToFilm: string }, retries = 4): T`
+
+The gate must reject:
+- `phone on a tripod`
+- `single static shot`
+- `single locked-off shot`
+- `single locked off shot`
+- `locked-off on tripod`
+- `locked off on tripod`
+- `let the joke land`
+- `film yourself reacting`
+- `creator reacts`
+- `show the [noun] on camera` placeholder-style `whatToShow`
+- byte-identical `whatToShow` and `howToFilm`
+
+Case-insensitive.
+
+The helper must be deterministic and must never create under-fill risk. If every retry fails, return/fall through to the original candidate.
+
+For corpus paths, use log-only behavior. Do not rewrite corpus output.
+
+============================================================
+PART 2 — Rewrite weak `patternIdeator.ts` howToFilm templates
+============================================================
+
+Find the `HOW_TO_FILM_BY_VISUAL_ACTION` templates.
+
+Rewrite only these two visual action templates:
+
+1. `phone_scroll_freeze`
+
+Replace the current boilerplate version containing “Single static shot” with:
+
+"Hold the phone vertically at face level so the screen glow lights you and the room stays visible behind it. Start mid-scroll, freeze on the exact message or post that changes your mood, then let your thumb hover like even it knows this is a bad idea."
+
+Preserve the original intent:
+- face-level phone
+- screen glow
+- scroll/freeze behavior
+- no generic “single static shot”
+
+2. `face_reaction_deadpan`
+
+Replace the current boilerplate version containing “Single locked-off shot” with:
+
+"Frame your face close enough that every tiny reaction reads, with the background simple and still. Keep your eyes on the thing that caused the problem, barely move, then end on the smallest possible look like you already accepted the disaster."
+
+Preserve the original intent:
+- eye-level/face emphasis
+- silence/deadpan
+- no generic “locked-off shot”
+
+Wire the new gate at `buildHowToFilm` exit if practical:
+- If a chosen template fails the gate, rotate to another safe template when there is a pool.
+- If no safe replacement exists, fall through to original output.
+- Do not under-fill.
+
+============================================================
+PART 3 — Rewrite `cohesiveIdeaAuthor.ts` Path B templates
+============================================================
+
+Find Path B inside `assemble()`, specifically the long-tail `showShapes` and `filmShapes`.
+
+Replace the 4 generic `showShapes` with these exact templates, adapted to the existing variable names. Preserve existing interpolation variables such as:
+- `n`
+- `anchor`
+- `ab`
+- `Ab`
+- whatever existing vars represent `sceneActionBare` / `sceneActionPast`
+
+Do not invent new unavailable variables. If variable names differ, map these templates to the existing ones.
+
+New `showShapes`:
+
+1.
+"Start already pretending the {n} is not the reason you lost momentum. Let your hand drift toward it, stop like you caught yourself, then {ab} the {anchor} anyway with the confidence of someone making the same mistake on purpose."
+
+2.
+"Put the {n} in the place where it keeps winning — desk, couch, counter, wherever the habit usually happens. Give it one suspicious look, try to move on, then come right back and {ab} the {anchor} like the argument was over before it started."
+
+3.
+"Walk into frame like you have a plan, notice the {n}, and immediately lose the plan. Hold one beat of fake discipline, then {ab} the {anchor} and exit like you refuse to discuss what just happened."
+
+4.
+"Treat the {n} like it personally challenged you. Reach for it, pull back, reconsider your whole identity for one second, then {ab} the {anchor} because apparently this is who you are today."
+
+Replace the 4 `filmShapes` with these exact templates:
+
+1.
+"Frame yourself and the {n} together at chest height so the audience can see the temptation before you move. Keep the action clean: reach, hesitate, {ab} the {anchor}, then cut on the moment your face says you knew better."
+
+2.
+"Use a counter-height or shelf-height angle with the {n} clearly visible from the first second. Let the scene play in two beats — the fake resistance, then the exact moment you {ab} the {anchor} — and end before you explain it."
+
+3.
+"Go slightly wide so your full body language and the {n} are both readable. Enter with purpose, let the object derail you, {ab} the {anchor} once, then leave the frame like the room just witnessed evidence."
+
+4.
+"Set the camera where the {n} sits in the lower third and your reaction has room above it. Make the pause do the work: hand moves in, stops, commits, then you {ab} the {anchor} and cut before the scene becomes too neat."
+
+Quality requirements:
+- No `Locked-off on tripod`.
+- No `single take` boilerplate.
+- No “let the joke land.”
+- Preserve anchor literal.
+- Preserve action literal.
+- Keep strings within existing length caps.
+- Keep deterministic selection.
+
+Wire `passesV2Gate` / `pickFromPoolWithGate` into Path B generation:
+- Rotate through shape options if a selected pair fails.
+- Fall through after retries.
+- Never under-fill.
+- Do not change authored-plan Path A selection logic except where instructed below.
+
+============================================================
+PART 4 — Rewrite two `authoredScenarioPlans.ts` howToFilm literals only
+============================================================
+
+Do not rewrite any `whatToShow`.
+Do not rewrite the other 8 `howToFilm` values.
+Only surgically replace these two plan `howToFilm` fields.
+
+1. `aps_inbox.howToFilm`
+
+Replace the current version containing “Phone propped over your shoulder” / “phone on a shelf” style boilerplate with:
+
+"Frame the laptop or inbox over your shoulder so the unread count is visible while your face stays in profile. Start with your hand ready to be responsible, let the number stop you, then close the laptop or turn away at the exact moment avoidance wins."
+
+2. `aps_alarm.howToFilm`
+
+Replace the current version containing “Locked-off shot from the side of the bed” with:
+
+"Frame the bed and alarm together from beside the nightstand so the phone is clearly the villain. Let your hand enter first, hover like you might become a new person, then hit snooze and disappear back into the blanket."
+
+Preserve ids, anchors, captions, metadata, and all other plan fields.
+
+============================================================
+PART 5 — W2/N1 pack author gate wiring
+============================================================
+
+In:
+- `westernPackAuthor.ts`
+- `nigerianPackAuthor.ts`
+
+After final `whatToShow` and `howToFilm` are assembled, call the quality gate.
+
+Behavior:
+- If it passes: no change.
+- If it fails: log a source-specific warning/telemetry event if logging utilities are available.
+- Pass through the corpus output unchanged.
+
+Do not rewrite corpus output.
+Do not rotate.
+Do not drop candidates.
+Do not under-fill.
+
+Suggested log event names:
+- `western.wts_htf_gate_miss`
+- `nigerian.wts_htf_gate_miss`
+
+Include useful context if already available:
+- entry id
+- hook
+- anchor
+- failed source
+But do not add new API fields.
+
+============================================================
+PART 6 — Tighten Claude fallback prompt in `ideaGen.ts`
+============================================================
+
+Find the prompt clauses around:
+- `whatToShow`
+- `howToFilm`
+- user-facing trust signal wording
+
+Do not change schema.
+Do not change model.
+Do not add examples that expand prompt substantially.
+Do not increase Claude usage.
+
+Tighten the language to encode this V2 grammar:
+
+For `whatToShow`:
+"Describe the visible skit in human terms: setup, action, turn, payoff. The object or action should carry the joke. Avoid abstract filler or a filming plan that could fit any idea."
+
+For `howToFilm`:
+"Give 1–2 shootable sentences. Start with concrete framing or what must stay visible, then name the key action and the ending/payoff. Do not repeat `whatToShow` word-for-word, introduce a new premise, or use generic boilerplate like 'film yourself reacting' / 'let the joke land' / 'phone on a tripod'."
+
+Keep the existing intent of the prompt. This is a quality clarification, not a new feature.
+
+============================================================
+PART 7 — Tests
+============================================================
+
+Add tests:
+
+1. `__tests__/wtsHtfQualityGate.test.ts`
+Cover:
+- every banned phrase is rejected case-insensitively
+- negative examples pass
+- `show the X on camera` placeholder is rejected
+- byte-identical `whatToShow` / `howToFilm` rejected
+- `pickFromPoolWithGate` rotates deterministically
+- `pickFromPoolWithGate` falls through after retries and never returns undefined
+
+2. `__tests__/patternIdeatorWeakTemplateRewrite.test.ts`
+Cover:
+- `phone_scroll_freeze` no longer emits banned regex phrases
+- `face_reaction_deadpan` no longer emits banned regex phrases
+- output remains deterministic
+- output remains within bounds
+- output still contains concrete framing/action language
+
+3. `__tests__/cohesiveIdeaAuthorPathBV2Rewrite.test.ts`
+Cover:
+- the 4 showShapes × 4 filmShapes, using representative non-authored anchors:
+  - `thread`
+  - `tasks`
+  - `swipe`
+  - `draft`
+- no banned phrase hit
+- anchor literal preserved
+- action literal preserved where expected
+- `whatToShow` and `howToFilm` are not identical
+- substantive token overlap between WTS/HTF is at least 2 tokens
+- deterministic selection
+
+4. `__tests__/authoredScenarioPlansHardenInboxAlarm.test.ts`
+Cover:
+- `aps_inbox.howToFilm` no banned phrase hits
+- `aps_alarm.howToFilm` no banned phrase hits
+- `aps_inbox` and `aps_alarm` still mention the relevant object/action
+- all 10 `whatToShow` strings are byte-identical to pre-change snapshot
+- the other 8 `howToFilm` strings are byte-identical to pre-change snapshot
+
+Existing suites must stay green:
+- scenario coherence suites
+- comedy validation suites
+- western pack suites
+- nigerian pack suites
+- W2/N1 runtime exposure suites
+- TypeScript checks
+
+============================================================
+PART 8 — Verification commands
+============================================================
+
+Run the project’s existing API-server verification commands. At minimum:
+
+- API server tests / vitest full suite
+- API server TypeScript check
+- Lumina TypeScript check if affected by shared types, otherwise explicitly state not affected
+- Any existing ideator smoke / runtime exposure tests available in repo
+
+Also run a literal source scan across runtime authoring code for:
+- `Phone on a tripod`
+- `phone on a tripod`
+- `Single static shot`
+- `single static shot`
+- `Single locked-off shot`
+- `single locked-off shot`
+- `Locked-off on tripod`
+- `locked-off on tripod`
+- `let the joke land`
+- `film yourself reacting`
+- `creator reacts`
+
+Tests may contain these phrases. Runtime authoring should not, except inside the new quality gate regex itself.
+
+============================================================
+PART 9 — Required final report
+============================================================
+
+Return a concise but complete report with:
+
+1. Files changed.
+2. Exact implementation summary.
+3. Confirmation that no corpus files were changed.
+4. Confirmation that no schema, selector, validator, production flag, migration, or model usage changed.
+5. Test results with exact pass counts.
+6. TypeScript results.
+7. Banned-phrase scan results.
+8. 8–12 sample generated outputs or direct unit sample outputs, especially from long-tail non-authored anchors:
+   - thread
+   - tasks
+   - swipe
+   - draft
+9. Explicit statement whether under-fill behavior changed. It should not.
+10. Any risks or follow-up recommendations.
+
+Remember:
+This work is judged by whether future generated ideas produce better `whatToShow` and `howToFilm`, not whether a static batch was prettified.

@@ -49,6 +49,8 @@ import {
 } from "./comedyValidation.js";
 import { validateScenarioCoherence } from "./scenarioCoherence.js";
 import { computeScenarioFingerprint } from "./scenarioFingerprint.js";
+import { logger } from "./logger.js";
+import { passesV2Gate } from "./wtsHtfQualityGate.js";
 import type {
   WesternComedyFamily,
   WesternEmotionalSpike,
@@ -439,6 +441,25 @@ export function authorWesternPackEntryAsIdea(
     : capChars(`${entry.howToFilm} Keep the ${anchorLc} centered.`, 400);
   const howToFilm =
     filmDraft.length >= 15 ? filmDraft : `${filmDraft} (single take).`;
+
+  // PHASE W2-AUTHOR HYBRID — log-only quality gate. Pack entries
+  // are atomic editorial-reviewed units; the gate NEVER mutates
+  // corpus output, NEVER rotates, and NEVER drops candidates.
+  // A miss surfaces as a structured warn so the pack curator can
+  // see which entry slipped under the V2 grammar bar without
+  // affecting under-fill behavior.
+  if (!passesV2Gate(entry.whatToShow, howToFilm)) {
+    logger.warn(
+      {
+        event: "western.wts_htf_gate_miss",
+        entryId: w2EntryIdOf(entry),
+        hook: entry.hook,
+        anchor: anchorLc,
+        source: "western_pack",
+      },
+      "western.wts_htf_gate_miss",
+    );
+  }
 
   const draft: Idea = {
     pattern: W2_FAMILY_PATTERN[entry.comedyFamily],

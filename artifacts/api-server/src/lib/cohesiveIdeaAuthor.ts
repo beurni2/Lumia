@@ -62,6 +62,62 @@ import {
 } from "./authoredScenarioPlans.js";
 import { decorateForRegion } from "./regionProfile.js";
 import type { Region } from "@workspace/lumina-trends";
+import { pickFromPoolWithGate } from "./wtsHtfQualityGate.js";
+
+// ---------------------------------------------------------------- //
+// PHASE W2-AUTHOR HYBRID — Path B (generic, non-authored anchors)  //
+// V2-grammar show / film shape pools.                              //
+//                                                                   //
+// Exported at module scope so:                                      //
+//   1. The cohesive author can reference them inside Path B AND    //
+//      drive deterministic rotation through the wts/htf quality    //
+//      gate (`pickFromPoolWithGate`).                              //
+//   2. Unit tests can render them directly with representative     //
+//      anchors (thread / tasks / swipe / draft) and assert no      //
+//      banned phrase, anchor-literal preserved, action-literal     //
+//      preserved, ≥2-token wts↔htf overlap, deterministic output.  //
+//                                                                   //
+// Signature `(n, ab, anchor)`:                                      //
+//   n      — concrete render noun (`anchorLc` for concrete         //
+//            anchors; `ABSTRACT_TO_CONCRETE_PROP[anchorLc]` for    //
+//            abstract anchors).                                    //
+//   ab     — scene-safe action verb (lower-case bare form).        //
+//   anchor — the canonical lower-case anchor token. Both `n` and   //
+//            `anchor` may differ (abstract case) so the templates  //
+//            preserve the construction-precondition checks         //
+//            (anchor literal in show/film) while still landing     //
+//            shootable copy on a concrete prop.                    //
+//                                                                   //
+// Each shape ENDS the final sentence on the contradiction beat     //
+// (`${ab} the ${anchor} ...`) so `showEndsOnContradiction` keeps   //
+// passing on the generic Path B without an end-on-verb retry.     //
+// ---------------------------------------------------------------- //
+
+export const PATH_B_SHOW_SHAPES: ReadonlyArray<
+  (n: string, ab: string, anchor: string) => string
+> = [
+  (n, ab, anchor) =>
+    `Start already pretending the ${n} is not the reason you lost momentum. Let your hand drift toward it, stop like you caught yourself, then ${ab} the ${anchor} anyway with the confidence of someone making the same mistake on purpose.`,
+  (n, ab, anchor) =>
+    `Put the ${n} in the place where it keeps winning — desk, couch, counter, wherever the habit usually happens. Give it one suspicious look, try to move on, then come right back and ${ab} the ${anchor} like the argument was over before it started.`,
+  (n, ab, anchor) =>
+    `Walk into frame like you have a plan, notice the ${n}, and immediately lose the plan. Hold one beat of fake discipline, then ${ab} the ${anchor} and exit like you refuse to discuss what just happened.`,
+  (n, ab, anchor) =>
+    `Treat the ${n} like it personally challenged you. Reach for it, pull back, reconsider your whole identity for one second, then ${ab} the ${anchor} because apparently this is who you are today.`,
+];
+
+export const PATH_B_FILM_SHAPES: ReadonlyArray<
+  (n: string, ab: string, anchor: string) => string
+> = [
+  (n, ab, anchor) =>
+    `Frame yourself and the ${n} together at chest height so the audience can see the temptation before you move. Keep the action clean: reach, hesitate, ${ab} the ${anchor}, then cut on the moment your face says you knew better.`,
+  (n, ab, anchor) =>
+    `Use a counter-height or shelf-height angle with the ${n} clearly visible from the first second. Let the scene play in two beats — the fake resistance, then the exact moment you ${ab} the ${anchor} — and end before you explain it.`,
+  (n, ab, anchor) =>
+    `Go slightly wide so your full body language and the ${n} are both readable. Enter with purpose, let the object derail you, ${ab} the ${anchor} once, then leave the frame like the room just witnessed evidence.`,
+  (n, ab, anchor) =>
+    `Set the camera where the ${n} sits in the lower third and your reaction has room above it. Make the pause do the work: hand moves in, stops, commits, then you ${ab} the ${anchor} and cut before the scene becomes too neat.`,
+];
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -538,46 +594,70 @@ export function authorCohesiveIdea(
     // Replaced with three concrete-action shapes so generic ideas
     // still have variety; each shape is a real physical sequence
     // with no scaffolding language.
-    const showShapes: ReadonlyArray<
-      (n: string, ab: string, ap: string) => string
-    > = [
-      (n, ab, _ap) =>
-        `Set the ${n} down where the camera can see it. Sit beside it for a second like you're thinking. Then ${ab} the ${anchorLc} and walk out of frame.`,
-      // PHASE UX3.3 — Place + negotiate. Concrete physical setup,
-      // works for wallet / dumbbell / fork / phone-prop class.
-      (n, ab, _ap) =>
-        `Place the ${n} on the table in front of you. Sit across from it for one full beat like you're negotiating with it. Then ${ab} the ${anchorLc} anyway.`,
-      // PHASE UX3.3 — Walk past + return. Concrete movement,
-      // works for fixed-environment anchors (wallpaper / mirror /
-      // sink / mail / dishes / lamp class).
-      (n, ab, _ap) =>
-        `Walk past the ${n} once without looking. Stop. Walk back. ${ab.charAt(0).toUpperCase() + ab.slice(1)} the ${anchorLc} this time — single take, no music.`,
-      // PHASE UX3.3 — Catch yourself reaching. Concrete micro-
-      // gesture, works broadly for any object you'd touch.
-      (n, ab, _ap) =>
-        `Catch yourself reaching for the ${n}. Pull your hand back like it bit you. One beat. Then ${ab} the ${anchorLc} anyway because of course you do.`,
-    ];
-    const showIdx =
-      djb2(`${core.id}|${anchor}|wts`) % showShapes.length;
+    // PHASE W2-AUTHOR HYBRID — V2-grammar shape pools moved to
+    // module scope (`PATH_B_SHOW_SHAPES` / `PATH_B_FILM_SHAPES`)
+    // so they are unit-testable in isolation and so the rotation
+    // through the wts/htf quality gate can iterate over (show,
+    // film) PAIRS rather than per-axis indices. The starting
+    // pair is derived from the prior per-axis hashes
+    // (`...|wts` / `...|htf`) so the default selection in the
+    // happy path is byte-identical to the pre-HYBRID per-axis
+    // pick. After up to 4 retries (quality gate fails), the
+    // helper falls through to the original pair — NEVER drops the
+    // candidate, NEVER under-fills.
+    const showStartIdx =
+      djb2(`${core.id}|${anchor}|wts`) % PATH_B_SHOW_SHAPES.length;
+    const filmStartIdx =
+      djb2(`${core.id}|${anchor}|htf`) % PATH_B_FILM_SHAPES.length;
+
+    type _Pair = { readonly s: number; readonly f: number };
+    const _pairs: ReadonlyArray<_Pair> = (() => {
+      const sn = PATH_B_SHOW_SHAPES.length;
+      const fn = PATH_B_FILM_SHAPES.length;
+      const total = sn * fn;
+      const out: _Pair[] = new Array(total);
+      // FULL Cartesian enumeration rotated from (showStartIdx,
+      // filmStartIdx). For k in [0, sn*fn): the FAST axis (k % sn)
+      // walks every show template before the SLOW axis advances to
+      // the next film template, so every (s, f) pair appears
+      // exactly once. _pairs[0] === { s: showStartIdx, f:
+      // filmStartIdx } — the original per-axis hash pick — so
+      // happy-path output is byte-identical to pre-HYBRID. After
+      // the original pair, retries explore distinct show templates
+      // first (a film miss does not get re-tried against the same
+      // show miss) and only roll the film index once the show row
+      // is exhausted.
+      for (let k = 0; k < total; k++) {
+        out[k] = {
+          s: (showStartIdx + (k % sn)) % sn,
+          f: (filmStartIdx + Math.floor(k / sn)) % fn,
+        };
+      }
+      return out;
+    })();
+
+    const _picked = pickFromPoolWithGate(
+      _pairs,
+      0, // _pairs[0] === { s: showStartIdx, f: filmStartIdx } (original pair)
+      (pair) => {
+        const wts = capChars(
+          PATH_B_SHOW_SHAPES[pair.s]!(renderNoun, sceneActionBare, anchorLc),
+          500,
+        );
+        const htf = capChars(
+          PATH_B_FILM_SHAPES[pair.f]!(renderNoun, sceneActionBare, anchorLc),
+          400,
+        );
+        return { value: pair, whatToShow: wts, howToFilm: htf };
+      },
+      _pairs.length, // walk every (s, f) pair if the gate keeps missing
+    );
     whatToShow = capChars(
-      showShapes[showIdx]!(renderNoun, sceneActionBare, sceneActionPast),
+      PATH_B_SHOW_SHAPES[_picked.s]!(renderNoun, sceneActionBare, anchorLc),
       500,
     );
-
-    const filmShapes: ReadonlyArray<(n: string, ab: string) => string> = [
-      (n, ab) =>
-        `Phone propped chest height, single take. Keep yourself and the ${n} in the same frame the whole time. Cut the second you ${ab} the ${anchorLc}.`,
-      (n, ab) =>
-        `Counter-height shelf shot, one continuous take. The ${n} stays visible from start to finish. The moment you ${ab} the ${anchorLc} is the cut.`,
-      (n, ab) =>
-        `Wide-ish framing — the ${n} sits in the lower third. No edits. Walk in, do the ${ab} beat on the ${anchorLc} once, then leave the frame.`,
-      (n, ab) =>
-        `Locked-off on tripod or shelf, the ${n} always in shot. Step in, ${ab} the ${anchorLc} on the beat, step out — single take, no music.`,
-    ];
-    const filmIdx =
-      djb2(`${core.id}|${anchor}|htf`) % filmShapes.length;
     howToFilm = capChars(
-      filmShapes[filmIdx]!(renderNoun, sceneActionBare),
+      PATH_B_FILM_SHAPES[_picked.f]!(renderNoun, sceneActionBare, anchorLc),
       400,
     );
 

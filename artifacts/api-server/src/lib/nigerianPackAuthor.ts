@@ -39,6 +39,8 @@ import {
   type Idea,
 } from "./ideaGen.js";
 import type { CanonicalDomain } from "./coreDomainAnchorCatalog.js";
+import { logger } from "./logger.js";
+import { passesV2Gate } from "./wtsHtfQualityGate.js";
 import type { PremiseCore } from "./premiseCoreLibrary.js";
 import type { VoiceCluster } from "./voiceClusters.js";
 import type { CandidateMeta } from "./ideaScorer.js";
@@ -451,6 +453,24 @@ export function authorPackEntryAsIdea(
       );
   const howToFilm =
     filmDraft.length >= 15 ? filmDraft : `${filmDraft} (single take).`;
+
+  // PHASE W2-AUTHOR HYBRID — log-only quality gate (mirrors
+  // westernPackAuthor). Pack entries are atomic editorial-
+  // reviewed units; the gate NEVER mutates corpus output, NEVER
+  // rotates, and NEVER drops candidates. A miss surfaces as a
+  // structured warn so the pack curator can see which entry
+  // slipped under the V2 grammar bar.
+  if (!passesV2Gate(entry.whatToShow, howToFilm)) {
+    logger.warn(
+      {
+        event: "nigerian.wts_htf_gate_miss",
+        hook: entry.hook,
+        anchor: anchorLc,
+        source: "nigerian_pack",
+      },
+      "nigerian.wts_htf_gate_miss",
+    );
+  }
 
   const draft: Idea = {
     pattern: FAMILY_PATTERN[core.family],
