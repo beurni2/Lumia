@@ -1,0 +1,577 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Apply Chunk A rewrites.
+
+Context:
+The N1 Batch 1 source packet is accepted. Chunk A covers the first 19 P0 entries from the packet:
+- stereotype-risk cleanup
+- abstract-anchor fixes
+- high-runtime HTF-only fixes
+- worst P0 scenario + HTF fixes
+
+Important:
+Apply the exact rewrite copy below byte-for-byte except for normal TypeScript string escaping/formatting required by the file.
+
+Do not invent alternate wording.
+Do not improve the copy.
+Do not rewrite entries outside Chunk A.
+Do not change fields not listed for each entry.
+
+Source file to edit:
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Potential source-of-truth note:
+If this repo expects Nigerian pack edits to happen in `nigerianHookPackDrafts.ts` followed by regeneration, stop and report that before editing. Otherwise apply directly to `nigerianHookPackApproved.ts`.
+
+Do NOT touch:
+- validators
+- schemas
+- selectors
+- scorers
+- prompts
+- flags
+- env files
+- migrations
+- API shape
+- mobile files
+- tests, unless adding a narrowly focused integrity test is already required by existing repo conventions
+- entries outside Chunk A
+
+Preserve all metadata unless explicitly changed below:
+- id
+- draft id / source id
+- reviewedBy
+- comedyFamily
+- emotionalSpike
+- setting
+- voiceCluster
+- hookStyle
+- safetyNote
+- any other metadata
+
+For entries where `anchor` is changed below, update only the anchor field and verify corpus integrity still passes.
+
+============================================================
+CHUNK A REWRITES — APPLY EXACTLY
+============================================================
+
+## 1. `ng_b4b71380` · DRAFT-256
+
+Replace `hook` with:
+
+"freezer opened and dinner started apologising"
+
+Keep `anchor`:
+
+"freezer"
+
+Replace `whatToShow` with:
+
+"Open the freezer and pull out a food container that is clearly softer than it should be. Press the lid once, pause, look at the clock, then slowly push it back inside like you and the freezer are both pretending nothing happened."
+
+Replace `howToFilm` with:
+
+"Frame the freezer drawer and your hand from counter height so the weak container is visible. Let the poke, the pause, and the slow push-back carry the joke, then cut before you decide whether to trust the food."
+
+Leave `caption` unchanged:
+
+"freezer under pressure."
+
+---
+
+## 2. `ng_9d1c58f9` · DRAFT-242
+
+Replace `hook` with:
+
+"phone torch became house tour guide"
+
+Keep `anchor`:
+
+"torch"
+
+Replace `whatToShow` with:
+
+"Turn on your phone torch and walk carefully through the room like you know the layout. The light catches one chair too late, you bump it, freeze, then point the torch at the chair like it moved on purpose."
+
+Replace `howToFilm` with:
+
+"Shoot from the doorway or hallway with the torch beam visible on the floor and furniture. Let the camera follow the light, catch the small bump, then end on you accusing the chair with the torch."
+
+Leave `caption` unchanged:
+
+"night navigation by phone."
+
+---
+
+## 3. `ng_67939c5a` · DRAFT-033
+
+Replace `hook` with:
+
+"one small taste became full plate behaviour"
+
+Replace `anchor` with:
+
+"plate"
+
+Replace `whatToShow` with:
+
+"Stand by a plate or pot and take one tiny spoon like you are only checking the taste. Pause, nod too seriously, then return with a bigger spoon and start serving yourself like the investigation has become dinner."
+
+Replace `howToFilm` with:
+
+"Frame the plate, spoon, and your hand from counter height. Start with the tiny taste, hold the guilty pause, then cut on the bigger spoon entering like discipline has officially left."
+
+Replace `caption` with:
+
+"tasting committee became main consumer."
+
+---
+
+## 4. `ng_b24bde12` · DRAFT-272
+
+Keep `hook`:
+
+"aunty ask marriage question like exam"
+
+Keep `anchor`:
+
+"aunty"
+
+Replace `whatToShow` with:
+
+"Sit at a family gathering while an aunty asks one question after another like she printed a marking scheme. You smile, reach for your drink, then look up at the ceiling like maybe the answer is written there."
+
+Replace `howToFilm` with:
+
+"Frame yourself seated with one empty chair or off-camera voice standing in for aunty. Let each question land through your smile getting smaller, then cut on the ceiling look like you are searching for rescue."
+
+Replace `caption` with:
+
+"family gathering turned oral exam."
+
+---
+
+## 5. `ng_ca116012` · DRAFT-301
+
+Replace `hook` with:
+
+"light blinked once and everybody changed department"
+
+Replace `anchor` with:
+
+"light"
+
+Replace `whatToShow` with:
+
+"The light blinks once. One person grabs a charger, another reaches for the inverter, and you just stand there holding your phone like hope still has customer service."
+
+Replace `howToFilm` with:
+
+"Use a wide room shot so the light, charger scramble, and your frozen face all read clearly. Let everyone move at once, then end on you standing still with the phone like you are waiting for a miracle."
+
+Replace `caption` with:
+
+"joy came for 3 seconds."
+
+---
+
+## 6. `ng_b83a3fa3` · DRAFT-290
+
+Replace `hook` with:
+
+"i said i don't care, then refreshed like staff"
+
+Replace `anchor` with:
+
+"refresh"
+
+Replace `whatToShow` with:
+
+"Show a fake post screen with the text 'I don't care' written above it. Your thumb refreshes once, then again, then again faster, until you turn the phone face-down like the phone caught you working overtime."
+
+Replace `howToFilm` with:
+
+"Frame the phone screen and your thumb close enough that each refresh is obvious. Keep your face partly in frame for the denial, then cut on the phone going face-down like evidence being hidden."
+
+Leave `caption` unchanged:
+
+"lie with analytics."
+
+---
+
+## 7. `ng_474a1336` · DRAFT-075
+
+Keep `hook`:
+
+"care no dey, but refresh don betray me"
+
+Replace `anchor` with:
+
+"refresh"
+
+Keep `whatToShow`:
+
+"Show fake post screen. Overlay 'I don't care.' Your thumb immediately refreshes again and again like care has entered the room."
+
+Replace `howToFilm` with:
+
+"Frame the fake post screen and your thumb from over the shoulder so every refresh looks intentional. End on your thumb hovering for another refresh while the 'I don't care' text is still visible."
+
+Leave `caption` unchanged:
+
+"the lie was still loading."
+
+---
+
+## 8. `ng_39aeff9a` · DRAFT-008
+
+Keep `hook`:
+
+"I said \"no wahala\" before I understood the wahala"
+
+Replace `anchor` with:
+
+"chat"
+
+Keep `whatToShow`:
+
+"Show a fake chat where someone explains the plan in detail after you already replied 'no wahala.' You stare, then scroll back to your own message like you betrayed yourself."
+
+Replace `howToFilm` with:
+
+"Frame the chat over your shoulder so your old 'no wahala' reply is visible. Let your hand scroll through the new details, pause on your own message, then cut on your face realizing you signed the contract too early."
+
+Leave `caption` unchanged:
+
+"reading before replying is self-care."
+
+---
+
+## 9. `ng_a6000f76` · DRAFT-011
+
+Keep `hook`:
+
+"transport fare expose my outside courage"
+
+Keep `anchor`:
+
+"transport"
+
+Keep `whatToShow`:
+
+"Show notes app with a fake transport budget. You add the transport numbers, pause, then slowly change your clothes back to house clothes."
+
+Replace `howToFilm` with:
+
+"Frame the notes app, your outfit, and the transport total in the same setup if possible. Start with confidence, let the total stop you, then cut on you changing back to house clothes like outside lost the election."
+
+Leave `caption` unchanged:
+
+"outside is now a subscription."
+
+---
+
+## 10. `ng_d3c94e98` · DRAFT-021
+
+Keep `hook`:
+
+"data see one video and start crying"
+
+Keep `anchor`:
+
+"data"
+
+Keep `whatToShow`:
+
+"Show a fake data warning screen. You pause the video, stare at the data warning, then lower the brightness like that will save anything."
+
+Replace `howToFilm` with:
+
+"Keep the fake data warning and paused video visible on the phone. Let your hand lower the brightness with full seriousness, then cut on the warning still sitting there like it was not impressed."
+
+Leave `caption` unchanged:
+
+"data has trust issues."
+
+---
+
+## 11. `ng_e91e55a9` · DRAFT-025
+
+Keep `hook`:
+
+"data don vanish after one TikTok"
+
+Keep `anchor`:
+
+"data"
+
+Keep `whatToShow`:
+
+"Show fake data balance before and after one scroll. Your hand hovers over 'buy data,' then closes the app like the data can come back by itself."
+
+Replace `howToFilm` with:
+
+"Frame the phone so the before-and-after data balance is readable. Hold on your thumb hovering over 'buy data,' then cut when you close the app like pretending is now a payment plan."
+
+Leave `caption` unchanged:
+
+"one video, one financial decision."
+
+---
+
+## 12. `ng_82b4bff9` · DRAFT-172
+
+Keep `hook`:
+
+"airtime finished, but somehow data is also judging me"
+
+Keep `anchor`:
+
+"airtime"
+
+Replace `whatToShow` with:
+
+"Open a fake recharge screen while the network spinner keeps loading. You tap once, wait, tap again, then stare at the phone like airtime and data are having a meeting without you."
+
+Replace `howToFilm` with:
+
+"Frame the recharge screen and your tapping hand from over the shoulder. Let the loading spinner stay visible, then end on your face looking at the phone like even the network has joined the problem."
+
+Leave `caption` unchanged:
+
+"connection without cooperation."
+
+---
+
+## 13. `ng_39b97ae5` · DRAFT-351
+
+Keep `hook`:
+
+"data no dey stay long once scroll enter."
+
+Keep `anchor`:
+
+"data"
+
+Keep `whatToShow`:
+
+"You say you'll use small-small. One tiny scroll later, the data warning appears and you stare like the app robbed you politely."
+
+Replace `howToFilm` with:
+
+"Frame the phone with the video or feed open, then show the data warning appearing after one tiny scroll. Hold on your still hand and tired face, then cut before you pretend you understand where the data went."
+
+Leave `caption` unchanged:
+
+"data dey evaporate for this country."
+
+---
+
+## 14. `ng_2d5fe3de` · DRAFT-202
+
+Keep `hook`:
+
+"one GIF hijack the whole group question"
+
+Keep `anchor`:
+
+"gif"
+
+Replace `whatToShow` with:
+
+"Type 'who's free this weekend?' into a fake group chat. One running-away GIF enters, then laughing reactions follow, and you slowly delete the serious follow-up question like the group has voted against planning."
+
+Replace `howToFilm` with:
+
+"Frame the group chat screen close enough to see your question, the GIF, and the reactions. Let your thumb start typing a serious reply, then delete it and cut on the chat becoming useless with confidence."
+
+Leave `caption` unchanged:
+
+"simple question, cinema reply."
+
+---
+
+## 15. `ng_bb8d79df` · DRAFT-219
+
+Keep `hook`:
+
+"online dey expose the reply wey japa"
+
+Keep `anchor`:
+
+"online"
+
+Replace `whatToShow` with:
+
+"Open a fake chat where the person has been online for 30 minutes with no reply. You place the phone down, try to act normal, then immediately pick it back up like you are now monitoring attendance."
+
+Replace `howToFilm` with:
+
+"Frame the chat screen and your hand so the online status is visible. Let the phone go down for one fake-mature second, then cut on you picking it back up like the reply is a live match."
+
+Leave `caption` unchanged:
+
+"online without responsibility."
+
+---
+
+## 16. `ng_7283d4fb` · DRAFT-269
+
+Keep `hook`:
+
+"traffic expose my already-seated work lie"
+
+Keep `anchor`:
+
+"traffic"
+
+Replace `whatToShow` with:
+
+"Sit in one spot with your bag beside you and type a very professional 'I'm almost there' message. Then show a fake traffic alert, look at your shoes still by the door, and slowly move the bag farther away."
+
+Replace `howToFilm` with:
+
+"Frame your phone, shoes, and bag together so the lie is visible before the traffic alert appears. Let the professional typing happen first, then cut on the bag moving away like movement has been postponed."
+
+Leave `caption` unchanged:
+
+"remote presence by faith."
+
+---
+
+## 17. `ng_fadf8773` · DRAFT-282
+
+Keep `hook`:
+
+"banking no show salary, peace don vanish"
+
+Keep `anchor`:
+
+"banking"
+
+Replace `whatToShow` with:
+
+"Open a fake banking app and refresh the balance. Nothing changes. Refresh again, sit up straighter like posture can help, then slowly place the phone down and stare into the room."
+
+Replace `howToFilm` with:
+
+"Frame the banking app over your shoulder so the unchanged balance is visible. Let the second refresh feel serious, then cut on the phone going down while your face says payday is playing hide-and-seek."
+
+Leave `caption` unchanged:
+
+"payday playing hard to get."
+
+---
+
+## 18. `ng_e2c1baea` · DRAFT-356
+
+Keep `hook`:
+
+"one innocent dm don start full investigation."
+
+Keep `anchor`:
+
+"investigation"
+
+Replace `whatToShow` with:
+
+"A fake DM pops up and your face changes before you can hide it. Someone nearby notices, leans in, and you quickly tilt the phone away like the DM has entered family court."
+
+Replace `howToFilm` with:
+
+"Frame your phone and face from the side so the DM notification and your reaction both read. Let the nearby person lean in, then cut on you hiding the screen like the investigation has officially opened."
+
+Leave `caption` unchanged:
+
+"dm no dey stay private."
+
+---
+
+## 19. `ng_b6ced0ca` · DRAFT-357
+
+Keep `hook`:
+
+"status complete, reply still missing."
+
+Keep `anchor`:
+
+"status"
+
+Replace `whatToShow` with:
+
+"Open a fake chat with no reply, then switch to your status viewers and see the same person watched every slide. Go back to the chat, back to the status, then put the phone down like the evidence is too loud."
+
+Replace `howToFilm` with:
+
+"Frame the phone close enough to show the empty chat and the status viewer list. Let the back-and-forth switching do the comedy, then cut on the phone going face-down like the witness has been dismissed."
+
+Leave `caption` unchanged:
+
+"active ghosting."
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+After applying Chunk A, run:
+
+1. Nigerian pack tests:
+   - all N1/Nigerian-specific tests available in the repo
+   - especially Nigerian pack integrity / activation / quality tests
+
+2. Full api-server test suite.
+
+3. TypeScript:
+   pnpm --filter @workspace/api-server exec tsc --noEmit
+
+4. Static checks:
+   - verify every changed entry passes required field bounds
+   - verify changed anchors appear in hook and whatToShow if that invariant exists
+   - verify no banned generic filming phrases were introduced
+   - verify no stereotype-risk tokens remain in Chunk A rewritten fields:
+     - NEPA
+     - jollof
+     - village people
+     - my enemies
+   - verify no broken abstract-anchor filming remains for Chunk A:
+     - Keep the care centered
+     - Keep the wahala centered
+     - Keep the peace centered
+     - Keep the energy centered
+     - Keep the vibe centered
+     - Keep the lie centered
+     - Keep the damage centered
+
+5. Optional targeted audit:
+   - compare Chunk A before/after for howToFilm boilerplate reduction
+   - report how many of the 19 Chunk A entries still match the old seven howToFilm templates; target should be 0.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a concise report with:
+
+1. Exact file(s) changed.
+2. List of the 19 entries changed.
+3. For each entry, list which fields changed:
+   - hook
+   - anchor
+   - whatToShow
+   - howToFilm
+   - caption
+4. Confirm no other entries were changed.
+5. Confirm all metadata stayed unchanged except explicitly changed anchors/captions.
+6. Nigerian pack test results.
+7. Full api-server suite result.
+8. TypeScript result.
+9. Static check results:
+   - field bounds
+   - anchor cohesion
+   - banned/stereotype tokens
+   - old boilerplate HTF templates
+10. Any failures or risks.
+
+Do not proceed to Chunk B.
+Stop after report.
