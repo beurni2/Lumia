@@ -803,3 +803,15 @@ id = "Xlivqf3Zx7Nc2SJUlxRSY"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_repair_overlay.yaml"
 type = "unspecified"
 title = "Repair overlay snapshot (4 entries)"
+
+[[outputs]]
+id = "8uYO5TCJP3xUBOo5xXWb7"
+uri = "file://.local/N1_ELEVATION_P2_BATCH2_CHUNKA_FINAL_REPAIR_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P2 — Batch 2 Chunk A FINAL REPAIR report"
+
+[[outputs]]
+id = "K6Wd7-HmidN3iPdYIpYAF"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_final_repair_overlay.yaml"
+type = "unspecified"
+title = "Final repair overlay snapshot (2 entries)"

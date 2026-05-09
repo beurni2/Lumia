@@ -22,11 +22,10 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 202 approved · 15 rejected
+ * INGEST SUMMARY: 203 approved · 14 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-055 [REWRITE] → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
@@ -34,7 +33,7 @@
  *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
- *   • DRAFT-348 [REWRITE] → scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=4 contradiction=0 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-348 [REWRITE] → scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=17)
  *   • DRAFT-367 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
  *   • DRAFT-371 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-372 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
@@ -351,6 +350,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       howToFilm: "Frame the bed, phone, and blanket clearly. Let the outside invitation show first, then cut on the blanket rising like the bed has overruled everybody.",
       caption: "my bed has authority.",
       anchor: "bed",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-09",
+    }),
+    Object.freeze({
+      // source: DRAFT-055 [REWRITE] · cluster: family · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "coming message don start my shoe drama",
+      whatToShow: "Send I am coming in a fake chat, then show one shoe on and one shoe still on the floor. You check the time, reach for the second shoe, then sit back like the coming message has started drama.",
+      howToFilm: "Frame the coming message, both shoes, and your seated body in one setup. Show the time check first, then cut on the second shoe still waiting while the chat keeps lying for you.",
+      caption: "promise made under pressure.",
+      anchor: "coming",
       domain: "family",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-09",

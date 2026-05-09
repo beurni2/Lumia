@@ -1,0 +1,197 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 Chunk A final 2-entry repair.
+
+Context:
+Batch 2 Chunk A is partially accepted:
+- Initial apply: 26/30 landed
+- First repair: 2/4 repaired
+- Current landed total: 28/30
+- Still rejected:
+  - DRAFT-055 — validateScenarioCoherence: hook_topic_noun_drift
+  - DRAFT-348 — scoreNigerianPackEntry 37 < floor 40
+- Current approved count: 202
+- Target approved count: 204
+- Current rejected-from-rewrites: 2
+- Target rejected-from-rewrites: 0
+
+Root causes:
+- DRAFT-055: anchor `coming` behaves like a verb/participle and the scene topic drifted to `chair`, so validator sees hook_topic_noun_drift.
+- DRAFT-348: previous repair improved naturalness but collapsed contradiction to 0. Need stronger contradiction/inversion while keeping naturalness.
+
+Goal:
+Repair ONLY DRAFT-055 and DRAFT-348 so all 30 Chunk A entries are accepted.
+
+Use Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit generated approved file.
+Do not edit worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, mobile files, or regional-decoration.
+Do not modify the 28 already-landed Chunk A entries.
+Do not proceed to Chunk B.
+
+Critical overlay rule:
+Map last-wins means each repair block must restate ALL fields:
+- draftId
+- newAnchor
+- rewrittenHook
+- rewrittenWhatToShow
+- rewrittenHowToFilm
+- rewrittenCaption
+- reviewedBy
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+FINAL REPAIR OVERLAYS — APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-055
+  newAnchor: coming
+  rewrittenHook: "coming message don start my shoe drama"
+  rewrittenWhatToShow: "Send I am coming in a fake chat, then show one shoe on and one shoe still on the floor. You check the time, reach for the second shoe, then sit back like the coming message has started drama."
+  rewrittenHowToFilm: "Frame the coming message, both shoes, and your seated body in one setup. Show the time check first, then cut on the second shoe still waiting while the chat keeps lying for you."
+  rewrittenCaption: "promise made under pressure."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-348
+  newAnchor: conductor
+  rewrittenHook: "conductor gave me torn note like premium balance"
+  rewrittenWhatToShow: "Collect change from the conductor and notice one torn note. You lift it up to return it, but the conductor has already moved away like the torn note is now premium balance."
+  rewrittenHowToFilm: "Frame the torn note in your hand, then show the empty side where the conductor used to be. Hold on your face realizing the balance has turned to inheritance."
+  rewrittenCaption: "money with history."
+  reviewedBy: "BI 2026-05-09"
+
+============================================================
+WHY THESE SHOULD PASS
+============================================================
+
+DRAFT-055:
+- Keeps anchor `coming` in hook and whatToShow.
+- Adds concrete repeated scene nouns/actions tied to the hook: message, shoe, time, chat.
+- Avoids making `chair` the competing topic noun.
+- Keeps the comedy simple: the lie says coming, the shoes expose delay.
+
+DRAFT-348:
+- Keeps anchor `conductor` in hook and whatToShow.
+- Restores contradiction/inversion with `torn note like premium balance`.
+- Keeps natural Nigerian phrasing without over-heavy pidgin.
+- Strengthens payoff in whatToShow and howToFilm.
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Before appending these overlays to `.local/REGIONAL_N1_REWRITES.yaml`, save them as:
+
+`.local/qa-runs/n1_p2_batch2_chunk_a_final_repair_overlay.yaml`
+
+Run:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_p2_batch2_chunk_a_final_repair_overlay.yaml`
+
+If preflight flags a real hard failure, stop and report before appending.
+
+Expected:
+- exactly 2 overlay blocks
+- no old boilerplate howToFilm
+- no `Keep the X centered`
+- no stereotype-token hits
+- no mock pidgin
+- both anchors appear in hook and whatToShow
+- hook/whatToShow overlap should pass
+- DRAFT-055 should avoid hook_topic_noun_drift
+- DRAFT-348 should clear score floor
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact 2 repair blocks to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- approved count returns to 204
+- rejected count returns to 13 pre-existing only
+- rejected-from-rewrites = 0
+- all 30 Chunk A draft IDs are present in approved file
+- BI 2026-05-09 stamp count increases from 79 to 81
+- DRAFT-055 and DRAFT-348 are accepted
+- Chunk B was not executed
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused Nigerian pack tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+3. Static checks on all 30 Chunk A entries:
+- no old filming boilerplate
+- no `Phone-level lock-off`
+- no `Desk-height lock-off`
+- no `Counter-level lock-off`
+- no `Couch-level handheld`
+- no `Bed-level handheld`
+- no `Door-side handheld`
+- no `Mirror lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the \w+ centered`
+- no user-facing NEPA / nepa / jollof / buka / village people / my enemies / yahoo boy / 419
+- no `direct to camera`
+- no `deliberately`
+- no `on purpose`
+- no `with intent`
+- no `look straight at the lens`
+- anchor appears in hook and whatToShow for all 30
+- hook/whatToShow scenario token overlap passes for all 30
+- no empty fields
+- no duplicate hooks within the 30 Chunk A accepted entries
+- no duplicate howToFilm within the 30 Chunk A accepted entries
+
+Full api-server suite is optional unless codegen/static/tests show risk.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Preflight result.
+4. Codegen result.
+5. Approved/rejected counts.
+6. Stamp-count change.
+7. Confirmation that DRAFT-055 and DRAFT-348 are accepted.
+8. Nigerian pack test result.
+9. TypeScript result.
+10. Static check result.
+11. Full suite result if run, or reason not run.
+12. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration untouched
+   - 28 previously landed Chunk A entries not modified
+   - Chunk B not executed
+
+Do not include long tables unless something fails.
+Do not ask for next steps.
