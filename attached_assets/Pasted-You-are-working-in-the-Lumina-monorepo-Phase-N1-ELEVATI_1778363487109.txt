@@ -1,0 +1,243 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P3 — Post-Batch-3 runtime QA probe.
+
+Context:
+Nigerian elevation status:
+- P1 accepted.
+- Batch 2 accepted: 59 landed rewrites.
+- Batch 3 accepted: 59 landed HTF-only upgrades.
+- Approved pack stable at 204.
+- Rejected rows stable at 13 pre-existing only.
+- Rejected-from-rewrites = 0.
+- Latest Nigerian pack tests: 288/288 passing.
+- TypeScript clean.
+- Regional-decoration ng_clean/ng_null fix shipped and untouched.
+- No source/API/mobile/schema/validator/scorer changes in recent rewrite batches.
+
+Goal:
+Run a runtime QA probe to identify whether any weak Nigerian outputs still surface after P1 + P2 + P3.
+
+This is READ-ONLY.
+Do not rewrite.
+Do not apply overlays.
+Do not edit worksheet.
+Do not run codegen apply.
+Do not modify source/test/config/corpus files.
+Do not touch regional-decoration.
+
+============================================================
+COHORTS TO TEST
+============================================================
+
+Run Nigerian runtime generation diagnostics for:
+
+1. Pack-active cohorts:
+- ng_pidgin
+- ng_light_pidgin
+
+2. Safety/control cohorts, if fast:
+- ng_clean
+- ng_null
+
+Use the existing local runtime QA harness if available.
+Prefer the same seed/baseSalt style used in earlier checks:
+- seed=42
+- baseSalt=1009
+- staging flags ON as needed for Nigerian pack-active path
+
+If the current harness supports larger sample sizes, run enough to get useful coverage:
+- ng_pidgin: 60 ideas
+- ng_light_pidgin: 60 ideas
+- ng_clean: 20 ideas
+- ng_null: 20 ideas
+
+If that is too slow, use:
+- ng_pidgin: 30
+- ng_light_pidgin: 30
+- ng_clean: 15
+- ng_null: 15
+
+============================================================
+MEASURE
+============================================================
+
+Track:
+
+Pack delivery:
+- total ideas
+- pack delivery count and %
+- source distribution
+- distinct pack entryIds
+- repeated pack entryIds
+- P1/P2/P3 landed-entry delivery counts if possible
+- remaining baseline-entry delivery counts if possible
+
+Quality scans:
+- banned filming boilerplate hits:
+  - Phone-level lock-off
+  - Desk-height lock-off
+  - Counter-level lock-off
+  - Couch-level handheld
+  - Bed-level handheld
+  - Door-side handheld
+  - Mirror lock-off
+  - soft daylight
+  - one take
+  - Keep the X centered
+- stereotype / risky-token hits:
+  - NEPA / nepa
+  - jollof
+  - buka / bukka
+  - village people
+  - my enemies
+  - yahoo boy
+  - 419
+- mock-pidgin hits
+- scenario-coherence failures
+- structural failures
+- duplicate hooks
+- duplicate howToFilm
+- repeated skeletons
+- weak scene/action warnings:
+  - howToFilm too generic
+  - no concrete action timing
+  - no visible payoff
+  - whatToShow too thin
+  - caption mismatch
+  - semantic duplicate with recent rewritten entries
+
+Regional-decoration safety:
+- For ng_clean and ng_null, confirm 0 Nigerian decoration leaks:
+  - NEPA
+  - buka / bukka
+  - jollof
+  - pidgin-only flavor
+- Confirm clean/null do not receive forced Nigerian decoration.
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_POST_BATCH3_RUNTIME_QA_REPORT.md`
+
+and
+
+`.local/qa-runs/n1_post_batch3_runtime_qa.json`
+
+If useful, also create:
+
+`.local/qa-runs/n1_post_batch3_runtime_qa_summary.json`
+
+JSON should include:
+
+{
+  "phase": "N1-ELEVATION-P3 Post-Batch-3 runtime QA",
+  "seed": 42,
+  "baseSalt": 1009,
+  "cohorts": {
+    "ng_pidgin": {},
+    "ng_light_pidgin": {},
+    "ng_clean": {},
+    "ng_null": {}
+  },
+  "aggregate": {
+    "totalIdeas": 0,
+    "packDelivery": 0,
+    "distinctPackEntryIds": 0,
+    "bannedFilmingHits": 0,
+    "stereotypeHits": 0,
+    "mockPidginHits": 0,
+    "coherenceFailures": 0,
+    "structuralFailures": 0,
+    "regionalDecorationLeaksCleanNull": 0
+  },
+  "surfacedWeakEntries": [
+    {
+      "entryId": "...",
+      "draftId": "...",
+      "hook": "...",
+      "cohort": "...",
+      "hitCount": 0,
+      "issueType": "...",
+      "sample": {},
+      "recommendedAction": "none|observe|future_htf_only|future_scenario_htf|do_not_touch"
+    }
+  ],
+  "recommendation": {
+    "verdict": "STOP|TARGETED_CLEANUP|BATCH4_NEEDED",
+    "reason": "...",
+    "candidateCount": 0
+  }
+}
+
+============================================================
+RECOMMENDATION RULES
+============================================================
+
+At the end, recommend one of:
+
+STOP:
+- no banned boilerplate
+- no stereotype/mock-pidgin/coherence/structural failures
+- no meaningful weak surfaced entries
+- remaining issues are cosmetic or low-frequency
+
+TARGETED_CLEANUP:
+- 1–10 specific entries repeatedly surface weak
+- issues are concrete and localized
+- no need for a broad Batch 4
+
+BATCH4_NEEDED:
+- 20+ unrevised/weak entries still surface
+- repeated boilerplate remains common
+- output quality still visibly uneven
+
+Do not recommend Batch 4 unless runtime evidence supports it.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - STOP
+   - TARGETED_CLEANUP
+   - BATCH4_NEEDED
+
+2. Cohorts tested and sample sizes.
+
+3. Pack delivery summary.
+
+4. Aggregate quality failures:
+   - banned filming
+   - stereotype/risky tokens
+   - mock pidgin
+   - scenario coherence
+   - structural
+   - clean/null decoration leaks
+
+5. Top surfaced weak entries, if any:
+   - draftId
+   - entryId
+   - issue
+   - hit count
+   - recommended action
+
+6. Whether Batch 4 is justified.
+
+7. Files created.
+
+8. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - no codegen apply
+   - regional-decoration untouched
+
+Do not rewrite entries.
+Do not ask for next steps.

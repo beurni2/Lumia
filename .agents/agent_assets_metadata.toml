@@ -893,3 +893,15 @@ id = "3rVz0RWpTq9QHJyMvTFH1"
 uri = "file://.local/N1_P3_BATCH3_CHUNKB_APPLY_REPORT.md"
 type = "text"
 title = "N1-ELEVATION-P3 — Batch 3 Chunk B APPLY REPORT"
+
+[[outputs]]
+id = "KjsbU4ynKV49X74hd3Pom"
+uri = "file://.local/N1_POST_BATCH3_RUNTIME_QA_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P3 — Post-Batch-3 Runtime QA Report"
+
+[[outputs]]
+id = "2h_lBfs4lxXcVuuIaTIYe"
+uri = "file://.local/qa-runs/n1_post_batch3_runtime_qa_summary.json"
+type = "unspecified"
+title = "Post-Batch-3 runtime QA summary (JSON)"
