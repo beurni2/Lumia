@@ -350,6 +350,79 @@ export function w2EntryIdOf(entry: WesternHookPackDraftEntry): string {
   return `w2_${djb2(`${entry.hook}|${entry.anchor}`).toString(16)}`;
 }
 
+// ---------------------------------------------------------------- //
+// PHASE POST-W2-AUTHOR F1 — howToFilm boilerplate scrubber.        //
+// ---------------------------------------------------------------- //
+// The W2-K BATCH_NEXT corpus carries a V1-grammar `howToFilm`
+// shape that the post-W2-AUTHOR runtime QA flagged as banned-
+// phrase leakage:
+//
+//   `Phone on a tripod, one locked-off shot. <skit body>. Keep
+//    your face flat the whole time; let the silence land.`
+//
+// `phone on a tripod` is in `WTS_HTF_BANNED_RE`. `let the silence
+// land` is on the post-QA "do not use" list even though it is not
+// in the gate today. This author is the SOLE call site that copies
+// `entry.howToFilm` into a user-facing draft, so the scrub is
+// applied here exactly once. The scrub:
+//   • is a pure string transform (no IO, no schema/validator
+//     change, no flag, no corpus edit),
+//   • is idempotent — applying it twice yields the same string,
+//   • is a no-op on every corpus entry that does not start with
+//     the banned prefix and does not end with the banned trailing
+//     clause,
+//   • preserves the corpus skit body verbatim so the
+//     reviewer-curated comedic intent is unchanged,
+//   • emits a V2-grammar replacement that ties to the entry's
+//     anchor, names the key action, and describes the ending,
+//   • never uses any phrase from the banned list (`phone on a
+//     tripod` / `locked-off shot` / `single static shot` / `let
+//     the silence land` / `let the joke land` / `film yourself
+//     reacting` / `creator reacts`).
+
+const BANNED_HTF_PREFIX_RE =
+  /^\s*Phone on a tripod,?\s*one locked[- ]off shot\.\s*/i;
+
+const BANNED_HTF_TRAILING_SILENCE_RE =
+  /\s*Keep your face flat the whole time;\s*let the silence land\.?\s*$/i;
+
+// Defensive: the corpus does not currently emit `let the joke
+// land` standalone, but it is in `WTS_HTF_BANNED_RE` so we strip
+// it here too if it ever appears in a future corpus revision.
+const STRAY_LET_THE_JOKE_LAND_RE = /\s*let the joke land\.?/gi;
+
+export function scrubBannedHowToFilmBoilerplate(
+  film: string,
+  anchorLc: string,
+): string {
+  if (typeof film !== "string" || film.length === 0) return film;
+
+  let out = film;
+
+  if (BANNED_HTF_PREFIX_RE.test(out)) {
+    out = out.replace(
+      BANNED_HTF_PREFIX_RE,
+      `Frame the ${anchorLc} and your reaction in the same shot, close enough that the small decision reads clearly. `,
+    );
+  }
+
+  if (BANNED_HTF_TRAILING_SILENCE_RE.test(out)) {
+    out = out.replace(
+      BANNED_HTF_TRAILING_SILENCE_RE,
+      ` Cut on the moment your face shows you knew exactly how this would end.`,
+    );
+  }
+
+  if (STRAY_LET_THE_JOKE_LAND_RE.test(out)) {
+    out = out.replace(STRAY_LET_THE_JOKE_LAND_RE, "");
+  }
+
+  // Collapse any double spaces introduced by the splice/strip.
+  out = out.replace(/\s{2,}/g, " ").trim();
+
+  return out;
+}
+
 /**
  * PHASE W2-K2 — normalize a hook to a coarse skeleton for cross-batch
  * dedup. Mirrors the catalog skeleton normalizer pattern: long
@@ -434,11 +507,33 @@ export function authorWesternPackEntryAsIdea(
     280,
   );
 
-  const filmLc = entry.howToFilm.toLowerCase();
+  // PHASE POST-W2-AUTHOR F1 — scrub legacy V1-grammar boilerplate
+  // out of `entry.howToFilm` BEFORE the anchor-suffix tweak. The
+  // W2-K BATCH_NEXT corpus (and small parts of the diversity
+  // pool) carry the V1 prefix `"Phone on a tripod, one
+  // locked-off shot."` and the V1 trailing flat-face clause
+  // `"Keep your face flat the whole time; let the silence land."`
+  // — both surfaced as banned-phrase leaks in the post-W2-AUTHOR
+  // runtime QA (Finding F1, 4/105 ideas). The scrubber rewrites
+  // these two exact patterns to V2-grammar equivalents that:
+  //   • start with concrete framing tied to the entry's anchor,
+  //   • preserve the original skit body verbatim,
+  //   • describe the ending/payoff,
+  //   • never introduce a new premise,
+  //   • never use any phrase from the WTS_HTF_BANNED_RE set,
+  //   • do not use `let the silence land` / `let the joke land`.
+  // The scrub is deterministic, idempotent, and a no-op on every
+  // corpus entry that does not start with the banned prefix or
+  // end with the banned trailing clause.
+  const scrubbedFilm = scrubBannedHowToFilmBoilerplate(
+    entry.howToFilm,
+    anchorLc,
+  );
+  const filmLc = scrubbedFilm.toLowerCase();
   const filmHasAnchor = filmLc.includes(anchorLc);
   const filmDraft = filmHasAnchor
-    ? entry.howToFilm
-    : capChars(`${entry.howToFilm} Keep the ${anchorLc} centered.`, 400);
+    ? scrubbedFilm
+    : capChars(`${scrubbedFilm} Keep the ${anchorLc} centered.`, 400);
   const howToFilm =
     filmDraft.length >= 15 ? filmDraft : `${filmDraft} (single take).`;
 

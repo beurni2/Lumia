@@ -1,0 +1,174 @@
+You are working in the Lumina monorepo.
+
+Phase:
+POST-W2-AUTHOR QA FOLLOW-UP — F1 banned phrase leak fix only.
+
+Context:
+The Post-W2-AUTHOR + W2-N Runtime Quality QA report returned:
+Verdict: ACCEPT WITH FOLLOW-UP.
+
+The accepted work is good:
+- W2-AUTHOR HYBRID generator upgrade accepted
+- W2-N corpus cleanup accepted
+- W2 pack output V2-quality
+- N1 pack output V2-quality
+- Path B long-tail synthesis substantively improved
+- full api-server suite previously green at 1273/1273
+- QA made no source changes
+
+This task is ONLY to fix Finding F1 from:
+.local/POST_W2_AUTHOR_RUNTIME_QA_REPORT.md
+
+Do not address F2.
+Do not address pattern_variation rotation.
+Do not implement W2-QA-FIX-1.
+Do not touch Nigeria elevation yet.
+Do not run the LLM stress sweep yet.
+
+============================================================
+FINDING TO FIX — F1 ONLY
+============================================================
+
+Runtime QA found 4 user-facing banned phrase hits in generated `howToFilm`:
+
+"Phone on a tripod, one locked-off shot."
+
+Examples:
+- `Snooze button turned morning into a rumor`
+- `Caption deleted after 200 likes`
+- `Meditation app streak ended because I checked my phone`
+- `Freezer drawer refuses to close for the fourth night`
+
+All 4 were:
+- `sourceRaw="core_native"`
+- had `westernEntryId` starting with `w2_*`
+- surfaced in synthesized `howToFilm`, not W2-N corpus literals
+
+The bad emitted pattern was:
+
+`Phone on a tripod, one locked-off shot. <skit detail>. <flat-face suffix>.`
+
+This must be removed from all user-facing generated output.
+
+============================================================
+STRICT SCOPE
+============================================================
+
+Audit first, then apply the smallest safe fix.
+
+Likely source area:
+- `core_native` synthetic howToFilm path
+- W2-seeded core_native card synthesis
+- possible files to inspect:
+  - `artifacts/api-server/src/lib/coreNativeHowToFilm.ts` if present
+  - `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`
+  - `artifacts/api-server/src/lib/patternIdeator.ts`
+  - W2-to-core/native bridge code
+  - any file that contains `"Phone on a tripod"` or `"one locked-off shot"`
+
+Allowed source edit:
+- the single template/source that emits the banned prefix
+- add/update a focused regression test if needed
+
+Do NOT touch:
+- W2/N1 corpus files
+- tests except adding/updating a focused F1 regression test
+- validators
+- schemas
+- selectors
+- scoring
+- prompts
+- production flags
+- env files
+- migrations
+- API shape
+- mobile files
+- pattern_variation picker rotation
+- W2-QA-FIX-1
+- Nigeria/N1 elevation work
+
+============================================================
+REQUIRED IMPLEMENTATION
+============================================================
+
+1. Locate the exact source string/template responsible for:
+
+`Phone on a tripod, one locked-off shot.`
+
+2. Replace it with V2-style filming copy that:
+- starts with concrete framing
+- keeps the key object/action visible
+- describes the ending/payoff
+- does not introduce a new premise
+- does not use banned phrases
+- remains generic enough for that template slot, but not boilerplate
+
+Preferred replacement shape:
+
+`Frame the key object and your reaction in the same shot, close enough that the small decision reads clearly. Let the action happen in one clean beat, then cut on the moment your face shows you knew exactly how this would end.`
+
+If the existing template has access to the actual object/anchor/action, use them naturally. For example:
+- `Frame the alarm and your hand in the same shot...`
+- `Frame the freezer drawer and your hand in the same shot...`
+- `Keep the post or caption visible...`
+
+Do not use:
+- phone on a tripod
+- locked-off shot
+- one locked-off shot
+- single static shot
+- let the joke land
+- let the silence land
+- film yourself reacting
+- creator reacts
+
+3. Make sure the existing `wtsHtfQualityGate` would reject the old phrase and pass the new phrase.
+
+4. Add a regression test that proves this source no longer emits:
+- `phone on a tripod`
+- `locked-off shot`
+- `one locked-off shot`
+- `let the silence land`
+- `let the joke land`
+
+The test should target the responsible function/template directly if possible. If direct function access is not clean, use the smallest existing generation fixture that reproduces the bad W2-seeded `core_native` synthetic `howToFilm`.
+
+Do not create a huge new QA harness.
+
+============================================================
+VERIFICATION
+============================================================
+
+Run:
+
+1. Focused new/updated regression test.
+2. Full api-server vitest suite.
+3. API-server TypeScript:
+   `pnpm --filter @workspace/api-server exec tsc --noEmit`
+4. Banned-phrase runtime source scan.
+5. If practical, rerun a small version of the runtime QA for the 4 failing-style cases or a 10-batch western/returning sweep to confirm 0 F1 hits.
+
+Expected:
+- Full api-server suite green.
+- TypeScript clean.
+- 0 user-facing source-template hits for the banned prefix.
+- No corpus changes.
+- No W2-QA-FIX-1 / F2 rotation changes.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+1. Exact source of the banned phrase.
+2. File(s) changed.
+3. Exact template replacement.
+4. Test added/updated.
+5. Focused test result.
+6. Full api-server suite result.
+7. TypeScript result.
+8. Banned-phrase scan result.
+9. Confirmation no corpus/schema/selector/validator/flag/migration/API-shape files changed.
+10. Confirmation F2 was not touched.
+11. Any remaining risk.
