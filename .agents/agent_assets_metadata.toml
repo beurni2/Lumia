@@ -911,3 +911,15 @@ id = "8CwHqg6bhnXWfe3ILTkQ0"
 uri = "file://.local/N1_P3_DRAFT187_TARGETED_CLEANUP_REPORT.md"
 type = "text"
 title = "N1-ELEVATION-P3 — DRAFT-187 Targeted Cleanup Report"
+
+[[outputs]]
+id = "Tsf_uwrWItu3K3jzpZwwF"
+uri = "file://.local/N1_CORE_CLEAN_NULL_AUDIT.md"
+type = "text"
+title = "N1-CORE-CLEAN-AUDIT — Nigerian clean / core_native + null-safety audit"
+
+[[outputs]]
+id = "Cz9eRgCjEUzTLHQqpAvU6"
+uri = "file://.local/qa-runs/n1_core_clean_null_audit.json"
+type = "unspecified"
+title = "Probe data snapshot (160 rows)"

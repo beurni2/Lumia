@@ -1,0 +1,424 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CORE-CLEAN-AUDIT — Nigerian clean/core_native quality + null-safety audit.
+
+Context:
+The Nigerian approved pack elevation stream is complete and at STOP:
+- Approved Nigerian pack: 204.
+- Rejected rows: 13 pre-existing only.
+- Rejected-from-rewrites: 0.
+- P1 accepted.
+- Batch 2 accepted: 59 landed rewrites.
+- Batch 3 accepted: 59 landed HTF-only upgrades.
+- DRAFT-187 targeted cleanup landed.
+- Post-cleanup runtime QA verdict: STOP.
+- Runtime banned-filming hits: 0.
+- Stereotype hits: 0.
+- Scenario-coherence failures: 0.
+- Structural failures: 0.
+- ng_clean decoration leaks: 0.
+- Nigerian pack tests: 288/288 passing.
+- TypeScript clean.
+- Regional-decoration fix shipped and untouched.
+
+Important clarification:
+There is NO user-facing `ng_null` language selection.
+
+User-facing Nigerian language modes are:
+- `ng_pidgin`
+- `ng_light_pidgin`
+- `ng_clean`
+
+`ng_null` is only an internal QA/control shorthand meaning:
+- region = nigeria
+- languageStyle = null / missing / not selected
+
+The prior runtime QA found one out-of-scope mock-pidgin hit in the internal `ng_null` control cohort:
+- source: `core_native`, NOT Nigerian pack
+- hook: `i dodged the lockscreen AGAIN. AGAIN!!!`
+- scanner hit: `exclamation_pile:!!!`
+- pack delivery: 0 for ng_null, expected
+- clean/null decoration leaks: 0
+
+This audit is NOT about the Nigerian approved pack. The pack is clean and must remain untouched.
+
+Goal:
+Audit the non-pack `core_native` path for Nigerian clean output and null-safety.
+
+Primary product goal:
+`ng_clean + core_native` should feel:
+- Nigerian
+- human-crafted
+- funny
+- culturally grounded
+- rooted in Nigerian daily reality and humor
+- written in clean English / Nigerian English
+- NOT pidgin
+- NOT mock-pidgin
+- NOT generic bland global output
+- NOT lazy stereotype/token decoration
+
+Internal safety goal:
+`region=nigeria + languageStyle=null/missing + core_native` should:
+- not emit pidgin/mock-pidgin
+- not emit exaggerated yelling punctuation like `!!!`
+- not receive forced Nigerian decoration
+- be safe if this internal fallback ever occurs
+
+This is AUDIT ONLY.
+Do not modify files.
+Do not apply code changes.
+Do not touch Nigerian pack corpus, rewrite YAML, worksheet, validators, codegen, or regional-decoration.
+Do not start broad rewrites.
+
+============================================================
+SCOPE
+============================================================
+
+Investigate the non-pack core-native path used when:
+- region = nigeria
+- languageStyle = clean
+- region = nigeria
+- languageStyle = null / missing
+
+Trace how core-native hooks/scenarios/howToFilm/captions are generated for these cohorts.
+
+Specifically answer:
+
+1. What generator/author path creates `ng_clean` core_native outputs?
+2. What generator/author path creates the internal null-language Nigerian core_native outputs?
+3. How could the hook `i dodged the lockscreen AGAIN. AGAIN!!!` be produced?
+4. Is that hook from:
+   - deterministic templates
+   - generic hook corpus
+   - pattern engine
+   - cohesive author
+   - regional decoration
+   - prompt/LLM fallback
+   - punctuation/emphasis post-processing
+   - ranker/selector behavior
+5. Is the mock-pidgin scanner currently blocking, demoting, or only reporting for core_native outputs?
+6. Are there guards that distinguish:
+   - clean Nigerian English
+   - pidgin
+   - light pidgin
+   - null/missing languageStyle
+7. Does `ng_clean` currently get enough Nigerian cultural grounding, or is it becoming bland/generic?
+8. Does `ng_clean` currently risk pidgin/mock-pidgin leakage?
+9. Does null/missing languageStyle risk pidgin/mock-pidgin leakage?
+10. Does regional decoration still correctly stay identity for clean/null where required?
+11. Could a fix affect:
+   - Nigerian pack-active path?
+   - Western region?
+   - India region?
+   - Philippines region?
+   - generic/null non-Nigeria outputs?
+
+============================================================
+IMPORTANT PRODUCT DISTINCTION
+============================================================
+
+Do NOT flatten `ng_clean` into generic cultureless copy.
+
+Correct behavior:
+
+`ng_pidgin`
+- Nigerian, funny, culturally grounded, natural pidgin allowed.
+
+`ng_light_pidgin`
+- Nigerian, funny, culturally grounded, light pidgin allowed.
+
+`ng_clean`
+- Nigerian, funny, culturally grounded, clean English / Nigerian English.
+- Should feel like Nigerian everyday reality and humor.
+- Should not use pidgin grammar as the main voice.
+- Should not use mock-pidgin.
+- Should not use exaggerated punctuation.
+- Should not use lazy stereotype tokens.
+- Should not rely on random decoration tokens.
+
+`languageStyle = null / missing`
+- internal safety fallback only.
+- Should not leak pidgin/mock-pidgin or forced Nigerian flavor.
+- It does not need to be rich Nigerian product output because it is not a user-facing language choice.
+
+============================================================
+NON-GOALS / DO NOT TOUCH
+============================================================
+
+Do not touch:
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+- `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+- `.local/REGIONAL_N1_REWRITES.yaml`
+- `.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv`
+- Nigerian pack codegen
+- Pack corpus
+- Pack validators
+- Regional-decoration implementation except read-only inspection
+- Any source code or tests in this audit phase
+
+Do not loosen any validator.
+Do not suppress the scanner.
+Do not “fix” by hiding the report.
+Do not make broad style changes.
+Do not rewrite packs or corpora.
+
+============================================================
+FILES / AREAS TO INSPECT
+============================================================
+
+Inspect likely relevant files, including but not limited to:
+
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`
+- `artifacts/api-server/src/lib/regionProfile.ts`
+- `artifacts/api-server/src/lib/scenarioCoherence.ts`
+- any generic pattern engine / deterministic template files
+- any hook/premise/template corpus used by core_native
+- any ranker/selector files that select core_native outputs
+- any final output cleanup / punctuation / anti-mock-pidgin utilities
+- any QA scripts:
+  - `.local/scripts/n1PostBatch3RuntimeQa.ts`
+  - prior regional runtime QA scripts
+- any tests around region/languageStyle/core generation
+
+Search for:
+- `languageStyle`
+- `clean`
+- `pidgin`
+- `light_pidgin`
+- `mockPidgin`
+- `PIDGIN_MOCKING_PATTERNS`
+- `exclamation_pile`
+- `!!!`
+- `core_native`
+- `decorateForRegion`
+- `region === "nigeria"`
+- `nigeria`
+- `AGAIN`
+- `lockscreen`
+- punctuation normalization
+- final candidate filtering
+- authorCohesiveIdea
+- generateCoreCandidate
+- pattern engine hooks
+
+============================================================
+READ-ONLY REPRO / DIAGNOSTIC
+============================================================
+
+Run read-only diagnostics only.
+
+Use the existing post-Batch-3 runtime QA harness if useful:
+`.local/scripts/n1PostBatch3RuntimeQa.ts`
+
+Run or adapt read-only probes for:
+
+A. User-facing Nigerian clean:
+- region = nigeria
+- languageStyle = clean
+- sample size: 60 if fast, minimum 30
+
+B. Internal null safety:
+- region = nigeria
+- languageStyle = null / missing
+- sample size: 60 if fast, minimum 30
+
+C. Controls if fast:
+- region = nigeria
+- languageStyle = pidgin, small sample
+- region = nigeria
+- languageStyle = light_pidgin, small sample
+- one non-Nigeria clean/null control if easy
+
+Track for each output:
+- source (`core_native`, pack, fallback, etc.)
+- hook
+- whatToShow
+- howToFilm
+- caption
+- region
+- languageStyle
+- selected template/premise if available
+- author path if available
+- mock-pidgin scanner hits
+- stereotype/risky token hits
+- regional decoration hits
+- exaggerated punctuation hits
+- whether output feels Nigerian-clean vs generic
+
+Save read-only outputs to:
+
+`.local/qa-runs/n1_core_clean_null_audit.json`
+
+and write:
+
+`.local/N1_CORE_CLEAN_NULL_AUDIT.md`
+
+============================================================
+QUALITY EVALUATION RUBRIC
+============================================================
+
+For `ng_clean`, classify outputs into:
+
+GOOD_NG_CLEAN:
+- clean English or Nigerian English
+- Nigerian reality is recognizable
+- funny or has clear comedic tension
+- no pidgin grammar dependence
+- no mock-pidgin
+- no forced decoration
+
+TOO_GENERIC:
+- could be any country
+- no Nigerian texture
+- bland ChatGPT-ish setup
+
+PIDGIN_LEAK:
+- pidgin grammar appears despite clean style
+- examples: `dey`, `don`, `abeg`, `wahala`, etc. used as voice markers when style is clean
+
+MOCK_PIDGIN_OR_SHOUTY:
+- exaggerated punctuation
+- all-caps emotional shouting
+- repeated “AGAIN!!!” style
+- parody-ish Nigerian/pidgin feel
+
+STEREOTYPE_OR_DECORATION_LEAK:
+- lazy tokens or forced cultural decoration
+- NEPA / jollof / buka / village people / my enemies / yahoo boy / 419 used as random flavor instead of premise-necessary content
+
+For null/missing languageStyle:
+- primary concern is no pidgin/mock-pidgin/shouty output.
+- do not judge it for not being richly Nigerian.
+
+============================================================
+RECOMMEND FIX OPTIONS
+============================================================
+
+Return ranked options.
+
+Each option must include:
+- files likely touched
+- exact behavior change
+- risk level
+- why it is safe
+- what tests would prove it
+- whether it affects pack-active path
+- whether it affects non-Nigerian regions
+- whether it preserves Nigerian flavor for `ng_clean`
+
+Preferred fix shape if evidence supports it:
+
+Option A — final candidate guard/normalizer for core_native clean/null:
+- For `region=nigeria` and `languageStyle in {clean, null, undefined}`:
+  - reject or demote mock-pidgin scanner hits
+  - normalize exaggerated punctuation like `!!!`
+  - block pidgin voice markers for clean/null
+- Preserve `ng_clean` Nigerian cultural grounding by not removing Nigerian context; only block pidgin/mock-pidgin/shouty artifacts.
+- Do not affect `pidgin` / `light_pidgin`.
+- Do not affect Nigerian pack path.
+
+Option B — template-level cleanup:
+- If root cause is a specific generic hook template/corpus line, propose cleaning that template.
+- Must explain why this does not weaken other regions.
+
+Option C — ranking demotion:
+- Demote candidates with mock-pidgin/shouty hits for clean/null.
+- Must explain if demotion is enough or if hard reject is safer.
+
+Option D — cohesive author prompt/style guard:
+- Only if issue is prompt-influenced.
+- Must be narrow and testable.
+
+Do not recommend broad rewrites.
+Do not recommend changing the Nigerian pack.
+Do not recommend loosening scanners.
+
+============================================================
+TEST PLAN TO PROPOSE
+============================================================
+
+Propose focused tests, but do not implement.
+
+Expected test coverage:
+
+1. `ng_clean` core_native:
+- keeps Nigerian clean-English flavor
+- rejects/demotes pidgin/mock-pidgin artifacts
+- does not output `AGAIN!!!` / exclamation pile
+- no forced regional-decoration leakage
+
+2. null/missing languageStyle:
+- rejects/demotes mock-pidgin artifacts
+- normalizes or blocks exaggerated punctuation
+- no forced Nigerian decoration
+
+3. pidgin/light_pidgin:
+- not over-sanitized
+- natural Nigerian voice still allowed
+
+4. Nigerian pack:
+- unaffected
+- pack tests still pass
+
+5. region controls:
+- Western/India/Philippines unaffected unless the same generic punctuation normalizer is intentionally global and justified.
+
+6. Runtime probe after fix:
+- ng_clean mock-pidgin hits: 0
+- null mock-pidgin hits: 0
+- clean/null decoration leaks: 0
+- pack-active cohorts unchanged
+- Nigerian pack delivery unchanged
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - FIX_NEEDED
+   - OBSERVE_ONLY
+   - NO_ISSUE_FOUND
+
+2. Exact root cause.
+
+3. Repro result:
+   - cohorts
+   - sample sizes
+   - source
+   - sample problematic outputs
+   - scanner hits
+
+4. Product assessment:
+   - Is `ng_clean` culturally Nigerian and human/funny enough?
+   - Is it too generic?
+   - Does it leak pidgin/mock-pidgin?
+
+5. Affected path/files.
+
+6. Recommended smallest fix.
+
+7. Test plan.
+
+8. Risks / non-risks:
+   - Nigerian pack
+   - pidgin/light_pidgin
+   - clean Nigerian flavor
+   - other regions
+
+9. Files created.
+
+10. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - no codegen apply
+   - Nigerian pack untouched
+   - regional-decoration untouched
+
+Do not implement the fix.
+Do not ask for next steps.
