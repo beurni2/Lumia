@@ -485,3 +485,15 @@ id = "Jo86otbn5vyc1TyNDdFdH"
 uri = "file://.local/W2_AUTHOR_HYBRID_PROOF_PACKAGE.md"
 type = "text"
 title = "W2-AUTHOR HYBRID Proof Package"
+
+[[outputs]]
+id = "tpSYDMzTw2UsQzT_BcnMo"
+uri = "file://.local/W2N_CORPUS_FIX_REPORT.md"
+type = "text"
+title = "W2-N Corpus Fix — Final Report"
+
+[[outputs]]
+id = "Wbi4D7k6J0qbhh6gNSIwd"
+uri = "file://.local/W2N_DEFERRED_VIOLATORS.md"
+type = "text"
+title = "W2-N Deferred Violators (tracked)"
