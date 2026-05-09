@@ -1,0 +1,426 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P3 — Batch 3 Chunk B apply, 30-entry HTF-only pass.
+
+Context:
+Batch 3 candidate packet is accepted:
+- 60 candidates selected.
+- All 60 are C_HTF_ONLY.
+- Batch 3 Chunk A ranks 1–30 landed cleanly: 30/30 accepted.
+- Chunk B = ranks 31–60.
+- Every selected hook is already baseline-approved and must be preserved.
+- Main issue across all candidates: legacy boilerplate howToFilm.
+- No hook rewrites.
+- No scenario rewrites except restating the existing current effective whatToShow.
+- No caption rewrites except restating the existing current effective caption.
+
+Important operating rule:
+If ≤3 overlays reject:
+1. Retract the failed overlay(s).
+2. Let those entries fall back to approved baseline.
+3. Move on.
+4. Do not repair unless the user explicitly approves.
+
+Goal:
+Apply Batch 3 Chunk B ranks 31–60 as HTF-only overlays.
+
+Use Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit the generated approved file.
+Do not edit worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, mobile files, or regional-decoration.
+Do not proceed to any next batch.
+
+Critical:
+For every draftId below, restate ALL fields exactly:
+- draftId
+- newAnchor
+- rewrittenHook
+- rewrittenWhatToShow
+- rewrittenHowToFilm
+- rewrittenCaption
+- reviewedBy
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+BATCH 3 CHUNK B — APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-177
+  newAnchor: caption
+  rewrittenHook: "caption fight me after video don finish"
+  rewrittenWhatToShow: "Finished video ready. You type one caption, delete it, type another, then stare at blank space like it is an exam."
+  rewrittenHowToFilm: "Frame the finished video and caption box on the phone. Show the caption type-delete-type loop, then cut on the blank caption space like it has become exam paper."
+  rewrittenCaption: "caption humbled the creator."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-181
+  newAnchor: camera
+  rewrittenHook: "camera expose my brain wey resign live"
+  rewrittenWhatToShow: "Sit in front of camera ready to film. Smile fades as you realize there is no idea. You slowly stop recording."
+  rewrittenHowToFilm: "Frame the camera setup and recording button clearly. Start with your ready smile, then cut on the smile fading before your hand stops the camera."
+  rewrittenCaption: "camera ready. brain absent."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-184
+  newAnchor: tag
+  rewrittenHook: "I tagged everybody and nobody reposted"
+  rewrittenWhatToShow: "Fake post screen shows many tagged friends. No shares. You stare at the activity tab like it owes you loyalty."
+  rewrittenHowToFilm: "Frame the tagged post and activity tab close enough to read. Let the tag list show first, then cut on the empty shares while your stare asks for loyalty."
+  rewrittenCaption: "tag list without results."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-189
+  newAnchor: map
+  rewrittenHook: "map dey open, pride still dey drive"
+  rewrittenWhatToShow: "Walk or drive while checking a fake map secretly. Pretend you know the way, then turn around immediately."
+  rewrittenHowToFilm: "Frame the map on your phone low enough to look hidden. Show the confident walk or steering beat first, then cut on the immediate turn-around."
+  rewrittenCaption: "confidence without location."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-191
+  newAnchor: seller
+  rewrittenHook: "seller laugh scatter my price confidence"
+  rewrittenWhatToShow: "At a market-style setup, seller gives price. You bargain too low. Seller laughs. You laugh too like it was a joke."
+  rewrittenHowToFilm: "Frame the seller side and your bargaining hand gesture. Let the low price land, then cut on the seller laugh and your fake laugh joining for survival."
+  rewrittenCaption: "bargaining as performance."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-197
+  newAnchor: shoe
+  rewrittenHook: "shoe behave at home, outside start biting"
+  rewrittenWhatToShow: "Walk confidently in the shoe, then start limping slightly outside while pretending everything is normal."
+  rewrittenHowToFilm: "Frame the shoe first during the confident walk. Then cut lower to the small limp outside, ending on your face pretending the shoe is not winning."
+  rewrittenCaption: "fashion with pain."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-204
+  newAnchor: status
+  rewrittenHook: "you viewed my status but still no reply?"
+  rewrittenWhatToShow: "Check your fake status viewers list. The same friend who ignored your message is at the top. You open the chat and zoom into their profile picture like it owes you explanation."
+  rewrittenHowToFilm: "Frame the status viewers list, then switch to the ignored chat. Let the profile zoom happen slowly, then cut on your face waiting for the status evidence to explain."
+  rewrittenCaption: "viewer, not responder."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-210
+  newAnchor: forward
+  rewrittenHook: "one forward nearly make me public evidence"
+  rewrittenWhatToShow: "You receive a dramatic fake forwarded message. You hesitate, shake your head, then almost forward it before stopping yourself."
+  rewrittenHowToFilm: "Frame the forward message and your thumb hovering near send. Show the hesitation and head shake, then cut on the thumb stopping before the forward becomes public evidence."
+  rewrittenCaption: "forwarding requires self-control."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-214
+  newAnchor: reply
+  rewrittenHook: "reply said K and my heart scattered"
+  rewrittenWhatToShow: "Show a long sweet fake message you sent. The reply comes in as just 'K.' Your smile fades slowly while you screenshot the reply like evidence."
+  rewrittenHowToFilm: "Frame the long message first, then the tiny reply. Hold on the reply just long enough, then cut on your screenshot gesture like the reply has entered evidence."
+  rewrittenCaption: "one letter did damage."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-221
+  newAnchor: shortcut
+  rewrittenHook: "shortcut don disgrace my okada confidence"
+  rewrittenWhatToShow: "On an okada-style POV, the rider takes a rough shortcut. You hold tight and check your map like prayer has entered the journey."
+  rewrittenHowToFilm: "Frame your hand gripping the seat or bag with the map open nearby. Add one small body jolt, then cut on the shortcut route making your confidence disappear."
+  rewrittenCaption: "shortcut with consequences."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-230
+  newAnchor: junction
+  rewrittenHook: "junction drop don turn the taxi to committee"
+  rewrittenWhatToShow: "In a shared taxi setup, one passenger keeps asking to drop at every junction. Everyone else looks exhausted."
+  rewrittenHowToFilm: "Frame the taxi setup with one side of the back seat visible. Let the junction request happen off-camera, then cut on the tired looks as the journey becomes committee."
+  rewrittenCaption: "journey by committee."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-235
+  newAnchor: data
+  rewrittenHook: "data don finish, Instagram still dey form open"
+  rewrittenWhatToShow: "Phone says no connection because data is finished. You keep pulling to refresh, then start searching for Wi-Fi like mercy might appear."
+  rewrittenHowToFilm: "Frame the no-connection screen and your thumb pulling refresh. Cut to the Wi-Fi search, then hold on the data problem refusing to become miracle."
+  rewrittenCaption: "hope is loading."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-249
+  newAnchor: packs
+  rewrittenHook: "packs don reduce overnight and nobody confess"
+  rewrittenWhatToShow: "Open the cupboard. Half the packs are missing. You look toward your roommate like the case has suspects."
+  rewrittenHowToFilm: "Frame the cupboard and missing packs clearly. Show your hand counting the remaining packs, then cut to the roommate-side look like investigation has started."
+  rewrittenCaption: "noodle investigation."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-253
+  newAnchor: cubes
+  rewrittenHook: "cubes don reduce, house suddenly quiet"
+  rewrittenWhatToShow: "Open the spice box and count the cubes. Two cubes are missing. You look at the house like everyone is lying."
+  rewrittenHowToFilm: "Frame the spice box and cubes from above. Count the cubes with your finger, pause on the missing space, then cut to the quiet-house look."
+  rewrittenCaption: "seasoning mystery."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-274
+  newAnchor: house
+  rewrittenHook: "house comparison don enter family meeting"
+  rewrittenWhatToShow: "Mum shows a cousin's car or house photo. You stare at the house photo like comparison has entered the room."
+  rewrittenHowToFilm: "Frame the house photo on the phone and your reaction beside it. Let Mum's comparison be implied, then cut on your stare like family benchmarking has begun."
+  rewrittenCaption: "family benchmarking."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-278
+  newAnchor: aunty
+  rewrittenHook: "aunty has one fine person for everybody"
+  rewrittenWhatToShow: "Aunty shows a random profile on fake WhatsApp. You lean back like the phone is too close to destiny."
+  rewrittenHowToFilm: "Frame aunty's phone entering with the profile visible enough to imply matchmaking. Let your lean-back happen slowly, then cut on the phone still following you."
+  rewrittenCaption: "matchmaking without consent."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-296
+  newAnchor: light
+  rewrittenHook: "light on, brain don empty"
+  rewrittenWhatToShow: "Sit in front of ring light ready to film. Smile fades when no idea comes. You slowly stop recording."
+  rewrittenHowToFilm: "Frame the ring light, camera, and your ready posture. Let the light switch on first, then cut on your smile fading as the idea refuses to arrive."
+  rewrittenCaption: "camera ready, brain absent."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-298
+  newAnchor: tag
+  rewrittenHook: "I tagged everybody and got zero shares"
+  rewrittenWhatToShow: "Fake post shows many tagged friends. Activity stays empty. You stare at the screen like loyalty is under review."
+  rewrittenHowToFilm: "Frame the tagged post and empty activity area close enough to read. Let the tag list show first, then cut on your stare like friendship is under audit."
+  rewrittenCaption: "tag list without results."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-300
+  newAnchor: voice
+  rewrittenHook: "voice enter boss chat and my soul japa"
+  rewrittenWhatToShow: "Fake chat shows a voice note sent to the wrong person. You tap unsend repeatedly like speed can reverse history."
+  rewrittenHowToFilm: "Frame the voice note inside the boss chat and your thumb attacking unsend. Let the wrong-chat realization land, then cut on the panic tapping."
+  rewrittenCaption: "wrong chat, correct panic."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-302
+  newAnchor: bucket
+  rewrittenHook: "bucket full halfway, I start feeling rich."
+  rewrittenWhatToShow: "Tap is dropping small-small. You guard the bucket like gold while iya keeps bringing more containers."
+  rewrittenHowToFilm: "Frame the bucket under the slow tap and your hand guarding it. Let another container enter the frame, then cut on your face protecting the bucket like wealth."
+  rewrittenCaption: "water wealth loading."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-306
+  newAnchor: meat-pie
+  rewrittenHook: "I bought meat-pie, now I'm searching for evidence."
+  rewrittenWhatToShow: "You buy meat-pie and break it open slowly. You break it open slowly. One tiny filling appears, then disappears like magic trick."
+  rewrittenHowToFilm: "Frame the meat-pie close on the plate or wrapper. Break it open slowly, search for filling, then cut on the tiny evidence disappearing inside the pastry."
+  rewrittenCaption: "meat entered exile."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-309
+  newAnchor: bukka
+  rewrittenHook: "bukka smell dragged me inside by force."
+  rewrittenWhatToShow: "You walk past bukka with strong mind. One aroma of stew and egusi hits you, and your legs turn back."
+  rewrittenHowToFilm: "Frame the bukka direction or doorway, then your feet walking past with confidence. Let the smell hit as a pause, then cut on your legs turning back by themselves."
+  rewrittenCaption: "my nose made the decision."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-323
+  newAnchor: akara
+  rewrittenHook: "akara seller knows everybody except me."
+  rewrittenWhatToShow: "You wait patiently. Three people arrive after you and iya at the akara tray says they booked earlier."
+  rewrittenHowToFilm: "Frame the akara tray area and your waiting position. Let the late arrivals get served first, then cut on your face realizing the invisible booking system is active."
+  rewrittenCaption: "invisible booking system."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-326
+  newAnchor: sachet
+  rewrittenHook: "sachet refused to tear, my teeth entered work."
+  rewrittenWhatToShow: "You try to open sachet water with hand. It refuses. You look left and right, then use teeth like tradition."
+  rewrittenHowToFilm: "Frame the sachet in your hand and the failed tear attempt. Show the quick left-right check, then cut on the teeth solution like tradition has returned."
+  rewrittenCaption: "modern problem, old solution."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-328
+  newAnchor: inverter
+  rewrittenHook: "inverter beeped once, everybody reduced confidence."
+  rewrittenWhatToShow: "Charger in socket. Inverter makes one tiny beep. You unplug fast like you touched government property."
+  rewrittenHowToFilm: "Frame the inverter area, charger, and your hand near the socket. Let the beep reaction happen, then cut on the fast unplug like the inverter gave warning."
+  rewrittenCaption: "power is warning us."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-330
+  newAnchor: meter
+  rewrittenHook: "meter looked calm, but I no trust am."
+  rewrittenWhatToShow: "You pass near prepaid meter and check it twice. The number still low, so you switch off everything near you."
+  rewrittenHowToFilm: "Frame the meter reading and your second suspicious check. Then cut on your hand switching off nearby items like the meter cannot be trusted."
+  rewrittenCaption: "silent danger."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-331
+  newAnchor: token
+  rewrittenHook: "token is 20 digits, but my finger chose violence."
+  rewrittenWhatToShow: "You enter token carefully. One wrong number spoils everything, and you start again with serious face."
+  rewrittenHowToFilm: "Frame the token entry screen and your finger moving carefully. Let one wrong digit spoil it, then cut on the serious restart face."
+  rewrittenCaption: "one digit, full pain."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-341
+  newAnchor: charger
+  rewrittenHook: "one socket, five chargers, zero peace."
+  rewrittenWhatToShow: "Five chargers fight for one socket. Everyone brings charger at once. Papa wants his own, madam wants hers, you guard your percentage with seriousness."
+  rewrittenHowToFilm: "Frame the socket and the charger crowd in one shot. Let another charger enter the frame, then cut on your hand protecting your own charger like property."
+  rewrittenCaption: "family power battle."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-342
+  newAnchor: madam
+  rewrittenHook: "POS madam said charge, my smile disappeared."
+  rewrittenWhatToShow: "You withdraw small cash. POS madam adds charge that feels too personal. You collect money with pain."
+  rewrittenHowToFilm: "Frame the POS madam side, the cash, and your hand collecting it. Let the charge land first, then cut on your smile disappearing before the money enters your hand."
+  rewrittenCaption: "withdrawal plus heartbreak."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-350
+  newAnchor: papa
+  rewrittenHook: "papa at ATM presses cancel like it owes him money."
+  rewrittenWhatToShow: "Papa tries to withdraw. Machine delays small. He presses buttons with full authority and blames the bank."
+  rewrittenHowToFilm: "Frame papa's hand near the ATM-style keypad or phone mockup. Let the delay happen, then cut on the serious button pressing like the machine owes apology."
+  rewrittenCaption: "technology vs papa."
+  reviewedBy: "BI 2026-05-09"
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Before appending these overlays to `.local/REGIONAL_N1_REWRITES.yaml`, save them as:
+
+`.local/qa-runs/n1_p3_batch3_chunk_b_proposed_overlay.yaml`
+
+Run:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_p3_batch3_chunk_b_proposed_overlay.yaml`
+
+If preflight flags a real hard failure, stop and report before appending.
+
+Expected:
+- exactly 30 overlay blocks
+- hooks preserved exactly
+- whatToShow preserved exactly
+- captions preserved exactly
+- only howToFilm changed
+- no old boilerplate howToFilm
+- no `Phone-level lock-off`
+- no `Desk-height lock-off`
+- no `Counter-level lock-off`
+- no `Couch-level handheld`
+- no `Bed-level handheld`
+- no `Door-side handheld`
+- no `Mirror lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the X centered`
+- no stereotype-token hits
+- no mock pidgin
+- every howToFilm naturally contains its anchor token to prevent runtime `Keep the X centered` append
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact overlay blocks above to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- total approved count remains 204
+- rejected count remains 13 pre-existing only
+- rejected-from-rewrites = 0
+- all 30 Batch 3 Chunk B draft IDs are present in approved file
+- BI 2026-05-09 stamp count increases by 30
+
+If 1–3 overlays fail:
+- retract those failed overlay blocks
+- rerun codegen
+- keep the accepted overlays
+- do not repair them
+- report accepted count and move on
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused Nigerian pack tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+3. Static checks on accepted Batch 3 Chunk B entries:
+- no old top filming boilerplate
+- no `Phone-level lock-off`
+- no `Desk-height lock-off`
+- no `Counter-level lock-off`
+- no `Couch-level handheld`
+- no `Bed-level handheld`
+- no `Door-side handheld`
+- no `Mirror lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the \w+ centered`
+- no user-facing NEPA / nepa / jollof / buka / village people / my enemies / yahoo boy / 419
+- no `direct to camera`
+- no `deliberately`
+- no `on purpose`
+- no `with intent`
+- no `look straight at the lens`
+- anchor appears in hook and whatToShow for all accepted entries
+- anchor appears naturally in howToFilm for all accepted entries
+- hook/whatToShow scenario token overlap passes
+- no empty fields
+- no duplicate hooks
+- no duplicate howToFilm
+- no semantic duplicates with completed P1/P2/Batch3A entries
+
+Full api-server suite is optional unless codegen/static/tests show risk.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Preflight result.
+4. Codegen result.
+5. Approved/rejected counts.
+6. Stamp-count change.
+7. Any rejected/retracted overlays with exact validator reason.
+8. Nigerian pack test result.
+9. TypeScript result.
+10. Static check result.
+11. Semantic duplicate check result.
+12. Full suite result if run, or reason not run.
+13. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration untouched
+   - hooks preserved
+   - whatToShow preserved
+   - captions preserved
+   - no next batch executed
+
+Do not include long tables unless something fails.
+Do not ask for next steps.
