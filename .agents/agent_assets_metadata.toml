@@ -628,7 +628,7 @@ title = "N1 Chunk B Proposed Overlay (15 blocks)"
 id = "NHBZ-RDqrWIlPqEJmdckQ"
 uri = "file://.local/N1_REJECTION_REPORT.md"
 type = "text"
-title = "N1 rejection report (post Chunk B codegen)"
+title = "N1 rejection report (post Batch 3 Chunk A codegen)"
 
 [[outputs]]
 id = "oBb74fdB7D6ugCZSCTsyZ"
@@ -881,3 +881,9 @@ id = "5EaeE3IbcjP6VhDKYFBtX"
 uri = "file://.local/qa-runs/n1_p3_batch3_candidate_source_packet.json"
 type = "unspecified"
 title = "Batch 3 candidate source packet (JSON)"
+
+[[outputs]]
+id = "NvbcoJWovZJ0KXfVwbwNG"
+uri = "file://.local/N1_P3_BATCH3_CHUNKA_APPLY_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P3 — Batch 3 Chunk A APPLY REPORT"
