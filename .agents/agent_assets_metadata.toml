@@ -737,3 +737,21 @@ id = "t3149uRIEFwFLMba_Iojn"
 uri = "file://.local/qa-runs/n1_airtime_anchor_token_fix_proposed_overlay.yaml"
 type = "unspecified"
 title = "Proposed overlay (preflighted)"
+
+[[outputs]]
+id = "Fkn5o0wA0mAYu-cSDQWO_"
+uri = "file://.local/N1_REGIONAL_DECORATION_AUDIT.md"
+type = "text"
+title = "N1 Regional-Decoration Audit — ISSUE CONFIRMED (recommended fix: languageStyle gate in decorateForRegion)"
+
+[[outputs]]
+id = "Qb7_ZEEXHYkyXjIw-8nQ4"
+uri = "file://.local/qa-runs/n1_regional_decoration_audit.json"
+type = "unspecified"
+title = "Audit JSON (machine-readable)"
+
+[[outputs]]
+id = "5fNHOjIwXtTalJfhVRJpt"
+uri = "file://.local/qa-runs/n1_regional_decoration_repro.json"
+type = "unspecified"
+title = "Read-only decorateForRegion repro (5 regions × 4 domains)"

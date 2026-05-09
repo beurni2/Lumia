@@ -1,0 +1,222 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Regional-decoration source audit for ng_clean / ng_null.
+
+Context:
+The Nigerian pack-active path is now accepted:
+- Batch 1: 45/45 entries complete and runtime-accepted
+- Batch 2.0 Hot-6: 6/6 entries complete
+- DRAFT-172 airtime patch complete
+- Latest pack-active runtime recheck: 60/60 pack delivery
+- 0 banned-filming hits
+- 0 stereotype hits
+- 0 mock-pidgin hits
+- 0 scenario-coherence failures
+- 0 structural failures
+- TypeScript clean
+- No source-code changes were needed for the pack path
+
+Remaining known issue:
+The separate ng_clean / ng_null catalog path can receive forced regional-decoration phrases such as:
+- NEPA witness moment
+- buka run aftermath
+- jollof-style decoration if present
+
+This is NOT a Nigerian pack/corpus issue.
+This is NOT a rewrite-overlay issue.
+This is likely a regional-decoration code/config issue affecting non-pack catalog outputs.
+
+Goal:
+Run a source-code audit only. Identify exactly where the ng_clean / ng_null regional-decoration suffixes are injected, what tokens/phrases are used, what cohorts they affect, and the smallest safe fix.
+
+This is AUDIT ONLY.
+Do not modify source code.
+Do not modify tests.
+Do not modify corpus.
+Do not modify overlays.
+Do not edit worksheet.
+Do not run any apply step.
+Do not change production flags.
+
+============================================================
+FILES / AREAS TO INSPECT
+============================================================
+
+Search for and inspect any code/config containing:
+
+- NEPA
+- nepa
+- jollof
+- buka
+- witness moment
+- aftermath
+- regional decoration
+- regional-decoration
+- decoration
+- nigeria clean
+- ng_clean
+- ng_null
+- regionProfile
+- regionalLiveBetaQa
+- regionalR4Qa
+- clean languageStyle
+- null languageStyle
+
+Likely areas:
+- `artifacts/api-server/src/lib/regionProfile.ts`
+- `artifacts/api-server/src/lib/regional*`
+- `artifacts/api-server/src/qa/regional*`
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`
+- `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+- any prompt/decorator/helper that appends region-specific flavor to captions/scripts/howToFilm
+
+Also inspect the prior QA artifacts if present:
+- `.local/N1_BATCH1_RUNTIME_QA_REPORT.md`
+- `.local/qa-runs/n1_batch1_runtime_qa.json`
+- `.local/qa-runs/n1_batch1_runtime_qa_summary.json`
+- `.local/N1_BATCH2_HOT6_RUNTIME_RECHECK.md`
+- `.local/qa-runs/n1_batch2_hot6_runtime_recheck.json`
+- `.local/qa-runs/n1_batch2_hot6_runtime_recheck_summary.json`
+
+============================================================
+QUESTIONS TO ANSWER
+============================================================
+
+Answer directly:
+
+1. Where exactly are the ng_clean / ng_null decoration phrases injected?
+2. Are the phrases hardcoded, generated, template-based, or prompt-influenced?
+3. Which output fields can receive them?
+   - hook
+   - whatToShow
+   - howToFilm
+   - caption
+   - script
+   - shotPlan
+   - whyThisWorks
+4. Which cohorts/language styles can receive them?
+5. Why did pack-active ng_pidgin / ng_light_pidgin avoid the issue?
+6. Is the issue limited to non-pack catalog/core_native outputs?
+7. Is this only in QA harnesses, or can production/staging runtime outputs receive it?
+8. What exact phrases/tokens are risky?
+9. Are these tokens currently protected by validators?
+10. Are there tests covering this behavior?
+11. What is the smallest safe fix?
+12. Would the fix be:
+    - remove the Nigerian decoration suffix system entirely for clean/null
+    - replace the risky token list
+    - add a safety filter
+    - gate decoration only to explicit pidgin/light_pidgin
+    - stop decorating howToFilm/caption
+    - another minimal option
+13. What are the risks of each option?
+14. What tests should be added or updated if/when we fix it?
+15. Is there any chance this affects Western / India / Philippines outputs?
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_REGIONAL_DECORATION_AUDIT.md`
+
+and
+
+`.local/qa-runs/n1_regional_decoration_audit.json`
+
+The JSON should include:
+
+{
+  "phase": "N1-ELEVATION-P1 Regional-decoration source audit",
+  "filesInspected": [],
+  "injectionSites": [
+    {
+      "file": "...",
+      "functionOrConstant": "...",
+      "lineRange": "...",
+      "description": "...",
+      "fieldsAffected": [],
+      "cohortsAffected": [],
+      "productionReachable": true
+    }
+  ],
+  "riskyPhrases": [],
+  "validatorsCoveringIssue": [],
+  "validatorsMissingCoverage": [],
+  "candidateFixes": [
+    {
+      "name": "...",
+      "description": "...",
+      "scope": "small|medium|large",
+      "pros": [],
+      "cons": [],
+      "recommended": true
+    }
+  ],
+  "recommendedFix": {
+    "summary": "...",
+    "filesToTouch": [],
+    "testsToRun": [],
+    "testsToAddOrUpdate": []
+  }
+}
+
+============================================================
+VALIDATION / OPTIONAL READ-ONLY REPRO
+============================================================
+
+If a no-code/read-only repro is easy, run a small diagnostic generation for ng_clean and ng_null only and confirm whether the decoration still appears.
+
+Do not modify source.
+Do not apply fixes.
+
+Track:
+- sample count
+- phrase hits
+- output fields where phrase appears
+- whether pack is inactive
+
+Save raw diagnostic only if useful:
+`.local/qa-runs/n1_regional_decoration_repro.json`
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - ISSUE CONFIRMED
+   - ISSUE NOT FOUND
+   - INCONCLUSIVE
+
+2. Injection site(s).
+
+3. Fields affected.
+
+4. Cohorts affected.
+
+5. Whether production/staging runtime can receive it.
+
+6. Risky phrases found.
+
+7. Recommended smallest safe fix.
+
+8. Files that would be touched in the fix phase.
+
+9. Tests to add/run in the fix phase.
+
+10. Files created under `.local`.
+
+11. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - Nigerian pack path untouched
+
+Do not include long code dumps.
+Do not apply the fix.
+Do not ask for next steps.
