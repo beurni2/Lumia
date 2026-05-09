@@ -497,3 +497,9 @@ id = "Wbi4D7k6J0qbhh6gNSIwd"
 uri = "file://.local/W2N_DEFERRED_VIOLATORS.md"
 type = "text"
 title = "W2-N Deferred Violators (tracked)"
+
+[[outputs]]
+id = "GV28ib9ZNRFSo4JNhOli4"
+uri = "file://.local/POST_W2_AUTHOR_RUNTIME_QA_REPORT.md"
+type = "text"
+title = "Post-W2-AUTHOR + W2-N Runtime Quality QA Report"
