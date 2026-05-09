@@ -92,6 +92,13 @@ const W2_FREEZE_PLACEHOLDER_RE =
 const W2_WHY_PLACEHOLDER_RE =
   /^Editorial-curated Western hook on '.+' \u2014 packaged for filmability\.$/;
 
+// PHASE W2-FTN-E1 — `westernPackAuthor.ts:424` writes the byte-
+// identical line `"Cut on the contradiction."` as `shotPlan[2]`
+// for every W2 entry. Exact match (no anchor token) — the line is
+// not human-natural and would never legitimately appear in any
+// non-W2 authored shotPlan.
+const W2_CUT_ON_CONTRADICTION_PLACEHOLDER = "Cut on the contradiction.";
+
 function isW2TwistPlaceholder(s: string): boolean {
   const t = s.trim();
   return W2_BEAT_LANDS_PLACEHOLDER_RE.test(t) || W2_FREEZE_PLACEHOLDER_RE.test(t);
@@ -99,6 +106,18 @@ function isW2TwistPlaceholder(s: string): boolean {
 
 function isW2WhyItWorksPlaceholder(s: string): boolean {
   return W2_WHY_PLACEHOLDER_RE.test(s.trim());
+}
+
+// PHASE W2-FTN-E1 — combined SHOT PLAN list filter. Reuses the
+// existing W2 twist (beat-lands) detector and adds the exact-
+// match cut-on-contradiction string. Used to drop W2 author
+// placeholder beats from the SHOT PLAN list section while leaving
+// non-placeholder beats and non-W2 authored shotPlans untouched.
+function isW2ShotPlanPlaceholder(s: string): boolean {
+  const t = s.trim();
+  return (
+    isW2TwistPlaceholder(t) || t === W2_CUT_ON_CONTRADICTION_PLACEHOLDER
+  );
 }
 
 /**
@@ -607,17 +626,35 @@ export default function FilmThisNowScreen() {
 
         {/* Shot plan — the model's bullet-list of the actual
             shots needed. Optional because pre-v2 cached batches
-            lack the field; renders nothing if absent. */}
-        {Array.isArray(idea.shotPlan) && idea.shotPlan.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>SHOT PLAN</Text>
-            {idea.shotPlan.map((shot, i) => (
-              <Text key={i} style={styles.shotLine}>
-                {i + 1}. {shot}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+            lack the field; renders nothing if absent.
+            PHASE W2-FTN-E1 — filter W2 author placeholder beats
+            (`Beat lands — let the {anchor} sit.` and
+            `Cut on the contradiction.`) before render. Re-numbers
+            surviving beats 1..N so the list reads naturally with
+            no gaps. Hides the entire SHOT PLAN section when zero
+            non-placeholder beats survive. Non-W2 authored shotPlans
+            and pre-v2 cached payloads are unaffected — the
+            detector is exact-shape against the W2 author's writes. */}
+        {(() => {
+          const sp = Array.isArray(idea.shotPlan) ? idea.shotPlan : [];
+          const filtered = sp.filter(
+            (s) =>
+              typeof s === "string" &&
+              s.trim().length > 0 &&
+              !isW2ShotPlanPlaceholder(s),
+          );
+          if (filtered.length === 0) return null;
+          return (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>SHOT PLAN</Text>
+              {filtered.map((shot, i) => (
+                <Text key={i} style={styles.shotLine}>
+                  {i + 1}. {shot}
+                </Text>
+              ))}
+            </View>
+          );
+        })()}
 
         {/* Caption + copy button. Same Clipboard pattern review.tsx
             uses for its caption block. */}
