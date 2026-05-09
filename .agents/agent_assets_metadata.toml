@@ -677,3 +677,15 @@ id = "nrYITSxWsE2uyT2RfAElr"
 uri = "file://.local/qa-runs/n1_batch1_entry_ids.json"
 type = "unspecified"
 title = "N1 Batch 1 entryId map (45 BI 2026-05-09 entries)"
+
+[[outputs]]
+id = "5FY1uSIKniX31JQYxAUNb"
+uri = "file://.local/N1_BATCH2_HOT7_SOURCE_PACKET.md"
+type = "text"
+title = "N1 Batch 2.0 Hot-7 Source-of-Truth Packet (6/7 resolved; ng_1f0aac87 stale)"
+
+[[outputs]]
+id = "lJsqqAaNAHOnZs-gzbvHu"
+uri = "file://.local/qa-runs/n1_batch2_hot7_source_packet.json"
+type = "unspecified"
+title = "N1 Batch 2.0 Hot-7 Packet — JSON"
