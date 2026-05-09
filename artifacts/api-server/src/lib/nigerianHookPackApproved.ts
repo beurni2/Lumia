@@ -22,13 +22,11 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 200 approved · 17 rejected
+ * INGEST SUMMARY: 202 approved · 15 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-003 [REWRITE] → scoreNigerianPackEntry 38 < floor 40 (visceral=7 naturalness=4 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-055 [REWRITE] → validateScenarioCoherence: hook_topic_noun_drift
- *   • DRAFT-175 [REWRITE] → validateScenarioCoherence: family_verb_leak_on_scene
  *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
@@ -36,7 +34,7 @@
  *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
- *   • DRAFT-348 [REWRITE] → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
+ *   • DRAFT-348 [REWRITE] → scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=4 contradiction=0 anchor=10 filmable=5 brevity=13)
  *   • DRAFT-367 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
  *   • DRAFT-371 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-372 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
@@ -56,6 +54,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       howToFilm: "Frame the chat beside the blanket so the lie is obvious. Show the almost-there typing, delete it, then cut on the blanket covering your face like defense.",
       caption: "yesterday me too get mind.",
       anchor: "dey",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-09",
+    }),
+    Object.freeze({
+      // source: DRAFT-003 [REWRITE] · cluster: group_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      hook: "group shout we move, my leg resign first",
+      whatToShow: "The group chat is shouting we move while you sit on the bed fully dressed. You stare at your shoes, lift one leg like you are ready, then drop it back like the leg has resigned.",
+      howToFilm: "Frame the group chat, your shoes, and your seated body in one setup. Let the chat look energetic, then cut on the leg dropping back like movement has failed.",
+      caption: "my outfit attended more than me.",
+      anchor: "group",
       domain: "messaging",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-09",
@@ -882,6 +891,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-09",
+    }),
+    Object.freeze({
+      // source: DRAFT-175 [REWRITE] · cluster: refresh_madness
+      hook: "refresh expose my no-care lie immediately",
+      whatToShow: "Show a fake post with I do not care written above it. Your thumb hits refresh once, waits, then hits refresh again faster while your face pretends the numbers mean nothing.",
+      howToFilm: "Frame the post screen and your thumb close enough to show each refresh. Let the first refresh look casual, then cut on the faster second refresh while your face keeps lying.",
+      caption: "the lie refreshed too.",
+      anchor: "refresh",
+      domain: "creator",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-09",
     }),

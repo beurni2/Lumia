@@ -791,3 +791,15 @@ id = "pgC-Xbxd6YDIkLDIytSqp"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_proposed_overlay.yaml"
 type = "unspecified"
 title = "Proposed overlay snapshot (30 entries)"
+
+[[outputs]]
+id = "WtGkN-FiEI2SeLSSPVMhp"
+uri = "file://.local/N1_ELEVATION_P2_BATCH2_CHUNKA_REPAIR_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P2 — Batch 2 Chunk A REPAIR report"
+
+[[outputs]]
+id = "Xlivqf3Zx7Nc2SJUlxRSY"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_repair_overlay.yaml"
+type = "unspecified"
+title = "Repair overlay snapshot (4 entries)"
