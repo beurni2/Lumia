@@ -443,3 +443,9 @@ id = "s5OufwiaSxhWNf6euV9g1"
 uri = "file://.local/W2FTN_E_REPAIR_PACKET_DRAFT.md"
 type = "text"
 title = "W2-FTN-E Repair Packet Draft (sample for human review)"
+
+[[outputs]]
+id = "BSSiOW8qM3B-luxkPoM2g"
+uri = "file://.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_FULL.md"
+type = "text"
+title = "W2-FTN-E1 — Full W2-N Repair Packet (53 entries)"
