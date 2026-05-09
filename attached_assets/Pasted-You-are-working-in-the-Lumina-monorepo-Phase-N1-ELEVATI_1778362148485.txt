@@ -1,0 +1,421 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P3 — Batch 3 candidate selection + source packet.
+
+Context:
+N1-ELEVATION-P1 and P2 are accepted.
+
+P1 completed:
+- Batch 1 rewrites accepted.
+- Hot-6 cleanup accepted.
+- Airtime DRAFT-172 runtime append fixed.
+- Regional-decoration ng_clean/ng_null fixed.
+- Pack-active runtime path clean.
+
+P2 completed:
+- Batch 2 Chunk A: 30/30 accepted.
+- Batch 2 Chunk B: 29/30 accepted.
+- Batch 2 total: 59 accepted rewrites.
+- DRAFT-010 failed in Chunk B and was retracted; baseline stayed approved.
+- DRAFT-348 and DRAFT-151 failed/retracted earlier and should not be rewritten again unless explicitly selected by user later.
+- Approved count restored/stable at 204.
+- Rejected count stable at 13 pre-existing only.
+- Rejected-from-rewrites = 0.
+- No worksheet/source/test/validator/scorer/selector/prompt/flag/API/mobile changes.
+- Regional-decoration untouched after P1 fix.
+- TypeScript clean.
+- Nigerian pack tests clean.
+- Static checks clean on accepted Batch 2 entries.
+
+Important operating rule going forward:
+If a rewrite batch has ≤3 rejected overlays:
+1. Retract the failed overlays.
+2. Let the entries fall back to approved baseline if they were already approved.
+3. Move on.
+4. Do not keep repairing unless the failed entry is uniquely valuable or runtime-proven high-impact.
+
+Goal:
+Select the next meaningful Batch 3 rewrite candidates from the remaining Nigerian approved pack.
+
+This is candidate selection and source packet extraction only.
+Do not rewrite.
+Do not apply overlays.
+Do not modify source/corpus/test/config files.
+Do not edit worksheet.
+Do not run codegen apply.
+Do not touch regional-decoration.
+
+============================================================
+SOURCE OF TRUTH
+============================================================
+
+Use current repo state after Batch 2:
+
+1. `.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv`
+2. `.local/REGIONAL_N1_REWRITES.yaml`
+3. `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+4. `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+5. `.local/N1_BATCH2_CANDIDATE_SOURCE_PACKET.md`
+6. `.local/qa-runs/n1_batch2_candidate_source_packet.json`
+7. `.local/N1_P2_BATCH2_CHUNK_B_SOURCE_PACKET_CORRECTED.md`
+8. `.local/qa-runs/n1_p2_batch2_chunk_b_source_packet_corrected.json`
+9. latest Chunk A / Chunk B apply reports if present
+10. `.local/N1_REWRITE_PREFLIGHT_REQUIREMENTS.md`
+11. Nigerian scoring/validator files:
+    - `artifacts/api-server/src/lib/nigerianHookQuality.ts`
+    - `artifacts/api-server/src/lib/nigerianHookPack.ts`
+    - `artifacts/api-server/src/lib/scenarioCoherence.ts`
+    - `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+
+For every candidate, resolve current effective values exactly as codegen would:
+worksheet row + latest overlay block for that draftId, with Map last-wins behavior.
+
+============================================================
+EXCLUDE COMPLETED / DO-NOT-TOUCH ENTRIES
+============================================================
+
+Exclude all entries already rewritten/fixed in P1 and P2:
+
+P1:
+- Batch 1 entries
+- Hot-6 entries
+- DRAFT-172 airtime patch
+
+P2 Chunk A accepted entries:
+- all 30 accepted Chunk A rewrite draftIds, including DRAFT-263
+
+P2 Chunk B accepted entries:
+- all 29 accepted Chunk B rewrite draftIds
+
+Do not select:
+- DRAFT-348 — failed repeatedly; leave baseline approved.
+- DRAFT-151 — failed replacement; leave baseline approved.
+- DRAFT-010 — failed Chunk B overlay; leave baseline approved unless user explicitly asks later.
+- DRAFT-237 — removed due to generator/sleep duplicate risk.
+- DRAFT-153 — removed due to portal/submission duplicate risk.
+- stale/missing `ng_1f0aac87`
+- any accepted Chunk A / Chunk B entry
+- any completed P1 entry
+
+============================================================
+BATCH 3 SELECTION TARGET
+============================================================
+
+Select **up to 50–60 candidates** only if they are genuinely worth rewriting.
+
+Do not force 60.
+If only 35–45 meaningful candidates remain, return that number and explain why.
+
+Prioritize:
+1. Remaining approved entries with old boilerplate howToFilm:
+   - Phone-level lock-off
+   - Desk-height lock-off
+   - Counter-level lock-off
+   - Couch-level handheld
+   - Bed-level handheld
+   - Door-side handheld
+   - Mirror lock-off
+   - soft daylight
+   - one take
+   - Keep the X centered
+
+2. Entries with weak but fixable whatToShow:
+   - too thin
+   - not visual enough
+   - missing setup → action → payoff
+   - no concrete object/action carrying the joke
+
+3. Entries with safe hooks that should be preserved:
+   - already pass baseline
+   - anchor in hook and whatToShow
+   - no score-floor risk
+   - no topic-noun drift risk
+
+4. HTF-only opportunities:
+   - prefer these because they land cleanly and remove boilerplate without score risk
+
+5. Runtime/selection relevance:
+   - appeared in prior runtime QA
+   - likely selected by pack slot reservation
+   - repeated or high-value domain coverage
+
+Avoid:
+- entries near score floor if hook rewrite is required
+- anchors that caused drift in prior failures
+- semantic duplicates of P1/P2 accepted ideas
+- repeated generator/sleep
+- late-night/oga/email
+- portal/submission closed
+- conductor/torn-note
+- refresh/no-care
+- group/we-move
+- charger/light race
+- coming/shoe drama
+- exact repeats of data investigation, breakfast meeting, keke squeeze, bed/outside, rain doorway, etc.
+
+============================================================
+CLASSIFY EACH CANDIDATE
+============================================================
+
+Assign one primary rewrite class:
+
+A_HOOK_SCENARIO_HTF
+- hook + whatToShow + howToFilm need rewrite
+
+B_SCENARIO_HTF
+- whatToShow + howToFilm need rewrite, hook can stay or only lightly change
+
+C_HTF_ONLY
+- only howToFilm needs rewrite
+
+D_HOOK_ONLY_OR_HOOK_CAPTION
+- hook and maybe caption need rewrite, scenario/HTF acceptable
+
+E_CAPTION_ONLY
+- caption only
+
+F_SKIP_BASELINE_OK
+- candidate is not worth rewriting; baseline is acceptable or rewrite risk exceeds value
+
+Prefer C_HTF_ONLY and B_SCENARIO_HTF.
+Avoid A unless the entry is genuinely important and the rewrite risk is low.
+
+Also include secondary tags:
+- boilerplate_htf
+- generic_htf
+- weak_hook
+- weak_visual_turn
+- weak_caption
+- pidgin_naturalness
+- stereotype_risk
+- anchor_suffix_risk
+- near_score_floor
+- runtime_seen
+- high_repeat
+- culture_specificity_gap
+- too_western
+- too_plain
+- scenario_mismatch
+- caption_mismatch
+- preserve_hook_recommended
+
+============================================================
+FOR EACH SELECTED CANDIDATE, OUTPUT
+============================================================
+
+For each selected candidate, include:
+
+- rank
+- entryId
+- draftId
+- current effective anchor
+- current effective hook
+- current effective whatToShow
+- current effective howToFilm
+- current effective caption
+- pidginLevel
+- domain
+- cluster if present
+- reviewer stamp
+- worksheet baseline values
+- latest active overlay values if any
+- runtime evidence if available
+- score if easy to compute
+- score breakdown if available
+- primary rewrite class
+- secondary tags
+- fields needing rewrite
+- exact diagnosis
+- why selected
+- hook rewrite policy:
+  - preserve
+  - safe_to_rewrite
+  - avoid_rewrite
+- preflight risks:
+  - anchor length < 3?
+  - anchor not naturally reusable?
+  - hook/whatToShow token overlap weak?
+  - current hook lacks punch?
+  - current whatToShow lacks visible payoff?
+  - current howToFilm generic/boilerplate?
+  - stereotype token risk?
+  - mock-pidgin risk?
+  - prior overlay shadow risk?
+  - topic-noun drift risk?
+  - score-floor risk?
+
+Also include safe overlay skeleton with placeholders:
+
+- draftId: DRAFT-XXX
+  newAnchor: "<single-token anchor; must appear in hook + whatToShow>"
+  rewrittenHook: "<full final hook>"
+  rewrittenWhatToShow: "<full final whatToShow>"
+  rewrittenHowToFilm: "<full final howToFilm>"
+  rewrittenCaption: "<full final caption>"
+  reviewedBy: "BI 2026-05-09"
+
+Do NOT fill replacement copy.
+
+============================================================
+SEMANTIC DUPLICATE SCREEN
+============================================================
+
+Before finalizing, screen against:
+
+- completed P1 entries
+- Batch 2 Chunk A accepted entries
+- Batch 2 Chunk B accepted entries
+- entries inside the proposed Batch 3 set
+
+Flag and exclude near-duplicates.
+
+Specifically check for duplicates of:
+- generator/sleep
+- late-night/oga/email
+- portal/submission closed
+- conductor/torn-note
+- refresh/no-care
+- group/we-move
+- charger/light race
+- coming/shoe drama
+- data investigation
+- camera-off breakfast meeting
+- keke squeeze
+- bike/rain shortcut
+- bed cancelling outside
+- rain doorway
+- towel/almost-ready
+- Mum call/life update
+- task/procrastination reminders
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_P3_BATCH3_CANDIDATE_SOURCE_PACKET.md`
+
+and
+
+`.local/qa-runs/n1_p3_batch3_candidate_source_packet.json`
+
+JSON shape:
+
+{
+  "phase": "N1-ELEVATION-P3 Batch 3 candidate selection + source packet",
+  "generatedAt": "...",
+  "selectionCount": 0,
+  "remainingApprovedPoolAfterExclusions": 0,
+  "classCounts": {},
+  "domainCounts": {},
+  "excluded": {
+    "completedP1": [],
+    "acceptedBatch2ChunkA": [],
+    "acceptedBatch2ChunkB": [],
+    "droppedFailuresDoNotRetry": ["DRAFT-348", "DRAFT-151", "DRAFT-010"],
+    "semanticDuplicates": [],
+    "staleMissing": []
+  },
+  "entries": [
+    {
+      "rank": 1,
+      "entryId": "...",
+      "draftId": "...",
+      "currentEffective": {
+        "anchor": "...",
+        "hook": "...",
+        "whatToShow": "...",
+        "howToFilm": "...",
+        "caption": "..."
+      },
+      "worksheet": {},
+      "latestOverlay": {},
+      "primaryClass": "...",
+      "secondaryTags": [],
+      "fieldsNeedingRewrite": [],
+      "hookRewritePolicy": "preserve",
+      "diagnosis": "...",
+      "whySelected": "...",
+      "preflightRisks": [],
+      "semanticDuplicateNotes": "..."
+    }
+  ]
+}
+
+============================================================
+OPTIONAL READ-ONLY RUNTIME SUPPORT
+============================================================
+
+If useful and fast, run a read-only runtime diagnostic for Nigerian pack-active cohorts:
+
+- ng_pidgin
+- ng_light_pidgin
+
+Goal:
+- identify remaining non-P1/P2 entries that still surface
+- identify repeated old-boilerplate entries
+- identify entries worth prioritizing in Batch 3
+
+Do not modify anything.
+Save only if useful:
+
+`.local/qa-runs/n1_p3_batch3_runtime_probe.json`
+
+============================================================
+SELECTION QUALITY CHECK
+============================================================
+
+Before finalizing, verify:
+
+1. No completed P1 entries included.
+2. No accepted Batch 2 Chunk A entries included.
+3. No accepted Batch 2 Chunk B entries included.
+4. DRAFT-348, DRAFT-151, DRAFT-010 excluded.
+5. DRAFT-237 and DRAFT-153 excluded unless explicitly justified as non-duplicate, but default exclude.
+6. Every selected entry is approved in current pack.
+7. Every selected entry has a concrete quality reason.
+8. No low-value filler.
+9. No semantic duplicates.
+10. Class distribution favors safe rewrites, especially C_HTF_ONLY and B_SCENARIO_HTF.
+11. If fewer than 50 candidates remain, explain rather than padding.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Candidate count.
+2. Files created.
+3. Remaining approved pool after exclusions.
+4. Class counts.
+5. Domain spread.
+6. Top 20 candidates:
+   - rank
+   - draftId
+   - entryId
+   - primary class
+   - fields needing rewrite
+   - hook rewrite policy
+   - one-line diagnosis
+7. Exclusions:
+   - completed P1
+   - Batch 2 Chunk A
+   - Batch 2 Chunk B
+   - DRAFT-348
+   - DRAFT-151
+   - DRAFT-010
+   - semantic duplicates
+8. Biggest risks for Batch 3.
+9. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - regional-decoration untouched
+   - Batch 3 rewrites not applied
+
+Do not rewrite entries.
+Do not apply overlays.
+Do not ask for next steps.

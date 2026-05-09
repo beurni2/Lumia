@@ -869,3 +869,15 @@ id = "jCDS2C47s-Ylo0ZrH6elL"
 uri = "file://.local/N1_P2_BATCH2_CHUNKB_APPLY_REPORT.md"
 type = "text"
 title = "N1-ELEVATION-P2 — Batch 2 Chunk B APPLY REPORT"
+
+[[outputs]]
+id = "Pi9VrorasmEYhuWnhJWT-"
+uri = "file://.local/N1_P3_BATCH3_CANDIDATE_SOURCE_PACKET.md"
+type = "text"
+title = "N1-ELEVATION-P3 — Batch 3 candidate source packet (markdown)"
+
+[[outputs]]
+id = "5EaeE3IbcjP6VhDKYFBtX"
+uri = "file://.local/qa-runs/n1_p3_batch3_candidate_source_packet.json"
+type = "unspecified"
+title = "Batch 3 candidate source packet (JSON)"
