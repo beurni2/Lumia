@@ -234,14 +234,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-033 [REWRITE] · cluster: jollof
-      hook: "jollof don disgrace my discipline",
-      whatToShow: "Show a plate of jollof or pot of jollof. You take one spoon 'just to taste,' pause, then come back with a bigger spoon.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      hook: "one small taste became full plate behaviour",
+      whatToShow: "Stand by a plate or pot and take one tiny spoon like you are only checking the taste. Pause, nod too seriously, then return with a bigger spoon and start serving yourself like the investigation has become dinner.",
+      howToFilm: "Frame the plate, spoon, and your hand from counter height. Start with the tiny taste, hold the guilty pause, then cut on the bigger spoon entering like discipline has officially left.",
       caption: "tasting committee became main consumer.",
-      anchor: "jollof",
+      anchor: "plate",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-035 [REWRITE] · cluster: home
@@ -893,15 +893,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-05",
     }),
     Object.freeze({
-      // source: DRAFT-172 · cluster: airtime_data
+      // source: DRAFT-172 [REWRITE] · cluster: airtime_data
       hook: "airtime finished, but somehow data is also judging me",
-      whatToShow: "Try to buy airtime with slow network. App loads forever. You stare like even the phone is tired.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      whatToShow: "Open a fake recharge screen while the network spinner keeps loading. You tap once, wait, tap again, then stare at the phone like airtime and data are having a meeting without you.",
+      howToFilm: "Frame the recharge screen and your tapping hand from over the shoulder. Let the loading spinner stay visible, then end on your face looking at the phone like even the network has joined the problem.",
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-175 [REWRITE] · cluster: refresh_madness
@@ -1136,14 +1136,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-219 [REWRITE] · cluster: online_no_reply · privacyNote: Use fake screenshots / mock chats only; never real contacts.
-      hook: "online dey expose the reply wey japa",
-      whatToShow: "Friend is online for 30 minutes but still has not replied. You watch the status like live sports.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      hook: "you dey online but no dey reply me",
+      whatToShow: "Open a fake chat where the person has been online for 30 minutes with no reply. You place the phone down, try to act normal, then immediately pick it back up like you are now monitoring attendance.",
+      howToFilm: "Frame the chat screen and your hand so the online status is visible. Let the phone go down for one fake-mature second, then cut on you picking it back up like the reply is a live match.",
       caption: "online without responsibility.",
       anchor: "online",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-221 [REWRITE] · cluster: okada_shortcut
@@ -1323,14 +1323,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-256 [REWRITE] · cluster: freezer_thaw
-      hook: "freezer don expose the NEPA damage",
-      whatToShow: "Open the freezer after outage. Food is thawing. You check the freezer, then the ceiling, then the clock.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      hook: "freezer opened and dinner started apologising",
+      whatToShow: "Open the freezer and pull out a food container that is clearly softer than it should be. Press the lid once, pause, look at the clock, then slowly push it back inside like you and the freezer are both pretending nothing happened.",
+      howToFilm: "Frame the freezer drawer and your hand from counter height so the weak container is visible. Let the poke, the pause, and the slow push-back carry the joke, then cut before you decide whether to trust the food.",
       caption: "freezer under pressure.",
       anchor: "freezer",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-258 [REWRITE] · cluster: snacks
@@ -1389,14 +1389,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-269 [REWRITE] · cluster: traffic_work_lie · privacyNote: Use fake screenshots / mock chats only; never real contacts.
-      hook: "traffic expose my already-seated work lie",
-      whatToShow: "You reply work messages professionally while clearly stuck in traffic.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      hook: "I'm in traffic but told them I'm already seated",
+      whatToShow: "Sit in one spot with your bag beside you and type a very professional 'I'm almost there' message. Then show a fake traffic alert, look at your shoes still by the door, and slowly move the bag farther away.",
+      howToFilm: "Frame your phone, shoes, and bag together so the lie is visible before the traffic alert appears. Let the professional typing happen first, then cut on the bag moving away like movement has been postponed.",
       caption: "remote presence by faith.",
       anchor: "traffic",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-272 [REWRITE] · cluster: aunty_pressure
@@ -1553,15 +1553,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-301 · cluster: power
-      hook: "NEPA blink once, everybody start prayer.",
-      whatToShow: "You hear one small spark near transformer. NEPA blink again. Papa runs to inverter, madam grabs charger, you just stand there like hope still dey.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      // source: DRAFT-301 [REWRITE] · cluster: power
+      hook: "light blinked once and everybody changed department",
+      whatToShow: "The light blinks once. One person grabs a charger, another reaches for the inverter, and you just stand there holding your phone like hope still has customer service.",
+      howToFilm: "Use a wide room shot so the light, charger scramble, and your frozen face all read clearly. Let everyone move at once, then end on you standing still with the phone like you are waiting for a miracle.",
       caption: "joy came for 3 seconds.",
-      anchor: "nepa",
+      anchor: "light",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-302 · cluster: home
@@ -2026,15 +2026,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-351 · cluster: messages
+      // source: DRAFT-351 [REWRITE] · cluster: messages
       hook: "data no dey stay long once scroll enter.",
       whatToShow: "You say you'll use small-small. One tiny scroll later, the data warning appears and you stare like the app robbed you politely.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      howToFilm: "Frame the phone with the video or feed open, then show the data warning appearing after one tiny scroll. Hold on your still hand and tired face, then cut before you pretend you understand where the data went.",
       caption: "data dey evaporate for this country.",
       anchor: "data",
       domain: "phone",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-352 · cluster: messages
@@ -2092,15 +2092,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-357 · cluster: messages
+      // source: DRAFT-357 [REWRITE] · cluster: messages
       hook: "status complete, reply still missing.",
-      whatToShow: "You check your status viewers. The same person who ignored your chat watched every slide.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      whatToShow: "Open a fake chat with no reply, then switch to your status viewers and see the same person watched every slide. Go back to the chat, back to the status, then put the phone down like the evidence is too loud.",
+      howToFilm: "Frame the phone close enough to show the empty chat and the status viewer list. Let the back-and-forth switching do the comedy, then cut on the phone going face-down like the witness has been dismissed.",
       caption: "active ghosting.",
       anchor: "status",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-358 · cluster: messages

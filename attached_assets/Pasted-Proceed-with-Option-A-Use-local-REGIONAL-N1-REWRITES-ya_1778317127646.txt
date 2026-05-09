@@ -1,0 +1,73 @@
+Proceed with Option A.
+
+Use `.local/REGIONAL_N1_REWRITES.yaml` as the overlay source, then regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts` with:
+
+tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts
+
+Reviewer stamp to use for these Chunk A rewrites:
+
+BI 2026-05-09
+
+Important correction:
+Chunk A contains 19 entries, not 17. Before applying, reconcile the count.
+
+Expected Chunk A entry ids:
+1. ng_b4b71380 / DRAFT-256
+2. ng_9d1c58f9 / DRAFT-242
+3. ng_67939c5a / DRAFT-033
+4. ng_b24bde12 / DRAFT-272
+5. ng_ca116012 / DRAFT-301
+6. ng_b83a3fa3 / DRAFT-290
+7. ng_474a1336 / DRAFT-075
+8. ng_39aeff9a / DRAFT-008
+9. ng_a6000f76 / DRAFT-011
+10. ng_d3c94e98 / DRAFT-021
+11. ng_e91e55a9 / DRAFT-025
+12. ng_82b4bff9 / DRAFT-172
+13. ng_39b97ae5 / DRAFT-351
+14. ng_2d5fe3de / DRAFT-202
+15. ng_bb8d79df / DRAFT-219
+16. ng_7283d4fb / DRAFT-269
+17. ng_fadf8773 / DRAFT-282
+18. ng_e2c1baea / DRAFT-356
+19. ng_b6ced0ca / DRAFT-357
+
+Apply the exact Chunk A rewrites already provided, byte-for-byte except normal YAML/TS escaping.
+
+Do not hand-edit `nigerianHookPackApproved.ts`.
+
+Do not edit the worksheet CSV directly.
+
+Do not invent or improve any copy.
+
+Do not touch entries outside Chunk A.
+
+For entries with anchor changes, let codegen validate anchor cohesion automatically.
+
+Confirmed validator note:
+`ng_b24bde12 / DRAFT-272` keeps anchor `aunty`; rewritten `whatToShow` contains `an aunty asks...`, so anchor cohesion should pass.
+
+After overlay + regeneration, run:
+
+1. Nigerian pack-specific tests.
+2. Full api-server suite.
+3. TypeScript:
+   pnpm --filter @workspace/api-server exec tsc --noEmit
+4. Static check for Chunk A:
+   - all 19 entries present
+   - expected fields changed only
+   - reviewer stamp BI 2026-05-09 applied to all 19 rewritten rows
+   - anchor appears in hook and whatToShow for all changed-anchor rows
+   - no NEPA/jollof/village people/my enemies stereotype tokens in Chunk A rewritten fields
+   - no old seven howToFilm boilerplate templates remain in Chunk A
+   - no broken abstract anchor filming remains
+
+Final report:
+- confirm Option A was used
+- list files changed
+- list all 19 entries applied
+- list fields changed per entry
+- confirm no worksheet direct edits
+- confirm no hand-edit to approved file except codegen output
+- report Nigerian tests, full suite, TypeScript, and static check results
+- report any codegen validation failures if they occur
