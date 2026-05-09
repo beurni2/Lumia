@@ -71,12 +71,12 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-005 [REWRITE] · cluster: messages · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "WhatsApp paragraph don drain my whole energy",
       whatToShow: "Show a fake WhatsApp preview with a long paragraph. You open the WhatsApp message, scroll once, close it, and put the phone under a pillow like it needs detention.",
-      howToFilm: "Bed-level handheld, low angle, one take.",
+      howToFilm: "Frame the WhatsApp preview close enough that the long paragraph is obvious. Let the scroll happen once, then cut on the phone going under the pillow like the message has been sent away.",
       caption: "if it is more than three lines, I need prayer.",
       anchor: "whatsapp",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-006 [REWRITE] · cluster: group_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -148,23 +148,23 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-017 [REWRITE] · cluster: social_plan · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "small visit expose transport bill immediately",
       whatToShow: "Fake chat says 'just come small.' You show your wallet, your shoes, then the bed. The bed wins.",
-      howToFilm: "Bed-level handheld, low angle, one take.",
+      howToFilm: "Frame the chat, wallet, shoes, and bed in quick sequence. Start with the 'just come small' message, show the transport reality, then cut on the bed winning without argument.",
       caption: "\"small\" has transport cost.",
       anchor: "small",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-019 [REWRITE] · cluster: errand
-      hook: "keys don expose my outside lie",
-      whatToShow: "You pick up your keys, hear a fake notification about traffic, rain, or long queue, then gently put the keys back like outside has rejected you.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      hook: "keys enter my hand, outside start billing me",
+      whatToShow: "You pick up your keys like you are ready to leave. A fake traffic, rain, or queue message enters, your hand pauses, then you place the keys back like outside has sent invoice.",
+      howToFilm: "Frame the keys, phone notification, and your hand near the door or table. Let the keys rise with confidence, stop at the message, then cut on the keys going back like the outing has been cancelled quietly.",
       caption: "outside responded too fast.",
       anchor: "keys",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-021 [REWRITE] · cluster: data
@@ -223,14 +223,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-031 [REWRITE] · cluster: food
-      hook: "pot don expose my cooking lie",
-      whatToShow: "Open a pot, look inside, close it slowly, then open a snack cupboard like you are switching departments.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      hook: "pot don humble my cooking confidence",
+      whatToShow: "Open the pot with full confidence, look inside, then close it halfway like you need a second meeting. Pause, open it again, and quietly reach for the snack cupboard like the pot has resigned.",
+      howToFilm: "Frame the pot, your hand, and the snack cupboard in the same kitchen setup. Start with the confident pot opening, hold the second look, then cut on your hand switching to snacks like the kitchen plan has changed.",
       caption: "kitchen update: faith required.",
       anchor: "pot",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-05",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-033 [REWRITE] · cluster: jollof
@@ -256,25 +256,25 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-037 [REWRITE] · cluster: kitchen
-      hook: "pot don expose the stew matter",
-      whatToShow: "Open a pot, scrape the bottom with a spoon, then stare at the pot like the stew matter has embarrassed the whole kitchen.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      hook: "pot don humble the stew announcement",
+      whatToShow: "Open the pot and scrape the bottom with a spoon. Pause at the tiny stew left, look around the kitchen, then cover the pot back like nobody should ask questions.",
+      howToFilm: "Frame the pot from counter height so the spoon scrape is visible. Let the scrape sound and tiny stew carry the joke, then cut on the lid closing like the announcement has been cancelled.",
       caption: "silence after stew is suspicious.",
       anchor: "pot",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-039 [REWRITE] · cluster: snacks
-      hook: "snack don expose my weekly plan",
-      whatToShow: "Show a full snack bag, then cut to empty wrappers. Your hand folds the snack bag like evidence.",
-      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      hook: "snack don finish before week even start",
+      whatToShow: "Show a full snack bag at the start, then cut to empty wrappers beside you. Fold the snack bag neatly, pause like you are doing account audit, then hide the wrappers under another bag.",
+      howToFilm: "Frame the snack bag, wrappers, and your hands from couch or table level. Start on the full bag, cut to the evidence pile, then end on the careful folding like hiding snacks is now paperwork.",
       caption: "weekly plan lasted one episode.",
       anchor: "snack",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-041 · cluster: school
@@ -1071,13 +1071,13 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     Object.freeze({
       // source: DRAFT-206 [REWRITE] · cluster: blue_tick · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "blue ticks expose reply wey disappear",
-      whatToShow: "You send a long fake message. Blue ticks appear immediately. You keep checking the chat while doing chores, pretending you are not checking.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      whatToShow: "Send a long fake message and watch the blue ticks appear immediately. Keep checking the chat while folding clothes, then stop mid-fold when you realize the reply is still missing.",
+      howToFilm: "Frame the chat screen and one simple chore in the same setup. Show the blue ticks first, let the checking repeat during the chore, then cut on the unfinished fold when the reply still refuses to come.",
       caption: "read receipt with pain.",
       anchor: "ticks",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-208 [REWRITE] · cluster: deleted_message · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -1126,13 +1126,13 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     Object.freeze({
       // source: DRAFT-216 [REWRITE] · cluster: status_emoji · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "status got emoji, DM still dey suffer",
-      whatToShow: "Friend replies to your status with an emoji, but your long DM is still unread. You switch between the status and the DM like the math is not adding up.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      whatToShow: "Open a fake status reply with one emoji, then switch to your long DM still unread. Go back to the status, back to the DM, and pause like the evidence is now arguing with itself.",
+      howToFilm: "Frame the phone close enough to show the status reply and unread DM. Let the switching happen twice, then cut on your thumb frozen between both screens like accountability is missing.",
       caption: "emoji came before accountability.",
       anchor: "status",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-219 [REWRITE] · cluster: online_no_reply · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -1335,24 +1335,24 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     Object.freeze({
       // source: DRAFT-258 [REWRITE] · cluster: snacks
       hook: "snack finish, my calm voice dey lie",
-      whatToShow: "Roommate finishes your snack. You say 'no worry, I go buy my own next time' calmly, but your face stays on the empty snack wrapper too long.",
-      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      whatToShow: "Show the empty snack wrapper on the table. You say 'no worry, I go buy my own next time' with a calm face, then pull the wrapper closer and stare at it like it owes you apology.",
+      howToFilm: "Frame the empty snack wrapper between you and the camera. Let the calm line come first, then hold on your hand dragging the wrapper closer while your face stops pretending peace is available.",
       caption: "peace with pain.",
       anchor: "snack",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
-      // source: DRAFT-261 · cluster: boss_email · privacyNote: Use fake screenshots / mock chats only; never real contacts.
+      // source: DRAFT-261 [REWRITE] · cluster: boss_email · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "oga sent email at 11:58 p.m.",
-      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly and open your laptop again.",
-      howToFilm: "Bed-level handheld, low angle, one take.",
+      whatToShow: "You are already in bed with the laptop closed. A fake work email lands, you sit up, open one eye, then slowly reopen the laptop like sleep just lost its job.",
+      howToFilm: "Frame the bed, closed laptop, and email notification so the interruption is clear. Let your body sit up before your mind agrees, then cut on the laptop opening like night shift has started.",
       caption: "bedtime became office hours.",
       anchor: "email",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-263 [REWRITE] · cluster: portal_closed
@@ -1586,15 +1586,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-304 · cluster: food
-      hook: "gala entered bus, my stomach betrayed me.",
-      whatToShow: "You promised yourself no spending. Gala seller passes by, and your hand starts moving without permission.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      // source: DRAFT-304 [REWRITE] · cluster: food
+      hook: "gala enter bus, discipline comot window",
+      whatToShow: "Sit like you are saving money while a gala seller passes the bus window. Your hand stays still for one second, then reaches out before your face can defend you.",
+      howToFilm: "Frame your hand, the bus-window side, and the small money decision. Hold the first second of fake discipline, then cut on your hand reaching out like your stomach has taken control.",
       caption: "discipline left the bus.",
       anchor: "gala",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-305 · cluster: food
@@ -1619,15 +1619,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-307 · cluster: food
+      // source: DRAFT-307 [REWRITE] · cluster: food
       hook: "okra no dey break up peacefully.",
-      whatToShow: "You scoop okra from plate. It stretches from spoon to mouth like it's begging not to leave.",
-      howToFilm: "Counter-level lock-off, daylight, one take.",
+      whatToShow: "Scoop okra from the plate and lift the spoon slowly. The okra stretches from spoon to mouth, you pause, lower the spoon, then try again like the soup is refusing separation.",
+      howToFilm: "Frame the plate, spoon, and okra close enough for the stretch to read. Let the first lift fail, reset the spoon, then cut on the second stretch looking even more serious.",
       caption: "this soup has attachment.",
       anchor: "okra",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-308 · cluster: food
@@ -1883,26 +1883,26 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-335 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
-      hook: "recharge card lost two numbers, now I'm guessing destiny.",
-      whatToShow: "You buy a recharge card. You scratch too hard. Two digits vanish. You start trying combinations like secret code.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      // source: DRAFT-335 [REWRITE] · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "recharge card scratch don turn WAEC question",
+      whatToShow: "Hold a fake recharge card with two missing numbers. Squint at the recharge card, try one code, pause at the error message, then start guessing combinations like exam has started.",
+      howToFilm: "Frame the recharge card, phone keypad, and your thumb in one close setup. Show the missing digits first, try one wrong code, then cut on your face preparing for another guess.",
       caption: "scratch with regret.",
       anchor: "recharge",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
-      // source: DRAFT-336 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
-      hook: "bundle finished faster than gala in bus.",
-      whatToShow: "You buy bundle. You open one app, watch small thing, and balance starts looking empty.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      // source: DRAFT-336 [REWRITE] · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
+      hook: "bundle don finish before the video even greet me",
+      whatToShow: "Buy a fake data bundle and open one short video. The balance drops immediately, you pause the video, check the bundle screen again, then look at the phone like it stole with manners.",
+      howToFilm: "Frame the phone so the bundle balance and paused video are readable. Let the balance drop happen before your reaction, then cut on you checking the screen again like the bundle might apologize.",
       caption: "where did it run?",
       anchor: "bundle",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-337 · cluster: power
@@ -1916,15 +1916,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
-      // source: DRAFT-339 · cluster: transport
-      hook: "bus window seat can test friendship.",
-      whatToShow: "You and your friend enter bus. One window seat remains. Both of you smile fake and move faster.",
-      howToFilm: "Door-side handheld, mid-shot, one take.",
+      // source: DRAFT-339 [REWRITE] · cluster: transport
+      hook: "bus window seat don test friendship",
+      whatToShow: "You and your friend enter the bus and spot one window seat. Both of you smile politely, then your bags start moving faster than your friendship.",
+      howToFilm: "Frame the bus entrance or two chairs as the seat setup. Let both people see the window seat at the same time, hold the fake smile, then cut on the sudden race for the seat.",
       caption: "love has limit.",
       anchor: "bus",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-340 · cluster: transport
