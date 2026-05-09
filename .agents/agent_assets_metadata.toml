@@ -641,3 +641,15 @@ id = "74VKSFoyuKDQxRQmp1gCW"
 uri = "file://.local/qa-runs/n1_chunk_c_source_packet.json"
 type = "unspecified"
 title = "N1 Chunk C Source-of-Truth Packet (machine)"
+
+[[outputs]]
+id = "MicpAilHJszxaD0rh0ORJ"
+uri = "file://.local/N1_CHUNK_C_APPLY_REPORT.md"
+type = "text"
+title = "N1 Chunk C Apply Report (Batch 1 complete: 45/45)"
+
+[[outputs]]
+id = "mlG6elxqg2I-4QSkIRTNP"
+uri = "file://.local/qa-runs/n1_chunk_c_proposed_overlay.yaml"
+type = "unspecified"
+title = "N1 Chunk C Proposed Overlay (11 blocks)"
