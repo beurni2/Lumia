@@ -1,0 +1,284 @@
+You are working in the Lumina monorepo.
+
+Phase:
+Post-W2-AUTHOR + W2-N cleanup runtime QA.
+
+Context:
+The following phases are accepted and complete:
+1. W2-AUTHOR HYBRID generator upgrade
+2. Debug printer cleanup
+3. W2-N corpus cohesion cleanup
+
+Current verification state:
+- Full api-server suite green: 1273/1273
+- TypeScript clean
+- W2-N corpus cohesion re-audit clean: 0 anchor + 0 overlap violators
+- Banned-phrase scan unchanged: only known negative-example hits in `ideaGen.ts`
+- No validators/schema/selectors/flags/migrations/API shape changed
+
+This phase is NOT a coding phase unless QA reveals a real defect.
+
+Goal:
+Run an end-to-end product-quality/runtime QA pass to verify that actual generated batches now feel stronger after the W2-AUTHOR HYBRID upgrade and W2-N corpus cleanup.
+
+We are checking whether generated ideas now produce `whatToShow` and `howToFilm` that feel like the V2 rewrite standard:
+- visible skit
+- setup/action/turn/payoff
+- object or action carries the joke
+- concrete filming direction
+- shootable in 10–15 minutes
+- no generic boilerplate
+- no AI-ish filler
+- no weak mismatch between hook and scenario
+- no regression in batch diversity, fallback behavior, or under-fill behavior
+
+============================================================
+STRICT RULES
+============================================================
+
+Do NOT modify code during the first pass.
+
+This is audit/QA first.
+
+Do NOT touch:
+- corpus files
+- generator files
+- validators
+- tests
+- schemas
+- selectors
+- flags
+- env files
+- migrations
+- API shape
+- prompts
+- mobile files
+
+If you discover a serious defect, report it with:
+1. exact sample output
+2. source path/source tag if available
+3. likely cause
+4. minimal proposed fix
+5. risk level
+
+Do not apply fixes unless explicitly approved.
+
+============================================================
+QA SURFACES
+============================================================
+
+Run generated-batch QA across these cohorts/surfaces:
+
+1. Western default
+2. Western live/W2 path if available in dev/staging flags without production flag edits
+3. Nigeria / pidgin
+4. Nigeria / light pidgin
+5. India
+6. Philippines
+7. Generic cold-start creator
+8. Returning/personalized creator if an existing harness supports taste history
+
+If some cohort harness is unavailable, do not invent a new large system. Use the closest existing ideator QA/smoke harness and clearly state what was skipped.
+
+============================================================
+SAMPLE SIZE
+============================================================
+
+Generate or collect at least:
+
+- 5 batches per major cohort where practical
+- 3 ideas per batch
+- target minimum: 60 generated ideas total
+- ideal: 90+ generated ideas if existing harnesses make that easy
+
+For each idea, collect:
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source tag if available
+- region/cohort
+- batch number
+- fallback decision/source if available
+- any comfort/action metadata if emitted
+
+============================================================
+AUTOMATED CHECKS
+============================================================
+
+Run deterministic checks over the collected outputs:
+
+1. Banned phrase scan over generated `whatToShow` + `howToFilm`
+Reject:
+- phone on a tripod
+- single static shot
+- single locked-off shot
+- single locked off shot
+- locked-off on tripod
+- locked off on tripod
+- let the joke land
+- film yourself reacting
+- creator reacts
+- show the X on camera placeholder
+
+2. Length bounds
+Confirm:
+- `whatToShow` within expected schema bounds
+- `howToFilm` within expected schema bounds
+
+3. Duplication
+Report:
+- duplicate hooks
+- duplicate `whatToShow`
+- duplicate `howToFilm`
+- near-duplicate hooks if existing similarity helper is available
+
+4. Hook/scenario linkage
+Flag cases where:
+- `whatToShow` does not clearly match the hook
+- `howToFilm` introduces a different premise
+- caption does not fit the idea
+- the main object/action is absent from filming guidance
+
+5. V2-style scoring
+Use a simple manual or semi-automated rubric, scored 1–5:
+
+For each sampled idea:
+- Hook strength
+- WhatToShow specificity
+- HowToFilm shootability
+- Hook ↔ scenario coherence
+- Object/action carries the joke
+- Non-generic / non-AI-ish feel
+- Overall first-impression quality
+
+Calculate averages by source/cohort.
+
+6. Under-fill/fallback
+Report:
+- batches that returned fewer than expected ideas
+- fallback source distribution
+- any shift or suspicious spike in Claude fallback
+- any gate miss logs from W2/N1 pack authors
+
+============================================================
+MANUAL READ
+============================================================
+
+Manually read at least 30 ideas across cohorts.
+
+For each, assign:
+
+PASS:
+Feels filmable, specific, coherent, and V2-quality.
+
+WARN:
+Mostly usable, but has a mild issue such as slightly generic filming, weak caption synergy, or not enough payoff.
+
+FAIL:
+Generic, incoherent, unfilmable, mismatch with hook, AI-ish, or weak enough that it would disappoint a creator.
+
+Include the 10 worst samples verbatim in the report, even if they are only WARN.
+
+Include the 10 best samples verbatim in the report so we can see what is working.
+
+============================================================
+SPECIAL ATTENTION
+============================================================
+
+Pay special attention to `core_native` Path B long-tail ideas.
+
+This was the biggest previous quality cliff. Confirm with real samples that non-authored anchors now feel like V2-style output, especially anchors similar to:
+- thread
+- tasks
+- swipe
+- draft
+- tab
+- list
+- email
+- inbox
+- calendar
+- alarm
+- fridge
+- mirror
+- open thread
+- task list
+- phone screen
+
+Also check that W2/N1 pack outputs remain unchanged in style except for the approved W2-N corpus cohesion cleanup.
+
+============================================================
+COMMANDS / HARNESSES
+============================================================
+
+Use existing repo QA/smoke scripts where possible.
+
+Look for existing scripts similar to:
+- ideator smoke tests
+- first-impression sweeps
+- W2 QA sweep scripts
+- runtime exposure smoke tests
+- batch generation harnesses
+
+Do not create a huge new framework. If a small local QA script is needed, place it under `.local/scripts/` and make it read-only / report-only.
+
+Output JSON, if created, should go under:
+`.local/qa-runs/`
+
+Suggested output file:
+`.local/qa-runs/post_w2_author_runtime_quality_qa.json`
+
+Suggested report:
+`.local/POST_W2_AUTHOR_RUNTIME_QA_REPORT.md`
+
+============================================================
+ACCEPTANCE TARGETS
+============================================================
+
+Target results:
+
+- 0 banned phrase hits in generated user-facing `whatToShow` / `howToFilm`
+- 0 malformed ideas
+- 0 under-filled normal batches
+- 0 hook/scenario hard mismatches
+- 0 `howToFilm` entries that introduce a different premise
+- duplicate hooks: 0 within batch
+- duplicate filming guidance: 0 within batch
+- manual FAIL rate: ideally 0%; if any FAIL exists, provide root cause and proposed fix
+- WARN rate: low and explainable
+- Path B long-tail samples should mostly PASS
+- No suspicious fallback spike
+- Full api-server suite still green after QA if no code changes were made
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a report with:
+
+1. Exact commands/scripts run.
+2. Cohorts covered and sample count.
+3. Any cohorts skipped and why.
+4. Automated check results:
+   - banned phrases
+   - duplicates
+   - malformed ideas
+   - length bounds
+   - under-fill
+   - fallback distribution
+   - gate miss logs if available
+5. Manual rubric summary:
+   - PASS/WARN/FAIL counts
+   - average scores by cohort/source if available
+6. 10 best samples verbatim.
+7. 10 worst/WARN samples verbatim.
+8. Special section on `core_native` Path B long-tail quality.
+9. Clear verdict:
+   - ACCEPT runtime quality
+   - ACCEPT WITH FOLLOW-UP
+   - REJECT / NEED FIX
+10. If follow-up is needed, provide the smallest safe fix plan, but do not apply it yet.
+11. Confirm no source files were changed during QA, unless explicitly approved after findings.
+
+Remember:
+This phase is about proving the product actually feels better end-to-end. Do not hide behind test counts. The user cares whether creators will see ideas that feel specific, funny, filmable, and worth filming.
