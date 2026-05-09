@@ -923,3 +923,21 @@ id = "Cz9eRgCjEUzTLHQqpAvU6"
 uri = "file://.local/qa-runs/n1_core_clean_null_audit.json"
 type = "unspecified"
 title = "Probe data snapshot (160 rows)"
+
+[[outputs]]
+id = "NV-2objQ9NZ52xyaYGBtC"
+uri = "file://.local/N1_CORE_CLEAN_GUARD_REPORT.md"
+type = "text"
+title = "N1-CORE-CLEAN-GUARD — Implementation Report"
+
+[[outputs]]
+id = "LDc_5mcEYjxgUiRs0X2-z"
+uri = "file://.local/qa-runs/n1_core_clean_guard_runtime_recheck.json"
+type = "unspecified"
+title = "Runtime recheck (160 rows)"
+
+[[outputs]]
+id = "c695iWvsgqFSBiskW83k6"
+uri = "file://.local/qa-runs/n1_core_clean_guard_runtime_recheck_summary.json"
+type = "unspecified"
+title = "Runtime recheck summary"

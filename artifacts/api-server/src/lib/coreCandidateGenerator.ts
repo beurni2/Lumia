@@ -103,6 +103,20 @@ import {
   computeWesternHookAdjustment,
   computeWesternSpecificityAdjustment,
 } from "./westernHookQuality.js";
+// PHASE N1-CORE-CLEAN-GUARD — narrow safety guard for the catalog
+// `core_native` path on `region=nigeria + languageStyle ∈ {clean,
+// null, undefined}`. Hard-rejects loud generic shouty templates from
+// `voiceClusters.ts` (high_energy_rant family) that have no
+// demotion/rejection signal otherwise (Western demotion is gated
+// out for nigeria; nigerianStylePenalty is gated to pidgin only).
+// Pack candidates skip this branch entirely (pack push is at the
+// earlier `if (packEligible.length > 0)` block, NOT here) — and the
+// pack-active cohorts are pidgin/light_pidgin, which the gate also
+// excludes. Western/India/Philippines all gated out.
+import {
+  canApplyNigerianCleanCoreGuard,
+  isNigerianCleanCoreHookBlocked,
+} from "./nigerianCleanCoreGuard.js";
 
 // ---------------------------------------------------------------- //
 // Public types                                                      //
@@ -1402,6 +1416,23 @@ export function generateCoreCandidates(
       });
       const quality =
         baseQuality - stylePenalty + westernAdjustment + w14Adjustment;
+      // PHASE N1-CORE-CLEAN-GUARD — hard-reject loud generic shouty
+      // hook shapes for `region=nigeria + languageStyle ∈ {clean,
+      // null, undefined}`. Runs ONLY at this catalog/core_native
+      // scoring site (pack candidates are scored at the earlier
+      // pack block and never reach here). Drop with `continue` —
+      // candidate is never added to `passing[]`, so under-fill only
+      // occurs if NO catalog or pack alternative exists for the
+      // entire core, which the upstream rotation pool prevents.
+      if (
+        canApplyNigerianCleanCoreGuard({
+          region: input.region,
+          languageStyle: packLanguageStyle,
+        }) &&
+        isNigerianCleanCoreHookBlocked(result.idea.hook)
+      ) {
+        continue;
+      }
       // PHASE W1.1 AUDIT — tally per-recipe adjustment outcome for the
       // western/default cohort. Sign is the policy signal: <0 demoted,
       // >0 boosted (specificity bonus), ===0 net no-op (helper returned

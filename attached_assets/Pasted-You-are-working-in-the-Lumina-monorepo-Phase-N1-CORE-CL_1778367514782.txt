@@ -1,0 +1,337 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CORE-CLEAN-GUARD — Nigerian clean/null core_native shouty-template guard.
+
+Context:
+The Nigerian approved pack elevation stream is complete and at STOP:
+- Approved Nigerian pack: 204.
+- Rejected rows: 13 pre-existing only.
+- Rejected-from-rewrites: 0.
+- P1 accepted.
+- Batch 2 accepted: 59 landed rewrites.
+- Batch 3 accepted: 59 landed HTF-only upgrades.
+- DRAFT-187 targeted cleanup landed.
+- Post-cleanup runtime QA verdict: STOP.
+- Runtime banned-filming hits: 0.
+- Stereotype hits: 0.
+- Scenario-coherence failures: 0.
+- Structural failures: 0.
+- ng_clean decoration leaks: 0.
+- Nigerian pack tests: 288/288 passing.
+- TypeScript clean.
+- Regional-decoration fix shipped and untouched.
+
+Audit result:
+N1-CORE-CLEAN-AUDIT verdict = FIX_NEEDED, narrow scope.
+
+Root cause:
+`region=nigeria + languageStyle=clean` and internal `region=nigeria + languageStyle=null/undefined` can reach generic `core_native` high-energy-rant templates from `voiceClusters.ts`, including patterns like:
+
+`i ${actionPast} the ${anchor} AGAIN. AGAIN!!!`
+
+Confirmed surfaced sample:
+- cohort: internal `ng_null`
+- source: `core_native`
+- hook: `i dodged the lockscreen AGAIN. AGAIN!!!`
+- scanner hit: `exclamation_pile:!!!`
+
+Audit also found a milder `ng_clean` sample from the same template family:
+- `the inbox is dodging me. AGAIN.`
+
+The defect exists because:
+1. `coreCandidateGenerator.ts` does not gate high-energy-rant template selection by region/languageStyle.
+2. Western generic-template demotion has regexes that would catch this family, but those demotions are gated away from `region=nigeria`.
+3. Nigerian style penalty only applies to `pidgin` / `light_pidgin`, so `clean` and `null/undefined` are not protected.
+4. `PIDGIN_MOCKING_PATTERNS` are QA-only today and not applied in this core_native runtime path.
+
+Product distinction:
+- `ng_pidgin`: Nigerian, funny, culturally grounded, natural pidgin allowed.
+- `ng_light_pidgin`: Nigerian, funny, culturally grounded, light pidgin allowed.
+- `ng_clean`: Nigerian, funny, culturally grounded, clean English / Nigerian English. No pidgin/mock-pidgin/shouty artifacts.
+- `languageStyle=null/undefined`: internal safety fallback only. No pidgin/mock-pidgin/shouty artifacts or forced Nigerian decoration.
+
+Important:
+This implementation is ONLY the narrow safety guard.
+Do not attempt the larger `ng_clean` cultural-grounding product phase here.
+Do not flatten Nigerian clean output into bland generic output.
+Do not touch the Nigerian approved pack.
+
+============================================================
+GOAL
+============================================================
+
+Implement the smallest safe fix:
+
+Add a final-candidate guard for `core_native` candidates when:
+
+`region === "nigeria"` AND `languageStyle in {"clean", null, undefined}`
+
+The guard should hard-reject loud generic/mocky hook patterns, especially:
+- `AGAIN. AGAIN!!!`
+- repeated emphatic AGAIN patterns
+- `!! BUT I WILL`
+- repeated all-caps shout patterns
+- exclamation / question mark piles like `!!!`, `???`, `?!?!`
+
+The guard must:
+- affect only Nigerian `clean` / null / undefined core_native candidates
+- not affect `ng_pidgin`
+- not affect `ng_light_pidgin`
+- not affect the Nigerian pack path
+- not affect Western / India / Philippines
+- not affect non-Nigeria null/undefined outputs
+- not suppress scanner reports
+- not loosen any validator
+
+============================================================
+IMPLEMENTATION SHAPE
+============================================================
+
+Preferred implementation based on audit Option A:
+
+1. Add a tiny guard module, likely:
+
+`artifacts/api-server/src/lib/nigerianCleanCoreGuard.ts`
+
+Suggested API:
+
+```ts
+import type { RegionProfileId } from "./regionProfile";
+import type { LanguageStyle } from "./tasteCalibration";
+
+export function canApplyNigerianCleanCoreGuard(args: {
+  region?: RegionProfileId | null;
+  languageStyle?: LanguageStyle | null;
+}): boolean {
+  return args.region === "nigeria" &&
+    (args.languageStyle === "clean" ||
+      args.languageStyle === null ||
+      args.languageStyle === undefined);
+}
+
+export function isNigerianCleanCoreHookBlocked(hook: string): boolean {
+  // exact patterns below
+}
+
+Use existing project type names/import paths if they differ. Avoid circular imports. If importing LanguageStyle creates a cycle, use a local narrow type union.
+
+Pattern coverage:
+
+Include patterns equivalent to:
+
+const REPEATED_EMPHATIC_AGAIN =
+  /\bAGAIN[.!]?\s+AGAIN[!.]*/i;
+
+const I_CANNOT_STOP_DOUBLED =
+  /\bi can(?:not|'t) keep\b.*\b(?:BUT I WILL|but i will)\b/i;
+
+const ANCHOR_REPEAT_SHOUT =
+  /\bthe\s+\w+[.!]?\s+the\s+\w+!!\s+AGAIN\b/i;
+
+const EXCLAMATION_PILE =
+  /[!?]{3,}/;
+
+const REPEATED_ALL_CAPS_TOKEN =
+  /\b([A-Z]{2,})\b(?:[\s.!?]+)\b\1\b/;
+
+You may reuse/export existing Western pattern definitions if that is cleaner, but do not change Western behavior. If exporting existing patterns risks broad changes, define a local Nigerian clean/null guard pattern list.
+
+Wiring location:
+
+Wire the guard in coreCandidateGenerator.ts after candidate hook authoring and before final selection / passing-candidate inclusion.
+
+The audit identified likely sites around:
+
+coreCandidateGenerator.ts:1177
+coreCandidateGenerator.ts:1367
+
+Use the actual current code structure. The point is:
+
+candidate already has a final hook string
+region/languageStyle are available
+candidate can be dropped before it becomes selectable
+no under-fill should result if alternatives exist
+
+Do not apply the guard to Nigerian pack authored entries.
+Pack-active cohorts use pidgin / light_pidgin, so the guard should not run there anyway, but also make sure pack candidates are not accidentally filtered by this core_native guard.
+
+Under-fill behavior:
+
+If a candidate is rejected by the guard:
+
+continue to the next candidate/cluster/pool candidate
+do not under-fill merely because one bad high-energy-rant candidate was rejected
+do not fall back to bad candidate unless absolutely no alternatives exist
+if the code path has a “passing” array, do not add blocked candidates to passing
+Logging:
+
+Add minimal debug-friendly metadata only if the project already has a pattern for it.
+Do not add noisy production logs.
+Do not change API response shape.
+
+============================================================
+DO NOT TOUCH
+
+Do not modify:
+
+artifacts/api-server/src/lib/nigerianHookPackApproved.ts
+artifacts/api-server/src/lib/nigerianPackAuthor.ts
+.local/REGIONAL_N1_REWRITES.yaml
+.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv
+Nigerian pack codegen
+pack corpus
+pack validators
+regional-decoration implementation
+prompts
+API shape
+DB/migrations
+mobile code
+
+Do not loosen:
+
+validators
+scanners
+mock-pidgin checks
+scenario coherence
+Nigerian style penalty
+Western demotion
+
+Do not implement the larger ng_clean cultural-grounding phase in this task.
+
+============================================================
+TESTS TO ADD / UPDATE
+
+Add focused tests.
+
+Suggested new test file:
+
+artifacts/api-server/src/lib/__tests__/nigerianCleanCoreGuard.test.ts
+
+Required unit coverage:
+
+Gate truth table:
+region=nigeria + languageStyle=clean → true
+region=nigeria + languageStyle=null → true
+region=nigeria + languageStyle=undefined → true
+region=nigeria + languageStyle=pidgin → false
+region=nigeria + languageStyle=light_pidgin → false
+region=western + clean/null → false
+region=india + clean/null → false
+region=philippines + clean/null → false
+region undefined/null + clean/null → false
+Pattern blocking:
+i dodged the lockscreen AGAIN. AGAIN!!! → blocked
+the inbox is dodging me. AGAIN. → blocked if pattern policy includes mild repeated AGAIN family; if not blocked, explain why and ensure full AGAIN!!! is blocked
+the inbox. the inbox!! AGAIN the inbox → blocked
+i can't keep refreshing the inbox!! BUT I WILL → blocked
+normal funny Nigerian clean-English hook → not blocked
+light disappear and power bank judge me → not blocked
+group chat don hijack my whole peace may be blocked only when clean/null if pidgin markers are part of this guard; however preferred narrow guard is shouty-template only, so do not add broad pidgin marker blocking unless evidence requires it.
+Integration / wiring:
+Add a focused test near coreCandidateGenerator if existing test harness makes this reasonable:
+With region=nigeria + languageStyle=clean, a candidate hook matching AGAIN. AGAIN!!! is excluded/demoted before final selection.
+With region=nigeria + languageStyle=null/undefined, same.
+With region=nigeria + languageStyle=pidgin/light_pidgin, guard does not run.
+With region=western, guard does not run.
+No under-fill when an alternate candidate exists.
+
+If full integration is too expensive, add a unit-level test around the filtering helper and explain why.
+
+Existing verification:
+Run:
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCoreGuard.test.ts
+
+Run any focused core candidate generator test if added.
+
+Run:
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts
+
+Run:
+pnpm --filter @workspace/api-server exec tsc --noEmit
+
+============================================================
+RUNTIME RECHECK
+
+After implementation, run the existing read-only runtime QA harness:
+
+.local/scripts/n1PostBatch3RuntimeQa.ts
+
+Use same settings:
+
+seed=42
+baseSalt=1009
+all three NG staging flags ON
+cohorts:
+ng_pidgin
+ng_light_pidgin
+ng_clean
+internal ng_null/null safety
+
+Expected:
+
+ng_clean exclamation-pile / mock-pidgin hits: 0
+ng_null exclamation-pile / mock-pidgin hits: 0
+ng_clean / ng_null decoration leaks: 0
+ng_pidgin pack delivery unchanged
+ng_light_pidgin pack delivery unchanged
+Nigerian pack banned-filming/stereotype/coherence/structural counts unchanged
+no under-fill rows
+
+Save output to:
+
+.local/qa-runs/n1_core_clean_guard_runtime_recheck.json
+
+and summary to:
+
+.local/qa-runs/n1_core_clean_guard_runtime_recheck_summary.json
+
+Create report:
+
+.local/N1_CORE_CLEAN_GUARD_REPORT.md
+
+============================================================
+SUCCESS CRITERIA
+
+Must end with:
+
+TypeScript clean
+focused guard tests passing
+Nigerian pack tests passing
+runtime recheck shows 0 exclamation-pile/mock-pidgin hits in ng_clean and internal null cohort
+pack-active cohorts unchanged
+no Nigerian pack corpus/codegen/rewrite/worksheet changes
+regional-decoration untouched
+no API/mobile/schema/migration changes
+============================================================
+FINAL REPORT — KEEP IT SHORT
+
+Return only:
+
+Verdict.
+Files changed.
+Exact behavior change.
+Tests added/updated.
+Runtime recheck result:
+ng_clean hits
+ng_null hits
+pack-active delivery
+decoration leaks
+under-fill rows
+Nigerian pack test result.
+TypeScript result.
+Confirm:
+Nigerian pack untouched
+rewrite YAML untouched
+worksheet untouched
+codegen not run except if existing tests require, but no pack generated changes
+regional-decoration untouched
+pidgin/light_pidgin not over-sanitized
+Western/India/Philippines unaffected
+no API/mobile/schema/migration changes
+Any risk or follow-up.
+
+Do not ask for next steps.
+
+
+This implements only the narrow guard the audit recommended: block shouty `core_native` artifacts for Nigerian clean/null safety, while leaving the Nigerian pack and pidgin/light-pidgin paths untouched. The bigger `ng_clean` cultural-quality improvement should remain a separate phase.
