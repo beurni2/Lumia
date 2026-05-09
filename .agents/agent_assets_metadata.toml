@@ -461,3 +461,15 @@ id = "e93WAP1WC-fHcvm5RPCgg"
 uri = "file://.local/W2FTN_E_W2N_WHAT_TO_SHOW_HOW_TO_FILM_UPGRADE_PACKET.md"
 type = "text"
 title = "W2-FTN-E3 — W2-N WhatToShow + HowToFilm Masterpiece Upgrade Packet (53 entries, all READY)"
+
+[[outputs]]
+id = "k_MDYFNvy49GyL6TZs-2E"
+uri = "file://.local/W2AUTHOR_AUTHORING_SURFACE_AUDIT.md"
+type = "text"
+title = "W2-AUTHOR — Authoring Surface Audit"
+
+[[outputs]]
+id = "sJCzWUMApdp8gGVT7x2DD"
+uri = "file://.local/W2AUTHOR_REPAIR_PLAN.md"
+type = "text"
+title = "W2-AUTHOR — Repair Plan"
