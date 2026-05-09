@@ -972,13 +972,13 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     Object.freeze({
       // source: DRAFT-187 [REWRITE] · cluster: pos_fee · privacyNote: Use fake bank-alert mock; never a real account screen.
       hook: "POS expose my no-cash shame instantly",
-      whatToShow: "At a shop counter setup, you check your wallet, then see the POS extra charge. Your face drops slowly.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
-      caption: "payment method with plot twist.",
+      whatToShow: "Stand at a POS point expecting to withdraw. POS madam asks for cash or transfer details, you check your pocket, then your face changes like the no-cash shame has entered public record.",
+      howToFilm: "Frame the POS point, your empty pocket check, and the POS madam side in one simple setup. Let the pos question land first, then cut on your face realizing no-cash shame is now public.",
+      caption: "cashless, against my will.",
       anchor: "pos",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-189 [REWRITE] · cluster: lost_but_proud

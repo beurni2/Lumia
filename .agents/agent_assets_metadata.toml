@@ -905,3 +905,9 @@ id = "2h_lBfs4lxXcVuuIaTIYe"
 uri = "file://.local/qa-runs/n1_post_batch3_runtime_qa_summary.json"
 type = "unspecified"
 title = "Post-Batch-3 runtime QA summary (JSON)"
+
+[[outputs]]
+id = "8CwHqg6bhnXWfe3ILTkQ0"
+uri = "file://.local/N1_P3_DRAFT187_TARGETED_CLEANUP_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P3 — DRAFT-187 Targeted Cleanup Report"

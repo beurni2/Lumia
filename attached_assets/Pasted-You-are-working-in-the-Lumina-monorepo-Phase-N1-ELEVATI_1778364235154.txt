@@ -1,0 +1,157 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P3 — Targeted post-runtime cleanup for DRAFT-187.
+
+Context:
+Post-Batch-3 runtime QA verdict:
+- TARGETED_CLEANUP, not Batch 4.
+- Runtime sample size: 160 ideas.
+- Pack-active cohorts:
+  - ng_pidgin: 60/60 pack delivery
+  - ng_light_pidgin: 60/60 pack delivery
+- ng_clean / ng_null: 0 pack delivery, as expected.
+- Stereotype hits: 0.
+- Scenario-coherence failures: 0.
+- Structural failures: 0.
+- Clean/null decoration leaks: 0.
+- Only one weak approved-pack entry surfaced:
+  - DRAFT-187 / entryId `ng_ef9213fc`
+  - hook: `POS expose my no-cash shame instantly`
+  - issue: legacy `howToFilm` boilerplate:
+    `Desk-height lock-off, soft daylight, one take. Keep the pos centered.`
+  - recommended action: HTF-only cleanup.
+
+Goal:
+Apply a single HTF-only overlay for DRAFT-187, then stop.
+
+Do not start Batch 4.
+Do not rewrite any other entries.
+Do not modify source code, tests, validators, scorer, selector, prompt, flags, env, migrations, API shape, mobile files, worksheet CSV, or regional-decoration.
+
+Use Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Critical:
+This is HTF-only. Preserve the existing approved hook, whatToShow, and caption exactly as current effective values. Only replace howToFilm.
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+DRAFT-187 TARGETED OVERLAY — APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-187
+  newAnchor: pos
+  rewrittenHook: "POS expose my no-cash shame instantly"
+  rewrittenWhatToShow: "Stand at a POS point expecting to withdraw. POS madam asks for cash or transfer details, you check your pocket, then your face changes like the no-cash shame has entered public record."
+  rewrittenHowToFilm: "Frame the POS point, your empty pocket check, and the POS madam side in one simple setup. Let the pos question land first, then cut on your face realizing no-cash shame is now public."
+  rewrittenCaption: "cashless, against my will."
+  reviewedBy: "BI 2026-05-09"
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Save proposed overlay as:
+
+`.local/qa-runs/n1_p3_draft187_targeted_cleanup_overlay.yaml`
+
+Run:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_p3_draft187_targeted_cleanup_overlay.yaml`
+
+If preflight flags a real hard failure, stop and report before appending.
+
+Expected:
+- exactly 1 overlay block
+- hook preserved or validator-safe
+- anchor `pos` appears in hook, whatToShow, and howToFilm
+- no old boilerplate howToFilm
+- no `Desk-height lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the X centered`
+- no stereotype-token hits
+- no mock pidgin
+- scenario coherence passes
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact DRAFT-187 overlay block to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- approved count remains 204
+- rejected count remains 13 pre-existing only
+- rejected-from-rewrites = 0
+- DRAFT-187 is accepted
+- BI 2026-05-09 stamp count increases by 1
+- no other entry changed intentionally
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused Nigerian pack tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+3. Static check DRAFT-187:
+- no `Desk-height lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the \w+ centered`
+- no other old filming boilerplate
+- no risky/stereotype tokens
+- anchor appears in hook + whatToShow + howToFilm
+- no empty fields
+
+4. Optional small runtime recheck:
+Run the post-Batch-3 runtime QA harness again if fast, or a targeted ng_light_pidgin probe if available, to confirm:
+- DRAFT-187 no longer emits banned filming boilerplate if surfaced
+- aggregate banned filming hits return to 0
+- no clean/null decoration leak
+
+Do not run broad Batch 4 selection.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Preflight result.
+4. Codegen result.
+5. Approved/rejected counts.
+6. DRAFT-187 acceptance confirmation.
+7. TypeScript result.
+8. Nigerian pack test result.
+9. Static DRAFT-187 check result.
+10. Runtime recheck result if run, or reason not run.
+11. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration untouched
+   - no Batch 4 started
+   - no other entries rewritten
+
+Do not ask for next steps.
