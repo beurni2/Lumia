@@ -1,0 +1,194 @@
+PHASE W2-AUTHOR — System-Wide WhatToShow + HowToFilm Quality Standard
+
+Objective:
+Upgrade the system-wide authoring behavior so every generated idea has a high-quality `whatToShow` and `howToFilm`, not just manually repaired W2-N entries.
+
+This is NOT a 53-entry content patch.
+This is NOT just W2-N.
+This is NOT just validator cleanup.
+
+The goal:
+On every generation, every user-facing idea should include:
+- a clear, funny, human `whatToShow`
+- a simple, useful, filmable `howToFilm`
+
+The target style is the V2 editorial standard:
+- human contradiction first
+- clear visual scene
+- object/action carries the joke
+- simple creator filming direction
+- no generic boilerplate
+- no “Phone on a tripod”
+- no “locked-off shot”
+- no “film yourself reacting”
+- no vague “let the joke land”
+- no instruction-manual copy
+- no AI-ish filler
+
+Examples of target quality:
+
+WHAT TO SHOW:
+Creator arrives at the door carrying every grocery bag in one trip like this is a moral victory. Instead of putting anything down, they try to open the door with their chin, fail twice, then stand there trapped by their own pride.
+
+HOW TO FILM:
+Keep all the bags visible. Let the chin attempts get slightly worse each time, then end frozen at the door like the groceries are now your personality.
+
+WHAT TO SHOW:
+Creator walks toward the chair like they are finally about to sit down, then remembers the clean laundry has been living there for three business days. They place their laptop on top of the pile like they are turning the chair into an office.
+
+HOW TO FILM:
+Start with the almost-sit. Stop before contact, look at the laundry, then slowly add the laptop like this was the plan all along.
+
+Product standard:
+Each generated card must be individually excellent.
+Passing validators is the floor, not the goal.
+
+Hard rules:
+- Do not patch the 53 W2-N entries yet.
+- Do not apply the V2 packet.
+- Do not change production flags.
+- Do not change selectors.
+- Do not change validators.
+- Do not change ideaSchema unless a blocker is proven and approved.
+- Do not import another corpus batch.
+- Do not use Claude/LLM rewriting.
+- Do not increase Claude usage.
+- Do not generate random variation.
+- Do not touch W2-I/W2-L/W2-N/W2-T content unless explicitly approved.
+- Do not touch NG/N1/India/Philippines behavior unless shared authoring code requires it and you report the impact first.
+
+TASK 1 — Audit current authoring surfaces
+
+Find every place where `whatToShow` and `howToFilm` are authored or transformed.
+
+Audit files/functions likely including:
+- patternIdeator.ts
+- cohesiveIdeaAuthor.ts
+- westernPackAuthor.ts
+- hybridIdeator.ts
+- ideaGen.ts
+- any deterministic template/pattern engine source
+- any fallback/Claude mapping layer
+- any route/publicIdeas transformation
+- any Film This Now display transformation
+
+For each source path, report:
+- which ideas it affects
+- whether it authors whatToShow
+- whether it authors howToFilm
+- whether it uses stored corpus fields
+- whether it uses deterministic templates
+- whether it uses generic boilerplate
+- whether it can produce V2-style output today
+- examples of current good output
+- examples of weak output
+
+Create:
+.local/W2AUTHOR_AUTHORING_SURFACE_AUDIT.md
+
+TASK 2 — Identify weak system patterns
+
+Across generated/system-authored ideas, find patterns like:
+- “Phone on a tripod…”
+- “single take”
+- “film yourself reacting”
+- “show the object”
+- “let the joke land”
+- “creator reacts”
+- “the X keeps Y itself”
+- vague whatToShow
+- generic howToFilm
+- howToFilm that only repeats whatToShow
+- howToFilm that does not explain how to shoot
+- whatToShow without a clear payoff
+- scene that feels valid but not funny
+
+Report:
+- exact source file/function/template
+- sample outputs
+- why they are weak
+- whether the issue affects W2, old/core, pattern_variation, or fallback ideas
+
+TASK 3 — Recommend the smallest system-wide fix
+
+Do not implement yet.
+
+Recommend the best architecture for system-wide improvement.
+
+Possible fix families:
+A. Authoring helper:
+Create a deterministic helper that turns an idea’s hook/scenario/anchor/setting/action into a better `whatToShow` + `howToFilm` pair.
+
+B. Per-source template upgrades:
+Upgrade each weak template source directly so it emits better fields.
+
+C. Quality gate:
+Reject or demote generated ideas whose whatToShow/howToFilm are generic or weak.
+
+D. Renderer-only polish:
+Not enough if source copy is weak, but note if any display-layer cleanup helps.
+
+E. Hybrid:
+Use template upgrades for known weak sources and a small quality gate to prevent future generic output.
+
+For each option, include:
+- files touched
+- risk
+- whether it affects curated W2 entries
+- whether it affects old/core/pattern outputs
+- whether it changes selected ideas
+- whether it changes only copy fields
+- whether it can under-fill batches
+- tests needed
+
+TASK 4 — Define the new quality contract
+
+Propose a clear internal contract for all future generated ideas:
+
+whatToShow must:
+- describe the full visible skit
+- include setup, action, turn, payoff
+- match the hook
+- name the main object/action
+- be easy to understand in one read
+- feel like a real human moment
+- avoid abstract filler
+
+howToFilm must:
+- tell the creator how to shoot it
+- start with concrete framing or what to keep visible
+- describe the key action
+- describe the ending/payoff
+- be 1–2 sentences
+- be shootable in 10–15 minutes
+- not repeat whatToShow word-for-word
+- not introduce a new premise
+- not use generic boilerplate
+
+TASK 5 — Produce a repair plan, not code
+
+Create:
+.local/W2AUTHOR_REPAIR_PLAN.md
+
+Include:
+1. executive summary
+2. exact authoring sources
+3. weak patterns found
+4. recommended fix path
+5. files to touch
+6. tests to add
+7. QA sweep plan
+8. risks
+9. stop line requiring user approval before implementation
+
+Do not implement in this phase.
+
+Final decision requested:
+Recommend one:
+- NO-OP: current authoring already good enough
+- SOURCE-TEMPLATE-UPGRADE
+- AUTHORING-HELPER-UPGRADE
+- QUALITY-GATE-UPGRADE
+- HYBRID-UPGRADE
+
+Stop after the audit and repair plan.
