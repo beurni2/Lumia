@@ -712,7 +712,7 @@ title = "N1 Batch 2.0 Hot-6 Runtime Recheck — ACCEPT WITH FOLLOW-UP"
 id = "i20uMOodB3wbms9LUbYpS"
 uri = "file://.local/qa-runs/n1_batch2_hot6_runtime_recheck_summary.json"
 type = "unspecified"
-title = "Hot-6 recheck summary (machine-readable)"
+title = "Post-fix runtime recheck summary"
 
 [[outputs]]
 id = "4Qi2rnsSkocWBQbmeFnKL"
@@ -725,3 +725,15 @@ id = "pmVx8Ue5p3lXlakB6HjLd"
 uri = "file://.local/N1_AIRTIME_SINGLE_FIX_STOP_REPORT.md"
 type = "text"
 title = "N1 Airtime Single-Entry Fix — STOP REPORT (proposed overlay would be a no-op)"
+
+[[outputs]]
+id = "lmtnMjuqiUI2XHIsSgRik"
+uri = "file://.local/N1_AIRTIME_ANCHOR_TOKEN_FIX_REPORT.md"
+type = "text"
+title = "N1 Airtime Anchor-Token Overlay — ACCEPT (0 banned-filming hits at runtime)"
+
+[[outputs]]
+id = "t3149uRIEFwFLMba_Iojn"
+uri = "file://.local/qa-runs/n1_airtime_anchor_token_fix_proposed_overlay.yaml"
+type = "unspecified"
+title = "Proposed overlay (preflighted)"

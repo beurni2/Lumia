@@ -896,7 +896,7 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-172 [REWRITE] · cluster: airtime_data
       hook: "airtime finished, but somehow data is also judging me",
       whatToShow: "Open a fake recharge screen while the network spinner keeps loading. You tap once, wait, tap again, then stare at the phone like airtime and data are having a meeting without you.",
-      howToFilm: "Frame the recharge screen and your tapping hand from over the shoulder. Let the loading spinner stay visible, then end on your face looking at the phone like even the network has joined the problem.",
+      howToFilm: "Frame the recharge screen and your tapping hand from over the shoulder. Let the loading spinner stay visible, then end on your face looking at the phone like even the airtime problem has joined the network.",
       caption: "connection without cooperation.",
       anchor: "airtime",
       domain: "money",

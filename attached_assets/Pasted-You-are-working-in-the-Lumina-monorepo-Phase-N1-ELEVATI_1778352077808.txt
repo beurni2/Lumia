@@ -1,0 +1,151 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Airtime single-entry HTF anchor-token overlay.
+
+Context:
+The prior airtime fix correctly stopped before applying because the proposed overlay would have been a no-op.
+
+Root cause:
+- ng_82b4bff9 maps to DRAFT-172.
+- The approved corpus howToFilm does NOT contain `Keep the airtime centered.`
+- Runtime appends `Keep the airtime centered.` from `nigerianPackAuthor.ts` because the corpus howToFilm does not contain the anchor token `airtime`.
+- Therefore the smallest safe fix is corpus-only: rewrite DRAFT-172 howToFilm so it naturally contains the substring `airtime`.
+- Do NOT edit `nigerianPackAuthor.ts`.
+- Do NOT change source code.
+
+Use Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit the generated approved file.
+Do not edit the worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, or mobile files.
+Do not touch regional-decoration / ng_clean / ng_null issue in this phase.
+
+Critical:
+Map last-wins means the overlay must restate ALL fields:
+- draftId
+- newAnchor
+- rewrittenHook
+- rewrittenWhatToShow
+- rewrittenHowToFilm
+- rewrittenCaption
+- reviewedBy
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-172
+  newAnchor: airtime
+  rewrittenHook: "airtime finished, but somehow data is also judging me"
+  rewrittenWhatToShow: "Open a fake recharge screen while the network spinner keeps loading. You tap once, wait, tap again, then stare at the phone like airtime and data are having a meeting without you."
+  rewrittenHowToFilm: "Frame the recharge screen and your tapping hand from over the shoulder. Let the loading spinner stay visible, then end on your face looking at the phone like even the airtime problem has joined the network."
+  rewrittenCaption: "connection without cooperation."
+  reviewedBy: "BI 2026-05-09"
+
+Why this should fix runtime:
+- The new howToFilm contains `airtime`.
+- `filmHasAnchor` should return true.
+- `nigerianPackAuthor.ts` should not append `Keep the airtime centered.`
+- No source-code change needed.
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Before appending to `.local/REGIONAL_N1_REWRITES.yaml`, save proposed overlay as:
+
+`.local/qa-runs/n1_airtime_anchor_token_fix_proposed_overlay.yaml`
+
+Run the preflight script/check if available:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_airtime_anchor_token_fix_proposed_overlay.yaml`
+
+If the preflight script flags a real hard failure, stop and report before appending.
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact overlay block to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- total approved count remains 204
+- rejected count remains 13 pre-existing only
+- no new rejected-from-rewrites rows
+- `ng_82b4bff9` remains present in approved file
+- DRAFT-172 approved howToFilm contains `airtime`
+- DRAFT-172 approved howToFilm does not contain `Keep the airtime centered`
+- no `Keep the \w+ centered` hit exists in DRAFT-172 approved fields
+
+============================================================
+RUNTIME VERIFICATION
+============================================================
+
+Run a tiny targeted authoring check for DRAFT-172 / ng_82b4bff9 if an existing local harness can force or observe this entry.
+
+Confirm runtime authored howToFilm does NOT append:
+`Keep the airtime centered.`
+
+If a targeted force is not available, run the small Hot-6 runtime recheck again and confirm:
+- any deliveries of ng_82b4bff9 have 0 `Keep the \w+ centered` hits
+- total banned filming hits from pack-active Nigerian cohorts are 0
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Nigerian pack-specific tests if codegen/static/runtime checks show any risk.
+
+3. Static checks on DRAFT-172 / ng_82b4bff9:
+- approved corpus howToFilm contains `airtime`
+- runtime howToFilm does not append `Keep the airtime centered`
+- no `Keep the \w+ centered`
+- no old boilerplate filming phrase
+- anchor appears in hook and whatToShow
+- scenario coherence still passes
+- no stereotype tokens
+- no mock-pidgin hit
+
+Full api-server suite is not required unless codegen/static checks show risk.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Preflight result.
+3. Codegen result.
+4. Approved/rejected counts.
+5. Static result for DRAFT-172.
+6. Runtime authoring check result.
+7. TypeScript result.
+8. Files changed.
+9. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration issue not touched
+
+Do not include long tables unless something fails.
+Do not ask for next steps.
