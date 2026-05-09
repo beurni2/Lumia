@@ -479,3 +479,9 @@ id = "8yZ3Qzacb6E-vqOAuIfP3"
 uri = "file://.local/W2_AUTHOR_HYBRID_REPORT.md"
 type = "text"
 title = "W2-AUTHOR HYBRID-UPGRADE Report"
+
+[[outputs]]
+id = "Jo86otbn5vyc1TyNDdFdH"
+uri = "file://.local/W2_AUTHOR_HYBRID_PROOF_PACKAGE.md"
+type = "text"
+title = "W2-AUTHOR HYBRID Proof Package"
