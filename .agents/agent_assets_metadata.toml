@@ -941,3 +941,15 @@ id = "c695iWvsgqFSBiskW83k6"
 uri = "file://.local/qa-runs/n1_core_clean_guard_runtime_recheck_summary.json"
 type = "unspecified"
 title = "Runtime recheck summary"
+
+[[outputs]]
+id = "bPTQNkOoO1oArza2b52ST"
+uri = "file://.local/N1_CLEAN_CULTURE_AUDIT.md"
+type = "text"
+title = "N1-CLEAN-CULTURE-AUDIT — Nigerian clean-English core_native cultural grounding"
+
+[[outputs]]
+id = "o6R4MwJhmgUJNY6RdrcLX"
+uri = "file://.local/qa-runs/n1_clean_culture_audit_samples.json"
+type = "unspecified"
+title = "ng_clean classified samples (20 rows)"

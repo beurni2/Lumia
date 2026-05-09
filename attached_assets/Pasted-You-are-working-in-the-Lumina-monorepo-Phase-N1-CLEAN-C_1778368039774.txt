@@ -1,0 +1,340 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CULTURE-AUDIT — Nigerian clean-English core_native cultural grounding.
+
+Context:
+Nigerian pack elevation is complete and at STOP:
+- Approved Nigerian pack: 204.
+- Rejected rows: 13 pre-existing only.
+- Rejected-from-rewrites: 0.
+- P1 accepted.
+- Batch 2 accepted: 59 landed rewrites.
+- Batch 3 accepted: 59 landed HTF-only upgrades.
+- DRAFT-187 targeted cleanup landed.
+- Post-cleanup runtime verdict: STOP.
+- N1-CORE-CLEAN-GUARD shipped.
+- ng_clean/internal-null shouty-template guard shipped.
+- Runtime after guard:
+  - ng_clean mock-pidgin / exclamation hits: 0
+  - internal null mock-pidgin / exclamation hits: 0
+  - ng_pidgin pack delivery: 60/60 unchanged
+  - ng_light_pidgin pack delivery: 60/60 unchanged
+  - decoration leaks: 0
+  - under-fill rows: 0
+  - banned filming: 0
+  - stereotype hits: 0
+  - scenario/coherence/structural failures: 0
+  - verdict: STOP
+- Nigerian tests: 319/319 passing.
+- TypeScript clean.
+- Nigerian pack untouched by the core-clean guard.
+- Regional-decoration untouched.
+
+Problem:
+`ng_clean` is now safe from shouty/mocky high-energy templates, but it is still too bland/global. It is culturally indistinguishable from Western core_native because it uses the same anchors, voice clusters, scenarios, and generic premise shapes.
+
+Goal:
+Audit and design the smallest high-quality product path to make:
+
+`region = nigeria + languageStyle = clean + core_native`
+
+feel:
+- Nigerian
+- human-crafted
+- funny
+- culturally grounded
+- based on Nigerian daily realities
+- written in clean English / Nigerian English
+- no pidgin grammar as the main voice
+- no mock-pidgin
+- no lazy stereotype tokens
+- no random decoration
+- no broad Nigerian pack/codegen rewrite
+
+This is AUDIT/DESIGN ONLY.
+Do not implement.
+Do not modify files.
+Do not apply overlays.
+Do not edit worksheet.
+Do not run codegen apply.
+Do not touch Nigerian pack corpus.
+Do not touch regional-decoration.
+
+============================================================
+SCOPE
+============================================================
+
+Investigate the current `ng_clean` core_native path and design a targeted product-quality improvement.
+
+Answer:
+
+1. What exact path generates `ng_clean` core_native output today?
+2. Why does it look Western/global instead of Nigerian clean-English?
+3. Which parts control:
+   - anchor selection
+   - premise family
+   - voice cluster
+   - hook template
+   - scenario / whatToShow authoring
+   - howToFilm
+   - caption
+   - ranking / selection
+4. Is there an existing clean Nigerian signal source we can reuse?
+5. Can we add Nigerian-clean cultural grounding without touching the approved Nigerian pack?
+6. Should this be:
+   - a small clean-English Nigerian premise/anchor overlay?
+   - a clean-English Nigerian voice cluster?
+   - a region-aware core_native candidate boost?
+   - a separate clean-pack-lite catalog?
+   - or a deterministic post-authoring style guide?
+7. How do we preserve:
+   - no pidgin/mock-pidgin for clean
+   - no stereotype/lazy token decoration
+   - no shouty high-energy-rant leak
+   - no impact on ng_pidgin/ng_light_pidgin pack-active path
+   - no impact on Western/India/Philippines
+
+============================================================
+IMPORTANT PRODUCT TARGET
+============================================================
+
+`ng_clean` should NOT become cultureless.
+
+Correct examples of desired clean-English Nigerian feeling:
+- “The light came back and everyone remembered their charger.”
+- “The POS machine chose this exact moment to become spiritual.”
+- “One small traffic update changed the entire plan.”
+- “The group chat said ‘quick question’ and turned it into a meeting.”
+- “The generator stopped and everyone suddenly heard their own thoughts.”
+- “The tailor said tomorrow with the confidence of a politician.”
+- “The bank app loaded slowly enough to expose my fear.”
+- “One auntie asked a harmless question and the whole table became quiet.”
+
+These are examples only. Do not hard-code them unless explicitly selected later.
+
+Bad directions:
+- Do not randomly inject NEPA / jollof / village people / yahoo boy / 419.
+- Do not make it heavy pidgin.
+- Do not use parody Nigerian English.
+- Do not use stereotype shorthand.
+- Do not make every idea Lagos-only.
+- Do not flatten it into generic Western office/couch/inbox jokes.
+
+============================================================
+FILES / AREAS TO INSPECT
+============================================================
+
+Read-only inspect likely files:
+
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/cohesiveIdeaAuthor.ts`
+- `artifacts/api-server/src/lib/voiceClusters.ts`
+- `artifacts/api-server/src/lib/regionProfile.ts`
+- `artifacts/api-server/src/lib/nigerianCleanCoreGuard.ts`
+- `artifacts/api-server/src/lib/nigerianStylePenalty.ts`
+- generic hook / scenario / premise / anchor catalogs
+- topic lane / setting / scenario-family definitions
+- candidate scoring / selection / ranker files
+- taste calibration files involving `languageStyle`
+- existing Nigerian pack files only for inspiration/read-only comparison:
+  - `nigerianHookPackApproved.ts`
+  - `nigerianHookPack.ts`
+  - `nigerianPackAuthor.ts`
+
+Search for:
+- `languageStyle`
+- `clean`
+- `region === "nigeria"`
+- `core_native`
+- `voiceCluster`
+- `high_energy_rant`
+- `anchor`
+- `premise`
+- `scenarioFamily`
+- `topicLane`
+- `setting`
+- `decorateForRegion`
+- `authorCohesiveIdea`
+- `scoreHookQuality`
+- `nigerianCleanCoreGuard`
+- `nigerianStylePenalty`
+
+============================================================
+READ-ONLY SAMPLE REVIEW
+============================================================
+
+Run or reuse runtime probes to collect current `ng_clean` outputs.
+
+Minimum:
+- region=nigeria
+- languageStyle=clean
+- 60 ideas if fast, minimum 30
+- seed=42, baseSalt=1009 if compatible
+
+Also collect comparison samples:
+- western clean/default core_native, 20 ideas
+- ng_pidgin/light_pidgin pack-active, 20 ideas each only as quality inspiration/control
+
+For each `ng_clean` sample, classify:
+
+GOOD_NG_CLEAN
+- clean English / Nigerian English
+- recognizably Nigerian reality
+- funny tension
+- filmable
+- no pidgin/mock-pidgin/stereotype
+
+TOO_GENERIC
+- could be any country
+- no Nigerian reality
+- bland office/couch/inbox setup
+
+PIDGIN_LEAK
+- pidgin grammar used despite clean style
+
+STEREOTYPE_OR_DECORATION
+- lazy cultural tokens or forced decoration
+
+SHOUTY_OR_MOCKY
+- high-energy-rant artifact, exclamation pile, parody tone
+
+THIN_SCENARIO
+- hook might be okay, but whatToShow/howToFilm lacks visible Nigerian context or payoff
+
+Save:
+
+`.local/qa-runs/n1_clean_culture_audit_samples.json`
+
+Create:
+
+`.local/N1_CLEAN_CULTURE_AUDIT.md`
+
+============================================================
+DESIGN OPTIONS TO RETURN
+============================================================
+
+Return ranked options.
+
+Each option must include:
+- exact files likely touched
+- behavior change
+- why it improves `ng_clean`
+- how it avoids pidgin/mock-pidgin
+- how it avoids stereotypes
+- how it avoids random decoration
+- risk level
+- tests needed
+- runtime proof needed
+- whether it affects:
+  - Nigerian pack
+  - ng_pidgin
+  - ng_light_pidgin
+  - Western
+  - India
+  - Philippines
+
+Consider these likely options:
+
+Option A — Nigerian clean-English core_native mini-catalog
+- Add a small deterministic clean-English Nigerian premise/anchor/scenario catalog only for `region=nigeria && languageStyle=clean`.
+- It should feed core_native with clean Nigerian daily realities.
+- No pidgin grammar.
+- No pack/codegen changes.
+- Likely best product quality if designed carefully.
+
+Option B — clean-English Nigerian anchor/topic overlay
+- Keep generic core engine, but inject/boost clean Nigerian anchors/settings/tensions for `ng_clean`.
+- Lower surface area than mini-catalog, but may still feel generic if templates are Western.
+
+Option C — clean-English Nigerian voice cluster
+- Add new voice cluster for `ng_clean` with clean Nigerian English phrasing.
+- Useful, but voice alone may not fix generic anchors/scenarios.
+
+Option D — region-aware ranking boost
+- Boost candidates whose anchors/settings already feel Nigerian.
+- Low risk but may be insufficient if the candidate pool lacks Nigerian-clean material.
+
+Option E — prompt/style guide only
+- Not preferred if deterministic path dominates.
+
+Do not recommend pack rewrites or broad corpus churn unless the audit proves no smaller path can work.
+
+============================================================
+TEST PLAN TO PROPOSE
+============================================================
+
+Propose tests only, do not implement.
+
+Expected coverage:
+1. `ng_clean` routes to the new clean-cultural path/overlay.
+2. `ng_clean` outputs contain clean Nigerian reality signals without pidgin/mock-pidgin.
+3. No forbidden stereotype/lazy tokens.
+4. `ng_pidgin` / `ng_light_pidgin` pack-active path unchanged.
+5. Nigerian pack tests still pass.
+6. Western/India/Philippines unchanged.
+7. Runtime sample:
+   - ng_clean: improved Nigerian-clean score / fewer TOO_GENERIC classifications
+   - mock-pidgin hits: 0
+   - decoration leaks: 0
+   - under-fill rows: 0
+   - scenario/coherence failures: 0
+
+============================================================
+SUCCESS CRITERIA FOR FUTURE IMPLEMENTATION
+============================================================
+
+The eventual implementation should prove:
+
+- `ng_clean` no longer feels Western/global.
+- At least 70% of sampled `ng_clean` outputs classify as GOOD_NG_CLEAN.
+- 0 pidgin/mock-pidgin hits.
+- 0 stereotype/lazy-token hits.
+- 0 decoration leaks.
+- 0 coherence/structural failures.
+- Nigerian pack unchanged.
+- pack-active pidgin/light_pidgin unchanged.
+- TypeScript clean.
+- Nigerian tests green.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - IMPLEMENT_MINI_CATALOG
+   - IMPLEMENT_ANCHOR_OVERLAY
+   - IMPLEMENT_VOICE_CLUSTER
+   - OBSERVE_ONLY
+   - NEED_MORE_DATA
+
+2. Root cause of bland `ng_clean`.
+
+3. Sample review summary:
+   - sample size
+   - % GOOD_NG_CLEAN
+   - % TOO_GENERIC
+   - any pidgin/mock/stereotype/shouty hits
+
+4. Recommended implementation path.
+
+5. Files likely touched.
+
+6. Test plan.
+
+7. Risks / non-risks.
+
+8. Files created.
+
+9. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - no codegen apply
+   - Nigerian pack untouched
+   - regional-decoration untouched
+
+Do not implement.
+Do not ask for next steps.
