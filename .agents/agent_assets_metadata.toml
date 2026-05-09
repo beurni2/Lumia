@@ -503,3 +503,9 @@ id = "GV28ib9ZNRFSo4JNhOli4"
 uri = "file://.local/POST_W2_AUTHOR_RUNTIME_QA_REPORT.md"
 type = "text"
 title = "POST_W2_AUTHOR_RUNTIME_QA_REPORT.md"
+
+[[outputs]]
+id = "JnW_XNsjhVqomHAnS9m9v"
+uri = "file://.local/F3_LLM_FALLBACK_STRESS_REPORT.md"
+type = "text"
+title = "F3 LLM Fallback Stress Sweep Report"
