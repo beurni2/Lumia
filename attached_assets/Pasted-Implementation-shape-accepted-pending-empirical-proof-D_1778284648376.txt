@@ -1,0 +1,67 @@
+Implementation shape accepted pending empirical proof.
+
+Do not close W2-QA-FIX-2 yet.
+
+Run the requested empirical W2-QA-FIX-2 sweep now.
+
+Reason:
+This was a runtime first-card ordering bug. Unit tests prove the helper works, but they do not prove the real live Western/clean cold-start response now has diverse first cards.
+
+Run:
+- Western/clean
+- LIVE flag ON in dev/staging only
+- production flags untouched
+- 10 simulated creators
+- 10 batches each if feasible
+- count=3
+- batch 0 regenerate=false
+- batches 1+ regenerate=true
+- fresh memory per creator
+- x-lumina-qa-expose-meta:1
+
+Before run:
+- temporarily enable dev LIVE flag only
+- confirm production toml remains untouched
+
+After run:
+- restore dev toml to pre-run state
+- confirm production flags unchanged
+
+Report:
+1. first-card distinct hooks across 10 creators
+2. first-card source mix
+3. first-card willingnessScore range
+4. first-batch 3-card composition
+5. count of "the fridge knows i'm lying" in first-card slot
+6. pattern_variation share of idea[0]
+7. W2 share and W2-T share
+8. batch composition:
+   - 2 W2 + 1 old/core
+   - 1 W2 + 2 old/core
+   - 3 W2
+9. per-creator entryId/hook/skeleton repeats
+10. in-batch duplicate entry/hook/skeleton
+11. fallback count
+12. latency avg/median/max
+13. errors
+14. production flags unchanged
+15. api-server tests/typecheck remain green or cite prior green if no code changed after tests
+
+Success bars:
+- first-card distinct hooks improves materially from 2/10
+- target ≥6/10, ideally 7+/10 if quality band allows
+- "the fridge knows i'm lying" no longer dominates first-card slot
+- no repeat regression
+- no fallback increase
+- no latency regression
+- no production flag changes
+- no validator/schema changes
+- no output quality degradation
+
+If the empirical sweep still shows poor first-card diversity, stop and report why:
+- top-quality band size collapsed to 1
+- hash distribution issue
+- cold-start gate not firing
+- first-card rotation not applied in actual response path
+- willingness scores missing/undefined
+- some later response-ordering layer still overrides it
