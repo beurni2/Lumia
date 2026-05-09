@@ -320,7 +320,7 @@
     id: "w2_next2_010",
     hook: "A new sponge should not have changed my whole week",
     whatToShow: "Creator unboxes a bright new sponge on the kitchen counter with the seriousness of a luxury tech launch. They hold it up to the sink like the week has finally turned around, then set it down carefully like it came with insurance.",
-    howToFilm: "Start close on the sponge package and your hands. Let the unboxing feel way too important, then lift the sponge toward the sink like you’re introducing it to its kingdom.",
+    howToFilm: "Start close on the bright sponge package and your hands at the kitchen counter. Let the unboxing feel way too important, then lift the sponge toward the sink like you’re introducing it to its kingdom.",
     caption: "and just like that, the week unboxes won.",
     anchor: "unboxes",
     comedyFamily: "tiny_humiliation",
@@ -600,7 +600,7 @@
   {
     id: "w2_next2_028",
     hook: "I bought one seed packet and became unbearable",
-    whatToShow: "You place one bean seed on a damp paper towel in the middle of the kitchen counter. Then you lean in and stare like nature personally appointed you project manager, adding a tiny label like this is now a research facility.",
+    whatToShow: "You place one bean seed on a damp paper towel in the middle of the kitchen counter. Then the stares get too serious, like nature personally appointed you project manager, while you add a tiny label like this is now a research facility.",
     howToFilm: "Start tight on the seed and paper towel. Let the stare get too serious, add the tiny label, then step back proudly like you’ve advanced agriculture.",
     caption: "the unbearable stares won this round.",
     anchor: "stares",

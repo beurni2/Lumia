@@ -1,0 +1,141 @@
+You are working in the Lumina monorepo.
+
+Goal:
+Fix exactly 2 pre-existing W2-N corpus test failures in `westernHookPackApproved.test.ts` without touching the W2-AUTHOR HYBRID generator upgrade.
+
+This is a tiny corpus-cohesion cleanup pass, not a generator rewrite, not a validator change, and not a new feature.
+
+Context:
+The W2-AUTHOR HYBRID proof package demonstrated that the 2 failing tests pre-existed the generator upgrade:
+1. `w2_next2_028` — anchor `"stares"` is missing from `whatToShow`; `whatToShow` uses singular `"stare"` instead.
+2. `w2_next2_010` — `howToFilm` shares only 2 substantive tokens with `whatToShow`; test expects at least 3.
+
+Fix only these two corpus entries.
+
+Hard rules:
+- Do not modify validators.
+- Do not loosen tests.
+- Do not modify the W2-AUTHOR HYBRID files unless removing the temporary sample-printer test if instructed below.
+- Do not change schemas, selectors, flags, env, migrations, API shape, or model/Claude usage.
+- Do not rewrite unrelated corpus entries.
+- Do not change hooks, ids, captions, reviewedBy, comedyFamily, emotionalSpike, voiceCluster, hookStyle, safetyNote, selectors, or metadata.
+- Keep changes surgical and byte-minimal.
+
+Files likely involved:
+- The corpus file containing `w2_next2_028` and `w2_next2_010`, likely one of:
+  - `artifacts/api-server/src/lib/westernHookPackBatchNext2.ts`
+  - or the approved export source feeding `APPROVED_WESTERN_PROMOTION_CANDIDATES`
+- Optionally remove `artifacts/api-server/src/lib/__tests__/_v2SamplesPrinter.test.ts` if it still exists and is only a temporary printer/debug artifact.
+
+============================================================
+FIX 1 — `w2_next2_028`
+============================================================
+
+Current failing issue:
+- `anchor: "stares"`
+- `whatToShow` contains `"stare"` but not `"stares"`.
+
+Make the smallest natural edit to `whatToShow` so the exact anchor token `"stares"` appears.
+
+Preferred replacement:
+
+Current:
+"You place one bean seed on a damp paper towel in the middle of the kitchen counter. Then you lean in and stare like nature personally appointed you project manager, adding a tiny label like this is now a research facility."
+
+Replace with:
+"You place one bean seed on a damp paper towel in the middle of the kitchen counter. Then you lean in and stare, then stare again like nature personally appointed you project manager, adding a tiny label like this is now a research facility."
+
+Wait: that still does not include exact `"stares"`.
+
+Use this instead:
+
+"You place one bean seed on a damp paper towel in the middle of the kitchen counter. Then the stares get too serious, like nature personally appointed you project manager, while you add a tiny label like this is now a research facility."
+
+Requirements:
+- Must include exact lowercase token `"stares"` after lowercasing.
+- Must preserve the same premise: seed packet / bean seed / over-serious plant project manager.
+- Do not change `anchor`, `hook`, `caption`, or `howToFilm`.
+
+============================================================
+FIX 2 — `w2_next2_010`
+============================================================
+
+Current failing issue:
+- Test expects `howToFilm` to share at least 3 substantive tokens with `whatToShow`.
+- Current overlap is only `{sponge, sink}` = 2.
+- `whatToShow` includes substantive tokens like:
+  `creator`, `unboxes`, `bright`, `sponge`, `kitchen`, `counter`, `seriousness`, `luxury`, `launch`, `week`, `sink`, `insurance`.
+
+Make the smallest natural edit to `howToFilm` so it shares at least 3 substantive tokens with `whatToShow`.
+
+Current:
+"Start close on the sponge package and your hands. Let the unboxing feel way too important, then lift the sponge toward the sink like you're introducing it to its kingdom."
+
+Preferred replacement:
+"Start close on the bright sponge package and your hands at the kitchen counter. Let the unboxing feel way too important, then lift the sponge toward the sink like you're introducing it to its kingdom."
+
+Why this works:
+- Adds `bright`, `kitchen`, and `counter`, all already present in `whatToShow`.
+- Keeps the same premise.
+- Keeps filming direction natural and V2-compatible.
+- Does not change `whatToShow`, `anchor`, `hook`, or `caption`.
+
+Requirements:
+- `howToFilm` must remain within existing length bounds.
+- No banned boilerplate phrases.
+- Do not change unrelated fields.
+
+============================================================
+OPTIONAL CLEANUP — temporary sample printer
+============================================================
+
+If `artifacts/api-server/src/lib/__tests__/_v2SamplesPrinter.test.ts` exists and is only a temporary printer/debug artifact, remove it.
+
+Do not remove the real W2-AUTHOR HYBRID regression tests:
+- `wtsHtfQualityGate.test.ts`
+- `patternIdeatorWeakTemplateRewrite.test.ts`
+- `cohesiveIdeaAuthorPathBV2Rewrite.test.ts`
+- `authoredScenarioPlansHardenInboxAlarm.test.ts`
+
+============================================================
+VERIFICATION
+============================================================
+
+Run:
+
+1. The specific failing test file:
+   - `pnpm --filter @workspace/api-server exec vitest run src/lib/__tests__/westernHookPackApproved.test.ts`
+
+2. The full api-server test suite:
+   - `pnpm --filter @workspace/api-server exec vitest run`
+
+3. TypeScript:
+   - `pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+4. Corpus diff check:
+   - Show `git diff --name-only`
+   - Confirm only the intended corpus file changed, plus optional deletion of `_v2SamplesPrinter.test.ts`.
+
+5. Runtime banned-phrase scan:
+   - Confirm no new banned phrases were added to runtime output strings.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+1. Files changed.
+2. Exact entries changed:
+   - `w2_next2_028`
+   - `w2_next2_010`
+3. Before/after for the exact changed fields only.
+4. Confirmation no validators/tests/schema/selectors/flags were loosened or changed.
+5. Confirmation no W2-AUTHOR HYBRID generator files were modified.
+6. Test results:
+   - `westernHookPackApproved.test.ts`
+   - full api-server suite
+   - TypeScript
+7. Confirmation whether `_v2SamplesPrinter.test.ts` was removed or left in place.
+
+This pass is accepted only if the full api-server suite is green and the changes are limited to the two pre-existing W2-N corpus cohesion issues.
