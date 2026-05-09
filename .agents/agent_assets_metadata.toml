@@ -527,3 +527,15 @@ id = "eTEegbQ8p2tVg0tNObV7d"
 uri = "file://.local/N1_AUTHOR_AUDIT_REPORT.md"
 type = "text"
 title = "N1-AUTHOR Nigeria Output Elevation Audit"
+
+[[outputs]]
+id = "uCbmpi_mwCXvslWfHpZkv"
+uri = "file://.local/N1_ELEVATION_REWRITE_TARGETS.md"
+type = "text"
+title = "N1-ELEVATION-P1 — Rewrite Target Selection"
+
+[[outputs]]
+id = "l6V9zlpBDi5i7aoXRJ3ei"
+uri = "file://.local/qa-runs/n1_elevation_targets.json"
+type = "unspecified"
+title = "Per-entry classifications (machine-readable, all 204 entries)"

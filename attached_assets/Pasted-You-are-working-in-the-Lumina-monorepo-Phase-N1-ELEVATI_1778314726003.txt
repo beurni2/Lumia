@@ -1,0 +1,468 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Rewrite Target Selection for Nigerian Hooks, Scenarios, Captions, and howToFilm.
+
+Context:
+The N1-AUTHOR Nigeria Output Elevation Audit is complete.
+
+Audit verdict:
+Nigeria output has healthy infrastructure but needs an elevation pass.
+
+What is working:
+- Nigerian pack delivery works.
+- Anchor cohesion is clean.
+- No under-fill.
+- No fallback latency tax.
+- Cross-batch hook repeats are controlled.
+- Many hooks are promising and some are excellent.
+
+What is weak:
+- `howToFilm` is the biggest gap: 204/204 approved Nigerian corpus entries reuse one of only seven boilerplate filming templates.
+- Runtime top-3 `howToFilm` templates appear in 38.3% of activated Nigerian outputs.
+- Some abstract anchors create broken filming guidance like “Keep the care centered.”
+- 7 corpus entries trip Nigeria stereotype-avoidance guidance, especially NEPA/jollof cases.
+- Some hooks are too generic, too Western-template-shaped, or not funny enough.
+- Some scenarios/`whatToShow` are structurally valid but not comedic, specific, or culturally alive enough.
+- Some captions restate the hook instead of adding a second comedic beat.
+- The pidgin tier is effectively empty: 203 light_pidgin entries, 1 pidgin entry.
+
+Important:
+This phase is NOT implementation.
+This phase is NOT rewriting.
+This phase is target selection and rewrite planning only.
+
+The user/ChatGPT will provide the actual rewrite copy later. Do not invent final rewritten hooks, scenarios, captions, or howToFilm.
+
+============================================================
+GOAL
+============================================================
+
+Create a precise rewrite target list for Nigerian pack entries.
+
+For each approved Nigerian corpus entry, decide whether it needs:
+
+1. Hook rewrite
+2. whatToShow / scenario rewrite
+3. howToFilm rewrite
+4. Caption rewrite
+5. Stereotype/cultural-risk rewrite
+6. Abstract-anchor handling
+7. No rewrite / preserve as strong
+
+The goal is to prepare a high-quality rewrite pass where the final output feels:
+
+- naturally Nigerian
+- human-crafted
+- funny
+- culturally true
+- specific
+- filmable
+- not AI-ish
+- not Western jokes with Nigerian words pasted on
+- not fake-heavy pidgin
+- not lazy stereotype comedy
+
+============================================================
+STRICT RULES
+============================================================
+
+AUDIT / PLANNING ONLY.
+
+Do NOT modify:
+- source files
+- corpus files
+- tests
+- validators
+- schemas
+- selectors
+- scorers
+- prompts
+- flags
+- env files
+- migrations
+- API shape
+- mobile files
+- production config
+
+You may create local reports/scripts under `.local/`.
+
+Do NOT generate final rewrite copy.
+Do NOT apply edits.
+
+If examples are needed, provide diagnosis only, not final replacement text.
+
+Bad:
+“Rewrite hook to: ...”
+
+Good:
+“Needs hook rewrite because the hook is generic and uses a Westernized ‘demolished my vibe’ skeleton. Rewrite should use a Nigerian everyday contradiction around danfo/transport confidence without forced slang.”
+
+============================================================
+SOURCE OF TRUTH
+============================================================
+
+Use the current approved Nigerian pack as the main source:
+
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Also inspect, only as needed:
+
+- `artifacts/api-server/src/lib/nigerianHookPackDrafts.ts`
+- `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+- `artifacts/api-server/src/lib/nigerianHookPack.ts`
+- `artifacts/api-server/src/lib/regionProfile.ts`
+- `.local/N1_AUTHOR_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_author_audit.json`
+- `.local/qa-runs/n1_author_audit_runtime_qa.json` if present
+- `.local/qa-runs/n1_author_audit_summary.json` if present
+
+If any expected `.local` audit artifact is missing, proceed with the corpus file and state the missing artifact.
+
+============================================================
+QUALITY STANDARD
+============================================================
+
+Each Nigerian idea should be evaluated as a complete unit:
+
+HOOK:
+- must have a fast Nigerian comedic contradiction
+- should sound natural, not translated
+- should feel like something a Nigerian creator/viewer recognizes
+- should not rely only on slang
+- should not feel like a Western hook skeleton with Nigerian nouns pasted in
+- should be catchy enough for a first 1–3 second video opening
+
+WHAT TO SHOW / SCENARIO:
+- must describe a full visible skit
+- should have setup, action, turn, payoff
+- should be easy to visualize in one read
+- should be shootable in a room, office, kitchen, street-adjacent, car, shop, or everyday Nigerian setting
+- should make the Nigerian reality visible through behavior, not explanation
+- should not be abstract or purely emotional
+- should not introduce a new premise unrelated to the hook
+
+HOW TO FILM:
+- must be specific to the skit
+- should tell the creator what to keep visible
+- should include the key action and ending/payoff
+- should be 1–2 sentences
+- should be shootable in 10–15 minutes
+- must not reuse generic boilerplate
+- must not say useless things like “Keep the care centered”
+- must not overuse:
+  - phone-level lock-off
+  - desk-height lock-off
+  - soft daylight, one take
+  - Keep the X centered
+- must not use banned phrases:
+  - phone on a tripod
+  - single static shot
+  - single locked-off shot
+  - locked-off on tripod
+  - let the joke land
+  - let the silence land
+  - film yourself reacting
+  - creator reacts
+  - show the X on camera
+
+CAPTION:
+- should add a second comedic beat
+- should not simply repeat the hook
+- should sound like a Nigerian creator caption, but not forced
+- should be short, punchy, and natural
+
+NIGERIAN CULTURAL QUALITY:
+The idea should understand Nigerian realities and humor, including areas like:
+- WhatsApp/group chat behavior
+- transport fare / danfo / ride decisions
+- POS/bank app/salary anxiety
+- data/recharge/card issues
+- light/generator/freezer/fridge realities
+- family/auntie/uncle pressure without lazy stereotypes
+- office/intern/work stress
+- church/event/social obligation energy
+- snacks/food/budget contradictions
+- “I said I’m coming” but the body/money/weather said otherwise
+- exaggeration, teasing, avoidance, and stress-turned-comedy
+
+Avoid lazy crutches:
+- wahala
+- abeg
+- omo
+- jollof
+- NEPA
+- village people
+- my enemies
+- generic Lagos traffic jokes
+
+These can appear only if they are genuinely specific and funny, not as default punchlines.
+
+============================================================
+CLASSIFICATION SYSTEM
+============================================================
+
+For every approved Nigerian entry, assign one of these classes:
+
+A. PRESERVE_STRONG
+Entry is strong enough. Do not rewrite unless part of a future style-diversity pass.
+
+B. HTF_ONLY
+Hook, scenario, and caption are good, but `howToFilm` is boilerplate or too generic.
+
+C. SCENARIO_PLUS_HTF
+Hook is usable, but `whatToShow` is too thin/generic/abstract, and `howToFilm` also needs rewrite.
+
+D. HOOK_PLUS_SCENARIO_PLUS_HTF
+Hook is weak or generic, scenario does not save it, and filming guidance is boilerplate.
+
+E. FULL_UNIT_REWRITE
+Hook, scenario, filming guidance, and caption all need rewrite as one complete idea unit.
+
+F. STEREOTYPE_RISK_REWRITE
+Entry contains stereotype-risk or banned cultural crutch usage that should be rewritten or removed.
+
+G. ABSTRACT_ANCHOR_FIX
+Entry has an abstract anchor that creates broken filming guidance or weak scenario grounding.
+
+H. PIDGIN_TIER_CANDIDATE
+Entry could be converted or duplicated into a stronger `pidgin` tier candidate later, but do not rewrite now.
+
+An entry may have multiple tags, but choose one primary class.
+
+============================================================
+WHAT TO DETECT
+============================================================
+
+Flag entries with:
+
+1. Boilerplate `howToFilm`
+Examples:
+- `Phone-level lock-off, soft daylight, one take.`
+- `Desk-height lock-off, soft daylight, one take.`
+- `Counter-level lock-off, daylight, one take.`
+- `Keep the {anchor} centered.`
+- any repeated filming line that could fit dozens of unrelated ideas
+
+2. Broken abstract-anchor filming
+Examples:
+- `Keep the care centered.`
+- `Keep the peace centered.`
+- `Keep the energy centered.`
+- `Keep the vibe centered.`
+- `Keep the lie centered.`
+- `Keep the damage centered.`
+
+3. Weak hooks
+Examples of patterns to flag:
+- generic anthropomorphic object line with no cultural specificity
+- Western internet phrase with Nigerian noun pasted in
+- too long / awkward rhythm
+- too plain to stop scroll
+- too abstract to film
+- too much “X don expose Y” if repeated without a fresh twist
+- obvious first-draft phrasing
+
+4. Weak scenarios / whatToShow
+Flag if:
+- no visible payoff
+- no turn
+- action is too abstract
+- reads like a premise summary, not a skit
+- Nigerian reality is named but not dramatized
+- could fit any country after swapping one noun
+
+5. Weak captions
+Flag if:
+- repeats hook
+- generic
+- not a second beat
+- too Western
+- too forced-pidgin
+- too explanatory
+
+6. Stereotype/cultural-risk entries
+Flag:
+- NEPA as lazy punchline
+- jollof as lazy punchline
+- village people
+- my enemies
+- auntie/uncle if used as a flat stereotype
+- any mock-pidgin or tourist-coded framing
+
+7. Pidgin/light-pidgin mismatch
+Flag if:
+- `light_pidgin` is too heavy
+- `pidgin` is too light or functionally nonexistent
+- wording feels cartoonish or unnatural
+- grammar sounds imitated
+
+============================================================
+PRIORITIZATION
+============================================================
+
+Create rewrite priority tiers:
+
+P0 — must fix before Nigeria elevation can be accepted:
+- stereotype-risk entries
+- broken abstract-anchor filming
+- worst boilerplate runtime offenders
+- any entry that would embarrass the product
+
+P1 — high-impact quality lift:
+- strong hooks with weak `howToFilm`
+- good concepts with thin scenarios
+- repeated template clusters
+- high-frequency runtime entries
+
+P2 — polish:
+- captions that could be funnier
+- style diversity
+- pidgin-tier candidates
+- entries that are okay but not amazing
+
+Also identify:
+- Top 40 entries to rewrite first
+- Top 80 entries if continuing
+- Entries safe to preserve
+
+============================================================
+OUTPUT REPORT
+============================================================
+
+Create:
+
+`.local/N1_ELEVATION_REWRITE_TARGETS.md`
+
+Include:
+
+1. Executive summary:
+   - total entries reviewed
+   - how many preserve
+   - how many need HTF only
+   - how many need scenario + HTF
+   - how many need hook + scenario + HTF
+   - how many need full unit rewrite
+   - how many stereotype-risk
+   - how many abstract-anchor fixes
+
+2. Top diagnosis:
+   - biggest quality gap
+   - biggest hook gap
+   - biggest scenario gap
+   - biggest caption gap
+   - biggest Nigerian-cultural-authenticity gap
+
+3. Rewrite target table for all non-preserve entries:
+   Columns:
+   - entry id
+   - hook
+   - anchor
+   - pidginLevel
+   - primary class
+   - secondary tags
+   - priority P0/P1/P2
+   - fields needing rewrite: hook / whatToShow / howToFilm / caption
+   - reason
+   - rewrite direction, but NOT final copy
+
+4. P0 table:
+   - all entries that must be fixed first
+   - why they are P0
+   - exact fields needing rewrite
+
+5. Recommended Batch 1:
+   - 40–50 entries max
+   - choose highest-impact entries first
+   - must include all stereotype-risk entries
+   - must include abstract-anchor broken-filming entries
+   - must include worst runtime offenders
+   - must include a mix of hook/scenario/howToFilm issues
+
+6. Preserve list:
+   - entries that are strong and should not be touched
+   - include reason they are strong
+
+7. Pattern analysis:
+   - repeated hook skeletons
+   - repeated scenario shapes
+   - repeated filming templates
+   - repeated caption patterns
+   - repeated Nigerian cultural crutches
+
+8. Pidgin/light-pidgin analysis:
+   - how many entries are true pidgin candidates
+   - which light_pidgin entries could become pidgin-tier candidates
+   - whether current voice feels too light, too heavy, or uneven
+
+9. Implementation plan for next phase:
+   - exact file(s) to touch later
+   - whether to edit approved file directly or drafts + regenerate approved
+   - tests to add/update
+   - QA sweeps to rerun
+   - risks
+
+10. Hard no-touch confirmation:
+   - no source/corpus/test files changed
+   - only `.local` audit files created
+
+============================================================
+MACHINE-READABLE OUTPUT
+============================================================
+
+Also create:
+
+`.local/qa-runs/n1_elevation_rewrite_targets.json`
+
+Shape:
+
+{
+  "summary": {
+    "totalEntries": number,
+    "preserveStrong": number,
+    "needsRewrite": number,
+    "p0": number,
+    "p1": number,
+    "p2": number
+  },
+  "entries": [
+    {
+      "id": string,
+      "hook": string,
+      "anchor": string,
+      "pidginLevel": string,
+      "primaryClass": string,
+      "secondaryTags": string[],
+      "priority": "P0" | "P1" | "P2" | "PRESERVE",
+      "rewriteFields": {
+        "hook": boolean,
+        "whatToShow": boolean,
+        "howToFilm": boolean,
+        "caption": boolean
+      },
+      "reason": string,
+      "rewriteDirection": string
+    }
+  ],
+  "recommendedBatch1": [string],
+  "preserveStrong": [string]
+}
+
+============================================================
+FINAL RESPONSE
+============================================================
+
+Return a concise report with:
+
+1. Files inspected.
+2. Files created under `.local`.
+3. Summary counts.
+4. P0 count and examples.
+5. Recommended Batch 1 size and composition.
+6. Whether actual rewrites are needed.
+7. Confirmation no corpus/source/test files changed.
+
+Remember:
+Do not rewrite yet.
+Do not let the coding agent invent the final creative copy.
+The purpose is to give the user/ChatGPT an exact target list so the next phase can be high-taste, controlled, and not circular.
