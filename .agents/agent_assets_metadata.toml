@@ -827,3 +827,15 @@ id = "KYmjd_cZvo_sZE_LcqlkB"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_draft151_replacement_overlay.yaml"
 type = "unspecified"
 title = "DRAFT-151 replacement overlay snapshot"
+
+[[outputs]]
+id = "Qw9EZcoCUbjt2DS1BNB0o"
+uri = "file://.local/N1_ELEVATION_P2_BATCH2_CHUNKA_STABILIZE_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P2 — Chunk A STABILIZE + DRAFT-263 report (SUCCESS)"
+
+[[outputs]]
+id = "Z8y974kex-0Qu8g4QfG7J"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_draft263_replacement_overlay.yaml"
+type = "unspecified"
+title = "DRAFT-263 overlay snapshot"

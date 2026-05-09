@@ -22,11 +22,10 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 202 approved · 15 rejected
+ * INGEST SUMMARY: 204 approved · 13 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
- *   • DRAFT-151 [REWRITE] → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-314 → scoreNigerianPackEntry 34 < floor 40 (visceral=7 naturalness=0 contradiction=3 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-320 → validateScenarioCoherence: hook_topic_noun_drift
  *   • DRAFT-327 → scoreNigerianPackEntry 35 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=9)
@@ -34,7 +33,6 @@
  *   • DRAFT-338 → scoreNigerianPackEntry 38 < floor 40 (visceral=5 naturalness=0 contradiction=9 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-343 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-345 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
- *   • DRAFT-348 [REWRITE] → scoreNigerianPackEntry 37 < floor 40 (visceral=5 naturalness=0 contradiction=0 anchor=10 filmable=5 brevity=17)
  *   • DRAFT-367 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
  *   • DRAFT-371 → scoreNigerianPackEntry 32 < floor 40 (visceral=7 naturalness=-5 contradiction=6 anchor=10 filmable=5 brevity=9)
  *   • DRAFT-372 → scoreNigerianPackEntry 39 < floor 40 (visceral=5 naturalness=0 contradiction=6 anchor=10 filmable=5 brevity=13)
@@ -829,6 +827,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
+      // source: DRAFT-151 · cluster: boss_email
+      hook: "oga sent email at 11:59 p.m. like sleep is illegal",
+      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly, open laptop, and stare at the screen.",
+      howToFilm: "Bed-level handheld, low angle, one take.",
+      caption: "bedtime became office hours.",
+      anchor: "email",
+      domain: "work",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
       // source: DRAFT-153 [REWRITE] · cluster: submission_closed
       hook: "portal bury my courage with one closed page",
       whatToShow: "Keep postponing the upload. Refresh the portal and see closed status. Your hand freezes on the mouse.",
@@ -1348,13 +1357,13 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     Object.freeze({
       // source: DRAFT-263 [REWRITE] · cluster: portal_closed
       hook: "portal close and submission disgrace me",
-      whatToShow: "You keep postponing. Refresh the portal and see 'closed.' Your hand freezes on the mouse.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
+      whatToShow: "Keep postponing the submission while the portal is still open. Later, refresh the portal and see closed, your hand freezes on the mouse, and you stare like later has finally collected evidence.",
+      howToFilm: "Frame the portal screen, mouse, and your hand from desk level. Let the refresh happen first, then cut on your frozen hand when the closed message appears.",
       caption: "later has consequences.",
       anchor: "portal",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-266 [REWRITE] · cluster: zoom_camera_off
@@ -1982,6 +1991,17 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       domain: "transport",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-09",
+    }),
+    Object.freeze({
+      // source: DRAFT-348 · cluster: transport
+      hook: "conductor gave me torn note and called it balance.",
+      whatToShow: "You collect change in danfo. One note looks tired. You try returning it, conductor already moved away.",
+      howToFilm: "Door-side handheld, mid-shot, one take.",
+      caption: "money with history.",
+      anchor: "conductor",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI 2026-05-06",
     }),
     Object.freeze({
       // source: DRAFT-349 · cluster: food

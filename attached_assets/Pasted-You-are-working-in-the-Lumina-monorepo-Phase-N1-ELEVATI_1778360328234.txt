@@ -1,0 +1,186 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 Chunk A stabilize + safe 30th replacement.
+
+Context:
+Batch 2 Chunk A currently has 29 accepted rewritten entries, but the repo state is degraded because failed overlays remain active.
+
+Known failures:
+- DRAFT-348 failed three times and should not be repaired again in Chunk A.
+- DRAFT-151 replacement failed with validateScenarioCoherence: hook_topic_noun_drift.
+- DRAFT-151 was already approved under worksheet baseline, so the failed overlay knocked out a previously approved entry.
+- Current approved count is 202, but it should return to 204.
+- Current Chunk A accepted rewrite count is 29/30.
+- We need to restore approved count and add one safer 30th rewritten entry.
+
+Goal:
+1. Retract the failed DRAFT-151 overlay so DRAFT-151 returns to its worksheet-baseline approved state.
+2. Retract all failed BI 2026-05-09 DRAFT-348 Chunk A repair/replacement overlays so DRAFT-348 no longer harms approved count.
+3. Add DRAFT-263 as the safe 30th Chunk A rewrite.
+4. End with:
+   - approved count = 204
+   - rejected count = 13 pre-existing only
+   - rejected-from-rewrites = 0
+   - Chunk A accepted rewritten entries = 30
+   - Chunk B not executed
+
+Important:
+This is stabilization, not more creative gambling.
+Do not attempt to repair DRAFT-348 again.
+Do not attempt to repair DRAFT-151 again.
+Do not touch the 29 accepted Chunk A rewritten entries.
+
+============================================================
+RETRACTION REQUIREMENTS
+============================================================
+
+Edit `.local/REGIONAL_N1_REWRITES.yaml` only as needed to remove/retract failed overlay blocks.
+
+Remove/retract:
+- the failed DRAFT-151 overlay block added in `n1_p2_batch2_chunk_a_draft151_replacement_overlay.yaml`
+- all failed BI 2026-05-09 DRAFT-348 overlay blocks from the Batch 2 Chunk A attempts
+
+After removal/retraction, run codegen once to confirm:
+- DRAFT-151 is approved again under its worksheet-baseline state
+- DRAFT-348 no longer contributes a rejected-from-rewrites row
+- approved count returns to 203 before adding the DRAFT-263 replacement, or explain if the add/retract is done in one final codegen
+
+Do not edit worksheet.
+Do not hand-edit generated approved file.
+
+============================================================
+SAFE 30TH REPLACEMENT — APPLY EXACTLY
+============================================================
+
+Use DRAFT-263 as the 30th Chunk A replacement.
+
+Apply this overlay:
+
+- draftId: DRAFT-263
+  newAnchor: portal
+  rewrittenHook: "portal close and submission disgrace me"
+  rewrittenWhatToShow: "Keep postponing the submission while the portal is still open. Later, refresh the portal and see closed, your hand freezes on the mouse, and you stare like later has finally collected evidence."
+  rewrittenHowToFilm: "Frame the portal screen, mouse, and your hand from desk level. Let the refresh happen first, then cut on your frozen hand when the closed message appears."
+  rewrittenCaption: "later has consequences."
+  reviewedBy: "BI 2026-05-09"
+
+Why DRAFT-263:
+- It is rank 31 from the accepted Batch 2 candidate packet.
+- It is not a semantic duplicate of the already accepted Chunk A entries.
+- It has a concrete anchor `portal`.
+- The hook already contains `portal` and the whatToShow repeats `portal`.
+- The scenario has a clear setup → action → payoff.
+- The howToFilm is scene-specific and removes the old desk lock-off boilerplate.
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Save the final proposed DRAFT-263 overlay as:
+
+`.local/qa-runs/n1_p2_batch2_chunk_a_draft263_replacement_overlay.yaml`
+
+Run:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_p2_batch2_chunk_a_draft263_replacement_overlay.yaml`
+
+If preflight flags a real hard failure, stop and report before appending.
+
+Expected:
+- exactly 1 DRAFT-263 overlay block
+- no old boilerplate howToFilm
+- no `Keep the X centered`
+- no stereotype-token hits
+- no mock pidgin
+- anchor `portal` appears in hook and whatToShow
+- hook/whatToShow overlap passes
+- no semantic duplicate with Batch 1 / Hot-6 / Airtime / accepted Chunk A entries
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+After the failed DRAFT-151 and DRAFT-348 overlays are retracted and DRAFT-263 is appended, run:
+
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+Confirm:
+- approved count = 204
+- rejected count = 13 pre-existing only
+- rejected-from-rewrites = 0
+- DRAFT-151 is approved again through baseline / prior valid state
+- DRAFT-348 is no longer a rewrite-caused rejection
+- DRAFT-263 is accepted with BI 2026-05-09
+- Chunk A accepted rewritten entries = 30
+- Chunk B was not executed
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+2. Focused Nigerian pack tests:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+3. Static checks on the 30 accepted Chunk A rewritten entries:
+- no old filming boilerplate
+- no `Phone-level lock-off`
+- no `Desk-height lock-off`
+- no `Counter-level lock-off`
+- no `Couch-level handheld`
+- no `Bed-level handheld`
+- no `Door-side handheld`
+- no `Mirror lock-off`
+- no `soft daylight`
+- no `one take`
+- no `Keep the \w+ centered`
+- no user-facing NEPA / nepa / jollof / buka / village people / my enemies / yahoo boy / 419
+- no `direct to camera`
+- no `deliberately`
+- no `on purpose`
+- no `with intent`
+- no `look straight at the lens`
+- anchor appears in hook and whatToShow for all 30 accepted rewrites
+- hook/whatToShow scenario token overlap passes for all 30 accepted rewrites
+- no empty fields
+- no duplicate hooks
+- no duplicate howToFilm
+- no semantic duplicate with completed P1 ideas
+
+Full api-server suite is optional unless codegen/static/tests show risk.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Retraction result for DRAFT-151 and DRAFT-348.
+4. Preflight result for DRAFT-263.
+5. Codegen result.
+6. Approved/rejected counts.
+7. Confirmation DRAFT-263 accepted.
+8. Confirmation Chunk A has 30 accepted rewritten entries.
+9. Nigerian pack test result.
+10. TypeScript result.
+11. Static check result.
+12. Full suite result if run, or reason not run.
+13. Confirm:
+   - no worksheet edits
+   - generated approved file regenerated by codegen only
+   - no source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+   - regional-decoration untouched
+   - 29 accepted Chunk A entries not modified
+   - DRAFT-348 not repaired again
+   - DRAFT-151 failed overlay removed/retracted
+   - Chunk B not executed
+
+Do not include long tables unless something fails.
+Do not ask for next steps.
