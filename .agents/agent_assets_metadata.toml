@@ -599,3 +599,15 @@ id = "9QDIuJ_T0srr4WjR4NSuJ"
 uri = "file://.local/qa-runs/n1_rewrite_preflight_requirements.json"
 type = "unspecified"
 title = "N1 Rewrite Preflight Requirements (machine spec)"
+
+[[outputs]]
+id = "1RJm3IyCws4LyRy8zxrV8"
+uri = "file://.local/N1_CHUNK_B_SOURCE_PACKET.md"
+type = "text"
+title = "N1 Chunk B Source-of-Truth Packet"
+
+[[outputs]]
+id = "1iNztCkZLEahAyt6qTA36"
+uri = "file://.local/qa-runs/n1_chunk_b_source_packet.json"
+type = "unspecified"
+title = "N1 Chunk B Source-of-Truth Packet (machine)"
