@@ -521,3 +521,9 @@ id = "Qak-5hO1UgOCietQDXTQE"
 uri = "file://.local/F3_FALLBACK_GAP_ONLY_REPORT.md"
 type = "text"
 title = "F3-FALLBACK-GAP-ONLY FIX — Implementation Report"
+
+[[outputs]]
+id = "eTEegbQ8p2tVg0tNObV7d"
+uri = "file://.local/N1_AUTHOR_AUDIT_REPORT.md"
+type = "text"
+title = "N1-AUTHOR Nigeria Output Elevation Audit"
