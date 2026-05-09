@@ -1,0 +1,118 @@
+PHASE W2-FTN-CLOSEOUT — Final Film This Now Renderer Summary
+
+Objective:
+Close out W2-FTN after W2-FTN-AUDIT and W2-FTN-FIX-1.
+
+This is report-only.
+
+Do not change code.
+Do not patch UI.
+Do not change selectors.
+Do not change validators.
+Do not change prompts.
+Do not change production flags.
+Do not change corpus/content entries.
+Do not start editorial repairs E-1 through E-4 yet.
+Do not use Claude/LLM generation.
+
+Create:
+.local/W2FTN_CLOSEOUT_REPORT.md
+
+Use:
+- .local/W2FTN_AUDIT_REPORT.md
+- W2-FTN-FIX-1 post-change report
+- relevant typecheck/test output
+- current film-this-now.tsx state
+- current hybridIdeator telemetry change
+
+Report sections:
+
+1. Executive verdict
+Choose:
+- GO
+- GO with caveats
+- NEEDS REPAIR
+
+2. What W2-FTN audited
+Summarize:
+- current Film This Now flow
+- server-to-mobile field preservation
+- how FTN renders SETUP / HOOK / ACTION / TWIST / PAYOFF / SHOT PLAN / CAPTION
+- comfort modes
+- W2 vs old/core quality path
+- fields shipped but unused before the fix
+
+3. Audit findings
+Summarize the main defects:
+- universal hard-coded SETUP boilerplate
+- script field shipped but unused
+- W2 placeholder TWIST/PAYOFF leakage
+- ACTION/TWIST duplicate fallback risk
+- missing FTN fields in QA telemetry
+- content-data defects E-1 through E-4 that were reported but not fixed
+
+4. W2-FTN-FIX-1 summary
+Summarize exactly what shipped:
+- SETUP now derives from shotPlan[0] or visualHook, otherwise omits
+- SCRIPT renders only when distinct from whatToShow
+- TWIST hides exact W2 placeholder text
+- PAYOFF hides exact W2 placeholder whyItWorks/reaction placeholders
+- ACTION/TWIST duplicate text de-duped
+- qaTelemetry.perIdea now exposes shotPlan/script/filmingGuide/whyItWorks/trigger/reaction
+
+5. Before/after examples
+Include concise before/after for:
+- W2 idea with shotPlan
+- W2 idea with placeholder TWIST/PAYOFF
+- old/core idea with concrete reaction
+- distinct script example
+- no_face mode
+- no_voice mode
+- missing optional fields / legacy cached idea
+
+6. Verification
+Include:
+- lumina TypeScript result
+- api-server TypeScript result
+- api-server vitest result
+- production flag status
+- no selector changes
+- no validator/schema changes
+- no prompt changes
+- no hook/scenario/caption/corpus changes
+- no Claude/LLM usage
+- no NG/IN/PH-specific changes
+
+7. Remaining caveats / deferred content items
+List E-1 through E-4 exactly as deferred, not fixed:
+- E-1: W2-N repeated “Phone on a tripod, one locked-off shot.” prefix
+- E-2: W2 author placeholder trigger/reaction/whyItWorks templates
+- E-3: W2 hardcoded shotPlan placeholder beats
+- E-4: pattern_variation repeated “the fridge knows i'm lying” howToFilm
+
+For each:
+- why it matters
+- why it was not fixed in W2-FTN-FIX-1
+- recommended future treatment:
+  - audit first
+  - hand-authored/editorial repair only
+  - no automated generic rewriting
+
+8. Final recommendation
+State whether:
+- W2-FTN is closed
+- proceed to deferred FTN editorial repair
+- or move to next product phase
+
+My expected recommendation:
+W2-FTN renderer is GO with caveats.
+Do not add more renderer patches.
+If user wants to improve further, next phase should be:
+W2-FTN-E — Editorial Repair Audit for deferred content items E-1 through E-4.
+
+9. Explicit stop line
+State:
+- W2-FTN renderer work is closed if verdict is GO/GO with caveats.
+- Do not continue adding FTN renderer patches.
+- Do not start E-1 through E-4 editorial repair until user approves a separate prompt.
+- Production W2 remains OFF unless explicitly approved later.

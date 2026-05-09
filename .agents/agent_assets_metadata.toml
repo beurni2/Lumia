@@ -425,3 +425,9 @@ id = "2Okr21msTMV7A5BxD-H1u"
 uri = "file://.local/W2FTN_POST_CHANGE_REPORT.md"
 type = "text"
 title = "W2-FTN-FIX-1 Post-Change Report"
+
+[[outputs]]
+id = "WAOVFuRqqx120FVNvycse"
+uri = "file://.local/W2FTN_CLOSEOUT_REPORT.md"
+type = "text"
+title = "W2-FTN Closeout Report"
