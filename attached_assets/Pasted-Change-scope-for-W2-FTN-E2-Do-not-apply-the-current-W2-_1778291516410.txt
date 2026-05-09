@@ -1,0 +1,129 @@
+Change scope for W2-FTN-E2.
+
+Do not apply the current W2-N 53-entry packet.
+
+New goal:
+Rewrite BOTH `whatToShow` and `howToFilm` for the affected W2-N entries so each pair feels human-crafted, simple, clear, filmable, funny, and premium.
+
+The old plan only rewrote `howToFilm`. That is not enough if the `whatToShow` scene itself can be sharper, clearer, or more WOW.
+
+Proceed with:
+
+PHASE W2-FTN-E2 — W2-N WhatToShow + HowToFilm Editorial Upgrade Packet
+
+This is still packet-only.
+Do not patch corpus files yet.
+Do not change reviewedBy.
+Do not run an apply script.
+Do not touch W2-I.
+Do not touch W2-Diversity.
+Do not touch pattern_variation.
+Do not change hooks.
+Do not change anchors unless there is a proven anchor/cohesion issue and you report it first.
+Do not change captions unless a caption mismatch is proven and you report it first.
+Do not change validators.
+Do not change selectors.
+Do not change prompts.
+Do not use Claude/LLM rewriting.
+Do not generate generic filler.
+
+Use the 53 affected W2-N entries from:
+.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_FULL.md
+
+Create:
+.local/W2FTN_E_W2N_WHAT_TO_SHOW_HOW_TO_FILM_UPGRADE_PACKET.md
+
+For each of the 53 entries, include:
+- entry id
+- hook
+- anchor
+- setting
+- current whatToShow
+- current howToFilm
+- proposed revised whatToShow
+- proposed revised howToFilm
+- why the pair is better
+- validator/cohesion risk notes
+- classification:
+  - READY
+  - NEEDS_MINOR_COPY_REVIEW
+  - NEEDS_EDITOR_REWRITE
+
+Editorial standard:
+Each pair must feel like a high-taste human creator/director wrote it.
+
+WHAT TO SHOW must:
+- explain the full skit clearly
+- be simple and instantly understandable
+- name the visible object/action
+- include the setup, movement, and payoff
+- match the hook exactly
+- preserve the original premise
+- preserve the anchor
+- preserve the setting
+- preserve safety/privacy
+- avoid vague lines like “creator reacts” or “lets the joke land”
+- avoid overly abstract emotional language
+- avoid adding complicated props or public filming
+- be easy to imagine in one read
+
+HOW TO FILM must:
+- tell the creator exactly how to shoot it
+- start with a concrete framing or opening shot
+- describe the main visible action
+- describe the pause/payoff/ending
+- be 1–2 sentences
+- feel low-effort and shootable in 10–15 minutes
+- avoid “Phone on a tripod”
+- avoid “locked-off shot”
+- avoid “film yourself reacting”
+- avoid “show the object”
+- avoid “make it funny”
+- avoid generic creator-coach filler
+- preserve the revised whatToShow exactly
+- not introduce a different joke
+
+The pair must work like this:
+
+WHAT TO SHOW:
+“Creator opens a fake bank screen on the couch, eyebrows lifting slowly as the total loads. They turn the phone face-down on their knee like the conversation is over.”
+
+HOW TO FILM:
+“Frame chest-up on the couch with the phone angled toward camera. Let the eyebrows rise first, then turn the phone face-down and hold the dead-eye stare for two beats.”
+
+That is the target: clear scene first, then simple filming direction.
+
+Quality bar:
+Do not mark an entry READY unless:
+- the hook makes sense with the proposed whatToShow
+- the proposed whatToShow is clearer than the current one
+- the proposed howToFilm is more useful than the current one
+- both fields feel human-crafted
+- both fields are specific to the scene
+- neither field feels templated
+- no validator/cohesion risk remains
+
+QA checks required across all 53:
+- banned phrase count
+- “Phone on a tripod” residue count
+- “locked-off shot” residue count
+- exact duplicate whatToShow count
+- exact duplicate howToFilm count
+- near-duplicate opening line count
+- overlap/cohesion risk count
+- anchor missing risk count
+- hook/scene mismatch count
+- premise drift count
+- unsafe/private/public filming issue count
+- schema min/max length risk count
+- entries marked READY / NEEDS_MINOR_COPY_REVIEW / NEEDS_EDITOR_REWRITE
+
+Important:
+If a current `whatToShow` is already excellent, you may keep most of its structure, but polish it only if the improvement is real.
+Do not rewrite just to rewrite.
+Do not make it more complicated.
+Simple, clear, funny, and filmable beats fancy.
+
+Stop after producing the upgraded packet.
+Do not apply anything.
+Await user approval before any corpus patch.

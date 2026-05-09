@@ -1,0 +1,80 @@
+Do not apply the W2-N 53-entry repair packet yet.
+
+The packet direction is good, but it is not application-ready because 5/53 entries are flagged below the conservative substantive-token overlap bar, including w2_next2_067 with overlap 0.
+
+Proceed with W2-FTN-E2 — W2-N Repair Packet Hardening.
+
+Goal:
+Make the 53-entry W2-N prefix repair packet safe, cohesive, validator-aligned, and editor-ready before any corpus patch.
+
+Do not patch corpus files.
+Do not change reviewedBy.
+Do not run an apply script.
+Do not touch W2-I.
+Do not touch W2-Diversity.
+Do not touch pattern_variation.
+Do not use Claude/LLM rewriting.
+Do not generate generic filler.
+
+Tasks:
+
+1. Identify all 5 flagged entries
+Find every proposed W2-N rewrite with:
+- substantive-token overlap < 2
+- banned phrase risk
+- possible anchor/cohesion risk
+- possible premise drift
+- possible safety/privacy risk
+- wording that adds a new prop/action not present or implied by whatToShow
+
+2. Repair only the flagged entries
+For each flagged entry:
+- preserve the hook
+- preserve whatToShow exactly
+- preserve anchor
+- preserve setting
+- preserve the same scene
+- increase overlap by reusing concrete nouns/actions from whatToShow
+- keep it human-crafted and specific
+- keep it 1–2 sentences
+- do not add a new premise
+- do not make it generic
+
+3. Run packet-level QA
+Against all 53 proposed rewrites, report:
+- banned phrase count
+- "Phone on a tripod" residue count
+- "locked-off shot" residue count
+- overlap < 2 count
+- exact duplicate howToFilm count
+- near-duplicate opening sentence count
+- anchor missing from howToFilm count, if the existing test expects anchor presence
+- lines over schema max length
+- lines under schema min length
+- unsafe/private/public filming issues
+- premise drift issues
+
+4. Editorial taste check
+For all 53, classify:
+- READY
+- NEEDS_MINOR_COPY_REVIEW
+- NEEDS_EDITOR_REWRITE
+
+Do not mark anything READY unless it is clearly better than the original and validator-safe.
+
+5. Produce updated packet
+Create:
+.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_HARDENED.md
+
+Include:
+- all 53 entries
+- revised howToFilm
+- changed entries highlighted
+- QA summary table
+- remaining risk list
+- final recommendation:
+  - READY_TO_APPLY
+  - NEEDS_USER_REVIEW
+  - DO_NOT_APPLY
+
+Stop after the hardened packet. Await user approval before any apply patch.
