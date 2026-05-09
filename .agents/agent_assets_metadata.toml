@@ -557,3 +557,15 @@ id = "tykxO-01RyMhFyNJUZMhQ"
 uri = "file://.local/N1_ELEVATION_P1_CHUNK_A_REPORT.md"
 type = "text"
 title = "N1-ELEVATION-P1 Chunk A Apply Report"
+
+[[outputs]]
+id = "V9vxEdz-wp-M9VnrgjH00"
+uri = "file://.local/N1_CHUNK_A_REJECTED_SOURCE_PACKET.md"
+type = "text"
+title = "N1 Chunk A-R Rejected-Entry Source Packet"
+
+[[outputs]]
+id = "vtCLnlJLu5YBMVtjbAn6B"
+uri = "file://.local/qa-runs/n1_chunk_a_rejected_source_packet.json"
+type = "unspecified"
+title = "N1 Chunk A-R Rejected Source Packet (JSON)"

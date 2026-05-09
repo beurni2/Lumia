@@ -81,6 +81,8 @@ Lumina is a creator tool that enhances daily consistency for English-speaking mi
 
 I prefer to develop iteratively and see changes frequently. Please ask before making any major architectural changes or introducing new dependencies. I value clear, concise explanations and prefer a functional programming style where appropriate. Do not make changes to files or folders marked as `ARCHIVED` or related to `MONETIZATION` or `POSTING` systems unless explicitly instructed and the associated feature flag is enabled.
 
+**Always open reports.** Whenever a task produces a report file (`.md`, `.json`, etc. in `.local/` or anywhere else), present it via the asset-presentation tool at the end of the task without being asked.
+
 ## Gotchas
 
 - **Cache Invalidation:** Careful handling required for `creators.last_idea_batch_json` schema changes.
