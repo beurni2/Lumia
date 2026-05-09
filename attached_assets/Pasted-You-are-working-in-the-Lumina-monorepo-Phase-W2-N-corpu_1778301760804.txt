@@ -1,0 +1,284 @@
+You are working in the Lumina monorepo.
+
+Phase:
+W2-N corpus cohesion cleanup.
+
+Context:
+The W2-AUTHOR HYBRID generator upgrade is already accepted. Do not touch it.
+
+This new phase is ONLY to clean up the deferred W2-N corpus cohesion issues documented in:
+
+.local/W2N_DEFERRED_VIOLATORS.md
+
+The deferred report says there are:
+- 23 total violations
+- across 18 distinct entries
+- 10 anchor-token missing from `whatToShow`
+- 13 `howToFilm` ↔ `whatToShow` substantive-token overlap failures
+- 5 entries appear in both groups
+
+Source file to edit:
+- `artifacts/api-server/src/lib/westernHookPackBatchNext2.ts`
+
+Failing test:
+- `artifacts/api-server/src/lib/__tests__/westernHookPackApproved.test.ts`
+
+Hard rule:
+Do not loosen the test. Fix the corpus entries.
+
+============================================================
+STRICT SCOPE
+============================================================
+
+Only touch:
+
+1. `artifacts/api-server/src/lib/westernHookPackBatchNext2.ts`
+2. Optional final report file under `.local/`, if useful
+
+Do NOT touch:
+- W2-AUTHOR HYBRID generator files
+- tests
+- validators
+- schemas
+- selectors
+- scorers
+- flags
+- env files
+- migrations
+- API shape
+- `artifact.toml`
+- `.replit`
+- start scripts
+- N1 corpus files
+- userBlessedHookCorpus files
+- any other W2 corpus files
+
+Do NOT change:
+- `id`
+- `hook`
+- `caption`
+- `anchor`
+- `reviewedBy`
+- `comedyFamily`
+- `emotionalSpike`
+- `setting`
+- `voiceCluster`
+- `hookStyle`
+- `safetyNote`
+- any metadata field
+
+Only edit:
+- `whatToShow` when fixing anchor-token failures
+- `howToFilm` when fixing overlap-token failures
+
+No rewriting for taste beyond the minimum needed. Preserve meaning, premise, V2 style, and existing voice.
+
+Use curly apostrophes where the file already uses them.
+
+============================================================
+ENTRIES TO FIX — GROUP 1
+Anchor token missing from `whatToShow`
+============================================================
+
+For these entries, make `whatToShow.toLowerCase().includes(anchor.toLowerCase())` pass.
+
+Use the minimal suggested fix: pluralize the existing singular present-tense verb already in `whatToShow` to match the anchor.
+
+Do not change the anchor field.
+
+1. `w2_next2_033`
+   anchor: `places`
+   fix: pluralize `place` → `places` in `whatToShow`
+
+2. `w2_next2_036`
+   anchor: `adjusts`
+   fix: pluralize `adjust` → `adjusts` in `whatToShow`
+
+3. `w2_next2_043`
+   anchor: `brushes`
+   fix: pluralize `brush` → `brushes` in `whatToShow`
+
+4. `w2_next2_052`
+   anchor: `shakes`
+   fix: pluralize `shake` → `shakes` in `whatToShow`
+
+5. `w2_next2_057`
+   anchor: `dances`
+   fix: pluralize `dance` → `dances` in `whatToShow`
+
+6. `w2_next2_065`
+   anchor: `types`
+   fix: pluralize `type` → `types` in `whatToShow`
+
+7. `w2_next2_067`
+   anchor: `types`
+   fix: pluralize `type` → `types` in `whatToShow`
+
+8. `w2_next2_088`
+   anchor: `smooths`
+   fix: pluralize `smooth` → `smooths` in `whatToShow`
+
+9. `w2_next2_091`
+   anchor: `measures`
+   fix: pluralize `measure` → `measures` in `whatToShow`
+
+10. `w2_next2_095`
+    anchor: `stacks`
+    fix: pluralize `stack` → `stacks` in `whatToShow`
+
+============================================================
+ENTRIES TO FIX — GROUP 2
+`howToFilm` ↔ `whatToShow` substantive-token overlap < 3
+============================================================
+
+For these entries, edit `howToFilm` minimally so it shares at least 3 substantive tokens with `whatToShow`, using the exact tokenizer/stoplist from `westernHookPackApproved.test.ts`.
+
+Do not change `whatToShow` for these unless the entry is also in Group 1.
+
+Insert one natural token from the listed `whatToShow` tokens into `howToFilm`, without changing the premise.
+
+1. `w2_next2_012`
+   current overlap: 2
+   add one natural token from:
+   `desk`, `staring`, `fake`, `number`, `call`
+
+2. `w2_next2_021`
+   current overlap: 2
+   add one natural token from:
+   `crouch`, `living`, `room`, `window`, `separate`
+
+3. `w2_next2_022`
+   current overlap: 1
+   add enough natural tokens from:
+   `desk`, `staged`, `open`, `start`, `deleting`
+   Target overlap must be ≥ 3. Since current overlap is 1, likely add two tokens.
+
+4. `w2_next2_023`
+   current overlap: 2
+   add one natural token from:
+   `holding`, `upright`, `keeping`, `whole`, `operating`
+
+5. `w2_next2_025`
+   current overlap: 2
+   add one natural token from:
+   `open`, `junk`, `start`, `pulling`, `objects`
+
+6. `w2_next2_036`
+   current overlap: 2
+   add one natural token from:
+   `open`, `list`, `desk`, `change`, `lean`
+   Also apply Group 1 anchor fix for this entry.
+
+7. `w2_next2_041`
+   current overlap: 2
+   add one natural token from:
+   `kneel`, `front`, `tiny`, `ceremony`, `about`
+
+8. `w2_next2_065`
+   current overlap: 2
+   add one natural token from:
+   `type`, `worries`, `couch`, `immediately`, `down`
+   Also apply Group 1 anchor fix for this entry.
+
+9. `w2_next2_067`
+   current overlap: 2
+   add one natural token from:
+   `type`, `three`, `different`, `replies`, `each`
+   Also apply Group 1 anchor fix for this entry.
+
+10. `w2_next2_072`
+    current overlap: 2
+    add one natural token from:
+    `fake`, `free`, `notification`, `lands`, `while`
+
+11. `w2_next2_081`
+    current overlap: 1
+    add enough natural tokens from:
+    `alarm`, `rings`, `while`, `lying`, `face`
+    Target overlap must be ≥ 3. Since current overlap is 1, likely add two tokens.
+
+12. `w2_next2_088`
+    current overlap: 2
+    add one natural token from:
+    `smooth`, `blanket`, `flat`, `step`, `back`
+    Also apply Group 1 anchor fix for this entry.
+
+13. `w2_next2_095`
+    current overlap: 2
+    add one natural token from:
+    `empty`, `storage`, `bins`, `bedroom`, `floor`
+    Also apply Group 1 anchor fix for this entry.
+
+============================================================
+QUALITY BAR
+============================================================
+
+This is not just mechanical token stuffing.
+
+Every edit must:
+- preserve the original premise
+- preserve the joke
+- preserve the V2-style feel
+- remain natural English
+- not sound like a test-driven token insertion
+- keep `whatToShow` and `howToFilm` within existing field length constraints
+- not introduce generic boilerplate
+- not introduce new props or a new scenario
+- not weaken the corpus quality
+
+Bad example:
+“Start close on the object and include the desk.”
+
+Good example:
+“Start close on the object on the desk…”
+
+Make the smallest natural edit.
+
+============================================================
+VERIFICATION
+============================================================
+
+Run:
+
+1. Targeted W2 test:
+   `westernHookPackApproved.test.ts`
+
+2. Full api-server vitest suite
+
+3. API-server TypeScript:
+   `pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+4. Banned-phrase runtime scan:
+   same scan used in prior phase.
+
+Expected:
+- `westernHookPackApproved.test.ts` should pass.
+- Full api-server suite should be green unless there is an unrelated pre-existing failure; if not green, identify exactly.
+- TypeScript clean.
+- No banned phrases in user-facing output templates.
+- Hits in `ideaGen.ts` are acceptable only where they are negative examples to Claude.
+- Hits in tests are acceptable as fixtures.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a concise report with:
+
+1. Files changed.
+2. Confirmation only `westernHookPackBatchNext2.ts` was changed among source files.
+3. List of all 18 distinct entries fixed.
+4. For each entry, state whether you changed:
+   - `whatToShow`
+   - `howToFilm`
+   - or both
+5. Confirm ids/hooks/captions/anchors/metadata were unchanged.
+6. Targeted W2 test result.
+7. Full api-server suite result.
+8. TypeScript result.
+9. Banned-phrase scan result.
+10. Confirmation no validators/tests/schema/selectors/flags/migrations/API-shape files changed.
+11. Any risks.
+
+Do not do unrelated cleanup.
+Do not broaden the pass.
