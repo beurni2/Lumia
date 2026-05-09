@@ -1,0 +1,349 @@
+You are working in the Lumina monorepo.
+
+Phase:
+F3 — LLM fallback stress sweep.
+
+Context:
+The following phases are accepted:
+1. W2-AUTHOR HYBRID generator upgrade
+2. Debug printer cleanup
+3. W2-N corpus cohesion cleanup
+4. F1 banned boilerplate runtime fix
+
+Current state:
+- Full api-server suite green: 1298/1298
+- TypeScript clean
+- F1 architect review PASS
+- No corpus/schema/selector/validator/scorer/prompt/flag/API/DB changes from F1
+- Runtime QA previously covered 105 ideas across cohorts, but fallback was used 0/35 batches because local pools were sufficient.
+
+Goal:
+Stress-test the LLM fallback path end-to-end, especially Claude fallback / regenerate-novelty behavior, to confirm it produces strong `whatToShow` and `howToFilm` at the same V2-style quality bar.
+
+This is QA/AUDIT ONLY.
+Do not modify source code unless explicitly approved after reporting findings.
+
+============================================================
+WHY THIS PHASE EXISTS
+============================================================
+
+The prior runtime QA proved:
+- W2 pack output is strong
+- N1 pack output is strong
+- local deterministic pipeline is mostly strong
+- Path B long-tail synthesis improved
+- F1 banned phrase leak is fixed
+
+But the prior sweep did NOT exercise Claude fallback:
+- fallback used 0/35 batches
+- local sufficient skip gates fired every time
+
+We need to force or provoke fallback safely so we can inspect:
+- fallback hook quality
+- fallback `whatToShow`
+- fallback `howToFilm`
+- schema compliance
+- banned phrases
+- generic/AI-ish output
+- hook/scenario coherence
+- latency and failure behavior
+
+============================================================
+STRICT RULES
+============================================================
+
+Do NOT change source code in this phase.
+
+Do NOT touch:
+- corpus files
+- generator files
+- prompts
+- validators
+- schemas
+- selectors
+- scorers
+- flags
+- env files
+- migrations
+- API shape
+- mobile files
+- tests
+
+Do NOT implement fixes.
+
+If a defect is found, report:
+1. exact sample output
+2. source/fallback reason
+3. likely cause
+4. smallest proposed fix
+5. risk level
+
+Then stop.
+
+============================================================
+PRIMARY QA QUESTION
+============================================================
+
+Can Lumina’s fallback path generate creator-ready ideas whose `whatToShow` and `howToFilm` meet the post-W2-AUTHOR V2 standard?
+
+V2 standard:
+- visible skit
+- setup/action/turn/payoff
+- object/action carries the joke
+- concrete filming direction
+- shootable in 10–15 minutes
+- no generic boilerplate
+- no “film yourself reacting”
+- no “let the joke land”
+- no AI-ish filler
+- no mismatch between hook and scenario
+- no new premise introduced in `howToFilm`
+
+============================================================
+HOW TO FORCE FALLBACK
+============================================================
+
+Use existing harnesses/scripts where possible.
+
+Try safe fallback-pressure methods such as:
+
+1. Higher requested count:
+   - request `count: 8` or higher if the route supports it
+   - this should pressure `merged.length < desiredCount`
+
+2. Regenerate novelty:
+   - use `regenerate: true`
+   - include exclude hooks if supported
+   - use repeated calls with the same creator memory to exhaust local novelty
+
+3. Narrow personalization:
+   - use creator/taste settings that reduce local eligible pool if supported
+
+4. Existing QA flags/harness controls:
+   - inspect existing `.local/scripts/` and test helpers for fallback or under-fill stress harnesses
+   - use only existing supported route params or local QA harness logic
+
+Do NOT change production env flags.
+Do NOT disable local packs in production code.
+Do NOT patch selectors to force fallback.
+
+If fallback cannot be forced without code changes, clearly report that and explain what prevented it.
+
+============================================================
+COHORTS TO COVER
+============================================================
+
+Stress these cohorts if practical:
+
+1. western clean
+2. nigeria pidgin
+3. nigeria light_pidgin
+4. india clean
+5. philippines clean
+6. cold-start western
+7. returning/warm western
+
+Minimum:
+- at least 20 fallback-generated ideas if fallback can be forced
+- ideally 40+ fallback-generated ideas
+- at least 3 cohorts with actual fallback usage
+
+If fallback only triggers in some cohorts, report exactly where and why.
+
+============================================================
+DATA TO COLLECT PER IDEA
+============================================================
+
+For every idea in the stress sweep, collect:
+
+- cohort
+- batch number
+- request params used
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source tag
+- fallback decision/reason
+- whether Claude/OpenRouter/Llama was used
+- latency
+- any validation warnings or retries
+- whether local or fallback-generated
+
+Save raw data to:
+
+`.local/qa-runs/f3_llm_fallback_stress_qa.json`
+
+Save summary to:
+
+`.local/qa-runs/f3_llm_fallback_stress_summary.json`
+
+Write report to:
+
+`.local/F3_LLM_FALLBACK_STRESS_REPORT.md`
+
+============================================================
+AUTOMATED CHECKS
+============================================================
+
+Run deterministic checks on fallback-generated outputs.
+
+1. Banned phrase scan over `whatToShow` + `howToFilm`.
+
+Reject:
+- phone on a tripod
+- single static shot
+- single locked-off shot
+- single locked off shot
+- locked-off on tripod
+- locked off on tripod
+- let the joke land
+- let the silence land
+- film yourself reacting
+- creator reacts
+- show the X on camera
+
+2. Length bounds:
+- `whatToShow` within schema bounds
+- `howToFilm` within schema bounds
+- no empty fields
+- no truncation-looking endings
+
+3. Hook/scenario coherence:
+Flag if:
+- hook and `whatToShow` do not match
+- `howToFilm` introduces a new premise
+- caption does not fit
+- main object/action is absent from filming guidance
+
+4. Generic/AI-ish patterns:
+Flag:
+- “a relatable moment”
+- “make it funny”
+- “record yourself”
+- “act surprised”
+- “show yourself”
+- “the joke is”
+- “this shows how”
+- “POV: you…”
+- any overly explanatory or template-ish phrasing
+
+5. Duplication:
+Report:
+- duplicate hooks
+- duplicate `whatToShow`
+- duplicate `howToFilm`
+- near-duplicate hooks if existing similarity helper is available
+
+6. Safety/schema:
+Report:
+- validation failures
+- guard failures
+- retries
+- fallback errors
+- malformed JSON
+- timeout/latency failures
+
+============================================================
+MANUAL REVIEW
+============================================================
+
+Manually review at least 20 fallback-generated ideas.
+
+Classify each:
+
+PASS:
+Strong, human, filmable, coherent, V2-quality.
+
+WARN:
+Usable but has mild issue: slightly generic filming, weak caption, not enough payoff, awkward voice.
+
+FAIL:
+Generic, incoherent, unfilmable, AI-ish, culturally off, mismatched, or disappointing.
+
+Score 1–5:
+- hook strength
+- `whatToShow` specificity
+- `howToFilm` shootability
+- hook ↔ scenario coherence
+- object/action carries the joke
+- non-generic / non-AI-ish feel
+- cultural/region fit where applicable
+- overall first-impression quality
+
+Include verbatim:
+- 10 best fallback samples
+- 10 worst/WARN/FAIL fallback samples
+
+If fewer than 20 fallback ideas are generated, manually review all fallback ideas and explain the shortfall.
+
+============================================================
+COMPARE FALLBACK VS LOCAL
+============================================================
+
+In the report, directly answer:
+
+1. Is fallback output at the same level as local W2-AUTHOR output?
+2. Is fallback weaker in hooks, `whatToShow`, `howToFilm`, captions, region voice, or coherence?
+3. Does fallback overuse generic LLM phrasing?
+4. Does fallback obey the V2-style authoring contract?
+5. Is fallback safe to leave enabled for beta?
+6. Does fallback need a prompt/gate/template follow-up before beta?
+
+============================================================
+VERIFICATION AFTER QA
+============================================================
+
+Because this is no-code QA, still run:
+
+1. Full api-server suite
+2. API-server TypeScript check
+3. Banned-phrase runtime source scan
+
+Expected:
+- Full suite remains green.
+- TypeScript clean.
+- Source scan unchanged except known intentional negative examples / test fixtures / gate regexes.
+- Git source tree remains clean, except `.local/` QA artifacts.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a report with:
+
+1. Exact commands/scripts run.
+2. Whether fallback was successfully forced.
+3. Cohorts covered.
+4. Request params used to force fallback.
+5. Total ideas generated.
+6. Total fallback-generated ideas.
+7. Fallback source distribution:
+   - Claude
+   - OpenRouter/Llama
+   - other
+   - local
+8. Latency summary.
+9. Automated check results:
+   - banned phrases
+   - malformed outputs
+   - schema/length
+   - duplicates
+   - hook/scenario mismatch
+   - generic/AI-ish flags
+10. Manual review:
+   - PASS/WARN/FAIL counts
+   - average rubric scores
+   - 10 best fallback samples
+   - 10 worst/WARN/FAIL fallback samples
+11. Fallback vs local comparison.
+12. Verdict:
+   - ACCEPT fallback quality
+   - ACCEPT WITH FOLLOW-UP
+   - REJECT / NEED FIX
+13. If follow-up is needed, propose the smallest safe fix, but do not apply it.
+14. Confirm no source files were changed.
+15. Confirm full suite and TypeScript results.
+
+Important:
+This phase is not about proving the local deterministic system again. It is specifically about the fallback path that prior QA did not exercise.
