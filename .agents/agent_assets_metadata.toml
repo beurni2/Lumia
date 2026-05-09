@@ -839,3 +839,15 @@ id = "Z8y974kex-0Qu8g4QfG7J"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_a_draft263_replacement_overlay.yaml"
 type = "unspecified"
 title = "DRAFT-263 overlay snapshot"
+
+[[outputs]]
+id = "QgULAP5T7Bm0vfZ0lEvQ6"
+uri = "file://.local/N1_P2_BATCH2_CHUNK_B_SOURCE_PACKET.md"
+type = "text"
+title = "N1-ELEVATION-P2 — Chunk B source packet (markdown)"
+
+[[outputs]]
+id = "xpu23CsWURjvuiBRFI1EP"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_b_source_packet.json"
+type = "unspecified"
+title = "Chunk B source packet (JSON)"

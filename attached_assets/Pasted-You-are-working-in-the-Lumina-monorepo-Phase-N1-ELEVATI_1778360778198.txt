@@ -1,0 +1,290 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 Chunk B source refresh + semantic duplicate screen.
+
+Context:
+Batch 2 Chunk A is now accepted and stabilized:
+- Chunk A accepted rewritten entries: 30/30.
+- DRAFT-263 was used as the safe 30th replacement.
+- DRAFT-348 failed repeatedly and was retracted; it falls back to worksheet baseline approval and should NOT be rewritten again in Batch 2.
+- DRAFT-151 failed as a replacement and was retracted; it falls back to worksheet baseline approval and should NOT be rewritten in Batch 2.
+- Approved count restored to 204.
+- Rejected count restored to 13 pre-existing only.
+- Rejected-from-rewrites = 0.
+- Nigerian pack tests: 288/288 passing.
+- TypeScript clean.
+- Static checks clean on the 30 accepted Chunk A rewrites.
+- No worksheet/source/test/validator/scorer/selector/prompt/flag/API/mobile changes.
+- Regional-decoration untouched.
+
+Original Batch 2 candidate packet:
+- 60 candidates selected.
+- Class split: 45 B_SCENARIO_HTF, 15 C_HTF_ONLY.
+- Chunk A originally targeted ranks 1–30, but final accepted Chunk A swapped in DRAFT-263 and dropped DRAFT-348.
+- Therefore Chunk B must be recalculated from the current accepted state, not blindly from the old rank list.
+
+Goal:
+Create a current source-of-truth packet for Batch 2 Chunk B with exactly 30 safe candidates to rewrite next.
+
+This is READ-ONLY.
+Do not rewrite.
+Do not apply overlays.
+Do not run codegen apply.
+Do not modify source/corpus/test/config files.
+Do not edit worksheet.
+Do not touch regional-decoration.
+
+============================================================
+SOURCE OF TRUTH
+============================================================
+
+Use:
+
+1. `.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv`
+2. `.local/REGIONAL_N1_REWRITES.yaml`
+3. `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+4. `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+5. `.local/N1_BATCH2_CANDIDATE_SOURCE_PACKET.md`
+6. `.local/qa-runs/n1_batch2_candidate_source_packet.json`
+7. latest Chunk A stabilization report, if present
+8. `.local/N1_REWRITE_PREFLIGHT_REQUIREMENTS.md`
+
+For every candidate, resolve current effective values exactly as codegen would:
+worksheet row + latest overlay block for that draftId, Map last-wins.
+
+============================================================
+EXCLUDE FROM CHUNK B
+============================================================
+
+Exclude:
+
+1. All completed P1 entries:
+- Batch 1 45 entries
+- Hot-6 entries
+- DRAFT-172 airtime patch
+
+2. All accepted Batch 2 Chunk A rewrites:
+- DRAFT-344
+- DRAFT-083
+- DRAFT-346
+- DRAFT-195
+- DRAFT-199
+- DRAFT-310
+- DRAFT-315
+- DRAFT-316
+- DRAFT-340
+- DRAFT-347
+- DRAFT-368
+- DRAFT-369
+- DRAFT-370
+- DRAFT-001
+- DRAFT-003
+- DRAFT-013
+- DRAFT-053
+- DRAFT-055
+- DRAFT-057
+- DRAFT-102
+- DRAFT-119
+- DRAFT-129
+- DRAFT-255
+- DRAFT-311
+- DRAFT-312
+- DRAFT-366
+- DRAFT-175
+- DRAFT-117
+- DRAFT-131
+- DRAFT-263
+
+3. Do not select these in Chunk B:
+- DRAFT-348 — failed repeatedly; leave baseline approved for now.
+- DRAFT-151 — failed replacement and semantically overlaps earlier late-night/email idea; leave baseline approved for now.
+- any stale/missing entryId such as `ng_1f0aac87`.
+
+============================================================
+CHUNK B SELECTION RULE
+============================================================
+
+Select exactly 30 candidates from the remaining Batch 2 candidate packet.
+
+Prioritize:
+- candidates from original ranks 31–60 that remain safe and not excluded
+- candidates with HTF-only class if available, because these are lower-risk and likely to land cleanly
+- candidates with clear, concrete anchors and already-passing hook/scenario
+- candidates where rewrite need is obvious: boilerplate/generic howToFilm or thin but fixable whatToShow
+
+Avoid:
+- entries near score floor unless hook is already baseline-approved and you are not changing it
+- entries with anchors that cause validator drift
+- entries whose hook uses competing topic nouns
+- entries that duplicate completed P1 or Chunk A concepts
+- entries with repeated generator/sleep, late-night email, refresh-no-care, group/we-move, or torn-note conductor premises
+
+If exactly 30 safe candidates do not remain from the original 60 after exclusions, backfill from the remaining approved pool using the same selection standards. Do not include low-value filler.
+
+============================================================
+FOR EACH SELECTED CHUNK B CANDIDATE, OUTPUT
+============================================================
+
+For each candidate include:
+
+- rank in new Chunk B packet
+- original Batch 2 rank if available
+- entryId
+- draftId
+- current effective anchor
+- current effective hook
+- current effective whatToShow
+- current effective howToFilm
+- current effective caption
+- pidginLevel
+- domain
+- cluster if present
+- reviewer stamp
+- latest overlay state, if any
+- primary rewrite class
+- fields needing rewrite
+- diagnosis
+- why selected
+- preflight risks
+- semantic-duplicate notes
+- whether hook should be preserved or may be safely rewritten
+
+Also include safe overlay skeleton:
+
+- draftId: DRAFT-XXX
+  newAnchor: "<single-token anchor; must appear in hook + whatToShow>"
+  rewrittenHook: "<full final hook>"
+  rewrittenWhatToShow: "<full final whatToShow>"
+  rewrittenHowToFilm: "<full final howToFilm>"
+  rewrittenCaption: "<full final caption>"
+  reviewedBy: "BI 2026-05-09"
+
+Do not fill replacement copy.
+
+============================================================
+SEMANTIC DUPLICATE SCREEN
+============================================================
+
+Before finalizing the 30, run a manual/heuristic duplicate screen against:
+
+- completed Batch 1
+- Hot-6
+- airtime patch
+- accepted Batch 2 Chunk A
+- other candidates inside Chunk B
+
+Flag and exclude any near-duplicates.
+
+Specifically check for duplicates of:
+- late-night/oga/email/sleep
+- generator ruining sleep
+- group chat “we move” but body refuses
+- bed cancelling outside
+- rain at doorway
+- keke/danfo squeeze
+- conductor/torn note
+- refresh/no-care lie
+- charger race/light came
+- portal/submission closed
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_P2_BATCH2_CHUNK_B_SOURCE_PACKET.md`
+
+and
+
+`.local/qa-runs/n1_p2_batch2_chunk_b_source_packet.json`
+
+JSON shape:
+
+{
+  "phase": "N1-ELEVATION-P2 Batch 2 Chunk B source refresh + semantic duplicate screen",
+  "selectionCount": 30,
+  "excluded": {
+    "completedP1": [],
+    "acceptedChunkA": [],
+    "droppedDueToRepeatedFailures": ["DRAFT-348", "DRAFT-151"],
+    "staleMissing": []
+  },
+  "classCounts": {},
+  "domainCounts": {},
+  "entries": [
+    {
+      "chunkBRank": 1,
+      "originalBatch2Rank": 31,
+      "entryId": "...",
+      "draftId": "...",
+      "currentEffective": {
+        "anchor": "...",
+        "hook": "...",
+        "whatToShow": "...",
+        "howToFilm": "...",
+        "caption": "..."
+      },
+      "primaryClass": "...",
+      "fieldsNeedingRewrite": [],
+      "diagnosis": "...",
+      "whySelected": "...",
+      "preflightRisks": [],
+      "semanticDuplicateNotes": "...",
+      "hookRewritePolicy": "preserve|safe_to_rewrite|avoid_rewrite"
+    }
+  ]
+}
+
+============================================================
+VALIDATION DURING EXTRACTION
+============================================================
+
+Run read-only checks on selected current effective values:
+
+- anchor appears in hook
+- anchor appears in whatToShow
+- hook/whatToShow token overlap likely passes
+- field bounds
+- old boilerplate howToFilm
+- banned stereotype tokens
+- mock pidgin
+- risky competing nouns in hook
+- potential score-floor risk if hook is changed
+
+This is diagnostic only. Do not fix.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Candidate count.
+2. Files created.
+3. Class counts.
+4. Domain spread.
+5. Exact 30 selected candidates:
+   - chunk rank
+   - original rank
+   - draftId
+   - entryId
+   - primary class
+   - fields needing rewrite
+   - hook rewrite policy
+6. Excluded/dropped candidates:
+   - DRAFT-348
+   - DRAFT-151
+   - DRAFT-263 already used in Chunk A
+   - any semantic duplicates
+7. Biggest risks for Chunk B.
+8. Confirm:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - regional-decoration untouched
+   - Chunk B rewrites not applied
+
+Do not rewrite any entries.
+Do not ask for next steps.
