@@ -1,0 +1,406 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 candidate selection + source-of-truth packet.
+
+Context:
+N1-ELEVATION-P1 is accepted:
+- Batch 1 rewrites: 45/45 complete and runtime-accepted.
+- Batch 2.0 Hot-6 boilerplate cleanup: complete.
+- DRAFT-172 airtime runtime append fix: complete.
+- Regional-decoration ng_clean / ng_null fix: complete.
+- Nigerian pack-active runtime recheck is clean:
+  - 60/60 pack delivery
+  - 0 banned-filming hits
+  - 0 stereotype hits
+  - 0 mock-pidgin hits
+  - 0 scenario-coherence failures
+  - 0 structural failures
+- Regional-decoration fix verified:
+  - nigeria+clean: 0/4 decorated
+  - nigeria+null: 0/4 decorated
+  - nigeria+pidgin: 4/4 decorated
+  - nigeria+light_pidgin: 4/4 decorated
+  - India/Philippines unchanged
+  - Western identity preserved
+- Full api-server suite after source fix: 1323/1323 passing.
+- Nigerian pack tests: 288/288 passing.
+- API-server TypeScript clean.
+
+Goal:
+Select 50–60 meaningful Nigerian pack candidates for the next rewrite batch.
+
+Important:
+This is candidate selection and source packet extraction only.
+Do not rewrite.
+Do not apply overlays.
+Do not modify source/corpus/test/config files.
+Do not edit worksheet.
+Do not run codegen apply.
+Do not touch regional-decoration again.
+Do not touch the now-clean pack-active path.
+
+The user explicitly does NOT want worthless or circular work. Therefore, do not select random entries. Select entries because they are likely to improve actual runtime output quality.
+
+============================================================
+SOURCE OF TRUTH
+============================================================
+
+Use the real codegen/runtime state:
+
+1. `.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv`
+2. `.local/REGIONAL_N1_REWRITES.yaml`
+3. `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+4. `artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+5. `.local/N1_BATCH1_RUNTIME_QA_REPORT.md`
+6. `.local/qa-runs/n1_batch1_runtime_qa.json`
+7. `.local/qa-runs/n1_batch1_runtime_qa_summary.json`
+8. `.local/N1_BATCH2_HOT6_RUNTIME_RECHECK.md`
+9. `.local/qa-runs/n1_batch2_hot6_runtime_recheck.json`
+10. `.local/qa-runs/n1_batch2_hot6_runtime_recheck_summary.json`
+11. `.local/N1_REWRITE_PREFLIGHT_REQUIREMENTS.md`
+12. Existing Nigerian scoring/validator files:
+    - `artifacts/api-server/src/lib/nigerianHookQuality.ts`
+    - `artifacts/api-server/src/lib/nigerianHookPack.ts`
+    - `artifacts/api-server/src/lib/scenarioCoherence.ts`
+    - `artifacts/api-server/src/lib/nigerianPackAuthor.ts`
+
+For every candidate, resolve current effective values exactly as codegen would:
+worksheet row + latest overlay block for that draftId, with Map last-wins behavior.
+
+============================================================
+EXCLUDE COMPLETED / FIXED ENTRIES
+============================================================
+
+Exclude all entries already completed in P1:
+
+Batch 1 completed entries:
+- the 45 `BI 2026-05-09` Batch 1 rewrite entries
+
+Hot-6 completed entries:
+- DRAFT-239 / ng_3a4f207
+- DRAFT-111 / ng_950aceff
+- DRAFT-085 / ng_783929d0
+- DRAFT-091 / ng_68d4c829
+- DRAFT-114 / ng_448d6636
+- DRAFT-179 / ng_ad238ca8
+
+Airtime patch:
+- DRAFT-172 / ng_82b4bff9
+
+Also exclude:
+- the stale/missing entryId `ng_1f0aac87`
+- any rejected worksheet rows not currently in the approved pack unless explicitly classed as “rejected-row rescue candidates” in a separate appendix
+
+============================================================
+CANDIDATE SELECTION RULE
+============================================================
+
+Select 50–60 approved Nigerian pack entries that are the highest-value rewrite candidates.
+
+Prioritize entries with evidence of at least one of:
+
+1. Runtime surfacing:
+   - appeared in prior runtime QA outputs
+   - repeated across ng_pidgin / ng_light_pidgin
+   - likely selected by slot reservation or pack-aware retention
+
+2. Remaining weak `howToFilm`:
+   - generic framing
+   - “Frame X” without action timing
+   - vague shot direction
+   - howToFilm does not explain what to actually film
+   - howToFilm does not carry the joke
+   - anchor-suffix risk
+   - any old boilerplate-like wording not caught yet
+
+3. Weak hook:
+   - plain
+   - generic
+   - too literal
+   - no comedic turn
+   - weak Nigerian-natural voice
+   - fake/light pidgin issue
+   - no punch verb
+   - no contradiction or reversal
+
+4. Weak whatToShow:
+   - too thin
+   - not visual enough
+   - missing clear setup → action → turn/payoff
+   - does not feel like Nigerian everyday reality
+   - scenario not filmable enough
+
+5. Weak caption:
+   - generic
+   - flat
+   - too explanatory
+   - mismatched to the joke
+
+6. Quality score weakness:
+   - near score floor
+   - weak naturalness / visceral / contradiction / filmable dimension
+   - still approved but clearly mediocre
+
+7. Diversity need:
+   - avoid selecting 50 duplicates of the same “data/phone/chat” pattern
+   - keep a healthy spread across home, transport, food, messaging, creator, work, family, money/adulting, everyday objects
+
+Do NOT choose entries merely because they are old.
+Do NOT choose entries merely because they are unstamped.
+Do NOT choose entries if they already feel strong and runtime-safe.
+
+============================================================
+TARGET SIZE
+============================================================
+
+Target:
+- 50–60 candidates total
+
+If fewer than 50 high-value candidates exist, stop at the real number and explain why.
+If more than 60 qualify, rank and keep the top 60.
+
+Recommended final count:
+- 55 candidates if quality signal is clear
+- 60 only if the bottom 5 are still genuinely worth rewriting
+
+============================================================
+CLASSIFY EACH CANDIDATE
+============================================================
+
+Assign one primary rewrite class:
+
+A_HOOK_SCENARIO_HTF
+- hook + whatToShow + howToFilm need rewrite
+
+B_SCENARIO_HTF
+- whatToShow + howToFilm need rewrite, hook can stay
+
+C_HTF_ONLY
+- only howToFilm needs rewrite
+
+D_HOOK_ONLY_OR_HOOK_CAPTION
+- hook and maybe caption need rewrite, scenario/HTF are acceptable
+
+E_CAPTION_ONLY
+- caption only
+
+F_REJECTED_ROW_RESCUE
+- not in approved pack, but potentially worth rescuing later
+- include only in appendix unless explicitly selected
+
+Also include secondary tags:
+- boilerplate_htf
+- generic_htf
+- weak_hook
+- weak_visual_turn
+- weak_caption
+- pidgin_naturalness
+- stereotype_risk
+- anchor_suffix_risk
+- near_score_floor
+- runtime_seen
+- high_repeat
+- culture_specificity_gap
+- too_western
+- too_plain
+- scenario_mismatch
+- caption_mismatch
+
+============================================================
+FOR EACH SELECTED CANDIDATE, OUTPUT
+============================================================
+
+For each selected candidate, include:
+
+- rank
+- entryId
+- draftId
+- current effective anchor
+- current effective hook
+- current effective whatToShow
+- current effective howToFilm
+- current effective caption
+- pidginLevel
+- domain
+- cluster if present
+- reviewer stamp
+- worksheet baseline values
+- latest active overlay values if any
+- runtime evidence:
+  - appeared in Batch 1 runtime QA?
+  - appeared in Hot-6 recheck?
+  - hit count if available
+  - cohorts where seen
+- current score if easy to compute
+- score breakdown if available
+- primary rewrite class
+- secondary tags
+- exact diagnosis
+- fields needing rewrite
+- why this candidate is worth selecting
+- preflight risks:
+  - anchor length < 3?
+  - anchor not naturally reusable?
+  - hook/whatToShow token overlap weak?
+  - current hook lacks punch?
+  - current whatToShow lacks visible payoff?
+  - current howToFilm generic/boilerplate?
+  - stereotype token risk?
+  - mock-pidgin risk?
+  - prior overlay shadow risk?
+
+Also include safe overlay skeleton with placeholders:
+
+- draftId: DRAFT-XXX
+  newAnchor: "<single-token anchor; must appear in hook + whatToShow>"
+  rewrittenHook: "<full final hook>"
+  rewrittenWhatToShow: "<full final whatToShow>"
+  rewrittenHowToFilm: "<full final howToFilm>"
+  rewrittenCaption: "<full final caption>"
+  reviewedBy: "BI 2026-05-09"
+
+Do NOT fill replacement copy.
+
+============================================================
+GROUPING
+============================================================
+
+Group candidates by primary rewrite class:
+
+1. A_HOOK_SCENARIO_HTF
+2. B_SCENARIO_HTF
+3. C_HTF_ONLY
+4. D_HOOK_ONLY_OR_HOOK_CAPTION
+5. E_CAPTION_ONLY
+6. Appendix: F_REJECTED_ROW_RESCUE if any
+
+Within each group, keep rank order.
+
+============================================================
+SELECTION QUALITY CHECK
+============================================================
+
+Before finalizing the packet, run an internal sanity check:
+
+1. Did we exclude the 45 Batch 1 entries?
+2. Did we exclude Hot-6 and DRAFT-172?
+3. Are all selected candidates currently approved pack entries?
+4. Are there 50–60 candidates?
+5. Is each selected candidate tied to a concrete quality issue?
+6. Did we avoid low-value “rewrite for rewrite’s sake” entries?
+7. Is the class distribution useful?
+8. Does the batch cover multiple domains?
+9. Are the top 20 truly high priority?
+10. Would rewriting these likely improve actual runtime output quality?
+
+If any answer is no, fix the selection or explain why.
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_BATCH2_CANDIDATE_SOURCE_PACKET.md`
+
+and
+
+`.local/qa-runs/n1_batch2_candidate_source_packet.json`
+
+The JSON should include:
+
+{
+  "phase": "N1-ELEVATION-P2 Batch 2 candidate selection + source packet",
+  "generatedAt": "...",
+  "selectionCount": 0,
+  "excludedCompleted": {
+    "batch1Count": 45,
+    "hot6Count": 6,
+    "airtimePatchCount": 1
+  },
+  "classCounts": {
+    "A_HOOK_SCENARIO_HTF": 0,
+    "B_SCENARIO_HTF": 0,
+    "C_HTF_ONLY": 0,
+    "D_HOOK_ONLY_OR_HOOK_CAPTION": 0,
+    "E_CAPTION_ONLY": 0
+  },
+  "domainCounts": {},
+  "entries": [
+    {
+      "rank": 1,
+      "entryId": "...",
+      "draftId": "...",
+      "currentEffective": {
+        "anchor": "...",
+        "hook": "...",
+        "whatToShow": "...",
+        "howToFilm": "...",
+        "caption": "..."
+      },
+      "worksheet": {},
+      "latestOverlay": {},
+      "runtimeEvidence": {},
+      "score": {},
+      "primaryClass": "...",
+      "secondaryTags": [],
+      "fieldsNeedingRewrite": [],
+      "diagnosis": "...",
+      "whySelected": "...",
+      "preflightRisks": []
+    }
+  ],
+  "excludedAppendix": {
+    "alreadyCompleted": [],
+    "missingOrStale": [],
+    "rejectedRowRescueCandidates": []
+  }
+}
+
+============================================================
+OPTIONAL READ-ONLY RUNTIME SUPPORT
+============================================================
+
+If useful and fast, run a read-only targeted runtime diagnostic to surface more non-completed Nigerian pack entries.
+
+Cohorts:
+- ng_pidgin
+- ng_light_pidgin
+
+Goal:
+- identify repeated non-Batch-1 / non-Hot-6 / non-DRAFT-172 entries
+- identify weak outputs still surfacing
+
+Do not modify anything.
+Save only if useful:
+`.local/qa-runs/n1_batch2_candidate_runtime_probe.json`
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Candidate count.
+2. Files created.
+3. Class counts.
+4. Domain spread.
+5. Top 15 candidates:
+   - rank
+   - draftId
+   - entryId
+   - primary class
+   - fields needing rewrite
+   - one-line diagnosis
+6. Biggest cross-cutting weaknesses found.
+7. Confirmation:
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - completed P1 entries excluded
+   - regional-decoration fix untouched
+
+Do not rewrite any entries.
+Do not apply overlays.
+Do not ask for next steps.

@@ -767,3 +767,15 @@ id = "pYyVhJjri-8TGpTEHipxD"
 uri = "file://.local/qa-runs/n1_regional_decoration_fix_repro.json"
 type = "unspecified"
 title = "Fix repro (verdict=PASS)"
+
+[[outputs]]
+id = "xHv8xd2-g3Z_IOe4_NkvC"
+uri = "file://.local/N1_BATCH2_CANDIDATE_SOURCE_PACKET.md"
+type = "text"
+title = "N1-ELEVATION-P2 — Batch 2 Candidate Source Packet (60 candidates)"
+
+[[outputs]]
+id = "idfA4nzNkLeSWhDjry4TW"
+uri = "file://.local/qa-runs/n1_batch2_candidate_source_packet.json"
+type = "unspecified"
+title = "Batch 2 candidate packet — machine-readable"
