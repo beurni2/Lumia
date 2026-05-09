@@ -455,3 +455,9 @@ id = "ODTnQxu-CBJO_b9NTjEzw"
 uri = "file://.local/W2FTN_E_W2N_PREFIX_REPAIR_PACKET_HARDENED.md"
 type = "text"
 title = "W2-FTN-E2 — Hardened W2-N Prefix Repair Packet (53 entries, READY_TO_APPLY)"
+
+[[outputs]]
+id = "e93WAP1WC-fHcvm5RPCgg"
+uri = "file://.local/W2FTN_E_W2N_WHAT_TO_SHOW_HOW_TO_FILM_UPGRADE_PACKET.md"
+type = "text"
+title = "W2-FTN-E3 — W2-N WhatToShow + HowToFilm Masterpiece Upgrade Packet (53 entries, all READY)"
