@@ -1,0 +1,461 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-AUTHOR / Nigeria Output Elevation Audit.
+
+Context:
+The Western output elevation stack is accepted and stable:
+1. W2-AUTHOR HYBRID generator upgrade accepted
+2. W2-N corpus cohesion cleanup accepted
+3. F1 banned boilerplate scrub accepted
+4. Runtime QA completed
+5. F3 fallback root-cause audit accepted
+6. F3 fallback gap-only fix accepted
+
+Current verification state:
+- Full api-server suite green: 1312/1312
+- TypeScript clean
+- F3 gap-only stress sweep: 42/42 successful, 0 under-filled, 0 Claude fallback calls on local-sufficient guards_failed batches, avg latency ~8.1s
+- Production env unchanged
+- No prompts/corpus/validators/schema/API/DB/timeout changes from F3
+
+Now we want the same level of product quality for the Nigeria region.
+
+Important:
+This is AUDIT FIRST.
+Do not modify code.
+Do not modify corpus.
+Do not apply fixes.
+Do not rewrite entries yet.
+
+The user wants the Nigeria outputs elevated with the same rigor used for Western:
+- no worthless work
+- no circling around
+- no random broad rebuilds
+- audit first, then exact fix plan
+- if rewrites are needed, the user/ChatGPT will provide the actual rewrite copy so the coding agent does not invent the taste
+
+============================================================
+GOAL
+============================================================
+
+Audit the Nigeria/N1 output system and determine exactly what needs to change so Nigeria-region outputs reach the same quality bar as the improved Western outputs, while preserving Nigerian voice, cultural specificity, and natural pidgin/light-pidgin flavor.
+
+We are NOT trying to make Nigeria outputs sound Western.
+
+We are trying to make them equally strong:
+- human
+- specific
+- funny
+- filmable
+- culturally natural
+- not generic
+- not overdone
+- not AI-ish
+- not stereotyped
+- not forced pidgin
+
+============================================================
+REFERENCE QUALITY BAR
+============================================================
+
+Use the post-W2-AUTHOR V2 standard.
+
+`whatToShow` should:
+- describe a full visible skit
+- include setup, action, turn, payoff
+- match the hook
+- name the main object/action
+- be easy to understand in one read
+- feel like a real human moment
+- avoid abstract filler
+- avoid generic “show yourself reacting” instructions
+
+`howToFilm` should:
+- tell the creator how to shoot it
+- start with concrete framing or what to keep visible
+- describe the key action
+- describe the ending/payoff
+- be 1–2 sentences
+- be shootable in 10–15 minutes
+- not repeat `whatToShow` word-for-word
+- not introduce a new premise
+- not use generic boilerplate
+
+Nigeria-specific quality bar:
+- Pidgin/light-pidgin should feel natural, not cartoonish.
+- Avoid using “wahala,” “abeg,” “omo,” “jollof,” “NEPA,” “village people,” etc. as lazy shortcuts.
+- Cultural details should feel everyday and filmable, not tourist-stereotype.
+- The skit should work visually even if someone only lightly understands the slang.
+- Humor should come from the human contradiction, not just from Nigerian labels.
+- Light pidgin should be light. Do not let it become heavy pidgin unless the cohort asks for pidgin.
+
+============================================================
+STRICT RULES
+============================================================
+
+AUDIT ONLY.
+
+Do NOT touch:
+- source files
+- corpus files
+- tests
+- validators
+- schemas
+- selectors
+- scorers
+- prompts
+- flags
+- env files
+- migrations
+- API shape
+- mobile files
+- production config
+
+You may create local audit scripts/reports under `.local/`.
+
+No repairs in this phase.
+
+============================================================
+SURFACES TO AUDIT
+============================================================
+
+Inspect Nigeria-related authoring and corpus surfaces in `artifacts/api-server/src/lib`, especially:
+
+- `nigerianPackAuthor.ts`
+- `nigerianHookPackApproved.ts`
+- `nigerianHookPackDrafts.ts`
+- `nigerianHookPackLive.ts` if present
+- any N1 selector/runtime exposure files
+- any Nigerian pack-aware retention or memory-soft-cap logic
+- region/profile decoration logic affecting Nigeria
+- ideator/hybrid paths that select Nigerian outputs
+- tests covering N1/Nigeria packs
+- QA scripts/harnesses for Nigeria/regional outputs
+
+Also verify how Nigeria uses shared paths:
+- `cohesiveIdeaAuthor.ts`
+- `patternIdeator.ts`
+- `wtsHtfQualityGate.ts`
+- `ideaGen.ts`
+- `regionProfile.ts` or equivalent
+- `fallbackDecisionPlan.ts` only if fallback can affect Nigeria runtime behavior
+
+============================================================
+QUESTIONS TO ANSWER
+============================================================
+
+Answer directly:
+
+1. Which files produce Nigeria-region `whatToShow` and `howToFilm`?
+2. Are Nigeria pack authors pass-through like Western pack authors?
+3. Which Nigeria outputs come from curated corpus versus shared `core_native` / `pattern_variation` paths?
+4. Do Nigeria outputs already benefit from the W2-AUTHOR HYBRID Path B upgrade?
+5. Are there Nigeria-specific corpus cohesion issues?
+   - anchor missing from `whatToShow`
+   - low `howToFilm` ↔ `whatToShow` substantive-token overlap
+   - missing main object/action in filming guidance
+6. Are there banned phrase or weak generic filming guidance issues?
+7. Are there repeated weak patterns in Nigerian hooks, `whatToShow`, `howToFilm`, or captions?
+8. Does pidgin/light-pidgin sound natural?
+9. Are cultural references specific but not forced?
+10. Are any outputs too generic, too Western, too heavy-pidgin, too stereotyped, or too plain?
+11. What is the smallest safe repair plan, if one is needed?
+
+============================================================
+STATIC AUDIT
+============================================================
+
+Run static checks over Nigerian corpus files.
+
+1. Count entries by file:
+   - approved
+   - drafts
+   - live if present
+   - any other Nigeria pack files
+
+2. Check required fields:
+   - id
+   - hook
+   - whatToShow
+   - howToFilm
+   - caption
+   - anchor if present
+   - metadata fields used by the pack
+
+3. Check length bounds:
+   - `whatToShow`
+   - `howToFilm`
+   - hook
+   - caption
+
+4. Check anchor-token presence in `whatToShow`, if anchors exist:
+   - same spirit as the W2-N corpus cohesion test
+   - do not assume singular/plural mismatch is okay; report exact issue
+
+5. Check `howToFilm` ↔ `whatToShow` substantive-token overlap:
+   - use the same tokenizer/stoplist as `westernHookPackApproved.test.ts` where practical
+   - report entries below threshold
+   - do not loosen any tests
+
+6. Banned phrase scan over Nigerian corpus and runtime authoring surfaces:
+   - phone on a tripod
+   - single static shot
+   - single locked-off shot
+   - single locked off shot
+   - locked-off on tripod
+   - locked off on tripod
+   - let the joke land
+   - let the silence land
+   - film yourself reacting
+   - creator reacts
+   - show the X on camera
+
+7. Weak/generic filming guidance scan:
+   - just react
+   - make it funny
+   - record yourself
+   - act surprised
+   - show your face
+   - simple video
+   - relatable moment
+   - keep the X centered
+   - phone-level lock-off
+   - desk-height lock-off
+   - soft daylight, one take
+
+Important:
+Do not automatically mark every “keep X centered” or “phone-level lock-off” as a failure. Count it, sample it, and decide whether it is repetitive or genuinely useful.
+
+8. Nigerian slang / cultural-crutch frequency scan:
+   - wahala
+   - abeg
+   - omo
+   - jollof
+   - NEPA
+   - Lagos traffic
+   - village people
+   - auntie
+   - uncle
+   - group chat
+   - transport
+   - POS
+   - data
+   - generator
+   - light
+   - queue
+
+Report counts and examples. Do not assume every use is bad. The question is whether the pack over-relies on a few crutches.
+
+============================================================
+RUNTIME QA
+============================================================
+
+Use existing ideator QA/smoke scripts where possible.
+
+Generate or collect actual Nigeria-region batches.
+
+Cohorts:
+1. Nigeria pidgin
+2. Nigeria light_pidgin
+3. Nigeria default/non-pidgin if available
+4. Cold-start Nigerian creator
+5. Returning/warm Nigerian creator if supported
+
+Target:
+- minimum 45 Nigerian ideas
+- ideal 60–90 if existing harnesses make that easy
+
+For each idea collect:
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source tag
+- region/cohort
+- languageStyle
+- batch number
+- fallback decision/reason
+- source distribution
+- latency
+- any pack id / nigerianPackEntryId if exposed
+- any gate miss logs if available
+
+Save raw output to:
+
+`.local/qa-runs/n1_author_audit_runtime_qa.json`
+
+Save summary to:
+
+`.local/qa-runs/n1_author_audit_summary.json`
+
+============================================================
+AUTOMATED RUNTIME CHECKS
+============================================================
+
+Run deterministic checks over generated Nigerian outputs:
+
+1. Banned phrase hits.
+2. Weak/generic filming phrase hits.
+3. Empty/malformed fields.
+4. Length bounds.
+5. Within-batch duplicate hooks.
+6. Within-batch duplicate `whatToShow`.
+7. Within-batch duplicate `howToFilm`.
+8. Cross-batch repeated hooks.
+9. Cross-batch repeated `howToFilm` skeletons.
+10. Hook ↔ scenario coherence.
+11. Caption ↔ idea coherence.
+12. Main object/action present in filming guidance.
+13. Under-fill count.
+14. Fallback usage count.
+15. Fallback reason distribution.
+16. Source distribution:
+    - Nigerian pack
+    - core_native
+    - pattern_variation
+    - claude_fallback if any
+
+============================================================
+MANUAL QUALITY REVIEW
+============================================================
+
+Manually review at least 30 Nigerian outputs.
+
+Score each 1–5:
+- Hook strength
+- Nigerian voice naturalness
+- Pidgin/light-pidgin appropriateness
+- `whatToShow` specificity
+- `howToFilm` shootability
+- Hook ↔ scenario coherence
+- Object/action carries the joke
+- Non-generic / non-AI-ish feel
+- Cultural specificity without stereotype
+- Overall first-impression quality
+
+Classify each:
+- PASS: strong, filmable, natural, creator-ready
+- WARN: usable but has a mild issue
+- FAIL: generic, forced, confusing, unfilmable, stereotyped, too Western, too heavy-pidgin, or weak enough to disappoint
+
+Include:
+- 10 best Nigerian samples verbatim
+- 10 worst/WARN/FAIL Nigerian samples verbatim
+- exact reason each WARN/FAIL was flagged
+
+============================================================
+COMPARE AGAINST WESTERN STANDARD
+============================================================
+
+Compare Nigeria output to the improved Western standard.
+
+Answer directly:
+
+1. Are Nigeria outputs at the same quality level as Western after W2-AUTHOR?
+2. If not, what is the gap?
+3. Is the gap in:
+   - hooks
+   - `whatToShow`
+   - `howToFilm`
+   - captions
+   - cultural voice
+   - language-style control
+   - runtime selection
+   - pack coverage
+   - generic filming guidance
+4. Is the fix:
+   - no-op
+   - corpus cohesion cleanup
+   - corpus rewrite/elevation
+   - pack-author scrub/helper
+   - runtime template change
+   - regionProfile decoration change
+   - prompt/fallback change
+   - selector/retention change
+5. What is the smallest safe repair plan?
+
+============================================================
+REPORT REQUIRED
+============================================================
+
+Create:
+
+`.local/N1_AUTHOR_AUDIT_REPORT.md`
+
+Report structure:
+
+1. Executive verdict:
+   - ACCEPT Nigeria quality
+   - ACCEPT WITH TARGETED CLEANUP
+   - NEEDS N1 ELEVATION PASS
+
+2. Plain-English summary:
+   - what is working
+   - what is weak
+   - whether Nigeria is already close to Western quality
+
+3. Files inspected.
+
+4. Nigeria authoring surface map:
+   - source file
+   - source tag
+   - authors vs pass-through
+   - which ideas it affects
+   - whether it uses shared W2-AUTHOR upgraded paths
+
+5. Static audit results:
+   - entry counts
+   - missing fields
+   - anchor cohesion issues
+   - overlap issues
+   - banned phrase hits
+   - weak phrase hits
+   - repeated slang/cultural-crutch counts
+   - top repeated hook/scenario/filming patterns
+
+6. Runtime QA results:
+   - cohorts covered
+   - sample count
+   - source distribution
+   - fallback distribution
+   - latency
+   - under-fill/malformed/duplicate counts
+   - banned/weak phrase results
+
+7. Manual review:
+   - PASS/WARN/FAIL counts
+   - average rubric scores
+   - 10 best samples verbatim
+   - 10 worst/WARN/FAIL samples verbatim
+
+8. Nigeria-vs-Western gap analysis.
+
+9. Recommended repair plan:
+   - exact files to touch if approved later
+   - exact classes of edits
+   - whether rewrites are needed
+   - tests to add/update
+   - verification commands
+   - risks
+   - expected impact
+
+10. What NOT to do:
+   - list any tempting but unnecessary broad rebuilds
+   - explain why they are not needed
+
+11. Hard no-touch confirmation:
+   - no source files modified
+   - no corpus modified
+   - no tests loosened
+   - no schemas/selectors/validators/flags/migrations/API shape touched
+
+============================================================
+IMPORTANT
+============================================================
+
+Do not perform repairs yet.
+
+This phase is to understand the Nigeria quality surface exactly, the same way the Western work began with an authoring-surface audit.
+
+If rewrites are needed, report the exact entries/surfaces. The rewrite copy will be provided separately so the coding agent does not invent the taste.
