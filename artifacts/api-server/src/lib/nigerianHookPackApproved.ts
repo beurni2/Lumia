@@ -522,12 +522,12 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-085 [REWRITE] · cluster: shoes
       hook: "shoes expose my leaving-house lie",
       whatToShow: "Show shoes on your feet while you sit on bed/couch scrolling. Cut to later, shoes still on, no movement.",
-      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      howToFilm: "Frame the shoes on your feet while you sit and scroll. Cut to the same position later, then hold on the shoes still waiting like the outing never received approval.",
       caption: "readiness without results.",
       anchor: "shoes",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-087 [REWRITE] · cluster: planner
@@ -555,12 +555,12 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-091 [REWRITE] · cluster: slippers
       hook: "slippers expose mission wey no even start",
       whatToShow: "Camera on slippers. You stand up, take two steps, then sit back down with slippers still ready.",
-      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      howToFilm: "Frame the slippers from floor level as you stand up with purpose. Let the two steps happen, then cut on you sitting back down while the slippers remain ready for nothing.",
       caption: "mission cancelled at launch.",
       anchor: "slippers",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-093 [REWRITE] · cluster: towel
@@ -665,23 +665,23 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-111 [REWRITE] · cluster: mute_unmute · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "mute betrayed me before the group even started",
       whatToShow: "Mute a noisy fake group. Five minutes later, open it yourself. Laugh at your lack of discipline and unmute like the problem is you.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      howToFilm: "Frame the group chat screen so the mute icon and new messages are visible. Show your thumb opening it again, then cut on the unmute like you accepted you are the problem.",
       caption: "mute button could not save me.",
       anchor: "mute",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-114 [REWRITE] · cluster: poll_wahala · privacyNote: Use fake screenshots / mock chats only; never real contacts.
       hook: "this poll betrayed my weekend in public",
       whatToShow: "Fake group poll about weekend plans. You vote yes. Everyone else votes no. You stare, then type 'una no get joy' and delete it.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      howToFilm: "Frame the poll results close enough to show your lonely yes vote. Let your thumb type the angry reply, pause, then delete it like democracy has defeated you quietly.",
       caption: "democracy hurt my feelings.",
       anchor: "poll",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-117 [REWRITE] · cluster: okada_promise
@@ -929,12 +929,12 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-179 [REWRITE] · cluster: post_or_not
       hook: "post button don hold my courage hostage",
       whatToShow: "Final video is open. Thumb hovers over post. You lock the phone, unlock the phone, and hover over post again.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
+      howToFilm: "Frame the post button and your hovering thumb from over the shoulder. Show the lock-unlock loop once, then cut on the thumb hovering again like courage is still loading.",
       caption: "courage loading forever.",
       anchor: "post",
       domain: "creator",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-181 [REWRITE] · cluster: no_content
@@ -1237,12 +1237,12 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       // source: DRAFT-239 [REWRITE] · cluster: light_off
       hook: "light disappear and power bank judge me",
       whatToShow: "You are charging your power bank. Light cuts. You stare at the socket like the light betrayed the whole family.",
-      howToFilm: "Couch-level handheld, mid-shot, one take.",
+      howToFilm: "Frame the socket, charging cable, and power bank so the light cut is obvious. Let your hand stop mid-charge, then cut on the stare at the socket like it personally failed you.",
       caption: "charging plan cancelled.",
       anchor: "light",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
       // source: DRAFT-242 [REWRITE] · cluster: torchlight

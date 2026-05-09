@@ -689,3 +689,15 @@ id = "lJsqqAaNAHOnZs-gzbvHu"
 uri = "file://.local/qa-runs/n1_batch2_hot7_source_packet.json"
 type = "unspecified"
 title = "N1 Batch 2.0 Hot-7 Packet — JSON"
+
+[[outputs]]
+id = "vbKKaM8wtsL5pI7UnhwDv"
+uri = "file://.local/N1_BATCH2_HOT6_REPORT.md"
+type = "text"
+title = "N1 Batch 2.0 Hot-6 — Final Report (6/6 applied, 288/288 tests, 0 new rejections)"
+
+[[outputs]]
+id = "OWLFN-eGlNbwyGX3TF9Ap"
+uri = "file://.local/qa-runs/n1_batch2_hot6_proposed_overlay.yaml"
+type = "unspecified"
+title = "Hot-6 Proposed Overlay (saved before append, per spec)"

@@ -1,0 +1,196 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Batch 2.0 Hot-6 boilerplate howToFilm cleanup.
+
+Context:
+N1 Batch 1 is accepted:
+- 45/45 entries applied across Chunks A + B + C
+- Runtime QA accepted
+- Batch 1 delivered 35/35 PASS, 0 WARN, 0 FAIL
+- Batch 1 had 0 banned howToFilm boilerplate
+
+Runtime QA found the next highest-ROI issue:
+All remaining runtime boilerplate howToFilm hits came from non-Batch-1 approved Nigerian pack entries.
+
+Batch 2.0 Hot-7 source packet result:
+- 6 of 7 entryIds were found
+- 1 entryId, `ng_1f0aac87`, is stale/missing and must NOT be touched
+- All 6 found entries are non-Batch-1
+- All 6 need HTF-only rewrite
+- Hooks, whatToShow, captions, anchors are validator-clean
+- The only deficit is stale boilerplate howToFilm
+
+Apply exact copy below through Option A only:
+- save proposed overlay first
+- preflight it
+- append to `.local/REGIONAL_N1_REWRITES.yaml`
+- run `tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+- let codegen regenerate `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+
+Do not hand-edit the generated approved file.
+Do not edit the worksheet CSV.
+Do not touch source code, tests, validators, schema, selectors, prompts, flags, env, migrations, API shape, or mobile files.
+Do not touch regional-decoration / ng_clean / ng_null issue in this phase.
+Do not touch missing stale ID `ng_1f0aac87`.
+
+Critical overlay rule:
+For every draftId below, restate ALL fields exactly:
+- draftId
+- newAnchor
+- rewrittenHook
+- rewrittenWhatToShow
+- rewrittenHowToFilm
+- rewrittenCaption
+- reviewedBy
+
+This avoids Map last-wins shadowing.
+
+Reviewer stamp:
+BI 2026-05-09
+
+============================================================
+BATCH 2.0 HOT-6 REWRITES — APPLY EXACTLY
+============================================================
+
+- draftId: DRAFT-239
+  newAnchor: light
+  rewrittenHook: "light disappear and power bank judge me"
+  rewrittenWhatToShow: "You are charging your power bank. Light cuts. You stare at the socket like the light betrayed the whole family."
+  rewrittenHowToFilm: "Frame the socket, charging cable, and power bank so the light cut is obvious. Let your hand stop mid-charge, then cut on the stare at the socket like it personally failed you."
+  rewrittenCaption: "charging plan cancelled."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-111
+  newAnchor: mute
+  rewrittenHook: "mute betrayed me before the group even started"
+  rewrittenWhatToShow: "Mute a noisy fake group. Five minutes later, open it yourself. Laugh at your lack of discipline and unmute like the problem is you."
+  rewrittenHowToFilm: "Frame the group chat screen so the mute icon and new messages are visible. Show your thumb opening it again, then cut on the unmute like you accepted you are the problem."
+  rewrittenCaption: "mute button could not save me."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-085
+  newAnchor: shoes
+  rewrittenHook: "shoes expose my leaving-house lie"
+  rewrittenWhatToShow: "Show shoes on your feet while you sit on bed/couch scrolling. Cut to later, shoes still on, no movement."
+  rewrittenHowToFilm: "Frame the shoes on your feet while you sit and scroll. Cut to the same position later, then hold on the shoes still waiting like the outing never received approval."
+  rewrittenCaption: "readiness without results."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-091
+  newAnchor: slippers
+  rewrittenHook: "slippers expose mission wey no even start"
+  rewrittenWhatToShow: "Camera on slippers. You stand up, take two steps, then sit back down with slippers still ready."
+  rewrittenHowToFilm: "Frame the slippers from floor level as you stand up with purpose. Let the two steps happen, then cut on you sitting back down while the slippers remain ready for nothing."
+  rewrittenCaption: "mission cancelled at launch."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-114
+  newAnchor: poll
+  rewrittenHook: "this poll betrayed my weekend in public"
+  rewrittenWhatToShow: "Fake group poll about weekend plans. You vote yes. Everyone else votes no. You stare, then type 'una no get joy' and delete it."
+  rewrittenHowToFilm: "Frame the poll results close enough to show your lonely yes vote. Let your thumb type the angry reply, pause, then delete it like democracy has defeated you quietly."
+  rewrittenCaption: "democracy hurt my feelings."
+  reviewedBy: "BI 2026-05-09"
+
+- draftId: DRAFT-179
+  newAnchor: post
+  rewrittenHook: "post button don hold my courage hostage"
+  rewrittenWhatToShow: "Final video is open. Thumb hovers over post. You lock the phone, unlock the phone, and hover over post again."
+  rewrittenHowToFilm: "Frame the post button and your hovering thumb from over the shoulder. Show the lock-unlock loop once, then cut on the thumb hovering again like courage is still loading."
+  rewrittenCaption: "courage loading forever."
+  reviewedBy: "BI 2026-05-09"
+
+============================================================
+PREFLIGHT BEFORE APPLY
+============================================================
+
+Before appending these overlays to `.local/REGIONAL_N1_REWRITES.yaml`, save them as:
+
+`.local/qa-runs/n1_batch2_hot6_proposed_overlay.yaml`
+
+Run the preflight script/check if available:
+
+`node .local/scripts/n1RewritePreflightCheck.mjs .local/qa-runs/n1_batch2_hot6_proposed_overlay.yaml`
+
+If the preflight script flags a real hard failure, stop and report before appending.
+
+Do not auto-edit the copy.
+
+Expected:
+- Only advisory warnings may appear.
+- No old boilerplate howToFilm should remain in the proposed overlay.
+
+============================================================
+APPLY + CODEGEN
+============================================================
+
+If preflight passes or only advisory warnings remain:
+
+1. Append the exact overlay blocks above to `.local/REGIONAL_N1_REWRITES.yaml`.
+
+2. Run:
+`tsx artifacts/api-server/src/qa/buildApprovedNigerianPack.ts`
+
+3. Confirm:
+- total approved count remains 204
+- rejected count remains 13 pre-existing only
+- no new rejected-from-rewrites rows
+- BI 2026-05-09 stamp count increases from 45 to 51
+- all 6 Hot-6 draft IDs are present in approved file
+- stale/missing `ng_1f0aac87` was not touched
+
+============================================================
+POST-APPLY VERIFICATION
+============================================================
+
+Run:
+
+1. Nigerian pack-specific tests.
+
+2. API-server TypeScript:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+3. Static checks:
+- no old top-7 howToFilm boilerplate remains in the 6 Hot-6 entries
+- no `Phone-level lock-off`, `Desk-height lock-off`, `Counter-level lock-off`, `Couch-level handheld`, `Bed-level handheld`, `Door-side handheld`, or `Mirror lock-off` in Hot-6 howToFilm
+- no `soft daylight`
+- no `one take`
+- no `Keep the X centered`
+- no user-facing NEPA / nepa / jollof / village people / my enemies in Hot-6 entries
+- no `direct to camera`
+- no `deliberately`
+- no `on purpose`
+- no `with intent`
+- no `look straight at the lens`
+- hook/whatToShow scenario token overlap still passes for all Hot-6 entries
+- anchor appears in hook and whatToShow for all Hot-6 entries
+
+Full api-server suite is optional for this small HTF-only pass unless codegen/static checks show risk. If repo convention requires it, run it.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+1. Files changed.
+2. Preflight result.
+3. Codegen result.
+4. Approved/rejected counts.
+5. BI 2026-05-09 stamp count.
+6. List all 6 Hot-6 entries applied:
+   - entryId
+   - draftId
+   - old howToFilm
+   - new howToFilm
+7. Confirm `ng_1f0aac87` was not touched because it is stale/missing.
+8. Any rejected entries with exact validator reason.
+9. Nigerian pack-specific test result.
+10. API-server TypeScript result.
+11. Full suite result if run, or reason not run.
+12. Static check results.
+13. Confirm no worksheet edits.
+14. Confirm approved file was regenerated by codegen only.
+15. Confirm no source/test/validator/scorer/selector/prompt/flag/API/mobile changes.
+16. Confirm regional-decoration issue was not touched.
