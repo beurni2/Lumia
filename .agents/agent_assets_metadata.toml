@@ -719,3 +719,9 @@ id = "4Qi2rnsSkocWBQbmeFnKL"
 uri = "file://.local/qa-runs/n1_batch2_hot6_runtime_recheck.json"
 type = "unspecified"
 title = "Hot-6 recheck row dump (60 ideas)"
+
+[[outputs]]
+id = "pmVx8Ue5p3lXlakB6HjLd"
+uri = "file://.local/N1_AIRTIME_SINGLE_FIX_STOP_REPORT.md"
+type = "text"
+title = "N1 Airtime Single-Entry Fix — STOP REPORT (proposed overlay would be a no-op)"
