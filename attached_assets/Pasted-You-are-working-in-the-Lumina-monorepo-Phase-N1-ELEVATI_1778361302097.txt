@@ -1,0 +1,134 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P2 — Batch 2 Chunk B source packet correction.
+
+Context:
+Batch 2 Chunk A is accepted and stabilized:
+- 30/30 accepted rewritten entries.
+- DRAFT-263 was used as the safe 30th Chunk A replacement.
+- DRAFT-348 and DRAFT-151 failed/retracted and should not be rewritten in Batch 2.
+- Approved count restored to 204.
+- Rejected count restored to 13 pre-existing only.
+- Rejected-from-rewrites = 0.
+- Nigerian pack tests: 288/288 passing.
+- TypeScript clean.
+
+The Chunk B source packet was generated with 30 candidates, but it has two semantic-duplicate risks:
+- DRAFT-237 is a near-duplicate of Chunk A DRAFT-129 generator/sleep.
+- DRAFT-153 is a near-duplicate of Chunk A DRAFT-263 portal-close/submission.
+
+Goal:
+Correct the Chunk B source packet by replacing DRAFT-237 and DRAFT-153 with two safer candidates.
+
+This is READ-ONLY selection only.
+Do not rewrite.
+Do not apply overlays.
+Do not run codegen apply.
+Do not edit worksheet.
+Do not modify source/test/config/corpus files.
+Do not touch regional-decoration.
+
+============================================================
+REMOVE FROM CHUNK B
+============================================================
+
+Remove:
+- DRAFT-237 — generator/sleep duplicate risk
+- DRAFT-153 — portal-close/submission duplicate risk
+
+Do not include:
+- DRAFT-348
+- DRAFT-151
+- DRAFT-263
+- any accepted Chunk A entry
+- any P1 completed entry
+- stale/missing `ng_1f0aac87`
+
+============================================================
+REPLACEMENT RULE
+============================================================
+
+Select exactly 2 replacement candidates from the remaining approved Nigerian pack pool.
+
+Strong preference:
+- HTF-only candidates
+- hookRewritePolicy: preserve
+- already-approved baseline hook/scenario
+- clear boilerplate howToFilm
+- no score-floor risk
+- no semantic overlap with P1, Chunk A, or existing Chunk B candidates
+
+Avoid:
+- hooks with competing topic nouns
+- anchors likely to cause hook_topic_noun_drift
+- repeated generator/sleep, late-night email, portal/submission, conductor/torn-note, refresh/no-care, group/we-move, charger/light race, coming/shoe drama
+- anything requiring risky hook rewrite
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Update/create:
+
+`.local/N1_P2_BATCH2_CHUNK_B_SOURCE_PACKET_CORRECTED.md`
+
+and
+
+`.local/qa-runs/n1_p2_batch2_chunk_b_source_packet_corrected.json`
+
+The corrected packet must contain exactly 30 candidates:
+- 28 retained from the prior Chunk B packet
+- 2 new replacements
+- DRAFT-237 absent
+- DRAFT-153 absent
+
+For the 2 replacements, include:
+- chunkBRank
+- original source/rank if any
+- entryId
+- draftId
+- current effective anchor
+- current effective hook
+- current effective whatToShow
+- current effective howToFilm
+- current effective caption
+- pidginLevel
+- domain
+- cluster if present
+- reviewer stamp
+- latest overlay state, if any
+- primary rewrite class
+- fields needing rewrite
+- diagnosis
+- why selected
+- preflight risks
+- semantic duplicate notes
+- hook rewrite policy
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Removed candidates.
+3. Replacement candidates.
+4. Corrected candidate count.
+5. Class counts.
+6. Domain spread.
+7. Confirmation:
+   - DRAFT-237 absent
+   - DRAFT-153 absent
+   - DRAFT-263 absent
+   - DRAFT-348 absent
+   - DRAFT-151 absent
+   - no accepted Chunk A entries included
+   - no source/test/config/corpus changes
+   - no overlays applied
+   - no worksheet edits
+   - regional-decoration untouched
+
+Do not rewrite entries.
+Do not ask for next steps.

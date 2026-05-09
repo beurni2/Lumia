@@ -851,3 +851,15 @@ id = "xpu23CsWURjvuiBRFI1EP"
 uri = "file://.local/qa-runs/n1_p2_batch2_chunk_b_source_packet.json"
 type = "unspecified"
 title = "Chunk B source packet (JSON)"
+
+[[outputs]]
+id = "e6EMjMSjWGnwF24m5mZQV"
+uri = "file://.local/N1_P2_BATCH2_CHUNK_B_SOURCE_PACKET_CORRECTED.md"
+type = "text"
+title = "Chunk B source packet — CORRECTED (markdown)"
+
+[[outputs]]
+id = "wmZswGXrhtxQ2_ZCheLGy"
+uri = "file://.local/qa-runs/n1_p2_batch2_chunk_b_source_packet_corrected.json"
+type = "unspecified"
+title = "Chunk B source packet — CORRECTED (JSON)"
