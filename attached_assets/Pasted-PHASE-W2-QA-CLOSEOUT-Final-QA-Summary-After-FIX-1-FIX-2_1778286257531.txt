@@ -1,0 +1,135 @@
+PHASE W2-QA-CLOSEOUT — Final QA Summary After FIX-1 + FIX-2
+
+Objective:
+Summarize the final W2-QA state after:
+- W2-QA baseline
+- W2-QA-AUDIT
+- W2-QA-FIX-1
+- W2-QA-AUDIT-2
+- W2-QA-FIX-2
+
+This is a closeout/report-only phase.
+
+Do not change code.
+Do not patch selectors.
+Do not change validators.
+Do not change prompts.
+Do not change production flags.
+Do not import another batch.
+Do not start W2-FTN yet.
+Do not add new tests unless there was an unreported test artifact already produced.
+
+Create:
+.local/W2QA_CLOSEOUT_REPORT.md
+
+Use these artifacts:
+- .local/W2QA_FIRST_IMPRESSION_REPORT.md
+- .local/W2QA_REFRESH_EXPERIENCE_REPORT.md
+- .local/W2QA_AUDIT_REPORT.md
+- .local/W2QA_AUDIT_2_POST_MERGE_SLOT0.md
+- W2-QA-FIX-1 implementation report
+- W2-QA-FIX-2 implementation report
+- .local/qa-runs/w2qa_sweep.json
+- .local/qa-runs/w2qa_summary.json
+- .local/qa-runs/w2qafix2_real_creators.json
+- relevant test/typecheck outputs
+
+Report sections:
+
+1. Executive verdict
+Choose one:
+- GO to W2-FTN
+- GO to W2-FTN with caveats
+- NEEDS MORE QA REPAIR
+
+2. Final system state
+Include:
+- W2-O/P/T/V/R status
+- W2-QA status
+- live pool status
+- intended 3-card composition
+- production flag status
+
+3. Baseline QA findings
+Summarize:
+- 100 batches / 300 ideas
+- latency / fallback / errors
+- 2 W2 + 1 old/core composition rate
+- W2-T share
+- repeat guardrails
+- first-impression overlap
+- weak pattern/core findings
+
+4. Root causes found
+Summarize:
+- first-impression overlap root cause
+- weak pattern_variation/core template root cause
+- post-merge slot-0 root cause
+- why W2 reservation rotation alone did not solve first-card ordering
+
+5. FIX-1 summary
+Include:
+- first-impression W2-pack rotation
+- pattern_variation weak skeleton suppression
+- comedyFamily telemetry
+- what improved
+- what did not improve
+- why the metric still failed after FIX-1
+
+6. FIX-2 summary
+Include:
+- final-composition first-card quality-band rotation
+- exact behavior:
+  - cold-start only
+  - creatorId deterministic
+  - reorder-only
+  - no change to selected 3 ideas
+  - top willingness quality band only
+- tests/typecheck
+- empirical corrected sweep result:
+  - first-card distinct hooks = 7/10
+  - “the fridge knows i'm lying” first-card slot = 3/10
+  - pattern_variation idea[0] = 3/10
+  - errors = 0
+  - production flags unchanged
+
+7. Final before/after table
+Include:
+- first-card distinct hooks
+- “the fridge knows i'm lying” first-card count
+- pattern_variation idea[0] share
+- W2-T share
+- 2 W2 + 1 old/core batch rate
+- 3 W2 batch count
+- per-creator entryId/hook/skeleton repeats
+- in-batch entryId/hook/skeleton duplicates
+- fallback count
+- latency
+- test count
+- typecheck
+- production flags
+
+8. Remaining caveats
+Include:
+- 2 cold-start fallbacks in the corrected sweep
+- residual weak pattern_variation templates if any
+- first-batch W2-L/N/T exposure if still limited
+- phone/desk/couch concentration
+- comedyFamily telemetry status
+- any caveat that should be monitored but not block W2-FTN
+
+9. Recommended next step
+State whether to proceed to:
+W2-FTN — Film This Now Quality Upgrade
+
+If yes, explain:
+- selection/repetition/first-card systems are now stable enough
+- remaining work is product-facing filming guidance quality
+- no more selector patches should be made unless a new measured defect appears
+
+10. Explicit stop line
+State:
+- W2-QA is closed if verdict is GO/GO with caveats.
+- Do not continue adding W2-QA patches.
+- Do not start W2-FTN until I approve the next prompt.
+- Production W2 remains OFF unless explicitly approved later.

@@ -407,3 +407,9 @@ id = "53b2oXRAouJPpwnT0MsF1"
 uri = "file://.local/W2QAFIX2_SWEEP_REPORT.md"
 type = "text"
 title = "W2-QA-FIX-2 — Empirical Live Sweep Report"
+
+[[outputs]]
+id = "QGg_KuUyppccXd6LFQgrB"
+uri = "file://.local/W2QA_CLOSEOUT_REPORT.md"
+type = "text"
+title = "W2-QA Closeout Report (FIX-1 + FIX-2)"
