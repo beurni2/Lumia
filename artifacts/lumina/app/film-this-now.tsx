@@ -56,6 +56,80 @@ type FullIdea = IdeaCardData & {
 };
 
 /**
+ * PHASE W2-FTN-FIX-1 — placeholder detectors.
+ *
+ * The W2 author (`westernPackAuthor.ts`) emits templated values for
+ * `trigger`, `reaction`, `shotPlan[1]`, and `whyItWorks` on every
+ * W2 entry — they're filler used to satisfy the schema, not authored
+ * filming guidance. Pre-FIX-1 these leaked into the FTN screen as
+ * TWIST and PAYOFF beats. The detectors below match the EXACT shapes
+ * the W2 author writes so non-placeholder real authoring still
+ * renders normally.
+ *
+ * Detection rules — EXACT shapes the W2 author writes (anchored,
+ * case-sensitive, literal em-dash U+2014, literal single quotes,
+ * literal trailing period or absence). Sources:
+ *   `westernPackAuthor.ts:414` →
+ *      `\`freeze on the ${anchorLc} for one beat\``       (no period)
+ *   `westernPackAuthor.ts:423` →
+ *      `\`Beat lands — let the ${anchorLc} sit.\``        (capital B, period)
+ *   `westernPackAuthor.ts:431` →
+ *      `\`Editorial-curated Western hook on '${anchorLc}' — packaged for filmability.\``
+ *
+ * Tightness is deliberate: we'd rather let one truly-W2 placeholder
+ * leak (extremely unlikely — these strings are not human-natural)
+ * than suppress a creator-authored line that happens to use a
+ * similar phrase. NG/IN/PH cohorts cannot match these because they
+ * use different authoring paths that never emit these exact shapes.
+ *
+ * We do NOT rewrite placeholder text — we only suppress beats whose
+ * only available source is a placeholder.
+ */
+const W2_BEAT_LANDS_PLACEHOLDER_RE =
+  /^Beat lands \u2014 let the .+ sit\.$/;
+const W2_FREEZE_PLACEHOLDER_RE =
+  /^freeze on the .+ for one beat$/;
+const W2_WHY_PLACEHOLDER_RE =
+  /^Editorial-curated Western hook on '.+' \u2014 packaged for filmability\.$/;
+
+function isW2TwistPlaceholder(s: string): boolean {
+  const t = s.trim();
+  return W2_BEAT_LANDS_PLACEHOLDER_RE.test(t) || W2_FREEZE_PLACEHOLDER_RE.test(t);
+}
+
+function isW2WhyItWorksPlaceholder(s: string): boolean {
+  return W2_WHY_PLACEHOLDER_RE.test(s.trim());
+}
+
+/**
+ * PHASE W2-FTN-FIX-1 (Fix-2) — script-vs-whatToShow distinctness.
+ *
+ * The W2 author sets `script = entry.whatToShow` (verbatim) at
+ * `westernPackAuthor.ts:420`, so for every W2 entry the two fields
+ * are byte-identical and rendering both would just duplicate the
+ * action beat. Some non-W2 paths leave them genuinely different
+ * (talking-head ideas where script carries the spoken line and
+ * whatToShow describes the visual). We render SCRIPT only in the
+ * latter case.
+ *
+ * Conservative distinctness: trimmed strings differ AND the first
+ * 40 chars differ. We don't try fuzzy diffing — when in doubt, hide
+ * the section so the screen doesn't show duplicate copy.
+ */
+function isScriptDistinctFromWhatToShow(
+  script: string | undefined,
+  whatToShow: string | undefined,
+): boolean {
+  if (!script) return false;
+  const s = script.trim();
+  if (s.length < 10) return false;
+  const w = (whatToShow ?? "").trim();
+  if (s === w) return false;
+  if (w.length > 0 && s.slice(0, 40) === w.slice(0, 40)) return false;
+  return true;
+}
+
+/**
  * PHASE UX3.2 — comfort adapter (concrete-instruction overlay).
  *
  * Pre-UX3.2 this was a client-side regex phrase-swap table that
@@ -343,21 +417,112 @@ export default function FilmThisNowScreen() {
           const payoffEnd = totalLen;
           const fmt = (n: number) =>
             n < 10 ? n.toFixed(1).replace(/\.0$/, "") : n.toFixed(0);
+          // PHASE W2-FTN-FIX-1 (Fix-1) — derive SETUP source from
+          // existing authored fields instead of the pre-FIX hard-
+          // coded face-camera boilerplate. Source priority:
+          //   1. shotPlan[0]   — every W2 entry has "Open on the
+          //                      {anchor} in frame." here, which is
+          //                      a concrete prep instruction.
+          //   2. visualHook    — sentence-form open shot when the
+          //                      authoring path didn't write a
+          //                      shotPlan.
+          //   3. (omit)        — silence is better than the generic
+          //                      face-camera default that may
+          //                      collide with comfort-mode prefs.
+          // We refuse to render shotPlan[0] when it matches the W2
+          // beat-lands placeholder shape (defensive — that template
+          // is for shotPlan[1], not [0], but the check is cheap).
+          const sp0Raw =
+            Array.isArray(idea.shotPlan) && idea.shotPlan.length >= 1
+              ? idea.shotPlan[0]
+              : null;
+          const sp0 =
+            sp0Raw && sp0Raw.trim().length > 0 && !isW2TwistPlaceholder(sp0Raw)
+              ? sp0Raw
+              : null;
+          const setupSource =
+            sp0 ?? (idea.visualHook && idea.visualHook.trim().length > 0
+              ? idea.visualHook
+              : null);
+
+          // PHASE W2-FTN-FIX-1 (Fix-3) — resolve ACTION source
+          // explicitly so we can de-dupe TWIST when both beats
+          // would resolve to the same string.
+          const actionSourceRaw =
+            (idea.whatToShow ?? idea.trigger ?? "").toString();
+          const actionSource =
+            actionSourceRaw.trim().length > 0 ? actionSourceRaw : null;
+
+          // PHASE W2-FTN-FIX-1 (Fix-3) — TWIST guards.
+          // Pre-FIX TWIST fell back to shotPlan[1] → trigger and
+          // would render the W2 author's templated freeze /
+          // beat-lands placeholders verbatim. Now we walk the
+          // candidates in priority order and pick the FIRST that
+          //   (a) is non-empty,
+          //   (b) is not a known W2 placeholder shape, AND
+          //   (c) doesn't equal the resolved ACTION source.
+          // If no candidate survives, the beat is omitted entirely.
+          const twistCandidates: Array<string | null> = [
+            Array.isArray(idea.shotPlan) && idea.shotPlan.length >= 2
+              ? idea.shotPlan[1] ?? null
+              : null,
+            idea.trigger ?? null,
+          ];
+          let twistSource: string | null = null;
+          for (const cand of twistCandidates) {
+            if (!cand) continue;
+            const trimmed = cand.trim();
+            if (trimmed.length === 0) continue;
+            if (isW2TwistPlaceholder(trimmed)) continue;
+            if (actionSource && trimmed === actionSource.trim()) continue;
+            twistSource = cand;
+            break;
+          }
+
+          // PHASE W2-FTN-FIX-1 (Fix-3) — PAYOFF guards.
+          // Reaction still wins when it's a concrete authored line.
+          // We refuse to render either the W2 freeze placeholder
+          // (in `reaction`) OR the W2 editorial-curated whyItWorks
+          // placeholder. If only placeholder sources are available,
+          // PAYOFF is omitted.
+          const reactionRaw = idea.reaction?.trim() ?? "";
+          const reactionUsable =
+            reactionRaw.length > 0 && !isW2TwistPlaceholder(reactionRaw);
+          const whyRaw = idea.whyItWorks?.trim() ?? "";
+          const whyUsable =
+            whyRaw.length > 0 && !isW2WhyItWorksPlaceholder(whyRaw);
+          const payoffSource = reactionUsable
+            ? idea.reaction!
+            : whyUsable
+              ? idea.whyItWorks!
+              : null;
+
+          // PHASE W2-FTN-FIX-1 (Fix-2) — SCRIPT section between
+          // TWIST and PAYOFF, only when distinct from whatToShow.
+          // Hidden for every W2 entry (W2 author sets script =
+          // whatToShow verbatim at westernPackAuthor.ts:420) and
+          // for any other authoring path that didn't write a
+          // distinct script. Comfort-adapted like the beats.
+          const scriptUsable = isScriptDistinctFromWhatToShow(
+            idea.script,
+            idea.whatToShow,
+          );
+
           return (
             <>
-              {/* SETUP — preflight prompt; no timestamp. Adapts
-                  to comfortMode so a creator on `no_face` doesn't
-                  see "frame yourself in shot" guidance. */}
-              <View style={styles.beat}>
-                <Text style={styles.beatTime}>SETUP</Text>
-                <Text style={styles.beatLabel}>BEFORE YOU HIT RECORD</Text>
-                <Text style={styles.beatBody}>
-                  {comfortAdaptCopy(
-                    "Phone propped, single take. Frame yourself so the hook lands first, then say it straight to camera.",
-                    comfortMode,
-                  )}
-                </Text>
-              </View>
+              {/* SETUP — preflight prompt; no timestamp. PHASE
+                  W2-FTN-FIX-1 (Fix-1): renders idea-derived source
+                  only; omitted entirely when no source is
+                  available. Adapts to comfortMode. */}
+              {setupSource ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>SETUP</Text>
+                  <Text style={styles.beatLabel}>BEFORE YOU HIT RECORD</Text>
+                  <Text style={styles.beatBody}>
+                    {comfortAdaptCopy(setupSource, comfortMode)}
+                  </Text>
+                </View>
+              ) : null}
 
               {/* HOOK — 0 → hookSec. Schema-guaranteed field. */}
               <View style={styles.beat}>
@@ -371,67 +536,68 @@ export default function FilmThisNowScreen() {
                   trigger for legacy cached ideas. comfortMode
                   swaps "say this" / "to camera" copy hints into
                   overlay/hands prompts when active. */}
-              {idea.whatToShow || idea.trigger ? (
+              {actionSource ? (
                 <View style={styles.beat}>
                   <Text style={styles.beatTime}>
                     {fmt(hookSec)}&ndash;{fmt(actionEnd)}s
                   </Text>
                   <Text style={styles.beatLabel}>ACTION</Text>
                   <Text style={styles.beatBody}>
-                    {comfortAdaptCopy(
-                      (idea.whatToShow ?? idea.trigger ?? "").toString(),
-                      comfortMode,
-                    )}
+                    {comfortAdaptCopy(actionSource, comfortMode)}
                   </Text>
                 </View>
               ) : null}
 
-              {/* TWIST — actionEnd → twistEnd. PHASE UX3.2 fix:
-                  pre-UX3.2 this beat synthesised "Lean into the
-                  ${spike} beat — the ${payoff} lands here." copy
-                  from the emotionalSpike + payoffType tags when
-                  no concrete twist source was present. The user
-                  QA verdict on UX3.1 flagged that placeholder
-                  pattern as unfilmable. UX3.2 sources twist copy
-                  from concrete idea fields ONLY (shotPlan beat 2
-                  → trigger → reaction tail) and HIDES the row
-                  entirely when no concrete source is available
-                  rather than emit a placeholder. */}
-              {(() => {
-                const sp = idea.shotPlan;
-                const twistSource =
-                  Array.isArray(sp) && sp.length >= 2 && sp[1]
-                    ? sp[1]
-                    : idea.trigger
-                      ? idea.trigger
-                      : null;
-                if (!twistSource) return null;
-                return (
-                  <View style={styles.beat}>
-                    <Text style={styles.beatTime}>
-                      {fmt(actionEnd)}&ndash;{fmt(twistEnd)}s
-                    </Text>
-                    <Text style={styles.beatLabel}>TWIST</Text>
-                    <Text style={styles.beatBody}>
-                      {comfortAdaptCopy(twistSource, comfortMode)}
-                    </Text>
-                  </View>
-                );
-              })()}
+              {/* TWIST — actionEnd → twistEnd. PHASE UX3.2 sourced
+                  twist copy from concrete idea fields and hid the
+                  row when no concrete source was present. PHASE
+                  W2-FTN-FIX-1 (Fix-3) extends this: also reject
+                  the W2 author's templated freeze / beat-lands
+                  placeholders, and de-dupe when twistSource ===
+                  actionSource. Concrete authored TWIST text still
+                  renders normally. */}
+              {twistSource ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>
+                    {fmt(actionEnd)}&ndash;{fmt(twistEnd)}s
+                  </Text>
+                  <Text style={styles.beatLabel}>TWIST</Text>
+                  <Text style={styles.beatBody}>
+                    {comfortAdaptCopy(twistSource, comfortMode)}
+                  </Text>
+                </View>
+              ) : null}
 
-              {/* PAYOFF — twistEnd → payoffEnd. Reaction wins
-                  when present; whyItWorks is the fallback. */}
-              {idea.reaction || idea.whyItWorks ? (
+              {/* SCRIPT — PHASE W2-FTN-FIX-1 (Fix-2). Renders only
+                  when idea.script is meaningfully different from
+                  whatToShow (talking-head paths). Sits between
+                  TWIST and PAYOFF as a "what to actually say"
+                  block. comfortMode adapts (e.g. no_voice swaps
+                  "say it out loud" → "type it as caption"). */}
+              {scriptUsable ? (
+                <View style={styles.beat}>
+                  <Text style={styles.beatTime}>SCRIPT</Text>
+                  <Text style={styles.beatLabel}>WHAT TO SAY</Text>
+                  <Text style={styles.beatBody}>
+                    {comfortAdaptCopy(idea.script!, comfortMode)}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* PAYOFF — twistEnd → payoffEnd. Reaction wins when
+                  it's a concrete authored line; whyItWorks is the
+                  fallback. PHASE W2-FTN-FIX-1 (Fix-3): both
+                  sources are screened against the W2 author's
+                  placeholder shapes; the beat is omitted when
+                  only placeholder sources are available. */}
+              {payoffSource ? (
                 <View style={styles.beat}>
                   <Text style={styles.beatTime}>
                     {fmt(twistEnd)}&ndash;{fmt(payoffEnd)}s
                   </Text>
                   <Text style={styles.beatLabel}>PAYOFF</Text>
                   <Text style={styles.beatBody}>
-                    {comfortAdaptCopy(
-                      (idea.reaction ?? idea.whyItWorks ?? "").toString(),
-                      comfortMode,
-                    )}
+                    {comfortAdaptCopy(payoffSource, comfortMode)}
                   </Text>
                 </View>
               ) : null}

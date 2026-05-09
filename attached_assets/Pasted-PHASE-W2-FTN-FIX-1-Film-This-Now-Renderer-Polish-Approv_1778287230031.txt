@@ -1,0 +1,163 @@
+PHASE W2-FTN-FIX-1 — Film This Now Renderer Polish
+
+Approve the W2-FTN audit recommendation.
+
+Implement only Fix-1, Fix-2, Fix-3, and Fix-4 from .local/W2FTN_AUDIT_REPORT.md.
+
+Do not implement content-data repairs.
+Do not rewrite W2-N howToFilm.
+Do not rewrite pattern_variation howToFilm.
+Do not change hooks.
+Do not change whatToShow/scenarios.
+Do not change captions.
+Do not change source corpus entries.
+Do not change validators.
+Do not change prompts.
+Do not change production flags.
+Do not change selector logic.
+Do not use Claude or LLM generation.
+Do not implement deterministic variation.
+Do not start a global UI redesign.
+
+Goal:
+Make Film This Now feel less generic and more useful by improving how existing fields are rendered, without changing the ideas themselves.
+
+Approved fixes:
+
+Fix-1 — SETUP beat renderer polish
+
+File:
+artifacts/lumina/app/film-this-now.tsx
+
+Replace the hard-coded SETUP boilerplate:
+"Phone propped, single take. Frame yourself so the hook lands first, then say it straight to camera."
+
+New source priority:
+1. idea.shotPlan[0], if present and non-placeholder
+2. idea.visualHook, if present
+3. otherwise omit SETUP beat entirely
+
+Rules:
+- Do not synthesize new setup copy.
+- Do not invent instructions.
+- Render only existing authored/curated fields.
+- Apply comfortAdaptCopy to the rendered setup text.
+- If no good setup source exists, silence is better than generic boilerplate.
+
+Fix-2 — Render SCRIPT only when distinct
+
+File:
+artifacts/lumina/app/film-this-now.tsx
+
+If idea.script exists and is meaningfully different from idea.whatToShow, render a small SCRIPT section between TWIST and PAYOFF.
+
+Rules:
+- Hide SCRIPT when script equals whatToShow or is near-duplicate.
+- Use a conservative distinctness check:
+  - trimmed strings differ meaningfully
+  - avoid showing duplicate W2 script, since W2 author often sets script = whatToShow
+- Apply comfortAdaptCopy to script text.
+- Do not alter script text.
+- Do not create new script copy.
+
+Fix-3 — TWIST / PAYOFF placeholder guards
+
+File:
+artifacts/lumina/app/film-this-now.tsx
+
+TWIST:
+- If shotPlan[1] is a W2 placeholder like:
+  "Beat lands — let the {anchor} sit."
+- or if the resolved TWIST text equals a templated freeze placeholder:
+  "freeze on the {anchor} for one beat"
+- and there is no concrete better source,
+  omit TWIST rather than rendering placeholder text.
+
+PAYOFF:
+- If PAYOFF would only render W2 placeholder whyItWorks:
+  "Editorial-curated Western hook on '{anchor}' — packaged for filmability."
+  omit PAYOFF.
+
+ACTION/TWIST de-dupe:
+- If ACTION and TWIST resolve to the same text, keep ACTION and skip TWIST.
+
+Rules:
+- Do not rewrite the placeholder.
+- Do not invent replacement copy.
+- Just hide low-quality placeholder beats.
+- Render normal non-placeholder TWIST/PAYOFF as before.
+- Missing optional fields must not crash.
+
+Fix-4 — dev-only FTN telemetry
+
+File:
+artifacts/api-server/src/lib/hybridIdeator.ts or the existing QA telemetry construction surface
+
+Add these fields to qaTelemetry.perIdea when available:
+- shotPlan
+- script
+- filmingGuide
+- whyItWorks
+- trigger
+- reaction
+
+Rules:
+- Dev/QA telemetry only.
+- No change to ideaSchema.
+- No change to public API contract beyond already-existing idea fields.
+- No selection behavior change.
+- No production behavior change.
+
+Tests required:
+
+Mobile tests / TypeScript:
+1. Film This Now renders SETUP from shotPlan[0].
+2. Film This Now renders SETUP from visualHook when shotPlan[0] absent.
+3. Film This Now omits SETUP when no good source exists.
+4. SCRIPT renders when script is distinct from whatToShow.
+5. SCRIPT hides when script equals or near-duplicates whatToShow.
+6. TWIST hides W2 placeholder text.
+7. PAYOFF hides W2 placeholder whyItWorks.
+8. ACTION/TWIST duplicate source text renders only once.
+9. comfortAdaptCopy still applies to SETUP and SCRIPT.
+10. Missing optional fields do not crash.
+11. Legacy cached idea still renders a usable Film This Now screen.
+
+Server tests / typecheck if Fix-4 touches api-server:
+1. qaTelemetry.perIdea includes FTN fields when present.
+2. Missing FTN fields are allowed.
+3. Existing api-server tests remain green.
+4. api-server TypeScript clean.
+
+Run:
+- mobile TypeScript check
+- api-server TypeScript check if server touched
+- full api-server tests if server touched
+- any available mobile/unit tests touching Film This Now
+
+Post-change QA:
+Create:
+.local/W2FTN_POST_CHANGE_REPORT.md
+
+Include:
+1. files changed
+2. behavior changed
+3. screenshots or text snapshots if available
+4. before/after examples for:
+   - W2 idea with shotPlan
+   - W2 idea with placeholder whyItWorks
+   - old/core idea with script
+   - no_face mode
+   - no_voice mode
+   - missing optional fields
+5. confirmation:
+   - no generic SETUP boilerplate remains as universal first beat
+   - SCRIPT only appears when useful
+   - placeholder W2 TWIST/PAYOFF text is hidden
+   - no idea selection changes
+   - no production flag changes
+   - no Claude/LLM usage
+   - no hook/scenario/corpus changes
+
+Do not fix editorial items E-1 through E-4 in this phase.
+Report them as deferred content-team items only.

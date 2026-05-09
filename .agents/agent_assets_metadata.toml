@@ -419,3 +419,9 @@ id = "J4y6yIu-aPWbq8bn-LU6G"
 uri = "file://.local/W2FTN_AUDIT_REPORT.md"
 type = "text"
 title = "W2-FTN Audit Report (Film This Now)"
+
+[[outputs]]
+id = "2Okr21msTMV7A5BxD-H1u"
+uri = "file://.local/W2FTN_POST_CHANGE_REPORT.md"
+type = "text"
+title = "W2-FTN-FIX-1 Post-Change Report"

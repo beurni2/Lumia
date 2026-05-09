@@ -392,6 +392,19 @@ export type HybridIdeatorResult = {
        *  guarantee), but populated whenever any of the source-
        *  specific family fields is set. */
       comedyFamily?: string;
+      /** PHASE W2-FTN-FIX-1 (Fix-4) — Film-This-Now-relevant idea
+       *  fields surfaced on the dev-only QA telemetry envelope so
+       *  audits of the FTN renderer can read them without scraping
+       *  the public response. Pure additive on the qaTelemetry
+       *  surface (production callers ignore qaTelemetry entirely);
+       *  ideaSchema and the publicIdeas wire shape are unchanged.
+       *  All optional — missing source fields read as undefined. */
+      shotPlan?: ReadonlyArray<string>;
+      script?: string;
+      filmingGuide?: ReadonlyArray<string>;
+      whyItWorks?: string;
+      trigger?: string;
+      reaction?: string;
     }>;
     scenarioFingerprintsThisBatch: string[];
     coreNativeAnchorsUsed: string[];
@@ -6211,6 +6224,20 @@ export async function runHybridIdeator(
         (m as { westernPackComedyFamily?: string })
           .westernPackComedyFamily ??
         (m as { comedyFamily?: string }).comedyFamily,
+      // PHASE W2-FTN-FIX-1 (Fix-4) — surface Film-This-Now-relevant
+      // idea fields on the dev-only QA telemetry envelope so the
+      // FTN audit aggregator can see shotPlan / script / filmingGuide
+      // / whyItWorks / trigger / reaction without scraping. Sourced
+      // directly from `c.idea` (the schema-validated Idea); each
+      // field is optional in the schema so we surface `undefined`
+      // when absent. No change to ideaSchema, no change to
+      // publicIdeas wire shape, no change to selection.
+      shotPlan: c.idea.shotPlan,
+      script: c.idea.script,
+      filmingGuide: c.idea.filmingGuide,
+      whyItWorks: c.idea.whyItWorks,
+      trigger: c.idea.trigger,
+      reaction: c.idea.reaction,
     };
   });
 
