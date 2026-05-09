@@ -431,3 +431,15 @@ id = "WAOVFuRqqx120FVNvycse"
 uri = "file://.local/W2FTN_CLOSEOUT_REPORT.md"
 type = "text"
 title = "W2-FTN Closeout Report"
+
+[[outputs]]
+id = "RPYoRW7ovsjavqtI7lsvj"
+uri = "file://.local/W2FTN_E_EDITORIAL_AUDIT_REPORT.md"
+type = "text"
+title = "W2-FTN-E Editorial Audit Report"
+
+[[outputs]]
+id = "s5OufwiaSxhWNf6euV9g1"
+uri = "file://.local/W2FTN_E_REPAIR_PACKET_DRAFT.md"
+type = "text"
+title = "W2-FTN-E Repair Packet Draft (sample for human review)"

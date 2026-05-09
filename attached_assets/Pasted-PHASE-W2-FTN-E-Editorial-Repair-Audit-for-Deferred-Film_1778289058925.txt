@@ -1,0 +1,351 @@
+PHASE W2-FTN-E — Editorial Repair Audit for Deferred Film This Now Content Items
+
+Objective:
+Audit the remaining Film This Now content-data issues and prepare a precise editorial repair plan that makes the filming guidance feel human-crafted, premium, specific, and instantly useful.
+
+This is an AUDIT-FIRST phase.
+
+Do not change code yet.
+Do not patch corpus entries yet.
+Do not rewrite anything yet.
+Do not use Claude/LLM rewriting.
+Do not generate generic replacement copy.
+Do not change selectors.
+Do not change validators.
+Do not change prompts.
+Do not change production flags.
+Do not import another batch.
+
+Goal:
+Find exactly where Film This Now still feels templated or low-taste, then recommend the smallest hand-authored editorial repair needed.
+
+The product standard:
+Every Film This Now instruction should feel like a high-taste human creator coach wrote it.
+
+The creator should read it and immediately think:
+“I know exactly how to film this right now.”
+
+It should feel:
+- specific
+- visual
+- low-effort
+- funny where appropriate
+- realistic
+- private/bedroom-friendly when possible
+- easy to shoot in 10–15 minutes
+- not generic
+- not robotic
+- not like a template
+- not like AI filler
+
+Context:
+W2-FTN renderer is closed: GO with caveats.
+Renderer fixes already shipped:
+- universal SETUP boilerplate removed
+- SETUP derives from shotPlan[0] or visualHook, otherwise omits
+- SCRIPT renders only when distinct from whatToShow
+- W2 placeholder TWIST/PAYOFF text hidden
+- ACTION/TWIST duplicate text de-duped
+- FTN QA telemetry exposes shotPlan/script/filmingGuide/whyItWorks/trigger/reaction
+
+Remaining deferred content items:
+E-1:
+W2-N repeated “Phone on a tripod, one locked-off shot.” prefix.
+
+E-2:
+W2 author placeholder trigger/reaction/whyItWorks templates.
+
+E-3:
+W2 hardcoded shotPlan placeholder beats.
+
+E-4:
+pattern_variation repeated “the fridge knows i'm lying” howToFilm.
+
+These were deferred because they are content/editorial problems, not renderer problems.
+
+Use:
+- .local/W2FTN_AUDIT_REPORT.md
+- .local/W2FTN_CLOSEOUT_REPORT.md
+- .local/W2FTN_POST_CHANGE_REPORT.md
+- .local/qa-runs/w2qa_editorial_sample.md
+- .local/qa-runs/w2qa_top_bottom.md
+- .local/qa-runs/w2qa_sweep.json
+- source files for W2-N / W2 author / patternIdeator content
+
+Create:
+.local/W2FTN_E_EDITORIAL_AUDIT_REPORT.md
+
+---
+
+TASK 1 — Audit E-1: W2-N repeated howToFilm prefix
+
+Audit:
+artifacts/api-server/src/lib/westernHookPackBatchNext2.ts
+
+Find every W2-N entry whose howToFilm starts with:
+“Phone on a tripod, one locked-off shot.”
+
+Report:
+- total affected entries
+- sample 20 affected entries
+- whether the rest of the howToFilm is specific enough
+- whether only the prefix is weak
+- whether any full howToFilm lines are low-quality
+- whether the issue appears in W2-L or W2-T too
+- whether this affects first impression or refresh mostly
+
+For each sampled entry, classify:
+- KEEP: already good enough
+- PREFIX_ONLY_REWRITE: only the opening phrase needs repair
+- FULL_REWRITE_NEEDED: the whole howToFilm is too generic
+- CONTENT_RISK: rewriting may change the scene, needs editor attention
+
+Quality standard for repair:
+A repaired howToFilm should:
+- name the actual object/action in the scene
+- tell where to start the shot
+- describe the visible movement
+- describe the comedic pause/payoff
+- stay short, usually 1–2 sentences
+- preserve the original whatToShow
+- preserve the hook
+- preserve the anchor
+- preserve safety/privacy
+- avoid “phone on tripod” unless it is truly the best instruction
+
+Bad:
+“Phone on a tripod, one locked-off shot. Creator scrolls a fake subscription list…”
+
+Better:
+“Start close on the fake subscription list. Hold on the tiny charge for one beat, then pull back to your face like the app just became a landlord.”
+
+Do not rewrite yet.
+Just audit and propose the repair shape.
+
+---
+
+TASK 2 — Audit E-2: W2 placeholder trigger/reaction/whyItWorks
+
+Audit:
+artifacts/api-server/src/lib/westernPackAuthor.ts
+
+Current placeholders:
+- trigger = “notice the {anchor} land”
+- reaction = “freeze on the {anchor} for one beat”
+- whyItWorks = “Editorial-curated Western hook on '{anchor}' — packaged for filmability.”
+
+These are currently hidden from FTN placeholder beats, but they still exist in payloads and may leak into future surfaces.
+
+Answer:
+- Are these fields required by ideaSchema?
+- Are they used anywhere besides FTN?
+- Are they used in scoring, retention, comfort labels, action conversion, telemetry, or UI?
+- Can they safely remain as hidden internal placeholders?
+- Or should they become better deterministic authored fields?
+
+If repair is recommended, propose the smallest safe shape:
+Option A:
+Leave placeholders as internal only and ensure all UI surfaces continue hiding them.
+
+Option B:
+Replace them with better deterministic W2-author fields derived from entry.whatToShow / caption / anchor without generic filler.
+
+Option C:
+Add optional authored fields to W2 entries in future batches only, do not backfill old entries yet.
+
+Do not implement.
+Report the best option and risk.
+
+Important:
+Do not propose generic replacements like:
+“This works because it is relatable.”
+“Freeze for one beat.”
+“Let the moment land.”
+
+Those are not masterpiece quality.
+
+---
+
+TASK 3 — Audit E-3: W2 hardcoded shotPlan placeholder beats
+
+Audit:
+westernPackAuthor.ts shotPlan generation:
+- “Open on the {anchor} in frame.”
+- “Beat lands — let the {anchor} sit.”
+- “Cut on the contradiction.”
+
+The renderer now hides the placeholder from TWIST, but the SHOT PLAN list still renders the whole array.
+
+Answer:
+- How often does this exact shotPlan appear?
+- Does it appear for all W2 entries?
+- Is shotPlan shown prominently enough that this damages FTN quality?
+- Does it make W2 ideas feel templated?
+- Should the repair be content-side or renderer-side?
+
+Evaluate options:
+Option A:
+Renderer hides exact placeholder shotPlan beat 2 from the SHOT PLAN list.
+This is small and safe but does not improve the underlying data.
+
+Option B:
+Change W2 author to generate a 2-beat shotPlan:
+- open on actual object/action
+- cut on actual visible payoff
+This avoids fake beat 2.
+
+Option C:
+Hand-author shotPlan overrides for the affected W2 entries.
+Highest quality, more work.
+
+Option D:
+No-op because howToFilm and whatToShow already carry the real instruction.
+
+Recommend the best option based on quality and risk.
+
+Do not implement.
+
+---
+
+TASK 4 — Audit E-4: repeated pattern_variation fridge howToFilm
+
+Audit:
+patternIdeator.ts
+the “the fridge knows i'm lying” / fridge_judgment filmShape.
+
+Find:
+- how many times the exact howToFilm repeats in QA artifacts
+- whether it appears across creators, within a creator, or both
+- whether the idea itself is strong but overused
+- whether the howToFilm is good but too repeated
+- whether other pattern_variation templates have the same repeated howToFilm problem
+
+Classify:
+- good idea, overexposed
+- good howToFilm, repeated too often
+- weak howToFilm
+- broader pattern engine problem
+
+Repair options:
+Option A:
+Add 2–3 hand-authored howToFilm variants for this exact fridge filmShape, selected deterministically by creatorId or entry seed.
+
+Option B:
+Keep one howToFilm, rely on selection/memory to reduce repeats.
+
+Option C:
+Demote this pattern in first-impression only.
+
+Option D:
+Rewrite the filmShape once by hand to be stronger, but still one variant.
+
+Recommendation should prioritize:
+- no random variation
+- no LLM generation
+- deterministic behavior
+- human-crafted variants only
+- no generic “alternate copy”
+- no new premise
+
+Do not implement.
+
+---
+
+TASK 5 — Produce repair packet proposal
+
+After auditing E-1 through E-4, produce a clear recommendation.
+
+For each item:
+- severity: P0 / P1 / P2 / P3
+- affected files
+- affected entries/templates count
+- user-visible impact
+- recommended action
+- risk
+- estimated scope
+- whether it should happen before production
+- whether it should happen before next product phase
+
+Then propose one of these paths:
+
+Path 1 — No-op:
+Renderer fixes are enough; defer content repair.
+
+Path 2 — Small renderer cleanup only:
+Hide exact shotPlan placeholder beat 2 from the SHOT PLAN list, no content edits.
+
+Path 3 — W2-N prefix repair only:
+Hand-repair only W2-N howToFilm prefixes that are visibly templated.
+
+Path 4 — W2-N + shotPlan placeholder repair:
+Repair W2-N prefixes and hide or fix shotPlan placeholder beat.
+
+Path 5 — Full editorial repair packet:
+Hand-repair W2-N prefix issue, W2 shotPlan issue, and fridge filmShape variants.
+
+Recommend the smallest path that actually improves product quality.
+
+---
+
+TASK 6 — If recommending hand-authored repairs, prepare a packet but do not apply
+
+If the recommendation includes hand-authored repairs, create a proposed packet:
+
+.local/W2FTN_E_REPAIR_PACKET_DRAFT.md
+
+Include:
+- exact IDs/templates to repair
+- current text
+- proposed revised text
+- why the revision is better
+- what it preserves
+- risk notes
+
+Rules for proposed copy:
+- must sound human-crafted
+- must be specific to the exact scene
+- must not be generic
+- must not be AI-ish
+- must not add new premise
+- must not change hook meaning
+- must not change whatToShow
+- must not increase filming effort
+- must not require public filming
+- must not require unsafe/private content
+- must preserve anchor/cohesion
+- must preserve validator compatibility
+
+Examples of acceptable style:
+“Start tight on the fake subscription list. Let the tiny charge sit for a beat, then pull back like the app just became a landlord.”
+
+“Open on the shoe already halfway on. Pause at the doorway, then slowly sit back down like the floor negotiated better terms.”
+
+“Frame the fridge light hitting your face. Close the door like you made a responsible choice, then immediately open the delivery app in the same shot.”
+
+Examples of unacceptable style:
+“Film yourself reacting.”
+“Show the object and let the joke land.”
+“Use a tripod and record the scene.”
+“Make it funny and relatable.”
+“Capture the emotional beat.”
+
+Do not apply this packet.
+Only prepare it for human review.
+
+---
+
+Deliverables:
+1. .local/W2FTN_E_EDITORIAL_AUDIT_REPORT.md
+2. .local/W2FTN_E_REPAIR_PACKET_DRAFT.md only if repairs are recommended
+3. final recommendation:
+   - NO-OP
+   - SMALL RENDERER CLEANUP
+   - W2-N PREFIX REPAIR
+   - W2-N + SHOTPLAN REPAIR
+   - FULL EDITORIAL REPAIR PACKET
+
+Important final instruction:
+Do not fix anything yet.
+
+This phase exists to avoid blind repair.
+First prove the scope, then recommend the smallest high-taste repair that makes Film This Now feel like a human-crafted masterpiece.
