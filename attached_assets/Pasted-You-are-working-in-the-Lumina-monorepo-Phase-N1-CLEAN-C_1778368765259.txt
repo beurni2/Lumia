@@ -1,0 +1,308 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CORE-INFRA — infrastructure only for Nigerian clean-English core catalog.
+
+Context:
+N1-CLEAN-CULTURE-AUDIT verdict: IMPLEMENT_MINI_CATALOG.
+
+Problem:
+`region=nigeria + languageStyle=clean + core_native` is currently safe but too bland/global:
+- 20/20 sampled ng_clean outputs classified TOO_GENERIC.
+- GOOD_NG_CLEAN = 0%.
+- THIN_SCENARIO = 80%.
+- Pidgin leak = 0.
+- Mock/shouty = 0 after N1-CORE-CLEAN-GUARD.
+- Stereotype/decoration = 0.
+- Root cause: global Western voice clusters + global premise cores flatten even Nigerian anchors.
+
+Product target:
+`ng_clean` should feel:
+- Nigerian
+- human-crafted
+- funny
+- culturally grounded
+- based on Nigerian daily realities
+- written in clean English / Nigerian English
+- no pidgin grammar as the main voice
+- no mock-pidgin
+- no lazy stereotype tokens
+- no random decoration
+- no impact on the approved Nigerian pidgin/light-pidgin pack
+
+Critical authorship rule:
+DO NOT author creative entries.
+DO NOT generate hooks, scenarios, howToFilm, or captions yourself.
+The 30 clean-English Nigerian entries will be authored separately by the user/ChatGPT and provided later as an exact packet.
+
+Your job is infrastructure only:
+- create the safe catalog/codegen/validator/wiring shell
+- accept zero production entries for now
+- prove the infrastructure is gated and inert when empty
+- do not create production creative copy
+
+============================================================
+GOAL
+============================================================
+
+Implement a separate Nigerian clean-English core catalog infrastructure for:
+
+`region === "nigeria" && languageStyle === "clean"`
+
+This must be separate from:
+- `nigerianHookPackApproved.ts`
+- `nigerianPackAuthor.ts`
+- existing pidgin/light-pidgin Nigerian pack flow
+- regional-decoration
+
+The clean-core catalog should not activate for:
+- `pidgin`
+- `light_pidgin`
+- `null`
+- `undefined`
+- western
+- india
+- philippines
+
+When the catalog is empty, runtime behavior should be unchanged except for the new code existing inertly.
+
+============================================================
+STRICT NON-GOALS
+============================================================
+
+Do NOT:
+- write any production clean-core entries
+- ask an LLM to generate entries
+- invent sample Nigerian hooks/scenarios/captions
+- alter existing Nigerian approved pack entries
+- touch `.local/REGIONAL_N1_REWRITES.yaml`
+- touch `.local/REGIONAL_N1_REVIEWER_WORKSHEET.csv`
+- touch `nigerianHookPackApproved.ts`
+- touch `nigerianPackAuthor.ts`
+- touch regional-decoration behavior
+- modify mobile/API shape
+- add migrations unless absolutely required for inert infra; prefer no DB/migration in this infra-only phase
+- change selectors/scorers globally
+- loosen validators/scanners
+
+============================================================
+PREFERRED IMPLEMENTATION SHAPE
+============================================================
+
+1. New catalog module:
+
+`artifacts/api-server/src/lib/nigerianCleanCorePack.ts`
+
+It should export types and an empty production array:
+
+```ts
+export type NigerianCleanCoreEntry = {
+  id: string;
+  draftId: string;
+  anchor: string;
+  hook: string;
+  whatToShow: string;
+  howToFilm: string;
+  caption: string;
+  premiseFamily: string;
+  voiceTone: string;
+  reviewedBy: string;
+};
+
+export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] = [];
+
+Use project naming/style conventions.
+
+Also export:
+
+export function canActivateNigerianCleanCorePack(args: {
+  region?: RegionProfileId | null;
+  languageStyle?: LanguageStyle | null;
+}): boolean {
+  return args.region === "nigeria" && args.languageStyle === "clean";
+}
+
+If importing LanguageStyle creates a cycle, use a local narrow union.
+
+Clean-only validator helper:
+
+In the same module or a small companion module, add helpers to validate future entries:
+
+anchor appears in hook
+anchor appears in whatToShow
+no empty fields
+no pidgin grammar markers for clean style:
+dey
+don
+abeg
+wahala
+wetin
+sha
+abi
+oga may need nuance; for now treat as banned unless user later explicitly approves it for clean Nigerian English
+no mock/shouty template using isNigerianCleanCoreHookBlocked
+no stereotype/lazy-token list:
+NEPA
+village people
+my enemies
+yahoo boy
+419
+random jollof / buka unless future validator allows premise-necessary use; for infra-only, keep conservative
+no old filming boilerplate:
+Phone-level lock-off
+Desk-height lock-off
+Counter-level lock-off
+Couch-level handheld
+Bed-level handheld
+Door-side handheld
+Mirror lock-off
+soft daylight
+one take
+Keep the X centered
+
+Do not overcomplicate. This is to protect future human-authored entries.
+
+Optional codegen shell:
+
+If repo conventions strongly prefer generated approved files, create a codegen shell:
+
+artifacts/api-server/src/qa/buildApprovedNigerianCleanCorePack.ts
+
+But it must not generate production creative copy.
+
+Accept input from a future worksheet file:
+
+.local/REGIONAL_N1_CLEAN_CORE_WORKSHEET.csv
+
+For now:
+
+if the worksheet file does not exist, print a clear message and exit 0 without changing source files
+do not create fake rows
+do not modify any approved generated file unless a real worksheet exists
+no creative copy authored by you
+
+If codegen is too much for infra-only, defer it and report that recommendation.
+
+Wiring in coreCandidateGenerator.ts
+
+Add an inert gated branch only if safe:
+
+check canActivateNigerianCleanCorePack({ region: input.region, languageStyle: packLanguageStyle })
+check NIGERIAN_CLEAN_CORE_ENTRIES.length > 0
+if empty, branch does nothing
+if non-empty in future, it should be able to push clean-core entries into passing[] as core_native candidates
+do not change API source shape
+do not affect pidgin/light_pidgin pack-active branch
+do not add DB memory yet unless required
+
+If implementing future push logic requires too much risk without entries, create only the gate/helper and tests, and leave wiring as a TODO guarded by tests. But prefer a safe inert branch if straightforward.
+
+No DB memory in this infra-only phase unless already necessary.
+
+Do NOT add nigerian_clean_core_seen_ids_json yet unless the existing code architecture requires it for compile/runtime. We can add memory after the first 30 entries prove quality.
+
+============================================================
+TESTS
+
+Add focused tests.
+
+Suggested file:
+
+artifacts/api-server/src/lib/__tests__/nigerianCleanCorePack.test.ts
+
+Required coverage:
+
+Gate truth table:
+nigeria + clean → true
+nigeria + pidgin → false
+nigeria + light_pidgin → false
+nigeria + null → false
+nigeria + undefined → false
+western + clean → false
+india + clean → false
+philippines + clean → false
+undefined/null region → false
+Empty catalog invariant:
+NIGERIAN_CLEAN_CORE_ENTRIES.length === 0
+empty catalog validates / boots without error
+core generation path does not under-fill because clean catalog is empty
+Validator helper:
+Create local test fixture entries inside the test file only. These are test fixtures, NOT production entries.
+
+Test:
+
+valid clean-English Nigerian-style fixture passes
+pidgin marker fixture fails
+shouty AGAIN. AGAIN!!! fixture fails
+stereotype/lazy-token fixture fails
+old filming boilerplate fixture fails
+missing anchor in hook fails
+missing anchor in whatToShow fails
+
+Important:
+Test fixture strings are allowed only inside tests. Do not add them to production catalog.
+
+Wiring/gating:
+If you wire into coreCandidateGenerator.ts, add a focused test or assertion that:
+empty catalog does not change output count / does not under-fill for ng_clean
+pidgin/light_pidgin path unaffected
+Existing verification:
+Run:
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePack.test.ts
+
+Run:
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts
+
+Run:
+
+pnpm --filter @workspace/api-server exec tsc --noEmit
+
+Runtime probe optional in infra-only phase because catalog is empty. If run, it should be unchanged from post-guard STOP.
+
+============================================================
+SUCCESS CRITERIA
+
+Must end with:
+
+production clean-core catalog is empty
+no creative production entries authored
+gate activates only for nigeria+clean
+pidgin/light_pidgin unaffected
+Nigerian approved pack untouched
+rewrite YAML untouched
+worksheet untouched unless you create an empty clean-core worksheet intentionally; avoid creating it unless necessary
+no regional-decoration changes
+no API/mobile/schema/migration changes
+focused tests passing
+Nigerian tests passing
+TypeScript clean
+============================================================
+FINAL REPORT — KEEP IT SHORT
+
+Return only:
+
+Verdict.
+Files changed.
+Confirmation production catalog is empty.
+Exact behavior change.
+Tests added.
+Test results.
+TypeScript result.
+Runtime probe result if run, or reason not run.
+Confirm:
+no creative entries authored
+Nigerian pack untouched
+rewrite YAML untouched
+worksheet untouched
+codegen not run against pack
+regional-decoration untouched
+pidgin/light_pidgin unaffected
+no API/mobile/schema/migration changes
+Any risk or follow-up.
+
+Do not ask for next steps.
+
+
+After this lands, we write the **30 clean-English Nigerian entries ourselves** and then give the coding agent an exact apply packet.

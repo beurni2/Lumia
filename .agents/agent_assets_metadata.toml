@@ -953,3 +953,9 @@ id = "o6R4MwJhmgUJNY6RdrcLX"
 uri = "file://.local/qa-runs/n1_clean_culture_audit_samples.json"
 type = "unspecified"
 title = "ng_clean classified samples (20 rows)"
+
+[[outputs]]
+id = "hWy2bk010T4_vqVfMrync"
+uri = "file://.local/N1_CLEAN_CORE_INFRA_REPORT.md"
+type = "text"
+title = "N1-CLEAN-CORE-INFRA — Infra-only Implementation Report"
