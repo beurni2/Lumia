@@ -515,3 +515,9 @@ id = "6Wp-cj_9BFAWlsEn3nE0Q"
 uri = "file://.local/F3_FALLBACK_ROOT_CAUSE_AUDIT.md"
 type = "text"
 title = "F3 Fallback Root-Cause Audit"
+
+[[outputs]]
+id = "Qak-5hO1UgOCietQDXTQE"
+uri = "file://.local/F3_FALLBACK_GAP_ONLY_REPORT.md"
+type = "text"
+title = "F3-FALLBACK-GAP-ONLY FIX — Implementation Report"
