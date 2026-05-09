@@ -1,0 +1,252 @@
+PHASE W2-FTN — Film This Now Quality Upgrade
+
+Objective:
+Upgrade the product-facing filming guidance so every strong idea feels immediately actionable, specific, human, and easy to shoot.
+
+This phase is about the creator action layer:
+- Film This Now screen
+- shot plan clarity
+- howToFilm usefulness
+- beat-by-beat filming guidance
+- comfort-mode adaptation quality
+- text overlay / caption support where already present
+
+This is NOT a selector phase.
+This is NOT a corpus-import phase.
+This is NOT another W2-QA patch.
+This is NOT deterministic variation.
+This is NOT a prompt/provider/Claude phase.
+
+Current state:
+- W2-O: GO
+- W2-P: GO
+- W2-T: GO
+- W2-V: GO
+- W2-R: GO
+- W2-QA: closed, GO with caveats
+- W2 live pool / selection / repetition / first-card systems are stable enough.
+- Intended batch mix remains usually 2 W2 + 1 old/core, never force weak second W2.
+- Production W2 remains OFF unless explicitly approved later.
+
+Why this phase exists:
+The idea-selection engine is now stable. The next product bottleneck is whether a creator can open an idea and immediately understand:
+- what to film first
+- what visible action changes
+- where the joke turns
+- where the payoff lands
+- how to film it with low effort
+- how to adapt it if they do not want to show face or voice
+
+Product standard:
+Film This Now must feel like a high-taste human creator coach wrote it.
+No generic tripod boilerplate.
+No vague “film yourself reacting.”
+No robotic instruction copy.
+No overcomplicated production advice.
+No new premise.
+No unsafe/private filming.
+No public filming requirement.
+No bloated screenplay.
+
+Hard rules:
+- Do not change production flags.
+- Do not change validators.
+- Do not change ideaSchema unless explicitly reported and approved.
+- Do not change W2 selection logic.
+- Do not change W2-O/W2-R/W2-QA selector behavior.
+- Do not import another batch.
+- Do not change hooks.
+- Do not change whatToShow / scenario content unless a bug is proven.
+- Do not change source corpus entries unless a specific content defect is found and reported.
+- Do not use Claude or LLM generation.
+- Do not increase Claude usage.
+- Do not implement random/dynamic variation.
+- Do not touch NG/N1/India/Philippines behavior unless tests prove shared UI code requires it.
+- Do not reduce human taste to satisfy mechanical structure.
+
+Required first step:
+Audit first. Do not patch until the problems are proven.
+
+Create:
+.local/W2FTN_AUDIT_REPORT.md
+
+Use existing QA artifacts:
+- .local/qa-runs/w2qa_editorial_sample.md
+- .local/qa-runs/w2qa_top_bottom.md
+- .local/qa-runs/w2qa_sweep.json
+- .local/W2QA_CLOSEOUT_REPORT.md
+- current Film This Now implementation files
+- current actionConversion / comfort-mode files
+- current mobile IdeaCard / Film This Now screen files
+
+TASK 1 — Map current Film This Now flow
+
+Document:
+- where idea.card data is shaped on server
+- where howToFilm / shotPlan / script / caption / whatToShow are produced
+- where mobile receives and renders them
+- which screen is the Film This Now screen
+- current 6-beat structure, if still present
+- how timestamps are generated
+- how comfort modes adapt filming guidance
+- how no_face / no_voice / text_overlay / bedroom_easy are handled
+- whether W2 entries and old/core entries use different howToFilm quality paths
+- whether W2-T polished howToFilm survives to mobile
+- whether any server fields are dropped before the Film This Now screen
+
+TASK 2 — Sample actual Film This Now quality
+
+From the W2-QA output, inspect at least:
+- top 20 strongest ideas
+- bottom 20 weakest ideas
+- 30 representative batches
+
+For each sampled idea, evaluate:
+- hook clarity
+- scenario clarity
+- howToFilm specificity
+- Film This Now beat clarity
+- opening shot quality
+- visible action quality
+- payoff clarity
+- caption/text overlay fit
+- comfort-mode compatibility
+- effort level
+- whether a creator could film it in under 10–15 minutes
+- whether it feels human-written or templated
+
+Flag exact issues:
+- generic tripod boilerplate
+- repeated “Phone on a tripod, one locked-off shot”
+- vague action
+- missing payoff
+- no clear ending
+- too much explanation
+- scenario/hook mismatch
+- unsafe/private/public filming
+- face/voice dependence without adaptation
+- low willingness to film
+- repeated Film This Now wording across different ideas
+- captions that do not support the joke
+- text overlays that are too generic or missing
+
+TASK 3 — Root-cause failures before fixing
+
+For each failure pattern, identify:
+- source: server authoring, W2 pack data, old/core generation, mobile rendering, actionConversion, comfort adaptation, timestamp generation, or field dropping
+- exact file/function
+- whether it affects W2 only, old/core only, or all ideas
+- whether it is content data or UI transformation
+- whether it can be fixed with a small formatting/translation layer
+- whether it requires content repair and should be deferred
+
+Do not patch until this is clear.
+
+TASK 4 — Recommend minimal fixes
+
+If the audit finds real defects, recommend only small targeted fixes.
+
+Acceptable fix types:
+A. Film This Now renderer polish
+- clearer section labels
+- better beat ordering
+- improve timestamp readability
+- make instructions easier to scan
+- preserve same data
+
+B. Server-to-mobile field preservation
+- ensure shotPlan / script / howToFilm / caption / whatToShow fields survive intact
+- no API breaking change
+- additive only
+
+C. howToFilm display transformation
+- split existing howToFilm into 2–3 readable beats if it is already one paragraph
+- no new premise
+- no LLM
+- no generic rewriting
+- deterministic and conservative
+
+D. Comfort-mode adaptation polish
+- if no_face is active, avoid “show your face” instructions where possible
+- if no_voice is active, avoid speaking/voiceover instructions
+- if text_overlay is active, surface a simple overlay suggestion
+- do not claim a mode is ideal if the scene requires face/voice
+- preserve safety notes
+
+E. Old/core weak Film This Now handling
+- if old/core instructions are generic, add a deterministic wrapper that makes them clearer
+- do not rewrite the idea itself
+- do not touch W2 polished data if already good
+
+F. QA telemetry/reporting
+- if hard to audit because fields are missing, add dev-only telemetry only
+- no production behavior change
+
+Not acceptable:
+- broad rewrite of all howToFilm copy
+- generated alternate Film This Now copy
+- LLM rewriting
+- random variation
+- hook/scenario changes
+- selector changes
+- new corpus
+- global UI redesign
+
+TASK 5 — Implement only if fix is proven small and safe
+
+If implementing, keep changes minimal.
+
+Before implementation, write:
+- exact files to touch
+- exact behavior change
+- why it improves creator experience
+- why it does not alter idea selection
+- why it preserves human taste
+
+Tests required depending on changes:
+- Film This Now screen renders W2 idea fields correctly
+- old/core idea fields render correctly
+- missing optional fields do not crash
+- no_face adaptation removes/reframes face-dependent directions
+- no_voice adaptation removes/reframes speaking-dependent directions
+- text_overlay mode surfaces overlay guidance if available
+- shot timestamps remain ordered and readable
+- W2-T polished howToFilm is not overwritten by generic copy
+- no API breaking changes
+- mobile TypeScript clean
+- api-server TypeScript clean if server touched
+- existing api-server tests remain green if server touched
+
+Runtime / QA after implementation:
+Run a small visual/text QA sample:
+- at least 20 ideas
+- include W2-I / W2-L / W2-N / W2-T / old/core
+- include no comfort mode
+- include no_face
+- include no_voice
+- include text_overlay if implemented
+- confirm Film This Now is clear and specific
+- confirm no generic boilerplate dominates
+- confirm no unsafe/private filming
+- confirm no hook/scenario mismatch
+
+Deliverables:
+1. .local/W2FTN_AUDIT_REPORT.md
+2. implementation summary, only if changes are made
+3. tests added/updated, only if changes are made
+4. .local/W2FTN_POST_CHANGE_REPORT.md, only if changes are made
+5. final verdict:
+   - GO
+   - GO with caveats
+   - NEEDS REPAIR
+   - NO-OP recommended
+
+Decision rule:
+If the audit shows Film This Now is already strong enough, stop and recommend no-op.
+If the audit shows small rendering/adaptation issues, fix those only.
+If the audit shows content-data quality issues in specific entries, report them for editorial repair instead of rewriting broadly.
+If any proposed change makes the ideas feel more generic, do not ship it.
+
+Final standard:
+The creator should read Film This Now and think:
+“I know exactly how to film this right now.”
