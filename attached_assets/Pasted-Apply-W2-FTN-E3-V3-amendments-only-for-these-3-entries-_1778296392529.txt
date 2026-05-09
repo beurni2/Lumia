@@ -1,0 +1,72 @@
+Apply W2-FTN-E3 V3 amendments only for these 3 entries.
+
+Do not change any other W2-N entries.
+Do not change hooks.
+Do not change anchors.
+Do not change captions.
+Do not change reviewedBy.
+Do not change metadata.
+Do not change selectors.
+Do not change validators.
+Do not change prompts.
+Do not change production flags.
+Do not use Claude/LLM rewriting.
+
+Patch exactly these fields:
+
+1. w2_next2_010
+
+Replace whatToShow with:
+
+Creator unboxes a bright new sponge on the kitchen counter with the seriousness of a luxury tech launch. They hold it up to the sink like the week has finally turned around, then set it down carefully like it came with insurance.
+
+Keep the existing V2 howToFilm unchanged.
+
+Reason:
+Includes the literal anchor token "unboxes" while preserving the V2 joke and scene.
+
+2. w2_next2_011
+
+Keep the existing V2 whatToShow unchanged.
+
+Replace howToFilm with:
+
+Start with the almost-sit at the chair. Stop before contact, look at the clean laundry pile, then slowly add the laptop like this was the office plan all along.
+
+Reason:
+Raises whatToShow/howToFilm shared substantive tokens from 2 to at least 5:
+chair, clean, laundry, pile, laptop, office.
+Preserves the V2 joke and filming direction.
+
+3. w2_next2_081
+
+Replace whatToShow with:
+
+The alarm rings while you're lying face-down in bed. Without opening your eyes, you reach around for the phone, tap snooze, and give a tiny thumbs-up to nobody, like the day has been handled.
+
+Keep the existing V2 howToFilm unchanged.
+
+Reason:
+Adds whitelisted visible-action verb coverage via "lying" and "tap", while preserving the alarm/snooze joke and anchor.
+
+After patching, run:
+- W2-N structural/integrity tests
+- westernHookPackApproved.test.ts
+- static QA checks:
+  - banned phrase hits
+  - Phone on a tripod residue
+  - locked-off shot residue
+  - vague-filler hits
+  - exact duplicate whatToShow/howToFilm
+  - near-duplicate openings
+  - schema length checks
+  - unsafe/private/public-filming risk
+  - premise drift / hook-scene mismatch
+- api-server typecheck
+- full api-server tests
+
+Expected:
+- 1178/1178 tests passing
+- typecheck clean
+- no production flag changes
+- no selector/validator/prompt/schema changes

@@ -319,7 +319,7 @@
   {
     id: "w2_next2_010",
     hook: "A new sponge should not have changed my whole week",
-    whatToShow: "You unbox a bright new sponge on the kitchen counter with the seriousness of a luxury tech launch. You hold it toward the sink like the room just got upgraded, then set it down like it deserves a warranty card.",
+    whatToShow: "Creator unboxes a bright new sponge on the kitchen counter with the seriousness of a luxury tech launch. They hold it up to the sink like the week has finally turned around, then set it down carefully like it came with insurance.",
     howToFilm: "Start close on the sponge package and your hands. Let the unboxing feel way too important, then lift the sponge toward the sink like you’re introducing it to its kingdom.",
     caption: "and just like that, the week unboxes won.",
     anchor: "unboxes",
@@ -336,7 +336,7 @@
     id: "w2_next2_011",
     hook: "The laundry chair has officially become furniture",
     whatToShow: "You walk toward the chair like you’re finally about to sit down, then remember the clean laundry has been living there for three business days. You place your laptop on top of the pile like you’re turning the chair into an office.",
-    howToFilm: "Start with the almost-sit. Stop before contact, look at the laundry, then slowly add the laptop like this was the plan all along.",
+    howToFilm: "Start with the almost-sit at the chair. Stop before contact, look at the clean laundry pile, then slowly add the laptop like this was the office plan all along.",
     caption: "the furniture laundry closed the meeting.",
     anchor: "laundry",
     comedyFamily: "tiny_humiliation",
@@ -1432,7 +1432,7 @@
   {
     id: "w2_next2_081",
     hook: "My alarm is now just a suggestion with sound",
-    whatToShow: "The alarm rings while you’re face-down in bed. Without opening your eyes, you pat around for the phone, hit snooze, and give a tiny thumbs-up to nobody, like the day has been handled.",
+    whatToShow: "The alarm rings while you're lying face-down in bed. Without opening your eyes, you reach around for the phone, tap snooze, and give a tiny thumbs-up to nobody, like the day has been handled.",
     howToFilm: "Shoot from the foot of the bed with the nightstand visible. Let the blind phone search take too long, then end on the smallest possible thumbs-up.",
     caption: "the sound alarm closed the meeting.",
     anchor: "alarm",
