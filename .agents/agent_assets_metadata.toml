@@ -653,3 +653,27 @@ id = "mlG6elxqg2I-4QSkIRTNP"
 uri = "file://.local/qa-runs/n1_chunk_c_proposed_overlay.yaml"
 type = "unspecified"
 title = "N1 Chunk C Proposed Overlay (11 blocks)"
+
+[[outputs]]
+id = "AW3kX9o2kZX2olOS9L9KA"
+uri = "file://.local/N1_BATCH1_RUNTIME_QA_REPORT.md"
+type = "text"
+title = "N1 Batch 1 Runtime QA Report — VERDICT: ACCEPT"
+
+[[outputs]]
+id = "zcbXMnFusE6DbATOvMv6S"
+uri = "file://.local/qa-runs/n1_batch1_runtime_qa_summary.json"
+type = "unspecified"
+title = "N1 Batch 1 Runtime QA — Summary JSON"
+
+[[outputs]]
+id = "AJLRdoGazpGNjBNadr9X6"
+uri = "file://.local/qa-runs/n1_batch1_runtime_qa.json"
+type = "unspecified"
+title = "N1 Batch 1 Runtime QA — Raw 90-idea rows"
+
+[[outputs]]
+id = "nrYITSxWsE2uyT2RfAElr"
+uri = "file://.local/qa-runs/n1_batch1_entry_ids.json"
+type = "unspecified"
+title = "N1 Batch 1 entryId map (45 BI 2026-05-09 entries)"

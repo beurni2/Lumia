@@ -1,0 +1,331 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-ELEVATION-P1 — Batch 1 Runtime QA.
+
+Context:
+N1-ELEVATION-P1 Batch 1 rewrite pass is complete and accepted.
+
+Completed:
+- Chunk A: 19/19 entries applied
+- Chunk B: 15/15 entries applied
+- Chunk C: 11/11 entries applied
+- Total Batch 1: 45/45 entries applied
+- Approved count: 204
+- Rejected count: 13 pre-existing only
+- New rejected-from-rewrites: 0
+- BI 2026-05-09 stamp count: 45
+- Nigerian pack-specific tests: 288/288 passing
+- Full api-server suite: 1312/1312 passing
+- API-server TypeScript: clean
+- No worksheet edits
+- No hand-edits to generated approved file
+- No source/test/validator/scorer/selector/prompt/flag/API/mobile changes
+- Production gates unchanged
+- Codegen path only: overlay YAML → buildApprovedNigerianPack.ts → regenerated nigerianHookPackApproved.ts
+
+Goal:
+Run runtime QA to verify that the 45 rewritten Nigerian entries actually improve generated outputs in the app/system.
+
+This is QA ONLY.
+Do not modify code.
+Do not modify corpus.
+Do not modify overlays.
+Do not apply fixes.
+Do not rewrite anything.
+
+============================================================
+PRIMARY QA QUESTION
+============================================================
+
+Do Nigerian outputs now feel more:
+
+- naturally Nigerian
+- human-crafted
+- funny
+- simple and easy to understand
+- culturally true
+- filmable
+- non-generic
+- non-AI-ish
+- non-stereotyped
+- free of boilerplate howToFilm
+
+The user’s quality bar:
+A Nigerian creator should look at the idea and feel:
+“Yes, this is real, funny, familiar, easy to shoot, and worth filming.”
+
+============================================================
+COHORTS TO TEST
+============================================================
+
+Run actual generation/runtime QA for:
+
+1. Nigeria default / clean if supported
+2. Nigeria light_pidgin
+3. Nigeria pidgin
+4. Cold-start Nigerian creator
+5. Returning/warm Nigerian creator if harness supports it
+
+If some cohorts are unavailable, state exactly why and use the closest available harness.
+
+============================================================
+SAMPLE SIZE
+============================================================
+
+Target:
+- minimum 60 Nigerian generated ideas
+- ideal 90+ if existing harnesses make that easy
+
+Also specifically try to surface rewritten Batch 1 entries.
+
+Track:
+- how many generated ideas came from Nigerian approved pack
+- how many came from the 45 rewritten Batch 1 entries
+- how many came from non-rewritten Nigerian entries
+- how many came from core_native / pattern_variation / fallback if any
+
+============================================================
+DATA TO COLLECT PER IDEA
+============================================================
+
+For every generated idea, collect:
+
+- cohort
+- batch number
+- hook
+- whatToShow
+- howToFilm
+- caption
+- source tag
+- draftId / entryId if exposed
+- whether it is one of the 45 Batch 1 rewritten entries
+- anchor
+- pidginLevel / languageStyle
+- fallback decision/reason
+- latency
+- any gate logs or warnings
+
+Save raw output to:
+
+.local/qa-runs/n1_batch1_runtime_qa.json
+
+Save summary to:
+
+.local/qa-runs/n1_batch1_runtime_qa_summary.json
+
+Write report to:
+
+.local/N1_BATCH1_RUNTIME_QA_REPORT.md
+
+============================================================
+AUTOMATED CHECKS
+============================================================
+
+Run deterministic checks over generated Nigerian outputs.
+
+1. Banned / bad filming phrase scan:
+Reject:
+- phone on a tripod
+- single static shot
+- single locked-off shot
+- single locked off shot
+- locked-off on tripod
+- locked off on tripod
+- let the joke land
+- let the silence land
+- film yourself reacting
+- creator reacts
+- show the X on camera
+- Phone-level lock-off
+- Desk-height lock-off
+- Counter-level lock-off
+- Couch-level handheld
+- Bed-level handheld
+- Door-side handheld
+- Mirror lock-off
+- Keep the care centered
+- Keep the wahala centered
+- Keep the peace centered
+- Keep the energy centered
+- Keep the vibe centered
+- Keep the lie centered
+- Keep the damage centered
+
+2. Stereotype / cultural-crutch scan:
+Report any user-facing hits:
+- NEPA
+- nepa
+- jollof
+- village people
+- my enemies
+- yahoo boy
+- 419
+- bush auntie
+- bush uncle
+- village auntie
+- village uncle
+
+3. Mock-pidgin scan:
+Report:
+- cartoon vowel stretching
+- abeg/wahala stretched spellings
+- fake-heavy pidgin
+- wording that sounds like imitation instead of natural Nigerian speech
+
+4. Structure checks:
+- empty/malformed fields
+- length bounds
+- duplicate hooks within batch
+- duplicate howToFilm within batch
+- repeated howToFilm skeletons
+- hook/whatToShow mismatch
+- howToFilm introduces different premise
+- caption does not fit idea
+- main action/object absent from howToFilm
+
+5. Source checks:
+- under-filled batches
+- fallback usage
+- fallback timeout
+- source distribution
+- rewritten Batch 1 activation count
+
+============================================================
+MANUAL REVIEW
+============================================================
+
+Manually review at least 30 generated Nigerian ideas, including as many Batch 1 rewritten entries as possible.
+
+Classify each:
+
+PASS:
+Strong, funny, Nigerian-natural, simple, filmable, creator-ready.
+
+WARN:
+Usable but has mild issue: slightly plain, slightly generic, weak payoff, caption not sharp, howToFilm could be better.
+
+FAIL:
+Generic, fake, forced pidgin, confusing, unfilmable, stereotyped, too Western, AI-ish, or weak enough to disappoint.
+
+Score 1–5:
+- Hook strength
+- Nigerian comedic truth
+- Everyday Nigerian reality specificity
+- Naturalness of pidgin/light-pidgin
+- WhatToShow specificity
+- HowToFilm shootability
+- Hook ↔ scenario coherence
+- Object/action carries the joke
+- Simplicity / instant understandability
+- Cultural freshness, not stereotype
+- Overall first-impression quality
+- “Would a Nigerian creator actually film this?” score
+
+Include verbatim:
+- 10 best generated Nigerian samples
+- 10 worst / WARN / FAIL generated Nigerian samples
+- For every WARN/FAIL, explain exactly what is weak.
+
+============================================================
+SPECIAL COMPARISON
+============================================================
+
+Compare:
+
+A. Rewritten Batch 1 entries
+B. Non-rewritten Nigerian approved entries
+C. Any core_native / pattern_variation Nigerian outputs
+
+Answer directly:
+
+1. Are the 45 rewritten Batch 1 entries noticeably better at runtime?
+2. Did howToFilm boilerplate concentration drop?
+3. Are hooks/scenarios now more Nigerian-natural and funny?
+4. Are rewritten entries simpler and easier to film?
+5. Are non-rewritten entries now the obvious remaining quality gap?
+6. Are pattern_variation/core_native outputs still weaker or more Westernized?
+7. Is more corpus rewriting needed before beta?
+8. Is a runtime selector/activation issue preventing rewritten entries from showing?
+
+============================================================
+ACCEPTANCE TARGETS
+============================================================
+
+Target:
+
+- 0 banned filming phrases
+- 0 old top-7 howToFilm templates in generated Nigerian outputs
+- 0 stereotype-token leaks in user-facing copy
+- 0 malformed ideas
+- 0 under-filled normal batches
+- 0 hard hook/scenario mismatches
+- 0 howToFilm premise drift
+- duplicate hooks: 0 within batch
+- manual FAIL rate: ideally 0
+- WARN rate: low and explainable
+- Batch 1 rewritten entries should score higher than non-rewritten entries
+- Nigerian voice should feel natural, not fake-heavy
+- Outputs should be simple, funny, and filmable
+
+============================================================
+VERIFICATION
+============================================================
+
+Because this is no-code QA, still run:
+
+1. Nigerian pack-specific tests.
+2. API-server TypeScript:
+   pnpm --filter @workspace/api-server exec tsc --noEmit
+3. Full api-server suite only if runtime QA scripts or local artifacts indicate risk.
+   Since Batch 1 already passed full suite after Chunk C, full suite may be optional here unless repo convention requires it.
+
+Do not modify source files.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a report with:
+
+1. Exact commands/scripts run.
+2. Cohorts covered.
+3. Sample count.
+4. Source distribution:
+   - Batch 1 rewritten entries
+   - other Nigerian approved pack entries
+   - core_native
+   - pattern_variation
+   - fallback
+5. Activation count for the 45 rewritten Batch 1 entries.
+6. Automated check results:
+   - banned phrases
+   - old boilerplate
+   - stereotype tokens
+   - malformed fields
+   - duplicates
+   - mismatches
+   - under-fill
+   - fallback
+7. Manual review:
+   - PASS/WARN/FAIL counts
+   - average rubric scores
+   - 10 best samples verbatim
+   - 10 worst/WARN/FAIL samples verbatim
+8. Batch 1 rewritten vs non-rewritten comparison.
+9. Nigeria-vs-Western quality comparison if existing Western runtime QA data is available.
+10. Verdict:
+   - ACCEPT N1 Batch 1 runtime quality
+   - ACCEPT WITH FOLLOW-UP
+   - NEEDS MORE REWRITE / QA
+11. If follow-up is needed:
+   - exact issue
+   - smallest safe next step
+   - whether it is rewrite, selector, activation, or runtime authoring issue
+12. Confirm no source/corpus/test/config files changed.
+13. Confirm no overlays were applied.
+14. Confirm no worksheet edits.
+15. Confirm production gates unchanged.
+
+Important:
+Do not hide behind test counts. The key question is whether the Nigerian ideas now feel funny, natural, human-crafted, simple, culturally true, and worth filming.
