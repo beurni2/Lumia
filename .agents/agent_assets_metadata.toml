@@ -701,3 +701,21 @@ id = "OWLFN-eGlNbwyGX3TF9Ap"
 uri = "file://.local/qa-runs/n1_batch2_hot6_proposed_overlay.yaml"
 type = "unspecified"
 title = "Hot-6 Proposed Overlay (saved before append, per spec)"
+
+[[outputs]]
+id = "qIDh5R1sSse5Gg8PQhckn"
+uri = "file://.local/N1_BATCH2_HOT6_RUNTIME_RECHECK.md"
+type = "text"
+title = "N1 Batch 2.0 Hot-6 Runtime Recheck — ACCEPT WITH FOLLOW-UP"
+
+[[outputs]]
+id = "i20uMOodB3wbms9LUbYpS"
+uri = "file://.local/qa-runs/n1_batch2_hot6_runtime_recheck_summary.json"
+type = "unspecified"
+title = "Hot-6 recheck summary (machine-readable)"
+
+[[outputs]]
+id = "4Qi2rnsSkocWBQbmeFnKL"
+uri = "file://.local/qa-runs/n1_batch2_hot6_runtime_recheck.json"
+type = "unspecified"
+title = "Hot-6 recheck row dump (60 ideas)"
