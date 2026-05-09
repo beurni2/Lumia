@@ -551,3 +551,9 @@ id = "D80DCi70eym_97MQ87UtF"
 uri = "file://.local/qa-runs/n1_batch1_source_packet.json"
 type = "unspecified"
 title = "Batch 1 source packet (machine-readable)"
+
+[[outputs]]
+id = "tykxO-01RyMhFyNJUZMhQ"
+uri = "file://.local/N1_ELEVATION_P1_CHUNK_A_REPORT.md"
+type = "text"
+title = "N1-ELEVATION-P1 Chunk A Apply Report"
