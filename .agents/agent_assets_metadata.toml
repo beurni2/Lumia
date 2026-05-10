@@ -971,3 +971,9 @@ id = "qAdCywc9F553K80bnGMK5"
 uri = "file://.local/N1_CLEAN_CORE_P11_REPORT.md"
 type = "text"
 title = "N1-CLEAN-CORE-P1.1 Report"
+
+[[outputs]]
+id = "5ToiGg2yW0cHxudKjst-P"
+uri = "file://.local/N1_CLEAN_CORE_P2_REPORT.md"
+type = "text"
+title = "N1-CLEAN-CORE-P2 STOP-AND-REPORT"
