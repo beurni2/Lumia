@@ -959,3 +959,9 @@ id = "hWy2bk010T4_vqVfMrync"
 uri = "file://.local/N1_CLEAN_CORE_INFRA_REPORT.md"
 type = "text"
 title = "N1-CLEAN-CORE-INFRA — Infra-only Implementation Report"
+
+[[outputs]]
+id = "m0klq2AMAOoc5-sVuntKZ"
+uri = "file://.local/N1_CLEAN_CORE_P1_REPORT.md"
+type = "text"
+title = "N1-CLEAN-CORE-P1 Report (final)"

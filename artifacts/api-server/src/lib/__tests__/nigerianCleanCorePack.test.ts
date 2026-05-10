@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   NIGERIAN_CLEAN_CORE_ENTRIES,
+  NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN,
   type NigerianCleanCoreEntry,
   canActivateNigerianCleanCorePack,
   classifyNigerianCleanCoreEntryFailure,
   isValidNigerianCleanCoreEntry,
 } from "../nigerianCleanCorePack.js";
+import { authorPackEntryAsIdea } from "../nigerianPackAuthor.js";
+import type { NigerianPackEntry } from "../nigerianHookPack.js";
+import { PREMISE_CORES } from "../premiseCoreLibrary.js";
+import { VOICE_CLUSTERS } from "../voiceClusters.js";
 
 // ---------------------------------------------------------------- //
 // Test fixture builder — these strings live ONLY in tests, NEVER   //
@@ -144,20 +149,56 @@ describe("canActivateNigerianCleanCorePack — gate truth-table", () => {
 // Empty catalog invariant                                           //
 // ---------------------------------------------------------------- //
 
-describe("NIGERIAN_CLEAN_CORE_ENTRIES — empty catalog invariant", () => {
-  it("ships empty in this infra-only phase", () => {
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(0);
+describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1 catalog invariant", () => {
+  it("ships exactly 30 hand-authored entries", () => {
+    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(30);
   });
 
   it("is a frozen array (cannot be mutated by callers)", () => {
     expect(Object.isFrozen(NIGERIAN_CLEAN_CORE_ENTRIES)).toBe(true);
   });
 
-  it("module loads without throwing (boot-time validator no-op)", async () => {
+  it("module loads without throwing (boot-time validator passes for all 30)", async () => {
     // Re-import to assert the module-load assertion does not throw.
     await expect(
       import("../nigerianCleanCorePack.js"),
     ).resolves.toBeDefined();
+  });
+
+  it("every entry passes classifyNigerianCleanCoreEntryFailure", () => {
+    const failures: Array<{ id: string; reason: string }> = [];
+    for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
+      const reason = classifyNigerianCleanCoreEntryFailure(entry);
+      if (reason !== null) failures.push({ id: entry.id, reason });
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it("ids are ng_clean_001..ng_clean_030, all distinct", () => {
+    const ids = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.id);
+    expect(new Set(ids).size).toBe(30);
+    expect(ids[0]).toBe("ng_clean_001");
+    expect(ids[29]).toBe("ng_clean_030");
+  });
+
+  it("draftIds are CLEAN-DRAFT-001..CLEAN-DRAFT-030, all distinct", () => {
+    const draftIds = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.draftId);
+    expect(new Set(draftIds).size).toBe(30);
+    expect(draftIds[0]).toBe("CLEAN-DRAFT-001");
+    expect(draftIds[29]).toBe("CLEAN-DRAFT-030");
+  });
+
+  it("hooks and howToFilm are intra-catalog distinct", () => {
+    const hooks = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.hook);
+    const howTo = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.howToFilm);
+    expect(new Set(hooks).size).toBe(30);
+    expect(new Set(howTo).size).toBe(30);
+  });
+
+  it("every entry carries the BI-CLEAN 2026-05-09 reviewer stamp", () => {
+    for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
+      expect(entry.reviewedBy).toBe("BI-CLEAN 2026-05-09");
+    }
   });
 });
 
@@ -273,5 +314,87 @@ describe("classifyNigerianCleanCoreEntryFailure — fixture cases", () => {
     expect(classifyNigerianCleanCoreEntryFailure(entry)).toBe(
       "missing_how_to_film",
     );
+  });
+});
+
+// ---------------------------------------------------------------- //
+// PHASE N1-CLEAN-CORE-P1 (BI-CLEAN 2026-05-09) — runtime validator   //
+// proof: every one of the 30 shipped entries must clear the FULL    //
+// production validator path inside `authorPackEntryAsIdea`           //
+// (ideaSchema + validateScenarioCoherence + validateComedy +         //
+// validateAntiCopyDetailed). The boot-time entry validator covered   //
+// only static field shape; this block is the architect-requested     //
+// end-to-end runtime proof.                                          //
+// ---------------------------------------------------------------- //
+
+describe("NIGERIAN_CLEAN_CORE_ENTRIES — runtime validator pass (architect P1 fix)", () => {
+  // Pin a stable core + voice so the run is deterministic and the
+  // failure surface is the entry, not the fixture.
+  const CORE = PREMISE_CORES[0]!;
+  const VOICE = VOICE_CLUSTERS[0]!;
+
+  for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
+    it(`runtime-authors and validates: ${entry.id}`, () => {
+      const projectedDomain =
+        NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN[
+          entry.premiseFamily
+        ] ?? "everyday";
+      const packShape: NigerianPackEntry = {
+        hook: entry.hook,
+        whatToShow: entry.whatToShow,
+        howToFilm: entry.howToFilm,
+        caption: entry.caption,
+        anchor: entry.anchor,
+        domain: projectedDomain,
+        pidginLevel: "light_pidgin",
+        reviewedBy: entry.reviewedBy,
+      };
+      const r = authorPackEntryAsIdea({
+        entry: packShape,
+        core: CORE,
+        voice: VOICE,
+        regenerateSalt: 0,
+        seedFingerprints: new Set(),
+      });
+      // Surface the validator's structured rejection reason if any
+      // entry slips, so curators can fix the bad row directly.
+      if (!r.ok) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `clean-core entry ${entry.id} failed runtime validators:`,
+          r,
+        );
+      }
+      expect(r.ok).toBe(true);
+    });
+  }
+
+  it("all 30 entries pass simultaneously (aggregate)", () => {
+    const failed: string[] = [];
+    for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
+      const projectedDomain =
+        NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN[
+          entry.premiseFamily
+        ] ?? "everyday";
+      const packShape: NigerianPackEntry = {
+        hook: entry.hook,
+        whatToShow: entry.whatToShow,
+        howToFilm: entry.howToFilm,
+        caption: entry.caption,
+        anchor: entry.anchor,
+        domain: projectedDomain,
+        pidginLevel: "light_pidgin",
+        reviewedBy: entry.reviewedBy,
+      };
+      const r = authorPackEntryAsIdea({
+        entry: packShape,
+        core: CORE,
+        voice: VOICE,
+        regenerateSalt: 0,
+        seedFingerprints: new Set(),
+      });
+      if (!r.ok) failed.push(entry.id);
+    }
+    expect(failed).toEqual([]);
   });
 });

@@ -48,15 +48,470 @@ export type NigerianCleanCoreEntry = {
 };
 
 // ---------------------------------------------------------------- //
-// Production catalog — INTENTIONALLY EMPTY                          //
+// Production catalog — N1-CLEAN-CORE-P1 (BI-CLEAN 2026-05-09)        //
 // ---------------------------------------------------------------- //
 //
-// Hand-authored entries land here as a separate apply packet. Do
-// NOT add fixtures, samples, or LLM-generated rows. Keep this array
-// empty until the user supplies a reviewed batch.
+// 30 hand-authored Nigerian clean-English `core_native` entries.
+// All entries reviewed by `BI-CLEAN 2026-05-09`. Applied byte-for-
+// byte from the user-supplied curator packet. NEVER paraphrase,
+// rewrite, or auto-replace these strings — any future
+// modification requires a new explicit reviewer stamp.
 
 export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
-  Object.freeze([]);
+  Object.freeze([
+    {
+      id: "ng_clean_001",
+      draftId: "CLEAN-DRAFT-001",
+      anchor: "light",
+      hook: "The light came back and exposed everyone\u2019s fake patience.",
+      whatToShow:
+        "Show a quiet room where everyone is pretending to be calm, then the light returns and three people rush for chargers at once, ending with one person guarding the only free socket like property.",
+      howToFilm:
+        "Start on the dark room with phones at low battery, cut to the light returning, then follow the scramble toward the sockets and end on the person blocking the extension box with their slippers.",
+      caption: "Peace ended at 2%.",
+      premiseFamily: "power_light",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_002",
+      draftId: "CLEAN-DRAFT-002",
+      anchor: "generator",
+      hook: "The generator stopped and the house started hearing secrets.",
+      whatToShow:
+        "Show the generator noise covering everyone\u2019s activities, then the generator goes off and tiny sounds become loud, ending with someone\u2019s chewing becoming the main event.",
+      howToFilm:
+        "Capture the fan spinning, the TV playing, and someone snacking, then cut the generator sound suddenly and show everyone slowly turning toward the loudest small noise.",
+      caption: "Silence has witnesses.",
+      premiseFamily: "power_light",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_003",
+      draftId: "CLEAN-DRAFT-003",
+      anchor: "inverter",
+      hook: "The inverter beeped once and my confidence packed out.",
+      whatToShow:
+        "Show someone enjoying backup power like a rich person, then the inverter warning beep starts, and the payoff is them switching off everything except the phone charger.",
+      howToFilm:
+        "Begin with the fan, TV, and charger running together, add the inverter warning beep, then show fast hands turning off appliances until only one charging phone remains like a national project.",
+      caption: "Luxury has battery percentage.",
+      premiseFamily: "power_light",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_004",
+      draftId: "CLEAN-DRAFT-004",
+      anchor: "bus",
+      hook: "The bus conductor announced my stop like breaking news.",
+      whatToShow:
+        "Show a passenger relaxing in the bus, then the conductor shouts the bus stop with terrifying urgency, and the payoff is the passenger grabbing their bag like they just remembered their entire life.",
+      howToFilm:
+        "Film from the passenger seat with a bag on your lap, show the bus slowing and the conductor\u2019s hand tapping the doorframe, then cut to the passenger checking pockets, bag zip, and slippers in panic.",
+      caption: "My stop attacked me.",
+      premiseFamily: "transport",
+      voiceTone: "clean_overdramatic",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_005",
+      draftId: "CLEAN-DRAFT-005",
+      anchor: "traffic",
+      hook: "One traffic update turned my plan into a prayer point.",
+      whatToShow:
+        "Show someone dressed and ready to leave on time, then a traffic update arrives, and the payoff is them slowly removing their watch like punctuality has resigned.",
+      howToFilm:
+        "Start with shoes, keys, and a confident time check, show the traffic update on the phone, then cut to the person sitting back down and calculating three impossible routes on their fingers.",
+      caption: "The road had other plans.",
+      premiseFamily: "transport",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_006",
+      draftId: "CLEAN-DRAFT-006",
+      anchor: "keke",
+      hook: "The keke driver said shortcut and entered character development.",
+      whatToShow:
+        "Show a passenger agreeing to a shortcut, then the keke turns into a narrow rough street, and the payoff is the passenger holding the seat frame like they signed a survival contract.",
+      howToFilm:
+        "Film the passenger nodding confidently, show the keke turning away from the main road, then capture bouncing feet, gripping fingers, and a final relieved step onto solid ground.",
+      caption: "Shortcut humbled all of us.",
+      premiseFamily: "transport",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_007",
+      draftId: "CLEAN-DRAFT-007",
+      anchor: "pos",
+      hook: "The POS terminal waited for my turn before becoming mysterious.",
+      whatToShow:
+        "Show a smooth line of customers paying with the pos terminal, then your card enters and the machine starts loading forever, ending with everyone behind you becoming financial supervisors.",
+      howToFilm:
+        "Show two quick successful payments, cut to your card inside the POS terminal, then hold on the loading screen while the people behind you lean closer with increasing concern.",
+      caption: "Technology chose me.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_008",
+      draftId: "CLEAN-DRAFT-008",
+      anchor: "transfer",
+      hook: "The transfer receipt arrived before the money developed courage.",
+      whatToShow:
+        "Show someone proudly displaying a transfer receipt, then the seller keeps checking their own phone, and the payoff is both of them staring at network bars like witnesses in court.",
+      howToFilm:
+        "Open on the buyer showing the transfer receipt, cut to the seller refreshing their balance, then end with both phones side by side while nobody touches the goods.",
+      caption: "Receipt is not arrival.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_009",
+      draftId: "CLEAN-DRAFT-009",
+      anchor: "app",
+      hook: "The app loaded slowly enough to expose my balance fear.",
+      whatToShow:
+        "Show someone trying to pay confidently with a bank app, then the app keeps loading, and the payoff is their smile reducing one bar at a time.",
+      howToFilm:
+        "Frame the app loading on the phone, cut between the waiting seller and the payer\u2019s shrinking smile, then finish on the payer pretending to check network settings.",
+      caption: "Loading screen, character test.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_010",
+      draftId: "CLEAN-DRAFT-010",
+      anchor: "auntie",
+      hook: "One auntie asked one question and the table lost sound.",
+      whatToShow:
+        "Show a family table with normal conversation, then one auntie asks a personal question, and the payoff is everyone suddenly becoming interested in their plate.",
+      howToFilm:
+        "Start with hands serving food and casual smiles, cut to the auntie leaning in with a calm question, then show three people looking down, sipping water, and adjusting chairs for no reason.",
+      caption: "The spoon saved nobody.",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_011",
+      draftId: "CLEAN-DRAFT-011",
+      anchor: "uncle",
+      hook: "The uncle who came late still gave the longest advice.",
+      whatToShow:
+        "Show the family event almost ending, then one uncle arrives late and starts advising everyone, ending with the tired children aging in real time.",
+      howToFilm:
+        "Capture empty plates and people packing up, show the uncle entering with fresh energy, then cut to seated relatives slowly losing posture while he counts advice points on his fingers.",
+      caption: "Late arrival, full lecture.",
+      premiseFamily: "family_aunties",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_012",
+      draftId: "CLEAN-DRAFT-012",
+      anchor: "cousin",
+      hook: "My cousin greeted everyone and went straight to the fridge.",
+      whatToShow:
+        "Show a cousin entering politely, greeting the room, then drifting to the fridge with official seriousness, ending with them judging one lonely container like evidence.",
+      howToFilm:
+        "Film the greeting at the door, follow the cousin\u2019s eyes moving toward the fridge, then show the fridge opening and a slow inspection of each shelf before the final disappointed nod.",
+      caption: "Family visit or audit?",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_013",
+      draftId: "CLEAN-DRAFT-013",
+      anchor: "chat",
+      hook: "The chat said quick question and formed a committee.",
+      whatToShow:
+        "Show one innocent chat message asking a quick question, then replies multiply into voice notes, polls, and side arguments, ending with the original question still unanswered.",
+      howToFilm:
+        "Screen-record the chat starting with one short message, then show fast cuts of notification bubbles, typing indicators, and a poll appearing before ending on the unanswered first question.",
+      caption: "Quick became quarterly.",
+      premiseFamily: "group_chats",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_014",
+      draftId: "CLEAN-DRAFT-014",
+      anchor: "admin",
+      hook: "The admin pinned rules and became the first suspect.",
+      whatToShow:
+        "Show a group admin posting strict rules, then the same admin sends a long unrelated message, and the payoff is everyone silently screenshotting the evidence.",
+      howToFilm:
+        "Record the pinned admin rules at the top of the group, scroll to the unrelated announcement, then cut to fingers taking screenshots like a quiet investigation has opened.",
+      caption: "Leadership is flexible.",
+      premiseFamily: "group_chats",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_015",
+      draftId: "CLEAN-DRAFT-015",
+      anchor: "voice",
+      hook: "The voice note was seven minutes and opened with greetings.",
+      whatToShow:
+        "Show someone pressing play on a voice note expecting one update, then the timer reveals seven minutes, ending with them placing the phone down like a radio program has started.",
+      howToFilm:
+        "Frame the phone as the voice note starts, show the long duration, then show the listener washing a cup, sitting down, and returning while the message is still playing.",
+      caption: "This is now a podcast.",
+      premiseFamily: "group_chats",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_016",
+      draftId: "CLEAN-DRAFT-016",
+      anchor: "tomatoes",
+      hook: "The tomatoes price changed my entire stew vision.",
+      whatToShow:
+        "Show someone entering the market with a confident stew plan, then they hear the tomatoes price, and the payoff is them downgrading the menu with painful maturity.",
+      howToFilm:
+        "Begin with a shopping list and cash in hand, cut to the tomatoes being weighed, then show the buyer quietly crossing out ingredients and choosing a smaller bowl.",
+      caption: "The stew adjusted itself.",
+      premiseFamily: "market_food",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_017",
+      draftId: "CLEAN-DRAFT-017",
+      anchor: "pepper",
+      hook: "The pepper seller added one extra and became family.",
+      whatToShow:
+        "Show a buyer bargaining seriously for pepper, then the seller adds one tiny extra piece, and the payoff is the buyer walking away like they received customer appreciation from heaven.",
+      howToFilm:
+        "Film the pepper being counted into a small bag, capture the seller dropping in one extra piece, then show the buyer holding the bag with dramatic gratitude on the walk home.",
+      caption: "Customer care entered my bag.",
+      premiseFamily: "market_food",
+      voiceTone: "clean_overdramatic",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_018",
+      draftId: "CLEAN-DRAFT-018",
+      anchor: "meat",
+      hook: "The meat disappeared in the pot like it had appointments.",
+      whatToShow:
+        "Show someone adding visible pieces of meat to a pot, then later serving food and searching for them, ending with one tiny piece appearing like a rumor.",
+      howToFilm:
+        "Record the meat entering the pot clearly, cut to serving time with a spoon searching through the stew, then reveal one small piece sitting alone at the edge of the plate.",
+      caption: "Protein played hide and seek.",
+      premiseFamily: "market_food",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_019",
+      draftId: "CLEAN-DRAFT-019",
+      anchor: "tailor",
+      hook: "The tailor said tomorrow with government-level confidence.",
+      whatToShow:
+        "Show someone bringing fabric early, then the tailor promises tomorrow, and the payoff is the outfit still being chalk lines on event morning.",
+      howToFilm:
+        "Open on fresh fabric and measuring tape, cut to the tailor nodding confidently, then jump to event morning with the unfinished outfit on the table and the customer holding matching shoes in disbelief.",
+      caption: "Tomorrow has layers.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_020",
+      draftId: "CLEAN-DRAFT-020",
+      anchor: "asoebi",
+      hook: "The asoebi price entered and my joy logged out.",
+      whatToShow:
+        "Show someone excited for an event, then the asoebi price drops in the group, and the payoff is them calculating attendance without fabric.",
+      howToFilm:
+        "Show the invitation message and excited outfit planning, cut to the asoebi price on the phone, then film the person closing the wardrobe and quietly choosing a neutral outfit.",
+      caption: "Celebration came with invoice.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_021",
+      draftId: "CLEAN-DRAFT-021",
+      anchor: "gele",
+      hook: "The gele looked simple until it requested engineering.",
+      whatToShow:
+        "Show someone placing gele fabric on their head confidently, then folds keep growing in strange directions, ending with the final shape blocking one eyebrow and all confidence.",
+      howToFilm:
+        "Start with the gele spread neatly, show hands folding and refolding from different angles, then end on the wearer checking the final height beside a doorway before deciding whether to pass.",
+      caption: "Architecture, but make it headwear.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_022",
+      draftId: "CLEAN-DRAFT-022",
+      anchor: "lecturer",
+      hook: "The lecturer said brief test and brought extra pages.",
+      whatToShow:
+        "Show students relaxing because the lecturer called it brief, then the question paper arrives with serious pages, and the payoff is everyone turning pages like legal documents.",
+      howToFilm:
+        "Film notebooks closing in relief, cut to the lecturer\u2019s test papers landing on desks, then show students flipping page after page while one person checks the front page for mercy.",
+      caption: "Brief where?",
+      premiseFamily: "school_work",
+      voiceTone: "clean_overdramatic",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_023",
+      draftId: "CLEAN-DRAFT-023",
+      anchor: "meeting",
+      hook: "The meeting ended, then someone said just one thing.",
+      whatToShow:
+        "Show workers packing up after a meeting, then one person says just one thing, and the payoff is everyone slowly reopening laptops like prisoners returning.",
+      howToFilm:
+        "Capture chairs moving and notebooks closing, cut to the meeting voice raising one finger, then show laptops opening again and one worker quietly removing their bag from their shoulder.",
+      caption: "Freedom postponed.",
+      premiseFamily: "school_work",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_024",
+      draftId: "CLEAN-DRAFT-024",
+      anchor: "attendance",
+      hook: "The attendance sheet arrived after my spirit had left class.",
+      whatToShow:
+        "Show a tired student preparing to sneak out, then the attendance sheet starts moving row by row, and the payoff is the student sitting back down with sudden academic commitment.",
+      howToFilm:
+        "Begin with the student sliding books into a bag, show the attendance sheet being passed from the front row, then capture the student unpacking everything again with a serious face.",
+      caption: "Education found me.",
+      premiseFamily: "school_work",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_025",
+      draftId: "CLEAN-DRAFT-025",
+      anchor: "data",
+      hook: "My data finished faster than the video introduction.",
+      whatToShow:
+        "Show someone opening a short video with confidence, then the data warning appears before the actual point begins, ending with them staring at the paused screen like betrayal.",
+      howToFilm:
+        "Show the thumb pressing play, cut to the video intro still running, then reveal the data warning notification and freeze on the viewer\u2019s face as they lower the phone.",
+      caption: "The intro ate everything.",
+      premiseFamily: "phone_data",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_026",
+      draftId: "CLEAN-DRAFT-026",
+      anchor: "charger",
+      hook: "The charger worked only when I held it like evidence.",
+      whatToShow:
+        "Show a phone refusing to charge normally, then the charger connects only at one strange angle, and the payoff is the owner frozen in place like part of the furniture.",
+      howToFilm:
+        "Record the battery icon refusing to change, show small charger angle adjustments until charging begins, then hold on the owner trapped beside the socket with one hand suspended carefully.",
+      caption: "Charging by negotiation.",
+      premiseFamily: "phone_data",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_027",
+      draftId: "CLEAN-DRAFT-027",
+      anchor: "network",
+      hook: "The network vanished the moment I needed maturity.",
+      whatToShow:
+        "Show someone trying to send an important message calmly, then the network bars drop, and the payoff is them lifting the phone around the room like a small offering.",
+      howToFilm:
+        "Start with the typed message ready to send, cut to the network bars disappearing, then follow the phone moving near the window, above the head, and beside the door before the message fails.",
+      caption: "Signal respects nobody.",
+      premiseFamily: "phone_data",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_028",
+      draftId: "CLEAN-DRAFT-028",
+      anchor: "draft",
+      hook: "The draft looked funny until family entered the room.",
+      whatToShow:
+        "Show a creator laughing while editing a draft alone, then family members enter the room, and the payoff is the creator suddenly reducing the volume and questioning their entire brand.",
+      howToFilm:
+        "Show the creator replaying the draft and smiling, cut to footsteps or relatives entering the space, then capture the creator lowering volume, closing the preview, and pretending to check emails.",
+      caption: "Comedy needs privacy.",
+      premiseFamily: "creator_social_behavior",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_029",
+      draftId: "CLEAN-DRAFT-029",
+      anchor: "caption",
+      hook: "The caption took longer than the whole video.",
+      whatToShow:
+        "Show a creator finishing a simple video quickly, then spending forever rewriting the caption, ending with them posting the shortest version after all that suffering.",
+      howToFilm:
+        "Record the final edit exporting, then show the caption options filling a notes app with crossed-out lines and emoji trials before the creator deletes everything and types three words.",
+      caption: "Creative process suffered.",
+      premiseFamily: "creator_social_behavior",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_030",
+      draftId: "CLEAN-DRAFT-030",
+      anchor: "views",
+      hook: "The views moved once and I became a data analyst.",
+      whatToShow:
+        "Show a creator checking views casually, then the views increase by one, and the payoff is them opening analytics like a serious board meeting has started.",
+      howToFilm:
+        "Show the creator glancing at the views, cut to the number changing slightly, then capture fast switches between analytics tabs, notes, and a dramatic calculation on paper.",
+      caption: "One view changed management.",
+      premiseFamily: "creator_social_behavior",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+  ]);
+
+// ---------------------------------------------------------------- //
+// premiseFamily → NigerianPackEntry-compatible domain bucket        //
+// ---------------------------------------------------------------- //
+//
+// The wiring site in `coreCandidateGenerator.ts` reuses
+// `authorPackEntryAsIdea` (from `nigerianPackAuthor.ts`) to
+// synthesize the full `Idea` schema fields and run the same four
+// production validators (ideaSchema parse, validateScenarioCoherence,
+// validateComedy, validateAntiCopyDetailed). That author takes a
+// `NigerianPackEntry` shape with a `domain` string from the curator
+// bucket set; we project the clean-core `premiseFamily` onto the
+// closest pack-domain bucket so the synthesised `setting` /
+// `triggerCategory` fields fall in their `ideaSchema` enums.
+//
+// The map covers exactly the 9 premiseFamily values used in the 30
+// entries above. Unknown premiseFamily falls back to "everyday" — a
+// safe portable bucket that maps to the canonical "home" domain.
+export const NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN: Readonly<
+  Record<string, string>
+> = Object.freeze({
+  power_light: "home",
+  transport: "transport",
+  money_pos_bank: "money",
+  family_aunties: "family",
+  group_chats: "messaging",
+  market_food: "everyday",
+  tailoring_events: "everyday",
+  school_work: "work",
+  phone_data: "phone",
+  creator_social_behavior: "creator",
+});
 
 // ---------------------------------------------------------------- //
 // Activation gate                                                   //
@@ -134,7 +589,8 @@ export type NigerianCleanCoreEntryValidationFailure =
   | "pidgin_marker_in_hook_or_what_to_show"
   | "stereotype_token_in_hook_or_what_to_show_or_caption"
   | "filming_boilerplate_in_how_to_film"
-  | "shouty_template_blocked_by_clean_core_guard";
+  | "shouty_template_blocked_by_clean_core_guard"
+  | "hook_word_count_exceeds_idea_schema_cap";
 
 /** Tokenize on word boundaries, case-insensitive, for marker scans. */
 function tokenize(text: string): readonly string[] {
@@ -221,6 +677,18 @@ export function classifyNigerianCleanCoreEntryFailure(
 
   if (isNigerianCleanCoreHookBlocked(entry.hook)) {
     return "shouty_template_blocked_by_clean_core_guard";
+  }
+
+  // PHASE N1-CLEAN-CORE-P1 architect-fix (2026-05-09): mirror the
+  // production `ideaSchema` rule `hook must be ≤10 words (target ≤8)`
+  // at the boot-time entry validator so a curator submitting an
+  // 11+-word hook is rejected at module load — NOT silently dropped
+  // at runtime by `authorPackEntryAsIdea`'s `schema_invalid` branch.
+  // Word count uses the same whitespace-split semantics as
+  // `ideaGen.ts` (split on `/\s+/`, filter empty).
+  const hookWordCount = entry.hook.trim().split(/\s+/).filter(Boolean).length;
+  if (hookWordCount > 10) {
+    return "hook_word_count_exceeds_idea_schema_cap";
   }
 
   return null;

@@ -88,6 +88,16 @@ import {
   type NigerianPackEntry,
 } from "./nigerianHookPack.js";
 import { authorPackEntryAsIdea } from "./nigerianPackAuthor.js";
+// PHASE N1-CLEAN-CORE-P1 (BI-CLEAN 2026-05-09) — clean-Nigerian-English
+// `core_native` mini-catalog. Mutually exclusive with the Pidgin pack
+// above (the activation gates split on `languageStyle`: pidgin/light_pidgin
+// vs clean), so the two blocks below cannot both fire on the same
+// per-core pass.
+import {
+  NIGERIAN_CLEAN_CORE_ENTRIES,
+  NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN,
+  canActivateNigerianCleanCorePack,
+} from "./nigerianCleanCorePack.js";
 // PHASE N1-LIVE-HARDEN P2 — structured per-core pack diagnostic.
 import { logger } from "./logger.js";
 import {
@@ -1041,6 +1051,139 @@ export function generateCoreCandidates(
     // unconditionally — pack ESM bytes are still cheap on hot
     // paths because the eligibility helper short-circuits BEFORE
     // any author work runs.
+    // ----------------------------------------------------------- //
+    // PHASE N1-CLEAN-CORE-P1 (BI-CLEAN 2026-05-09)                 //
+    // Clean-Nigerian-English `core_native` mini-catalog draw.      //
+    // ----------------------------------------------------------- //
+    //
+    // Mutually exclusive with the Pidgin pack block below: the
+    // clean-core gate requires `languageStyle === "clean"` while
+    // `getEligibleNigerianPackEntries` returns [] for `"clean"`.
+    // For all other cohorts (region!=nigeria, languageStyle ∈
+    // {pidgin,light_pidgin,null,undefined}, western/india/PH) the
+    // gate returns false and this block is a structural no-op
+    // (byte-identical to pre-P1).
+    //
+    // We reuse `authorPackEntryAsIdea` by mapping each clean-core
+    // entry onto a `NigerianPackEntry`-shaped value (the author
+    // ignores `pidginLevel` and `reviewedBy` is a stamp). This
+    // gives parity with the pack path: ideaSchema parse +
+    // validateScenarioCoherence + validateComedy +
+    // validateAntiCopyDetailed all run unchanged.
+    //
+    // Source remains `core_native` (set inside `authorPackEntryAsIdea`
+    // via the `source: "core_native"` validator argument). No new
+    // meta field is introduced — telemetry differentiates
+    // clean-core entries from pack entries by hook text + source.
+    // No DB column, no migration, no codegen, no per-creator
+    // memory dependency.
+    if (
+      canActivateNigerianCleanCorePack({
+        region: input.region,
+        languageStyle: packLanguageStyle,
+      }) &&
+      NIGERIAN_CLEAN_CORE_ENTRIES.length > 0
+    ) {
+      // Resolve voice cluster ONCE for the clean-core block —
+      // mirrors the pack-prefix pattern. The 30 entries are
+      // atomic native-English units; voice cluster is metadata-
+      // only on the resulting CandidateMeta.
+      const cleanCoreVoiceId = resolveVoiceCluster({
+        family: core.family,
+        tasteCalibration,
+        salt,
+        coreId: core.id,
+        recipeIdx: 0,
+        recentVoiceClusters,
+        ...(input.region ? { region: input.region } : {}),
+      });
+      const cleanCoreVoice = getVoiceCluster(cleanCoreVoiceId);
+
+      // Salt-rotated stable order so clean-core draws are
+      // deterministic across regenerates but still rotate per
+      // batch (otherwise the same first entries would always win
+      // the prefix slot for a given core).
+      const cleanCoreOrdered = NIGERIAN_CLEAN_CORE_ENTRIES.slice();
+      const cleanCoreRotateBy =
+        ((salt | 0) >>> 0) % Math.max(1, cleanCoreOrdered.length);
+      const cleanCoreQueue = cleanCoreOrdered
+        .slice(cleanCoreRotateBy)
+        .concat(cleanCoreOrdered.slice(0, cleanCoreRotateBy));
+
+      for (const entry of cleanCoreQueue) {
+        // Project the curator-declared `premiseFamily` onto the
+        // pack-domain bucket the author understands. Unknown
+        // family falls back to "everyday" (→ canonical "home").
+        const projectedDomain =
+          NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN[
+            entry.premiseFamily
+          ] ?? "everyday";
+        const packShape: NigerianPackEntry = {
+          hook: entry.hook,
+          whatToShow: entry.whatToShow,
+          howToFilm: entry.howToFilm,
+          caption: entry.caption,
+          anchor: entry.anchor,
+          domain: projectedDomain,
+          // `pidginLevel` is required by the type but unused by
+          // `authorPackEntryAsIdea`. Pin to a literal so the
+          // shape parses; semantics carry no Pidgin meaning here
+          // (the activation gate above forbids the Pidgin block).
+          pidginLevel: "light_pidgin",
+          reviewedBy: entry.reviewedBy,
+        };
+        const r = authorPackEntryAsIdea({
+          entry: packShape,
+          core,
+          voice: cleanCoreVoice,
+          regenerateSalt: salt,
+          recentPremises,
+          seedFingerprints,
+        });
+        if (!r.ok) continue;
+        // Same intra-batch / cross-batch fp dedup gate as the
+        // pack and catalog paths.
+        const sf = r.scenarioFingerprint;
+        if (
+          sf &&
+          (recentScenarioFingerprints.has(sf) ||
+            usedFingerprintsThisBatch.has(sf))
+        ) {
+          continue;
+        }
+        // P1 architect-fix: `authorPackEntryAsIdea` hardcodes
+        // `whyItWorks = "Native Pidgin cadence on '<anchor>' …"`
+        // because it was originally written for the Pidgin pack.
+        // The clean-English cohort never uses Pidgin cadence, so
+        // we override the field with a neutral, anchor-preserving
+        // copy. The replacement is strictly shorter than the
+        // original (both ≤ 280 chars), so it never breaks the
+        // ideaSchema length bound. No validator re-run needed —
+        // `whyItWorks` is not consulted by
+        // `validateScenarioCoherence` / `validateComedy` /
+        // `validateAntiCopyDetailed`.
+        const anchorLc = entry.anchor.toLowerCase();
+        const cleanIdea = {
+          ...r.idea,
+          whyItWorks: `Clean-English cadence on '${anchorLc}' — curated for filmability.`,
+        };
+        const quality = scoreHookQuality(cleanIdea.hook, core.family);
+        const meta: CandidateMeta = {
+          ...r.meta,
+          scenarioFingerprint: sf,
+          voiceClusterId: cleanCoreVoiceId,
+          hookQualityScore: quality,
+        };
+        passing.push({
+          idea: cleanIdea,
+          meta,
+          sf,
+          anchorLower: anchorLc,
+          quality,
+        });
+      }
+    }
+
     const packEligible: readonly NigerianPackEntry[] =
       getEligibleNigerianPackEntries({
         region: input.region,
