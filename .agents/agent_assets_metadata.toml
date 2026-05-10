@@ -1241,3 +1241,9 @@ id = "IGOD1EJVOrR75xJrOuKPz"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_anti_repeat_swap.json"
 type = "unspecified"
 title = "Runtime QA Full Per-Batch Record (35 batches)"
+
+[[outputs]]
+id = "kdxpAFem0IyMppXpI0sxZ"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_SURFACE_EXPANSION_REPORT.md"
+type = "text"
+title = "N1 ng_clean Slot-0 Surface Expansion — Findings & Rollback Report"

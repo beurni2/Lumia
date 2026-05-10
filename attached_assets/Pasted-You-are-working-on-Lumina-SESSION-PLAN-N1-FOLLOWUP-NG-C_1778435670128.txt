@@ -1,0 +1,237 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-SURFACE-EXPANSION
+
+Mode:
+Narrow implementation + tests + runtime QA.
+
+Supervisor decision:
+N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D is shipped.
+N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP is shipped.
+
+Current state:
+Patch D improved scorer-level ng_clean eligibility from 8/61 to 18/61.
+The slot-0 anti-repeat swap successfully rotates ng_clean slot 0 from:
+- ng_clean_001: “The light came back and exposed everyone’s fake patience.”
+to:
+- ng_clean_039: “The change came with life advice.”
+
+Runtime QA proved:
+- 5/5 ng_clean memory-exercise creators got at least 2 distinct slot-0 leaders.
+- swap fired exactly as expected.
+- no ng_pidgin / ng_light_pidgin / western memory leakage.
+- no errors.
+- helper is correctly gated.
+
+Remaining limitation:
+The anti-repeat helper can only rotate between candidates that actually surface in the final clean-core slot-0 candidate stream.
+
+The surface check and runtime QA showed only two clean-core slot-0 candidates reliably surface:
+- ng_clean_001
+- ng_clean_039
+
+Therefore ≥3 distinct slot-0 leaders is currently unattainable. The next bottleneck is not scorer, not memory, not anti-repeat logic. It is surfaceable clean-core first-card pool size.
+
+Goal:
+Increase the surfaceable ng_clean clean-core first-card pool from 2 entries to at least 4–5 entries, so the existing anti-repeat helper can rotate through at least 3 distinct slot-0 leaders.
+
+Important definition:
+“First-card pool” means the internal set of clean-core candidates that are:
+- generated/surfaced by the pipeline,
+- valid,
+- pickerEligible,
+- present before final slot-0 selection,
+- eligible to be swapped/rotated into slot 0.
+
+The user never sees this pool directly. The user sees only the slot-0 winner chosen from it.
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No PICKER_HQS_FLOOR change.
+4. No K change.
+5. No anti-repeat helper rewrite.
+6. No first-card rotation rewrite.
+7. No creator-seeded rank rotation rewrite.
+8. No prompt changes.
+9. No API/mobile/DB/schema changes.
+10. No memory schema changes.
+11. No broad selector rewrite.
+12. No random behavior.
+13. No global/process LRU.
+14. No candidate drops.
+15. No underfill.
+16. No fallback increase.
+17. Preserve cohort isolation.
+18. Apply only to ng_clean clean-core surfacing.
+19. Do not add new corpus entries in this phase unless the audit proves surfacing existing eligible entries is impossible.
+20. Do not touch pidgin/light-pidgin/western behavior except for regression checks.
+
+Primary objective:
+Make more already-existing Patch-D-eligible ng_clean clean-core entries enter the final clean-core candidate stream.
+
+Patch-D newly eligible IDs to prioritize:
+- ng_clean_002
+- ng_clean_013
+- ng_clean_019
+- ng_clean_023
+- ng_clean_032
+- ng_clean_042
+- ng_clean_044
+- ng_clean_047
+- ng_clean_052
+
+Already surfacing:
+- ng_clean_039
+
+Existing dominant:
+- ng_clean_001
+
+Target surface pool:
+At minimum, the final slot-0-eligible clean-core stream should be able to contain at least 4 of:
+- ng_clean_001
+- ng_clean_039
+- one or more of the Patch-D newly eligible IDs above
+- any other already pickerEligible ng_clean entries
+
+Implementation approach:
+First inspect, then implement the smallest safe surfacing change.
+
+Investigation requirements:
+1. Inspect where ng_clean clean-core entries are selected/sampled before final ranking.
+2. Identify why the final stream repeatedly surfaces only ng_clean_001 and ng_clean_039.
+3. Determine whether the bottleneck is:
+   - deterministic clean-core sampling order
+   - reservoir size too small
+   - early slicing before Patch-D eligible entries can enter
+   - source mix cap
+   - clean-core candidate scoring before final sort
+   - trend cap / diversity cap
+   - duplicated family/anchor constraints
+   - local candidate generator not considering the full eligible set
+   - memory/novelty filters excluding the other entries
+4. Prefer a minimal fix that expands ng_clean clean-core candidate consideration without changing scorer or validators.
+
+Allowed implementation surfaces:
+Choose the narrowest one that works:
+A. Increase ng_clean clean-core candidate reservoir/shortlist size before final sorting.
+B. Add deterministic clean-core eligible-entry diversification inside the ng_clean clean-core generator.
+C. Ensure Patch-D-eligible clean-core entries are not sliced out before final scoring.
+D. Add a ng_clean-only clean-core first-card candidate shortlist that contributes already-valid pickerEligible candidates before final ranking.
+E. Adjust deterministic sampling seed only if it is currently pinning the same two entries.
+
+Not allowed:
+- no scorer retuning
+- no threshold lowering
+- no K widening
+- no broad random shuffle
+- no hardcoded “force ng_clean_044 into slot 0”
+- no direct demotion of ng_clean_001
+- no weakening pickerEligible
+- no importing new entries as first resort
+- no deleting existing entries
+
+Quality rule:
+The surfaced candidates must still pass existing gates.
+Do not surface sub-floor hooks into first-card contention.
+Do not allow pattern_variation to replace clean-core slot 0 under the clean-core anti-repeat logic.
+Do not make weak hooks first-card candidates just to increase diversity.
+
+Determinism rule:
+Use deterministic selection only.
+Same creator/context should produce stable results.
+Different creator histories may produce different slot-0 choices through the already-shipped anti-repeat memory.
+
+Suggested shape:
+If there is a clean-core generator function that currently returns only the top N or deterministic first N entries, expand it to consider more pickerEligible ng_clean entries before final ranking.
+
+If there is a static per-batch clean-core candidate cap, cautiously increase only the ng_clean clean-core local candidate cap enough to expose 4–5 eligible candidates.
+
+If there is a stable deterministic sampling step, seed it with creator id / batch context only if that does not break same-creator determinism and is already consistent with project patterns.
+
+Tests required:
+Add targeted tests proving:
+1. ng_clean clean-core surfacing includes more than two eligible cleanCoreEntryIds when the eligible set contains them.
+2. Patch-D newly eligible entries can enter the candidate stream.
+3. ng_clean_001 and ng_clean_039 still can surface.
+4. Candidate count does not underfill.
+5. No duplicate cleanCoreEntryIds in the final clean-core candidate set if uniqueness is expected.
+6. Non-ng_clean cohorts are unchanged.
+7. ng_pidgin / ng_light_pidgin do not receive clean-core ng_clean entries.
+8. western does not receive ng_clean entries.
+9. The anti-repeat helper can rotate through at least 3 distinct cleanCoreEntryIds when 3+ alternatives are present.
+10. No scorer, validator, K, prompt, API/mobile/DB/schema changes.
+
+Runtime QA:
+Run a full memory-exercised QA sweep after implementation.
+
+Required cohorts:
+- ng_clean_cold: 5 creators × 1 batch × 6 ideas
+- ng_clean_memory: 5 creators × 4 sequential batches × 6 ideas
+- ng_pidgin: 5 creators × 1 batch × 6 ideas
+- ng_light_pidgin: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+ng_clean_memory should run at least 4 sequential batches so the helper has enough memory history to prove whether 3+ distinct slot-0 leaders are possible.
+
+Metrics:
+For each cohort:
+1. errors
+2. underfill
+3. fallback
+4. distinct slot-0 leaders
+5. source mix
+6. memory writes
+7. memory leakage
+8. cohort leakage
+9. banned/shouty/stereotype hits if existing probe supports them
+
+ng_clean-specific:
+1. cleanCoreEntryIds surfaced per batch
+2. cleanCoreEntryIds shipped per batch
+3. slot-0 cleanCoreEntryId per batch
+4. memory before/after per batch
+5. swap fired true/false
+6. distinct slot-0 leaders per creator
+7. cohort distinct slot-0 leaders
+8. whether at least one Patch-D newly eligible ID beyond ng_clean_039 reaches slot 0
+9. whether 4–5 eligible clean-core candidates are present across the run
+
+Acceptance criteria:
+1. TypeScript clean.
+2. Relevant tests pass.
+3. Full api-server suite passes if practical.
+4. No scorer/validator/K/prompt/API/mobile/DB/schema/memory schema changes.
+5. No anti-repeat helper rewrite beyond tests if needed.
+6. ng_clean memory-exercised distinct slot-0 leaders improves from 2 to at least 3.
+7. At least one Patch-D newly eligible ID beyond ng_clean_039 reaches slot 0.
+8. No underfill regression.
+9. No fallback regression.
+10. No non-ng_clean memory writes.
+11. No cohort leakage.
+12. Candidate quality remains pickerEligible for clean-core slot-0 candidates.
+13. Final report clearly states whether the first-card surface pool expanded from 2 to ≥4.
+
+Required output files:
+- .local/N1_FOLLOWUP_NG_CLEAN_SLOT0_SURFACE_EXPANSION_REPORT.md
+- .local/qa-runs/n1_ng_clean_slot0_surface_expansion.json
+- .local/qa-runs/n1_ng_clean_slot0_surface_expansion_summary.json
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Root cause found
+3. Implementation summary
+4. Files changed
+5. Tests added/updated
+6. Tests run and results
+7. Runtime QA before/after table
+8. ng_clean clean-core surface-pool table
+9. ng_clean memory-series table
+10. Patch-D newly eligible IDs observed
+11. Safety/regression checks
+12. Remaining gaps
+13. Recommendation for next phase
+
+Stop condition:
+If surfacing 3+ slot-0-clean candidates requires scorer changes, validator changes, threshold lowering, K widening, corpus additions, API/mobile/DB/schema changes, or a broad selector rewrite, stop and report the exact blocker. Do not improvise.
