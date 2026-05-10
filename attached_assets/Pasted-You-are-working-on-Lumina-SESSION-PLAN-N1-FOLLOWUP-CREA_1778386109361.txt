@@ -1,0 +1,146 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK
+
+Mode:
+Narrow implementation + tests + runtime QA.
+
+Supervisor decision:
+The preslice instrumentation phase succeeded. It proved the repeated NG cold-start hooks are caused by shared score-level determinism, not by a starved pool, not by legacy `pickValidatedPhrasing`, and not by within-batch weak-skeleton flooding.
+
+Authorized implementation:
+Implement a narrow creator-seeded tie-break / near-tie rotation at the final candidate selection/ranking surface.
+
+Preferred path:
+Path B from the instrumentation report:
+Selector tie-break by creator-seeded shuffle.
+
+Goal:
+Break cross-creator cold-start sameness among already-qualified candidates without changing validators, prompts, corpus, schema, API, mobile, DB, pack reservation, score weights, or memory requirements.
+
+Observed evidence:
+The repeated hooks:
+- “i am totally fine about the to-do app”
+- “is it still about the shopping cart”
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+
+all have bit-identical score totals across fresh creators. The top-6 pool already contains viable alternatives within K=10, so the candidate pool is not starved. The selector is deterministically collapsing to the same winners.
+
+Hard constraints:
+1. No validator loosening.
+2. No prompt changes.
+3. No corpus edits.
+4. No schema/API/mobile/DB changes.
+5. No pack reservation.
+6. No scenario-seed diversification.
+7. No global/process LRU.
+8. No per-creator memory requirement for first-batch behavior.
+9. No deletion or hard suppression of the four repeated hooks.
+10. No legacy `pickValidatedPhrasing` fix; instrumentation proved it is dead path.
+11. No broad score-weight retuning.
+12. Preserve deterministic behavior for the same creator id.
+13. Preserve candidate set: no drops, no underfill.
+14. Preserve quality: never promote candidates outside a tight score band.
+15. Preserve Western behavior unless deliberately measured and accepted.
+16. Keep diff minimal and reversible.
+
+Implementation requirements:
+1. Locate the narrowest final selection/ranking surface where candidates are already valid and scored.
+   Likely candidates:
+   - `selectWithNovelty`
+   - the final composition area in `hybridIdeator.ts`
+   - immediately before/inside `annotateAndSortByWillingness`
+2. Add creator-seeded tie-break behavior only among near-tied candidates.
+3. Use deterministic hash seeded by:
+   - `creator.id`
+   - candidate hook fingerprint or stable candidate id
+   - optionally slot index / batch context
+4. The same creator id must get the same order for the same input pool.
+5. Different creator ids should get different ordering when near-tied candidates exist.
+6. Only reorder candidates within a tight score band.
+   Start with K=10 or smaller, matching the preslice evidence.
+7. Do not reorder across incompatible quality tiers if `pickerEligible` / equivalent tier is available.
+8. Do not change candidate scores unless absolutely necessary; prefer comparator/tie-break logic over score mutation.
+9. Do not affect non-near-tied candidates.
+10. Do not change first-card rotation helper unless absolutely required.
+11. Do not create duplicated candidates.
+12. Do not reduce result count.
+
+Scope choice:
+Prefer NG-only gate initially if that is the smallest safe scope:
+- region === "nigeria"
+- cold-start only
+- regenerate === false
+- empty creator memory
+
+If implementation is cleaner as cohort-agnostic, you must prove Western does not regress and explain why the broader scope is safer than an NG gate.
+
+Tests required:
+Add targeted tests proving:
+1. Same creator id + same candidate pool = same order.
+2. Different creator ids + same near-tied pool = varied order.
+3. Candidates outside the score band are not promoted.
+4. Candidate count and candidate identity set are preserved.
+5. No input mutation.
+6. No underfill.
+7. Non-cold-start / regenerate path unchanged if gated.
+8. Western unchanged if NG-gated; or Western measured safe if cohort-agnostic.
+9. First-card rotation still works and does not conflict.
+10. Repeated hooks can be displaced by valid alternatives when they are within K-band.
+
+Runtime QA:
+Run the same 5-cohort sweep:
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_clean: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Compare before/after:
+1. distinct hooks per cohort
+2. top-hook share per cohort
+3. first-card distinctness
+4. per-slot distinctness
+5. shipped count for:
+   - “i am totally fine about the to-do app”
+   - “is it still about the shopping cart”
+   - “the fridge knows i'm lying”
+   - “my body quit. my brain kept screaming”
+6. source mix
+7. underfill batches
+8. fallback batches
+9. scenarioCoherence fails
+10. banned/shouty scan hits
+11. Western control behavior
+
+Expected outcome:
+- The four repeated hooks should no longer ship in every NG cold-start batch in the same slots.
+- Distinct hooks should increase in NG cohorts.
+- Top-hook share should decrease from the deterministic floor.
+- Underfill remains 0.
+- Fallback remains 0 unless baseline already had fallback.
+- No validator or scenario coherence regression.
+- Same creator remains deterministic.
+
+Acceptance criteria:
+1. Minimal diff.
+2. TypeScript clean.
+3. Relevant targeted tests pass.
+4. Full api-server suite passes if practical.
+5. Runtime QA shows measurable improvement in NG cold-start cross-creator distinctness.
+6. No production behavior surprises.
+7. No candidate drops or underfill.
+8. No broad unrelated implementation.
+9. Final report includes:
+   - files changed
+   - exact algorithm
+   - gate conditions
+   - tests run
+   - before/after QA table
+   - remaining gaps
+   - recommendation for next phase
+
+Stop condition:
+If you cannot implement this as a narrow deterministic tie-break without changing score weights, validators, prompts, corpus, API, mobile, DB, or candidate count, stop and report why. Do not improvise a broader system.

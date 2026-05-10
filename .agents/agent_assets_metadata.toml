@@ -1067,3 +1067,9 @@ id = "LXiwPDO7G8_NF_2LN8NK7"
 uri = "file://.local/N1_FOLLOWUP_PRESLICE_CANDIDATE_INSTRUMENTATION_REPORT.md"
 type = "text"
 title = "N1 Preslice Candidate Instrumentation Report"
+
+[[outputs]]
+id = "OWci04pP3BBeA4B8XC0zG"
+uri = "file://.local/N1_FOLLOWUP_CREATOR_SEEDED_TIEBREAK_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK Report"

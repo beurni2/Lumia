@@ -192,6 +192,11 @@ import {
   recordSeenSkeletons,
 } from "./catalogTemplateCreatorMemory.js";
 import { applyFirstCardQualityBandRotation } from "./firstCardQualityBandRotation.js";
+// PHASE N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK — extends first-card K-band
+// rotation to every rank slot. Same gate as the first-card helper
+// (cold-start only). Pure swap, never crosses tiers, never promotes
+// outside the K-band, deterministic per `creatorId`.
+import { applyCreatorSeededRankRotation } from "./creatorSeededRankRotation.js";
 // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — env-gated probe-only telemetry.
 import {
   recordPresliceCandidates,
@@ -6048,6 +6053,20 @@ export async function runHybridIdeator(
       cidForRotation.length > 0
     ) {
       final = applyFirstCardQualityBandRotation(final, cidForRotation);
+      // PHASE N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK — extend the same
+      // creator-seeded K-band swap to every rank slot. Identical
+      // gate as the first-card helper above (cold-start AND
+      // memory-empty AND non-empty creatorId). Composes safely with
+      // the first-card helper because both helpers stay strictly
+      // inside the same `(pickerEligible tier, willingness ± K)`
+      // band — quality stays bounded by `K=10` from the original
+      // leader's willingness regardless of which helper acts first.
+      // The instrumentation report (`.local/N1_FOLLOWUP_PRESLICE_
+      // CANDIDATE_INSTRUMENTATION_REPORT.md`, §6) showed the four
+      // repeated NG cold-start hooks each have 5 alternatives within
+      // K=10 score for every batch — exactly the headroom this
+      // helper exploits.
+      final = applyCreatorSeededRankRotation(final, cidForRotation);
     }
   }
   // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — post-sort/post-
