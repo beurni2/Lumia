@@ -1,0 +1,240 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-IMPLICIT-ANTHROPOMORPH-HQS-FIX
+
+Mode:
+Narrow scorer-recognition patch + predict/import rerun + tests + runtime QA.
+
+Supervisor decision:
+N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION is accepted as infrastructure only, but product metric failed.
+
+Accepted shipped / partial state:
+- N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D — shipped.
+- N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — shipped.
+- N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION — staging-flagged infrastructure accepted, but metric failed.
+- P3 human-first corpus lift imported 3 safe entries, but they did not improve slot-0 diversity.
+- Surface expansion / retention and memory-aware per-core demote did not solve the issue.
+
+Current root cause:
+The reservation and anti-repeat plumbing now work, but the eligible clean-core universe is still too small. Runtime reservation QA observed only 2 distinct slot-0 leaders:
+- ng_clean_001
+- ng_clean_023
+
+The blocker is now HQS recognition:
+Many human-feeling ng_clean candidate hooks are structurally object-as-agent comedy, but `IMPLICIT_ANTHROPOMORPH` does not recognize their verbs, so they get `anthropomorph: 0` and miss HQS ≥ 50.
+
+Known evidence:
+The audit identified rejected P3-HUMAN-FIRST candidates that failed mainly because the implicit-anthropomorph verb whitelist missed common human-comedy verbs such as:
+- smiled
+- printed
+- appointed
+- rang
+- made
+- opened
+- turned
+- sounded
+- corrected
+
+Goal:
+Implement the smallest safe implicit-anthropomorph whitelist expansion so strong human-feeling ng_clean hooks can naturally clear HQS ≥ 50 without lowering the floor or weakening validators.
+
+This is not a standards drop.
+Do not lower `PICKER_HQS_FLOOR`.
+Do not bypass `pickerEligible`.
+Do not admit sub-floor candidates.
+Do not change the anti-repeat helper.
+Do not change reservation logic unless tests require only imports or type plumbing.
+
+Hard constraints:
+1. No `PICKER_HQS_FLOOR` change.
+2. No validator changes.
+3. No selector changes.
+4. No K changes.
+5. No anti-repeat helper changes.
+6. No reservation helper behavior changes.
+7. No prompt changes.
+8. No API/mobile/DB/schema changes.
+9. No memory schema changes.
+10. No broad scorer redesign.
+11. No generic verb wildcarding.
+12. No cohort-specific HQS override.
+13. No `quality >= 40` carve-out.
+14. No lowering quality standards.
+15. Keep scorer patch minimal and test-covered.
+16. Preserve cohort isolation.
+
+Authorized scorer patch:
+Edit only the implicit-anthropomorph verb recognition in `hookQuality.ts`.
+
+Add a curated, minimal set of object-as-agent verbs to the `IMPLICIT_ANTHROPOMORPH` alternation.
+
+Required additions:
+- smiled
+- printed
+- appointed
+- rang
+- made
+- opened
+- turned
+- sounded
+- corrected
+
+Optional additions ONLY if the audit/test evidence shows they are needed and safe:
+- prepared
+- waited
+- collected
+- announced
+- measured
+- assigned
+- arrived
+
+Do not add broad verbs like:
+- got
+- did
+- was
+- had
+- became
+- went
+- put
+- took
+unless a test proves a narrow safe use. Default reject.
+
+Important:
+The implicit-anthropomorph pattern must remain structurally gated:
+`the <non-human subject> <recognized verb> ...`
+
+Do not make any verb trigger anthropomorph credit outside the object-as-agent shape.
+Do not let `I smiled`, `someone opened`, or ordinary human-subject sentences receive implicit-anthropomorph credit from this patch.
+
+Implementation steps:
+1. Inspect `artifacts/api-server/src/lib/hookQuality.ts`.
+2. Locate `IMPLICIT_ANTHROPOMORPH`.
+3. Add only the approved minimal verbs.
+4. Preserve existing scoring caps and axis behavior.
+5. Add targeted tests proving the new verbs trigger only in object-as-agent shape.
+6. Add negative tests proving human-subject uses do not trigger.
+7. Re-run P3 predict driver against the prior 20 candidate packet after supervisor-approved tightenings.
+8. Import only newly passing candidates that pass:
+   - HQS ≥ 50
+   - ng_clean validator clean
+   - runtime authoring path clean
+9. Do not rewrite failed candidates.
+10. Do not re-import duplicates.
+11. Continue ids after current final ng_clean id.
+12. Keep imported entries reviewedBy `BI-CLEAN 2026-05-10`.
+
+Specific regression examples to test:
+Positive object-as-agent examples should gain implicit anthropomorph credit:
+- “The bank app smiled before rejecting my confidence.”
+- “The POS receipt printed slower than my excuses.”
+- “The group chat appointed me without discussion.”
+- “The doorbell rang while I was acting serious.”
+- “The delivery code made me sound suspicious outside.”
+- “The room door opened during my serious content.”
+- “The extension box turned charging into family politics.”
+- “The email subject already sounded like extra work.”
+- “The front camera corrected my whole confidence.”
+
+Negative examples must NOT gain implicit anthropomorph credit:
+- “I smiled before rejecting my confidence.”
+- “Someone printed slower than my excuses.”
+- “My auntie appointed me without discussion.”
+- “I opened the room door during my serious content.”
+- “The creator sounded serious during content.”
+- “The person made me sound suspicious outside.”
+
+Predict/import phase:
+After the scorer patch and tests, rerun the P3-HUMAN-FIRST predict/import flow on the previous 20 candidate packet with the 7 supervisor-approved hook tightenings already applied.
+
+Do not change the entry copy except for tiny mechanical schema formatting if required.
+
+Expected result:
+The previously rejected human-feel entries should improve. Import only those that now naturally clear HQS ≥ 50 and all validators.
+
+Runtime QA:
+After imports, run full memory-exercised QA with the existing first-card core reservation flag ON in dev/staging:
+
+- ng_clean_cold: 5 creators × 1 batch × 6 ideas
+- ng_clean_memory: 5 creators × 5 sequential batches × 6 ideas
+- ng_pidgin: 5 creators × 1 batch × 6 ideas
+- ng_light_pidgin: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Metrics:
+For scorer patch:
+1. old HQS vs new HQS for all 20 P3 candidates
+2. anthropomorph axis before/after
+3. newly passing candidates
+4. any non-target hooks unexpectedly lifted
+5. full hook-quality test drift
+
+For corpus import:
+1. entries evaluated
+2. entries imported
+3. entries rejected with reasons
+4. HQS per imported entry
+5. validator result
+6. runtime authoring result
+
+For runtime QA:
+1. ng_clean final[] pickerEligible clean-core count per batch
+2. cleanCoreEntryIds present in final[] per batch
+3. reserved cleanCoreEntryIds per batch
+4. slot-0 cleanCoreEntryId per batch
+5. memory before/after per batch
+6. swap fired true/false
+7. distinct slot-0 leaders per creator
+8. cohort distinct slot-0 leaders
+9. whether at least one newly imported entry reaches slot 0
+10. whether slot-0 leaders exceed the previous ceiling of 2
+11. errors
+12. underfills
+13. fallback
+14. cohort leakage
+15. control-cohort memory writes
+
+Acceptance criteria:
+1. TypeScript clean.
+2. Targeted hookQuality tests pass.
+3. Existing hookQuality regression tests pass.
+4. Relevant ng_clean corpus tests pass.
+5. Full api-server suite passes if practical.
+6. `PICKER_HQS_FLOOR` remains unchanged.
+7. No validator/selector/K/prompt/API/mobile/DB/schema changes.
+8. No anti-repeat/reservation behavior changes.
+9. At least 4 additional P3 human-first candidates newly clear HQS ≥ 50, unless fewer naturally pass and report explains why.
+10. Imported candidates pass validator and runtime authoring path.
+11. ng_clean memory-exercised distinct slot-0 leaders improves from 2 to at least 3.
+12. Preferred: 4–5 distinct slot-0 leaders if the newly imported candidate surface allows it.
+13. At least one newly imported candidate reaches user-facing slot 0.
+14. No ng_pidgin / ng_light_pidgin / western regression.
+15. No cohort leakage.
+16. No underfill or fallback regression.
+17. Final report clearly states whether the implicit-anthropomorph patch solved the eligible-universe bottleneck.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_IMPLICIT_ANTHROPOMORPH_HQS_FIX_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_implicit_anthropomorph_hqs_fix.json`
+- `.local/qa-runs/n1_ng_clean_implicit_anthropomorph_hqs_fix_summary.json`
+- `.local/qa-runs/n1_ng_clean_implicit_anthropomorph_p3_predict.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Exact scorer patch
+3. Tests added/updated
+4. Tests run and results
+5. P3 candidate before/after HQS table
+6. Entries imported
+7. Entries rejected with reasons
+8. Runtime QA before/after table
+9. Slot-0 leader distribution
+10. Newly imported entries observed in runtime
+11. Safety/regression checks
+12. Remaining gaps
+13. Recommendation for next phase
+
+Stop condition:
+If this requires lowering the floor, bypassing pickerEligible, cohort-specific scorer overrides, validator changes, selector rewrites, K changes, anti-repeat changes, reservation changes, prompt changes, API/mobile/DB/schema changes, or broad scorer redesign, stop and report.
+
+Do not improvise another workaround. This phase is only the narrow implicit-anthropomorph recognition fix plus gated predict/import and runtime proof.

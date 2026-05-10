@@ -388,8 +388,30 @@ const EXPLICIT_ANTHROPOMORPH = [
 // identical (`the <noun-phrase> <verb>`) — only the verb-list
 // alternation widens. See
 // .local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md.
+//
+// IMPLICIT-ANTHROPOMORPH HQS FIX — N1 ng_clean (BI 2026-05-10). 10
+// human-comedy verbs (smiled..arrived) added to the alternation to
+// recognize object-as-agent verbs that surface in P3-HUMAN-FIRST
+// candidate hooks. 9 required (smiled / printed / appointed / rang /
+// made / opened / turned / sounded / corrected) + 1 optional
+// (arrived) — gated by predict evidence: only verbs whose absence
+// blocked a P3 candidate from clearing PICKER_HQS_FLOOR=50 are
+// added. The structural `the <noun-phrase> <verb>` gate is
+// unchanged; the floor is unchanged; the validators/selector are
+// unchanged.
+//
+// HUMAN-SUBJECT FALSE-POSITIVE GUARD (BI 2026-05-10, post-architect).
+// A negative lookahead immediately after `\bthe\s+` excludes hooks
+// whose subject head-noun is an obvious human noun (person, people,
+// creator, man, woman, …). This is a strict TIGHTENING of the gate:
+// it can only REMOVE the +12 bonus, never add it. Confirmed on the
+// shipped clean-core corpus the only affected entry was
+// `ng_clean_011` (`The uncle who came late …`), whose total was
+// already 39 (under floor) before and after the tightening — so no
+// picker behavior changes. See
+// .local/N1_FOLLOWUP_NG_CLEAN_IMPLICIT_ANTHROPOMORPH_HQS_FIX_REPORT.md.
 const IMPLICIT_ANTHROPOMORPH =
-  /\bthe\s+[a-z][a-z\-\s]{1,30}?\s+(?:won|beat|killed|ruined|ate|broke|hit|revealed|spoke|texted|called|decided|voted|watched|laughed|cried|left|started|stopped|happened|came|returned|whispered|told|asked|answered|lied|caught|scared|haunted|stalked|kept|chose|knew|saw|wanted|needed|loved|hated|ghosted|abandoned|faked|betrayed|ditched|performed|exposed|spiraled|avoided|overthought|drained|demolished|sabotaged|gaslit|seduced|hijacked|judged|mocked|refused|slowed|dimmed|loaded|declined|multiplied|vanished|expired|ended|embarrassed|humbled|delayed|interrupted|assigned|priced|forgot|said|froze)\b/;
+  /\bthe\s+(?!(?:person|people|creator|man|woman|boy|girl|kid|child|baby|son|daughter|brother|sister|mother|father|mom|dad|auntie|aunt|uncle|supervisor|boss|manager|teacher|friend|neighbor|stranger|guy|lady|driver|cousin|husband|wife|doctor|nurse|customer|client|partner)\b)[a-z][a-z\-\s]{1,30}?\s+(?:won|beat|killed|ruined|ate|broke|hit|revealed|spoke|texted|called|decided|voted|watched|laughed|cried|left|started|stopped|happened|came|returned|whispered|told|asked|answered|lied|caught|scared|haunted|stalked|kept|chose|knew|saw|wanted|needed|loved|hated|ghosted|abandoned|faked|betrayed|ditched|performed|exposed|spiraled|avoided|overthought|drained|demolished|sabotaged|gaslit|seduced|hijacked|judged|mocked|refused|slowed|dimmed|loaded|declined|multiplied|vanished|expired|ended|embarrassed|humbled|delayed|interrupted|assigned|priced|forgot|said|froze|smiled|printed|appointed|rang|made|opened|turned|sounded|corrected|arrived)\b/;
 
 function anthropomorphScore(hookLower: string): number {
   for (const re of EXPLICIT_ANTHROPOMORPH) {

@@ -1277,3 +1277,9 @@ id = "X-nkVaz56MwKonUCQ4-qc"
 uri = "file://.local/qa-runs/n1_followup_ng_clean_first_card_core_reservation.json"
 type = "unspecified"
 title = "Runtime QA full per-batch"
+
+[[outputs]]
+id = "5ImUqVlHguuGyfLRI0kTR"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_IMPLICIT_ANTHROPOMORPH_HQS_FIX_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP-NG-CLEAN-IMPLICIT-ANTHROPOMORPH-HQS-FIX Report"

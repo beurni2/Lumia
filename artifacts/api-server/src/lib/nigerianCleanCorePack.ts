@@ -984,6 +984,117 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "dry_clean",
       reviewedBy: "BI-CLEAN 2026-05-10",
     },
+    // ---------------------------------------------------------------- //
+    // PHASE N1-FOLLOWUP-NG-CLEAN-IMPLICIT-ANTHROPOMORPH-HQS-FIX        //
+    // (BI-CLEAN 2026-05-10) — 7 P3-HUMAN-FIRST candidates that were    //
+    // previously HQS-blocked at the `pickerHookQualityFloor` (50) by   //
+    // the IMPLICIT_ANTHROPOMORPH verb-alternation check in             //
+    // `hookQuality.ts`. The narrowest-possible verb-alternation        //
+    // expansion (this same packet) added `smiled / printed /           //
+    // appointed / rang / sounded / arrived` to the recognized          //
+    // object-as-agent verb set, lifting these 7 hooks above the        //
+    // floor while preserving every other validator/scorer surface.    //
+    // Predict + runtime-author results captured at                     //
+    // `.local/qa-runs/n1_ng_clean_implicit_anthropomorph_p3_predict.json`. //
+    // ---------------------------------------------------------------- //
+    {
+      id: "ng_clean_065",
+      draftId: "CLEAN-DRAFT-065",
+      anchor: "bank app",
+      hook: "The bank app smiled before rejecting my confidence.",
+      whatToShow:
+        "A person stands at a small shop counter acting calm while the bank app loads. They nod like everything is fine, then the screen shows a fake failed transfer message. The seller quietly pulls the nylon bag back, and the person suddenly starts explaining network issues like a trained spokesperson.",
+      howToFilm:
+        "Shoot over the shoulder with a blurred fake bank screen, then cut to the shopkeeper\u2019s hand slowly reclaiming the bag. End on the person giving a confident thumbs-up while clearly panicking.",
+      caption: "When your bank app embarrasses you in public.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "dry_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_066",
+      draftId: "CLEAN-DRAFT-066",
+      anchor: "POS receipt",
+      hook: "The POS receipt printed slower than my excuses.",
+      whatToShow:
+        "A person finishes paying and waits for the POS receipt while everyone watches. The machine prints tiny lines painfully slowly. The person starts pretending to check other important messages, but keeps looking back at the receipt like it is deciding their future.",
+      howToFilm:
+        "Use a close shot of a fake POS receipt inching out, then cut between waiting faces and the person forcing a serious expression. Finish with the receipt finally printing and the person collecting it like exam results.",
+      caption: "That POS silence can humble anybody.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "quiet_panic",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_067",
+      draftId: "CLEAN-DRAFT-067",
+      anchor: "group chat",
+      hook: "The group chat appointed me without discussion.",
+      whatToShow:
+        "A person opens a family or office group chat and sees their name volunteered for a task. They stare at the phone, look around the empty room for witnesses, then begin typing and deleting polite complaints until they simply reply, \u201cOkay.\u201d",
+      howToFilm:
+        "Show a fake chat screen with private details removed, then film the person\u2019s face changing from confusion to forced responsibility. Add quick cuts of typed replies being deleted before the defeated final reply.",
+      caption: "Promotion without salary, ceremony, or consent.",
+      premiseFamily: "group_chats",
+      voiceTone: "dry_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_068",
+      draftId: "CLEAN-DRAFT-068",
+      anchor: "doorbell",
+      hook: "The doorbell rang while I was acting serious.",
+      whatToShow:
+        "A creator is filming comfortably in a room, wearing a dramatic top half and relaxed home clothes below. The doorbell rings. They freeze, glance at the outfit, hide props under a pillow, and try to answer the door like nothing strange was happening.",
+      howToFilm:
+        "Start with a creator mid-performance, then cut sharply to the doorbell sound and full-body outfit panic. Stage the doorway safely indoors and end with the creator opening the door only halfway.",
+      caption: "Visitors always know when to arrive.",
+      premiseFamily: "creator_social_behavior",
+      voiceTone: "dry_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_069",
+      draftId: "CLEAN-DRAFT-069",
+      anchor: "email subject",
+      hook: "The email subject already sounded like extra work.",
+      whatToShow:
+        "A person opens their inbox and sees a subject line like \u201cQuick Help Needed Today.\u201d They lean back, close the laptop halfway, reopen it, and begin acting busy in an empty room before even reading the message. The email subject already feels heavy.",
+      howToFilm:
+        "Use a fake inbox with safe placeholder details. Start with a calm face, then punch in on the subject line and the immediate physical retreat. Payoff with the person typing \u201cNoted\u201d while looking personally defeated.",
+      caption: "Some emails announce stress before opening.",
+      premiseFamily: "school_work",
+      voiceTone: "dry_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_070",
+      draftId: "CLEAN-DRAFT-070",
+      anchor: "transfer narration",
+      hook: "The transfer narration sounded richer than my balance.",
+      whatToShow:
+        "A person makes a small transfer but writes an unnecessarily serious transfer narration like \u201cPayment for urgent services.\u201d They pause, reread it, then check their fake balance and quietly reduce the confidence in both the amount and the wording.",
+      howToFilm:
+        "Show only a fake transfer screen with blurred or placeholder values. Cut to the person proudly typing, then shrinking physically after checking the balance. End with the narration changed to something plain and humble.",
+      caption: "Sometimes the narration has more confidence than you.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "self_aware_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_071",
+      draftId: "CLEAN-DRAFT-071",
+      anchor: "calendar reminder",
+      hook: "The calendar reminder arrived like family intervention.",
+      whatToShow:
+        "A person is relaxing confidently when a calendar reminder pops up for an appointment they forgot. They sit up slowly, check the time, look at their outfit, and begin moving around the room like the reminder personally came to correct their life.",
+      howToFilm:
+        "Use a fake reminder screen with no personal details. Start with comfort and silence, then let the notification sound trigger sudden movement. Payoff with the person packing random items while still not fully understanding where they are going.",
+      caption: "A reminder can change your whole posture.",
+      premiseFamily: "school_work",
+      voiceTone: "quiet_realization",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
   ]);
 
 // ---------------------------------------------------------------- //
