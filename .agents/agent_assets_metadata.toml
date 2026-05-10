@@ -1187,3 +1187,21 @@ id = "EGxN-wc_z2NsYUrK0d63N"
 uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_patch_d.json"
 type = "unspecified"
 title = "Patch D Per-Row Evidence"
+
+[[outputs]]
+id = "v0nJvI6gsq1l408M4iL2K"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_POST_PATCH_D_E2E_VERIFY_REPORT.md"
+type = "text"
+title = "N1 Post-Patch-D E2E Verify Report (FAIL)"
+
+[[outputs]]
+id = "QiO8DcF1PfsqJkKM4vuqa"
+uri = "file://.local/qa-runs/n1_ng_clean_post_patch_d_e2e_verify.json"
+type = "unspecified"
+title = "Verify JSON (full)"
+
+[[outputs]]
+id = "kpb_MfYZdGJxb6G4iAUh1"
+uri = "file://.local/qa-runs/n1_ng_clean_post_patch_d_e2e_verify_summary.json"
+type = "unspecified"
+title = "Verify JSON (summary)"

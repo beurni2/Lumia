@@ -1,0 +1,148 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-POST-PATCH-D-E2E-VERIFY
+
+Mode:
+QA-only full-pipeline verification. Do not implement.
+
+Supervisor decision:
+N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D is accepted as shipped.
+
+Patch D summary:
+Patch D expanded hook-quality scorer recognition vocabulary/constants only:
+1. concrete noun expansion
+2. LOW-tier verb / irregular-form expansion
+3. implicit-anthropomorph verb expansion
+
+It did NOT lower PICKER_HQS_FLOOR.
+It did NOT change validators, selectors, rotation helpers, corpus, prompts, API, DB, schema, mobile, feature flags, or memory behavior.
+
+Accepted evidence from Patch D:
+- hook-quality tests: 220 / 220 pass
+- full api-server suite: 1570 / 1570 pass
+- typecheck clean
+- ng_clean scorer-level pickerEligible count improved from 8/61 to 18/61
+- P2 candidate eligibility improved from 1/10 to 5/10
+- ng_pidgin sampled eligibility changed 15/60 → 15/60
+- western sampled eligibility changed 2/60 → 3/60, with the single newly eligible western hook manually reviewed as legitimate
+
+Remaining question:
+Patch D proved scorer-level eligible supply improved. It has NOT yet proven that the original product symptom improved in the full ideator pipeline.
+
+Original product symptom:
+ng_clean user-facing slot-0 first-card diversity collapsed across cold-start creators.
+
+Goal:
+Verify that Patch D’s scorer-level eligible lift actually improves ng_clean user-facing slot-0 first-card diversity in the full ideator pipeline.
+
+Hard constraints:
+1. No implementation.
+2. No scorer changes.
+3. No validator changes.
+4. No selector changes.
+5. No rotation helper changes.
+6. No corpus edits.
+7. No prompt changes.
+8. No API/mobile/DB/schema changes.
+9. No feature flag changes.
+10. No memory behavior changes.
+11. No pack reservation changes.
+12. No K changes.
+13. Do not “fix” anything in this session.
+14. Produce evidence only.
+
+Primary QA:
+Run the full cold-start ideator sweep using the current post-Patch-D code:
+
+- ng_clean: 10 cold-start creators × 6 ideas
+- ng_pidgin: 10 cold-start creators × 6 ideas
+- ng_light_pidgin: 10 cold-start creators × 6 ideas
+- ng_null: 5 cold-start creators × 6 ideas
+- western_null: 5 cold-start creators × 6 ideas
+
+Use the same or equivalent harness as prior N1 E2E probes so results are comparable.
+
+Required metrics:
+For each cohort, report:
+1. total batches
+2. total ideas
+3. underfill batches
+4. fallback batches
+5. scenarioCoherence failures
+6. banned/shouty scan hits
+7. distinct hooks
+8. per-slot distinctness
+9. distinct user-facing slot-0 hooks
+10. top slot-0 hook share
+11. source mix
+12. cohort leakage check
+
+ng_clean-specific required metrics:
+1. avg pickerEligible candidates per batch
+2. pickerEligible count per batch
+3. slot-0 leader hook per batch
+4. slot-0 leader HQS per batch
+5. slot-0 leader willingnessScore per batch
+6. slot-0 leader source / clean entry id
+7. K-band size at slot 0 for:
+   - K=10
+   - K=12
+   - K=15
+   - K=20
+   - K=25
+8. distinct user-facing slot-0 leaders across 10 cold-start creators
+9. top slot-0 hook share
+10. whether “The light came back and exposed everyone’s fake patience.” still dominates
+11. which newly eligible Patch-D-lifted entries surface in batches
+12. whether the newly eligible entries actually enter slot-0 candidate bands
+
+Compare against known baseline:
+Before Patch D:
+- ng_clean scorer-level pickerEligible count: 8/61
+- post-Patch-D scorer-level pickerEligible count: 18/61
+- previous user-facing ng_clean slot-0 issue: repeated / collapsed first-card leader
+- previous root cause: insufficient eligible-tier alternatives
+
+Acceptance criteria:
+1. No code behavior changes in this session.
+2. QA output generated.
+3. ng_clean avg eligible candidates per batch improves materially versus pre-Patch-D baseline.
+4. ng_clean user-facing distinct slot-0 leaders improves toward at least 3/10.
+5. top slot-0 hook share decreases materially from the prior monoculture.
+6. no underfill regression.
+7. no fallback regression.
+8. no scenarioCoherence regression.
+9. no ng_pidgin regression.
+10. no ng_light_pidgin regression.
+11. no ng_null regression.
+12. no western_null regression.
+13. no cohort leakage.
+14. report clearly states whether the original product symptom is fixed, partially fixed, or still unresolved.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_POST_PATCH_D_E2E_VERIFY_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_post_patch_d_e2e_verify.json`
+- `.local/qa-runs/n1_ng_clean_post_patch_d_e2e_verify_summary.json`
+
+Final report format:
+1. Verdict: PASS / PARTIAL / FAIL
+2. Executive summary
+3. Commands run
+4. Files inspected
+5. Cohort-level before/after table
+6. ng_clean slot-0 table by batch
+7. ng_clean K-band reconstruction
+8. Newly eligible Patch-D entries observed in runtime
+9. Safety/regression checks
+10. Remaining gaps
+11. Recommendation for next phase
+
+Decision rules:
+- If ng_clean distinct user-facing slot-0 leaders is ≥3/10 and no regressions occur, mark product symptom PASS.
+- If ng_clean improves but remains below ≥3/10, mark PARTIAL and identify the remaining bottleneck.
+- If ng_clean does not improve, mark FAIL and identify whether the bottleneck is generator surface rate, candidate selection, rank ordering, or scorer calibration still being insufficient.
+- Do not implement the recommendation in this session.
+
+Important:
+Patch D is already accepted. This task is only to verify whether the full product behavior now reflects the scorer-level improvement.
