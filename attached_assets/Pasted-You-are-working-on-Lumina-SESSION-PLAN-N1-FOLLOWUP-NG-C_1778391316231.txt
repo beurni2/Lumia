@@ -1,0 +1,134 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-ACCEPTANCE-PATTERN-AUDIT
+
+Mode:
+READ-ONLY AUDIT. Do not implement or author new corpus entries.
+
+Supervisor decision:
+The previous corpus-lift attempts showed that guessing new ng_clean entries is inefficient. P2 imported only 1/10 candidates. Before creating a P3 packet, we need an audit of the existing ng_clean corpus and rejected candidate packets to determine what kinds of entries naturally pass BOTH:
+- existing ng_clean validator gates
+- HQS ≥ 50 / pickerEligible floor
+
+Goal:
+Create a precise, evidence-based acceptance guide for authoring future ng_clean entries that are:
+- human-feeling
+- funny/comedic
+- filmable
+- clean Nigerian English
+- validator-clean
+- likely HQS ≥ 50
+- not robotic scorer-gaming
+
+Hard constraints:
+1. No implementation.
+2. No corpus edits.
+3. No scorer edits.
+4. No validator edits.
+5. No prompt edits.
+6. No selector edits.
+7. No rotation helper edits.
+8. No schema/API/mobile/DB changes.
+9. No lowering PICKER_HQS_FLOOR.
+10. No adding candidates in this session.
+
+Scope:
+Audit:
+1. Existing `nigerianCleanCorePack.ts` entries, currently 61 entries.
+2. The previous P1 failed candidate packet.
+3. The P2 human-comedy packet.
+4. The accepted P2 entry:
+   “The screen dimmed and I started bargaining.”
+5. The dominant existing slot-0 leader:
+   “The light came back and exposed everyone's fake patience.”
+
+Required analysis:
+1. Score every existing ng_clean entry with live `scoreHookQualityDetailed`.
+2. Validate every existing ng_clean entry with live `classifyNigerianCleanCoreEntryFailure`.
+3. For every entry, report:
+   - id
+   - hook
+   - word count
+   - HQS total
+   - HQS breakdown:
+     - visceral
+     - anthropomorph
+     - brevity
+     - concrete
+     - contradiction
+     - aiCliche
+   - pickerEligible true/false
+   - validator result
+   - anchor
+   - premiseFamily
+   - scenarioFamily if available
+   - topicNoun if available
+4. Group entries into:
+   - high pass: HQS ≥ 60
+   - pass: HQS 50–59
+   - near miss: HQS 45–49
+   - weak: HQS <45
+5. Identify the top 10 highest-scoring existing hooks and explain why they pass.
+6. Identify the best near-misses and explain what prevents them from passing.
+7. Compare accepted vs rejected candidate hooks from P1/P2.
+8. Identify validator traps that blocked otherwise usable entries.
+9. Identify scorer traps that caused human-feeling entries to miss.
+10. Determine whether accepted entries share reusable human-comedy shapes.
+
+Key questions:
+1. What hook structures produce HQS ≥ 50 without sounding fake?
+2. Which anchors reliably help?
+3. Which verbs or verb patterns work naturally?
+4. Which sentence shapes are overfitted / robotic and should be avoided?
+5. How many existing entries are actually pickerEligible?
+6. Does ng_clean need 10–12 more high-HQS entries, or does the generator surface rate require more?
+7. Which premise families are underrepresented among high-HQS eligible entries?
+8. Are the high-HQS entries clustered around too few themes, such as power/light?
+9. What should a P3 packet target by family and hook shape?
+
+Required output files:
+- `.local/qa-runs/n1_ng_clean_acceptance_pattern_audit.json`
+- `.local/qa-runs/n1_ng_clean_acceptance_pattern_audit_summary.json`
+- `.local/N1_FOLLOWUP_NG_CLEAN_ACCEPTANCE_PATTERN_AUDIT_REPORT.md`
+
+Required report sections:
+1. Executive verdict.
+2. Existing corpus scoring table.
+3. PickerEligible census:
+   - total entries
+   - HQS ≥50 count
+   - HQS ≥60 count
+   - near-miss count
+   - weak count
+4. Top passing hook patterns.
+5. Best near-miss patterns.
+6. Rejected P1/P2 candidate analysis.
+7. Validator trap list.
+8. Scorer trap list.
+9. Human-comedy acceptance guide:
+   - recommended structures
+   - recommended anchors
+   - recommended verbs / action patterns
+   - recommended premise families
+   - things to avoid
+10. P3 authoring brief:
+   - how many candidates to write
+   - target number expected to pass
+   - target premise-family distribution
+   - target hook shapes
+   - minimum quality bar
+11. Recommendation:
+   - Should next step be P3 corpus packet, vocabulary audit, scorer audit, or no change?
+12. Proof commands and files inspected.
+
+Acceptance criteria:
+1. No source code changes.
+2. No corpus changes.
+3. Clear explanation of what accepted ng_clean entries have in common.
+4. Clear explanation of why the P1/P2 packets mostly failed.
+5. Clear authoring guide for creating human-feeling, funny entries that can pass existing gates.
+6. Clear P3 packet specification can be written from the audit without guessing.
+
+Important:
+Do not create new entries in this session. This is an evidence-gathering audit so the next curator packet is not guesswork.

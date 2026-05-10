@@ -1133,3 +1133,21 @@ id = "3It3NZUgusxhjNKUlIOCx"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift_p2_humancomedy.json"
 type = "unspecified"
 title = "Full per-batch dump (before/after, all 5 cohorts)"
+
+[[outputs]]
+id = "GZoPwzHQYcL9z7TkotlXn"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_ACCEPTANCE_PATTERN_AUDIT_REPORT.md"
+type = "text"
+title = "Acceptance-Pattern Audit Report — 12 sections, P3 authoring brief"
+
+[[outputs]]
+id = "G2Ivgw6oP_R88aPBFwCxQ"
+uri = "file://.local/qa-runs/n1_ng_clean_acceptance_pattern_audit_summary.json"
+type = "unspecified"
+title = "Audit summary — top10, near-miss, band means, family under-rep"
+
+[[outputs]]
+id = "BN2YloBL3vKsi5wNlRkTL"
+uri = "file://.local/qa-runs/n1_ng_clean_acceptance_pattern_audit.json"
+type = "unspecified"
+title = "Full per-entry dump — 61 corpus + 10 P2 candidates"
