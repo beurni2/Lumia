@@ -1,0 +1,270 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-E2E-ROTATION-PACK-AUDIT — full ideator repetition + Nigerian pack delivery audit.
+
+Context:
+Recent N1-E2E-NIGERIA-QA was read-only and used `runHybridIdeator`, the same function the `/ideator/generate` route calls.
+
+Healthy signals:
+- 240/240 ideas shipped.
+- 0 underfill.
+- 0 Claude fallback.
+- 0 errors.
+- 0 mock-pidgin anywhere.
+- 0 pidgin-marker leaks into clean/null/western.
+- `ng_clean` had 0 decoration leaks and 0 coherence failures.
+
+But verdict was `ROTATION_OR_MEMORY_REVIEW`, not STOP.
+
+Problems found:
+1. Full ideator repetition:
+   - `ng_clean`: only 8 distinct hooks out of 60 ideas.
+   - `ng_pidgin`: only 20 distinct hooks out of 60.
+   - `ng_light_pidgin`: only 20 distinct hooks out of 60.
+   - Same winner hooks repeat across fresh creators.
+   - In `ng_clean`, 5 hooks appear exactly 10x each.
+   - Dominant repeated hooks include:
+     - `the fridge knows i'm lying`
+     - `I am totally fine about the wifi`
+     - `my body quit. my brain kept screaming`
+     - `is it still about the shopping cart`
+   - The weak `totally_fine_about_*` skeleton is a chronic winner.
+
+2. Nigerian pack delivery mismatch:
+   - E2E probe showed `packDelivery: 0` for `ng_pidgin` and `ng_light_pidgin`.
+   - Earlier pack-specific probes/smoke runs showed pack delivery worked.
+   - This contradiction must be explained before implementation.
+
+3. Scan hits needing triage:
+   - `bannedFilmingHits=10/60` in all three NG cohorts.
+   - Some hits may be broad-scan false positives.
+   - Some examples show real old boilerplate like `One take`.
+   - Low non-zero stereotype hits in pidgin/light-pidgin need exact matched-string review.
+   - Do not auto-fix until exact matches are classified.
+
+Goal:
+Run a read-only audit that explains:
+- why full ideator repeats the same first-card/top winners across fresh creators,
+- why Nigerian pack delivery is 0 in E2E but nonzero in earlier pack-specific probes,
+- whether the scan hits are real defects or scanner false positives,
+- what the safest implementation path should be.
+
+This is AUDIT ONLY.
+Do not modify production code.
+Do not change rotation constants.
+Do not add entries.
+Do not rewrite copy.
+Do not touch Nigerian pack entries.
+Do not touch clean-core entries.
+Do not touch regional-decoration.
+Do not change validators/scorers/prompts.
+Do not change API/mobile/schema/DB/migrations/production gates.
+
+============================================================
+QUESTIONS TO ANSWER
+============================================================
+
+A. Full ideator repetition
+
+1. Where does `runHybridIdeator` select final ideas after `generateCoreCandidates`?
+2. Is the repeated first-card behavior coming from:
+   - `hookQualityScore`
+   - willingness scorer
+   - hero quality ranker
+   - final batch slot selection
+   - per-creator memory being empty for fresh creators
+   - missing cross-creator diversity
+   - pattern variation being preferred over clean-core/pack
+   - deterministic seed/salt shape in the probe
+3. Why do the same hooks win for every fresh creator?
+4. Does first-card dominance happen only in the probe or in the real app route too?
+5. Does the issue affect only first-card or all 6 ideas?
+6. Are pattern-variation weak skeletons being over-weighted?
+7. Which exact files/functions would need a minimal fix?
+
+B. Nigerian pack delivery mismatch
+
+1. Why did E2E show `packDelivery=0` for `ng_pidgin` and `ng_light_pidgin`?
+2. Compare:
+   - E2E probe setup
+   - prior pack-specific runtime probes
+   - smoke run with 4/6 pack-delivered
+3. Is the issue due to:
+   - missing creator fields in probe fixture
+   - calibration shape
+   - `languageStyle` not reaching pack gate
+   - flags
+   - pack candidates generated but swapped out later
+   - source tagging
+   - matcher/reporting bug
+   - per-core best-pick suppressing pack candidates
+   - memory/exclude set wrongly treating entries as seen
+4. Does the real `/ideator/generate` route have the same pack delivery issue?
+5. Produce a targeted reproducer that shows:
+   - pack gate inputs
+   - eligible pack count
+   - candidates produced
+   - candidates entering final pool
+   - candidates surviving final selection
+   - final source labels
+
+C. Scan hit triage
+
+For each cohort:
+- list exact banned filming matches,
+- list exact stereotype matches,
+- list exact shouty matches,
+- list exact scenario-coherence lightweight failures.
+
+Classify each as:
+- REAL_DEFECT
+- FALSE_POSITIVE
+- ACCEPTABLE_CONTEXT
+- PROBE_SCANNER_BUG
+- NEEDS_COPY_FIX
+- NEEDS_SELECTOR_FIX
+
+Do not patch.
+
+============================================================
+READ-ONLY REPROS / DIAGNOSTICS
+============================================================
+
+Create read-only diagnostics if useful:
+
+`.local/scripts/n1E2eRotationPackAudit.mts`
+
+It may run:
+1. Same E2E probe shape from N1-E2E-NIGERIA-QA.
+2. A targeted single-creator smoke reproducer for:
+   - ng_pidgin
+   - ng_light_pidgin
+   - ng_clean
+3. A route-equivalent fixture reproducer if available.
+4. A debug trace for one batch showing:
+   - calibration
+   - region
+   - languageStyle
+   - flags
+   - pack gate result
+   - clean-core gate result
+   - number of candidates by source before final pick
+   - top scores by candidate source
+   - final selection by source
+   - reasons candidates were excluded or lost
+
+Save:
+- `.local/qa-runs/n1_e2e_rotation_pack_audit.json`
+- `.local/qa-runs/n1_e2e_rotation_pack_audit_summary.json`
+- `.local/N1_E2E_ROTATION_PACK_AUDIT.md`
+
+============================================================
+IMPLEMENTATION OPTIONS TO EVALUATE
+============================================================
+
+Return ranked options only. Do not implement.
+
+Possible fix families:
+
+Option A — Cross-creator first-card rotation
+- deterministic quality-band picker for first-card only
+- e.g. choose among top N candidates within quality band using hash(creatorId)
+- prevents same top hook across every fresh creator
+- must preserve quality and avoid weak candidates
+
+Option B — Weak skeleton demotion / suppression
+- demote known weak pattern-variation skeletons like `totally_fine_about_*`
+- may reduce generic repeated winners
+- must not hurt good pattern variations
+
+Option C — Pack reservation priority fix
+- if pack candidates are generated but swapped out, reserve one pack slot for pidgin/light_pidgin
+- must be gated and not affect clean/western/etc.
+
+Option D — Probe/reporting fix only
+- if pack delivery is actually working and the E2E report is wrong
+
+Option E — Memory/usage-cap path
+- larger surface, probably defer unless necessary
+
+For each option, include:
+- root cause it addresses
+- files likely touched
+- risk level
+- expected effect
+- tests needed
+- runtime proof needed
+- whether it affects:
+  - ng_pidgin
+  - ng_light_pidgin
+  - ng_clean
+  - western/india/philippines
+  - Nigerian pack
+  - clean-core catalog
+
+============================================================
+SUCCESS CRITERIA FOR FUTURE IMPLEMENTATION
+============================================================
+
+A future implementation should target:
+
+- `ng_pidgin` / `ng_light_pidgin` pack delivery restored or correctly explained.
+- repeated top hooks reduced materially:
+  - top hook share <10% in 60-idea cohort
+  - distinct hooks improve meaningfully
+- `ng_clean` still uses clean-core healthy amount.
+- no underfill.
+- no fallback spike.
+- no mock-pidgin or stereotype regression.
+- no API/mobile/schema/DB change unless explicitly authorized.
+- full tests green.
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - IMPLEMENT_CROSS_CREATOR_ROTATION
+   - IMPLEMENT_PACK_RESERVATION_FIX
+   - IMPLEMENT_WEAK_SKELETON_DEMOTION
+   - FIX_PROBE_ONLY
+   - TARGETED_COPY_CLEANUP
+   - NEED_MORE_DATA
+
+2. Root causes:
+   - repetition root cause
+   - pack-delivery mismatch root cause
+   - scan-hit triage summary
+
+3. Evidence:
+   - source/final-pool numbers
+   - gate inputs
+   - top repeated hooks
+   - exact scan matches
+
+4. Recommended implementation path.
+
+5. Files likely touched.
+
+6. Tests/probes needed for implementation.
+
+7. Risks / non-risks.
+
+8. Files created.
+
+9. Confirm:
+   - read-only only
+   - no production code changed
+   - no entries added
+   - no entries rewritten
+   - Nigerian pack untouched
+   - clean-core catalog untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no production gates changed
+
+Do not implement.
+Do not ask for next steps.

@@ -1013,3 +1013,15 @@ id = "9QM96gc2A20SvNqkEbh78"
 uri = "file://.local/qa-runs/n1_e2e_nigeria_qa.json"
 type = "unspecified"
 title = "Full per-idea JSON"
+
+[[outputs]]
+id = "j80aYU-TG0METfrNVin8T"
+uri = "file://.local/N1_E2E_ROTATION_PACK_AUDIT.md"
+type = "text"
+title = "N1-E2E-ROTATION-PACK-AUDIT Report"
+
+[[outputs]]
+id = "7qBz7fU8M5Z8fAGRRaNj_"
+uri = "file://.local/qa-runs/n1_e2e_scan_triage.json"
+type = "unspecified"
+title = "Scan triage (exact matches per cohort)"
