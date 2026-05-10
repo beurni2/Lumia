@@ -1,0 +1,180 @@
+You are working on Lumina.
+
+Phase:
+N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION
+
+Mode:
+Probe-only instrumentation + runtime audit. Do not change production behavior.
+
+Supervisor decision:
+Do NOT implement slot-level rotation, skeleton-recency demotion, corpus deletion, score smoothing, K widening, pack reservation, prompt changes, validator changes, schema/API/mobile/DB changes, or production flag changes.
+
+Context:
+The previous audit found that NG repeated slot winners persist across cold-start creators:
+- “I am totally fine about the to-do app”
+- “is it still about the shopping cart”
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+
+The coding-agent follow-up correction confirmed:
+- Path B, per-creator skeleton-recency demotion, does NOT fix the first-batch cold-start cross-creator symptom.
+- Ten brand-new synthetic creators each have empty memory, so recency penalty contributes 0 on batch 1.
+- Path B may help returning users, but not first-impression sameness across different creators.
+- Instrumentation-first is the correct next step.
+
+Goal:
+Add probe-only diagnostics that reveal why the same NG slot winners ship across cold-start creators and whether a bounded deterministic fix is possible.
+
+Primary capture site:
+Instrument around `hybridIdeator.ts` near the final composition site, specifically the moment AFTER `enforceTrendCap` and BEFORE `annotateAndSortByWillingness`.
+
+Reason:
+At this point, the full pre-slice candidate list should still preserve:
+- `meta.skeletonId`
+- `meta.comedyFamily`
+- raw `score.total`
+- source
+- scenario information
+- candidate metadata
+
+And willingness sorting has not yet collapsed the order.
+
+Hard constraints:
+1. No production behavior change.
+2. No source behavior change outside `.local` probe/debug scripts unless strictly necessary for read-only telemetry exposure.
+3. No validators changed.
+4. No prompts changed.
+5. No corpus edits.
+6. No schema/API/mobile/DB changes.
+7. No pack reservation.
+8. No score smoothing.
+9. No K widening.
+10. No first-card rotation rewrite.
+11. No slot-level rotation implementation.
+12. No skeleton-recency demotion implementation.
+13. No global/process LRU.
+14. No production flag changes.
+15. No selector behavior changes.
+
+Instrumentation requirements:
+1. Update the N1 E2E QA probe or add a sibling probe so it captures, for each batch, the candidate pool after `enforceTrendCap` and before `annotateAndSortByWillingness`.
+2. Capture at least top 20 candidates per batch at that point.
+3. For each captured candidate, include:
+   - hook
+   - source
+   - skeletonId / hookSkeletonId if present
+   - comedyFamily / family if present
+   - scenario object / topic noun if present
+   - pickerEligible tier
+   - raw score.total
+   - hookQualityScore if available
+   - willingnessScore after annotation, if separately available later
+   - final shipped slot index, if shipped
+   - region
+   - languageStyle
+   - creator.id
+   - batch index
+4. Also capture the final shipped six ideas with the same metadata.
+5. Join pre-slice candidates to final shipped ideas where possible so we can see which candidates lost and which shipped.
+
+Specific repeated-hook analysis:
+For each of these hooks:
+- “I am totally fine about the to-do app”
+- “is it still about the shopping cart”
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+
+Report:
+- cohort
+- slot distribution
+- shipped count
+- source
+- selector path if identifiable
+- skeletonId / family
+- winner raw score.total
+- winner willingnessScore if available
+- top 5–10 runner-ups near the affected slot
+- runner-up score.total
+- runner-up willingnessScore if available
+- viable alternative counts within:
+  - K=10
+  - K=15
+  - K=20
+- whether viable alternatives are same tier or lower tier
+- why runner-ups lost, if inferable
+
+`totally_fine_about` path investigation:
+Instrument or inspect `pickValidatedPhrasing` for `why_do_i` style only.
+
+Capture:
+- style
+- scenario object / noun
+- candidate skeletonId
+- pass number
+- validateHook result
+- rejection reason if available
+- whether pass 1 returned null
+- whether pass 2 reinstated a blocklisted skeleton
+
+Mechanism distinction:
+Classify each repeated hook as one of:
+A. blocklist exists but pass-2 fallback reinstates it
+B. no blocklist surface in picker path
+C. alternatives exist but lose by score
+D. alternatives fail validation
+E. no viable alternatives exist
+F. metadata missing / cannot classify
+
+Runtime QA requirements:
+Run the 5-cohort sweep:
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_clean: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Required output files:
+- `.local/qa-runs/n1_preslice_candidate_instrumentation.json`
+- `.local/qa-runs/n1_preslice_candidate_instrumentation_summary.json`
+- `.local/N1_FOLLOWUP_PRESLICE_CANDIDATE_INSTRUMENTATION_REPORT.md`
+
+Required report:
+1. Executive verdict:
+   - Is the repeated slot-winner problem caused by no alternatives, alternatives failing validation, alternatives losing score, selector path bypass, or deterministic scenario seeding?
+2. For each repeated hook:
+   - cohort
+   - slot index distribution
+   - selector path
+   - shipped count
+   - skeletonId/family
+   - winner scores
+   - top runner-ups
+   - K=10/K=15/K=20 viable alternative count
+   - why runner-ups lost
+3. Specific finding for `totally_fine_about`:
+   - Does pass 1 fail?
+   - Which candidate(s) fail?
+   - Why do they fail?
+   - Does pass 2 reinstate the blocked skeleton?
+4. Compare possible fixes:
+   A. fix legacy pass-1 alternative availability
+   B. add blocklist/demotion to modern language picker
+   C. add selector-path-specific weak skeleton demotion
+   D. slot-level deterministic quality-band rotation
+   E. per-creator skeleton-recency demotion
+   F. scenario-seed diversification
+   G. corpus/copy removal
+5. Recommend exactly one next implementation path.
+6. Explain why the others should not be implemented yet.
+7. Include proof commands, output file paths, and files inspected.
+
+Acceptance criteria:
+- No production behavior changed.
+- New QA output includes enough data to decide safely.
+- Clear answer on whether cold-start cross-creator sameness can be fixed without memory.
+- Clear answer on whether Path B would actually help the first-batch cold-start problem.
+- Clear answer on whether slot-level quality-band rotation is viable from real K-band data.
+- Clear next implementation prompt can be written without guessing.
+
+Important:
+If the instrumentation requires touching production source files, keep the change behind dev/probe-only guards and make the final report explicit about exactly what was touched and why. Do not alter runtime selection behavior.
