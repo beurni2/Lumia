@@ -1,0 +1,251 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION
+
+Mode:
+Direct product-level implementation + tests + runtime QA.
+
+Supervisor decision:
+Stop workaround work.
+
+Accepted shipped phases:
+- N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D — shipped.
+- N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — shipped.
+
+Rejected / not product-successful paths:
+- Surface expansion via retention — failed and rolled back.
+- P3 corpus lift — safe partial import, but new entries shipped 0 times.
+- Memory-aware per-core demote — inert; flag OFF and ON both produced slot 0 = ng_clean_001 in the probe.
+
+Current root cause:
+The ng_clean pipeline is not giving clean-core enough first-card surface area.
+
+Latest audit found:
+- pattern_variation dominates final selection.
+- only about 1 final slot is core_native in the observed ng_clean cohort.
+- per-core window size and single-winner selection prevent enough clean-core entries from reaching final[].
+- The slot-0 anti-repeat helper works, but it can only rotate among clean-core candidates already present in final[].
+- More scorer/corpus/demote tricks are now workaround work.
+
+Goal:
+Implement a narrow ng_clean-only clean-core reservation so final[] contains enough high-quality clean-core candidates for the already-shipped anti-repeat helper to rotate slot 0 across at least 3 distinct first-card leaders.
+
+Plain-language product goal:
+For ng_clean, when high-quality pickerEligible clean-core candidates exist, the final candidate batch must include at least 2–3 of them before slot-0 anti-repeat runs.
+
+This should be a direct fix:
+- no scorer tuning
+- no corpus additions
+- no K widening
+- no soft-demote tricks
+- no broad selector rewrite
+- no randomization
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No PICKER_HQS_FLOOR change.
+4. No K change.
+5. No corpus edits.
+6. No prompt changes.
+7. No API/mobile/DB/schema changes.
+8. No memory schema changes.
+9. No anti-repeat helper rewrite unless only test plumbing requires it.
+10. No broad selector rewrite.
+11. No process-global mutable state.
+12. No random behavior.
+13. Preserve deterministic behavior.
+14. Preserve candidate count.
+15. No underfill.
+16. No fallback increase.
+17. Preserve cohort isolation.
+18. Apply only to region=nigeria + languageStyle=clean.
+19. Do not affect ng_pidgin, ng_light_pidgin, ng_null, western, or non-NG cohorts.
+20. Do not promote or depend on the inert memory-aware per-core demote flag.
+
+Implementation objective:
+Add a narrow ng_clean clean-core reservation step before final gate/shipping and before or at the point where slot-0 anti-repeat can consume it.
+
+Required behavior:
+When ng_clean is active and there are pickerEligible clean-core candidates available in the candidate stream:
+
+1. Ensure final[] contains at least 2 pickerEligible clean-core candidates.
+2. Prefer target of 3 pickerEligible clean-core candidates when available.
+3. Preserve final[] length.
+4. Do not add invalid candidates.
+5. Do not add sub-floor candidates.
+6. Do not duplicate cleanCoreEntryIds.
+7. Do not remove the current best slot-0 candidate unless necessary for reservation ordering.
+8. Choose reservation candidates by existing rank / quality order, not random.
+9. If fewer than 2 pickerEligible clean-core candidates exist, do nothing beyond existing behavior.
+10. Reservation must happen before `applyNgCleanSlot0AntiRepeatSwap` or otherwise ensure the helper can see the reserved clean-core alternatives.
+
+Preferred design:
+Implement a pure helper, for example:
+
+applyNgCleanCleanCoreReservation(final, candidateSource, context)
+
+or, if final[] already has enough candidate data:
+
+ensureNgCleanCleanCoreReservation(final, {
+  minPickerEligibleCleanCore: 2,
+  preferredPickerEligibleCleanCore: 3,
+  count,
+  region,
+  languageStyle
+})
+
+Activation gate:
+Apply only when:
+- input.region === "nigeria"
+- calibration.languageStyle === "clean"
+- regenerate === false if that is consistent with current cold-start/local-first flow
+- final.length >= 2
+- there are available pickerEligible clean-core candidates with cleanCoreEntryId
+
+Candidate eligibility:
+A reservation candidate must:
+- be core_native / clean-core
+- have cleanCoreEntryId
+- have pickerEligible === true
+- pass existing final candidate shape
+- not duplicate an already present cleanCoreEntryId
+- be from ng_clean only
+- already exist in the generated candidate/candidate-stream context
+- not be fabricated
+- not be pulled from corpus without normal authoring/validation path unless the existing generator has already produced it as a valid candidate
+
+Where to inspect:
+Start at:
+- coreCandidateGenerator.ts around the per-core best-pick / candidate construction region
+- hybridIdeator.ts around final candidate assembly, enforceTrendCap, annotateAndSortByWillingness, first-card rotation, creator-seeded rank rotation, ng_clean slot-0 anti-repeat swap, final gate
+
+Find the narrowest place where:
+- pickerEligible clean-core candidates are available, or can be carried forward without changing public API
+- final[] can be adjusted by swap/reservation before final gate
+- candidate count stays stable
+- anti-repeat helper can consume the reserved alternatives
+
+Important:
+Do not simply increase all core_native share globally.
+Do not force clean-core over everything in all slots.
+This is a reservation only to make first-card rotation possible in ng_clean.
+
+Reservation strategy:
+If final[] currently contains fewer than the required number of pickerEligible clean-core entries:
+1. Find the highest-ranked available pickerEligible clean-core candidates not already in final[] by cleanCoreEntryId.
+2. Replace the lowest-priority non-clean-core candidate(s) in final[].
+3. Preserve final[] length.
+4. Re-run or preserve necessary ordering so the slot-0 anti-repeat helper can still select from final[1..].
+5. Do not replace slot 0 directly unless the existing selection logic already chose that.
+6. Prefer replacing lower-ranked pattern_variation entries.
+7. Never replace with a candidate that would fail pickerEligible or gate.
+
+Expected direct outcome:
+The ng_clean final[] should regularly contain:
+- ng_clean_001
+- ng_clean_039 or ng_clean_023
+- at least one additional pickerEligible clean-core entry when available
+
+The memory-exercised QA should then show at least 3 distinct ng_clean slot-0 leaders.
+
+Tests required:
+Add targeted tests proving:
+
+1. ng_clean reservation inserts pickerEligible clean-core alternatives when final[] has too few.
+2. Reservation preserves final[] length.
+3. Reservation preserves candidate identity uniqueness by cleanCoreEntryId.
+4. Reservation does not insert pickerEligible=false candidates.
+5. Reservation does not insert non-clean-core candidates.
+6. Reservation does not affect ng_pidgin.
+7. Reservation does not affect ng_light_pidgin.
+8. Reservation does not affect western.
+9. Reservation is deterministic.
+10. Reservation prefers highest-ranked / highest-quality eligible clean-core candidates.
+11. Reservation replaces lowest-priority non-clean-core candidates first.
+12. Reservation no-ops when final[] already contains enough pickerEligible clean-core candidates.
+13. Reservation no-ops when not enough eligible clean-core candidates exist.
+14. Slot-0 anti-repeat can rotate through at least 3 cleanCoreEntryIds when reservation provides 3 eligible clean-core candidates.
+15. Existing anti-repeat tests still pass.
+16. Full api-server typecheck passes.
+
+Runtime QA:
+Run memory-exercised QA:
+
+- ng_clean_cold: 5 creators × 1 batch × 6 ideas
+- ng_clean_memory: 5 creators × 5 sequential batches × 6 ideas
+- ng_pidgin: 5 creators × 1 batch × 6 ideas
+- ng_light_pidgin: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Use 5 sequential ng_clean memory batches so the anti-repeat helper has enough history to prove 3+ leader rotation.
+
+Metrics:
+For each cohort:
+1. errors
+2. underfill
+3. fallback
+4. source mix
+5. distinct slot-0 leaders
+6. memory writes
+7. memory leakage
+8. cohort leakage
+9. candidate count per batch
+10. final[] clean-core count per batch
+
+ng_clean-specific:
+1. cleanCoreEntryIds present in final[] per batch
+2. pickerEligible clean-core count in final[] per batch
+3. reserved cleanCoreEntryIds per batch
+4. slot-0 cleanCoreEntryId per batch
+5. memory before/after per batch
+6. swap fired true/false
+7. distinct slot-0 leaders per creator
+8. cohort distinct slot-0 leaders
+9. whether at least one id beyond ng_clean_001 and ng_clean_039 reaches slot 0
+10. whether at least 3 distinct slot-0 leaders occur in memory exercise
+11. whether final[] contains at least 2 pickerEligible clean-core entries in all eligible ng_clean batches
+12. preferred: final[] contains 3 pickerEligible clean-core entries when available
+
+Acceptance criteria:
+1. TypeScript clean.
+2. Relevant unit tests pass.
+3. Full api-server suite passes if practical.
+4. No scorer/validator/K/corpus/prompt/API/mobile/DB/schema changes.
+5. No anti-repeat helper rewrite beyond tests or type plumbing if unavoidable.
+6. No dependence on the inert memory-aware per-core demote flag.
+7. No underfill regression.
+8. No fallback regression.
+9. No non-ng_clean memory writes.
+10. No cohort leakage.
+11. ng_clean final[] contains at least 2 pickerEligible clean-core candidates whenever available.
+12. Preferred: ng_clean final[] contains 3 pickerEligible clean-core candidates when available.
+13. ng_clean memory-exercised distinct slot-0 leaders improves from 2 to at least 3.
+14. At least one cleanCoreEntryId beyond ng_clean_001 and ng_clean_039 reaches user-facing slot 0.
+15. Final report clearly explains whether direct clean-core reservation solved the product symptom.
+
+Required output files:
+- .local/N1_FOLLOWUP_NG_CLEAN_FIRST_CARD_CORE_RESERVATION_REPORT.md
+- .local/qa-runs/n1_ng_clean_first_card_core_reservation.json
+- .local/qa-runs/n1_ng_clean_first_card_core_reservation_summary.json
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Root cause confirmed
+3. Implementation summary
+4. Files changed
+5. Tests added/updated
+6. Tests run and results
+7. Runtime QA before/after table
+8. ng_clean final[] clean-core reservation table
+9. ng_clean memory-series table
+10. Slot-0 leader distribution
+11. Safety/regression checks
+12. Remaining gaps
+13. Recommendation for next phase
+
+Stop condition:
+If this requires scorer changes, validator changes, threshold lowering, K changes, corpus additions, API/mobile/DB/schema changes, prompt changes, or a broad selector rewrite, stop and report the exact blocker.
+
+Do not improvise another workaround. This phase is only about direct ng_clean clean-core first-card reservation.
