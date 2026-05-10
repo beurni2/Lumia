@@ -1,0 +1,71 @@
+You are working on Lumina.
+
+Current phase:
+N1-E2E-FIRST-CARD-ROTATION follow-up audit.
+
+Do NOT implement yet.
+
+Context:
+The previous report marked N1-E2E-FIRST-CARD-ROTATION as shipped for slot-0 rotation mechanics, but unresolved issues remain:
+1. ng_clean first-card distinctness is still 1/10.
+2. Overall distinct-hook share did not improve for NG cohorts.
+3. Slots 1–5 still repeat the same catalog winners.
+4. The report appears internally inconsistent: the markdown table says ng_clean pack delivery is 0→0, while the JSON summary indicates ng_clean packDelivery count=20, pct=33.3, distinctEntryIds=4, with ng_clean_001 repeated 10 times.
+
+Audit objective:
+Find the exact cause of:
+- ng_clean band size = 1 at slot 0
+- repeated slots 1–5 catalog winners across NG cohorts
+- the markdown-vs-JSON packDelivery discrepancy
+- whether weak-skeleton quota extension, score smoothing, copy fix, or pack reservation is the correct next surgical move
+
+Hard constraints:
+- No implementation.
+- No validator loosening.
+- No prompt changes.
+- No schema/API/mobile/DB/migration changes.
+- No pack reservation yet.
+- No weak-skeleton demotion yet.
+- No score smoothing yet.
+- No corpus rewrites.
+- Preserve N1 clean-core, pidgin, and light-pidgin cohort isolation.
+
+Audit requirements:
+1. Inspect the runtime QA generator/report code and determine why markdown says ng_clean pack delivery 0→0 while JSON says 20/60.
+2. Trace the exact candidate list for ng_clean before and after willingness sorting for at least 10 cold-start creators.
+3. For each ng_clean batch, report:
+   - slot-0 leader hook
+   - leader willingnessScore
+   - runner-up hooks and willingnessScores
+   - K=10 band members
+   - pickerEligible tier
+   - source
+   - packEntryId / cleanCoreEntryId if present
+   - score dimensions that create the >10 point gap
+4. Trace repeated slots 1–5 for ng_pidgin, ng_light_pidgin, and ng_clean:
+   - repeated hook
+   - source
+   - family/skeleton if available
+   - willingnessScore
+   - whether repeated because of weak skeleton, score dominance, lack of candidate pool diversity, or selector behavior
+5. Confirm whether “one take” bannedFilmingHits are false positives from copy scanner or real policy/UX problems.
+6. Confirm whether shouty hooks in pidgin/light-pidgin are copy issues, selector issues, or acceptable style.
+
+Required output:
+- Executive verdict: PASS / PARTIAL / FAIL for current N1-E2E-FIRST-CARD-ROTATION.
+- Root cause table for each unresolved issue.
+- Exact recommendation for next phase, choosing only one primary next move:
+  A. NG weak-skeleton quota extension
+  B. ng_clean score smoothing / band widening
+  C. copy-only cleanup
+  D. pack reservation
+  E. report/QA bug fix only
+- Include why the other options should not be implemented yet.
+- Include proof commands run and results.
+- Include any code locations inspected.
+
+Acceptance criteria for this audit:
+- No code changes except optional read-only local QA artifacts.
+- Clear explanation of the markdown-vs-JSON packDelivery discrepancy.
+- Clear decision on whether ng_clean has a real quality leader or a scoring artifact.
+- Clear next implementation prompt can be written from the audit without guessing.

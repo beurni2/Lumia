@@ -1043,3 +1043,9 @@ id = "X8XTdbSPtN_pSqAdCIeTa"
 uri = "file://.local/qa-runs/n1_e2e_first_card_rotation.json"
 type = "unspecified"
 title = "Full per-idea JSON (240 ideas)"
+
+[[outputs]]
+id = "4ncPua9sNb3Tc4nlUaW3f"
+uri = "file://.local/N1_E2E_FCR_FOLLOWUP_AUDIT.md"
+type = "text"
+title = "N1-E2E-FIRST-CARD-ROTATION Follow-up Audit"
