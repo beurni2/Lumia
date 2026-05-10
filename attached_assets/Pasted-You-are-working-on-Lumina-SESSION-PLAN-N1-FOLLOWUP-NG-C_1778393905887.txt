@@ -1,0 +1,247 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D
+
+Mode:
+Small scorer-calibration implementation + tests + runtime QA.
+
+Supervisor decision:
+The N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-AUDIT is accepted.
+
+Audit verdict:
+The HQS gate is not too strict; it is too narrow. It under-recognizes clean Nigerian human comedy because the scorer vocabulary misses everyday Nigerian-clean anchors, observational comedy verbs, irregular forms, and object-betrayal anthropomorph patterns.
+
+Authorized implementation:
+Implement Patch D from the audit:
+A. Concrete noun expansion
+B. LOW-tier verb / stemming expansion
+C. Implicit-anthropomorph verb expansion
+
+Do NOT lower PICKER_HQS_FLOOR.
+Do NOT create an ng_clean-only lower eligibility overlay.
+Do NOT implement global floor 45.
+Do NOT change validators.
+Do NOT change selectors.
+Do NOT change rotation helpers.
+Do NOT edit corpus entries.
+Do NOT add new corpus entries in this phase.
+
+Goal:
+Make scoreHookQualityDetailed recognize legitimate human-feeling clean Nigerian comedy without lowering the quality bar.
+
+Expected audit-backed outcome:
+- ng_clean eligible count should lift from 8/61 to approximately 18/61.
+- P2 candidate acceptance should lift from 1/10 to approximately 5/10 under scoring simulation.
+- ng_pidgin should have 0 newly eligible hooks in the sampled control.
+- western should have at most 1 newly eligible hook, and it should be quality-reviewed as legitimate.
+- No increase in aiCliche.
+- No validator changes.
+
+Patch A — Concrete noun expansion:
+Add the following concrete/everyday anchors to the scorer’s concrete noun catalog, preserving existing style and casing conventions:
+
+charger
+printer
+traffic
+rice
+plate
+tailor
+generator
+socket
+doorbell
+password
+transfer
+data
+network
+bucket
+fan
+sticker
+tank
+ringlight
+onion
+light
+pothole
+cable
+fuel
+change
+form
+errand
+balance
+battery
+
+Important:
+Do not add broad abstract nouns.
+Do not add generic emotional states.
+Only add concrete/everyday objects or operational anchors that fit the existing concrete-noun scoring intent.
+
+Patch B — LOW-tier verb / irregular-form expansion:
+Add these verbs to the LOW tier only:
+
+ask
+came
+chose
+ended
+said
+saw
+forgot
+loaded
+slowed
+dimmed
+priced
+assigned
+interrupted
+embarrassed
+humbled
+delayed
+declined
+renewed
+multiplied
+bargain
+bargained
+
+Important:
+Use the LOW tier, not MID/HIGH.
+The goal is recognition, not over-promotion.
+Preserve existing stemming behavior unless a tiny targeted irregular-map helper is already present and safer. If changing stemming is riskier than direct verb additions, prefer direct additions.
+
+Patch C — implicit-anthropomorph verb expansion:
+Add these verbs to the implicit-anthropomorph verb list / regex source:
+
+judged
+mocked
+refused
+slowed
+dimmed
+loaded
+declined
+multiplied
+vanished
+expired
+ended
+embarrassed
+humbled
+delayed
+interrupted
+assigned
+priced
+forgot
+said
+froze
+
+Important:
+Do not make the anthropomorph pattern generic.
+Do not allow any verb to trigger it.
+Only add the audited object-betrayal verbs.
+
+Hard constraints:
+1. No PICKER_HQS_FLOOR change.
+2. No validator changes.
+3. No selector changes.
+4. No K changes.
+5. No pickerEligibility formula change except naturally through HQS score changes.
+6. No corpus edits.
+7. No prompt changes.
+8. No API/mobile/DB/schema changes.
+9. No pack reservation.
+10. No memory changes.
+11. No rotation helper changes.
+12. No ng_clean-only special casing.
+13. No broad scorer redesign.
+14. Keep the diff minimal and limited to hook-quality scorer constants/lists and tests.
+
+Implementation requirements:
+1. Inspect `hookQuality.ts` and identify the exact locations for:
+   - CONCRETE_NOUNS
+   - VERB_LOW or equivalent LOW-tier verb set
+   - IMPLICIT_ANTHROPOMORPH verb list / regex source
+2. Apply Patch D exactly as audited.
+3. Preserve deterministic scoring.
+4. Preserve existing public API shape.
+5. Add or update targeted tests proving:
+   - added concrete nouns receive concrete credit
+   - added LOW verbs receive LOW visceral credit
+   - added implicit-anth verbs trigger only in the intended `the <subject> <verb>` object-agent pattern
+   - unrelated bland hooks still do not cross HQS ≥ 50
+   - `PICKER_HQS_FLOOR` remains 50
+   - aiCliche behavior unchanged
+6. Add regression tests for known examples:
+   - `The sticker ended the serious meeting.`
+   - `The tank chose drama at bath time.`
+   - `The change came with life advice.`
+   - `The errand came dressed as conversation.`
+   - `The form asked for my entire history.`
+   - `The chat said quick question and formed a committee.`
+   - `The generator stopped and the house started hearing secrets.`
+   - `The screen dimmed and I started bargaining.`
+7. Tests should assert the expected direction of lift without hardcoding brittle internals unnecessarily.
+
+Runtime QA requirements:
+After implementation, rerun the calibration audit or equivalent scorer audit and produce:
+- ng_clean eligible count before/after
+- P2 candidate eligible count before/after
+- ng_pidgin sampled eligible count before/after
+- western sampled eligible count before/after
+- list of newly eligible ng_clean entries
+- list of newly eligible non-ng entries, if any
+- quality review of newly eligible entries
+
+Then run the cold-start sweep:
+- ng_clean: 10 batches × 6 ideas
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Measure:
+1. ng_clean pickerEligible count
+2. ng_clean pickerEligible share
+3. ng_clean avg eligible candidates per cold-start batch
+4. ng_clean distinct user-facing slot-0 leaders
+5. ng_clean top slot-0 hook share
+6. ng_clean K-band size at slot 0 for K=10/12/15/20/25
+7. distinct hooks per cohort
+8. per-slot distinctness per cohort
+9. underfill batches
+10. fallback batches
+11. scenarioCoherence failures
+12. banned/shouty scan hits
+13. cross-cohort leakage
+14. any unexpected western/pidgin regression
+
+Acceptance criteria:
+1. Minimal diff.
+2. Typecheck clean.
+3. Relevant hook-quality tests pass.
+4. Relevant ng_clean tests pass.
+5. Full api-server suite passes if practical.
+6. `PICKER_HQS_FLOOR` remains 50.
+7. No validator/scorer-threshold/selector/rotation/corpus/API/mobile/DB/schema changes beyond the approved scorer vocabulary/pattern constants.
+8. ng_clean eligible count improves materially, expected around 18/61.
+9. ng_clean avg eligible candidates per cold-start batch improves materially.
+10. ng_clean user-facing slot-0 diversity improves or report explains why not.
+11. ng_pidgin has no meaningful regression.
+12. western has no meaningful regression.
+13. Any newly eligible hook outside ng_clean is listed and quality-reviewed.
+14. Final report clearly states whether Patch D should ship.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_hqs_calibration_patch_d.json`
+- `.local/qa-runs/n1_ng_clean_hqs_calibration_patch_d_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Exact scorer constants changed
+3. Tests added/updated
+4. Tests run and results
+5. Calibration before/after table
+6. Newly eligible ng_clean hooks
+7. Newly eligible non-ng hooks
+8. Runtime QA before/after table
+9. Safety/regression checks
+10. Remaining gaps
+11. Recommendation for next phase
+
+Stop condition:
+If implementing Patch D requires changing thresholds, validators, selectors, K, rotation helpers, corpus entries, API, mobile, DB, schema, or prompt behavior, stop and report. Do not improvise a broader redesign.

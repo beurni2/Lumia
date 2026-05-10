@@ -176,6 +176,32 @@ const VERB_LOW: ReadonlySet<string> = new Set([
   "start",
   "return",
   "come",
+  // PATCH D — N1 ng_clean calibration (BI 2026-05-10). LOW-tier
+  // additions for observational comedy verbs and irregular past
+  // forms that did not stem to existing entries. Recognition only —
+  // LOW tier (8 pts) avoids over-promotion. See
+  // .local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md.
+  "ask",
+  "came",
+  "chose",
+  "ended",
+  "said",
+  "saw",
+  "forgot",
+  "loaded",
+  "slowed",
+  "dimmed",
+  "priced",
+  "assigned",
+  "interrupted",
+  "embarrassed",
+  "humbled",
+  "delayed",
+  "declined",
+  "renewed",
+  "multiplied",
+  "bargain",
+  "bargained",
 ]);
 
 const VERB_BLAND: ReadonlySet<string> = new Set([
@@ -355,8 +381,15 @@ const EXPLICIT_ANTHROPOMORPH = [
  *  verb set with the family-action verbs (ghosted / abandoned /
  *  faked / etc.) so curated voice templates that use the family
  *  verb in the X-as-actor pattern register as anthropomorph. */
+// PATCH D — N1 ng_clean calibration (BI 2026-05-10). The trailing
+// 20 verbs (judged..froze) extend the implicit-anthropomorph
+// recognition list with object-betrayal verbs that surfaced from
+// the ng_clean corpus audit. The structural pattern remains
+// identical (`the <noun-phrase> <verb>`) — only the verb-list
+// alternation widens. See
+// .local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md.
 const IMPLICIT_ANTHROPOMORPH =
-  /\bthe\s+[a-z][a-z\-\s]{1,30}?\s+(?:won|beat|killed|ruined|ate|broke|hit|revealed|spoke|texted|called|decided|voted|watched|laughed|cried|left|started|stopped|happened|came|returned|whispered|told|asked|answered|lied|caught|scared|haunted|stalked|kept|chose|knew|saw|wanted|needed|loved|hated|ghosted|abandoned|faked|betrayed|ditched|performed|exposed|spiraled|avoided|overthought|drained|demolished|sabotaged|gaslit|seduced|hijacked)\b/;
+  /\bthe\s+[a-z][a-z\-\s]{1,30}?\s+(?:won|beat|killed|ruined|ate|broke|hit|revealed|spoke|texted|called|decided|voted|watched|laughed|cried|left|started|stopped|happened|came|returned|whispered|told|asked|answered|lied|caught|scared|haunted|stalked|kept|chose|knew|saw|wanted|needed|loved|hated|ghosted|abandoned|faked|betrayed|ditched|performed|exposed|spiraled|avoided|overthought|drained|demolished|sabotaged|gaslit|seduced|hijacked|judged|mocked|refused|slowed|dimmed|loaded|declined|multiplied|vanished|expired|ended|embarrassed|humbled|delayed|interrupted|assigned|priced|forgot|said|froze)\b/;
 
 function anthropomorphScore(hookLower: string): number {
   for (const re of EXPLICIT_ANTHROPOMORPH) {
@@ -471,6 +504,39 @@ const CONCRETE_NOUNS: ReadonlySet<string> = new Set([
   "spoon",
   "bowl",
   "mug",
+  // PATCH D — N1 ng_clean calibration (BI 2026-05-10). Concrete
+  // everyday-anchor nouns observed as ng_clean entry anchors that
+  // currently miss the catalog. All concrete physical objects /
+  // operational anchors — no abstract emotional states. See
+  // .local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md.
+  "charger",
+  "printer",
+  "traffic",
+  "rice",
+  "plate",
+  "tailor",
+  "generator",
+  "socket",
+  "doorbell",
+  "password",
+  "transfer",
+  "data",
+  "network",
+  "bucket",
+  "fan",
+  "sticker",
+  "tank",
+  "ringlight",
+  "onion",
+  "light",
+  "pothole",
+  "cable",
+  "fuel",
+  "change",
+  "form",
+  "errand",
+  "balance",
+  "battery",
 ]);
 
 function concretenessScore(hookLower: string): number {

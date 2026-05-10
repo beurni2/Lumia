@@ -62,7 +62,12 @@ describe("cross-region no-op (item 1)", () => {
     ["my inbox finally won", 32],
     ["treadmill betrayed me at 6am", 70],
     ["i tried meal prep and the freezer disagreed", 35],
-    ["subscription renewed itself like a horror movie villain", 67],
+    // PATCH D update (BI 2026-05-10): `renewed` was added to
+    // VERB_LOW (8 pts). Pre-patch this hook scored 67 with visceral=5
+    // (no recognized verb); post-patch visceral=8 (LOW). Delta +3.
+    // The English scorer is intentionally — and correctly — slightly
+    // more recognising of observational comedy verbs after Patch D.
+    ["subscription renewed itself like a horror movie villain", 70],
   ];
 
   for (const [hook, expected] of ENGLISH_SCORER_SNAPSHOTS) {

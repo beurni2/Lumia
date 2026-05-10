@@ -1169,3 +1169,21 @@ id = "ixW-M1n07TkYSHFy9CIoa"
 uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_audit.json"
 type = "unspecified"
 title = "Full per-row dump — 200 hooks scored under 7 patches"
+
+[[outputs]]
+id = "wMgeUYrz3EXQHOg2mKtJw"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_PATCH_D_REPORT.md"
+type = "text"
+title = "Patch D Implementation Report"
+
+[[outputs]]
+id = "13t1EwU3LYYENVxaprN2y"
+uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_patch_d_summary.json"
+type = "unspecified"
+title = "Patch D Runtime QA Summary"
+
+[[outputs]]
+id = "EGxN-wc_z2NsYUrK0d63N"
+uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_patch_d.json"
+type = "unspecified"
+title = "Patch D Per-Row Evidence"
