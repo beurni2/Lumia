@@ -150,15 +150,21 @@ describe("canActivateNigerianCleanCorePack — gate truth-table", () => {
 // ---------------------------------------------------------------- //
 
 describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant", () => {
-  it("ships exactly 71 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + N1-FOLLOWUP-IMPLICIT-ANTHROPOMORPH-HQS-FIX: 7)", () => {
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(71);
+  // Post N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-FEED-NO-AUTHORING (BI 2026-05-10):
+  //   P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH
+  //   surviving: 2 = 66 entries. Slot ids ng_clean_065..069 were
+  //   user-rejected for cohort fit and removed from the corpus; their
+  //   numeric slots are intentionally GAPPED (070, 071 retained at
+  //   their original ids — see corpus comment block).
+  it("ships exactly 66 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH-SURVIVING: 2)", () => {
+    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(66);
   });
 
   it("is a frozen array (cannot be mutated by callers)", () => {
     expect(Object.isFrozen(NIGERIAN_CLEAN_CORE_ENTRIES)).toBe(true);
   });
 
-  it("module loads without throwing (boot-time validator passes for all 64)", async () => {
+  it("module loads without throwing (boot-time validator passes for all 66)", async () => {
     // Re-import to assert the module-load assertion does not throw.
     await expect(
       import("../nigerianCleanCorePack.js"),
@@ -174,9 +180,9 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(failures).toEqual([]);
   });
 
-  it("ids are ng_clean_001..ng_clean_071, all distinct", () => {
+  it("ids are ng_clean_001..ng_clean_064 + ng_clean_070..ng_clean_071 (intentional gap at 065-069), all distinct", () => {
     const ids = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.id);
-    expect(new Set(ids).size).toBe(71);
+    expect(new Set(ids).size).toBe(66);
     expect(ids[0]).toBe("ng_clean_001");
     expect(ids[29]).toBe("ng_clean_030");
     expect(ids[30]).toBe("ng_clean_031");
@@ -184,34 +190,73 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(ids[60]).toBe("ng_clean_061");
     expect(ids[61]).toBe("ng_clean_062");
     expect(ids[63]).toBe("ng_clean_064");
-    expect(ids[64]).toBe("ng_clean_065");
-    expect(ids[70]).toBe("ng_clean_071");
+    // Gap: 065..069 removed. Index 64 is now ng_clean_070, index 65 is 071.
+    expect(ids[64]).toBe("ng_clean_070");
+    expect(ids[65]).toBe("ng_clean_071");
+    // Hard guarantee: none of the rejected ids appear.
+    const idSet = new Set(ids);
+    for (const rejected of [
+      "ng_clean_065",
+      "ng_clean_066",
+      "ng_clean_067",
+      "ng_clean_068",
+      "ng_clean_069",
+    ]) {
+      expect(idSet.has(rejected)).toBe(false);
+    }
   });
 
-  it("draftIds are CLEAN-DRAFT-001..CLEAN-DRAFT-071, all distinct", () => {
+  it("draftIds are CLEAN-DRAFT-001..064 + CLEAN-DRAFT-070..071 (intentional gap at 065-069), all distinct", () => {
     const draftIds = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.draftId);
-    expect(new Set(draftIds).size).toBe(71);
+    expect(new Set(draftIds).size).toBe(66);
     expect(draftIds[0]).toBe("CLEAN-DRAFT-001");
     expect(draftIds[29]).toBe("CLEAN-DRAFT-030");
     expect(draftIds[30]).toBe("CLEAN-DRAFT-031");
     expect(draftIds[59]).toBe("CLEAN-DRAFT-060");
     expect(draftIds[60]).toBe("CLEAN-DRAFT-061");
     expect(draftIds[63]).toBe("CLEAN-DRAFT-064");
-    expect(draftIds[64]).toBe("CLEAN-DRAFT-065");
-    expect(draftIds[70]).toBe("CLEAN-DRAFT-071");
+    expect(draftIds[64]).toBe("CLEAN-DRAFT-070");
+    expect(draftIds[65]).toBe("CLEAN-DRAFT-071");
+    const draftSet = new Set(draftIds);
+    for (const rejected of [
+      "CLEAN-DRAFT-065",
+      "CLEAN-DRAFT-066",
+      "CLEAN-DRAFT-067",
+      "CLEAN-DRAFT-068",
+      "CLEAN-DRAFT-069",
+    ]) {
+      expect(draftSet.has(rejected)).toBe(false);
+    }
   });
 
   it("hooks and howToFilm are intra-catalog distinct", () => {
     const hooks = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.hook);
     const howTo = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.howToFilm);
-    expect(new Set(hooks).size).toBe(71);
-    expect(new Set(howTo).size).toBe(71);
+    expect(new Set(hooks).size).toBe(66);
+    expect(new Set(howTo).size).toBe(66);
+    // None of the 9 rejected hook strings (5 imported + 4 never imported)
+    // appear in the corpus after the cleanup.
+    const lc = new Set(hooks.map((h) => h.toLowerCase().trim()));
+    const REJECTED_HOOKS_LC = [
+      "the bank app smiled before rejecting my confidence.",
+      "the pos receipt printed slower than my excuses.",
+      "the group chat appointed me without discussion.",
+      "the doorbell rang while i was acting serious.",
+      "the email subject already sounded like extra work.",
+      "the delivery code made me sound suspicious outside.",
+      "the room door opened during my serious content.",
+      "the extension box turned charging into family politics.",
+      "the front camera corrected my whole confidence.",
+    ];
+    for (const h of REJECTED_HOOKS_LC) {
+      expect(lc.has(h)).toBe(false);
+    }
   });
 
-  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3 + P3-HUMAN-FIRST: 2026-05-10)", () => {
+  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3 + P3-HUMAN-FIRST + surviving anthropomorph: 2026-05-10)", () => {
     const ALLOWED_STAMPS = new Set([
       "BI-CLEAN 2026-05-09", // P1 (1..30) and P2 (31..60)
-      "BI-CLEAN 2026-05-10", // P3 (61) and P3-HUMAN-FIRST (62..64)
+      "BI-CLEAN 2026-05-10", // P3 (61), P3-HUMAN-FIRST (62..64), surviving anth (070,071)
     ]);
     for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
       expect(ALLOWED_STAMPS.has(entry.reviewedBy)).toBe(true);
@@ -223,8 +268,9 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
         "BI-CLEAN 2026-05-09",
       );
     }
-    // Entries 61..71 (the P3 + P3-HUMAN-FIRST + IMPLICIT-ANTHROPOMORPH imports) MUST carry the new packet stamp.
-    for (let i = 60; i < 71; i++) {
+    // Entries 61..66 (P3 + P3-HUMAN-FIRST + 2 surviving IMPLICIT-ANTHROPOMORPH)
+    // MUST carry the new packet stamp.
+    for (let i = 60; i < 66; i++) {
       expect(NIGERIAN_CLEAN_CORE_ENTRIES[i]!.reviewedBy).toBe(
         "BI-CLEAN 2026-05-10",
       );
@@ -349,7 +395,9 @@ describe("classifyNigerianCleanCoreEntryFailure — fixture cases", () => {
 
 // ---------------------------------------------------------------- //
 // PHASE N1-CLEAN-CORE-P1 (BI-CLEAN 2026-05-09) — runtime validator   //
-// proof: every one of the 61 shipped entries (P1: 30 + P2: 30 + P3: 1) //
+// proof: every one of the 66 shipped entries (P1:30 + P2:30 + P3:1 +    //
+// P3-HUMAN-FIRST:3 + IMPLICIT-ANTHROPOMORPH-SURVIVING:2; the 5         //
+// user-rejected ng_clean_065..069 entries were removed from the corpus)//
 // must clear the FULL                                                //
 // production validator path inside `authorPackEntryAsIdea`           //
 // (ideaSchema + validateScenarioCoherence + validateComedy +         //
@@ -400,7 +448,7 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — runtime validator pass (architect P1 f
     });
   }
 
-  it("all 61 entries pass simultaneously (aggregate)", () => {
+  it("all 66 entries pass simultaneously (aggregate)", () => {
     const failed: string[] = [];
     for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
       const projectedDomain =

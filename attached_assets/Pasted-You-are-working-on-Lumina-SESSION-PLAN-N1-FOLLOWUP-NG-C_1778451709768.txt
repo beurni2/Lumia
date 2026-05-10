@@ -1,0 +1,254 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-FEED-NO-AUTHORING
+
+Mode:
+Product simplification + cleanup + implementation + tests + runtime QA.
+
+Supervisor decision:
+Stop overbuilding slot-0 selection. For ng_clean, slot 0 should be fed directly from a curated existing clean-core corpus hero pool instead of relying on the full generated final[] picker to accidentally surface the right entries.
+
+Critical authorship rule:
+Do NOT create, rewrite, improve, generate, or invent any ng_clean corpus entries.
+
+The coding agent must only:
+1. Remove explicitly rejected hooks listed by the supervisor.
+2. Implement the ng_clean slot-0 corpus-feed mechanism.
+3. Build the hero pool only from existing supervisor-approved corpus entries.
+4. Score / validate / filter existing entries.
+5. Run tests and QA.
+6. Report which existing entries qualify for the hero pool.
+
+If the current approved corpus does not contain enough strong hero entries to reach 5+ slot-0 leaders, report that as a corpus-authoring need. Do not fill the gap yourself.
+
+Any future entries must be supplied by the supervisor/user in a separate packet.
+
+Current context:
+- Patch D shipped.
+- Slot-0 anti-repeat swap shipped.
+- First-card core reservation exists as staging-flagged infrastructure, but did not reach the deeper product goal.
+- Implicit-anthropomorph HQS fix shipped and imported ng_clean_065..071.
+- The user now rejects several hooks from that imported/test/example set on taste grounds.
+- The product direction is now simpler: use a curated blessed clean-core corpus feed directly for ng_clean slot 0.
+
+Important user taste correction:
+The following hooks are NOT good enough and must be removed from product-facing corpus/imported entries and must not remain as positive quality examples:
+
+- “The bank app smiled before rejecting my confidence.”
+- “The POS receipt printed slower than my excuses.”
+- “The group chat appointed me without discussion.”
+- “The doorbell rang while I was acting serious.”
+- “The delivery code made me sound suspicious outside.”
+- “The room door opened during my serious content.”
+- “The extension box turned charging into family politics.”
+- “The email subject already sounded like extra work.”
+- “The front camera corrected my whole confidence.”
+
+Reason:
+They are too weak / too scorer-shaped / not funny enough for Lumina’s first-card standard. Do not use them as taste references.
+
+Important:
+The user is rejecting these specific hooks for taste. Do not infer permission to author replacements. Do not invent new hooks.
+
+Part A — Cleanup:
+1. Inspect `nigerianCleanCorePack.ts`.
+2. Remove any corpus entries whose hook exactly matches one of the rejected hooks above.
+3. If any rejected hooks exist only in tests as positive examples, remove them or convert them to negative / non-hero examples.
+4. Do not keep these hooks in fixture lists, “positive object-as-agent examples,” slot-0 examples, hero-pool examples, or taste references.
+5. If removing entries changes corpus count / id assertions, update tests honestly.
+6. Do not leave dead test expectations that imply these hooks are good.
+7. Do not rewrite removed entries.
+8. Do not replace removed entries.
+9. Do not renumber existing entries unless the current corpus convention absolutely requires contiguous ids and tests prove it. Prefer preserving existing ids and updating count/list assertions honestly.
+10. If any of the rejected hooks are not present in the corpus, report that clearly.
+
+Scorer note:
+Do not remove the implicit-anthropomorph verb support itself unless tests prove the only reason it exists is these rejected examples and removal is necessary. The user is rejecting specific hooks, not necessarily every verb. Preserve useful scorer recognition if it still supports stronger existing entries.
+
+Part B — Direct ng_clean slot-0 corpus feed:
+Implement a narrow ng_clean-only slot-0 hero-feed step.
+
+Behavior:
+When:
+- region === "nigeria"
+- languageStyle === "clean"
+- count >= 1
+- creator id exists
+- regenerate === false, if that matches existing cold-start/local-first behavior
+
+Then:
+1. Build an internal slot0HeroPool from existing `NIGERIAN_CLEAN_CORE_ENTRIES`.
+2. Include only entries that:
+   - already exist in the cleaned corpus
+   - are validator-clean
+   - score HQS >= PICKER_HQS_FLOOR
+   - have approved reviewer stamp
+   - are not in the rejected-hook list above
+   - can author cleanly through the existing clean-core authoring path
+3. Exclude recent slot-0 cleanCoreEntryIds from creator memory where possible.
+4. Select one hero deterministically:
+   - prefer fresh / not-recent
+   - prefer higher HQS
+   - use creator seed / stable tie-break only for deterministic variety
+   - no randomness
+5. Author the selected existing corpus entry through the same production-safe idea authoring path used for clean-core entries.
+6. Place the selected idea in slot 0.
+7. Preserve the rest of the generated batch in slots 1..N.
+8. Preserve final candidate count.
+9. Record the selected cleanCoreEntryId in the existing recent slot-0 clean-core memory.
+10. If no eligible fresh hero exists, fall back to existing pipeline behavior.
+
+This is not a broad generator rewrite. This is a slot-0 cold-start guarantee.
+
+Hard constraints:
+1. No new corpus entries.
+2. No rewritten corpus entries.
+3. No generated replacement hooks.
+4. No lowering `PICKER_HQS_FLOOR`.
+5. No validator loosening.
+6. No K changes.
+7. No prompt changes.
+8. No API/mobile/DB/schema changes.
+9. No memory schema changes.
+10. No random behavior.
+11. No process-global mutable state.
+12. No fallback increase.
+13. No underfill.
+14. No cohort leakage.
+15. Apply only to ng_clean.
+16. Do not affect ng_pidgin, ng_light_pidgin, western, india, philippines, or null cohorts.
+17. Do not use rejected hooks as product-facing examples.
+18. Do not depend on the inert memory-aware per-core demote flag.
+19. Existing reservation infrastructure may remain, but slot-0 corpus feed should be the direct source of truth for ng_clean first card when active.
+
+Design requirements:
+- Prefer a pure helper, for example:
+  `selectNgCleanSlot0CorpusHero(...)`
+  or
+  `applyNgCleanSlot0CorpusFeed(...)`
+- Keep it deterministic and testable.
+- Do not fabricate entries.
+- Do not use sub-floor hooks.
+- Do not insert weak corpus entries into slot 0.
+- Build from existing cleaned corpus only.
+- Use existing authoring / validation paths where possible.
+- Preserve the existing anti-repeat memory discipline.
+
+Slot-0 hero-pool target:
+The pool must be built only from existing ng_clean clean-core entries that remain after cleanup and pass the hero criteria.
+
+Do not author new entries.
+Do not rewrite existing entries.
+Do not create replacement hooks.
+Do not generate fallback corpus entries.
+
+If fewer than 3 eligible hero entries remain, stop and report.
+If 3–5 eligible hero entries remain, implement and QA with that pool.
+If more than 5 eligible hero entries remain, use all qualifying entries subject to memory/no-repeat logic.
+
+Product target:
+- Immediate: at least 3 distinct ng_clean slot-0 leaders in memory-walk QA, if the existing cleaned corpus supports it.
+- Preferred: 5+ distinct ng_clean slot-0 leaders, if the existing cleaned corpus supports it.
+- Long-term: design should support 10–20+ hero entries as corpus quality grows, but do not author those entries now.
+
+Tests required:
+Add or update tests proving:
+1. Rejected hooks are not present in the clean-core corpus after cleanup.
+2. Rejected hooks are not used as positive object-as-agent examples.
+3. Rejected hooks are not used as hero-pool examples.
+4. ng_clean slot-0 hero pool includes only existing validator-clean + HQS>=50 + approved entries.
+5. Hero pool excludes rejected hooks.
+6. Selector excludes recent cleanCoreEntryIds when alternatives exist.
+7. Selector falls back gracefully when all heroes are recent.
+8. Selection is deterministic for same creator / memory / pool.
+9. Different creator seeds can produce different valid heroes when ties exist.
+10. Slot-0 feed preserves batch length.
+11. Slot-0 feed does not affect slots 1..N except moving/replacing slot 0 as intended.
+12. Non-ng_clean cohorts are unchanged.
+13. ng_pidgin/light_pidgin/western do not read/write ng_clean slot-0 memory through this feed.
+14. No sub-floor entry can be selected.
+15. Existing anti-repeat tests still pass.
+16. Existing corpus integrity tests pass.
+17. No new entries are introduced by this phase.
+
+Runtime QA:
+Run memory-walk QA:
+
+- ng_clean_cold: 5 creators × 1 batch × 6 ideas
+- ng_clean_memory: 5 creators × 10 sequential batches × 6 ideas
+- ng_pidgin: 5 creators × 1 batch × 6 ideas
+- ng_light_pidgin: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Metrics:
+For each cohort:
+1. errors
+2. underfills
+3. fallback batches
+4. source mix
+5. distinct slot-0 leaders
+6. memory writes
+7. memory leakage
+8. cohort leakage
+9. candidate count per batch
+
+ng_clean-specific:
+1. slot0HeroPool size
+2. hero IDs included
+3. hero IDs excluded and reasons
+4. rejected hooks absent
+5. slot-0 cleanCoreEntryId per batch
+6. memory before/after per batch
+7. distinct slot-0 leaders per creator
+8. cohort distinct slot-0 leaders
+9. top slot-0 share
+10. whether any weak/rejected hook reached slot 0
+11. whether exact rejected hooks appear anywhere in shipped ng_clean ideas
+12. whether a corpus-authoring gap remains
+
+Acceptance criteria:
+1. TypeScript clean.
+2. Relevant unit tests pass.
+3. Full api-server suite passes if practical.
+4. Rejected hooks removed from corpus/product-facing positive tests.
+5. No new or rewritten corpus entries.
+6. No scorer/validator/K/prompt/API/mobile/DB/schema changes.
+7. No underfill regression.
+8. No fallback regression.
+9. No cohort leakage.
+10. No control-cohort memory leakage.
+11. ng_clean memory-walk distinct slot-0 leaders >= 3, if the cleaned existing hero pool supports it.
+12. Preferred: ng_clean memory-walk distinct slot-0 leaders >= 5, if the cleaned existing hero pool supports it.
+13. No rejected hook reaches slot 0.
+14. No rejected hook appears anywhere in shipped ng_clean ideas.
+15. Final report clearly states whether direct corpus feed solves the slot-0 reliability issue using only existing approved entries.
+16. If it does not, final report must state exactly how many additional supervisor-authored high-quality entries are needed. Do not write them.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_FEED_NO_AUTHORING_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_feed_no_authoring.json`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_feed_no_authoring_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Cleanup summary
+3. Rejected hooks removed / remaining references
+4. Implementation summary
+5. Files changed
+6. Tests added/updated
+7. Tests run and results
+8. Slot0HeroPool table
+9. Runtime QA table
+10. ng_clean memory-walk slot-0 series
+11. Safety/regression checks
+12. Corpus-authoring gap, if any
+13. Recommendation for next phase
+
+Stop condition:
+If solving slot-0 diversity requires new or rewritten corpus entries, stop and report the exact number and type of entries needed. Do not write them.
+
+If this requires lowering the floor, loosening validators, schema changes, API/mobile changes, prompt changes, random behavior, or broad generator rewrite, stop and report.
+
+Do not improvise another workaround. This phase is a simple product guarantee:
+ng_clean slot 0 comes from an existing curated high-quality corpus feed, while the rest of the batch remains generated normally.

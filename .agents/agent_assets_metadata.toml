@@ -1283,3 +1283,21 @@ id = "5ImUqVlHguuGyfLRI0kTR"
 uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_IMPLICIT_ANTHROPOMORPH_HQS_FIX_REPORT.md"
 type = "text"
 title = "N1-FOLLOWUP-NG-CLEAN-IMPLICIT-ANTHROPOMORPH-HQS-FIX Report"
+
+[[outputs]]
+id = "7O0iFXH0LH853T1jjFpTM"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_FEED_NO_AUTHORING_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP NG-CLEAN Slot-0 Corpus-Feed (No Authoring) — Report"
+
+[[outputs]]
+id = "QQ4sOIII8cowmhZHz-4UP"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_feed_no_authoring_summary.json"
+type = "unspecified"
+title = "QA Summary JSON"
+
+[[outputs]]
+id = "E76QuqvT8_74ZQdxnyZnT"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_feed_no_authoring.json"
+type = "unspecified"
+title = "QA Full JSON"

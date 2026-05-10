@@ -86,17 +86,21 @@ describe("Implicit-anth HQS fix — human-subject negative carriers do NOT trigg
 });
 
 describe("Implicit-anth HQS fix — supervisor-cited positive examples lift over PICKER_HQS_FLOOR", () => {
-  // Each hook is taken verbatim from the session-plan supervisor
-  // examples (`The bank app smiled before rejecting my confidence.`
-  // etc.). They must clear the picker floor of 50 with the patch
-  // applied — that is the entire point of the patch.
+  // Each hook is taken verbatim from the surviving subset of the
+  // original supervisor packet. Five hooks (bank-app-smiled,
+  // POS-receipt-printed, group-chat-appointed, doorbell-rang,
+  // email-subject-sounded) were user-rejected for cohort fit and
+  // removed from the corpus per phase
+  // N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-FEED-NO-AUTHORING; they are
+  // also removed from these positives so the test surface no longer
+  // anchors on rejected creative copy. The verb-alternation patch
+  // (smiled / printed / appointed / rang / sounded / arrived) is
+  // preserved — these two retained ng_clean_070 + 071 hooks must
+  // still clear the picker floor of 50, which is what this block
+  // guarantees.
   const POSITIVES: ReadonlyArray<{ hook: string; family: "absurd_escalation" }> = [
-    { hook: "The bank app smiled before rejecting my confidence.", family: "absurd_escalation" },
-    { hook: "The POS receipt printed slower than my excuses.",     family: "absurd_escalation" },
-    { hook: "The group chat appointed me without discussion.",     family: "absurd_escalation" },
-    { hook: "The doorbell rang while I was acting serious.",       family: "absurd_escalation" },
-    { hook: "The email subject already sounded like extra work.",  family: "absurd_escalation" },
-    { hook: "The calendar reminder arrived like family intervention.", family: "absurd_escalation" },
+    { hook: "The transfer narration sounded richer than my balance.",     family: "absurd_escalation" },
+    { hook: "The calendar reminder arrived like family intervention.",    family: "absurd_escalation" },
   ];
   for (const { hook, family } of POSITIVES) {
     it(`'${hook}' clears PICKER_HQS_FLOOR (>=50)`, () => {
@@ -152,9 +156,13 @@ describe("Implicit-anth HQS fix — human-noun negative lookahead (post-architec
     });
   }
 
-  it("non-human compound subject still receives credit ('the bank app smiled')", () => {
+  it("non-human compound subject still receives credit ('the transfer narration sounded')", () => {
+    // Original example used the user-rejected 'the bank app smiled'
+    // hook; replaced with the surviving ng_clean_070 hook that
+    // exercises the same compound-subject + alternation-verb shape
+    // (compound-noun head 'the transfer narration' + verb 'sounded').
     const detail = scoreHookQualityDetailed(
-      "the bank app smiled before rejecting my confidence.",
+      "the transfer narration sounded richer than my balance.",
       "absurd_escalation",
     );
     expect(detail.anthropomorph).toBeGreaterThanOrEqual(12);
@@ -220,8 +228,12 @@ describe("Implicit-anth HQS fix — gaming-guard / quality-bar invariants", () =
   it("score remains 0..100 bounded post-patch", () => {
     for (const hook of [
       "",
-      "the bank app smiled before rejecting my confidence.",
-      "the email subject already sounded like extra work and the printer printed",
+      // Original used 'the bank app smiled' + 'the email subject already sounded';
+      // both are user-rejected hooks (now removed from the corpus). Replaced with
+      // the surviving ng_clean_070 + 071 hooks so this bound check still exercises
+      // a compound-subject alternation-verb hook + a longer composite carrier.
+      "the transfer narration sounded richer than my balance.",
+      "the calendar reminder arrived like family intervention and the printer printed",
     ]) {
       const s = scoreHookQuality(hook, "self_betrayal");
       expect(s).toBeGreaterThanOrEqual(0);

@@ -158,6 +158,7 @@ import {
   applyNgCleanSlot0AntiRepeatSwap,
   resolveCleanCoreEntryIdByHook,
 } from "./nigerianCleanCoreSlot0AntiRepeatSwap.js";
+import { applyNgCleanSlot0CorpusFeed } from "./nigerianCleanCoreSlot0CorpusFeed.js";
 import {
   applyNgCleanFirstCardCoreReservation,
   isNgCleanFirstCardReservationEnabled,
@@ -6274,11 +6275,47 @@ export async function runHybridIdeator(
           "ng_clean.slot0_anti_repeat_swap_applied",
         );
       }
-      // Record FINAL slot-0 cleanCoreEntryId (post-swap or original)
-      // into the per-creator memory so the next ng_clean batch sees
-      // an updated recent set. Fire-and-forget — write failures are
-      // logged + swallowed inside the helper. Mirrors the pack
-      // memory write pattern at L5389.
+      // PHASE N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-FEED-NO-AUTHORING
+      // (BI 2026-05-10) — deterministic ng_clean-only slot-0 hero
+      // promotion. Authors a fresh hero entry directly from the
+      // existing curated `NIGERIAN_CLEAN_CORE_ENTRIES` via the
+      // production `authorPackEntryAsIdea` validator path (no
+      // validator/floor/K/prompt/API/mobile/DB/schema changes), and
+      // replaces slot 0 in-place. Slots 1..N preserved bit-identical.
+      // Runs AFTER the anti-repeat swap so the swap's no-op cases
+      // still benefit from the swap's existing telemetry path, and
+      // BEFORE the per-creator memory write below so the freshly
+      // promoted hero entry id is the value persisted into recent
+      // memory (next batch sees it as "recent" and selects a
+      // different fresh hero — deterministic per-creator rotation).
+      const corpusFeedResult = applyNgCleanSlot0CorpusFeed(
+        final,
+        {
+          creatorId: cidForSlot0Swap,
+          recentSlot0CleanCoreEntryIds,
+        },
+        regenerateSalt ?? 0,
+      );
+      if (corpusFeedResult.applied && corpusFeedResult.detail) {
+        final = corpusFeedResult.final.slice();
+        logger.info(
+          {
+            creatorId: cidForSlot0Swap,
+            heroEntryId: corpusFeedResult.detail.heroEntryId,
+            heroHookQualityScore:
+              corpusFeedResult.detail.heroHookQualityScore,
+            replacedHook: corpusFeedResult.detail.replacedHook,
+            fellBackToFullPool:
+              corpusFeedResult.detail.fellBackToFullPool,
+          },
+          "ng_clean.slot0_corpus_feed_applied",
+        );
+      }
+      // Record FINAL slot-0 cleanCoreEntryId (post-corpus-feed,
+      // post-swap, or original) into the per-creator memory so the
+      // next ng_clean batch sees an updated recent set. Fire-and-
+      // forget — write failures are logged + swallowed inside the
+      // helper. Mirrors the pack memory write pattern at L5389.
       const finalSlot0EntryId = resolveCleanCoreEntryIdByHook(
         final[0]?.idea.hook,
       );
