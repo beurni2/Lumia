@@ -1,0 +1,171 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CORE-P2.1 — implement stride-only rotation coverage tweak.
+
+Context:
+N1-CLEAN-CORE-P2 shipped:
+- 60 Nigerian clean-English entries live.
+- 60/60 clear full validator chain.
+- P1 entries 001–030 untouched.
+- P2 entries 031–060 shipped.
+- Full api-server suite previously passed.
+- TypeScript clean.
+- Nigerian pidgin/light-pidgin pack untouched.
+- Regional-decoration untouched.
+- API/mobile/schema/DB unchanged.
+
+P2 runtime result:
+- nigeria/clean delivery: 150/150 = 100%.
+- Quality: 25/25 GOOD_NG_CLEAN.
+- pidgin/mock/stereotype/shouty hits: 0.
+- decoration leaks: 0.
+- family-verb/coherence/structural failures: 0.
+- non-target clean-core leaks: 0.
+- Diversity bottleneck:
+  - distinct IDs: 23/60
+  - never-surfacing IDs: 37/60
+  - top repeated IDs: 6.7–8.0% each.
+
+P2.1 read-only rotation audit completed.
+Verdict: IMPLEMENT_STRIDE_ONLY.
+
+Audit proved:
+- Current baseline windowSize=3, stride=7:
+  - 150 picks: 23/60 distinct
+  - 300 picks: 30/60 distinct
+  - top share: 8.0% / 6.0%
+- Recommended windowSize=3, stride=11:
+  - 150 picks: 28/60 distinct
+  - 300 picks: 52/60 distinct
+  - top share: 5.3% / 2.7%
+- Window-size increases regress.
+- Stride 13/17 regress.
+- Stride 19 is less robust at 300 picks.
+- Usage-cap gives best coverage but requires memory/schema/write-path work and is out of scope.
+- Recommended implementation is one literal change plus stale comment update.
+
+Goal:
+Implement the smallest safe rotation tweak:
+- Change CLEAN_CORE_WINDOW_STRIDE from 7 to 11.
+- Leave CLEAN_CORE_WINDOW_SIZE at 3.
+- Update stale comment from “coprime to N=30” to “coprime to N=60”.
+- Do not change anything else unless tests require local expectation updates.
+
+STRICT NON-GOALS:
+Do NOT:
+- add entries
+- rewrite entries
+- change hooks/scenarios/howToFilm/captions
+- add DB memory
+- add migrations
+- add API fields
+- change mobile
+- change validators
+- change scorers
+- change prompts
+- change Nigerian pidgin/light-pidgin pack
+- touch regional-decoration
+- change production gates or env flags
+- implement usage-cap
+- change window size
+- change activation gate
+
+Expected files to touch:
+Likely only:
+- artifacts/api-server/src/lib/coreCandidateGenerator.ts
+
+If tests have literal stride expectations:
+- update only the affected clean-core rotation test expectations.
+
+Do not touch:
+- artifacts/api-server/src/lib/nigerianCleanCorePack.ts
+- Nigerian pack files
+- rewrite YAML
+- reviewer worksheet
+- API/mobile/schema files
+
+Implementation:
+In the clean-core gated block in coreCandidateGenerator.ts, change:
+
+const CLEAN_CORE_WINDOW_STRIDE = 7;
+
+to:
+
+const CLEAN_CORE_WINDOW_STRIDE = 11;
+
+Update any nearby comment to explain briefly:
+- stride 11 is coprime to the current 60-entry clean-core catalog
+- chosen by P2.1 read-only simulation
+- improves 300-pick coverage from 30/60 to 52/60 without new state
+
+Keep the comment concise.
+
+Tests:
+Run:
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePackP11Rotation.test.ts
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePackWiring.test.ts
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePack.test.ts
+
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts
+
+pnpm --filter @workspace/api-server exec tsc --noEmit
+
+Run full api-server suite if any shared-generation expectations changed:
+
+pnpm --filter @workspace/api-server run test
+
+Runtime QA:
+Re-run the P2 runtime quality probe:
+
+.local/scripts/n1CleanCoreP2RuntimeProbe.mts
+
+Save:
+- .local/qa-runs/n1_clean_core_p21_stride_runtime.json
+- .local/qa-runs/n1_clean_core_p21_stride_runtime_summary.json
+- .local/N1_CLEAN_CORE_P21_STRIDE_REPORT.md
+
+Expected:
+- nigeria/clean delivery: 100% or at least >=95%
+- distinct clean-core IDs:
+  - 150-row probe: around 28/60 or better
+  - if 300-row probe is run: around 52/60 or better
+- top repeat share improves vs baseline
+- no under-fill rows
+- no in-batch duplicate clean-core IDs
+- 0 non-target clean-core leaks
+- 0 pidgin/mock/stereotype/shouty hits
+- 0 decoration leaks
+- pidgin/light-pidgin candidate counts unchanged
+- Western/India/Philippines unchanged
+
+Final report — keep it short:
+Return only:
+
+1. Verdict.
+2. Files changed.
+3. Exact change made.
+4. Tests run + results.
+5. TypeScript result.
+6. Runtime QA:
+   - delivery
+   - distinct IDs
+   - P1/P2 split
+   - top repeat share
+   - under-fill rows
+   - non-target leaks
+   - quality scan hits
+7. Confirm:
+   - no entries added
+   - no entries rewritten
+   - Nigerian pidgin/light-pidgin pack untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no usage-cap or memory added
+   - window size unchanged
+8. Risk/follow-up.
+
+Do not ask for next steps.

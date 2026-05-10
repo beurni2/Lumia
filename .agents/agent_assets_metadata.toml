@@ -989,3 +989,9 @@ id = "oJbOsEbNyyTMlTh59zrRe"
 uri = "file://.local/N1_CLEAN_CORE_P21_ROTATION_AUDIT.md"
 type = "text"
 title = "N1-CLEAN-CORE-P2.1 rotation audit (verdict: IMPLEMENT_STRIDE_ONLY 7→11)"
+
+[[outputs]]
+id = "1IdJIGNuQClqp5g1niqdI"
+uri = "file://.local/N1_CLEAN_CORE_P21_STRIDE_REPORT.md"
+type = "text"
+title = "N1-CLEAN-CORE-P2.1 stride tweak shipped (23→28/60 distinct, 8.0%→5.3% top share, 1461/1461 tests green)"

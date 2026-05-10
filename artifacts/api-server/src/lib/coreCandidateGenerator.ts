@@ -1157,7 +1157,14 @@ export function generateCoreCandidates(
       // below fills the slot — preserving the never-under-fill
       // discipline.
       const CLEAN_CORE_WINDOW_SIZE = 3;
-      const CLEAN_CORE_WINDOW_STRIDE = 7; // coprime to N=30
+      // PHASE N1-CLEAN-CORE-P2.1 (BI-CLEAN 2026-05-09) — stride
+      // 7 → 11. Coprime to N=60 (the post-P2 catalog size); chosen
+      // by the read-only P2.1 rotation simulator (see
+      // .local/N1_CLEAN_CORE_P21_ROTATION_AUDIT.md). Lifts 300-pick
+      // distinct-id coverage 30/60 → 52/60 and top-id share 6.0%
+      // → 2.7% with no new state, no schema change, no validator
+      // /scorer/prompt/pack/regional/activation-gate change.
+      const CLEAN_CORE_WINDOW_STRIDE = 11; // coprime to N=60
       const cleanCoreCount = NIGERIAN_CLEAN_CORE_ENTRIES.length;
       const cleanCoreWindowStart =
         ((((salt | 0) >>> 0) * 7 + coreIdx * 11) >>> 0) % cleanCoreCount;
