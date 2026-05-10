@@ -1,12 +1,12 @@
 {
-  "task": "F3-FALLBACK-GAP-ONLY FIX (Option F from .local/F3_FALLBACK_ROOT_CAUSE_AUDIT.md). Adds staging-only env flag LUMINA_FALLBACK_GAP_ONLY that narrows the guards_failed rail in decideFallbackPlan: when flag ON and localKept >= max(3, desiredCount) and guards failed, returns { needFallback: false, reason: 'not_needed_gap_only_local_sufficient' } instead of forcing Claude fallback. Hard rails (merged_pool_too_small, selection_underfilled) MUST still fire first regardless of flag. Production env intentionally untouched. Default OFF. Wire-up at hybridIdeator decideFallbackPlan call site, plus a new info log mirroring the W2-M skip log shape. Tests must cover: parity (flag OFF), skip cases, sub-floor protection, and hard-rail precedence. Look for: (1) any way the new branch could under-fill or skip a hard-rail case, (2) ordering bugs vs N1-live-skip / W2-M skip / P3 skip, (3) the env helper being too permissive (e.g. accepting '0'/'false' as truthy), (4) the test fixture parity (existing tests must still pass bit-for-bit when flag OFF), (5) any prompt/validator/timeout/corpus drift, (6) any production env contamination.",
+  "task": "N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK. Extend the existing cold-start first-card K=10 willingness-band rotation (applyFirstCardQualityBandRotation) from slot-0 to every rank slot 0..N-2, using a creator+slot salted FNV-1a hash. Pure permutation downstream of selection: same length, same identity set, no input mutation, never crosses pickerEligible tier, never promotes a candidate outside K=10 willingness band, deterministic per creatorId. Wired into hybridIdeator.ts immediately after the existing first-card rotation under the SAME composite gate: !regenerate && noveltyContext.recentIdeaCoreFamilies.size === 0 && creatorId.length > 0. Cohort-agnostic. NO validator/prompt/corpus/schema/API/mobile/DB/pack/score-weight changes. Production config/gates/startup flags UNCHANGED — runtime behavior changes only under the cold-start gate. Look for: (1) any way length/identity-set/tier could be violated, (2) any way slot-0 helper composition could exceed K=10 quality band, (3) any way the salt could fail to decorrelate per-slot picks, (4) any non-cold-start contamination, (5) Western regression risk on sharp willingness gradients, (6) test coverage gaps among the 10 unit tests + first-card regression. Evidence: full api-server suite 1486/1486 green; typecheck clean; 5-cohort 40-batch QA sweep with 0 errors/0 fallback/0 underfill, per-slot distinct hooks dramatically up in NG cohorts, western_null distinct hooks 15->17 (no regression); ng_clean slot-0 collision proof (.local/qa-runs/ng_clean_slot0_collision_proof.json) shows bandSize=1 root cause for residual slot-0 sameness (out of scope for this phase per supervisor instruction).",
   "relevantFiles": [
-    "artifacts/api-server/src/lib/fallbackDecisionPlan.ts",
+    "artifacts/api-server/src/lib/creatorSeededRankRotation.ts",
     "artifacts/api-server/src/lib/hybridIdeator.ts",
-    "artifacts/api-server/src/lib/__tests__/fallbackDecisionPlan.test.ts",
-    "artifacts/api-server/.replit-artifact/artifact.toml",
-    ".local/F3_FALLBACK_GAP_ONLY_REPORT.md",
-    ".local/F3_FALLBACK_ROOT_CAUSE_AUDIT.md"
+    "artifacts/api-server/src/lib/__tests__/creatorSeededRankRotation.test.ts",
+    "artifacts/api-server/src/lib/firstCardQualityBandRotation.ts",
+    ".local/N1_FOLLOWUP_CREATOR_SEEDED_TIEBREAK_REPORT.md",
+    ".local/qa-runs/ng_clean_slot0_collision_proof.json"
   ],
   "responsibility": "evaluate_task",
   "includeGitDiff": true
