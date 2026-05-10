@@ -479,6 +479,426 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "clean_deadpan",
       reviewedBy: "BI-CLEAN 2026-05-09",
     },
+    {
+      id: "ng_clean_031",
+      draftId: "CLEAN-DRAFT-031",
+      anchor: "bucket",
+      hook: "The bucket judged my morning routine.",
+      whatToShow:
+        "Show a bucket waiting under a dry tap, you arriving with soap on your face, then freezing when the first drop lands like breaking news.",
+      howToFilm:
+        "Start on the empty bucket, tilt up to your half-washed face, then cut to your hand celebrating one tiny drop from the tap.",
+      caption: "Water has timing issues.",
+      premiseFamily: "resource_scramble",
+      voiceTone: "dry_observational",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_032",
+      draftId: "CLEAN-DRAFT-032",
+      anchor: "tank",
+      hook: "The tank chose drama at bath time.",
+      whatToShow:
+        "Show the tank tap coughing, you holding a towel like a serious deadline, then accepting a tiny cup of water as the full plan.",
+      howToFilm:
+        "Film the tank tap sputtering into a bowl, cut to your towel-and-bucket negotiation, then end on the cup beside your full bathing supplies.",
+      caption: "Luxury reduced to cup size.",
+      premiseFamily: "utility_betrayal",
+      voiceTone: "calm_frustration",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_033",
+      draftId: "CLEAN-DRAFT-033",
+      anchor: "fan",
+      hook: "The fan slowed down and exposed the heat.",
+      whatToShow:
+        "Show everyone sitting normally while the fan is moving, then the fan slows down and the room suddenly starts negotiating with sweat, ending with one person using paper like a survival tool.",
+      howToFilm:
+        "Start on the fan spinning above the room, cut to it slowing down, then show quick reactions: collars loosening, paper fanning, and one person staring at the ceiling in betrayal.",
+      caption: "Breeze resigned quietly.",
+      premiseFamily: "home_competition",
+      voiceTone: "deadpan_family",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_034",
+      draftId: "CLEAN-DRAFT-034",
+      anchor: "pothole",
+      hook: "The pothole interviewed my whole body.",
+      whatToShow:
+        "Show a car or bus hitting a pothole, your face bouncing from calm to regret, then your hand checking if your spine is still loyal.",
+      howToFilm:
+        "Place the camera on your lap, bounce it once during the pothole moment, then cut to you silently adjusting every body part.",
+      caption: "Road feedback received.",
+      premiseFamily: "road_survival",
+      voiceTone: "physical_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_035",
+      draftId: "CLEAN-DRAFT-035",
+      anchor: "fare",
+      hook: "The fare changed before I sat down.",
+      whatToShow:
+        "Show you entering transport confidently, hearing the fare, sitting halfway, then rising slowly like the seat rejected your budget.",
+      howToFilm:
+        "Film your foot stepping in, cut to your hand holding exact cash, then show your slow retreat from the seat.",
+      caption: "Budget cancelled boarding.",
+      premiseFamily: "price_shock",
+      voiceTone: "quiet_disbelief",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_036",
+      draftId: "CLEAN-DRAFT-036",
+      anchor: "junction",
+      hook: "The junction had five wrong directions.",
+      whatToShow:
+        "Show you reaching a busy junction, three people pointing different ways, then you choosing the quietest option and regretting it immediately.",
+      howToFilm:
+        "Use quick cuts of three pointing hands, show your confident nod, then reveal you walking back from the wrong direction.",
+      caption: "Navigation by committee.",
+      premiseFamily: "errand_confusion",
+      voiceTone: "dry_panic",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_037",
+      draftId: "CLEAN-DRAFT-037",
+      anchor: "cash",
+      hook: "The cash disappeared inside my budget.",
+      whatToShow:
+        "Show you counting cash for one errand, adding transport and small snacks, then staring at the remaining note like it betrayed mathematics.",
+      howToFilm:
+        "Lay the cash on a table, remove notes for each expense with labels nearby, then zoom slightly on the lonely final note.",
+      caption: "Money did gymnastics.",
+      premiseFamily: "budget_collapse",
+      voiceTone: "financial_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_038",
+      draftId: "CLEAN-DRAFT-038",
+      anchor: "queue",
+      hook: "The queue made me question ambition.",
+      whatToShow:
+        "Show a short queue becoming longer after you join, someone squeezing in with confidence, then you calculating whether the item is still necessary.",
+      howToFilm:
+        "Frame your shoes at the end of the queue, cut to more feet appearing ahead, then show you returning the item to your bag.",
+      caption: "Dreams have queues.",
+      premiseFamily: "shopping_delay",
+      voiceTone: "soft_surrender",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_039",
+      draftId: "CLEAN-DRAFT-039",
+      anchor: "change",
+      hook: "The change came with life advice.",
+      whatToShow:
+        "Show you waiting for change after buying something, the seller searching slowly, then handing coins with a full lecture on patience.",
+      howToFilm:
+        "Film your open palm waiting, cut to a drawer search, then show the change arriving while your smile fades politely.",
+      caption: "Receipt plus sermon.",
+      premiseFamily: "micro_transaction",
+      voiceTone: "polite_exhaustion",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_040",
+      draftId: "CLEAN-DRAFT-040",
+      anchor: "greeting",
+      hook: "The greeting became a full exam.",
+      whatToShow:
+        "Show you giving one greeting, an older relative asking who your parents are, where you work, and why you look thinner.",
+      howToFilm:
+        "Play both sides with over-shoulder cuts: your polite greeting first, then stack each greeting question with your smile getting smaller.",
+      caption: "Respect is paperwork.",
+      premiseFamily: "family_interrogation",
+      voiceTone: "controlled_comedy",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_041",
+      draftId: "CLEAN-DRAFT-041",
+      anchor: "visit",
+      hook: "The visit was never ten minutes.",
+      whatToShow:
+        "Show someone arriving for a quick visit, removing shoes, requesting water, charging phone, then settling like rent was paid.",
+      howToFilm:
+        "Cut from the visitor at the door to their visit items spreading across the room, then show the clock jumping forward.",
+      caption: "Ten minutes moved in.",
+      premiseFamily: "social_overstay",
+      voiceTone: "domestic_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_042",
+      draftId: "CLEAN-DRAFT-042",
+      anchor: "errand",
+      hook: "The errand came dressed as conversation.",
+      whatToShow:
+        "Show a family member chatting sweetly, slowly mentioning one small errand, then revealing three stops and no transport money.",
+      howToFilm:
+        "Start with a friendly close shot, cut to your hand opening a notes app, then reveal the errand list growing line by line.",
+      caption: "Kindness has logistics.",
+      premiseFamily: "family_assignment",
+      voiceTone: "gentle_suspicion",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_043",
+      draftId: "CLEAN-DRAFT-043",
+      anchor: "poll",
+      hook: "The poll solved nothing beautifully.",
+      whatToShow:
+        "Show a group poll with four options, everyone voting differently, then someone suggesting the original plan like progress never happened.",
+      howToFilm:
+        "Screen-record a recreated poll, cut to your face reading the poll results, then show your finger hovering over mute.",
+      caption: "Democracy failed calmly.",
+      premiseFamily: "group_decision_fail",
+      voiceTone: "dry_social",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_044",
+      draftId: "CLEAN-DRAFT-044",
+      anchor: "sticker",
+      hook: "The sticker ended the serious meeting.",
+      whatToShow:
+        "Show a serious group chat discussion, then one sticker lands at the wrong time and the whole room loses focus while the original topic sits there untouched.",
+      howToFilm:
+        "Film a recreated chat screen with the serious message visible, show the sticker appearing underneath it, then cut to your notebook staying open while nobody returns to the agenda.",
+      caption: "Agenda defeated by sticker.",
+      premiseFamily: "chat_derailment",
+      voiceTone: "office_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_045",
+      draftId: "CLEAN-DRAFT-045",
+      anchor: "mute",
+      hook: "The mute button protected my peace.",
+      whatToShow:
+        "Show your phone buzzing nonstop from one group, you reading only three messages, then choosing mute like a medical prescription.",
+      howToFilm:
+        "Show notifications stacking on the phone, cut to your tired thumb selecting mute, then end with peaceful silence and a snack.",
+      caption: "Healing in settings.",
+      premiseFamily: "digital_boundaries",
+      voiceTone: "relieved_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_046",
+      draftId: "CLEAN-DRAFT-046",
+      anchor: "onion",
+      hook: "The onion priced itself like jewelry.",
+      whatToShow:
+        "Show you asking for onion, hearing the price, checking the onion again, then treating it like a luxury item.",
+      howToFilm:
+        "Hold one onion in your palm, cut to your shocked face, then place the onion carefully in a bag like a phone.",
+      caption: "Luxury seasoning.",
+      premiseFamily: "market_price_comedy",
+      voiceTone: "dry_shock",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_047",
+      draftId: "CLEAN-DRAFT-047",
+      anchor: "rice",
+      hook: "The rice multiplied without permission.",
+      whatToShow:
+        "Show you measuring small rice for yourself, the pot swelling, then you staring at enough food for unexpected relatives.",
+      howToFilm:
+        "Film the rice measuring cup, cut to the pot lid lifting, then show three empty plates appearing beside your single spoon.",
+      caption: "Cooking for surprise guests.",
+      premiseFamily: "kitchen_miscalculation",
+      voiceTone: "quiet_absurd",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_048",
+      draftId: "CLEAN-DRAFT-048",
+      anchor: "freezer",
+      hook: "The freezer hid the important fish.",
+      whatToShow:
+        "Show you searching the freezer for fish, removing frozen containers with no labels, then finding everything except dinner.",
+      howToFilm:
+        "Point into the open freezer, pull out mystery bowls one by one, then end on your hand holding ice like evidence.",
+      caption: "Cold case investigation.",
+      premiseFamily: "home_food_mystery",
+      voiceTone: "detective_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_049",
+      draftId: "CLEAN-DRAFT-049",
+      anchor: "zip",
+      hook: "The zip waited for event day.",
+      whatToShow:
+        "Show your outfit looking perfect, the zip refusing to close minutes before leaving, then everyone becoming a technical support team.",
+      howToFilm:
+        "Start with the outfit laid out proudly, cut to hands wrestling the zip, then show safety pins entering like emergency workers.",
+      caption: "Fashion chose conflict.",
+      premiseFamily: "event_panic",
+      voiceTone: "stylish_disaster",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_050",
+      draftId: "CLEAN-DRAFT-050",
+      anchor: "shoe",
+      hook: "The shoe retired during the entrance.",
+      whatToShow:
+        "Show you entering an event with confidence, the shoe strap failing, then your walk becoming a negotiation with gravity.",
+      howToFilm:
+        "Film your shoe stepping proudly, cut to the loose strap, then show your careful limp past decorated chairs.",
+      caption: "Grand entrance, small betrayal.",
+      premiseFamily: "public_composure",
+      voiceTone: "physical_clean",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_051",
+      draftId: "CLEAN-DRAFT-051",
+      anchor: "fabric",
+      hook: "The fabric looked different at home.",
+      whatToShow:
+        "Show fabric looking rich at the shop, then at home it suddenly looks loud, shiny, and ready to embarrass the wearer.",
+      howToFilm:
+        "Show the fabric under bright shop-style light, cut to it spread on your bed, then show your slow blink of regret.",
+      caption: "Confidence sold separately.",
+      premiseFamily: "shopping_expectation_gap",
+      voiceTone: "fashion_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_052",
+      draftId: "CLEAN-DRAFT-052",
+      anchor: "form",
+      hook: "The form asked for my entire history.",
+      whatToShow:
+        "Show you filling a simple form, then discovering questions about birthplace, next of kin, and details nobody prepared you for.",
+      howToFilm:
+        "Film your pen moving confidently, cut to the long form pages, then show you calling home for one forgotten answer.",
+      caption: "Application became autobiography.",
+      premiseFamily: "admin_overload",
+      voiceTone: "bureaucratic_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_053",
+      draftId: "CLEAN-DRAFT-053",
+      anchor: "deadline",
+      hook: "The deadline appeared after the weekend.",
+      whatToShow:
+        "Show you relaxing on Sunday, opening one message, then discovering the deadline was quietly waiting since Friday.",
+      howToFilm:
+        "Film your relaxed hand holding a drink, cut to the deadline message timestamp, then show your laptop opening with panic speed.",
+      caption: "Rest was a trap.",
+      premiseFamily: "work_surprise",
+      voiceTone: "controlled_panic",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_054",
+      draftId: "CLEAN-DRAFT-054",
+      anchor: "printer",
+      hook: "The printer sensed my urgency.",
+      whatToShow:
+        "Show you needing one document quickly, the printer blinking, swallowing paper, then producing a faded page nobody can respect.",
+      howToFilm:
+        "Frame the printer light blinking, cut to your tapping foot, then show the weak printout beside your disappointed face.",
+      caption: "Technology smelled fear.",
+      premiseFamily: "office_machine_betrayal",
+      voiceTone: "dry_urgency",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_055",
+      draftId: "CLEAN-DRAFT-055",
+      anchor: "airtime",
+      hook: "The airtime entered the wrong purpose.",
+      whatToShow:
+        "Show you buying airtime for data, tapping too fast, then realizing your phone can call everyone but browse nothing.",
+      howToFilm:
+        "Screen-record a recreated airtime purchase flow, pause on the wrong option, then cut to your face accepting expensive silence.",
+      caption: "Calls I never planned.",
+      premiseFamily: "phone_money_mistake",
+      voiceTone: "digital_regret",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_056",
+      draftId: "CLEAN-DRAFT-056",
+      anchor: "update",
+      hook: "The update arrived during low battery.",
+      whatToShow:
+        "Show your phone requesting an update, battery at five percent, then you negotiating with the screen like it understands rent.",
+      howToFilm:
+        "Show the update prompt and low battery icon, cut to your charger search, then end on the phone dimming mid-decision.",
+      caption: "Software chose violence quietly.",
+      premiseFamily: "app_timing_betrayal",
+      voiceTone: "calm_frustration",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_057",
+      draftId: "CLEAN-DRAFT-057",
+      anchor: "password",
+      hook: "The password remembered me as a stranger.",
+      whatToShow:
+        "Show you entering the password confidently, getting rejected, trying old versions, then questioning your own biography.",
+      howToFilm:
+        "Film your thumb typing password dots, cut to each failed attempt message, then show you opening a notebook of ancient clues.",
+      caption: "Identity denied.",
+      premiseFamily: "login_comedy",
+      voiceTone: "existential_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_058",
+      draftId: "CLEAN-DRAFT-058",
+      anchor: "audio",
+      hook: "The audio became popular after my idea.",
+      whatToShow:
+        "Show you saving an audio for later, finally filming with it, then opening the app to see everyone already used it better.",
+      howToFilm:
+        "Show the saved audio screen, cut to your filming setup, then reveal your feed filled with the same sound.",
+      caption: "Trend left without me.",
+      premiseFamily: "creator_timing",
+      voiceTone: "soft_defeat",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_059",
+      draftId: "CLEAN-DRAFT-059",
+      anchor: "thumbnail",
+      hook: "The thumbnail looked serious until my face disagreed.",
+      whatToShow:
+        "Show a creator choosing a thumbnail, zooming into their own face, then realizing the expression is fighting the entire message of the video.",
+      howToFilm:
+        "Frame the thumbnail choices on the phone, tap into the awkward face, then cut to the creator comparing it with the video title in quiet disappointment.",
+      caption: "Brand image under review.",
+      premiseFamily: "creator_self_review",
+      voiceTone: "honest_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
+    {
+      id: "ng_clean_060",
+      draftId: "CLEAN-DRAFT-060",
+      anchor: "ringlight",
+      hook: "The ringlight revealed too much ambition.",
+      whatToShow:
+        "Show you setting up a ringlight for a simple clip, adding powder, adjusting angles, then forgetting the original joke completely.",
+      howToFilm:
+        "Start with the ringlight switching on, cut through fast setup steps, then end on you staring at the phone with no script.",
+      caption: "Production swallowed content.",
+      premiseFamily: "creator_overpreparation",
+      voiceTone: "clean_self_mockery",
+      reviewedBy: "BI-CLEAN 2026-05-09",
+    },
   ]);
 
 // ---------------------------------------------------------------- //
