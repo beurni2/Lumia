@@ -1,0 +1,44 @@
+The audit correctly discovered the next layer: the totally_fine_about issue is not slot 0, and not a simple within-batch quota issue. It ships exactly once per NG batch, in pattern-variation slots, while three other repeated hooks also ship across all NG batches. The report shows the four repeated hooks are locked into predictable slots across ng_pidgin, ng_light_pidgin, ng_clean, and ng_null.
+
+But the audit also admits it cannot answer the most important implementation questions yet: it does not have runner-up candidates, willingness scores, hook quality scores, skeleton IDs in the final QA dump, or K-band alternatives for slots 1–5.
+
+So I would not jump to per-creator skeleton-recency demotion yet.
+
+What we know now
+
+The repeated hooks come from two mechanisms:
+
+totally_fine_about
+It already has a blocklist surface.
+But the two-pass picker likely falls through to pass 2 and reinstates it when pass 1 fails to find a valid alternative.
+The other repeated hooks
+is it still about the shopping cart
+the fridge knows i'm lying
+my body quit. my brain kept screaming
+These are not covered by the same blocklist path. Some come from modern language phrasing or voice-cluster paths with no equivalent weak-skeleton suppression.
+
+That means the problem is broader than one weak skeleton.
+
+My decision
+
+The next authorized task should be instrumentation-only, not implementation.
+
+The audit itself says the existing probe cannot answer whether slot-level rotation would work, whether viable alternatives exist within K=10/15/20, or whether the problem is no alternatives versus alternatives losing deterministically.
+
+So the correct next phase is:
+
+N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION
+
+Goal: add probe-only diagnostics to capture the top candidate pool before final slicing, then rerun the 5-cohort sweep.
+
+No production behavior changes.
+
+Why I am not authorizing Path B yet
+
+The audit recommends Path B: per-creator skeleton-specific demotion after first appearance.
+
+That may become right, but not yet.
+
+Reason: Path B mainly helps returning users by demoting skeletons already seen in the creator’s previous batch. But the original issue is cross-creator cold-start sameness. If ten brand-new creators all have empty memory, per-creator recency does not explain or solve their first batch sameness.
+
+So Path B is useful for retention, not necessarily the first-session first-impression issue.
