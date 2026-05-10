@@ -1072,4 +1072,10 @@ title = "N1 Preslice Candidate Instrumentation Report"
 id = "OWci04pP3BBeA4B8XC0zG"
 uri = "file://.local/N1_FOLLOWUP_CREATOR_SEEDED_TIEBREAK_REPORT.md"
 type = "text"
-title = "N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK Report"
+title = "N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK Report (corrected)"
+
+[[outputs]]
+id = "1wdjVHXiRap2eJH5b73Ka"
+uri = "file://.local/qa-runs/ng_clean_slot0_collision_proof.json"
+type = "unspecified"
+title = "ng_clean slot-0 collision proof"
