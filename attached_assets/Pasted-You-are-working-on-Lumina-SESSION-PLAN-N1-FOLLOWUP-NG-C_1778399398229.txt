@@ -1,0 +1,207 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP
+
+Mode:
+Narrow implementation + tests + runtime QA.
+
+Supervisor decision:
+The N1-FOLLOWUP-NG-CLEAN-SLOT0-SURFACE-CHECK is accepted.
+
+Surface-check verdict:
+ALTERNATIVES_PRESENT.
+
+Evidence:
+Across 10/10 ng_clean cold-start batches, the post-sort/post-rotation stream contains a pickerEligible clean-core alternative to the slot-0 winner:
+- slot-0 winner: ng_clean_001
+  “The light came back and exposed everyone's fake patience.”
+  HQS ≈ 75, willingness ≈ 70
+- nearest alternative: ng_clean_039
+  “The change came with life advice.”
+  HQS ≈ 60, willingness ≈ 54
+- willingness gap: 16
+- both are pickerEligible
+- both ship in the user-facing batch: ng_clean_001 at slot 0, ng_clean_039 at slot 1
+- Patch-D newly eligible alternative ng_clean_039 is present in 10/10 batches
+
+Conclusion:
+This is a selection-stage monoculture problem, not a scorer, corpus, or surface-rate problem.
+
+Authorized implementation:
+Add a narrow ng_clean slot-0 anti-repeat / swap rule.
+
+Goal:
+Break ng_clean slot-0 monoculture by rotating away from recently shown cleanCoreEntryIds when a valid pickerEligible clean-core alternative is already present in the final candidate list.
+
+Do NOT implement surface reservation.
+Do NOT tune scorer.
+Do NOT change K.
+Do NOT change first-card quality band globally.
+Do NOT change validators.
+Do NOT change corpus.
+Do NOT change prompts.
+Do NOT change API/mobile/DB/schema.
+Do NOT add broad randomization.
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No corpus edits.
+4. No prompt changes.
+5. No API/mobile/DB/schema changes.
+6. No K changes.
+7. No pack reservation changes.
+8. No broad selector rewrite.
+9. No global LRU.
+10. No process-global mutable state.
+11. No random behavior.
+12. No candidate drops.
+13. No underfill.
+14. No fallback increase.
+15. Preserve deterministic behavior for the same creator state.
+16. Preserve cohort isolation.
+17. Apply only to ng_clean clean-core slot-0 behavior.
+
+Implementation requirements:
+1. Locate the final ng_clean slot-0 selection surface after:
+   - enforceTrendCap
+   - annotateAndSortByWillingness
+   - first-card quality band rotation
+   - creator-seeded rank rotation
+   but before final gate/shipping, unless a cleaner existing slot-0 swap point already exists.
+
+2. Add a narrow helper, for example:
+   applyNgCleanSlot0AntiRepeatSwap(final, context)
+
+3. Activation gate:
+   Apply only when:
+   - region === "nigeria"
+   - languageStyle === "clean"
+   - regenerate === false, if that is the existing cold-start/local-first condition
+   - creator id exists
+   - slot 0 source is clean-core/core_native with cleanCoreEntryId
+   - there is at least one alternate clean-core/core_native candidate in the final list
+   - alternate is pickerEligible
+   - alternate has cleanCoreEntryId
+   - alternate cleanCoreEntryId is not in recent slot-0 clean-core memory
+
+4. Memory:
+   Use existing creator-memory plumbing if available.
+   Store/read a small recent ring:
+   recentSlot0CleanCoreEntryIds
+   Suggested cap: 20.
+   If there is an existing JSONB creator memory object for ideator/catalog/template memory, extend it additively.
+   Do not create a DB migration unless absolutely unavoidable.
+   Prefer existing JSONB/additive memory conventions.
+
+5. Swap semantics:
+   - swap only
+   - preserve candidate identity set
+   - preserve candidate count
+   - do not drop candidates
+   - do not pull candidates from outside the final list
+   - choose the highest-ranked eligible clean-core alternative not in recent memory
+   - if no valid alternative exists, keep original slot 0
+   - after selecting slot 0, record its cleanCoreEntryId into recent memory
+
+6. Quality guard:
+   The alternative must be pickerEligible.
+   It must be clean-core/core_native.
+   It must be ng_clean.
+   It must have cleanCoreEntryId.
+   Do not allow pattern_variation to replace clean-core slot 0 under this rule.
+   Do not cross into non-clean cohorts.
+
+7. Determinism:
+   Same creator memory + same candidate list = same result.
+   Different creator histories may produce different slot-0 choices.
+   No random or process-global behavior.
+
+8. Do not modify applyFirstCardQualityBandRotation globally.
+9. Do not modify applyCreatorSeededRankRotation globally.
+10. Do not widen K from 10.
+11. Do not lower PICKER_HQS_FLOOR.
+
+Tests required:
+Add targeted tests proving:
+1. ng_clean slot-0 repeated cleanCoreEntryId swaps to the highest-ranked eligible clean-core alternative.
+2. If slot-0 cleanCoreEntryId is not recent, no swap occurs.
+3. If alternative is not pickerEligible, no swap occurs.
+4. If alternative is not clean-core/core_native, no swap occurs.
+5. If alternative has no cleanCoreEntryId, no swap occurs.
+6. If no alternative exists, no swap occurs.
+7. Candidate count and identity set are preserved.
+8. Input array is not mutated, if helper follows pure-helper pattern.
+9. Recent ring caps at the intended size.
+10. Non-ng_clean cohorts are unchanged.
+11. ng_pidgin / ng_light_pidgin / ng_null / western_null are not affected.
+12. Existing first-card rotation and creator-seeded rank rotation tests still pass.
+
+Runtime QA:
+Run full cold-start E2E sweep after implementation:
+- ng_clean: 10 cold-start creators × 6 ideas
+- ng_pidgin: 10 cold-start creators × 6 ideas
+- ng_light_pidgin: 10 cold-start creators × 6 ideas
+- ng_null: 5 cold-start creators × 6 ideas
+- western_null: 5 cold-start creators × 6 ideas
+
+Required metrics:
+For each cohort:
+1. total batches
+2. total ideas
+3. underfill batches
+4. fallback batches
+5. errors
+6. distinct hooks
+7. per-slot distinctness
+8. distinct slot-0 hooks
+9. top slot-0 hook share
+10. source mix
+11. scenarioCoherence diagnostic hits
+12. banned/shouty/stereotype hits
+13. cohort leakage
+
+ng_clean-specific:
+1. distinct user-facing slot-0 leaders
+2. top slot-0 share
+3. slot-0 cleanCoreEntryId per batch
+4. whether ng_clean_001 still appears 10/10
+5. whether ng_clean_039 appears as slot 0 when ng_clean_001 is recent
+6. recentSlot0CleanCoreEntryIds behavior
+7. whether candidate set remains unchanged except order
+8. underfill/fallback/errors
+
+Acceptance criteria:
+1. TypeScript clean.
+2. Relevant unit tests pass.
+3. Full api-server suite passes if practical.
+4. No scorer/validator/corpus/prompt/API/mobile/DB/schema/K changes.
+5. No non-ng_clean regression.
+6. No underfill regression.
+7. No fallback regression.
+8. No cohort leakage.
+9. ng_clean distinct user-facing slot-0 leaders improves from 1/10 to at least 2/10.
+10. Preferred target: ng_clean distinct slot-0 leaders ≥3/10 if enough recent-memory history and alternatives allow.
+11. If only 2/10 is possible because the final list contains only ng_clean_001 and ng_clean_039, report that clearly and recommend whether surface expansion is needed next.
+
+Required output files:
+- .local/N1_FOLLOWUP_NG_CLEAN_SLOT0_ANTI_REPEAT_SWAP_REPORT.md
+- .local/qa-runs/n1_ng_clean_slot0_anti_repeat_swap.json
+- .local/qa-runs/n1_ng_clean_slot0_anti_repeat_swap_summary.json
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Implementation summary
+3. Files changed
+4. Tests added/updated
+5. Tests run and results
+6. Runtime QA before/after table
+7. ng_clean slot-0 table by batch
+8. Memory behavior proof
+9. Safety/regression checks
+10. Remaining gaps
+11. Recommendation for next phase
+
+Stop condition:
+If implementing this requires scorer changes, validator changes, K changes, corpus changes, prompt changes, API/mobile/DB/schema changes, or broad selector rewrite, stop and report. Do not improvise.

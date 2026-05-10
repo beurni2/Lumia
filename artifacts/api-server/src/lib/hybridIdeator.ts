@@ -145,6 +145,19 @@ import {
   getRecentSeenEntriesOrdered,
   recordSeenEntries,
 } from "./nigerianPackCreatorMemory.js";
+// PHASE N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — narrow per-
+// creator slot-0 memory + pure swap helper for the ng_clean cohort.
+// Activated only when region === "nigeria" + languageStyle === "clean"
+// + regenerate === false + non-empty creatorId. Non-eligible cohorts
+// pay zero overhead (no DB read, no helper call).
+import {
+  getRecentSlot0CleanCoreEntryIds,
+  recordSlot0CleanCoreEntryId,
+} from "./nigerianCleanCoreCreatorMemory.js";
+import {
+  applyNgCleanSlot0AntiRepeatSwap,
+  resolveCleanCoreEntryIdByHook,
+} from "./nigerianCleanCoreSlot0AntiRepeatSwap.js";
 // PHASE W2-O — Western pool selection now flows through the
 // `getActiveWesternPool` resolver in `westernPackSlotReservation.ts`,
 // which internally consults BOTH staging-pool flag
@@ -6069,6 +6082,80 @@ export async function runHybridIdeator(
       final = applyCreatorSeededRankRotation(final, cidForRotation);
     }
   }
+  // PHASE N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — narrow,
+  // memory-driven slot-0 rotation for the ng_clean cohort.
+  // Surface-check verdict (`.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_
+  // SURFACE_CHECK_REPORT.md`): across 10/10 ng_clean cold-start
+  // batches the post-rotation `final` stream contains a
+  // `pickerEligible` clean-core alternative to the slot-0 winner —
+  // selection-stage monoculture, not a surfacing problem. This block
+  // resolves the user-visible repetition by swapping slot 0 to the
+  // highest-ranked eligible clean-core alternative whose
+  // `cleanCoreEntryId` is NOT in the creator's recent slot-0 memory
+  // (cap = 20). SWAP-ONLY — preserves candidate identity set + count.
+  //
+  // Activation gate (helper does not re-check; we gate here):
+  //   • region === "nigeria"
+  //   • languageStyle === "clean"
+  //   • regenerate === false (cold-start / first-cards branch)
+  //   • non-empty creatorId
+  // Non-eligible cohorts pay zero cost (no DB read, no helper call).
+  // The DB read is inline rather than hoisted above generation
+  // because the helper consumes it at exactly one site, post-
+  // rotation, and ng_clean is a tiny share of total traffic.
+  let _ngCleanSwapAppliedSlot0EntryId: string | null = null;
+  let _ngCleanSlot0Detail: { from: string; to: string; fromIndex: number } | null = null;
+  {
+    const cidForSlot0Swap = input.creator?.id;
+    const slot0LanguageStyle = calibration?.languageStyle ?? null;
+    const ngCleanActivated =
+      input.region === "nigeria" &&
+      slot0LanguageStyle === "clean" &&
+      regenerate === false &&
+      typeof cidForSlot0Swap === "string" &&
+      cidForSlot0Swap.length > 0 &&
+      final.length >= 2;
+    if (ngCleanActivated) {
+      const recentSlot0CleanCoreEntryIds =
+        await getRecentSlot0CleanCoreEntryIds(cidForSlot0Swap);
+      const swapResult = applyNgCleanSlot0AntiRepeatSwap(final, {
+        recentSlot0CleanCoreEntryIds,
+      });
+      if (swapResult.swapped && swapResult.detail) {
+        final = swapResult.final.slice();
+        _ngCleanSlot0Detail = {
+          from: swapResult.detail.fromCleanCoreEntryId,
+          to: swapResult.detail.toCleanCoreEntryId,
+          fromIndex: swapResult.detail.fromIndex,
+        };
+        logger.info(
+          {
+            creatorId: cidForSlot0Swap,
+            ...swapResult.detail,
+          },
+          "ng_clean.slot0_anti_repeat_swap_applied",
+        );
+      }
+      // Record FINAL slot-0 cleanCoreEntryId (post-swap or original)
+      // into the per-creator memory so the next ng_clean batch sees
+      // an updated recent set. Fire-and-forget — write failures are
+      // logged + swallowed inside the helper. Mirrors the pack
+      // memory write pattern at L5389.
+      const finalSlot0EntryId = resolveCleanCoreEntryIdByHook(
+        final[0]?.idea.hook,
+      );
+      if (finalSlot0EntryId !== null) {
+        _ngCleanSwapAppliedSlot0EntryId = finalSlot0EntryId;
+        void recordSlot0CleanCoreEntryId(cidForSlot0Swap, finalSlot0EntryId);
+      }
+    }
+  }
+  // Suppress "declared but its value is never read" lint when the
+  // QA harness doesn't introspect these — they exist so future
+  // telemetry layers can attribute the swap without re-running the
+  // helper.
+  void _ngCleanSwapAppliedSlot0EntryId;
+  void _ngCleanSlot0Detail;
   // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — post-sort/post-
   // rotation snapshot so the report can join pre-slice candidates →
   // final shipped slot index. Same env-gate as the pre-slice capture

@@ -164,6 +164,24 @@ export const creators = pgTable("creators", {
     jsonb("catalog_template_seen_ids_json")
       .$type<ReadonlyArray<{ skeleton: string; lastSeenAt: string }>>()
       .default([]),
+  // PHASE N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — per-creator
+  // recent-slot-0 memory for the Nigerian clean-English `core_native`
+  // mini-catalog. Records the `cleanCoreEntryId` shipped at slot 0
+  // of every recent ng_clean batch so the post-rotation slot-0
+  // anti-repeat / swap helper can rotate slot 0 to the highest-
+  // ranked eligible clean-core alternative whose entry id is NOT
+  // in this set. Capped at the 20 most-recent entries (older drop
+  // off → become eligible again). NULLABLE / default empty array;
+  // pre-migration creators and non-NG cohorts simply read `[]`,
+  // which is a no-op gate (the helper short-circuits when the
+  // slot-0 entry id isn't in memory) so behaviour outside the
+  // activated `region === "nigeria" + languageStyle === "clean"`
+  // cohort remains byte-identical to the baseline. Mirrors the
+  // shape and conventions of `nigerian_pack_seen_entry_ids_json`.
+  nigerianCleanCoreSlot0SeenIdsJson:
+    jsonb("nigerian_clean_core_slot0_seen_ids_json")
+      .$type<ReadonlyArray<{ entryId: string; lastSeenAt: string }>>()
+      .default([]),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.

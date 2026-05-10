@@ -1223,3 +1223,9 @@ id = "umuxTtCpV5WNWv7w3ppcn"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_surface_check_summary.json"
 type = "unspecified"
 title = "Surface Check JSON (summary)"
+
+[[outputs]]
+id = "zg2XNdT6etCJSqMGQsOZ1"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_ANTI_REPEAT_SWAP_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — Implementation Report"
