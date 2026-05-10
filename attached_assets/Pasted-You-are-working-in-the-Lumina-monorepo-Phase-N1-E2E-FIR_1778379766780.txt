@@ -1,0 +1,99 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-E2E-FIRST-CARD-ROTATION — cross-creator first-card rotation.
+
+Context:
+N1-E2E-ROTATION-PACK-AUDIT completed read-only.
+
+Audit verdict:
+IMPLEMENT_CROSS_CREATOR_ROTATION.
+
+Root cause:
+The full ideator repeats the same top hooks across fresh creators because final selection is greedy and content-only:
+- `selectWithNovelty` calls `greedySelect`.
+- `greedySelect` picks highest `adjustedScore`.
+- Tie-breaker favors lower pool index.
+- `hookQualityScore`, `personalFit`, and `hookImpact` do not ingest creator id.
+- Fresh creators have empty memory, so per-creator novelty penalties do nothing.
+- Result: identical-profile fresh creators receive identical sorted pools and same first-card winners.
+
+This also explains Nigerian pack delivery = 0% in E2E:
+- Pack gate is true.
+- Pack candidates are generated and enter the final pool.
+- They lose to the same high-scoring catalog / pattern candidates in greedy selection.
+- This is not a probe/source-label bug. It is a real final-selection loss.
+
+Evidence:
+- `ng_clean`: 8 distinct hooks out of 60.
+- `ng_pidgin`: 20 distinct hooks out of 60.
+- `ng_light_pidgin`: 20 distinct hooks out of 60.
+- Repeated winners include:
+  - `the fridge knows i'm lying`
+  - `I am totally fine about the wifi`
+  - `my body quit. my brain kept screaming`
+  - `is it still about the shopping cart`
+- `totally_fine_about_*` floods every Nigerian cohort because the weak-skeleton quota is currently Western-only.
+- Audit recommends Option A first; do not implement pack reservation yet. :contentReference[oaicite:0]{index=0}
+
+Goal:
+Implement a small, deterministic cross-creator first-card rotation so different fresh creators do not all receive the same first-card winner.
+
+This is NOT a copy phase.
+Do not add entries.
+Do not rewrite entries.
+Do not change Nigerian pack entries.
+Do not change clean-core entries.
+Do not change regional-decoration.
+Do not change validators/scorers/prompts.
+Do not change API/mobile/schema/DB/migrations.
+Do not implement pack reservation yet.
+Do not implement weak-skeleton demotion yet.
+Do not implement memory/usage-cap.
+
+============================================================
+DESIRED BEHAVIOR
+============================================================
+
+For first-card selection only:
+
+Instead of always selecting `pool[0]`, select from a small quality band around the best candidate using stable creator-id hashing.
+
+Example behavior:
+
+- Let `best = pool[0]`.
+- Build a band of candidates whose quality is close enough to best.
+- Use stable hash of `creator.id` to choose one candidate from the band.
+- Same creator id should always choose the same candidate from the same band.
+- Different creator ids may choose different candidates.
+- If creator id is missing, fall back to `pool[0]`.
+- If band size is 1, fall back to `pool[0]`.
+- Only affect the first selected card / first impression slot.
+- Do not change selection for subsequent cards unless unavoidable.
+- Do not lower validators or include weak candidates.
+
+The intent is to diversify first-card winners across fresh creators while preserving quality.
+
+============================================================
+IMPLEMENTATION SHAPE
+============================================================
+
+Preferred:
+
+1. Add a pure helper, for example:
+
+`artifacts/api-server/src/lib/firstImpressionBandPicker.ts`
+
+Suggested API:
+
+```ts
+export type FirstImpressionBandCandidate<T> = {
+  item: T;
+  score: number;
+};
+
+export function pickFirstImpressionFromQualityBand<T>(args: {
+  candidates: readonly FirstImpressionBandCandidate<T>[];
+  creatorId?: string | null;
+  maxScoreDelta?: number;
+}): T | null;
