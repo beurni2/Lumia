@@ -1,0 +1,238 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CORE-P2-RUNTIME — post-P2 runtime diversity + quality probe.
+
+Context:
+N1-CLEAN-CORE-P2 shipped successfully:
+- Nigerian clean-core entries: 60 total.
+- P1 entries 001–030 untouched.
+- P2 entries 031–060 shipped.
+- Curator-corrected `ng_clean_044` accepted.
+- 60/60 entries clear full validator chain:
+  - ideaSchema
+  - validateScenarioCoherence
+  - validateComedy
+  - validateAntiCopyDetailed
+  - family-verb-leak guard
+- TypeScript clean.
+- nigerianCleanCorePack tests: 64/64.
+- wiring tests: 8/8.
+- P1.1 rotation tests: 5/5.
+- full api-server suite: 1461/1461.
+- Nigerian pidgin/light-pidgin pack untouched.
+- Regional-decoration untouched.
+- API/mobile/schema/DB-memory/production gates unchanged.
+- Pidgin and light-pidgin cohorts unaffected.
+
+Goal:
+Run a post-P2 runtime probe to measure actual `ng_clean` delivery, diversity, repetition, and quality after expanding the catalog from 30 to 60 entries.
+
+This is READ-ONLY.
+Do not modify files.
+Do not add entries.
+Do not rewrite entries.
+Do not change rotation constants unless explicitly asked later.
+Do not touch Nigerian pack, regional-decoration, validators, prompts, API, mobile, DB, schema, migrations, or production gates.
+
+============================================================
+QUESTIONS TO ANSWER
+============================================================
+
+1. Does `nigeria/clean` still deliver clean-core at a high rate?
+2. How many distinct clean-core IDs surface now that the catalog has 60 entries?
+3. How many P1 IDs surface?
+4. How many P2 IDs surface?
+5. Are duplicate hooks or repeated premises visible?
+6. Does the 60-entry catalog need a rotation tweak, or is P1.1 still good enough?
+7. Are there any non-target leaks?
+8. Are pidgin/light-pidgin cohorts still unaffected?
+9. Does `ng_clean` output now feel culturally Nigerian enough?
+
+============================================================
+RUNTIME PROBE
+============================================================
+
+Run the existing probe:
+
+`.local/scripts/n1CleanCoreP1Probe.mts`
+
+If possible, also create/run a wider read-only P2 probe:
+- more salts than P1 probe
+- all or most premise cores if fast
+- enough rows to observe diversity across 60 entries
+
+Suggested target:
+- `nigeria/clean`: at least 60 candidates, preferably 120+
+- non-target cohorts:
+  - `nigeria/pidgin`
+  - `nigeria/light_pidgin`
+  - `nigeria/null`
+  - `western/clean`
+  - `india/clean`
+  - `philippines/clean`
+
+Save:
+- `.local/qa-runs/n1_clean_core_p2_runtime_quality.json`
+- `.local/qa-runs/n1_clean_core_p2_runtime_quality_summary.json`
+- `.local/N1_CLEAN_CORE_P2_RUNTIME_REPORT.md`
+
+============================================================
+MEASURE
+============================================================
+
+For `nigeria/clean` report:
+
+- total candidates
+- clean-core deliveries
+- clean-core delivery %
+- distinct clean-core IDs
+- distinct P1 IDs
+- distinct P2 IDs
+- top repeated IDs
+- duplicate hooks
+- duplicate howToFilm
+- under-fill rows
+- P1/P2 distribution
+- category/premiseFamily distribution if easy
+- any entries that never surface in wider probe
+- any entries that dominate too much
+
+Quality scans:
+- pidgin marker hits
+- mock-pidgin hits
+- shouty/high-energy guard hits
+- stereotype/lazy-token hits
+- decoration leaks
+- old filming boilerplate
+- scenario/coherence failures
+- structural failures
+- family-verb-leak failures
+- generic/Western-feeling samples, if any
+
+For non-target cohorts:
+- clean-core delivery should be 0.
+- candidate counts should be unchanged/normal.
+- pidgin/light-pidgin pack delivery should remain healthy.
+- no clean-core leaks.
+
+============================================================
+MANUAL QUALITY REVIEW
+============================================================
+
+Take a representative sample of at least 20 `nigeria/clean` outputs from the runtime probe.
+
+Classify each as:
+
+GOOD_NG_CLEAN:
+- clean English / Nigerian English
+- Nigerian reality is recognizable
+- funny tension
+- filmable
+- no pidgin/mock-pidgin/stereotype
+
+TOO_GENERIC:
+- could be any country
+- no Nigerian reality
+- bland generic output
+
+TOO_REPETITIVE:
+- same entry/premise appearing too often
+
+VALID_BUT_WEAK:
+- passes validators but comedy or scenario feels low
+
+BAD:
+- pidgin leak, mock-pidgin, stereotype, broken grammar, unfilmable, or validator-risky
+
+Success target:
+- ≥70% GOOD_NG_CLEAN.
+- 0 BAD.
+- ideally <15% TOO_GENERIC.
+
+============================================================
+RECOMMENDATION RULES
+============================================================
+
+Return one of:
+
+STOP:
+- clean-core delivery ≥90%
+- distinct IDs healthy for sample size
+- P1/P2 both surface
+- ≥70% GOOD_NG_CLEAN
+- 0 leaks / BAD / validator issues
+- no severe repetition
+
+ROTATION_TWEAK:
+- delivery is high but distinct IDs are too low
+- P2 barely surfaces
+- a few entries dominate
+- no copy quality issue
+
+TARGETED_ENTRY_REVIEW:
+- 1–5 specific entries are weak, too repetitive, or too generic
+- rotation is otherwise fine
+
+ADD_MORE_ENTRIES:
+- quality is high and rotation is fine, but coverage still feels narrow
+- only recommend after proving the current 60 surface well
+
+DO_NOT_ADD_MORE:
+- rotation/diversity still bottlenecked
+- quality is inconsistent
+- leaks/failures appear
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - STOP
+   - ROTATION_TWEAK
+   - TARGETED_ENTRY_REVIEW
+   - ADD_MORE_ENTRIES
+   - DO_NOT_ADD_MORE
+
+2. Runtime sample sizes.
+
+3. `ng_clean` delivery/diversity:
+   - delivery %
+   - distinct IDs
+   - P1 IDs
+   - P2 IDs
+   - top repeats
+
+4. Quality review:
+   - GOOD_NG_CLEAN %
+   - TOO_GENERIC %
+   - VALID_BUT_WEAK %
+   - BAD count
+
+5. Quality scan failures:
+   - pidgin/mock/stereotype/shouty/decor leaks
+   - old boilerplate
+   - coherence/structural/family-verb issues
+
+6. Non-target cohort impact:
+   - pidgin/light-pidgin
+   - null
+   - Western/India/Philippines
+
+7. Recommendation:
+   - whether to stop, tweak rotation, review entries, or add more entries
+
+8. Files created.
+
+9. Confirm:
+   - read-only only
+   - no entries added
+   - no entries rewritten
+   - Nigerian pack untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no production gates changed
+
+Do not ask for next steps.
