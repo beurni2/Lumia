@@ -1,0 +1,490 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-HIGH-HQS-CORPUS-LIFT-P3-HUMAN-FIRST
+
+Mode:
+Small editorial corpus lift + predict-then-import + tests + runtime QA.
+
+Supervisor decision:
+N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-PATCH-D is shipped.
+N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP is shipped.
+N1-FOLLOWUP-NG-CLEAN-SLOT0-SURFACE-EXPANSION via retention was attempted, failed, and was correctly rolled back.
+
+Current state:
+- Patch D improved scorer-level ng_clean eligibility.
+- The anti-repeat helper works when a valid pickerEligible clean-core alternative is present.
+- Runtime proof showed ng_clean can rotate slot 0 from ng_clean_001 to ng_clean_039.
+- Surface expansion via retention failed because it surfaced low-HQS entries, especially ng_clean_012 with HQS 34 / pickerEligible=false.
+- That low-HQS entry could not legally become slot 0 and also displaced the useful ng_clean_039 alternative.
+- Therefore, the remaining bottleneck is content quality: not enough first-card-grade ng_clean clean-core entries naturally clear HQS ≥ 50 and surface as safe swap targets.
+
+Goal:
+Add a small set of genuinely funny, human-feeling, filmable ng_clean clean-core entries that naturally pass:
+1. existing ng_clean validator gates
+2. HQS ≥ 50 / pickerEligible floor
+
+Primary product goal:
+Increase the reliable first-card-safe ng_clean clean-core surface from 2 entries toward 4–5 entries, so the already-shipped anti-repeat helper can rotate through at least 3 distinct slot-0 leaders.
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No PICKER_HQS_FLOOR change.
+4. No K change.
+5. No selector changes.
+6. No anti-repeat helper changes.
+7. No rotation helper changes.
+8. No prompt changes.
+9. No API/mobile/DB/schema changes.
+10. No memory schema changes.
+11. No broad corpus dump.
+12. No filler entries.
+13. No robotic scorer-gaming.
+14. No lowering the creative standard.
+15. Preserve cohort isolation.
+16. Import only entries that pass both live gates.
+17. If fewer than 6 pass, import fewer and report.
+18. If none pass, stop and report.
+
+Creative standard:
+These entries must feel like real short-form creator ideas:
+- funny
+- human
+- clean Nigerian English
+- filmable in a room / home / office / doorway / kitchen / shop / safe staged setting
+- clear visual action
+- strong first-card hook
+- not generic
+- not AI-ish
+- not over-reliant on “exposed / judged / mocked / humbled”
+- not heavy pidgin
+- not stereotype-driven
+- not unsafe to film
+
+Taste bar:
+Do not import entries just because they pass HQS. They must also feel funny and human.
+
+Strong examples from the accepted/desired style:
+- “The light came back and exposed everyone’s fake patience.”
+- “The change came with life advice.”
+- “The screen dimmed and I started bargaining.”
+- “The form asked for my entire history.”
+- “The sticker ended the serious meeting.”
+
+Candidate packet status:
+The supervisor reviewed this packet and found it much stronger than prior packets. It has more social embarrassment, household politics, public-payment panic, and filmable micro-comedy.
+
+Before predict-then-import:
+Apply only the supervisor-approved hook tightenings listed below.
+Do not rewrite the whole packet.
+Do not turn the hooks into robotic scorer-shaped lines.
+Do not replace human-feeling hooks with generic “object betrayal” filler.
+
+Supervisor-approved hook tightenings:
+1. ng_clean_NEW_005
+   Replace hook:
+   “The screen brightness fell during the account balance.”
+   With:
+   “The screen dimmed during my account balance.”
+
+2. ng_clean_NEW_012
+   Replace hook:
+   “The front camera corrected my entire self-esteem.”
+   With:
+   “The front camera corrected my whole confidence.”
+
+3. ng_clean_NEW_015
+   Replace hook:
+   “The measuring cup made my confidence look expensive.”
+   With:
+   “The measuring cup exposed my cooking confidence.”
+
+4. ng_clean_NEW_016
+   Replace hook:
+   “My transfer narration sounded richer than my balance.”
+   With:
+   “The transfer narration sounded richer than my balance.”
+
+5. ng_clean_NEW_017
+   Replace hook:
+   “The family photo became a seating arrangement crisis.”
+   With:
+   “The family photo turned chairs into politics.”
+
+6. ng_clean_NEW_018
+   Keep hook:
+   “The voice note began with unnecessary breathing.”
+   But normalize anchor from:
+   “WhatsApp voice note”
+   To:
+   “voice note”
+
+7. ng_clean_NEW_006
+   Replace hook:
+   “The doorbell rang after I removed my confidence.”
+   With:
+   “The doorbell rang while I was acting serious.”
+
+Implementation process:
+1. Inspect current `nigerianCleanCorePack.ts` schema and conventions.
+2. Continue ids/draft ids according to existing corpus conventions after inspecting the file.
+3. Run predict-then-import on the candidate packet below.
+4. Score each candidate with live `scoreHookQualityDetailed`.
+5. Validate each candidate with live `classifyNigerianCleanCoreEntryFailure`.
+6. Import only candidates that pass:
+   - HQS ≥ 50
+   - validator clean
+7. Do not rewrite failed candidates into scorer-shaped filler in this pass.
+8. If a candidate fails only because of a tiny mechanical schema/formatting issue, fix only that mechanical issue and report it.
+9. If a candidate fails for taste/HQS/validator reasons, reject and report.
+10. Preserve existing entries.
+11. Do not delete existing entries.
+12. Do not modify scorer, validator, selector, rotation, prompts, API, mobile, DB, schema, K, or memory behavior.
+
+Candidate packet:
+Evaluate these candidates after applying the supervisor-approved hook tightenings above. Import only the ones that naturally pass.
+
+[
+  {
+    id: "ng_clean_NEW_001",
+    anchor: "bank app",
+    hook: "The bank app smiled before rejecting my confidence.",
+    premiseFamily: "money_pos_bank",
+    voiceTone: "dry_clean",
+    whatToShow: "A person stands at a small shop counter acting calm while the bank app loads. They nod like everything is fine, then the screen shows a fake failed transfer message. The seller quietly pulls the nylon bag back, and the person suddenly starts explaining network issues like a trained spokesperson.",
+    howToFilm: "Shoot over the shoulder with a blurred fake bank screen, then cut to the shopkeeper’s hand slowly reclaiming the bag. End on the person giving a confident thumbs-up while clearly panicking.",
+    caption: "When your bank app embarrasses you in public.",
+    whyThisFits: "It turns a familiar Nigerian payment delay into social panic, with a clear visual shift from confidence to negotiation.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_002",
+    anchor: "POS receipt",
+    hook: "The POS receipt printed slower than my excuses.",
+    premiseFamily: "money_pos_bank",
+    voiceTone: "quiet_panic",
+    whatToShow: "A person finishes paying and waits for the POS receipt while everyone watches. The machine prints tiny lines painfully slowly. The person starts pretending to check other important messages, but keeps looking back at the receipt like it is deciding their future.",
+    howToFilm: "Use a close shot of a fake POS receipt inching out, then cut between waiting faces and the person forcing a serious expression. Finish with the receipt finally printing and the person collecting it like exam results.",
+    caption: "That POS silence can humble anybody.",
+    whyThisFits: "The comedy is in the tiny public delay where everyone pretends not to judge but clearly watches.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_003",
+    anchor: "group chat",
+    hook: "The group chat appointed me without discussion.",
+    premiseFamily: "group_chat_pressure",
+    voiceTone: "dry_deadpan",
+    whatToShow: "A person opens a family or office group chat and sees their name volunteered for a task. They stare at the phone, look around the empty room for witnesses, then begin typing and deleting polite complaints until they simply reply, “Okay.”",
+    howToFilm: "Show a fake chat screen with private details removed, then film the person’s face changing from confusion to forced responsibility. Add quick cuts of typed replies being deleted before the defeated final reply.",
+    caption: "Promotion without salary, ceremony, or consent.",
+    whyThisFits: "It captures a real social pressure moment where silence in a group chat becomes agreement.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_004",
+    anchor: "auntie’s spoon",
+    hook: "Auntie’s spoon measured rice like national security.",
+    premiseFamily: "family_food_pressure",
+    voiceTone: "observational_clean",
+    whatToShow: "At a kitchen table, a person tries to serve rice casually. An auntie enters with one specific spoon and starts measuring every scoop with serious authority. The person freezes mid-scoop as the whole meal becomes a controlled operation.",
+    howToFilm: "Film the serving plate, then reveal the spoon entering frame like an official tool. Use quick reaction cuts from the server, the plate, and the auntie’s calm supervision. End with one tiny extra grain being noticed.",
+    caption: "Some spoons are not ordinary spoons.",
+    whyThisFits: "It turns a common family food moment into household politics without needing loud jokes.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_005",
+    anchor: "screen",
+    hook: "The screen dimmed during my account balance.",
+    premiseFamily: "phone_survival_panic",
+    voiceTone: "quiet_panic",
+    whatToShow: "A person opens a fake banking screen to check balance, but the screen suddenly dims. They tilt the phone, squint, move near a window, and start whispering calculations like the phone has betrayed them during a private meeting.",
+    howToFilm: "Use a fake blurred screen and focus on the physical panic: squinting, tilting, wiping the screen, and moving toward light. Payoff with the person holding the phone under a lamp like a medical emergency.",
+    caption: "Brightness chose the worst possible moment.",
+    whyThisFits: "The anchor is simple and visual, but the embarrassment feels personal and instantly recognizable.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_006",
+    anchor: "doorbell",
+    hook: "The doorbell rang while I was acting serious.",
+    premiseFamily: "social_arrival_panic",
+    voiceTone: "dry_clean",
+    whatToShow: "A creator is filming comfortably in a room, wearing a dramatic top half and relaxed home clothes below. The doorbell rings. They freeze, glance at the outfit, hide props under a pillow, and try to answer the door like nothing strange was happening.",
+    howToFilm: "Start with a creator mid-performance, then cut sharply to the doorbell sound and full-body outfit panic. Stage the doorway safely indoors and end with the creator opening the door only halfway.",
+    caption: "Visitors always know when to arrive.",
+    whyThisFits: "It captures creator embarrassment with a clear visual payoff and no need for complicated setup.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_007",
+    anchor: "delivery code",
+    hook: "The delivery code made me sound suspicious outside.",
+    premiseFamily: "errand_expectation_gap",
+    voiceTone: "social_panic",
+    whatToShow: "A person stands near the doorway trying to read a delivery code from their phone while a rider waits. They say the wrong number twice, then lower their voice like they are doing something secret. The rider simply watches as the person unlocks the phone again with sweaty seriousness.",
+    howToFilm: "Stage it at a doorway or compound entrance with a fake delivery code. Show the phone from behind or blur the screen. End with the person finally saying the code too loudly after trying to be discreet.",
+    caption: "Why do delivery codes feel like interviews?",
+    whyThisFits: "A harmless errand becomes socially awkward because the tiny code suddenly carries pressure.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_008",
+    anchor: "online form",
+    hook: "The online form asked like my mother.",
+    premiseFamily: "admin_overload",
+    voiceTone: "dry_deadpan",
+    whatToShow: "A person fills a fake online form and starts confident. The questions become increasingly personal: address history, next of kin, previous school, reason for applying. The person looks at the laptop, then toward the door like a parent might enter and continue the questioning.",
+    howToFilm: "Use a fake form with safe placeholder text and blurred details. Cut between the cursor, the person’s tired face, and their hand hovering over the keyboard. Payoff with them closing the laptop gently like ending a family interrogation.",
+    caption: "Some forms are raised in strict homes.",
+    whyThisFits: "It connects admin stress to family-style questioning in a way that feels specific and human.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_009",
+    anchor: "room door",
+    hook: "The room door opened during my serious content.",
+    premiseFamily: "creator_social_behavior",
+    voiceTone: "embarrassed_clean",
+    whatToShow: "A creator is recording a serious motivational video in their room. The door opens and a family member quietly enters to pick up one random item. The creator freezes in motivational pose while the family member searches around casually, ruining the entire mood.",
+    howToFilm: "Frame the creator seated or standing in content mode, then have the door open mid-sentence. Use silence and frozen posture as the joke. End with the creator restarting in a much smaller voice.",
+    caption: "Content confidence disappears when family enters.",
+    whyThisFits: "It is a familiar creator embarrassment moment with strong room-based filmability.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_010",
+    anchor: "extension box",
+    hook: "The extension box turned charging into family politics.",
+    premiseFamily: "home_resource_scramble",
+    voiceTone: "household_politics",
+    whatToShow: "Several phones, one fan, and one laptop compete for the same extension box. A person removes one charger carefully, then everyone in the room reacts like a major household decision was made without approval.",
+    howToFilm: "Shoot close on the extension box packed with plugs, then show one hand slowly choosing a charger. Cut to exaggerated silent reactions around the room. End with the person pretending they only touched their own charger.",
+    caption: "One socket can divide the whole house.",
+    whyThisFits: "It makes a normal home object the center of social tension without relying on generic object jokes.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_011",
+    anchor: "email subject",
+    hook: "The email subject already sounded like extra work.",
+    premiseFamily: "inbox_responsibility",
+    voiceTone: "dry_clean",
+    whatToShow: "A person opens their inbox and sees a subject line like “Quick Help Needed Today.” They lean back, close the laptop halfway, reopen it, and begin acting busy in an empty room before even reading the message.",
+    howToFilm: "Use a fake inbox with safe placeholder details. Start with a calm face, then punch in on the subject line and the immediate physical retreat. Payoff with the person typing “Noted” while looking personally defeated.",
+    caption: "Some emails announce stress before opening.",
+    whyThisFits: "The joke lands from a tiny professional signal everyone recognizes: the subject line already has consequences.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_012",
+    anchor: "front camera",
+    hook: "The front camera corrected my whole confidence.",
+    premiseFamily: "camera_self_review",
+    voiceTone: "self_aware_clean",
+    whatToShow: "A creator prepares to record confidently, opens the front camera, and immediately adjusts hair, posture, lighting, shirt, and facial expression. They finally look ready, then accidentally switch to an even worse angle and lose all courage.",
+    howToFilm: "Use quick jump cuts for each adjustment and avoid showing sensitive surroundings. End on a fake camera view angle that makes the creator slowly lower the phone and reconsider the whole video.",
+    caption: "Front camera can change the meeting agenda.",
+    whyThisFits: "It is creator-specific, visual, and built around a very common private embarrassment.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_013",
+    anchor: "pot lid",
+    hook: "The pot lid announced what I was checking.",
+    premiseFamily: "kitchen_object_betrayal",
+    voiceTone: "dry_observational",
+    whatToShow: "Someone sneaks into the kitchen to check the pot before food is officially served. They lift the pot lid carefully, but it clatters loudly. A family member calls from another room, and the person pretends they were only arranging plates.",
+    howToFilm: "Film the hand approaching the pot lid slowly, then make the lid sound the dramatic reveal. Cut to the person instantly holding plates as a fake excuse. Use safe, cool cookware or stage with an empty pot.",
+    caption: "Kitchen evidence is always too loud.",
+    whyThisFits: "The humor comes from household food secrecy and one small object giving everything away.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_014",
+    anchor: "queue number",
+    hook: "The queue number moved and I became alert.",
+    premiseFamily: "public_waiting_panic",
+    voiceTone: "quiet_panic",
+    whatToShow: "A person is waiting casually with a queue ticket, pretending not to care. The displayed number suddenly gets close to theirs, and they start gathering bags, checking pockets, rehearsing their request, and standing too early.",
+    howToFilm: "Stage it indoors with a fake paper ticket and a handwritten number display. Show the person’s body language switching from relaxed to official. Payoff with them standing up, then realizing three numbers still remain.",
+    caption: "Waiting calmly until your number gets serious.",
+    whyThisFits: "It captures the public micro-panic of almost being called and over-preparing too soon.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_015",
+    anchor: "measuring cup",
+    hook: "The measuring cup exposed my cooking confidence.",
+    premiseFamily: "household_false_confidence",
+    voiceTone: "dry_clean",
+    whatToShow: "A person starts cooking by guessing ingredients with confidence. Someone hands them a measuring cup, and suddenly every guess becomes suspicious. They pour, stop, return some, add more, and pretend this was the plan all along.",
+    howToFilm: "Use a kitchen counter with dry ingredients or water in safe amounts. Show the confident free-pour first, then the measuring cup entering frame and changing the person’s behavior. Payoff with a tiny correction treated like a scientific breakthrough.",
+    caption: "Cooking confidence ends when measurement arrives.",
+    whyThisFits: "It turns everyday kitchen false confidence into visible physical comedy.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_016",
+    anchor: "transfer narration",
+    hook: "The transfer narration sounded richer than my balance.",
+    premiseFamily: "money_pos_bank",
+    voiceTone: "self_aware_clean",
+    whatToShow: "A person makes a small transfer but writes an unnecessarily serious narration like “Payment for urgent services.” They pause, reread it, then check their fake balance and quietly reduce the confidence in both the amount and the wording.",
+    howToFilm: "Show only a fake transfer screen with blurred or placeholder values. Cut to the person proudly typing, then shrinking physically after checking the balance. End with the narration changed to something plain and humble.",
+    caption: "Sometimes the narration has more confidence than you.",
+    whyThisFits: "It finds comedy in a specific payment detail that feels personal and very filmable.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_017",
+    anchor: "family photo",
+    hook: "The family photo turned chairs into politics.",
+    premiseFamily: "family_food_pressure",
+    voiceTone: "observational_clean",
+    whatToShow: "After a meal, someone suggests a family photo. Everyone starts moving chairs, protecting plates, arguing about who stands where, and pretending not to care about appearing in front. One person gets trapped holding a half-finished plate and a forced smile.",
+    howToFilm: "Stage a small table with plates and chairs, then show the chaos of arranging people without needing many actors. Use one main performer switching roles or off-camera voices. Payoff with the photo timer ending before anyone is ready.",
+    caption: "One photo can reorganize the whole house.",
+    whyThisFits: "It turns a normal family moment into physical comedy through plates, chairs, and quiet status pressure.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_018",
+    anchor: "voice note",
+    hook: "The voice note began with unnecessary breathing.",
+    premiseFamily: "inbox_responsibility",
+    voiceTone: "dry_deadpan",
+    whatToShow: "A person receives a long voice note and presses play. It begins with several seconds of breathing and background movement. The person checks the duration, sits up, pauses it, and prepares emotionally before the actual message even starts.",
+    howToFilm: "Use a fake chat screen with no private data and play staged audio off-screen. Show the listener’s reaction to the long duration and empty opening. End with them putting the phone down like the message requires a meeting.",
+    caption: "Long voice notes need emotional preparation.",
+    whyThisFits: "It captures a very specific phone behavior that creates instant recognition and quiet dread.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_019",
+    anchor: "plastic chair",
+    hook: "The plastic chair announced my late arrival.",
+    premiseFamily: "social_arrival_panic",
+    voiceTone: "public_embarrassment",
+    whatToShow: "A person enters a small meeting or family gathering late and tries to sit silently. The plastic chair scrapes loudly across the floor. Everyone turns, and the person slowly sits with the face of someone who wanted privacy but received a full introduction.",
+    howToFilm: "Stage indoors with a plastic chair on a safe floor surface. Focus on the careful attempt to sit quietly, then exaggerate the chair scrape sound. Payoff with the person freezing halfway into the seat.",
+    caption: "Some chairs believe in public announcements.",
+    whyThisFits: "It is a simple, visual public embarrassment with a specific Nigerian home or office anchor.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  },
+  {
+    id: "ng_clean_NEW_020",
+    anchor: "calendar reminder",
+    hook: "The calendar reminder arrived like family intervention.",
+    premiseFamily: "admin_overload",
+    voiceTone: "quiet_realization",
+    whatToShow: "A person is relaxing confidently when a calendar reminder pops up for an appointment they forgot. They sit up slowly, check the time, look at their outfit, and begin moving around the room like the reminder personally came to correct their life.",
+    howToFilm: "Use a fake reminder screen with no personal details. Start with comfort and silence, then let the notification sound trigger sudden movement. Payoff with the person packing random items while still not fully understanding where they are going.",
+    caption: "A reminder can change your whole posture.",
+    whyThisFits: "It makes adulting failure visual, specific, and emotionally familiar without sounding like a template.",
+    reviewedBy: "BI-CLEAN 2026-05-10"
+  }
+]
+
+Editorial priority:
+Highest priority candidates:
+- ng_clean_NEW_001 bank app
+- ng_clean_NEW_002 POS receipt
+- ng_clean_NEW_003 group chat
+- ng_clean_NEW_004 auntie’s spoon
+- ng_clean_NEW_007 delivery code
+- ng_clean_NEW_008 online form
+- ng_clean_NEW_009 room door
+- ng_clean_NEW_010 extension box
+- ng_clean_NEW_011 email subject
+- ng_clean_NEW_013 pot lid
+- ng_clean_NEW_014 queue number
+- ng_clean_NEW_019 plastic chair
+- ng_clean_NEW_020 calendar reminder
+
+Most first-card-worthy:
+- ng_clean_NEW_001 bank app
+- ng_clean_NEW_002 POS receipt
+- ng_clean_NEW_003 group chat
+- ng_clean_NEW_004 auntie’s spoon
+- ng_clean_NEW_007 delivery code
+- ng_clean_NEW_019 plastic chair
+
+Lower priority / reject if weak under live gates:
+- ng_clean_NEW_006 doorbell
+- ng_clean_NEW_012 front camera
+- ng_clean_NEW_015 measuring cup
+- ng_clean_NEW_016 transfer narration
+- ng_clean_NEW_017 family photo
+- ng_clean_NEW_018 voice note
+
+Tests required:
+Run relevant tests for:
+- ng_clean corpus schema/integrity
+- hook quality scoring
+- anti-copy / duplicate checks if available
+- cohort isolation / wiring
+- TypeScript typecheck
+
+Run full api-server suite if practical.
+
+Runtime QA required:
+After imports, run memory-exercised QA:
+- ng_clean_cold: 5 creators × 1 batch × 6 ideas
+- ng_clean_memory: 5 creators × 4 sequential batches × 6 ideas
+- ng_pidgin: 5 creators × 1 batch × 6 ideas
+- ng_light_pidgin: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Measure:
+1. entries evaluated
+2. entries imported
+3. entries rejected with reasons
+4. HQS per candidate
+5. validator result per candidate
+6. ng_clean pickerEligible count after import
+7. ng_clean slot-0 distinct leaders in memory exercise
+8. whether at least one new imported entry reaches slot 0
+9. whether distinct ng_clean slot-0 leaders improves from 2 to at least 3
+10. underfill / fallback / errors
+11. memory leakage into controls
+12. cohort leakage
+
+Acceptance criteria:
+1. No scorer/validator/K/selector/rotation/prompt/API/mobile/DB/schema changes.
+2. Imported entries pass live gates.
+3. TypeScript clean.
+4. Relevant tests pass.
+5. Full api-server suite passes if practical.
+6. At least 6 entries imported, unless fewer naturally pass and report explains why.
+7. At least one newly imported entry reaches user-facing slot 0 in ng_clean memory exercise.
+8. ng_clean distinct slot-0 leaders improves from 2 to at least 3.
+9. No underfill regression.
+10. No fallback regression.
+11. No control-cohort memory leakage.
+12. No cohort leakage.
+13. Final report clearly states whether high-HQS corpus lift is sufficient or whether further editorial expansion is needed.
+
+Required output files:
+- .local/N1_FOLLOWUP_NG_CLEAN_HIGH_HQS_CORPUS_LIFT_P3_HUMAN_FIRST_REPORT.md
+- .local/qa-runs/n1_ng_clean_high_hqs_corpus_lift_p3_human_first.json
+- .local/qa-runs/n1_ng_clean_high_hqs_corpus_lift_p3_human_first_summary.json
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Entries evaluated
+3. Entries imported
+4. Entries rejected with reasons
+5. Files changed
+6. Tests run and results
+7. Runtime QA before/after table
+8. ng_clean slot-0 memory-series table
+9. Newly imported entries observed in runtime
+10. Safety/regression checks
+11. Remaining gaps
+12. Recommendation for next phase
+
+Stop condition:
+If this task requires scorer changes, validator changes, threshold lowering, K changes, selector changes, anti-repeat helper changes, prompt changes, API/mobile/DB/schema changes, or broad corpus rewrites, stop and report. This phase is corpus-only.

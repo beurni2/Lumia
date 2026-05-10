@@ -924,6 +924,66 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "dry_clean_observation",
       reviewedBy: "BI-CLEAN 2026-05-10",
     },
+    // ---------------------------------------------------------------- //
+    // PHASE N1-FOLLOWUP-NG-CLEAN-HIGH-HQS-CORPUS-LIFT-P3-HUMAN-FIRST   //
+    // (BI-CLEAN 2026-05-10)                                            //
+    // ---------------------------------------------------------------- //
+    // 3 entries imported from a 20-candidate packet. Each PRE-IMPORT   //
+    // verified against live `scoreHookQualityDetailed` (HQS >= 50),    //
+    // live `classifyNigerianCleanCoreEntryFailure` (validator clean),  //
+    // AND live `authorPackEntryAsIdea` runtime-author (catches the     //
+    // hook_topic_noun_drift surface). Supervisor-approved hook         //
+    // tightenings applied to NEW_005, _006, _012, _015, _016, _017     //
+    // (text) and _018 (anchor) before scoring. 16 candidates failed    //
+    // HQS-only; 1 (NEW_005 "screen dimmed during my account balance")  //
+    // passed HQS=65 + boot-validator but failed runtime-author with    //
+    // hook_topic_noun_drift (anchor "screen" vs banking-balance body)  //
+    // and was rejected. None rewritten into scorer-shaped filler per   //
+    // session-plan rules 7, 12, 13, 14.                                //
+    // See .local/N1_FOLLOWUP_NG_CLEAN_HIGH_HQS_CORPUS_LIFT_P3_HUMAN_FIRST_REPORT.md
+    // ---------------------------------------------------------------- //
+    {
+      id: "ng_clean_062",
+      draftId: "CLEAN-DRAFT-062",
+      anchor: "auntie\u2019s spoon",
+      hook: "Auntie\u2019s spoon measured rice like national security.",
+      whatToShow:
+        "At a kitchen table, a person tries to serve rice casually. An auntie enters with one specific spoon and starts measuring every scoop with serious authority. The person freezes mid-scoop as the whole meal becomes a controlled operation. The auntie\u2019s spoon does not negotiate.",
+      howToFilm:
+        "Film the serving plate, then reveal the spoon entering frame like an official tool. Use quick reaction cuts from the server, the plate, and the auntie\u2019s calm supervision. End with one tiny extra grain being noticed.",
+      caption: "Some spoons are not ordinary spoons.",
+      premiseFamily: "family_food_pressure",
+      voiceTone: "observational_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_063",
+      draftId: "CLEAN-DRAFT-063",
+      anchor: "online form",
+      hook: "The online form asked like my mother.",
+      whatToShow:
+        "A person fills a fake online form and starts confident. The questions become increasingly personal: address history, next of kin, previous school, reason for applying. The person looks at the laptop, then toward the door like a parent might enter and continue the questioning. The online form just keeps asking.",
+      howToFilm:
+        "Use a fake form with safe placeholder text and blurred details. Cut between the cursor, the person\u2019s tired face, and their hand hovering over the keyboard. Payoff with them closing the laptop gently like ending a family interrogation.",
+      caption: "Some forms are raised in strict homes.",
+      premiseFamily: "admin_overload",
+      voiceTone: "dry_deadpan",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
+    {
+      id: "ng_clean_064",
+      draftId: "CLEAN-DRAFT-064",
+      anchor: "measuring cup",
+      hook: "The measuring cup exposed my cooking confidence.",
+      whatToShow:
+        "A person starts cooking by guessing ingredients with confidence. Someone hands them a measuring cup, and suddenly every guess becomes suspicious. They pour, stop, return some, add more, and pretend this was the plan all along.",
+      howToFilm:
+        "Use a kitchen counter with dry ingredients or water in safe amounts. Show the confident free-pour first, then the measuring cup entering frame and changing the person\u2019s behavior. Payoff with a tiny correction treated like a scientific breakthrough.",
+      caption: "Cooking confidence ends when measurement arrives.",
+      premiseFamily: "household_false_confidence",
+      voiceTone: "dry_clean",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
   ]);
 
 // ---------------------------------------------------------------- //

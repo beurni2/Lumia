@@ -1247,3 +1247,9 @@ id = "kdxpAFem0IyMppXpI0sxZ"
 uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_SURFACE_EXPANSION_REPORT.md"
 type = "text"
 title = "N1 ng_clean Slot-0 Surface Expansion — Findings & Rollback Report"
+
+[[outputs]]
+id = "9vQ97IY1qAlTe7h5tKaRf"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_HIGH_HQS_CORPUS_LIFT_P3_HUMAN_FIRST_REPORT.md"
+type = "text"
+title = "N1 NG-Clean High-HQS Corpus Lift P3-Human-First Report"

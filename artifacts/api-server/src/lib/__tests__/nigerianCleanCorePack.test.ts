@@ -150,15 +150,15 @@ describe("canActivateNigerianCleanCorePack — gate truth-table", () => {
 // ---------------------------------------------------------------- //
 
 describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant", () => {
-  it("ships exactly 61 hand-authored entries (P1: 30 + P2: 30 + P3: 1)", () => {
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(61);
+  it("ships exactly 64 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3)", () => {
+    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(64);
   });
 
   it("is a frozen array (cannot be mutated by callers)", () => {
     expect(Object.isFrozen(NIGERIAN_CLEAN_CORE_ENTRIES)).toBe(true);
   });
 
-  it("module loads without throwing (boot-time validator passes for all 61)", async () => {
+  it("module loads without throwing (boot-time validator passes for all 64)", async () => {
     // Re-import to assert the module-load assertion does not throw.
     await expect(
       import("../nigerianCleanCorePack.js"),
@@ -174,37 +174,40 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(failures).toEqual([]);
   });
 
-  it("ids are ng_clean_001..ng_clean_061, all distinct", () => {
+  it("ids are ng_clean_001..ng_clean_064, all distinct", () => {
     const ids = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.id);
-    expect(new Set(ids).size).toBe(61);
+    expect(new Set(ids).size).toBe(64);
     expect(ids[0]).toBe("ng_clean_001");
     expect(ids[29]).toBe("ng_clean_030");
     expect(ids[30]).toBe("ng_clean_031");
     expect(ids[59]).toBe("ng_clean_060");
     expect(ids[60]).toBe("ng_clean_061");
+    expect(ids[61]).toBe("ng_clean_062");
+    expect(ids[63]).toBe("ng_clean_064");
   });
 
-  it("draftIds are CLEAN-DRAFT-001..CLEAN-DRAFT-061, all distinct", () => {
+  it("draftIds are CLEAN-DRAFT-001..CLEAN-DRAFT-064, all distinct", () => {
     const draftIds = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.draftId);
-    expect(new Set(draftIds).size).toBe(61);
+    expect(new Set(draftIds).size).toBe(64);
     expect(draftIds[0]).toBe("CLEAN-DRAFT-001");
     expect(draftIds[29]).toBe("CLEAN-DRAFT-030");
     expect(draftIds[30]).toBe("CLEAN-DRAFT-031");
     expect(draftIds[59]).toBe("CLEAN-DRAFT-060");
     expect(draftIds[60]).toBe("CLEAN-DRAFT-061");
+    expect(draftIds[63]).toBe("CLEAN-DRAFT-064");
   });
 
   it("hooks and howToFilm are intra-catalog distinct", () => {
     const hooks = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.hook);
     const howTo = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.howToFilm);
-    expect(new Set(hooks).size).toBe(61);
-    expect(new Set(howTo).size).toBe(61);
+    expect(new Set(hooks).size).toBe(64);
+    expect(new Set(howTo).size).toBe(64);
   });
 
-  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3: 2026-05-10)", () => {
+  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3 + P3-HUMAN-FIRST: 2026-05-10)", () => {
     const ALLOWED_STAMPS = new Set([
       "BI-CLEAN 2026-05-09", // P1 (1..30) and P2 (31..60)
-      "BI-CLEAN 2026-05-10", // P3 (61), N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-LIFT-P2-HUMAN-COMEDY
+      "BI-CLEAN 2026-05-10", // P3 (61) and P3-HUMAN-FIRST (62..64)
     ]);
     for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
       expect(ALLOWED_STAMPS.has(entry.reviewedBy)).toBe(true);
@@ -216,10 +219,12 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
         "BI-CLEAN 2026-05-09",
       );
     }
-    // Entry 61 (the P3 import) MUST carry the new packet stamp.
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES[60]!.reviewedBy).toBe(
-      "BI-CLEAN 2026-05-10",
-    );
+    // Entries 61..64 (the P3 + P3-HUMAN-FIRST imports) MUST carry the new packet stamp.
+    for (let i = 60; i < 64; i++) {
+      expect(NIGERIAN_CLEAN_CORE_ENTRIES[i]!.reviewedBy).toBe(
+        "BI-CLEAN 2026-05-10",
+      );
+    }
   });
 });
 
