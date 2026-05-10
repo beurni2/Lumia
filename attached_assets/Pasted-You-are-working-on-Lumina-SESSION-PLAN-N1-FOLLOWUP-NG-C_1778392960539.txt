@@ -1,0 +1,267 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-HQS-CALIBRATION-AUDIT
+
+Mode:
+READ-ONLY AUDIT. Do not implement.
+
+Supervisor decision:
+Pause the P3 corpus expansion. The acceptance-pattern audit showed that brute-forcing more entries through the current HQS gate is inefficient and risks pushing the writing toward robotic scorer-shaped hooks.
+
+Current evidence:
+- Existing ng_clean corpus: 61 entries.
+- Validator-clean rate: 61/61.
+- PickerEligible count: only 8/61.
+- The bottleneck is HQS / pickerEligible, not validator validity.
+- Many human-feeling hooks miss because the scorer rewards a narrow set of shapes: short `The <object>...` hooks, strong anthropomorphic phrasing, high/recognized verbs, and a limited concrete-noun catalog.
+- The current gate may be under-crediting clean, human, filmable Nigerian comedy.
+
+Goal:
+Audit whether `scoreHookQualityDetailed` / pickerEligible calibration is too narrow for ng_clean human comedy, and identify the smallest safe scorer/vocabulary adjustment that improves eligible supply WITHOUT lowering quality.
+
+This is not a request to loosen standards.
+This is a request to make the standard recognize good human comedy more accurately.
+
+Hard constraints:
+1. No implementation.
+2. No scorer changes.
+3. No validator changes.
+4. No corpus edits.
+5. No selector changes.
+6. No K changes.
+7. No pickerEligibility changes.
+8. No prompt changes.
+9. No API/mobile/DB/schema changes.
+10. No pack reservation.
+11. No memory changes.
+12. No rotation helper changes.
+13. Do not lower `PICKER_HQS_FLOOR`.
+14. Do not import any new entries.
+15. Do not rewrite existing entries.
+16. Do not author a new corpus packet in this session.
+
+Audit scope:
+Inspect and score:
+1. All current `NIGERIAN_CLEAN_CORE_ENTRIES` entries.
+2. The 8 existing pickerEligible entries.
+3. The 5 near-miss entries from the acceptance-pattern audit.
+4. The P1/P2 failed candidate packets if available in local reports.
+5. The P2 accepted entry:
+   “The screen dimmed and I started bargaining.”
+6. A small synthetic diagnostic set may be created only for scoring analysis, not for import.
+
+Primary question:
+Is the HQS scorer under-crediting human-feeling clean Nigerian comedy because of narrow vocabulary / pattern recognition?
+
+Specific questions:
+1. Which human-feeling hooks are validator-clean but miss HQS by 1–10 points?
+2. Which score axis causes the miss most often?
+   - visceral
+   - anthropomorph
+   - concrete
+   - brevity
+   - contradiction
+   - aiCliche
+3. Is the `CONCRETE_NOUNS` catalog too narrow for ng_clean?
+4. Are natural Nigerian/everyday anchors being missed, such as:
+   - charger
+   - printer
+   - traffic
+   - rice
+   - plate
+   - tailor
+   - generator
+   - receipt
+   - socket
+   - mirror
+   - doorbell
+   - alarm
+   - calendar
+   - subscription
+   - password
+   - transfer
+   - data
+   - network
+   - bucket
+   - fan
+   - screen
+   - app
+   - inbox
+5. Are human-comedy verbs being under-ranked or missed due to stemming/tier gaps?
+   Examples to investigate:
+   - dimmed
+   - froze
+   - declined
+   - renewed
+   - multiplied
+   - assigned
+   - interrupted
+   - embarrassed
+   - humbled
+   - delayed
+   - vanished
+   - exposed
+   - revealed
+   - judged
+   - bargained / bargaining
+   - priced
+   - chose
+   - saw
+   - started
+   - opened
+   - loaded
+   - waited
+   - moved
+   - forgot
+   - said
+6. Are irregular verb forms causing misses?
+   Examples:
+   - said → say
+   - saw → see
+   - chose → choose
+   - forgot → forget
+   - came → come
+7. Is the anthropomorph detector too narrow?
+   Determine which human-feeling object-betrayal hooks fail to receive anthropomorph credit even though the object is clearly behaving like an agent.
+8. Are near-miss entries actually good enough for first-card quality by product judgment?
+9. Would a vocabulary-only patch lift good entries without touching thresholds?
+10. Would a verb-tier/stemming-only patch lift good entries without touching thresholds?
+11. Would an anthropomorph-pattern patch lift good entries without touching thresholds?
+12. Would a narrow ng_clean-only overlay be safer than changing global scorer vocabulary?
+13. What is the smallest patch with the best quality/risk tradeoff?
+
+Required analysis:
+Create a read-only audit table for current corpus entries with:
+- id
+- hook
+- word count
+- HQS total
+- HQS breakdown:
+  - visceral
+  - anthropomorph
+  - brevity
+  - concrete
+  - contradiction
+  - aiCliche
+- pickerEligible
+- validator result
+- anchor
+- premiseFamily
+- voiceTone
+- missed concrete noun candidates, if inferable
+- missed verb-tier candidates, if inferable
+- missed anthropomorph opportunity, if inferable
+- estimated lift under candidate patches
+
+Candidate patch simulations:
+Do NOT implement these patches. Simulate them in a throwaway/read-only script.
+
+Simulate these options independently:
+
+A. Concrete noun expansion only:
+Add likely clean/everyday anchors to the concrete noun set in the scoring simulation.
+
+B. Verb-tier / stemming expansion only:
+Map natural comedy verbs and irregular forms into existing verb tiers in the scoring simulation.
+
+C. Anthropomorph pattern expansion only:
+Credit object-betrayal phrasing that is clearly agentic but currently missed.
+
+D. Combined minimal patch:
+The smallest combined A/B/C change that lifts eligible count meaningfully.
+
+E. ng_clean-only eligibility overlay:
+Simulate allowing validator-clean + reviewed ng_clean entries with HQS 45–49 into first-card eligibility. Do not implement; risk-assess only.
+
+F. Lowering `PICKER_HQS_FLOOR` globally:
+Simulate for comparison only. This is not authorized as an implementation path unless the audit somehow proves it safe, which is unlikely.
+
+For each simulated patch, report:
+- new HQS ≥50 count
+- new pickerEligible share
+- which entries become eligible
+- which entries are questionable / should not become eligible
+- estimated avg eligible candidates per cold-start batch
+- predicted effect on ng_clean slot-0 diversity
+- risk to ng_pidgin / ng_light_pidgin / ng_null / western_null
+- whether change is global or cohort-specific
+- whether it preserves the intent of the quality gate
+
+Controls:
+Run the same analysis on control cohorts or shared non-ng examples if available:
+- ng_pidgin
+- ng_light_pidgin
+- ng_null
+- western_null
+The audit must explicitly assess whether a proposed scorer/vocabulary change would accidentally lift weak hooks in other cohorts.
+
+Required output files:
+- `.local/qa-runs/n1_ng_clean_hqs_calibration_audit.json`
+- `.local/qa-runs/n1_ng_clean_hqs_calibration_audit_summary.json`
+- `.local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_AUDIT_REPORT.md`
+
+Required report sections:
+1. Executive verdict:
+   - Is the HQS gate too strict, too narrow, or correctly calibrated?
+2. Current ng_clean eligibility recap:
+   - total entries
+   - validator-clean count
+   - pickerEligible count
+   - near-miss count
+   - weak count
+3. Near-miss deep dive:
+   - which human-feeling entries are closest
+   - why they miss
+4. Concrete-noun audit:
+   - missed anchors
+   - proposed additions
+   - lift estimate
+   - risk assessment
+5. Verb/stemming audit:
+   - missed verbs
+   - irregular forms
+   - proposed tier/stemming additions
+   - lift estimate
+   - risk assessment
+6. Anthropomorph audit:
+   - missed human-comedy object-betrayal patterns
+   - proposed pattern adjustments
+   - lift estimate
+   - risk assessment
+7. Patch simulation table:
+   - A concrete-only
+   - B verb/stemming-only
+   - C anthropomorph-only
+   - D combined minimal
+   - E ng_clean-only overlay
+   - F global floor lowering
+8. Quality review of newly lifted entries:
+   - which lifted hooks are genuinely first-card worthy
+   - which lifted hooks are risky or weak
+9. Cross-cohort regression risk:
+   - what could break outside ng_clean
+10. Recommendation:
+   Choose exactly one next implementation path:
+   A. vocabulary-only scorer patch
+   B. verb/stemming-only scorer patch
+   C. anthropomorph-only scorer patch
+   D. combined minimal scorer patch
+   E. ng_clean-specific eligibility overlay
+   F. no scorer change; return to corpus authoring
+   G. broader hook-quality scorer redesign
+11. Explain why the other paths are not authorized yet.
+12. Proof commands and files inspected.
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No corpus changes.
+3. No production behavior changes.
+4. Clear answer on whether the HQS gate is under-crediting human comedy.
+5. Clear answer on whether vocabulary/stemming/pattern calibration can safely lift eligible count.
+6. Clear answer on whether any proposed patch would risk weak slot-0 hooks.
+7. Clear next implementation prompt can be written without guessing.
+8. If evidence is insufficient, specify the exact missing instrumentation.
+
+Important:
+Do not implement the recommendation in this session. This is an audit. The purpose is to avoid more circular corpus attempts and decide whether the gate should be calibrated before the next corpus expansion.

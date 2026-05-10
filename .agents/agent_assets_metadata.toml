@@ -1151,3 +1151,21 @@ id = "BN2YloBL3vKsi5wNlRkTL"
 uri = "file://.local/qa-runs/n1_ng_clean_acceptance_pattern_audit.json"
 type = "unspecified"
 title = "Full per-entry dump — 61 corpus + 10 P2 candidates"
+
+[[outputs]]
+id = "ge55i8pNcavN1hS3X1HoT"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_HQS_CALIBRATION_AUDIT_REPORT.md"
+type = "text"
+title = "HQS Calibration Audit Report — 12 sections, recommends Patch D"
+
+[[outputs]]
+id = "x-ctW4jjzZMWvlL6Wbfki"
+uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_audit_summary.json"
+type = "unspecified"
+title = "Audit summary — per-patch eligibility, lift map, near-miss deep dive"
+
+[[outputs]]
+id = "ixW-M1n07TkYSHFy9CIoa"
+uri = "file://.local/qa-runs/n1_ng_clean_hqs_calibration_audit.json"
+type = "unspecified"
+title = "Full per-row dump — 200 hooks scored under 7 patches"
