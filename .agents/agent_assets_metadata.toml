@@ -1055,3 +1055,9 @@ id = "EGgJ2PRwIm2wCclWmv4qk"
 uri = "file://.local/N1_FOLLOWUP_NG_WEAK_SKELETON_QUOTA_REPORT.md"
 type = "text"
 title = "N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA Implementation Report"
+
+[[outputs]]
+id = "rDZHrjRfw3icxeFRxXgU0"
+uri = "file://.local/N1_FOLLOWUP_SLOT_WINNER_DETERMINISM_AUDIT.md"
+type = "text"
+title = "N1-FOLLOWUP-SLOT-WINNER-DETERMINISM-AUDIT (read-only)"

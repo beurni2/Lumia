@@ -1,0 +1,102 @@
+You are working on Lumina.
+
+Phase:
+N1-FOLLOWUP-SLOT-WINNER-DETERMINISM-AUDIT
+
+Mode:
+READ-ONLY AUDIT FIRST. Do not implement.
+
+Context:
+The previous phase N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA faithfully extended the W1.3 weak-skeleton quota to Nigerian cohorts for `totally_fine_about`, but runtime QA showed zero observable reduction in shipped `totally_fine_about` count.
+
+Key result:
+- ng_pidgin: 10/60 → 10/60
+- ng_light_pidgin: 10/60 → 10/60
+- ng_clean: 10/60 → 10/60
+- ng_null: 5/30 → 5/30
+- The same hook shipped every NG batch:
+  “I am totally fine about the to-do app”
+
+Conclusion from report:
+The problem is not within-batch flooding. It is cross-batch slot-winner determinism. The quota is functioning but non-binding because NG already ships exactly one `totally_fine_about` per batch.
+
+Do NOT implement any of the suggested next options yet:
+- no per-process LRU
+- no corpus deletion
+- no pack reservation
+- no score smoothing
+- no K widening
+- no prompt changes
+- no validator loosening
+- no API/mobile/schema/DB changes
+- no first-card rotation rewrite
+
+Audit objective:
+Find the smallest deterministic, production-safe fix for repeated NG slot winners across cold-start creators, especially the repeated slot containing:
+“I am totally fine about the to-do app”
+
+Primary hypothesis to investigate:
+A slot-level quality-band rotation for slots 1–5 may be safer than global LRU or corpus deletion, if it can:
+- preserve the exact candidate set
+- preserve high-quality candidates only
+- use creator.id deterministic salt
+- avoid underfill
+- avoid global mutable state
+- avoid lowering quality below a bounded willingness band
+- avoid changing slot 0 behavior unless explicitly intended
+
+Questions to answer:
+1. In which exact slot does “I am totally fine about the to-do app” ship across each NG cohort?
+2. For that slot, what are the next 5–10 runner-up candidates before final selection?
+3. What are their willingness scores, hookQualityScore, pickerEligible tier, source, skeletonId, family, and scenario object?
+4. Are there qualified alternatives within K=10, K=15, or K=20 of the repeated winner?
+5. Would deterministic per-creator band rotation for slots 1–5 have changed the shipped hook while preserving quality?
+6. Does the repeated hook appear because:
+   - the scenario seed is fixed?
+   - the same phrasing object is always highest scoring?
+   - the selected slot has no viable alternatives?
+   - alternatives are filtered before selection?
+   - alternatives exist but lose by deterministic scoring?
+7. Is this problem limited to `totally_fine_about`, or do the same mechanics explain:
+   - `the fridge knows i'm lying`
+   - `is it still about the shopping cart`
+   - `my body quit. my brain kept screaming`
+8. Would applying firstCardQualityBandRotation-like logic to all slots create duplicated picks, ordering instability, or quality regression?
+9. What exact invariants would a safe slot-level rotation helper need?
+10. Is there an even smaller fix than slot-level band rotation?
+
+Required inspection:
+- current first-card rotation helper
+- final willingness sorting / annotateAndSortByWillingness path
+- pattern phrasing picker
+- where skeletonId survives or is lost
+- N1 E2E probe output for all NG cohorts
+- candidate pools before final slicing for repeated slots
+
+Required output:
+1. Executive verdict:
+   - Is slot-level deterministic band rotation viable? YES / NO / PARTIAL
+2. Root cause table for repeated slot winners.
+3. For each repeated hook:
+   - slot index
+   - cohort
+   - count
+   - winner score
+   - viable alternatives within K=10 / K=15 / K=20
+   - recommended action
+4. Recommendation choosing ONE next implementation path:
+   A. slot-level deterministic quality-band rotation for slots 1–5
+   B. skeleton-specific demotion after first appearance
+   C. scenario-seed diversification
+   D. copy/corpus removal
+   E. no code change; accept current behavior
+5. Explain why the other paths should not be implemented yet.
+6. Include proof commands and inspected file locations.
+
+Acceptance criteria:
+- No source code changes.
+- No corpus edits.
+- No prompt edits.
+- No production flag changes.
+- Clear answer on whether a deterministic slot-level band rotation can solve the repeated slot-winner problem safely.
+- Clear next implementation prompt can be written from the audit without guessing.
