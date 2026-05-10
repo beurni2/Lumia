@@ -1,0 +1,203 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CORE-P1.1 — clean-core rotation/diversity fix.
+
+Context:
+N1-CLEAN-CORE-P1 is shipped:
+- 30 hand-authored Nigerian clean-English entries landed in `NIGERIAN_CLEAN_CORE_ENTRIES`.
+- Clean-core activates only for `region=nigeria && languageStyle=clean`.
+- Does not activate for pidgin, light_pidgin, null, Western, India, Philippines.
+- Nigerian approved pack untouched.
+- Regional-decoration untouched.
+- API/mobile/schema/migration untouched.
+- Full api-server suite passed: 1426/1426.
+- TypeScript clean.
+
+Runtime probe result:
+- `nigeria/clean`: clean-core shipped in 27/30 candidates = 90%.
+- Non-activation cohorts: 0 clean-core leaks.
+- Problem: only **1 distinct clean-core ID** surfaced across the 27 clean-core deliveries.
+- This is the same “single winner per core” collapse pattern documented for the Nigerian pack block.
+- Current status:
+  - clean-core catalog: shipped
+  - safety/gating: passed
+  - delivery: good
+  - variety/rotation: NOT solved
+
+Goal:
+Fix clean-core rotation/diversity so the 30 hand-authored entries actually surface across a runtime probe instead of one entry dominating.
+
+Do not add new creative entries.
+Do not rewrite existing entries.
+Do not change hooks/scenarios/howToFilm/captions.
+Do not touch Nigerian pidgin/light-pidgin approved pack.
+Do not touch regional-decoration.
+Do not change API/mobile/schema/migration.
+Do not add DB memory yet unless absolutely required; prefer in-process deterministic rotation first.
+
+============================================================
+ROOT ISSUE TO INVESTIGATE
+============================================================
+
+The clean-core branch currently maps the 30 entries into pack-like candidates using `authorPackEntryAsIdea`, then scoring/selection collapses to one highest-scoring winner per core.
+
+Investigate:
+1. Where the clean-core candidates are inserted into `passing[]`.
+2. Whether all 30 are scored against the same premise core, causing one hookQualityScore to dominate.
+3. Whether existing intra-batch / cross-batch dedup is applied too late or too weak.
+4. Whether slot selection should be deterministic round-robin / salt-based before scoring.
+5. Whether we can use existing N1 pack reservation/soft-cap concepts without adding DB memory yet.
+
+============================================================
+DESIRED BEHAVIOR
+============================================================
+
+For `region=nigeria && languageStyle=clean`:
+- keep clean-core delivery high, target ≥80%
+- improve distinct clean-core IDs across the 30-candidate probe:
+  - minimum acceptable: ≥10 distinct IDs
+  - preferred: ≥15 distinct IDs
+  - excellent: ≥20 distinct IDs
+- no duplicate hooks within a 3-idea batch if avoidable
+- no duplicate clean-core IDs within a batch
+- deterministic with seed/baseSalt
+- no under-fill rows
+- fallback to generic guarded core_native if clean-core pool cannot fill
+
+For all other cohorts:
+- unchanged
+- pidgin/light_pidgin pack-active path unchanged
+- Western/India/Philippines unchanged
+- internal null unchanged
+
+============================================================
+PREFERRED FIX SHAPE
+============================================================
+
+Implement a clean-core-specific deterministic selection/reservation layer before scoring collapse.
+
+Possible approach:
+- For each generation/batch slot, derive a stable index into `NIGERIAN_CLEAN_CORE_ENTRIES` from:
+  - seed/baseSalt if available
+  - core index / slot index / batch index if available
+  - creator id hash if available
+  - candidate salt already used in this area
+- Select a small rotating window of entries rather than all 30 competing globally.
+- Prefer entries not already used in the current output batch.
+- Prefer entries not matching recent skeleton/hook if such context is already available.
+- Then author only the selected clean-core entries and push them into `passing[]`.
+
+Avoid:
+- letting all 30 clean-core entries compete on raw hookQualityScore for every core
+- adding a DB column in this phase
+- random non-deterministic selection
+- lowering validators or changing scores globally
+- touching generic voice clusters
+
+If an existing pack slot-reservation utility can be reused safely, use it. If not, add a tiny clean-core-local picker.
+
+============================================================
+VALIDATION / TESTS
+============================================================
+
+Add focused tests.
+
+Suggested coverage:
+1. Gate unchanged:
+- clean-core only activates for nigeria+clean.
+- still off for pidgin/light_pidgin/null/Western/India/Philippines.
+
+2. Picker/rotation:
+- deterministic for same seed/salt.
+- different slots/cores produce different entry IDs.
+- no duplicate IDs in a 3-idea batch when enough entries exist.
+- across 30 simulated picks, distinct IDs ≥10.
+
+3. Runtime wiring:
+- ng_clean uses more than one clean-core entry.
+- clean-core delivery remains high.
+- non-activation cohorts get 0 clean-core entries.
+
+4. Regression:
+- all 30 entries still validate.
+- no hook/scenario/caption/howToFilm changed.
+- Nigerian pack tests still pass.
+- full api-server suite if the change touches shared generation logic.
+
+Run:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePack.test.ts`
+
+Run:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerianCleanCorePackWiring.test.ts`
+
+Run:
+`pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts`
+
+Run:
+`pnpm --filter @workspace/api-server exec tsc --noEmit`
+
+Run full api-server suite if shared generation logic changed materially:
+`pnpm --filter @workspace/api-server run test`
+
+============================================================
+RUNTIME QA
+============================================================
+
+Re-run:
+`.local/scripts/n1CleanCoreP1Probe.mts`
+
+Save:
+- `.local/qa-runs/n1_clean_core_p11_runtime.json`
+- `.local/qa-runs/n1_clean_core_p11_runtime_summary.json`
+- `.local/N1_CLEAN_CORE_P11_REPORT.md`
+
+Report:
+- clean-core delivery for nigeria/clean
+- distinct clean-core IDs
+- duplicate hooks
+- under-fill rows
+- non-activation cohort leaks
+- pidgin/light_pidgin impact
+- Western/India/Philippines impact
+
+Success criteria:
+- `nigeria/clean` clean-core delivery ≥80%
+- distinct clean-core IDs ≥10 minimum, preferably ≥15
+- 0 clean-core leaks outside nigeria+clean
+- 0 under-fill rows
+- 0 pidgin/mock/stereotype/shouty hits
+- TypeScript clean
+- Nigerian tests green
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Root cause confirmed.
+3. Files changed.
+4. Exact rotation/diversity behavior change.
+5. Tests added/updated.
+6. Test results.
+7. TypeScript result.
+8. Runtime QA:
+   - clean-core delivery
+   - distinct clean-core IDs before/after
+   - duplicate hooks
+   - under-fill rows
+   - non-activation leaks
+   - pidgin/light_pidgin impact
+   - other-region impact
+9. Confirm:
+   - no creative entries added
+   - no existing entries rewritten
+   - Nigerian pack untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/migration changes
+   - no DB memory added unless explicitly necessary
+10. Risk/follow-up.
+
+Do not ask for next steps.

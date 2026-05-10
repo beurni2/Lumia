@@ -95,6 +95,7 @@ import { authorPackEntryAsIdea } from "./nigerianPackAuthor.js";
 // per-core pass.
 import {
   NIGERIAN_CLEAN_CORE_ENTRIES,
+  type NigerianCleanCoreEntry,
   NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN,
   canActivateNigerianCleanCorePack,
 } from "./nigerianCleanCorePack.js";
@@ -964,7 +965,19 @@ export function generateCoreCandidates(
   // fingerprint.
   const usedFingerprintsThisBatch = new Set<string>();
 
+  // PHASE N1-CLEAN-CORE-P1.1 (BI-CLEAN 2026-05-09) — intra-batch
+  // clean-core entryId dedup. Tracks the source `entry.id` of any
+  // clean-core entry that has already won the per-core best-pick
+  // in this batch. Subsequent cores in the same batch skip
+  // authoring those entries so two cores cannot ship the same
+  // clean-core entry. Lives only on the activation path; for all
+  // non-activated cohorts the set stays empty and is never
+  // consulted (zero overhead).
+  const usedCleanCoreEntryIdsThisBatch = new Set<string>();
+  let coreIdx = -1;
+
   for (const core of input.cores) {
+    coreIdx += 1;
     if (candidates.length >= cap) {
       perCoreAttempts.push({ coreId: core.id, kept: false, attempts: 0 });
       continue;
@@ -1020,6 +1033,12 @@ export function generateCoreCandidates(
       sf: string | undefined;
       anchorLower: string;
       quality: number;
+      // PHASE N1-CLEAN-CORE-P1.1 — present only when this passing
+      // candidate originated from `NIGERIAN_CLEAN_CORE_ENTRIES`.
+      // Used (a) to register the winner's source id into
+      // `usedCleanCoreEntryIdsThisBatch` after per-core best-pick
+      // and (b) for tests to assert the rotation behaviour.
+      cleanCoreEntryId?: string;
     }[] = [];
 
     // ─── PHASE N1-S — Nigerian pack atomic-recipe prefix ─────────── //
@@ -1099,18 +1118,64 @@ export function generateCoreCandidates(
       });
       const cleanCoreVoice = getVoiceCluster(cleanCoreVoiceId);
 
-      // Salt-rotated stable order so clean-core draws are
-      // deterministic across regenerates but still rotate per
-      // batch (otherwise the same first entries would always win
-      // the prefix slot for a given core).
-      const cleanCoreOrdered = NIGERIAN_CLEAN_CORE_ENTRIES.slice();
-      const cleanCoreRotateBy =
-        ((salt | 0) >>> 0) % Math.max(1, cleanCoreOrdered.length);
-      const cleanCoreQueue = cleanCoreOrdered
-        .slice(cleanCoreRotateBy)
-        .concat(cleanCoreOrdered.slice(0, cleanCoreRotateBy));
+      // PHASE N1-CLEAN-CORE-P1.1 (BI-CLEAN 2026-05-09) —
+      // deterministic per-core WINDOW selection.
+      //
+      // Pre-P1.1 every core authored ALL 30 entries; the per-core
+      // best-pick at the bottom of the loop then collapsed them
+      // to a single winner by `hookQualityScore(hook, family)`.
+      // Because that score is mostly family-agnostic for atomic
+      // pack-style hooks, the same entry won across every (salt,
+      // core) cell — runtime probe showed 1 distinct ID across
+      // 5 salts × 6 cores = 30 candidates.
+      //
+      // P1.1 fix: each core only sees a small WINDOW of 3 entries.
+      // The window START is `((salt*7 + coreIdx*11) % N)` so
+      // consecutive cores in the same batch land in non-adjacent
+      // start positions and consecutive salts shift the start for
+      // the same coreIdx. Inside the window we sample at STRIDE 7
+      // (coprime to N=30) instead of contiguously, so the 3
+      // entries in a cell are spread across the 30-entry pool
+      // rather than clustered. This widens cross-batch distinct-
+      // ID coverage: a contiguous window of 3 always picks from
+      // ids [k, k+1, k+2], so the best-quality scorer in that
+      // 3-tuple recurs across batches whenever the start lands
+      // nearby; a stride-7 sample picks from [k, k+7, k+14], so
+      // shifting the start by 1 swaps in three entirely different
+      // entries. Combined with the `*7`/`*11` start mix this
+      // gives ≥15 distinct ids in the 5-salt × 6-core probe.
+      // Window size 3 also keeps a small quality-score
+      // competition inside the window so a low-scoring entry
+      // never wins on its own.
+      //
+      // Combined with `usedCleanCoreEntryIdsThisBatch` (declared
+      // above), no two cores in the same batch ship the same
+      // clean-core entry. If every entry in a window has already
+      // been used by an earlier core (cross-window collision +
+      // batch dedup), the clean-core block authors zero
+      // candidates for this core and the catalog recipe loop
+      // below fills the slot — preserving the never-under-fill
+      // discipline.
+      const CLEAN_CORE_WINDOW_SIZE = 3;
+      const CLEAN_CORE_WINDOW_STRIDE = 7; // coprime to N=30
+      const cleanCoreCount = NIGERIAN_CLEAN_CORE_ENTRIES.length;
+      const cleanCoreWindowStart =
+        ((((salt | 0) >>> 0) * 7 + coreIdx * 11) >>> 0) % cleanCoreCount;
+      const cleanCoreWindow: NigerianCleanCoreEntry[] = [];
+      for (let k = 0; k < CLEAN_CORE_WINDOW_SIZE; k++) {
+        const idx =
+          (cleanCoreWindowStart + k * CLEAN_CORE_WINDOW_STRIDE) %
+          cleanCoreCount;
+        const e = NIGERIAN_CLEAN_CORE_ENTRIES[idx]!;
+        // Intra-batch entry dedup: skip entries already won by an
+        // earlier core in this batch. Cheap pre-author skip
+        // (avoids the validator hot path for entries we'll never
+        // ship).
+        if (usedCleanCoreEntryIdsThisBatch.has(e.id)) continue;
+        cleanCoreWindow.push(e);
+      }
 
-      for (const entry of cleanCoreQueue) {
+      for (const entry of cleanCoreWindow) {
         // Project the curator-declared `premiseFamily` onto the
         // pack-domain bucket the author understands. Unknown
         // family falls back to "everyday" (→ canonical "home").
@@ -1180,6 +1245,7 @@ export function generateCoreCandidates(
           sf,
           anchorLower: anchorLc,
           quality,
+          cleanCoreEntryId: entry.id,
         });
       }
     }
@@ -1611,14 +1677,40 @@ export function generateCoreCandidates(
       // `>` so a quality tie keeps the earlier recipe; this matches
       // the stable-sort discipline used in the existing pattern
       // selector.
-      let best = passing[0]!;
-      for (let i = 1; i < passing.length; i++) {
-        const p = passing[i]!;
+      //
+      // PHASE N1-CLEAN-CORE-P1.1 (BI-CLEAN 2026-05-09) — clean-core
+      // preference. The brief explicitly says "fallback to generic
+      // guarded core_native if clean-core pool cannot fill", so
+      // when ANY clean-core candidate is present in `passing[]` we
+      // restrict the best-pick to only clean-core candidates;
+      // otherwise (no clean-core authored OR all skipped by
+      // intra-batch entry dedup OR cohort not activated) the
+      // best-pick runs over the full `passing[]` set, identical
+      // to pre-P1.1 behaviour. Catalog candidates remain in
+      // `passing[]` as the structural fallback so under-fill is
+      // still impossible.
+      const cleanCoreCandidates = passing.filter(
+        (p) => p.cleanCoreEntryId !== undefined,
+      );
+      const candidatePool =
+        cleanCoreCandidates.length > 0 ? cleanCoreCandidates : passing;
+      let best = candidatePool[0]!;
+      for (let i = 1; i < candidatePool.length; i++) {
+        const p = candidatePool[i]!;
         if (p.quality > best.quality) best = p;
       }
       candidates.push({ idea: best.idea, meta: best.meta });
       usedAnchorsThisBatch.add(best.anchorLower);
       if (best.sf) usedFingerprintsThisBatch.add(best.sf);
+      // PHASE N1-CLEAN-CORE-P1.1 — register the winning clean-core
+      // entry id so subsequent cores in this same batch skip it
+      // at authorship time (cheap pre-author skip in the window
+      // loop above). Non-clean-core winners (catalog, Pidgin pack,
+      // Western pack) leave the field undefined, so the set stays
+      // empty for their cohorts — zero overhead.
+      if (best.cleanCoreEntryId !== undefined) {
+        usedCleanCoreEntryIdsThisBatch.add(best.cleanCoreEntryId);
+      }
       kept = true;
 
       // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —

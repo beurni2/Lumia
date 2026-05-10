@@ -965,3 +965,9 @@ id = "m0klq2AMAOoc5-sVuntKZ"
 uri = "file://.local/N1_CLEAN_CORE_P1_REPORT.md"
 type = "text"
 title = "N1-CLEAN-CORE-P1 Report (final)"
+
+[[outputs]]
+id = "qAdCywc9F553K80bnGMK5"
+uri = "file://.local/N1_CLEAN_CORE_P11_REPORT.md"
+type = "text"
+title = "N1-CLEAN-CORE-P1.1 Report"
