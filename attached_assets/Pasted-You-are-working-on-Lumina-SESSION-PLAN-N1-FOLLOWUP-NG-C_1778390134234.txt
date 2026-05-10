@@ -1,0 +1,301 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-LIFT-P2-HUMAN-COMEDY
+
+Mode:
+Small corpus implementation + predict-then-import + tests + runtime QA.
+
+Supervisor decision:
+The previous N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-LIFT attempt failed correctly:
+- 0 / 10 candidates were imported.
+- The corpus remained unchanged.
+- Rule 14 was correctly triggered.
+- No scorer / validator / selector / rotation / prompt / schema / API / mobile / DB changes were made.
+
+Reason for failure:
+The first candidate packet was not strong enough under the existing HQS + validator gates. It also became too scorer-shaped when revised. The next packet must prioritize human-feeling comedy and taste while still running through the same live gates.
+
+Root cause still being addressed:
+`ng_clean` slot-0 first-card collapse is caused by an eligible-tier monopoly:
+- 10 / 10 `ng_clean` cold-start batches have exactly 1 `pickerEligible` candidate.
+- The repeated slot-0 leader is:
+  “The light came back and exposed everyone's fake patience.”
+- The issue is NOT hash collision.
+- The issue is NOT first-card rotation logic.
+- The issue is NOT K=10 alone.
+- Widening K does nothing under current tier-non-cross semantics.
+- Removing the tier guard would promote sub-floor hooks and is not authorized.
+
+Authorized fix:
+Path E — add a small number of genuinely strong `ng_clean` clean-core entries that naturally pass the existing hook-quality floor and validator gates, so first-card rotation has real eligible alternatives.
+
+Important creative standard:
+Do NOT rewrite these into robotic scorer-gaming hooks.
+Do NOT overuse fake-sounding verbs like “exposed / judged / mocked / interrogated” unless they genuinely sound funny and human in context.
+The goal is not to trick HQS. The goal is to add funny, filmable, human-feeling clean Nigerian entries that naturally survive the existing system.
+
+Do NOT change:
+1. validators
+2. scorer
+3. `PICKER_HQS_FLOOR`
+4. selector
+5. K
+6. picker eligibility
+7. prompts
+8. API
+9. mobile
+10. DB
+11. schema
+12. pack reservation
+13. memory
+14. rotation helpers
+15. existing corpus entries unless a direct collision or schema issue proves it necessary
+
+Primary goal:
+Lift `ng_clean` avg eligible candidates per cold-start batch from 1.00 to at least 2.00, and increase distinct slot-0 leaders across 10 cold-start creators to at least 3.
+
+Candidate packet:
+Evaluate and import only the candidates that pass existing gates cleanly and improve eligible slot-0 diversity. Do not force all 10. If fewer than 5 pass, import fewer and report. If none pass, stop and report.
+
+Use this revised human-comedy packet:
+
+1.
+id: ng_clean_061
+anchor: group chat
+hook: The group chat just assigned me a personality.
+premiseFamily: group_chat_pressure
+scenarioFamily: social_micro_panic
+topicNoun: group chat
+whatToShow: Show the group chat popping off while you are minding your business. Read one message, realize everyone has volunteered you for something, then slowly sit upright like your personality has been reassigned.
+howToFilm: Film from the couch or bed with the phone in frame. Keep the chat blurred. The joke is the slow change from relaxed person to unwilling committee member.
+caption: I opened the group chat and became staff.
+whyThisFits: Feels like a real social situation, has a clean visual turn, and does not rely on heavy slang.
+reviewedBy: BI-CLEAN 2026-05-10
+
+2.
+id: ng_clean_062
+anchor: bank app
+hook: My bank app opened like it had bad news.
+premiseFamily: adulting_finance_panic
+scenarioFamily: phone_app_betrayal
+topicNoun: bank app
+whatToShow: Open the bank app with normal confidence. The loading screen takes too long, your face slowly changes, then you close the app before the balance even fully settles.
+howToFilm: Over-the-shoulder phone shot or fake screen. Hide the balance. Hold the loading-screen silence like the app is preparing a speech.
+caption: the app loaded and I started respecting myself.
+whyThisFits: Simple, funny, very filmable adulting panic with a human reaction instead of a forced punchline.
+reviewedBy: BI-CLEAN 2026-05-10
+
+3.
+id: ng_clean_063
+anchor: delivery
+hook: The delivery guy said outside and I became security.
+premiseFamily: delivery_micro_chaos
+scenarioFamily: arrival_panic
+topicNoun: delivery
+whatToShow: Your phone buzzes. The delivery message says the rider is outside. You suddenly start checking windows, keys, slippers, and the door like you personally run the estate gate.
+howToFilm: Wide shot near the door. Keep the rider off-camera. Use quick physical beats: window check, wrong keys, fake calm, door open.
+caption: delivery arrived and I started acting employed.
+whyThisFits: It has a real-life trigger, a funny identity switch, and easy physical comedy.
+reviewedBy: BI-CLEAN 2026-05-10
+
+4.
+id: ng_clean_064
+anchor: charger
+hook: My charger waited until 1% to gain attitude.
+premiseFamily: phone_survival_panic
+scenarioFamily: battery_countdown
+topicNoun: charger
+whatToShow: Show the phone at 1%. Look at the charger across the room. Start moving carefully, then the cable falls or refuses to reach, and you freeze like negotiations have failed.
+howToFilm: Start close on the battery, then wide to reveal the charger just out of reach. The charger can fall off the bed or table for the final betrayal.
+caption: 1% battery will make you humble.
+whyThisFits: Universal, visual, and funny without needing explanation; still fits Nigerian charging anxiety naturally.
+reviewedBy: BI-CLEAN 2026-05-10
+
+5.
+id: ng_clean_065
+anchor: plate
+hook: The plate said small food was a rumor.
+premiseFamily: family_food_pressure
+scenarioFamily: plate_escalation
+topicNoun: plate
+whatToShow: Hold a plate expecting a small serving. Food keeps coming. Your smile gets tighter with every scoop until you are holding the plate with both hands like a project.
+howToFilm: Frame your face and the plate. The person serving can stay off-camera. Let the plate become more ridiculous while you keep pretending this is normal.
+caption: small food, according to family statistics.
+whyThisFits: Clean family humor, strong visual escalation, and a payoff people immediately understand.
+reviewedBy: BI-CLEAN 2026-05-10
+
+6.
+id: ng_clean_066
+anchor: tailor
+hook: The tailor said tomorrow like I own the calendar.
+premiseFamily: errand_expectation_gap
+scenarioFamily: promise_delay
+topicNoun: tailor
+whatToShow: Hold the outfit or fabric with hope. Read the tailor’s message. Look at the calendar, then gently hang the outfit back like your plans have been returned to sender.
+howToFilm: Shoot by a wardrobe or mirror. Use your reaction to the message, then make the slow return of the outfit the punchline.
+caption: tomorrow has been doing a lot of work lately.
+whyThisFits: Specific, clean, and funny because the delay is treated like a relationship problem.
+reviewedBy: BI-CLEAN 2026-05-10
+
+7.
+id: ng_clean_067
+anchor: rice
+hook: The rice finished and suddenly nobody had pride.
+premiseFamily: food_home_contradiction
+scenarioFamily: kitchen_claims
+topicNoun: rice
+whatToShow: Show the rice covered in the kitchen. Walk past pretending not to care. Then return with a plate at the exact same time as someone else and both of you freeze.
+howToFilm: Simple kitchen wide shot. Use two fake casual walk-bys, then the final collision at the pot. No dialogue needed.
+caption: nobody was hungry until rice entered the chat.
+whyThisFits: A real household joke with a visual twist and no forced cleverness.
+reviewedBy: BI-CLEAN 2026-05-10
+
+8.
+id: ng_clean_068
+anchor: printer
+hook: The printer saw one page and started resting.
+premiseFamily: workplace_object_betrayal
+scenarioFamily: device_meltdown
+topicNoun: printer
+whatToShow: Walk to the printer with one page. It makes one small noise, pauses, then gives up. You stare at it like you both came to work with different values.
+howToFilm: Low angle on the printer or a fake home setup. The printer does not need to work; the comedy is the pause and your offended reaction.
+caption: one page was apparently an unreasonable request.
+whyThisFits: Office object betrayal, clean physical reaction, and a very easy setup.
+reviewedBy: BI-CLEAN 2026-05-10
+
+9.
+id: ng_clean_069
+anchor: traffic
+hook: The traffic moved small and I forgave everybody.
+premiseFamily: commute_false_hope
+scenarioFamily: traffic_micro_victory
+topicNoun: traffic
+whatToShow: Stage being stuck in traffic. Move forward one tiny bit. Your whole face becomes hopeful. Then stop immediately and slowly return to your defeated position.
+howToFilm: Film safely parked or stage it indoors with a steering-wheel angle. Do not film while driving. The hope-to-defeat switch is the joke.
+caption: we moved one inch and I started planning arrival.
+whyThisFits: Relatable commute comedy with a clean emotional switch and safe filming guidance.
+reviewedBy: BI-CLEAN 2026-05-10
+
+10.
+id: ng_clean_070
+anchor: screen
+hook: The screen dimmed and I started bargaining.
+premiseFamily: phone_survival_panic
+scenarioFamily: battery_countdown
+topicNoun: screen
+whatToShow: Show the screen dimming at low battery. Look from the screen to the charger across the room, then start moving like every step needs approval.
+howToFilm: Close on the screen first, then wide to reveal the charger. End on your frozen reaction when the phone dims again.
+caption: low battery turns everybody into a negotiator.
+whyThisFits: Funny, simple, visual, and human; the joke is the panic, not a forced line.
+reviewedBy: BI-CLEAN 2026-05-10
+
+Creative priority:
+The best human-feel candidates are likely:
+- ng_clean_061 — group chat assigned me a personality
+- ng_clean_062 — bank app opened like it had bad news
+- ng_clean_063 — delivery guy said outside and I became security
+- ng_clean_066 — tailor said tomorrow like I own the calendar
+- ng_clean_067 — rice finished and nobody had pride
+- ng_clean_069 — traffic moved small and I forgave everybody
+
+Watch carefully:
+- ng_clean_065 — plate / small food
+- ng_clean_068 — printer resting
+- ng_clean_070 — screen dimmed / bargaining
+
+They feel human, but the scorer may punish softer verbs. Do not ruin them just to chase HQS.
+
+Implementation requirements:
+1. Inspect the current shape of `nigerianCleanCorePack.ts` before editing.
+2. Run the same predict-then-import flow used in the previous attempt.
+3. Score each candidate with the live `scoreHookQualityDetailed`.
+4. Validate each candidate with the live `classifyNigerianCleanCoreEntryFailure`.
+5. Import only candidates that pass both:
+   - HQS ≥ 50
+   - existing validator gates
+6. If fewer than 5 pass, import fewer and report.
+7. If none pass, stop and report.
+8. Do not rewrite the hooks into robotic high-verb lines just to pass the scorer.
+9. Do not lower `PICKER_HQS_FLOOR`.
+10. Do not modify `hookQuality.ts`.
+11. Do not modify `willingnessScorer.ts`.
+12. Do not modify `firstCardQualityBandRotation.ts`.
+13. Do not modify `creatorSeededRankRotation.ts`.
+14. Do not modify `hybridIdeator.ts` unless strictly necessary for read-only QA output.
+15. Do not change validators, prompts, API, mobile, DB, schema, pack reservation, memory, or scorer behavior.
+16. Do not delete or rewrite existing corpus entries unless a direct collision or schema issue proves it necessary.
+17. Preserve cohort isolation.
+18. Keep the diff limited to clean-core corpus and tests/QA artifacts unless a schema requires otherwise.
+
+Testing requirements:
+Run relevant existing tests for:
+- Nigerian clean core pack integrity
+- schema validation
+- hook quality scoring if available
+- anti-copy / duplicate checks if available
+- cohort isolation if available
+- TypeScript typecheck
+
+Run full api-server suite if practical.
+
+Runtime QA requirements:
+If at least one candidate is imported, run the same cold-start sweep:
+- ng_clean: 10 batches × 6 ideas
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Measure before/after:
+1. `ng_clean` avg eligible candidates per batch
+2. `ng_clean` distinct slot-0 leaders across 10 cold-start creators
+3. `ng_clean` slot-0 top-hook share
+4. `ng_clean` first-card hooks and their HQS
+5. `ng_clean` K=10/K=12/K=15/K=20/K=25 band sizes
+6. distinct hooks per cohort
+7. per-slot distinctness per cohort
+8. underfill batches
+9. fallback batches
+10. scenarioCoherence failures
+11. banned/shouty scan hits
+12. source mix
+13. regression check for ng_pidgin/ng_light_pidgin/ng_null/western_null
+
+Acceptance criteria:
+1. Imported entries pass existing schema/integrity checks.
+2. No validator/scorer/selector/rotation/prompt/API/mobile/DB/schema changes.
+3. Typecheck clean.
+4. Relevant tests pass.
+5. Full api-server suite passes if practical.
+6. `ng_clean` avg eligible candidates per batch improves from 1.00 to at least 2.00.
+7. `ng_clean` distinct slot-0 leaders across 10 cold-start creators improves from 1 to at least 3.
+8. No underfill regression.
+9. No fallback regression.
+10. No scenarioCoherence regression.
+11. No cross-cohort regression.
+12. Final report explains exactly which candidate entries were accepted/rejected and why.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_LIFT_P2_HUMAN_COMEDY_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_lift_p2_human_comedy.json`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_lift_p2_human_comedy_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Entries imported
+3. Entries rejected, with reasons
+4. Files changed
+5. Tests run and results
+6. Runtime QA before/after table, if runtime QA ran
+7. `ng_clean` eligible-tier improvement
+8. `ng_clean` slot-0 diversity improvement
+9. Safety/regression checks
+10. Remaining gaps
+11. Recommendation for next phase
+
+Stop condition:
+If implementation requires touching scorer, selector, K, prompt, validator, schema, API, mobile, DB, memory, or rotation helpers, stop and report. This phase is a corpus-lift only.
+
+Important:
+This packet is intentionally more human and less scorer-shaped. Taste comes first. Do not turn it into generic dramatic-verb filler.

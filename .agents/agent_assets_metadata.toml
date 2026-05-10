@@ -1115,3 +1115,21 @@ id = "6pEbhAU3lc7IGScCuRazJ"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift.json"
 type = "unspecified"
 title = "Pointer file (corpus unchanged, sweep not run)"
+
+[[outputs]]
+id = "WPXYeawfLVdGP2l775J5B"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_LIFT_P2_HUMAN_COMEDY_REPORT.md"
+type = "text"
+title = "P2-HUMAN-COMEDY Report — 1/10 imported (ng_clean_061)"
+
+[[outputs]]
+id = "egz_0kUFec11sX4exdg2A"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift_p2_humancomedy_summary.json"
+type = "unspecified"
+title = "Before/after summary — ng_clean primary metrics + regression smoke"
+
+[[outputs]]
+id = "3It3NZUgusxhjNKUlIOCx"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift_p2_humancomedy.json"
+type = "unspecified"
+title = "Full per-batch dump (before/after, all 5 cohorts)"

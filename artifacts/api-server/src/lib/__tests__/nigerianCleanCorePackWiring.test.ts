@@ -5,7 +5,7 @@
  * correctly gated by `canActivateNigerianCleanCorePack`:
  *
  *   1. nigeria + clean → clean-core hooks DO surface in passing[]
- *      (at least one of the 60 hand-authored hooks; P1: 30 + P2: 30).
+ *      (at least one of the 61 hand-authored hooks; P1: 30 + P2: 30 + P3: 1).
  *   2. nigeria + pidgin → no clean-core hooks (Pidgin pack path
  *      is mutually exclusive; clean-core gate returns false).
  *   3. nigeria + light_pidgin → no clean-core hooks.

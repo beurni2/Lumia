@@ -899,6 +899,31 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "clean_self_mockery",
       reviewedBy: "BI-CLEAN 2026-05-09",
     },
+    // ---------------------------------------------------------------- //
+    // P3 — N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-LIFT-P2-HUMAN-COMEDY      //
+    // (BI-CLEAN 2026-05-10) — single entry imported from the           //
+    // 10-candidate human-comedy packet. Originally curator-id          //
+    // ng_clean_070; renumbered to ng_clean_061 to preserve the         //
+    // contiguous-id corpus invariant. Hook text is byte-identical to   //
+    // the curator submission. The other 9 candidates failed the        //
+    // existing HQS >= 50 floor (range 28-47) under the live scorer     //
+    // and were not imported per session-plan rule 7. See               //
+    // .local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_LIFT_P2_HUMAN_COMEDY_REPORT.md
+    // ---------------------------------------------------------------- //
+    {
+      id: "ng_clean_061",
+      draftId: "CLEAN-DRAFT-061",
+      anchor: "screen",
+      hook: "The screen dimmed and I started bargaining.",
+      whatToShow:
+        "Show the screen dimming at low battery. Look from the screen to the charger across the room, then start moving like every step needs approval.",
+      howToFilm:
+        "Close on the screen first, then wide to reveal the charger. End on your frozen reaction when the phone dims again.",
+      caption: "low battery turns everybody into a negotiator.",
+      premiseFamily: "phone_survival_panic",
+      voiceTone: "dry_clean_observation",
+      reviewedBy: "BI-CLEAN 2026-05-10",
+    },
   ]);
 
 // ---------------------------------------------------------------- //
