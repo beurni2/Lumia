@@ -493,6 +493,20 @@ export function applyWesternWeakSkeletonQuota<T extends WesternWeakQuotaCandidat
     maxPerFamily?: number;
     maxTotal?: number;
     safetyFloorMin?: number;
+    /**
+     * PHASE N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA — optional classifier
+     * injection. Defaults to the Western classifier so every existing
+     * call site is bit-for-bit identical. The NG sibling
+     * (`applyNigerianWeakSkeletonQuota`) passes
+     * `classifyNigerianWeakCandidate` so it re-uses this proven
+     * single-pass + carve-out algorithm with a narrower blocklist.
+     * Cohort isolation is enforced by the caller's gate, not by this
+     * helper.
+     */
+    classifier?: (input: {
+      hook: string;
+      hookSkeletonId?: string | null | undefined;
+    }) => string | null;
   },
 ): WesternWeakQuotaResult<T> {
   const maxPerFamily = opts.maxPerFamily ?? WESTERN_WEAK_QUOTA_MAX_PER_FAMILY;
@@ -501,13 +515,14 @@ export function applyWesternWeakSkeletonQuota<T extends WesternWeakQuotaCandidat
     opts.desiredCount,
     opts.safetyFloorMin ?? WESTERN_WEAK_QUOTA_SAFETY_FLOOR_MIN,
   );
+  const classify = opts.classifier ?? classifyWesternWeakCandidate;
   const kept: T[] = [];
   const droppedWithFamily: Array<{ cand: T; fam: string }> = [];
   const perFamilyKept: Record<string, number> = {};
   const perFamilyDropped: Record<string, number> = {};
   let totalWeakKept = 0;
   for (const c of candidates) {
-    const fam = classifyWesternWeakCandidate({
+    const fam = classify({
       hook: c.idea.hook,
       hookSkeletonId: c.meta.hookSkeletonId,
     });

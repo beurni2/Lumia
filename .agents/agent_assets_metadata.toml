@@ -1049,3 +1049,9 @@ id = "4ncPua9sNb3Tc4nlUaW3f"
 uri = "file://.local/N1_E2E_FCR_FOLLOWUP_AUDIT.md"
 type = "text"
 title = "N1-E2E-FIRST-CARD-ROTATION Follow-up Audit"
+
+[[outputs]]
+id = "EGgJ2PRwIm2wCclWmv4qk"
+uri = "file://.local/N1_FOLLOWUP_NG_WEAK_SKELETON_QUOTA_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA Implementation Report"

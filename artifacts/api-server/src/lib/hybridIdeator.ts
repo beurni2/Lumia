@@ -258,7 +258,11 @@ import {
   applyWesternWeakSkeletonQuota,
   canApplyWesternWeakFamilyCap,
   canApplyWesternWeakSkeletonQuota,
-} from "./westernHookQuality.js";
+} from "./westernHookQuality";
+import {
+  applyNigerianWeakSkeletonQuota,
+  canApplyNigerianWeakSkeletonQuota,
+} from "./nigerianWeakSkeletonQuota";
 import type { Creator } from "../db/schema";
 
 // -----------------------------------------------------------------------------
@@ -4465,6 +4469,57 @@ export async function runHybridIdeator(
           perFamilyDropped: _w13Result.perFamilyDropped,
         },
         "western_weak_skeleton_quota.applied",
+      );
+    }
+  }
+
+  // -------- PHASE N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA ---------------
+  // Sibling of the W1.3 block above for the Nigerian cohort. Same
+  // single-pass + carve-out algorithm (re-uses
+  // `applyWesternWeakSkeletonQuota` via classifier injection), but
+  // a NARROWER blocklist scoped to `totally_fine_about` only — the
+  // dominant weak `pattern_variation` skeleton flooding NG slots in
+  // every cohort (ng_pidgin / ng_light_pidgin / ng_clean / ng_null)
+  // per the audit at .local/N1_E2E_FCR_FOLLOWUP_AUDIT.md. Gate is
+  // region-only (`region === "nigeria"`); Western / IN / PH / undef
+  // pay zero overhead because the gate short-circuits. Mutually
+  // exclusive with the W1.3 block above by region — at most one
+  // weak-skeleton quota fires per request, and Western behaviour is
+  // bit-for-bit unchanged. Under-fill carve-out preserved (same
+  // safety floor = max(desiredCount, 4)) — never-underfill invariant
+  // honoured. Non-prod kill-switch
+  // `LUMINA_NG_WEAK_QUOTA_DISABLE_FOR_QA=1` (independent from W1.3)
+  // for matched OFF baselines.
+  const _ngWeakQuotaActive = canApplyNigerianWeakSkeletonQuota({
+    region: input.region,
+  });
+  let _ngWeakQuotaApplied = false;
+  let _ngWeakQuotaDropped = 0;
+  let _ngWeakQuotaRelaxed = false;
+  let _ngWeakQuotaPerFamilyKept: Record<string, number> = {};
+  if (_ngWeakQuotaActive) {
+    const _ngBefore = merged.length;
+    const _ngResult = applyNigerianWeakSkeletonQuota(merged, { desiredCount });
+    merged = _ngResult.kept;
+    _ngWeakQuotaDropped = _ngResult.totalWeakDropped;
+    _ngWeakQuotaRelaxed = _ngResult.relaxed;
+    _ngWeakQuotaPerFamilyKept = _ngResult.perFamilyKept;
+    _ngWeakQuotaApplied = _ngWeakQuotaDropped > 0 || _ngWeakQuotaRelaxed;
+    if (_ngWeakQuotaApplied) {
+      logger.info(
+        {
+          creatorId: input.creator?.id,
+          region: input.region ?? null,
+          desiredCount,
+          beforeMerged: _ngBefore,
+          afterMerged: merged.length,
+          weakKept: _ngResult.totalWeakKept,
+          weakDropped: _ngWeakQuotaDropped,
+          relaxed: _ngWeakQuotaRelaxed,
+          perFamilyKept: _ngWeakQuotaPerFamilyKept,
+          perFamilyDropped: _ngResult.perFamilyDropped,
+        },
+        "nigerian_weak_skeleton_quota.applied",
       );
     }
   }

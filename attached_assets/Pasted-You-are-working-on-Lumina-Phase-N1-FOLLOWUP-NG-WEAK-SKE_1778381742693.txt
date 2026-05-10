@@ -1,0 +1,154 @@
+You are working on Lumina.
+
+Phase:
+N1-FOLLOWUP-NG-WEAK-SKELETON-QUOTA
+
+Supervisor decision:
+N1-E2E-FIRST-CARD-ROTATION is accepted as mechanically shipped, but product-level headline distinctness still needs follow-up. The post-ship audit found that slot-0 rotation works as designed, but slots 1–5 remain repetitive across NG cohorts because the cold-start willingness ranker is content-deterministic. The next authorized move is the audit-recommended Option A: extend the existing W1.3 weak-skeleton quota/suppression mechanism to NG cohorts for the single skeleton `totally_fine_about`.
+
+Do NOT implement any other option.
+
+Goal:
+Reduce repeated `totally_fine_about` pattern dominance in Nigerian cohorts without weakening validators, changing prompts, adding pack reservation, changing API shape, changing mobile, or touching DB/schema.
+
+Primary target:
+Extend the existing W1.3 weak-skeleton skip/quota behavior so it applies to NG cohorts for:
+
+- `totally_fine_about`
+
+Cohorts in scope:
+- region: nigeria
+- languageStyle: pidgin
+- languageStyle: light_pidgin
+- languageStyle: clean
+- languageStyle: null / empty, only if the current cohort-routing logic treats this as Nigerian/null cohort
+
+Cohorts out of scope:
+- Western behavior must not regress.
+- Existing Western W1.3 behavior must remain intact.
+- Pidgin/light-pidgin/clean cohort isolation must remain intact.
+
+Context from audit:
+- Slot-0 rotation worked: first-card distinctness improved from 1/10 to 6/10 in NG-pidgin and NG-light_pidgin, and 5/5 in null cohorts.
+- Product-level distinctness did not improve enough because slots 1–5 still repeat the same winners.
+- The repeated shared NG winners include:
+  - `is it still about the shopping cart`
+  - `the fridge knows i'm lying`
+  - `i am totally fine about the wifi`
+  - `my body quit. my brain kept screaming`
+- The only authorized surgical target in this task is the weak skeleton:
+  - `totally_fine_about`
+- The audit found this skeleton is already capped/suppressed for Western via W1.3 but not currently extended to NG.
+- Do not try to fix `ng_clean` first-card sameness with score smoothing or K widening. The audit classified the `ng_clean` leader as a real quality leader, not a scoring bug.
+- Do not implement pack reservation.
+- Do not do broad copy cleanup.
+- Do not loosen validators.
+
+Hard constraints:
+1. No validator loosening.
+2. No prompt changes.
+3. No schema changes.
+4. No API shape changes.
+5. No mobile changes.
+6. No DB migrations.
+7. No pack reservation.
+8. No score smoothing.
+9. No first-card rotation rewrite.
+10. No broad corpus rewrites.
+11. Preserve never-underfill behavior.
+12. Preserve deterministic behavior.
+13. Preserve cohort isolation.
+14. Keep the diff minimal and surgical.
+15. Do not reduce idea count to achieve distinctness.
+
+Implementation requirements:
+1. Locate the existing W1.3 weak-skeleton quota/suppression mechanism.
+   - Likely around `pickValidatedPhrasing` / pattern phrasing selection.
+   - Inspect existing Western-only gating before changing anything.
+2. Extend that existing mechanism to Nigerian cohorts only for `totally_fine_about`.
+3. Use the existing two-pass behavior:
+   - first pass skips or deprioritizes blocklisted weak skeletons when alternatives exist
+   - second pass falls through if needed to preserve never-underfill
+4. The implementation must not hard-ban `totally_fine_about`.
+   - It should be quota/suppression, not absolute removal.
+   - If no valid alternative exists, fallback is allowed.
+5. Keep the blocklist narrow:
+   - only `totally_fine_about`
+6. Add/adjust tests proving:
+   - NG pidgin applies the weak-skeleton quota/suppression.
+   - NG light_pidgin applies the weak-skeleton quota/suppression.
+   - NG clean/null path behavior is correct according to actual cohort routing.
+   - Western W1.3 behavior remains unchanged.
+   - The picker never underfills when alternatives are unavailable.
+   - The picker does not mutate inputs.
+   - Only the intended skeleton is affected.
+   - Pidgin/light-pidgin/clean cohort isolation remains intact.
+7. Do not edit the first-card rotation helper unless a test proves it is directly required. It should not be required.
+8. Do not change `K=10` band logic.
+9. Do not change willingness scoring weights.
+
+Runtime QA requirements:
+After implementation, run the same or equivalent N1 E2E probe used in the follow-up audit.
+
+Required cohorts:
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_clean: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Report before/after against the previous audit baseline:
+- distinct hooks per cohort
+- top-hook share per cohort
+- first-card distinctness per cohort
+- count/share of `totally_fine_about` hooks per cohort
+- underfill batches
+- fallback batches
+- source mix
+- scenarioCoherence fails
+- shouty hits
+- bannedFilming hits
+- any cohort leakage
+
+Expected outcome:
+- `i am totally fine about the wifi` / `totally_fine_about` should no longer appear as a monoculture in NG slots 1–5 when valid alternatives exist.
+- Top-hook share should improve from the previous 16.7% floor where the weak skeleton was causing repetition.
+- Distinct hooks should improve in ng_pidgin and ng_light_pidgin.
+- ng_clean first-card distinctness may remain 1/10; do not force it in this task.
+- Pack delivery may remain unchanged; do not force it in this task.
+- Underfill must remain 0.
+- Claude fallback must remain 0 unless the baseline already required fallback.
+
+Acceptance criteria:
+1. Minimal diff.
+2. TypeScript clean.
+3. Relevant unit tests green.
+4. Full api-server test suite green if practical.
+5. N1 E2E runtime probe rerun and summarized.
+6. No underfill regression.
+7. No fallback regression.
+8. No Western regression.
+9. No cohort isolation regression.
+10. `totally_fine_about` suppression applies to NG only as intended.
+11. No unrelated implementation.
+12. Clear final report with:
+   - files changed
+   - exact behavior change
+   - tests added/updated
+   - commands run
+   - before/after QA table
+   - remaining known gaps
+
+Final report format:
+- Verdict: SHIPPED / PARTIAL / FAILED
+- Summary of implementation
+- Files changed
+- Tests run and results
+- Runtime QA before/after table
+- Distinctness impact
+- Safety/regression checks
+- Remaining gaps
+- Recommendation for next phase
+
+Important:
+If, during inspection, the existing W1.3 weak-skeleton mechanism does not support a safe one-line/surgical extension to NG cohorts, stop and report an audit finding instead of improvising a new selector system.
