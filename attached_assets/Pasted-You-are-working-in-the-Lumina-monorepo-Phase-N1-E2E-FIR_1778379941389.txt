@@ -1,0 +1,250 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-E2E-FIRST-CARD-ROTATION — cross-creator first-card rotation.
+
+Context:
+N1-E2E-ROTATION-PACK-AUDIT completed read-only.
+
+Audit verdict:
+IMPLEMENT_CROSS_CREATOR_ROTATION.
+
+Root cause:
+The full ideator repeats the same top hooks across fresh creators because final selection is greedy and content-only:
+- selectWithNovelty calls greedySelect.
+- greedySelect picks highest adjustedScore.
+- Tie-breaker favors lower pool index.
+- hookQualityScore, personalFit, and hookImpact do not use creator id.
+- Fresh creators have empty memory, so per-creator novelty penalties do nothing.
+- Result: identical-profile fresh creators receive identical sorted pools and same first-card winners.
+
+This also explains Nigerian pack delivery = 0% in E2E:
+- Pack gate is true.
+- Pack candidates are generated and enter the final pool.
+- They lose to the same high-scoring catalog / pattern candidates in greedy selection.
+- This is not a probe/source-label bug. It is a real final-selection loss.
+
+Evidence:
+- ng_clean: 8 distinct hooks out of 60.
+- ng_pidgin: 20 distinct hooks out of 60.
+- ng_light_pidgin: 20 distinct hooks out of 60.
+- Repeated winners include:
+  - the fridge knows i'm lying
+  - I am totally fine about the wifi
+  - my body quit. my brain kept screaming
+  - is it still about the shopping cart
+- totally_fine_about_* floods every Nigerian cohort because weak-skeleton quota is currently Western-only.
+
+Goal:
+Implement a small, deterministic cross-creator first-card rotation so different fresh creators do not all receive the same first-card winner.
+
+This is NOT a copy phase.
+Do not add entries.
+Do not rewrite entries.
+Do not change Nigerian pack entries.
+Do not change clean-core entries.
+Do not change regional-decoration.
+Do not change validators/scorers/prompts.
+Do not change API/mobile/schema/DB/migrations.
+Do not implement pack reservation yet.
+Do not implement weak-skeleton demotion yet.
+Do not implement memory/usage-cap.
+
+DESIRED BEHAVIOR:
+For first-card selection only:
+- Instead of always selecting pool[0], select from a small quality band around the best candidate using stable creator-id hashing.
+- Same creator id should always choose the same candidate from the same band.
+- Different creator ids may choose different candidates.
+- If creator id is missing, fall back to pool[0].
+- If band size is 1, fall back to pool[0].
+- Only affect the first selected card / first impression slot.
+- Do not change selection for subsequent cards unless unavoidable.
+- Do not include weak candidates.
+
+IMPLEMENTATION SHAPE:
+1. Add a pure helper, for example:
+artifacts/api-server/src/lib/firstImpressionBandPicker.ts
+
+Suggested API:
+export type FirstImpressionBandCandidate<T> = {
+  item: T;
+  score: number;
+};
+
+export function pickFirstImpressionFromQualityBand<T>(args: {
+  candidates: readonly FirstImpressionBandCandidate<T>[];
+  creatorId?: string | null;
+  maxScoreDelta?: number;
+}): T | null;
+
+Rules:
+- Input candidates must already be sorted best-first, or helper should sort defensively.
+- maxScoreDelta should start conservative.
+- Start with K = 3 unless tests/probe show too little band diversity.
+- Do not use randomness.
+- Use existing hash utility if available.
+- If no hash utility exists, add a tiny deterministic FNV-1a string hash helper in this module.
+
+2. Wire into hybridIdeator.ts around the first-card path:
+- likely selectWithNovelty / greedySelect.
+- Apply only for the first pick in the final selected batch.
+- Keep old greedy behavior for all other picks.
+- Keep behavior unchanged when:
+  - creator id missing,
+  - band size = 1,
+  - no candidates,
+  - feature flag disabled if you add a dev flag.
+
+3. Feature flag:
+Prefer a dev/staging flag if this repo convention expects one for behavior changes.
+
+Suggested flag:
+LUMINA_FIRST_IMPRESSION_BAND_ROT_ENABLED
+
+Default:
+- enabled in tests/probes by env
+- do NOT add production env/start-script changes unless repo convention requires it
+- do not change production gates
+
+If the repo strongly prefers no flag for this kind of internal selection improvement, explain why in the report.
+
+4. Candidate score:
+Use the exact score greedy selector already uses:
+- adjustedScore if available.
+Do not invent a new quality score.
+
+STRICT NON-GOALS:
+Do NOT:
+- add entries
+- rewrite hooks/scenarios/howToFilm/captions
+- change Nigerian approved pack corpus
+- change Nigerian clean-core catalog
+- change regional decoration
+- change validators
+- change scorers globally
+- change prompts
+- add DB memory
+- add migrations
+- change API shape
+- change mobile
+- change Orval/OpenAPI
+- implement pack reservation
+- implement weak-skeleton demotion
+- implement usage cap
+- change production start/env gates
+
+TESTS:
+Add focused unit tests.
+
+Suggested:
+artifacts/api-server/src/lib/__tests__/firstImpressionBandPicker.test.ts
+
+Required:
+1. Band size 1 returns top candidate.
+2. Missing creator id returns top candidate.
+3. Same creator id + same candidate band returns same candidate.
+4. Different creator ids can pick different candidates from same band.
+5. Candidate outside maxScoreDelta is excluded from band.
+6. maxScoreDelta = 0 only rotates exact-tie candidates or falls back if no tie.
+7. Empty candidate list returns null.
+
+Add focused hybrid ideator tests if feasible:
+1. First-card rotation changes first-card selection across different creator ids when candidates are within band.
+2. Subsequent cards stay unchanged.
+3. Missing creator id preserves old greedy behavior.
+4. No underfill.
+5. Nigerian pack candidate inside quality band can win for some creator ids.
+
+Run:
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/firstImpressionBandPicker.test.ts
+
+Run any new hybrid ideator focused test.
+
+Run:
+pnpm --filter @workspace/api-server exec vitest run --reporter=dot src/lib/__tests__/nigerian*.test.ts
+
+Run:
+pnpm --filter @workspace/api-server exec tsc --noEmit
+
+Run full api-server suite because this touches final selection:
+pnpm --filter @workspace/api-server run test
+
+RUNTIME QA:
+Re-run:
+.local/scripts/n1E2eNigeriaQaProbe.mts
+
+Use the same 5-cohort / 240-idea shape.
+
+Save:
+.local/qa-runs/n1_e2e_first_card_rotation.json
+.local/qa-runs/n1_e2e_first_card_rotation_summary.json
+.local/N1_E2E_FIRST_CARD_ROTATION_REPORT.md
+
+Measure:
+- distinct hooks by cohort
+- top hook share by cohort
+- first-card distinct hooks by cohort, if easy
+- pack delivery for ng_pidgin and ng_light_pidgin
+- clean-core delivery for ng_clean
+- underfill
+- fallback usage
+- mock-pidgin hits
+- stereotype hits
+- banned filming hits
+- shouty hits
+- scenario/coherence failures
+- non-target leaks
+- latency
+
+Success targets:
+- top hook share materially reduced; target <12%, ideally <10%.
+- distinct hooks improve materially:
+  - ng_pidgin: from 20/60 toward 35+/60
+  - ng_light_pidgin: from 20/60 toward 35+/60
+  - ng_clean: from 8/60 toward 20+/60
+- pack delivery for pidgin/light_pidgin improves from 0% if pack candidates are in band.
+- no underfill.
+- no fallback spike.
+- no mock-pidgin regression.
+- no stereotype regression.
+- no clean-core leak.
+- no API/mobile/schema/DB changes.
+
+If pack delivery does not improve but distinct hooks improve, report that clearly. Do not add pack reservation in this phase.
+
+SCAN-HIT TRIAGE CONTEXT:
+Do not fix these in this phase, but report whether rotation reduced repetition-amplified hits:
+- one take hits are real copy/template issue from I am totally fine about the wifi; rotation should reduce repetition but not remove the template.
+- jollof / buka / NEPA hits are regional-decoration context, not clean-core catalog failures.
+- scenario-coherence hits are probe scanner false positives in this audit.
+- shouty hits come from i SAID... but NO; rotation may reduce recurrence but does not rewrite the template.
+
+FINAL REPORT — KEEP IT SHORT:
+Return only:
+1. Verdict.
+2. Files changed.
+3. Exact behavior change.
+4. Feature flag status, if any.
+5. Tests added/updated.
+6. Test results.
+7. TypeScript result.
+8. Runtime QA:
+   - distinct hooks before/after by cohort
+   - top hook share before/after by cohort
+   - pack delivery before/after for pidgin/light_pidgin
+   - clean-core delivery for clean
+   - underfill/fallback
+   - scan hits
+9. Confirm:
+   - no entries added
+   - no entries rewritten
+   - Nigerian pack corpus untouched
+   - clean-core catalog untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no pack reservation implemented
+   - no weak-skeleton demotion implemented
+   - no memory/usage-cap implemented
+10. Risks/follow-up.
+
+Do not ask for next steps.

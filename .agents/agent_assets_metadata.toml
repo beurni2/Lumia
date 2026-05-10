@@ -1025,3 +1025,21 @@ id = "7qBz7fU8M5Z8fAGRRaNj_"
 uri = "file://.local/qa-runs/n1_e2e_scan_triage.json"
 type = "unspecified"
 title = "Scan triage (exact matches per cohort)"
+
+[[outputs]]
+id = "uDQq3jwZ-1gqaat82XQq3"
+uri = "file://.local/N1_E2E_FIRST_CARD_ROTATION_REPORT.md"
+type = "text"
+title = "N1-E2E-FIRST-CARD-ROTATION Report"
+
+[[outputs]]
+id = "lQ9ZwV_1XcOlJ6lz4K0qt"
+uri = "file://.local/qa-runs/n1_e2e_first_card_rotation_summary.json"
+type = "unspecified"
+title = "Summary JSON"
+
+[[outputs]]
+id = "X8XTdbSPtN_pSqAdCIeTa"
+uri = "file://.local/qa-runs/n1_e2e_first_card_rotation.json"
+type = "unspecified"
+title = "Full per-idea JSON (240 ideas)"
