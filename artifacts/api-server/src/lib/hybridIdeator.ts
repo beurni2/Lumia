@@ -4201,6 +4201,31 @@ export async function runHybridIdeator(
     process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
   const _recentNigerianPackEntryIdsForRetention: ReadonlySet<string> =
     _packAwareRetentionFlag ? _hoistedNigerianPackSeenIds : new Set<string>();
+  // PHASE N1-FOLLOWUP-AUDIT-FIX-2 (BI 2026-05-10) — clean-core
+  // slot-0 memory snapshot, hoisted ONCE per request and reused at
+  // BOTH consumer sites:
+  //   • per-core picker demote in `generateCoreCandidates` — only
+  //     consumed when `LUMINA_NG_CLEAN_SLOT0_MEMORY_AWARE_PICKER_ENABLED=true`.
+  //   • post-rotation slot-0 anti-repeat swap below — consumed
+  //     unconditionally inside the ng_clean activation block (the
+  //     swap pre-dates Fix 2; the read used to live there).
+  // Cohort gate (region=nigeria + languageStyle=clean + non-empty
+  // creatorId) is a superset of the swap's activation gate, so this
+  // hoist replaces the previous in-place read with no additional DB
+  // cost in steady state. Non-NG / non-clean cohorts pay zero
+  // (helper is not called). When the picker flag is OFF, the
+  // snapshot still flows into `generateCoreCandidates` but
+  // `effectiveQ` collapses to `p.quality` — byte-identical pre-Fix-2
+  // behavior. Cap is 20 — see `nigerianCleanCoreCreatorMemory.ts`.
+  const _hoistedNgCleanSlot0Eligible =
+    input.region === "nigeria" &&
+    _hoistedLanguageStyle === "clean" &&
+    typeof input.creator?.id === "string" &&
+    input.creator.id.length > 0;
+  const _hoistedNgCleanSlot0SeenIds: ReadonlySet<string> =
+    _hoistedNgCleanSlot0Eligible
+      ? await getRecentSlot0CleanCoreEntryIds(input.creator?.id)
+      : new Set<string>();
   // PHASE W2-K — hoist the per-creator Western APPROVED pack memory
   // snapshot. Read once here, reused at the slot-reservation site
   // below. Gating mirrors the slot-reservation activation guard:
@@ -4279,6 +4304,7 @@ export async function runHybridIdeator(
     count: desiredCount + 2,
     recentNigerianPackEntryIds: _recentNigerianPackEntryIdsForRetention,
     recentCatalogSkeletons: _hoistedRecentCatalogSkeletons,
+    recentNgCleanSlot0EntryIds: _hoistedNgCleanSlot0SeenIds,
     noveltyContext: {
       recentPremiseStyleIds: noveltyContext.recentPremiseStyleIds,
       recentExecutionIds: noveltyContext.recentExecutionIds,
@@ -6116,8 +6142,12 @@ export async function runHybridIdeator(
       cidForSlot0Swap.length > 0 &&
       final.length >= 2;
     if (ngCleanActivated) {
-      const recentSlot0CleanCoreEntryIds =
-        await getRecentSlot0CleanCoreEntryIds(cidForSlot0Swap);
+      // PHASE N1-FOLLOWUP-AUDIT-FIX-2 (BI 2026-05-10) — reuse the
+      // hoisted snapshot from L4228 instead of issuing a second
+      // DB read. The hoist's eligibility gate is a superset of
+      // `ngCleanActivated`, so the snapshot is guaranteed populated
+      // here. Single read per request for this column.
+      const recentSlot0CleanCoreEntryIds = _hoistedNgCleanSlot0SeenIds;
       const swapResult = applyNgCleanSlot0AntiRepeatSwap(final, {
         recentSlot0CleanCoreEntryIds,
       });

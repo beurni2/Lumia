@@ -1253,3 +1253,9 @@ id = "9vQ97IY1qAlTe7h5tKaRf"
 uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_HIGH_HQS_CORPUS_LIFT_P3_HUMAN_FIRST_REPORT.md"
 type = "text"
 title = "N1 NG-Clean High-HQS Corpus Lift P3-Human-First Report"
+
+[[outputs]]
+id = "etQioPkwZbIlOn_6g4Aik"
+uri = "file://.local/N1_FOLLOWUP_AUDIT_SLOT0_AND_HQS_REJECTIONS.md"
+type = "text"
+title = "N1 Slot-0 + HQS Audit + Fix 2 Report"

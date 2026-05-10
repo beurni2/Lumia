@@ -246,6 +246,27 @@ export type GenerateCoreCandidatesInput = {
    *  also gates internally on cohort, so passing a non-empty Set
    *  to a non-western cohort is still a no-op. */
   recentCatalogSkeletons?: ReadonlySet<string>;
+  /** PHASE N1-FOLLOWUP-AUDIT-FIX-2 (BI 2026-05-10) — per-creator
+   *  recent-slot-0 clean-core entry-id memory snapshot. When the
+   *  staging-only flag
+   *  `LUMINA_NG_CLEAN_SLOT0_MEMORY_AWARE_PICKER_ENABLED` is ON AND
+   *  the per-core best-pick is taking the clean-core branch
+   *  (`cleanCoreCandidates.length > 0`), the picker compares
+   *  EFFECTIVE quality = raw `quality` minus a soft `-15` demote
+   *  for any candidate whose `cleanCoreEntryId` is in this set.
+   *  Rotates the per-core winner away from incumbents the creator
+   *  just saw at slot 0 — addresses the `ng_clean_001` slot-0
+   *  monoculture documented in
+   *  `.local/N1_FOLLOWUP_AUDIT_SLOT0_AND_HQS_REJECTIONS.md`.
+   *  Read upstream from the same
+   *  `creators.nigerian_clean_core_slot0_seen_ids_json` column the
+   *  post-rotation slot-0 anti-repeat swap consults via
+   *  `getRecentSlot0CleanCoreEntryIds`; hoisted in `hybridIdeator.ts`
+   *  so non-NG / flag-OFF cohorts pay zero DB cost. Empty/undefined
+   *  Set preserves pre-flag behavior (no demote). Demote applies
+   *  ONLY inside the clean-core branch — catalog/pack picks are
+   *  byte-identical to pre-flag behavior. */
+  recentNgCleanSlot0EntryIds?: ReadonlySet<string>;
   /** PHASE R1 — optional region for deterministic regional
    *  baseline decoration. Threaded straight through to
    *  `authorCohesiveIdea`. `"western"` / `undefined` short-circuit
@@ -877,6 +898,23 @@ export function generateCoreCandidates(
   // a cheap `.has()` check without optional-chaining.
   const recentNigerianPackEntryIds: ReadonlySet<string> =
     input.recentNigerianPackEntryIds ?? new Set<string>();
+
+  // PHASE N1-FOLLOWUP-AUDIT-FIX-2 (BI 2026-05-10) — clean-core
+  // memory-aware per-core picker. Staging-only flag (default OFF;
+  // production `[services.production.run.env]` does NOT set it).
+  // When ON the per-core best-pick below treats clean-core
+  // candidates whose `cleanCoreEntryId` is in `recentNgCleanSlot0EntryIds`
+  // as `quality - NG_CLEAN_SLOT0_MEMORY_DEMOTE` for the comparison.
+  // Soft demote (not a hard reject): a recently-shown entry can
+  // still win when no fresh alternative beats its demoted score,
+  // so under-fill remains structurally impossible. Demote applies
+  // ONLY when the picker is taking the clean-core branch — catalog
+  // and pack picks are byte-identical to pre-flag behavior.
+  const cleanCoreSlot0MemoryAwarePickerEnabled =
+    process.env.LUMINA_NG_CLEAN_SLOT0_MEMORY_AWARE_PICKER_ENABLED === "true";
+  const recentNgCleanSlot0EntryIds: ReadonlySet<string> =
+    input.recentNgCleanSlot0EntryIds ?? new Set<string>();
+  const NG_CLEAN_SLOT0_MEMORY_DEMOTE = 15;
 
   // PHASE N1-STYLE — cohort-gated American-internet style penalty
   // for the catalog (non-pack) recipe path. Computed ONCE per call
@@ -1701,10 +1739,37 @@ export function generateCoreCandidates(
       );
       const candidatePool =
         cleanCoreCandidates.length > 0 ? cleanCoreCandidates : passing;
+      // PHASE N1-FOLLOWUP-AUDIT-FIX-2 (BI 2026-05-10) — memory-aware
+      // demote for the clean-core branch only. `applyMemoryDemote`
+      // is structurally false unless (a) the staging flag is ON,
+      // (b) the picker is in the clean-core branch (pool ===
+      // cleanCoreCandidates), and (c) the creator has at least one
+      // recent slot-0 entry id. Catalog (cleanCoreCandidates.length
+      // === 0) and pack-only paths short-circuit to byte-identical
+      // pre-flag behavior because `applyMemoryDemote` is false and
+      // `effectiveQ` returns `p.quality` unchanged. Strict `>`
+      // preserved so ties continue to favour the earlier recipe.
+      const applyMemoryDemote =
+        cleanCoreSlot0MemoryAwarePickerEnabled &&
+        candidatePool === cleanCoreCandidates &&
+        recentNgCleanSlot0EntryIds.size > 0;
+      const effectiveQ = (p: (typeof candidatePool)[number]): number => {
+        if (!applyMemoryDemote) return p.quality;
+        const id = p.cleanCoreEntryId;
+        if (id !== undefined && recentNgCleanSlot0EntryIds.has(id)) {
+          return p.quality - NG_CLEAN_SLOT0_MEMORY_DEMOTE;
+        }
+        return p.quality;
+      };
       let best = candidatePool[0]!;
+      let bestEff = effectiveQ(best);
       for (let i = 1; i < candidatePool.length; i++) {
         const p = candidatePool[i]!;
-        if (p.quality > best.quality) best = p;
+        const pe = effectiveQ(p);
+        if (pe > bestEff) {
+          best = p;
+          bestEff = pe;
+        }
       }
       candidates.push({ idea: best.idea, meta: best.meta });
       usedAnchorsThisBatch.add(best.anchorLower);
