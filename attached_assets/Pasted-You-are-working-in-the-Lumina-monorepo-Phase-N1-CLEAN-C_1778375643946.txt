@@ -1,0 +1,222 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-CLEAN-CORE-P2.1 — rotation coverage audit/simulation only.
+
+Context:
+N1-CLEAN-CORE-P2 shipped successfully:
+- 60 Nigerian clean-English entries live.
+- All 60 pass full validator chain.
+- Runtime quality is excellent:
+  - ng_clean delivery: 150/150 = 100%
+  - 25/25 manual sample GOOD_NG_CLEAN
+  - pidgin/mock/stereotype/shouty hits: 0
+  - decoration leaks: 0
+  - coherence/structural/family-verb failures: 0
+  - non-target clean-core leaks: 0
+
+Problem:
+Post-P2 runtime diversity is not good enough:
+- distinct clean-core IDs surfaced: 23/60
+- P1 surfaced: 11/30
+- P2 surfaced: 12/30
+- never-surfacing IDs: 37/60
+- top repeated IDs hold 6.7–8.0% each
+- current P1.1 rotation constants:
+  - CLEAN_CORE_WINDOW_SIZE = 3
+  - CLEAN_CORE_WINDOW_STRIDE = 7
+- Report recommendation: ROTATION_TWEAK, but do not implement blindly.
+
+Important user instruction:
+Do NOT gamble with implementation.
+This phase is AUDIT / SIMULATION ONLY.
+Do not change production code.
+Do not modify rotation constants.
+Do not add entries.
+Do not rewrite entries.
+Do not touch Nigerian pidgin/light-pidgin pack.
+Do not touch regional-decoration.
+Do not change API/mobile/schema/DB/migrations/production gates.
+
+Goal:
+Determine the best low-risk rotation tweak using deterministic simulation before implementation.
+
+============================================================
+QUESTIONS TO ANSWER
+============================================================
+
+1. Why exactly does the current 60-entry picker surface only 23/60 IDs?
+2. Is the bottleneck caused by:
+   - window size = 3
+   - stride = 7
+   - start formula
+   - per-core best-pick collapse
+   - in-batch dedup
+   - hookQualityScore dominance
+   - sample size / probe shape
+   - another interaction?
+3. Which candidate rotation settings produce the best coverage without harming delivery?
+4. Is changing stride enough?
+5. Is increasing window size necessary?
+6. Would a per-id usage cap be safer than stride/window change?
+7. Can we improve coverage without reducing GOOD_NG_CLEAN quality?
+8. Which change is smallest and safest?
+
+============================================================
+READ-ONLY SIMULATION
+============================================================
+
+Create a read-only script or temporary local analysis file if needed:
+
+`.local/scripts/n1CleanCoreP21RotationAudit.mts`
+
+It must not modify production code.
+
+Simulate and/or run probes over the 60-entry catalog with candidate settings:
+
+Baseline:
+- windowSize = 3
+- stride = 7
+
+Candidate settings to test:
+- windowSize = 3, stride = 11
+- windowSize = 3, stride = 13
+- windowSize = 3, stride = 17
+- windowSize = 5, stride = 7
+- windowSize = 5, stride = 11
+- windowSize = 5, stride = 13
+- windowSize = 5, stride = 17
+- windowSize = 7, stride = 11
+- windowSize = 7, stride = 13
+- optional: per-id usage cap approach
+- optional: altered start formula if evidence supports it
+
+For each setting, measure over the same or wider shape:
+- at least 25 salts × 6 cores = 150 picks
+- ideally also 50 salts × 6 cores = 300 picks if fast
+
+Metrics:
+- clean-core delivery %
+- distinct IDs surfaced
+- P1 IDs surfaced
+- P2 IDs surfaced
+- never-surfacing IDs
+- top repeated ID share
+- duplicate hooks
+- in-batch duplicates
+- under-fill rows
+- non-target leaks, if executing full probe
+- any quality scan failures, if executing full probe
+
+============================================================
+QUALITY / SAFETY CONSTRAINTS
+============================================================
+
+Any recommended implementation must preserve:
+
+- ng_clean delivery ≥95%, ideally 100%
+- distinct IDs preferably ≥40/60 in 150-row probe
+- no top ID above 5% if possible
+- 0 under-fill rows
+- 0 in-batch duplicate clean-core IDs
+- 0 non-target clean-core leaks
+- 0 pidgin/mock/stereotype/shouty hits
+- no changes to entries
+- no changes to Nigerian pidgin/light-pidgin pack
+- no regional-decoration changes
+- no API/mobile/schema/DB changes
+- deterministic output for same seed/salt
+
+============================================================
+COMPARE OPTIONS
+============================================================
+
+Return a ranked comparison:
+
+Option A — stride-only change
+- exact recommended stride
+- expected coverage
+- risk
+
+Option B — window-only change
+- exact recommended window size
+- expected coverage
+- risk
+
+Option C — stride + window change
+- exact recommended values
+- expected coverage
+- risk
+
+Option D — per-id usage cap
+- behavior
+- expected coverage
+- risk
+
+Option E — no change
+- why not sufficient
+
+For each option include:
+- files likely touched if implemented later
+- why it is safe or unsafe
+- whether it can affect non-target cohorts
+- whether it can affect pidgin/light-pidgin
+- whether it changes quality or only selection
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+`.local/N1_CLEAN_CORE_P21_ROTATION_AUDIT.md`
+
+and, if a script/probe is run:
+
+`.local/qa-runs/n1_clean_core_p21_rotation_audit.json`
+`.local/qa-runs/n1_clean_core_p21_rotation_audit_summary.json`
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict:
+   - IMPLEMENT_STRIDE_ONLY
+   - IMPLEMENT_WINDOW_ONLY
+   - IMPLEMENT_STRIDE_AND_WINDOW
+   - IMPLEMENT_USAGE_CAP
+   - NO_SAFE_CHANGE_FOUND
+
+2. Root cause of 23/60 coverage.
+
+3. Simulation table:
+   - setting
+   - distinct IDs
+   - P1 IDs
+   - P2 IDs
+   - top repeat share
+   - under-fill
+   - non-target risk
+
+4. Recommended safest implementation, if any.
+
+5. Files that would be touched in the future implementation.
+
+6. Risks / non-risks.
+
+7. Files created.
+
+8. Confirm:
+   - read-only only
+   - no production code changed
+   - no entries added
+   - no entries rewritten
+   - Nigerian pack untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no production gates changed
+
+Do not implement.
+Do not ask for next steps.

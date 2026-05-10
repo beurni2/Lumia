@@ -983,3 +983,9 @@ id = "7dWgU5sJb79_Rh_G90qyA"
 uri = "file://.local/N1_CLEAN_CORE_P2_RUNTIME_REPORT.md"
 type = "text"
 title = "N1-CLEAN-CORE-P2-RUNTIME report (verdict: ROTATION_TWEAK)"
+
+[[outputs]]
+id = "oJbOsEbNyyTMlTh59zrRe"
+uri = "file://.local/N1_CLEAN_CORE_P21_ROTATION_AUDIT.md"
+type = "text"
+title = "N1-CLEAN-CORE-P2.1 rotation audit (verdict: IMPLEMENT_STRIDE_ONLY 7→11)"
