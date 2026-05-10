@@ -1,0 +1,254 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-CORPUS-LIFT
+
+Mode:
+Small corpus implementation + tests + runtime QA.
+
+Supervisor decision:
+The N1-FOLLOWUP-NG-CLEAN-SLOT0-GRADIENT-AUDIT is accepted.
+
+Root cause:
+`ng_clean` slot-0 first-card collapse is caused by an eligible-tier monopoly:
+- 10/10 `ng_clean` cold-start batches have exactly 1 `pickerEligible` candidate.
+- The repeated slot-0 leader is:
+  “The light came back and exposed everyone's fake patience.”
+- The issue is NOT hash collision.
+- The issue is NOT first-card rotation logic.
+- The issue is NOT K=10 alone.
+- Widening K does nothing under current tier-non-cross semantics.
+- Removing the tier guard would promote sub-floor hooks and is not authorized.
+
+Authorized fix:
+Path E — add a small number of genuinely strong `ng_clean` clean-core entries that naturally pass the existing hook-quality floor, so first-card rotation has real eligible alternatives.
+
+Do NOT change scorer, selector, K, picker eligibility, validators, prompts, API, mobile, DB, schema, pack reservation, memory, or rotation helpers.
+
+Primary goal:
+Lift `ng_clean` avg eligible candidates per cold-start batch from 1.00 to at least 2.00, and increase distinct slot-0 leaders across 10 cold-start creators to at least 3.
+
+Candidate packet:
+Evaluate and import only the candidates that pass existing gates cleanly and improve eligible slot-0 diversity. Do not force all 10.
+
+Candidate entries:
+
+1.
+id: ng_clean_061
+hook: The group chat said “quick question” and ruined my evening.
+premiseFamily: group_chat_pressure
+scenarioFamily: social_micro_panic
+topicNoun: group chat
+whatToShow: Show your phone lighting up with a group chat message that says “quick question.” You sit up like a serious adult, unlock it, read one line, then slowly place the phone face-down and stare into space like the evening has been cancelled.
+howToFilm: Shoot from the side of the couch or bed with the phone visible in frame. Let the screen light hit your face, pause after reading, then put the phone down like it became a court summons. Keep it clean and silent; the reaction carries the joke.
+caption: quick question was not quick and barely a question.
+whyThisFits: Strong clean Nigerian social-life hook with immediate visual action, low filming effort, and a clear payoff.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+2.
+id: ng_clean_062
+hook: The bank app loaded and I suddenly respected cash.
+premiseFamily: adulting_finance_panic
+scenarioFamily: phone_app_betrayal
+topicNoun: bank app
+whatToShow: Open your bank app with confidence, wait through the loading screen, then watch your expression change the moment the balance appears. Slowly close the app and reach for a tiny cash note like it is a survival tool.
+howToFilm: Use an over-the-shoulder phone shot or fake screen. Keep the balance hidden or blurred. The comedy is your posture going from confident to humbled in one second.
+caption: the app opened and my confidence closed.
+whyThisFits: Everyday Nigerian adulting anxiety, clean joke, strong object anchor, and very easy to film.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+3.
+id: ng_clean_063
+hook: The delivery rider said “I’m outside” and I forgot how doors work.
+premiseFamily: delivery_micro_chaos
+scenarioFamily: arrival_panic
+topicNoun: delivery rider
+whatToShow: Your phone buzzes with “I’m outside.” You jump up, check the window, grab the wrong keys, turn back, then open the door with unnecessary seriousness like you are receiving an ambassador.
+howToFilm: Wide indoor shot near the door. Keep the rider off-camera. Use the phone buzz as the trigger, then make the panic physical: wrong keys, quick turn, fake composure at the door.
+caption: delivery arrived and my brain left the compound.
+whyThisFits: Highly filmable, locally familiar, and built around a clean escalating physical reaction.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+4.
+id: ng_clean_064
+hook: The generator went quiet and everybody became spiritual.
+premiseFamily: power_light
+scenarioFamily: household_silence_shift
+topicNoun: generator
+whatToShow: Start with background generator noise. Let it cut off suddenly. Everyone freezes. You slowly look up from your phone like the house just entered a new economy, then reach for the charger with fear.
+howToFilm: Use sound as the joke. Start with a low hum, then cut to silence. Hold the frozen reaction for two beats before anyone moves. No need to show actual generator.
+caption: silence entered the house and we all understood.
+whyThisFits: Uses a Nigerian power-life reference without being cliché-heavy; clear visual/sound payoff and high relatability.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+5.
+id: ng_clean_065
+hook: The auntie said “eat small” and built a mountain.
+premiseFamily: family_food_pressure
+scenarioFamily: plate_escalation
+topicNoun: plate
+whatToShow: Stand with a plate expecting a small serving. An unseen hand keeps adding food. Your smile stays polite while the plate gets ridiculous. End with you holding it with both hands like gym equipment.
+howToFilm: Frame only the plate and your upper body. The server can stay off-camera. Each extra scoop should change your expression slightly until the plate becomes the punchline.
+caption: small food, according to witnesses.
+whyThisFits: Clean family comedy, strong visual escalation, and a culturally specific but universal food-pressure joke.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+6.
+id: ng_clean_066
+hook: The tailor said “tomorrow” like tomorrow has no laws.
+premiseFamily: errand_expectation_gap
+scenarioFamily: promise_delay
+topicNoun: tailor
+whatToShow: Hold up an outfit bag or fabric with hope. Read a message from the tailor saying “tomorrow.” Check the calendar, look at the outfit, then gently hang it back like you are postponing your personality.
+howToFilm: Shoot by a wardrobe or mirror. Use a fake message on screen or just react to the phone. The joke lands when you silently return the outfit to storage.
+caption: tomorrow is apparently a flexible government.
+whyThisFits: Specific Nigerian errand humor, clean wording, strong situation, and a visual ending.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+7.
+id: ng_clean_067
+hook: The rice finished cooking and the whole house started pretending.
+premiseFamily: food_home_contradiction
+scenarioFamily: kitchen_claims
+topicNoun: rice
+whatToShow: Show a pot of rice or covered bowl. One person walks by pretending not to care. Then you walk by pretending not to care. Then both of you return at the same time with plates and freeze.
+howToFilm: Simple kitchen wide shot. The pot is the anchor. Use two passes and a final collision at the food. No dialogue needed.
+caption: nobody was hungry until the rice became available.
+whyThisFits: Clean household comedy with a clear visual twist and strong everyday relatability.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+8.
+id: ng_clean_068
+hook: The office printer saw one page and chose violence.
+premiseFamily: workplace_object_betrayal
+scenarioFamily: device_meltdown
+topicNoun: printer
+whatToShow: Walk to the printer with one page to print. The printer makes noise, pauses, flashes an error, and you slowly step back like you have offended it personally.
+howToFilm: Film the printer or a fake home printer setup from a low angle. Hold your reaction longer than expected. The printer does not need to actually work; the error moment can be mimed.
+caption: one page was apparently too much responsibility.
+whyThisFits: Strong object-betrayal hook, workplace/adulting relevance, clean and easy to film.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+9.
+id: ng_clean_069
+hook: The traffic moved one inch and everybody regained hope.
+premiseFamily: commute_false_hope
+scenarioFamily: traffic_micro_victory
+topicNoun: traffic
+whatToShow: Sit like you are stuck in traffic. Suddenly move forward a tiny bit. Your whole body becomes optimistic. Then immediately stop again and slowly return to your original defeated position.
+howToFilm: Can be filmed safely parked or staged indoors with a steering wheel angle. Do not film while driving. The movement can be simulated with body motion and a quick forward lean.
+caption: we moved slightly and I planned a new life.
+whyThisFits: Clean commute humor with safe filming instructions and a strong hope-to-defeat beat.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+10.
+id: ng_clean_070
+hook: The phone battery hit 1% and started negotiating with my future.
+premiseFamily: phone_survival_panic
+scenarioFamily: battery_countdown
+topicNoun: battery
+whatToShow: Show your phone at 1%. You look at the charger across the room like it is across the country. Start moving toward it carefully, then the screen dims and you freeze like the mission failed.
+howToFilm: Close shot of the phone, then a wide shot showing the charger just out of reach. Make the walk overly serious. Cut on the screen dim or your frozen reaction.
+caption: 1% battery is not a percentage. it is a warning.
+whyThisFits: Universal but still fits Nigerian daily-life friction, especially power/charging anxiety, without relying on overused light-return framing.
+reviewerStamp: BI-CLEAN 2026-05-10
+
+Editorial priority:
+Strongest likely first-card candidates:
+- ng_clean_061 group chat / quick question
+- ng_clean_062 bank app / cash respect
+- ng_clean_063 delivery rider / I’m outside
+- ng_clean_065 auntie / eat small
+- ng_clean_066 tailor / tomorrow
+- ng_clean_070 1% battery
+
+Watch carefully:
+- ng_clean_064 generator went quiet
+- ng_clean_069 traffic moved one inch
+
+They may pass, but power/traffic themes can become overrepresented or cliché if overused.
+
+Implementation requirements:
+1. Inspect the current shape of `nigerianCleanCorePack.ts` before editing.
+2. Add only candidates that fit the existing schema and conventions.
+3. Use the existing reviewer-stamp / draft-integrity conventions.
+4. Do not rename or rewrite existing entries unless a test proves a direct collision.
+5. Do not delete existing entries.
+6. Do not loosen any validator or scorer.
+7. Do not lower `PICKER_HQS_FLOOR`.
+8. Do not modify `willingnessScorer.ts`.
+9. Do not modify rotation helpers.
+10. Do not modify `hybridIdeator.ts` unless strictly necessary for read-only QA output.
+11. Preserve cohort isolation.
+12. Keep the diff limited to the clean-core corpus and tests/QA artifacts unless a schema requires otherwise.
+13. If fewer than 5 candidates pass cleanly, import fewer and report why. Do not force the count.
+14. If none of the candidates naturally score HQS ≥ 50, stop and report. Do not game the scorer.
+
+Testing requirements:
+Run relevant existing tests for:
+- Nigerian clean core pack integrity
+- schema validation
+- hook quality scoring if available
+- anti-copy / duplicate checks if available
+- cohort isolation if available
+- TypeScript typecheck
+
+Run full api-server suite if practical.
+
+Runtime QA requirements:
+Run the same cold-start sweep:
+- ng_clean: 10 batches × 6 ideas
+- ng_pidgin: 10 batches × 6 ideas
+- ng_light_pidgin: 10 batches × 6 ideas
+- ng_null: 5 batches × 6 ideas
+- western_null: 5 batches × 6 ideas
+
+Measure before/after:
+1. `ng_clean` avg eligible candidates per batch
+2. `ng_clean` distinct slot-0 leaders across 10 cold-start creators
+3. `ng_clean` slot-0 top-hook share
+4. `ng_clean` first-card hooks and their HQS
+5. `ng_clean` K=10/K=12/K=15/K=20/K=25 band sizes
+6. distinct hooks per cohort
+7. per-slot distinctness per cohort
+8. underfill batches
+9. fallback batches
+10. scenarioCoherence failures
+11. banned/shouty scan hits
+12. source mix
+13. regression check for ng_pidgin/ng_light_pidgin/ng_null/western_null
+
+Acceptance criteria:
+1. Imported entries pass existing schema/integrity checks.
+2. No validator/scorer/selector/rotation/prompt/API/mobile/DB/schema changes.
+3. Typecheck clean.
+4. Relevant tests pass.
+5. Full api-server suite passes if practical.
+6. `ng_clean` avg eligible candidates per batch improves from 1.00 to at least 2.00.
+7. `ng_clean` distinct slot-0 leaders across 10 cold-start creators improves from 1 to at least 3.
+8. No underfill regression.
+9. No fallback regression.
+10. No scenarioCoherence regression.
+11. No cross-cohort regression.
+12. Final report explains exactly which candidate entries were accepted/rejected and why.
+
+Required output files:
+- `.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_LIFT_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_lift.json`
+- `.local/qa-runs/n1_ng_clean_slot0_corpus_lift_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Entries imported
+3. Entries rejected, with reasons
+4. Files changed
+5. Tests run and results
+6. Runtime QA before/after table
+7. `ng_clean` eligible-tier improvement
+8. `ng_clean` slot-0 diversity improvement
+9. Safety/regression checks
+10. Remaining gaps
+11. Recommendation for next phase
+
+Stop condition:
+If implementation requires touching scorer, selector, K, prompt, validator, schema, API, mobile, DB, memory, or rotation helpers, stop and report. This phase is a corpus-lift only.

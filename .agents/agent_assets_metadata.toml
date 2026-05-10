@@ -1097,3 +1097,21 @@ id = "dSjCweV-dxWx2_1YBlO1v"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_gradient_audit.json"
 type = "unspecified"
 title = "Audit pointer file (per-batch dump lives in instrumentation JSON)"
+
+[[outputs]]
+id = "EU1xV3ZqoBN5bkddM5JME"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_CORPUS_LIFT_REPORT.md"
+type = "text"
+title = "NG-CLEAN Slot-0 Corpus Lift — Report (FAILED, rule-14)"
+
+[[outputs]]
+id = "AyJiAmqMIvfomKJFvmx5A"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift_summary.json"
+type = "unspecified"
+title = "Per-candidate HQS breakdown + reject reasons"
+
+[[outputs]]
+id = "6pEbhAU3lc7IGScCuRazJ"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_lift.json"
+type = "unspecified"
+title = "Pointer file (corpus unchanged, sweep not run)"
