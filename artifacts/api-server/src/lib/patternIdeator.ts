@@ -61,6 +61,11 @@ import {
   validateTrendInjection,
   type TrendItem,
 } from "./trendCatalog";
+// N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — env-gated probe-only telemetry.
+import {
+  isTelemetryEnabled as presliceTelemetryIsEnabled,
+  recordPickerTrace as presliceTelemetryRecordPickerTrace,
+} from "./presliceTelemetry";
 
 // -----------------------------------------------------------------------------
 // Templates — reusable viral idea SHAPES
@@ -8278,6 +8283,27 @@ function pickValidatedPhrasing(
   // scenario, style) triples don't all pick phrasings[0]. Defensive
   // double-modulo collapses any sign.
   const start = ((seed % n) + n) % n;
+  // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — env-gated
+  // (`LUMINA_PRESLICE_TELEMETRY=1`) trace, captured ONLY for
+  // `hookStyle === "why_do_i"` per the brief. Off by default ⇒
+  // single env-var read + early-return ⇒ zero production impact.
+  // Records every (pass, candidate) tuple's validateHook result and
+  // whether pass 2 reinstated a blocklisted skeleton. No selector
+  // behavior change of any kind.
+  const traceEnabled =
+    hookStyle === "why_do_i" &&
+    presliceTelemetryIsEnabled();
+  const traceRows: Array<{
+    pass: 1 | 2;
+    candidateIdx: number;
+    skeletonId?: string;
+    hook: string;
+    validateHookResult: boolean;
+    blocked?: boolean;
+  }> = [];
+  let pickedSkeletonId: string | undefined;
+  let pickedHook: string | undefined;
+  let pickedFromPass: 1 | 2 | null = null;
   // PHASE W2-QA-FIX-1 (Task B) — TWO-PASS walk:
   //   pass 1: skip any phrasing whose `skeletonId` is on the weak
   //           blocklist; return the first non-blocked phrasing that
@@ -8288,27 +8314,92 @@ function pickValidatedPhrasing(
   //           it is the ONLY one that validates for this scenario.
   // Determinism preserved: identical (style, scenario, tone, seed)
   // ⇒ identical pick across both passes.
+  let result: { entry: HookPhrasingEntry; index: number; hook: string } | null = null;
   for (let offset = 0; offset < n; offset++) {
     const idx = (start + offset) % n;
     const entry = phrasings[idx]!;
-    if (entry.skeletonId !== undefined &&
-        WEAK_PHRASING_SKELETON_BLOCKLIST.has(entry.skeletonId)) {
+    const isBlocked =
+      entry.skeletonId !== undefined &&
+      WEAK_PHRASING_SKELETON_BLOCKLIST.has(entry.skeletonId);
+    if (isBlocked) {
+      if (traceEnabled) {
+        traceRows.push({
+          pass: 1,
+          candidateIdx: idx,
+          skeletonId: entry.skeletonId,
+          hook: "<blocked: not built>",
+          validateHookResult: false,
+          blocked: true,
+        });
+      }
       continue;
     }
     const candidate = toneInflect(entry.build(scenario), tone).trim();
-    if (validateHook(candidate)) {
-      return { entry, index: idx, hook: candidate };
+    const validated = validateHook(candidate);
+    if (traceEnabled) {
+      traceRows.push({
+        pass: 1,
+        candidateIdx: idx,
+        skeletonId: entry.skeletonId,
+        hook: candidate,
+        validateHookResult: validated,
+        blocked: false,
+      });
+    }
+    if (validated) {
+      result = { entry, index: idx, hook: candidate };
+      pickedSkeletonId = entry.skeletonId;
+      pickedHook = candidate;
+      pickedFromPass = 1;
+      break;
     }
   }
-  for (let offset = 0; offset < n; offset++) {
-    const idx = (start + offset) % n;
-    const entry = phrasings[idx]!;
-    const candidate = toneInflect(entry.build(scenario), tone).trim();
-    if (validateHook(candidate)) {
-      return { entry, index: idx, hook: candidate };
+  if (result === null) {
+    for (let offset = 0; offset < n; offset++) {
+      const idx = (start + offset) % n;
+      const entry = phrasings[idx]!;
+      const candidate = toneInflect(entry.build(scenario), tone).trim();
+      const validated = validateHook(candidate);
+      if (traceEnabled) {
+        traceRows.push({
+          pass: 2,
+          candidateIdx: idx,
+          skeletonId: entry.skeletonId,
+          hook: candidate,
+          validateHookResult: validated,
+          blocked:
+            entry.skeletonId !== undefined &&
+            WEAK_PHRASING_SKELETON_BLOCKLIST.has(entry.skeletonId),
+        });
+      }
+      if (validated) {
+        result = { entry, index: idx, hook: candidate };
+        pickedSkeletonId = entry.skeletonId;
+        pickedHook = candidate;
+        pickedFromPass = 2;
+        break;
+      }
     }
   }
-  return null;
+  if (traceEnabled) {
+    const pass1Returned = pickedFromPass === 1;
+    const pass2Reinstated =
+      pickedFromPass === 2 &&
+      pickedSkeletonId !== undefined &&
+      WEAK_PHRASING_SKELETON_BLOCKLIST.has(pickedSkeletonId);
+    presliceTelemetryRecordPickerTrace({
+      hookStyle: String(hookStyle),
+      scenarioFamily: scenario.family,
+      topicNoun: scenario.topicNoun,
+      seed,
+      rows: traceRows,
+      pass1Returned,
+      pass2Reinstated,
+      finalSkeletonId: pickedSkeletonId,
+      finalHook: pickedHook,
+    });
+  }
+  return result;
 }
 
 /**

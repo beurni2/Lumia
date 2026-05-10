@@ -192,6 +192,11 @@ import {
   recordSeenSkeletons,
 } from "./catalogTemplateCreatorMemory.js";
 import { applyFirstCardQualityBandRotation } from "./firstCardQualityBandRotation.js";
+// N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — env-gated probe-only telemetry.
+import {
+  recordPresliceCandidates,
+  recordPostSortCandidates,
+} from "./presliceTelemetry.js";
 import {
   canActivateNigerianPack,
   isNigerianPackFeatureEnabled,
@@ -5981,6 +5986,16 @@ export async function runHybridIdeator(
   // downstream reference (cache write, source label counters)
   // consistent with the post-cap state.
   final = enforceTrendCap(final, (c) => c.score.total);
+  // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — probe-only,
+  // env-gated (`LUMINA_PRESLICE_TELEMETRY=1`). Off by default ⇒ this
+  // call is a single env-var read + early return ⇒ zero production
+  // impact. Captures the top-20 candidate pool AFTER `enforceTrendCap`
+  // and BEFORE `annotateAndSortByWillingness` so the willingness sort
+  // hasn't yet collapsed score.total ordering. Behavior-neutral.
+  recordPresliceCandidates(final, {
+    creatorId: input.creator?.id,
+    region: input.region,
+  });
   // PHASE Z1 — annotate willingnessScore + whyThisFitsYou on every
   // shipped idea AND reorder so picker-eligible / high-willingness
   // candidates surface first. Pure deterministic, no I/O. The
@@ -6035,6 +6050,14 @@ export async function runHybridIdeator(
       final = applyFirstCardQualityBandRotation(final, cidForRotation);
     }
   }
+  // N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION — post-sort/post-
+  // rotation snapshot so the report can join pre-slice candidates →
+  // final shipped slot index. Same env-gate as the pre-slice capture
+  // above ⇒ off by default ⇒ zero production impact.
+  recordPostSortCandidates(final, {
+    creatorId: input.creator?.id,
+    region: input.region,
+  });
   const ideas = gate(final.map((c) => c.idea));
   // Persist as entries so the next regenerate has family +
   // templateId for HARD exclusion, not just hook strings.

@@ -1,0 +1,212 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-PRESLICE-CANDIDATE-INSTRUMENTATION
+
+Mode:
+Probe-only instrumentation + runtime audit.
+
+Supervisor authorization:
+You are authorized to execute instrumentation only. You are NOT authorized to implement any product behavior change.
+
+Primary objective:
+Produce the missing evidence needed to decide how to fix NG cold-start cross-creator slot-winner sameness.
+
+Observed symptom:
+Across NG cold-start cohorts, the same repeated hooks keep shipping in predictable slots:
+- “I am totally fine about the to-do app”
+- “is it still about the shopping cart”
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+
+Current known issue:
+Existing QA dumps do not include the pre-slice candidate pool, runner-up scores, skeleton IDs, hook quality scores, or K-band alternatives. Therefore no implementation path is authorized yet.
+
+Hard constraints:
+1. No production behavior change.
+2. No selector behavior change.
+3. No validators changed.
+4. No prompts changed.
+5. No corpus edits.
+6. No schema/API/mobile/DB changes.
+7. No pack reservation.
+8. No score smoothing.
+9. No K widening.
+10. No first-card rotation rewrite.
+11. No slot-level rotation implementation.
+12. No skeleton-recency demotion implementation.
+13. No global/process LRU.
+14. No production flag changes.
+15. No shipping telemetry enabled by default.
+
+Implementation scope:
+Add dev/probe-only telemetry to inspect the candidate pool.
+
+Approved design:
+1. Create:
+   `artifacts/api-server/src/lib/presliceTelemetry.ts`
+
+2. Implement a singleton collector gated by:
+   `LUMINA_PRESLICE_TELEMETRY=1`
+
+3. Default state:
+   off by default. With env flag unset, there must be effectively zero production impact.
+
+4. Collector arrays:
+   - pre-slice candidate snapshots
+   - final shipped snapshots
+   - `pickValidatedPhrasing` traces for `style === "why_do_i"` only
+
+5. Add one capture call in `hybridIdeator.ts` between:
+   `enforceTrendCap(final, …)`
+   and:
+   `final = annotateAndSortByWillingness(final)`
+
+   This is the primary capture point.
+
+6. At that capture point, capture top 20 candidates per batch with as many of these fields as available:
+   - hook
+   - source
+   - `meta.skeletonId`
+   - `hookSkeletonId`
+   - `meta.comedyFamily`
+   - `ideaCoreFamily`
+   - `hookQualityScore`
+   - `scenarioFingerprint`
+   - `source`
+   - `templateId`
+   - `hookStyle`
+   - `scenario.topicNoun`
+   - `score.total`
+   - `pickerEligible`
+   - region
+   - languageStyle
+   - creator.id
+   - batch index / probe run id if available
+
+7. Add a post-sort/post-rotation snapshot so the report can join:
+   pre-slice candidates → final shipped slots.
+
+8. Add one capture call inside `pickValidatedPhrasing` in `patternIdeator.ts`, limited strictly to:
+   `style === "why_do_i"`
+
+   Capture:
+   - style
+   - scenarioFamily
+   - topicNoun
+   - pass number
+   - candidate index
+   - skeletonId
+   - candidate hook
+   - validateHook result
+   - rejection reason if available
+   - whether pass 1 returned null
+   - whether pass 2 reinstated a blocklisted skeleton
+
+9. Update or add probe logic in:
+   `.local/scripts/n1E2eNigeriaQaProbe.mts`
+
+   The probe should:
+   - set `LUMINA_PRESLICE_TELEMETRY=1`
+   - drain the telemetry collector after each batch
+   - write enriched output to:
+     `.local/qa-runs/n1_preslice_candidate_instrumentation.json`
+   - write summary output to:
+     `.local/qa-runs/n1_preslice_candidate_instrumentation_summary.json`
+
+10. Write final report to:
+    `.local/N1_FOLLOWUP_PRESLICE_CANDIDATE_INSTRUMENTATION_REPORT.md`
+
+Runtime QA:
+Run the full 5-cohort sweep:
+
+- `ng_pidgin`: 10 batches × 6 ideas
+- `ng_light_pidgin`: 10 batches × 6 ideas
+- `ng_clean`: 10 batches × 6 ideas
+- `ng_null`: 5 batches × 6 ideas
+- `western_null`: 5 batches × 6 ideas
+
+Required analysis:
+For each repeated hook:
+- “I am totally fine about the to-do app”
+- “is it still about the shopping cart”
+- “the fridge knows i'm lying”
+- “my body quit. my brain kept screaming”
+
+Report:
+1. cohort
+2. slot distribution
+3. shipped count
+4. selector path if identifiable
+5. skeletonId / family
+6. winner raw `score.total`
+7. winner willingnessScore if available
+8. top 5–10 runner-ups
+9. runner-up scores
+10. viable alternative counts within:
+    - K=10
+    - K=15
+    - K=20
+11. whether alternatives are same tier or lower tier
+12. why runner-ups lost, if inferable
+
+Specific `totally_fine_about` analysis:
+Answer clearly:
+1. Does `pickValidatedPhrasing` pass 1 fail for `why_do_i`?
+2. Which non-blocklisted candidates fail?
+3. Why do they fail?
+4. Does pass 2 reinstate `totally_fine_about`?
+5. Is the repeated hook coming through legacy picker, modern language picker, voice cluster picker, or another path?
+
+Mechanism classification:
+Classify each repeated hook as one of:
+
+A. blocklist exists but pass-2 fallback reinstates it  
+B. no blocklist surface in picker path  
+C. alternatives exist but lose by score  
+D. alternatives fail validation  
+E. no viable alternatives exist  
+F. metadata missing / cannot classify  
+
+Fix comparison required:
+Compare these possible next moves:
+
+A. fix legacy pass-1 alternative availability  
+B. add blocklist/demotion to modern language picker  
+C. add selector-path-specific weak skeleton demotion  
+D. slot-level deterministic quality-band rotation  
+E. per-creator skeleton-recency demotion  
+F. scenario-seed diversification  
+G. corpus/copy removal  
+
+Final report must include:
+1. Executive verdict
+2. Per-hook tables
+3. `totally_fine_about` pass-trace
+4. Fix comparison A–G
+5. Single recommended next implementation path
+6. Why the other paths are not authorized yet
+7. Proof commands and inspected file locations
+8. Files changed
+9. Test results
+10. Runtime QA output paths
+
+Tests / verification:
+Run at minimum:
+- relevant targeted tests
+- api-server typecheck
+- full api-server suite if practical
+- N1 E2E probe with telemetry enabled
+
+Acceptance criteria:
+1. No production behavior changed.
+2. Env flag is off by default.
+3. Telemetry only records when `LUMINA_PRESLICE_TELEMETRY=1`.
+4. Probe output contains enough data to decide whether cold-start sameness can be fixed without memory.
+5. Report gives a clear answer on whether slot-level quality-band rotation is viable from real K-band data.
+6. Report gives a clear answer on whether per-creator skeleton-recency demotion would help first-batch cold-start sameness.
+7. Report recommends exactly one next implementation path.
+8. No implementation of the recommended path in this session.
+
+Important:
+If you discover that adding the telemetry requires touching production source files, keep the code strictly read-only, env-gated, and behavior-neutral. Do not alter selection, scoring, validation, filtering, sorting, candidate count, or shipped output.
