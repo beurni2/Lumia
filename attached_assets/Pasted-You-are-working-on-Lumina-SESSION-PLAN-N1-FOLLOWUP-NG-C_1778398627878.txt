@@ -1,0 +1,135 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-SURFACE-CHECK
+
+Mode:
+Tiny decision-forcing audit. Do not implement product behavior.
+
+Supervisor decision:
+We are not doing another broad audit. We need one narrow check to decide the next implementation path.
+
+Current state:
+Patch D is shipped and accepted. It improved scorer-level ng_clean eligibility from 8/61 to 18/61, but the post-Patch-D full E2E verification still FAILED:
+- ng_clean distinct user-facing slot-0 leaders: 1/10
+- top slot-0 hook share: 100%
+- repeated leader: “The light came back and exposed everyone’s fake patience.”
+- only 1 of the 10 Patch-D newly eligible ng_clean entries appeared anywhere in 60 shipped ng_clean ideas
+- 0 Patch-D newly eligible entries reached slot 0
+
+Therefore:
+Do NOT tune the scorer again.
+Do NOT write more corpus entries.
+Do NOT lower PICKER_HQS_FLOOR.
+Do NOT change validators.
+Do NOT change rotation helpers.
+Do NOT implement anti-repeat yet.
+Do NOT implement reservation yet.
+
+Goal:
+Answer exactly one question:
+
+Are pickerEligible ng_clean alternatives available before slot-0 selection?
+
+Decision rule:
+- If YES, the next implementation should be ng_clean slot-0 anti-repeat / swap.
+- If NO, the next implementation should be ng_clean clean-core surface reservation / sampling lift.
+
+No third option.
+
+Hard constraints:
+1. No product behavior change.
+2. No scorer changes.
+3. No validator changes.
+4. No selector changes.
+5. No rotation helper changes.
+6. No corpus edits.
+7. No prompt changes.
+8. No API/mobile/DB/schema changes.
+9. No K changes.
+10. No memory behavior changes.
+11. No pack reservation changes.
+12. No broad instrumentation.
+13. No preslice mega-audit.
+14. No implementation of the recommendation in this session.
+
+Scope:
+Only inspect ng_clean cold-start batches.
+
+Run:
+- ng_clean: 10 cold-start creators × 6 ideas
+
+Required capture:
+For each of the 10 ng_clean batches, capture the top 10 clean-core candidates immediately before final slot-0 selection/ranking, or at the narrowest available point that still shows clean-core candidates before the first card is finalized.
+
+For each candidate, print:
+- batch index
+- creator id
+- candidate rank at capture point
+- cleanCoreEntryId
+- hook
+- source
+- HQS / hookQualityScore
+- pickerEligible true/false
+- willingnessScore if available
+- score.total if available
+- whether Patch-D newly eligible
+- whether candidate shipped
+- shipped slot index if shipped
+
+Patch-D newly eligible IDs to track:
+- ng_clean_002
+- ng_clean_013
+- ng_clean_019
+- ng_clean_023
+- ng_clean_032
+- ng_clean_039
+- ng_clean_042
+- ng_clean_044
+- ng_clean_047
+- ng_clean_052
+
+For each batch, answer:
+1. Is ng_clean_001 present?
+2. Is ng_clean_001 ranked first?
+3. Are there any other pickerEligible clean-core candidates present?
+4. Are any Patch-D newly eligible candidates present?
+5. If alternatives exist, how far below ng_clean_001 are they?
+6. If alternatives do not exist, did the generator fail to surface them?
+
+Required output:
+- `.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_SURFACE_CHECK_REPORT.md`
+- `.local/qa-runs/n1_ng_clean_slot0_surface_check.json`
+- `.local/qa-runs/n1_ng_clean_slot0_surface_check_summary.json`
+
+Final report format:
+1. Verdict: ALTERNATIVES_PRESENT / ALTERNATIVES_ABSENT / INCONCLUSIVE
+2. One-paragraph executive summary
+3. Batch table:
+   - batch
+   - creatorId
+   - slot-0 winner
+   - clean eligible alternatives present count
+   - Patch-D newly eligible present count
+   - nearest alternative and gap
+4. Candidate table:
+   - top 10 clean-core candidates per batch
+5. Decision:
+   - If alternatives are present in at least 6/10 batches:
+     Recommend next implementation = ng_clean slot-0 anti-repeat / swap.
+   - If alternatives are absent or present in fewer than 6/10 batches:
+     Recommend next implementation = ng_clean clean-core surface reservation / sampling lift.
+6. Explain why the rejected option should not be implemented next.
+7. Commands run and files inspected.
+
+Acceptance criteria:
+1. No product behavior changed.
+2. The report clearly answers whether pickerEligible ng_clean alternatives are available before slot-0 selection.
+3. The report chooses exactly one next implementation path:
+   A. ng_clean slot-0 anti-repeat / swap
+   B. ng_clean clean-core surface reservation / sampling lift
+4. No broad follow-up audit recommended.
+5. No implementation performed in this session.
+
+Important:
+This task exists to stop circular work. Keep it narrow. The output should decide the next implementation path, not open more branches.

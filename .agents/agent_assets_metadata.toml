@@ -1205,3 +1205,21 @@ id = "kpb_MfYZdGJxb6G4iAUh1"
 uri = "file://.local/qa-runs/n1_ng_clean_post_patch_d_e2e_verify_summary.json"
 type = "unspecified"
 title = "Verify JSON (summary)"
+
+[[outputs]]
+id = "U-zSeKf3v7Cu3MbxaRBlI"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_SURFACE_CHECK_REPORT.md"
+type = "text"
+title = "ng_clean Slot-0 Surface Check Report (ALTERNATIVES_PRESENT)"
+
+[[outputs]]
+id = "UGNRuevH4LMn0y1H4pKFE"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_surface_check.json"
+type = "unspecified"
+title = "Surface Check JSON (full)"
+
+[[outputs]]
+id = "umuxTtCpV5WNWv7w3ppcn"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_surface_check_summary.json"
+type = "unspecified"
+title = "Surface Check JSON (summary)"
