@@ -1,0 +1,49 @@
+Yes — execute N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION, but include this explicit addition:
+
+Add a narrow ng_clean per-core clean-core runner-up retention sub-task.
+
+Reason:
+By the time hybridIdeator final[] is assembled, per-core best-pick may already have discarded runner-up clean-core candidates. A reservation helper cannot reserve candidates that no longer exist in the candidate stream.
+
+Authorized addition:
+Inside coreCandidateGenerator, when ng_clean is active, retain:
+1. the existing per-core best winner, plus
+2. the best distinct pickerEligible clean-core runner-up from that same passing[] pool, when one exists.
+
+Constraints for the runner-up:
+- must be clean-core / core_native
+- must have cleanCoreEntryId
+- must be pickerEligible === true
+- must have a different cleanCoreEntryId from the per-core best
+- must already be generated and validated in passing[]
+- must not be fabricated from corpus directly
+- must not be sub-floor
+- must not increase underfill/fallback risk
+- must be deterministic
+- must be ng_clean-gated only
+
+Important:
+Do NOT repeat the failed retention attempt that surfaced low-HQS entries like ng_clean_012. This retention must be pickerEligible-only.
+
+Then implement the final[] clean-core reservation step:
+- ensure final[] contains at least 2 pickerEligible clean-core candidates when available
+- prefer 3 when available
+- preserve final[] length
+- replace the lowest-priority non-clean-core candidate first
+- do not touch slot 0 directly unless existing ranking placed it there
+- run before applyNgCleanSlot0AntiRepeatSwap or otherwise ensure the anti-repeat helper can consume the reserved alternatives
+
+Expectation:
+This should fix user-visible slot-0 monoculture by giving the existing anti-repeat helper 3+ valid clean-core candidates to rotate through.
+
+Do not promise that ng_clean_062/063/064 will reach slot 0. Those entries require the separate deferred Fix 1 / HQS implicit-anthropomorph whitelist work if they are not already pickerEligible or not entering the stream.
+
+Acceptance criteria adjustment:
+- Required: ng_clean memory-exercised distinct slot-0 leaders improves from 2 to at least 3.
+- Required: at least one cleanCoreEntryId beyond ng_clean_001 and ng_clean_039 reaches slot 0.
+- Not required in this phase: ng_clean_062/063/064 specifically reach slot 0.
+- Required: no sub-floor candidates are reserved.
+- Required: no ng_pidgin/ng_light_pidgin/western behavior change.
+- Required: no scorer/validator/K/corpus/prompt/API/mobile/DB/schema changes.
+
+Keep the implementation staging-flag-gated until runtime QA proves ≥3 distinct slot-0 leaders with no regressions.

@@ -158,6 +158,10 @@ import {
   applyNgCleanSlot0AntiRepeatSwap,
   resolveCleanCoreEntryIdByHook,
 } from "./nigerianCleanCoreSlot0AntiRepeatSwap.js";
+import {
+  applyNgCleanFirstCardCoreReservation,
+  isNgCleanFirstCardReservationEnabled,
+} from "./ngCleanFirstCardCoreReservation.js";
 // PHASE W2-O — Western pool selection now flows through the
 // `getActiveWesternPool` resolver in `westernPackSlotReservation.ts`,
 // which internally consults BOTH staging-pool flag
@@ -6047,6 +6051,110 @@ export async function runHybridIdeator(
   // preserved (cap operates on `score.total`, ranker on the
   // separate `willingnessScore` axis).
   final = annotateAndSortByWillingness(final);
+  // PHASE N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION
+  // (BI 2026-05-10) — Part B: ensure `final[]` carries enough
+  // `pickerEligible` clean-core candidates for the downstream
+  // `applyNgCleanSlot0AntiRepeatSwap` to actually rotate through.
+  // Pure additive helper — preserves length, never writes slot 0,
+  // staging-flag-gated, ng_clean-only.
+  //
+  // Sidecar source: post-rescore `localResult.kept` (same pool the
+  // selection layer drew from), filtered to clean-core entries
+  // not already in `final[]` and ANNOTATED via the closure
+  // `annotateAndSortByWillingness` so the strict `pickerEligible`
+  // flag is set on each sidecar item before the helper consumes it.
+  // The annotate-only pass is bounded (≤ ng_clean clean-core
+  // entries in `localResult.kept`, typically < 30) and only runs
+  // when the activation gate fires.
+  //
+  // Activation gate (helper does not re-check; we gate here):
+  //   • flag ON (`LUMINA_NG_CLEAN_FIRST_CARD_RESERVATION_ENABLED=true`)
+  //   • region === "nigeria"
+  //   • languageStyle === "clean"
+  //   • non-empty creatorId
+  //   • final.length >= 2 (otherwise reservation is structurally
+  //     a no-op — slot 0 cannot be touched and there is no other
+  //     slot to replace)
+  // Non-eligible cohorts pay zero cost (no helper call, no
+  // annotation pass).
+  let _ngCleanFirstCardReservationDetail: {
+    preCount: number;
+    postCount: number;
+    reservedCount: number;
+    replacedIndexes: ReadonlyArray<number>;
+    reservedEntryIds: ReadonlyArray<string>;
+  } | null = null;
+  {
+    const reservationEnabled = isNgCleanFirstCardReservationEnabled();
+    const cidForReservation = input.creator?.id;
+    const reservationLanguageStyle = calibration?.languageStyle ?? null;
+    const reservationActivated =
+      reservationEnabled &&
+      input.region === "nigeria" &&
+      reservationLanguageStyle === "clean" &&
+      typeof cidForReservation === "string" &&
+      cidForReservation.length > 0 &&
+      final.length >= 2;
+    if (reservationActivated) {
+      // Build sidecar from `localResult.kept`: clean-core only,
+      // not already represented in `final[]` by `cleanCoreEntryId`.
+      // Annotate the subset on-demand so it carries `pickerEligible`.
+      const finalEntryIdSet = new Set<string>();
+      for (const c of final) {
+        const eid = resolveCleanCoreEntryIdByHook(c.idea.hook);
+        if (eid !== null) finalEntryIdSet.add(eid);
+      }
+      const sidecarCandidates: typeof final = [];
+      const sidecarSeenEntryIds = new Set<string>();
+      for (const c of localResult.kept) {
+        const eid = resolveCleanCoreEntryIdByHook(c.idea.hook);
+        if (eid === null) continue;
+        if (finalEntryIdSet.has(eid)) continue;
+        if (sidecarSeenEntryIds.has(eid)) continue;
+        sidecarSeenEntryIds.add(eid);
+        sidecarCandidates.push(c);
+      }
+      const annotatedSidecar =
+        sidecarCandidates.length > 0
+          ? annotateAndSortByWillingness(sidecarCandidates)
+          : sidecarCandidates;
+      const reservationResult = applyNgCleanFirstCardCoreReservation(
+        final,
+        { sidecarPool: annotatedSidecar },
+      );
+      if (reservationResult.reservedCount > 0) {
+        final = reservationResult.final.slice();
+        _ngCleanFirstCardReservationDetail = {
+          preCount: reservationResult.preCount,
+          postCount: reservationResult.postCount,
+          reservedCount: reservationResult.reservedCount,
+          replacedIndexes: reservationResult.replacedIndexes,
+          reservedEntryIds: reservationResult.reservedEntryIds,
+        };
+        logger.info(
+          {
+            creatorId: cidForReservation,
+            preCount: reservationResult.preCount,
+            postCount: reservationResult.postCount,
+            reservedCount: reservationResult.reservedCount,
+            replacedIndexes: reservationResult.replacedIndexes,
+            reservedEntryIds: reservationResult.reservedEntryIds,
+            sidecarSize: annotatedSidecar.length,
+          },
+          "ng_clean.first_card_core_reservation_applied",
+        );
+      } else {
+        logger.info(
+          {
+            creatorId: cidForReservation,
+            preCount: reservationResult.preCount,
+            sidecarSize: annotatedSidecar.length,
+          },
+          "ng_clean.first_card_core_reservation_noop",
+        );
+      }
+    }
+  }
   // PHASE W2-QA-FIX-2 — cold-start first-card quality-band rotation.
   // W2-QA-AUDIT-2 (`.local/W2QA_AUDIT_2_POST_MERGE_SLOT0.md`) found
   // that the willingness re-sort above produces a deterministic

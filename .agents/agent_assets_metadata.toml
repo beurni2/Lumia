@@ -1259,3 +1259,21 @@ id = "etQioPkwZbIlOn_6g4Aik"
 uri = "file://.local/N1_FOLLOWUP_AUDIT_SLOT0_AND_HQS_REJECTIONS.md"
 type = "text"
 title = "N1 Slot-0 + HQS Audit + Fix 2 Report"
+
+[[outputs]]
+id = "7erEJ6bXwEmhDw2iQ1m8Q"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_FIRST_CARD_CORE_RESERVATION_REPORT.md"
+type = "text"
+title = "N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION report"
+
+[[outputs]]
+id = "uYxSB_r_5kgucZN4xnt6X"
+uri = "file://.local/qa-runs/n1_followup_ng_clean_first_card_core_reservation_summary.json"
+type = "unspecified"
+title = "Runtime QA summary"
+
+[[outputs]]
+id = "X-nkVaz56MwKonUCQ4-qc"
+uri = "file://.local/qa-runs/n1_followup_ng_clean_first_card_core_reservation.json"
+type = "unspecified"
+title = "Runtime QA full per-batch"

@@ -99,6 +99,10 @@ import {
   NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN,
   canActivateNigerianCleanCorePack,
 } from "./nigerianCleanCorePack.js";
+import {
+  NG_CLEAN_PER_CORE_RETENTION_CAP,
+  NG_CLEAN_RETENTION_HQS_FLOOR,
+} from "./ngCleanFirstCardCoreReservation.js";
 // PHASE N1-LIVE-HARDEN P2 — structured per-core pack diagnostic.
 import { logger } from "./logger.js";
 import {
@@ -915,6 +919,28 @@ export function generateCoreCandidates(
   const recentNgCleanSlot0EntryIds: ReadonlySet<string> =
     input.recentNgCleanSlot0EntryIds ?? new Set<string>();
   const NG_CLEAN_SLOT0_MEMORY_DEMOTE = 15;
+
+  // PHASE N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION
+  // (BI 2026-05-10) — staging-only flag (default OFF; production
+  // `[services.production.run.env]` does NOT set it). When ON, the
+  // per-core picker below ADDITIONALLY retains up to
+  // (NG_CLEAN_PER_CORE_RETENTION_CAP - 1) distinct
+  // `pickerEligible`-quality (`quality >= NG_CLEAN_RETENTION_HQS_FLOOR`,
+  // mirroring `PICKER_HQS_FLOOR=50`) clean-core RUNNER-UPs alongside
+  // `best`. Widens the clean-core surface area in
+  // `coreNativeResult.candidates` so the downstream reservation
+  // helper in `hybridIdeator.ts` (`applyNgCleanFirstCardCoreReservation`)
+  // has a non-trivial sidecar pool. STRICTLY no-op outside the
+  // ng_clean cohort: `cleanCoreCandidates` is empty for non-NG /
+  // non-clean cohorts (the upstream cohort gate restricts clean-core
+  // authorship to ng_clean), so the retention block never enters
+  // its body for any other cohort even with the flag ON. The
+  // intra-batch entry dedup (`usedCleanCoreEntryIdsThisBatch.add`)
+  // continues to register ONLY `best.cleanCoreEntryId` — runner-up
+  // entry ids stay available authorship targets for sibling cores
+  // in the same batch, preserving cross-core entry-id variety.
+  const ngCleanFirstCardReservationEnabled =
+    process.env.LUMINA_NG_CLEAN_FIRST_CARD_RESERVATION_ENABLED === "true";
 
   // PHASE N1-STYLE — cohort-gated American-internet style penalty
   // for the catalog (non-pack) recipe path. Computed ONCE per call
@@ -1834,6 +1860,66 @@ export function generateCoreCandidates(
           candidates.push({ idea: bestPack.idea, meta: bestPack.meta });
           usedAnchorsThisBatch.add(bestPack.anchorLower);
           if (bestPack.sf) usedFingerprintsThisBatch.add(bestPack.sf);
+        }
+      }
+
+      // PHASE N1-FOLLOWUP-NG-CLEAN-FIRST-CARD-CORE-RESERVATION
+      // (BI 2026-05-10) — Part A: per-core clean-core runner-up
+      // retention. When the flag is ON AND this per-core branch
+      // is taking the clean-core sub-branch
+      // (`candidatePool === cleanCoreCandidates`, which itself is
+      // gated on `cleanCoreCandidates.length > 0` upstream — i.e.
+      // the ng_clean cohort is active and at least one clean-core
+      // candidate authored), retain up to
+      // (NG_CLEAN_PER_CORE_RETENTION_CAP - 1) distinct
+      // `pickerEligible`-quality (`quality >= NG_CLEAN_RETENTION_HQS_FLOOR`,
+      // mirroring `PICKER_HQS_FLOOR=50`) clean-core RUNNER-UPs in
+      // addition to `best`. Strict guards:
+      //   • flag must be true (default OFF; production unchanged)
+      //   • clean-core branch active (`cleanCoreCandidates.length > 0`)
+      //   • at least 2 clean-core candidates exist (1 = `best` only)
+      //   • runner-up must have `cleanCoreEntryId` (structurally
+      //     true for any item in `cleanCoreCandidates`)
+      //   • runner-up's entry id must differ from `best` (de-dup)
+      //   • runner-up's `quality` must be ≥ retention floor (no
+      //     sub-floor candidates surface — strict picker semantics
+      //     preserved by the downstream `annotateAndSortByWillingness`
+      //     gate that sets the strict `pickerEligible` flag)
+      // No validator / scorer / corpus / anti-copy change — only
+      // the retention count widens from 1 → up to CAP in the
+      // activated ng_clean branch. Per-core attempt budget upstream
+      // is unaffected. Intra-batch entry-dedup
+      // (`usedCleanCoreEntryIdsThisBatch.add(best.cleanCoreEntryId)`)
+      // is preserved verbatim — only `best.cleanCoreEntryId` is
+      // registered, NOT the runner-ups, so sibling cores in the
+      // same batch can still author the runner-up entry ids
+      // (preserving cross-core entry-id variety).
+      if (
+        ngCleanFirstCardReservationEnabled &&
+        candidatePool === cleanCoreCandidates &&
+        cleanCoreCandidates.length > 1
+      ) {
+        const bestEntryId = best.cleanCoreEntryId;
+        const seenEntryIds = new Set<string>(
+          bestEntryId !== undefined ? [bestEntryId] : [],
+        );
+        const sortedRunnerUps = cleanCoreCandidates
+          .slice()
+          .sort((a, b) => b.quality - a.quality);
+        const cap = NG_CLEAN_PER_CORE_RETENTION_CAP - 1;
+        let added = 0;
+        for (const p of sortedRunnerUps) {
+          if (added >= cap) break;
+          if (p === best) continue;
+          if (p.quality < NG_CLEAN_RETENTION_HQS_FLOOR) continue;
+          const eid = p.cleanCoreEntryId;
+          if (eid === undefined) continue;
+          if (seenEntryIds.has(eid)) continue;
+          seenEntryIds.add(eid);
+          candidates.push({ idea: p.idea, meta: p.meta });
+          usedAnchorsThisBatch.add(p.anchorLower);
+          if (p.sf) usedFingerprintsThisBatch.add(p.sf);
+          added += 1;
         }
       }
       // Clear lastReason — a passing recipe was found (any earlier
