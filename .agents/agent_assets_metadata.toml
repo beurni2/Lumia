@@ -1228,4 +1228,16 @@ title = "Surface Check JSON (summary)"
 id = "zg2XNdT6etCJSqMGQsOZ1"
 uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_ANTI_REPEAT_SWAP_REPORT.md"
 type = "text"
-title = "N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — Implementation Report"
+title = "N1-FOLLOWUP-NG-CLEAN-SLOT0-ANTI-REPEAT-SWAP — Final Report (with runtime QA)"
+
+[[outputs]]
+id = "HUJzR_jLxxQPg3hHXz10a"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_anti_repeat_swap_summary.json"
+type = "unspecified"
+title = "Runtime QA Summary (overallPass: true)"
+
+[[outputs]]
+id = "IGOD1EJVOrR75xJrOuKPz"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_anti_repeat_swap.json"
+type = "unspecified"
+title = "Runtime QA Full Per-Batch Record (35 batches)"
