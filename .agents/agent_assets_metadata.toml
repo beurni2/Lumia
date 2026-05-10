@@ -1079,3 +1079,21 @@ id = "1wdjVHXiRap2eJH5b73Ka"
 uri = "file://.local/qa-runs/ng_clean_slot0_collision_proof.json"
 type = "unspecified"
 title = "ng_clean slot-0 collision proof"
+
+[[outputs]]
+id = "jdl1DfYUenz6y94a9JZbB"
+uri = "file://.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_GRADIENT_AUDIT_REPORT.md"
+type = "text"
+title = "NG-CLEAN Slot-0 Gradient Audit — Report"
+
+[[outputs]]
+id = "ciXxJXWwA_u79ddEih18I"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_gradient_audit_summary.json"
+type = "unspecified"
+title = "Audit summary (cross-cohort metrics + K-band reconstruction)"
+
+[[outputs]]
+id = "dSjCweV-dxWx2_1YBlO1v"
+uri = "file://.local/qa-runs/n1_ng_clean_slot0_gradient_audit.json"
+type = "unspecified"
+title = "Audit pointer file (per-batch dump lives in instrumentation JSON)"

@@ -1,0 +1,171 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-FOLLOWUP-NG-CLEAN-SLOT0-GRADIENT-AUDIT
+
+Mode:
+READ-ONLY AUDIT FIRST. Do not implement.
+
+Supervisor decision:
+N1-FOLLOWUP-CREATOR-SEEDED-TIEBREAK is accepted as shipped for its intended scope. It fixed tail-slot deterministic collapse across cold-start rank positions using creator-seeded K-band swaps.
+
+Remaining unresolved issue:
+`ng_clean` slot-0 first-card collapse remains 1/10.
+
+Critical finding from the last report:
+The `ng_clean` slot-0 issue is NOT a hash collision. The collision-proof harness showed:
+- 10/10 fresh creators have distinct FNV-1a hashes
+- slot-0 bandSize is 1 for every `ng_clean` cold-start batch
+- `applyFirstCardQualityBandRotation` short-circuits because the second-place candidate is more than K=10 willingness points below the leader
+
+Therefore:
+Do NOT implement hash-content mixing.
+Do NOT modify `applyFirstCardQualityBandRotation` yet.
+Do NOT widen K yet.
+
+Goal:
+Find why `ng_clean` cold-start produces one slot-0 leader that is more than 10 willingness points above every runner-up, and determine the smallest safe fix.
+
+Primary question:
+Is the `ng_clean` slot-0 leader a genuinely superior first-card candidate, or is the willingness gap caused by a scoring/pool/selector artifact?
+
+Current repeated slot-0 leader:
+“The light came back and exposed everyone's fake patience.”
+
+Hard constraints:
+1. No implementation.
+2. No validator loosening.
+3. No prompt changes.
+4. No corpus edits.
+5. No schema/API/mobile/DB changes.
+6. No score weight changes.
+7. No K widening.
+8. No pack reservation.
+9. No scenario-seed diversification.
+10. No first-card rotation change.
+11. No creator-seeded rank rotation change.
+12. No production flag changes.
+13. No selector changes.
+14. No memory behavior changes.
+
+Audit scope:
+Focus only on `ng_clean` cold-start slot 0.
+
+Required cohorts:
+- Primary: `ng_clean`, 10 cold-start creators × 6 ideas
+- Controls:
+  - `ng_pidgin`, 10 cold-start creators × 6 ideas
+  - `ng_light_pidgin`, 10 cold-start creators × 6 ideas
+  - `ng_null`, 5 cold-start creators × 6 ideas
+  - `western_null`, 5 cold-start creators × 6 ideas
+
+Inspection requirements:
+1. For each `ng_clean` cold-start batch, capture the top 10 candidates before slot-0 rotation, with:
+   - hook
+   - final rank before rotation
+   - final rank after rotation
+   - willingnessScore
+   - score.total
+   - hookQualityScore
+   - pickerEligible
+   - source
+   - templateId
+   - skeletonId / hookSkeletonId
+   - comedyFamily
+   - ideaCoreFamily
+   - scenarioFamily
+   - topicNoun
+   - voiceClusterId
+   - scenarioFingerprint
+   - any penalty/boost fields available
+2. For the slot-0 winner and runner-ups, break down why the score gap exists.
+3. Identify whether the gap is caused by:
+   - hookQualityScore dominance
+   - pickerEligible tier boundary
+   - source preference
+   - scenario/source mix
+   - clean-core pack scoring
+   - willingness ranker bonus
+   - penalty on runner-ups
+   - missing metadata on runner-ups
+   - validator/selection filtering before ranking
+   - small pool / lack of clean alternatives
+4. Determine whether the runner-up candidates are actually lower quality by human/product judgment, not just score.
+5. Compare `ng_clean` slot-0 candidate spread against `ng_pidgin`, `ng_light_pidgin`, and `ng_null`.
+6. Determine whether `ng_clean` has a uniquely sharp gradient or whether other cohorts also have hidden slot-0 gradients masked by rotation.
+7. Determine whether `The light came back...` is over-dominant because:
+   - it is genuinely the best hook
+   - it belongs to an overpowered family/template
+   - NEPA/light-return theme gets excessive score
+   - clean-core candidates lack enough strong alternatives
+   - willingness scorer overvalues this structure
+   - runner-ups are incorrectly penalized
+8. Reconstruct the exact K-band for slot 0 under:
+   - K=10
+   - K=12
+   - K=15
+   - K=20
+   - K=25
+9. For each K value, report:
+   - band size
+   - candidates included
+   - score gap from leader
+   - whether each candidate is same tier
+   - human-quality risk of promoting each candidate
+10. Do NOT recommend widening K unless the audit proves runner-ups are high-quality and the gap is artificial or overly strict.
+
+Required outputs:
+Write:
+- `.local/qa-runs/n1_ng_clean_slot0_gradient_audit.json`
+- `.local/qa-runs/n1_ng_clean_slot0_gradient_audit_summary.json`
+- `.local/N1_FOLLOWUP_NG_CLEAN_SLOT0_GRADIENT_AUDIT_REPORT.md`
+
+Required report sections:
+1. Executive verdict:
+   - Is `ng_clean` slot-0 collapse a scoring artifact, pool weakness, selector artifact, or legitimate quality leader?
+2. Slot-0 leader table:
+   - each batch
+   - creator id
+   - leader hook
+   - leader scores
+   - runner-up scores
+   - gap to runner-up
+   - K=10/12/15/20/25 band sizes
+3. Score-gap decomposition:
+   - what exact score components create the >K gap
+4. Runner-up quality review:
+   - top 5 candidate alternatives
+   - whether each is good enough for first card
+   - why it lost
+5. Cross-cohort comparison:
+   - ng_clean vs ng_pidgin vs ng_light_pidgin vs ng_null vs western_null
+6. Root cause classification:
+   A. real quality leader
+   B. scoring artifact
+   C. selector/pool artifact
+   D. metadata artifact
+   E. corpus weakness
+   F. inconclusive
+7. Fix comparison:
+   A. no change; accept `ng_clean` slot-0 leader
+   B. scorer-side adjustment
+   C. selector-side K + ε band tolerance
+   D. add clean-core first-card diversity bonus
+   E. add more clean-core high-quality first-card candidates
+   F. targeted demotion of the over-dominant family/template
+   G. broader slot-0 rotation change
+8. Recommend exactly one next implementation path, or recommend no implementation.
+9. Explain why the other paths are not authorized yet.
+10. Proof commands and files inspected.
+
+Acceptance criteria:
+1. No code behavior changes.
+2. No production behavior changes.
+3. Clear explanation of why slot-0 bandSize is 1.
+4. Clear answer on whether the leader is genuinely superior or over-scored.
+5. Clear answer on whether K widening would be safe or reckless.
+6. Clear next implementation prompt can be written without guessing.
+7. If evidence is insufficient, say exactly what additional instrumentation is needed.
+
+Important:
+This is an audit, not an implementation. Do not “fix” the issue in this session. The goal is to decide whether the correct next move is scorer-side, selector-side, corpus-side, or no change.
