@@ -1,0 +1,248 @@
+You are working in the Lumina monorepo.
+
+Phase:
+N1-E2E-NIGERIA-QA — end-to-end Nigerian mode runtime QA.
+
+Context:
+Nigerian workstreams are currently stable:
+
+1. Nigerian pidgin/light-pidgin approved pack:
+- Stable at STOP.
+- Approved pack: 204.
+- Rejected rows: 13 pre-existing only.
+- Rejected-from-rewrites: 0.
+- Pidgin/light-pidgin pack runtime path clean.
+- DRAFT-187 targeted cleanup landed.
+- Runtime banned-filming hits: 0.
+- Stereotype hits: 0.
+- Scenario/coherence/structural failures: 0.
+- Regional-decoration clean/null leaks: 0.
+
+2. Nigerian clean-English core catalog:
+- 60 entries shipped.
+- P1 + P2 entries validated.
+- P2.1 stride-only rotation tweak shipped.
+- ng_clean delivery: 150/150 = 100%.
+- distinct IDs improved: 23/60 → 28/60.
+- P1 surfaced: 14/30.
+- P2 surfaced: 14/30.
+- top repeat share improved: 8.0% → 5.3%.
+- quality flags: 0.
+- non-target clean-core leaks: 0.
+- pidgin/light-pidgin impact: 0.
+- full api-server suite: 1461/1461.
+- TypeScript clean.
+
+Goal:
+Run a broader end-to-end runtime QA across all Nigerian language modes to verify actual product behavior, not just isolated catalog/generator probes.
+
+This is READ-ONLY.
+Do not modify files.
+Do not add entries.
+Do not rewrite entries.
+Do not change rotation constants.
+Do not change validators/scorers/prompts.
+Do not touch Nigerian pack, clean-core catalog, regional-decoration, API, mobile, schema, DB, migrations, or production gates.
+
+============================================================
+COHORTS TO TEST
+============================================================
+
+Run end-to-end ideator/runtime generation for:
+
+1. region=nigeria + languageStyle=pidgin
+2. region=nigeria + languageStyle=light_pidgin
+3. region=nigeria + languageStyle=clean
+
+If useful as internal controls:
+4. region=nigeria + languageStyle=null/missing
+5. western/default or western/clean
+
+Use the closest real product path available, preferably the same path hit by the `/ideator` route or hybrid ideator, not only `generateCoreCandidates`.
+
+Use staging flags needed for Nigerian pack-active behavior.
+
+Suggested sample size:
+- pidgin: at least 60 ideas
+- light_pidgin: at least 60 ideas
+- clean: at least 60 ideas
+- controls: 20–30 ideas each if fast
+
+Use deterministic seed/baseSalt if compatible:
+- seed=42
+- baseSalt=1009
+
+============================================================
+MEASURE
+============================================================
+
+For pidgin and light_pidgin:
+- total ideas
+- pack delivery count and %
+- distinct Nigerian pack entryIds
+- repeated pack IDs
+- banned filming hits
+- stereotype/lazy-token hits
+- mock-pidgin hits
+- pidgin naturalness / fake-pidgin warning if scanner exists
+- scenario-coherence failures
+- structural failures
+- duplicate hooks
+- duplicate howToFilm
+- old boilerplate filming
+- under-fill rows
+
+For clean:
+- total ideas
+- clean-core delivery count and %
+- distinct clean-core IDs
+- P1 IDs surfaced
+- P2 IDs surfaced
+- repeated IDs
+- top repeated ID share
+- pidgin marker hits
+- mock-pidgin hits
+- stereotype/lazy-token hits
+- shouty/high-energy hits
+- decoration leaks
+- old filming boilerplate
+- scenario-coherence failures
+- structural failures
+- duplicate hooks
+- duplicate howToFilm
+- under-fill rows
+
+For null/missing control:
+- no pack delivery
+- no clean-core delivery
+- no forced Nigerian decoration
+- no pidgin/mock-pidgin leakage
+
+For western/default control:
+- no Nigerian pack delivery
+- no clean-core delivery
+- no Nigerian decoration leakage
+
+============================================================
+MANUAL QUALITY REVIEW
+============================================================
+
+Review representative samples:
+
+- 20 pidgin ideas
+- 20 light_pidgin ideas
+- 20 clean ideas
+
+Classify each as:
+
+GOOD:
+- culturally grounded
+- human-crafted
+- funny/comedic
+- filmable
+- clear hook + scenario + howToFilm + caption
+
+VALID_BUT_WEAK:
+- passes scans, but hook/scenario/comedy feels low
+
+TOO_GENERIC:
+- could be any country; lacks Nigerian reality
+
+BAD:
+- pidgin/mock issue, stereotype, broken grammar, unfilmable, unsafe, incoherent, copied, or validator-risky
+
+Specific expectations:
+- pidgin/light_pidgin should feel natural and Nigerian, not mocking.
+- clean should feel Nigerian clean-English, not generic Western.
+- all should feel simple, human, comedic, and filmable.
+
+Success targets:
+- pidgin GOOD ≥70%
+- light_pidgin GOOD ≥70%
+- clean GOOD ≥70%
+- BAD = 0
+- TOO_GENERIC low, especially for clean
+
+============================================================
+OUTPUT FILES
+============================================================
+
+Create:
+
+.local/N1_E2E_NIGERIA_QA_REPORT.md
+
+and:
+
+.local/qa-runs/n1_e2e_nigeria_qa.json
+.local/qa-runs/n1_e2e_nigeria_qa_summary.json
+
+============================================================
+RECOMMENDATION RULES
+============================================================
+
+Return one verdict:
+
+STOP:
+- all cohorts meet quality targets
+- 0 severe scan failures
+- delivery healthy
+- no leaks
+- no under-fill
+- no obvious product issue
+
+TARGETED_CLEANUP:
+- 1–5 specific entries or scenarios repeatedly surface weak
+- issue is localized
+
+ROTATION_OR_MEMORY_REVIEW:
+- quality good, but repetition/diversity is visibly weak
+
+MODE_SPECIFIC_FIX:
+- one mode has a systemic issue, e.g. clean too generic or pidgin unnatural
+
+DO_NOT_SHIP:
+- severe failures, leaks, bad stereotypes, broken scenarios, under-fill, or broad low-quality output
+
+============================================================
+FINAL REPORT — KEEP IT SHORT
+============================================================
+
+Return only:
+
+1. Verdict.
+2. Cohorts and sample sizes.
+3. Delivery summary:
+   - pidgin pack delivery
+   - light_pidgin pack delivery
+   - clean clean-core delivery
+4. Diversity summary:
+   - pidgin distinct pack IDs
+   - light_pidgin distinct pack IDs
+   - clean distinct clean-core IDs
+5. Quality scan failures:
+   - banned filming
+   - stereotype/lazy-token
+   - mock/pidgin issues
+   - decoration leaks
+   - old boilerplate
+   - coherence/structural
+   - under-fill
+6. Manual quality review:
+   - GOOD %
+   - VALID_BUT_WEAK %
+   - TOO_GENERIC %
+   - BAD count
+7. Top surfaced weak entries, if any.
+8. Recommendation.
+9. Files created.
+10. Confirm:
+   - read-only only
+   - no entries added
+   - no entries rewritten
+   - Nigerian pack untouched
+   - clean-core catalog untouched
+   - regional-decoration untouched
+   - no API/mobile/schema/DB changes
+   - no production gates changed
+
+Do not ask for next steps.

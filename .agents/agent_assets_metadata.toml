@@ -995,3 +995,21 @@ id = "1IdJIGNuQClqp5g1niqdI"
 uri = "file://.local/N1_CLEAN_CORE_P21_STRIDE_REPORT.md"
 type = "text"
 title = "N1-CLEAN-CORE-P2.1 stride tweak shipped (23→28/60 distinct, 8.0%→5.3% top share, 1461/1461 tests green)"
+
+[[outputs]]
+id = "oq5Knv8e8Fp-yCVkQkDGE"
+uri = "file://.local/N1_E2E_NIGERIA_QA_REPORT.md"
+type = "text"
+title = "N1-E2E-NIGERIA-QA Report"
+
+[[outputs]]
+id = "STk7uho_1jJapp3lF1zQn"
+uri = "file://.local/qa-runs/n1_e2e_nigeria_qa_summary.json"
+type = "unspecified"
+title = "Summary JSON"
+
+[[outputs]]
+id = "9QM96gc2A20SvNqkEbh78"
+uri = "file://.local/qa-runs/n1_e2e_nigeria_qa.json"
+type = "unspecified"
+title = "Full per-idea JSON"
