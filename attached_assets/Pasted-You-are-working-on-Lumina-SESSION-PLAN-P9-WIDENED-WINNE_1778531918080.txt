@@ -1,0 +1,265 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P9-WIDENED-WINNER-CONCENTRATION-AUDIT
+
+Mode:
+Audit + instrumentation only.
+
+Purpose:
+P8 live-route soak validated that T2 widening works end-to-end:
+
+* user-facing diversity improved
+* slot-0 diversity improved
+* creator overlap improved
+* Nigerian flavor preserved
+* no T2-attributable regressions detected
+
+However, P8 exposed the NEXT bottleneck:
+
+New widened winner surfaces are collapsing into mini-monocultures.
+
+Examples repeatedly dominating:
+
+* `towel don expose my almost-ready lie`
+* `slippers expose mission wey no even start`
+
+At the same time:
+
+* `home→food` produced effectively no shipped widened outputs.
+
+This phase exists to determine:
+
+1. WHY widened winners collapse,
+2. WHY mornings/sleep are dominating,
+3. WHY home→food is weak,
+4. WHICH runtime stages compress widened diversity,
+5. WHETHER concentration is caused by ranking, retention, memory, anchor topology, recipe-loop convergence, or slot pressure.
+
+Critical:
+Do NOT implement fixes.
+Do NOT widen further.
+Do NOT modify validators/scorers/selectors.
+Do NOT modify prompts/API/mobile/DB/schema/corpus.
+Do NOT add new projection edges.
+Do NOT lift draw-cap.
+Do NOT patch slot-0 directly.
+Do NOT author/import entries.
+Do NOT weaken validators.
+Do NOT optimize during the audit.
+
+This is a measurement + attribution phase only.
+
+ACTIVE CONFIG
+
+Use the SAME staging configuration as P8:
+
+* `LUMINA_NG_PACK_ENABLED=true`
+* `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true`
+* `LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true`
+* `LUMINA_NG_PACK_PROJECTION_T2_ENABLED=true`
+
+Use the REAL live route:
+`POST /api/ideator/generate`
+
+Do NOT use generator-only proxies.
+
+PRIMARY QUESTIONS
+
+A. Widened-Winner Concentration
+
+For ALL widened outputs:
+
+1. top repeated widened hooks
+2. top repeated widened pack IDs
+3. top repeated widened anchors
+4. top repeated widened canonical buckets
+5. per-bucket concentration ratios
+6. Gini/HHI-style concentration estimate if feasible
+7. creator-by-creator widened overlap
+8. slot-0 widened overlap
+
+Key:
+Determine whether widened buckets are internally collapsing onto a few dominant winners.
+
+B. Widened Funnel Audit
+
+For EACH widened edge:
+
+* `everyday→mornings`
+* `everyday→sleep`
+* `home→food`
+
+Measure:
+
+1. entries reachable
+2. entries attempted
+3. entries authored
+4. entries validator-passed
+5. entries retained
+6. entries reserved
+7. entries shipped
+8. slot-0 shipped
+9. top rejected reasons
+10. top repeated survivors
+
+Goal:
+Find EXACTLY where entropy collapses.
+
+C. home→food Failure Analysis
+
+Most important investigation.
+
+Need exact explanation why:
+
+* P6 predicted leverage,
+* but P8 shipped almost none.
+
+Measure:
+
+1. reachable `home→food` entry count
+2. attempted count
+3. validator rejection rates
+4. show_missing_hook_anchor rate
+5. scenario-coherence failures
+6. anti-copy pressure
+7. recipe-loop attrition
+8. ranking losses
+9. reservation losses
+10. whether food cores already dominated by stronger non-pack winners
+11. whether food anchors are too sparse
+12. whether food-core topology is weak
+
+Need a precise root-cause ranking.
+
+D. Ranking Pressure Audit
+
+For widened candidates:
+
+1. pre-ranker scores
+2. post-ranker scores
+3. hookQualityScore distribution
+4. willingness distribution
+5. novelty distribution
+6. hero quality distribution
+7. rank loss vs non-widened winners
+8. whether widened candidates systematically lose to incumbent winners
+
+E. Slot-0 Concentration Audit
+
+For widened slot-0s:
+
+1. which widened hooks dominate slot-0
+2. which widened IDs dominate slot-0
+3. slot-0 repeat rates
+4. whether slot-0 sorting amplifies concentration
+5. whether widened winners disproportionately survive into slot-0
+
+F. Memory Interaction Audit
+
+Determine whether creator-memory pressure is:
+
+1. helping diversity,
+2. irrelevant,
+3. or accidentally reinforcing widened winner dominance.
+
+Measure:
+
+* seen-ID reuse
+* soft-cap rescues
+* memory collisions
+* creator-island persistence
+
+G. Anchor Topology Audit
+
+Determine:
+
+1. which anchors dominate mornings/sleep
+2. which anchors never survive
+3. whether mornings/sleep anchor catalogs are too small
+4. whether anchor overlap compresses diversity
+5. whether widened entries cluster around only 1–2 anchor families
+
+H. Concentration Attribution Table
+
+Critical deliverable.
+
+Produce:
+stage → unique widened IDs remaining
+
+For EACH widened edge separately.
+
+Example:
+reachable
+→ attempted
+→ authored
+→ validator-pass
+→ retained
+→ reserved
+→ shipped
+→ slot-0
+
+This table is mandatory.
+
+I. Future-Risk Assessment
+
+Explicitly evaluate:
+
+1. whether widening naturally creates dominant winners
+2. whether future widening would worsen concentration
+3. whether draw-cap lift would amplify monoculture
+4. whether slot-0 is now the dominant bottleneck
+5. whether ranking diversity overlays may eventually be needed
+6. whether mornings/sleep are sustainable long-term
+
+J. Required Outputs
+
+Files:
+
+* `.local/P9_WIDENED_WINNER_CONCENTRATION_AUDIT_REPORT.md`
+* `.local/qa-runs/p9_widened_winner_concentration_audit.json`
+* `.local/qa-runs/p9_widened_winner_concentration_summary.json`
+
+K. Required Tests
+
+1. Typecheck:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. Relevant NG/projection/topK suites
+
+3. Any QA instrumentation validation tests if needed
+
+No runtime behavior modifications.
+
+FINAL REPORT STRUCTURE
+
+1. Verdict
+2. Executive summary
+3. Widened concentration overview
+4. Widened funnel audit
+5. home→food root-cause analysis
+6. Ranking-pressure analysis
+7. Slot-0 concentration analysis
+8. Memory interaction analysis
+9. Anchor-topology analysis
+10. Concentration attribution tables
+11. Root-cause ranking
+12. Future-risk assessment
+13. Highest-leverage future intervention points
+14. Explicit non-recommendations
+15. Files touched
+16. Tests run
+17. Typecheck result
+18. Confirmation no runtime/source behavior changes
+19. Recommended next phase
+
+Critical:
+This phase exists to PREVENT premature anti-monoculture patching.
+
+Do not improvise fixes.
+Do not add diversity overlays yet.
+Do not widen further.
+Do not weaken validators to increase widened variety.
+
+If instrumentation itself requires runtime modifications:
+STOP and report first.
