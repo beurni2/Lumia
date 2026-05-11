@@ -1391,3 +1391,21 @@ id = "_iSABfVu0UeA4UQa9J80a"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1c_next_30_rewrite_import_summary.json"
 type = "unspecified"
 title = "Packet 1C — Aggregate Summary"
+
+[[outputs]]
+id = "CBWDWL-KiyAtRG9UqNEQU"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_PACKET_1D_TARGET_ID_AUDIT_REPORT.md"
+type = "text"
+title = "Packet 1D — Target-ID Audit Report (hardened)"
+
+[[outputs]]
+id = "dJnwtNSFD7bzytecFJwtK"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_target_id_audit.json"
+type = "unspecified"
+title = "Packet 1D — Per-Entry Audit JSON"
+
+[[outputs]]
+id = "Xql33VwVc8Ae11uA2RdTt"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_target_id_audit_summary.json"
+type = "unspecified"
+title = "Packet 1D — Audit Summary JSON"

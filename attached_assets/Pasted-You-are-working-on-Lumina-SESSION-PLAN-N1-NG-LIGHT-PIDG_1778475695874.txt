@@ -1,0 +1,216 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-PACKET-1D-TARGET-ID-AUDIT
+
+Mode:
+Read-only target-selection audit.
+
+Purpose:
+Packets 1B and 1C already replaced many weak `ng_light_pidgin` entries. The supervisor now needs the real NEXT 30 weak approved `ng_light_pidgin` rows to target for Packet 1D.
+
+Important:
+Do NOT author entries.
+Do NOT rewrite entries.
+Do NOT delete entries.
+Do NOT import entries.
+Do NOT mutate any corpus/source files.
+Do NOT change scorer, validators, selectors, prompts, API, mobile, DB, schema, K, memory, or slot-0 behavior.
+
+This task is only to identify the next target LP IDs.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin language option for now.
+
+Scope:
+Audit the current approved `ng_light_pidgin` corpus AFTER Packet 1B and Packet 1C are applied.
+
+Primary source:
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+- Filter to `pidginLevel === "light_pidgin"`
+
+Also inspect:
+- `.local/REGIONAL_N1_REWRITES.yaml`
+- Packet 1B report and summary JSON
+- Packet 1C report and summary JSON
+- LP-to-draft mapping files from prior packet drivers, if present
+- Any existing weak-entry audit JSONs, only as historical context
+
+Do not audit ng_clean.
+Do not audit strict ng_pidgin except to confirm it is out of product scope.
+Do not generate replacement content.
+
+Already-targeted Packet 1B IDs — exclude these:
+LP-125
+LP-074
+LP-002
+LP-058
+LP-094
+LP-072
+LP-037
+LP-083
+LP-086
+LP-135
+LP-051
+LP-054
+LP-088
+LP-139
+LP-024
+LP-029
+LP-096
+LP-102
+LP-105
+LP-208
+LP-210
+LP-212
+LP-213
+LP-216
+LP-217
+LP-218
+LP-222
+LP-224
+LP-226
+LP-228
+
+Already-targeted Packet 1C IDs — exclude these:
+LP-177
+LP-104
+LP-123
+LP-045
+LP-066
+LP-112
+LP-114
+LP-124
+LP-128
+LP-179
+LP-171
+LP-092
+LP-001
+LP-089
+LP-130
+LP-070
+LP-137
+LP-164
+LP-038
+LP-186
+LP-060
+LP-103
+LP-136
+LP-193
+LP-021
+LP-071
+LP-008
+LP-016
+LP-019
+LP-022
+
+Also exclude all rejected Packet 1B/1C IDs for now.
+They will be handled later in a reject-repair packet.
+
+Known rejected IDs to exclude from Packet 1D target selection:
+LP-125
+LP-072
+LP-037
+LP-088
+LP-105
+LP-210
+LP-216
+LP-038
+LP-103
+LP-022
+
+Task:
+Identify the next 30 weakest approved `ng_light_pidgin` entries that:
+1. are currently approved,
+2. are still present in the approved light-pidgin corpus,
+3. have not already been targeted by Packet 1B,
+4. have not already been targeted by Packet 1C,
+5. are not part of the rejected-ID repair list.
+
+For every approved light-pidgin entry, compute:
+1. LP position ID, such as LP-###, based on the current filtered `light_pidgin` approved order
+2. draftId/source id from approved file source annotation, if available
+3. hook
+4. anchor
+5. premiseFamily/domain
+6. reviewer stamp
+7. HQS using current live `scoreHookQuality(hook, "absurd_escalation")`
+8. normalized hook skeleton
+9. repeated-anchor flag
+10. repeated-skeleton flag
+11. duplicate/near-duplicate group if any
+12. labels:
+   - LOW_HQS
+   - SOFT_HOOK
+   - TEMPLATE_LIKE
+   - REPEATED_ANCHOR
+   - REPEATED_SKELETON
+   - LAZY_PIDGIN_MARKER
+   - TOO_HEAVY_FOR_LIGHT_PIDGIN
+   - TOO_ENGLISH_FOR_LIGHT_PIDGIN
+   - AIISH_OR_GENERIC
+   - WEAK_FILMABILITY
+   - DUPLICATIVE_PREMISE
+   - KEEP_BUT_DO_NOT_PRIORITIZE
+
+Ranking rule:
+Rank next targets by:
+1. low HQS
+2. repeated anchor/skeleton
+3. generic or too-English phrasing
+4. weak filmability
+5. duplicate/near-duplicate premise
+6. overused anchor risk
+7. not already targeted by Packet 1B/1C
+
+Use human judgment in addition to HQS.
+Do not blindly rank only by score. A low-HQS entry may still be natural and funny; a higher-HQS entry may still be repetitive, too generic, or too scorer-shaped.
+
+Output:
+A. Next 30 Packet 1D target IDs
+B. 10 backup target IDs
+C. LP-to-draftId mapping for all 40
+D. Current hook / anchor / premiseFamily / HQS / labels for each target
+E. Short reason for why each should be replaced
+F. Count of how many approved light-pidgin entries remain after excluding Packet 1B, Packet 1C, and reject-repair IDs
+G. Any uncertainty about LP numbering caused by prior replacements or regenerated approved-file order
+
+Do NOT provide replacement hooks.
+Do NOT generate new entries.
+Do NOT repair rejected Packet 1B/1C rows.
+Do NOT modify `.local/REGIONAL_N1_REWRITES.yaml`.
+Do NOT modify `nigerianHookPackApproved.ts`.
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_PACKET_1D_TARGET_ID_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_packet_1d_target_id_audit.json`
+- `.local/qa-runs/n1_ng_light_pidgin_packet_1d_target_id_audit_summary.json`
+
+Final report format:
+1. Verdict
+2. Corpus state after Packet 1B/1C
+3. Exclusion list applied
+4. Next 30 Packet 1D target table
+5. 10 backup target table
+6. LP-to-draftId mapping
+7. Repeated anchor/skeleton observations
+8. Risks / caveats
+9. Recommendation for Packet 1D import mapping
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No corpus changes.
+3. No generated entries.
+4. Clear next 30 target LP IDs.
+5. Clear 10 backup target LP IDs.
+6. Clear LP-to-draftId mapping.
+7. Packet 1B and Packet 1C already-targeted rows are excluded.
+8. Rejected rows reserved for later reject-repair are excluded.
+9. Report is sufficient for supervisor to map an already-authored creative bank onto real replacement IDs.
+
+Stop condition:
+If the current approved file order makes LP IDs ambiguous after Packet 1B/1C, stop and report exactly why. Do not guess. Provide draftId/source ids and the safest mapping strategy instead.
