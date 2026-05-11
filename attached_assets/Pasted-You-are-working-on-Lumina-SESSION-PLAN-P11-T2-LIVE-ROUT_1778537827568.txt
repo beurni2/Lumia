@@ -1,0 +1,252 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P11-T2-LIVE-ROUTE-RE-AUDIT
+
+Mode:
+Live-route runtime QA + audit only.
+
+Purpose:
+P10 imported 25 curated `ng_light_pidgin` home→food entries into the live Nigerian pack:
+- live pack total: 231 → 256
+- `ng_light_pidgin`: 230 → 255
+- home-domain entries: 34 → 59
+- strict home→food eligible count: 1 → 26
+- no validator/scorer/selector/prompt/API/mobile/DB/schema changes
+- no T2 runtime behavior changes
+- no projection-edge changes
+
+P9 showed home→food was structurally starved.
+P10 materially resolved that structural starvation.
+This phase verifies whether the expanded home→food surface now improves real live-route behavior.
+
+Critical:
+Do NOT implement new runtime behavior.
+Do NOT import more corpus.
+Do NOT rewrite or repair rejected entries.
+Do NOT widen projections.
+Do NOT add T2b/T3/T4.
+Do NOT lift draw-cap.
+Do NOT modify validators/scorers/selectors.
+Do NOT modify prompts/API/mobile/DB/schema.
+Do NOT touch slot-0 logic.
+Do NOT touch memory logic.
+Do NOT change production flags.
+Do NOT patch unrelated flakes.
+
+This is re-audit only.
+
+ACTIVE FLAGS
+
+Use staging NG flags:
+- LUMINA_NG_PACK_ENABLED=true
+- LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true
+- LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true
+- LUMINA_NG_PACK_PROJECTION_T2_ENABLED=true
+
+Use the REAL live route:
+POST /api/ideator/generate
+
+Do NOT use generator-only proxies as substitutes.
+
+PRIMARY COHORT
+
+ng_light_pidgin:
+- 10 creators
+- 5 sequential batches each
+- 6 ideas per batch
+- total: 300 ideas
+
+CONTROL COHORTS
+
+ng_clean:
+- 5 creators
+- 2 batches each
+- 6 ideas each
+
+western/null:
+- 5 creators
+- 2 batches each
+- 6 ideas each
+
+MEASURE REQUIRED
+
+A. User-facing diversity
+
+For ng_light_pidgin:
+1. total ideas
+2. pack ideas
+3. pack share
+4. distinct pack IDs
+5. distinct hooks
+6. distinct anchors
+7. distinct user-facing slot-0 hooks
+8. distinct slot-0 pack IDs
+9. top repeated hooks
+10. top repeated pack IDs
+11. top repeated anchors
+12. creator overlap / mean Jaccard
+
+B. Widened-edge behavior
+
+For T2 widened outputs, report separately:
+- everyday→mornings
+- everyday→sleep
+- home→food
+
+For each edge:
+1. shipped count
+2. distinct shipped pack IDs
+3. distinct shipped hooks
+4. distinct anchors
+5. slot-0 shipped count
+6. top repeated hook
+7. top repeated pack ID
+8. HHI/top-1 share if feasible
+
+Most important:
+Confirm whether `home→food` now ships meaningfully after P10.
+
+C. Food V2 impact
+
+For the 25 imported FOOD_V2 entries:
+1. how many shipped at least once
+2. total shipped FOOD_V2 cards
+3. distinct FOOD_V2 hooks shipped
+4. top repeated FOOD_V2 hooks
+5. top repeated FOOD_V2 anchors
+6. whether FOOD_V2 appears in slot-0
+7. whether any FOOD_V2 output feels weak, generic, or AI-ish
+
+D. Control cohort isolation
+
+For ng_clean:
+1. total ideas
+2. distinct hooks
+3. pack behavior unchanged
+4. no light-pidgin FOOD_V2 leakage
+5. no fallback/error regression
+
+For western/null:
+1. total ideas
+2. Nigerian pack IDs must be 0
+3. FOOD_V2 IDs must be 0
+4. Nigerian decoration must be 0
+5. no fallback/error regression
+
+E. Validator / fallback / underfill checks
+
+Report:
+1. underfills
+2. fallback count
+3. fallback reasons
+4. errors
+5. any visible validator-pressure proxy
+6. any show_missing_hook_anchor signal if available
+7. any scenario-coherence regression signal if available
+
+Do not add instrumentation in this phase.
+If exact per-stage counters are not surfaced, say so and use envelope-level proxies only.
+
+F. Qualitative review
+
+Extract at least 20 real shipped ng_light_pidgin outputs, prioritizing:
+- home→food widened outputs
+- FOOD_V2 shipped outputs
+- slot-0 outputs if any
+
+For each sample include:
+1. hook
+2. whatToShow
+3. caption
+4. anchor
+5. pack ID if available
+6. whether FOOD_V2
+7. whether widened edge
+8. quick quality note:
+   - human taste?
+   - filmable?
+   - Nigerian/light-pidgin feel?
+   - generic/AI-ish risk?
+
+G. Acceptance criteria
+
+P11 passes only if:
+
+1. runtime completes without errors
+2. ng_light_pidgin pack share remains healthy
+3. home→food ships meaningfully:
+   - at least 10 total home→food shipped cards OR clear evidence why not
+4. FOOD_V2 entries ship:
+   - at least 10 distinct FOOD_V2 entries ship OR clear evidence why not
+5. distinct hooks remain healthy
+6. slot-0 diversity does not regress
+7. no western leakage into NG
+8. no FOOD_V2 leakage into ng_clean or western/null
+9. no fallback regression
+10. no underfill regression
+11. no obvious AI/generic drift in FOOD_V2 samples
+12. no obvious Nigerian-flavor degradation
+13. typecheck clean
+14. relevant NG tests pass
+
+If any fail:
+Do NOT patch.
+Report exact failure and root-cause hypothesis.
+
+REQUIRED OUTPUT FILES
+
+Create:
+- `.local/P11_T2_LIVE_ROUTE_RE_AUDIT_REPORT.md`
+- `.local/qa-runs/p11_t2_live_route_re_audit.json`
+- `.local/qa-runs/p11_t2_live_route_re_audit_summary.json`
+
+REQUIRED TESTS
+
+1. Typecheck:
+pnpm --filter @workspace/api-server run typecheck
+
+2. Relevant Nigerian pack/corpus tests:
+pnpm --filter @workspace/api-server exec vitest run nigerianHookPack
+
+3. Relevant T2/projection tests if present.
+
+4. Full suite if feasible.
+If not feasible, run deterministic chunks and report exact totals.
+
+KNOWN OUT OF SCOPE
+
+- P11Rotation flake remains out of scope.
+- topK env-isolation issue remains separately known.
+- Do not fix either in this phase.
+
+FINAL REPORT STRUCTURE
+
+1. Verdict
+2. Runtime setup
+3. Flags used
+4. ng_light_pidgin aggregate metrics
+5. widened-edge metrics
+6. FOOD_V2 shipped metrics
+7. slot-0 metrics
+8. control cohort results
+9. leakage checks
+10. fallback / underfill / error checks
+11. latency summary if available
+12. qualitative sample review
+13. acceptance-gate results
+14. files touched
+15. tests run
+16. typecheck result
+17. confirmation no runtime/source behavior changes
+18. remaining risks
+19. recommended next phase
+
+Critical:
+This phase validates whether the P10 food corpus expansion actually improved the real creator-facing live route.
+
+No implementation.
+No corpus import.
+No runtime changes.
+No fixes.
+Audit only.

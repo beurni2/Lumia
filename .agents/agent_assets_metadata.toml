@@ -1589,3 +1589,9 @@ id = "v81rTt9ELnf8GtBjfdJAK"
 uri = "file://.local/P10_CORPUS_FOOD_AUTHOR_IMPORT_VALIDATION_REPORT.md"
 type = "text"
 title = "P10 — Curated Home→Food Corpus Import-Validation Report (V2 packet)"
+
+[[outputs]]
+id = "ka_tIXx_uVUgC0xigV76y"
+uri = "file://.local/P11_T2_LIVE_ROUTE_RE_AUDIT_REPORT.md"
+type = "text"
+title = "P11 — T2 Live-Route Re-Audit Report"
