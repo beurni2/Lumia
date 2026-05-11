@@ -1,0 +1,284 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P8-T2-LIVE-ROUTE-SOAK
+
+Mode:
+Live-route staging soak + qualitative validation only.
+
+Purpose:
+P7 successfully implemented the approved T2 widening behind:
+`LUMINA_NG_PACK_PROJECTION_T2_ENABLED`
+
+Quantitative results from the offline/runtime harness were strong:
+
+* distinct shipped pack IDs increased materially
+* creator overlap reduced significantly
+* no western leakage
+* no underfill/fallback regressions
+* deterministic behavior preserved
+
+However:
+
+1. the slot-0 metric used the pre-reservation core output, NOT the real user-facing slot-0
+2. the human-review sample extraction failed (`__not_in_pack_by_id__`)
+3. live-route validator rejection deltas were not measured
+4. real reservation-layer behavior remains unverified
+
+This phase validates the ACTUAL user-facing behavior.
+
+Critical:
+Do NOT implement new runtime behavior.
+Do NOT widen further.
+Do NOT add T2b/T3/T4.
+Do NOT modify validators/scorers/selectors.
+Do NOT touch slot-0 logic directly.
+Do NOT lift draw-cap.
+Do NOT modify prompts/API/mobile/DB/schema/corpus.
+Do NOT author/import entries.
+Do NOT weaken `show_missing_hook_anchor`.
+Do NOT improvise fixes if metrics fail.
+
+This is a soak + verification phase only.
+
+ACTIVE FLAGS
+
+Enable:
+
+* `LUMINA_NG_PACK_ENABLED=true`
+* `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true`
+* `LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true`
+* `LUMINA_NG_PACK_PROJECTION_T2_ENABLED=true`
+
+Keep all existing staging NG flags aligned with the prior P4/P7 staging environment.
+
+SOAK SHAPE
+
+Primary cohort:
+`ng_light_pidgin`
+
+Run:
+
+* 10 creators
+* 5 sequential batches each
+* 6 ideas per batch
+* total: 300 ideas
+
+Control cohorts:
+
+1. ng_clean
+
+* 5 creators
+* 2 batches each
+* 6 ideas each
+
+2. western/null
+
+* 5 creators
+* 2 batches each
+* 6 ideas each
+
+LIVE ROUTE REQUIREMENT
+
+This MUST run through the ACTUAL ideator/live route path:
+
+* including reservation layer
+* including validator chain
+* including slot-0 ordering
+* including fallback behavior
+* including final emitted user-facing cards
+
+Do NOT use:
+
+* pre-reservation core-only metrics as substitute
+* isolated generator-only metrics
+* synthetic slot-0 proxies
+
+MEASURE REQUIRED
+
+A. User-Facing Diversity Metrics
+
+1. distinct shipped pack IDs
+2. distinct shipped hooks
+3. distinct user-facing slot-0 hooks
+4. distinct slot-0 pack IDs
+5. creator overlap
+6. per-creator distinct IDs
+7. top repeated hooks
+8. top repeated slot-0 hooks
+9. top repeated pack IDs
+
+B. Validator / Rejection Metrics
+
+Measure ACTUAL live-route rejection deltas:
+
+1. show_missing_hook_anchor
+2. scenario coherence
+3. anti-copy
+4. schema invalid
+5. low quality
+6. any widened-core rejection reasons
+
+Compare:
+
+* T0 baseline
+* T2 live-route
+
+Required:
+delta table.
+
+C. Reservation-Layer Metrics
+
+1. pack reservation success rate
+2. slot-0 pack rate
+3. packPoolPreFilter
+4. packPoolPostMemoryFilter
+5. packPoolPostBatchDedup
+6. softCapRescueFired
+7. earlyReturnEmptyPack
+8. reservation underfills
+9. reservation collisions
+
+D. Qualitative Human Review (MOST IMPORTANT)
+
+Fix the broken sample extraction.
+
+Must provide:
+REAL widened outputs.
+
+Required:
+20 REAL widened outputs grouped by:
+
+* `everyday→mornings`
+* `everyday→sleep`
+* `home→food`
+
+For EACH:
+
+1. hook
+2. whatToShow
+3. caption
+4. originating source domain
+5. projected canonical bucket
+6. whether it felt coherent
+7. whether it felt filmable
+8. whether it felt authentically NG-light-pidgin
+9. whether it risked AI/generic feel
+10. reviewer notes
+
+This section is mandatory.
+
+If extraction fails:
+STOP and fix extraction only.
+Do NOT continue with placeholders.
+
+E. Nigerian-Flavor Integrity Audit
+
+Explicitly evaluate:
+
+1. whether widening diluted Nigerian feel
+2. whether widened outputs still feel culturally believable
+3. whether hooks remain funny/human
+4. whether “home→food” introduced weak kitchen clichés
+5. whether mornings/sleep outputs remained observational and relatable
+6. whether widened outputs still feel creator-filmable
+
+F. Acceptance Gates
+
+P8 passes ONLY IF ALL hold:
+
+1. distinct shipped pack IDs:
+
+   > = 18
+
+2. distinct hooks:
+
+   > = 18
+
+3. user-facing slot-0 distinct hooks:
+
+   > = 8
+
+4. creator overlap:
+   <= 60%
+
+5. no western leakage
+
+6. no ng_clean regression
+
+7. no fallback regression
+
+8. no underfill regression
+
+9. show_missing_hook_anchor rejection delta:
+   <= baseline + 5pp
+
+10. no obvious AI/generic drift
+
+11. no obvious Nigerian flavor degradation
+
+12. curator/reviewer qualitative sign-off:
+    PASS
+
+13. typecheck clean
+
+14. relevant NG tests pass
+
+If ANY fail:
+DO NOT PATCH.
+Report exact failure and root cause.
+
+G. Required Output Files
+
+* `.local/P8_T2_LIVE_ROUTE_SOAK_REPORT.md`
+* `.local/qa-runs/p8_t2_live_route_soak.json`
+* `.local/qa-runs/p8_t2_live_route_soak_summary.json`
+
+H. Required Tests
+
+1. Typecheck:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. Relevant NG/topK/projection suites
+
+3. Any live-route QA suites already used by:
+   `n1LiveHardenQa.ts`
+
+4. Full suite or deterministic chunks if feasible
+
+Known:
+
+* P11Rotation flake remains out of scope
+* topK env-isolation issue remains separately known
+
+FINAL REPORT STRUCTURE
+
+1. Verdict
+2. Runtime behavior verified
+3. Flag behavior verified
+4. T0 vs T2 live-route metrics
+5. User-facing slot-0 metrics
+6. Reservation-layer metrics
+7. Validator/rejection delta table
+8. Creator-overlap comparison
+9. Leakage checks
+10. Latency comparison
+11. REAL qualitative sample review
+12. Nigerian-flavor integrity assessment
+13. AI/generic drift assessment
+14. Acceptance-gate results
+15. Files touched
+16. Tests run
+17. Typecheck result
+18. Remaining risks
+19. Recommended next phase
+
+Critical:
+This phase exists to validate REAL creator experience quality.
+
+Do not use proxy metrics as substitutes.
+Do not fake qualitative review.
+Do not silently broaden scope.
+Do not patch failures during soak.
+If T2 fails live-route validation:
+STOP and report.

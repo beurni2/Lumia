@@ -1571,3 +1571,9 @@ id = "Zmx_2BvsAnn6H09uZR5vz"
 uri = "file://.local/P7_T2_PROJECTION_STAGING_IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "P7-T2 Projection Staging Implementation Report"
+
+[[outputs]]
+id = "9-4myQJYFsDpNo6Wir97n"
+uri = "file://.local/P8_T2_LIVE_ROUTE_SOAK_REPORT.md"
+type = "text"
+title = "P8 T2 Live-Route Soak Report (final)"
