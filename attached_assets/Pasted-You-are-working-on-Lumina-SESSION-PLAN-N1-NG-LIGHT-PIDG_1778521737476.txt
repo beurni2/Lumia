@@ -1,0 +1,233 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P5-REACHABILITY-AUDIT
+
+Mode:
+Audit + instrumentation only.
+
+Purpose:
+P4 soak proved:
+
+* pack share is healthy (91%)
+* runtime stability is healthy
+* no fallback/underfill/leakage regressions
+* BUT runtime diversity remains weak:
+
+  * 14 distinct pack IDs across 300 ideas
+  * 17 distinct hooks across 300 ideas
+  * slot-0 distinct hooks only 4/50
+
+The follow-up audit isolated a likely root cause chain:
+
+1. PACK_DOMAIN_MAP projection
+2. draw-cap=12
+3. authoring/validator attrition
+4. per-core topK retention
+5. per-batch dedup
+6. cross-creator overlap
+
+This phase is NOT an implementation phase.
+
+Goal:
+Quantify and prove exactly where runtime entropy collapses and what the true reachable-union ceiling is for ng_light_pidgin.
+
+Important:
+Do NOT implement fixes.
+Do NOT widen runtime behavior.
+Do NOT modify selector/scorer/validator logic.
+Do NOT modify prompts/API/mobile/DB/schema/corpus.
+Do NOT author/import entries.
+Do NOT loosen gates.
+Do NOT modify production flags.
+Do NOT patch P11Rotation.
+Do NOT patch the topK test isolation bug in this phase.
+Do NOT “quick fix” draw caps or domain maps.
+
+This is an instrumentation + evidence phase only.
+
+Product direction:
+Supported Nigerian styles:
+
+1. ng_clean
+2. ng_light_pidgin
+
+No strict ng_pidgin product path currently.
+
+Current known findings:
+
+* PACK_DOMAIN_MAP currently projects pack entries into limited domain buckets.
+* Early cores appear to overlap heavily.
+* draw cap is:
+  NIGERIAN_PACK_ELIGIBLE_DRAW_CAP = 12
+* slotReservationDiagnostic during soak:
+  pre≈7.2
+  postMem≈7.2
+  postDedup≈6.1
+* creator unions overlap heavily.
+* top 3 IDs dominated shipped rows.
+
+Core question:
+Why does a ~230-entry approved ng_light_pidgin corpus collapse into a ~14-ID shipped runtime union?
+
+Scope:
+Instrument and measure the entire reachability funnel.
+
+Required audit outputs:
+
+A. Corpus Reachability Map
+For ALL approved ng_light_pidgin entries:
+
+1. total approved entries
+2. domain bucket distribution
+3. anchor distribution
+4. scenario-family distribution if available
+5. entries unreachable by any core
+6. entries reachable by exactly:
+
+   * 1 core
+   * 2–3 cores
+   * 4–6 cores
+   * 7+ cores
+7. top most-reachable entries
+8. least-reachable entries
+9. % of corpus never reachable under current projection rules
+
+B. Core Reachability Audit
+For ALL relevant PREMISE_CORES:
+
+1. core name/id
+2. projected domain set
+3. matching pack entries count before draw cap
+4. matching count after draw cap
+5. actual authored attempts
+6. authored-pass count
+7. retained count after topK
+8. shipped count
+9. unique shipped IDs
+10. slot-0 participation rate
+11. average overlap with other cores
+12. top repeated shipped IDs
+13. whether the core is entropy-positive or entropy-collapsing
+
+C. Draw-Cap Pressure Audit
+Measure:
+
+1. how often draw-cap=12 truncates candidate pools
+2. average pool size before cap
+3. average unique IDs lost due to cap
+4. estimated reachable-union delta if cap hypothetically:
+
+   * 12
+   * 16
+   * 20
+     WITHOUT changing production behavior.
+     Simulation/audit only.
+
+D. Domain Projection Audit
+Instrument:
+
+1. PACK_DOMAIN_MAP structure
+2. per-domain overlap graph
+3. domain buckets that dominate runtime
+4. starved buckets
+5. buckets never appearing in shipped outputs
+6. whether early-batch core ordering disproportionately favors specific domains
+7. creator overlap heatmap if feasible
+
+E. Cross-Creator Overlap Audit
+For the 10-creator soak pattern:
+
+1. creator-by-creator reachable unions
+2. overlap matrix
+3. global union ceiling
+4. % overlap between creators
+5. whether salt rotation meaningfully changes reachable sets
+6. whether creators are effectively sampling the same reachable island
+
+F. Slot-0 Collapse Audit
+Specifically isolate:
+
+1. which cores feed slot-0
+2. which IDs dominate slot-0
+3. why slot-0 distinct hooks collapsed to 4
+4. whether slot-0 path bypasses runtime diversity opportunities
+5. whether slot-0 author shaping converges multiple entries into same hook surface
+
+G. Authoring Convergence Audit
+Measure whether:
+
+1. distinct pack entries author into near-identical hooks
+2. anchors collapse into same final hook
+3. different entries normalize into same authored pattern
+4. hook-level uniqueness loss occurs BEFORE or AFTER ranking
+5. top repeated authored skeletons
+
+H. Entropy Funnel Table
+Produce a single table showing:
+stage → remaining unique IDs
+
+For example:
+230 approved
+→ X reachable by current cores
+→ Y after domain projection
+→ Z after draw cap
+→ ...
+→ 14 shipped
+
+This table is critical.
+
+Runtime soak shape:
+Reuse the prior soak dataset if useful.
+You may run additional lightweight audit probes if needed.
+Do NOT expand into massive runtime generation unless required.
+
+Required files:
+
+* `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P5_REACHABILITY_AUDIT_REPORT.md`
+* `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p5_reachability_audit.json`
+* `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p5_reachability_summary.json`
+
+Verification requirements:
+
+1. Typecheck clean:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. Relevant Nigerian/topK tests:
+   run focused suites only if needed for instrumentation confidence.
+
+3. No runtime/source behavior changes.
+
+4. No production logic modifications.
+
+Final report format:
+
+1. Verdict
+2. Executive summary
+3. Entropy funnel table
+4. Corpus reachability findings
+5. Core reachability findings
+6. Draw-cap pressure findings
+7. Domain projection findings
+8. Cross-creator overlap findings
+9. Slot-0 findings
+10. Authoring convergence findings
+11. Root-cause ranking
+12. Most likely primary bottleneck
+13. Estimated highest-leverage future intervention points
+14. Risks of naive widening
+15. Files touched
+16. Tests run
+17. Typecheck result
+18. Confirmation no runtime/source behavior changes
+19. Recommended next phase
+
+Critical:
+This phase exists to PREVENT gambling.
+
+Do not propose speculative fixes without evidence.
+Do not silently implement changes.
+Do not broaden scope into implementation.
+
+If instrumentation itself requires touching production runtime logic:
+STOP and report first instead of proceeding.
