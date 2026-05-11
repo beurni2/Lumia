@@ -1,0 +1,264 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P6-PACK-DOMAIN-PROJECTION-DESIGN
+
+Mode:
+Design + simulation + topology analysis only.
+
+Purpose:
+P5 reachability audit established:
+
+* corpus quality is NOT the primary bottleneck
+* authoring convergence is NOT the primary bottleneck
+* topK=3 retention is NOT the primary bottleneck
+* the dominant bottleneck is the PACK_DOMAIN_MAP projection topology and the resulting reachable-island overlap
+
+Key proven findings from P5:
+
+* 230 approved light_pidgin entries
+* only 37 reachable IDs under current runtime projection + cap=12
+* only 14 shipped IDs across 50 batches
+* average creator overlap ≈71%
+* 5 canonical buckets currently unreachable by pack:
+
+  * sleep
+  * food
+  * study
+  * dating
+  * mornings
+* authoring convergence = effectively zero
+* slot-0 repeatedly collapses into the same reachable island
+
+This phase is NOT implementation.
+
+Goal:
+Design and simulate alternative PACK_DOMAIN_MAP projection topologies to determine:
+
+* which widening strategies materially increase runtime entropy,
+* which preserve anchor coherence,
+* which reduce creator overlap,
+* and which are safest for future implementation.
+
+Important:
+Do NOT modify runtime behavior.
+Do NOT modify PACK_DOMAIN_MAP in production code.
+Do NOT change selector/scorer/validator logic.
+Do NOT modify prompts/API/mobile/DB/schema/corpus/tests.
+Do NOT author/import entries.
+Do NOT loosen validators.
+Do NOT patch slot-0 directly.
+Do NOT widen draw-cap in runtime.
+Do NOT perform production implementation in this phase.
+
+Simulation + topology modeling only.
+
+Current runtime PACK_DOMAIN_MAP:
+
+```ts
+{
+  messaging: "phone",
+  movement: "fitness",
+  transport: "fitness",
+  family: "social",
+  creator: "content",
+  everyday: "home",
+  home: "home",
+  money: "money",
+  phone: "phone",
+  work: "work",
+}
+```
+
+Current issue:
+Only 7 canonical buckets receive pack candidates:
+
+* content
+* fitness
+* home
+* money
+* phone
+* social
+* work
+
+Never reached:
+
+* sleep
+* food
+* study
+* dating
+* mornings
+
+P6 OBJECTIVES
+
+A. Projection Graph Modeling
+
+Model the CURRENT projection graph:
+
+1. source-domain → canonical-bucket graph
+2. core overlap graph
+3. bucket pressure distribution
+4. creator overlap pressure
+5. slot-0 source concentration
+6. reachable-island visualization if feasible
+
+B. Candidate Projection Expansions
+
+Design multiple widening candidates.
+
+At minimum:
+
+1. conservative widening
+2. moderate widening
+3. aggressive widening
+
+For each:
+
+* define exact hypothetical projection additions
+* do NOT modify runtime source
+* use simulation only
+
+Examples ONLY (do not assume these are correct):
+
+* everyday → mornings
+* work → study
+* family → dating
+* messaging → social
+* phone → content
+  etc.
+
+C. Simulation Metrics
+
+For EACH candidate topology:
+
+1. reachable union estimate
+2. estimated creator overlap
+3. estimated slot-0 diversity
+4. estimated distinct shipped IDs
+5. estimated distinct hooks
+6. estimated cap-pressure reduction
+7. estimated per-core entropy improvement
+8. estimated bucket balance
+9. estimated domain starvation reduction
+10. estimated “reachable island” size
+
+Use audit/simulation only.
+No runtime edits.
+
+D. Coherence-Risk Modeling
+
+Most important requirement.
+
+For EACH proposed projection addition:
+
+1. estimate semantic coherence risk
+2. estimate show_missing_hook_anchor risk
+3. estimate validator pressure risk
+4. estimate “feels wrong/off-brand” risk
+5. estimate comedy degradation risk
+6. estimate scenario-filmability mismatch risk
+
+Rank:
+
+* low-risk
+* medium-risk
+* high-risk
+  with evidence/examples.
+
+E. Minimal-Leverage Analysis
+
+Find:
+
+1. smallest projection change with highest entropy gain
+2. safest entropy-per-risk improvements
+3. additions that appear deceptively large but likely harmful
+4. additions likely to improve slot-0 specifically
+5. additions likely to improve cross-creator freshness specifically
+
+F. Projection Saturation Analysis
+
+Determine:
+
+1. whether widening alone is likely sufficient
+2. whether creator-overlap remains high even under widened topology
+3. whether memory pressure would become the next bottleneck
+4. whether draw-cap=12 becomes dominant AFTER widening
+5. whether slot-0 logic itself may later require separate work
+
+G. Future-Risk Analysis
+
+Explicitly identify:
+
+1. widening patterns likely to cause generic/AI-ish outputs
+2. widening patterns likely to weaken Nigerian flavor
+3. widening patterns likely to increase incoherent hooks
+4. widening patterns likely to create validator churn
+5. widening patterns likely to accidentally reintroduce western/W2 feel
+
+H. Recommendation Framework
+
+Final section must include:
+
+1. recommended topology candidate
+2. NOT recommended candidates
+3. required safeguards before implementation
+4. required validation harness before implementation
+5. required soak metrics before implementation
+6. implementation-risk ranking
+
+Required output files:
+
+* `.local/P6_PACK_DOMAIN_PROJECTION_DESIGN_REPORT.md`
+* `.local/qa-runs/p6_pack_domain_projection_design.json`
+* `.local/qa-runs/p6_pack_domain_projection_design_summary.json`
+
+Required report structure:
+
+1. Verdict
+2. Executive summary
+3. Current topology findings
+4. Current bottleneck recap
+5. Candidate topology designs
+6. Simulation results per candidate
+7. Creator-overlap forecasts
+8. Slot-0 forecasts
+9. Coherence-risk analysis
+10. Entropy-per-risk analysis
+11. Saturation analysis
+12. Future-risk analysis
+13. Recommended future implementation path
+14. Explicit non-recommendations
+15. Safeguards required before runtime implementation
+16. Files touched
+17. Tests run
+18. Typecheck result
+19. Confirmation no runtime/source behavior changes
+
+Verification:
+
+1. Typecheck clean:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. No runtime/source behavior modifications.
+
+3. No PACK_DOMAIN_MAP edits in production runtime.
+
+4. No selector/scorer/validator changes.
+
+Critical:
+This phase exists to PREVENT reckless widening.
+
+Do not silently implement changes.
+Do not drift into runtime experimentation.
+Do not weaken coherence in the name of diversity.
+Do not recommend widening that would damage:
+
+* first-card quality
+* Nigerian feel
+* filmability
+* comedy specificity
+* human taste
+* anchor coherence
+
+If simulation tooling itself would require touching runtime logic:
+STOP and report first.

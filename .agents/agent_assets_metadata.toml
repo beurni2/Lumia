@@ -1559,3 +1559,9 @@ id = "G24BldtzlDi2uMPUVs8F6"
 uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P5_REACHABILITY_AUDIT_REPORT.md"
 type = "text"
 title = "N1 NG-Light-Pidgin Runtime Diversity P5 — Reachability Audit Report"
+
+[[outputs]]
+id = "etqWDtR_qxWP_TbiseyHl"
+uri = "file://.local/P6_PACK_DOMAIN_PROJECTION_DESIGN_REPORT.md"
+type = "text"
+title = "P6 — PACK_DOMAIN_MAP Projection Design Report"
