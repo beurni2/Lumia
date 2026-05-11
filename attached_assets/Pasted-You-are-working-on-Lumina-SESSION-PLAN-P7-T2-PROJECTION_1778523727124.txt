@@ -1,0 +1,320 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P7-T2-PROJECTION-STAGING-IMPLEMENTATION
+
+Mode:
+Controlled staging-only runtime implementation.
+
+Purpose:
+P6 design/simulation concluded that:
+
+* runtime diversity bottleneck is primarily projection-topology driven,
+* T2 is the safest/highest-leverage widening candidate,
+* aggressive widening (T3/T4) is NOT acceptable,
+* validator loosening is NOT acceptable,
+* authoring convergence is NOT the issue,
+* slot-0-specific work should NOT happen yet.
+
+This phase implements ONLY the approved T2 widening candidate behind a dedicated staging flag.
+
+Approved T2 edges:
+
+* `home → food`
+* `everyday → mornings`
+* `everyday → sleep`
+
+No other widening is approved.
+
+Critical:
+Do NOT implement T2b.
+Do NOT implement T3/T4.
+Do NOT widen draw-cap.
+Do NOT modify selector/scorer/validator behavior.
+Do NOT loosen `show_missing_hook_anchor`.
+Do NOT modify prompts/API/mobile/DB/schema/corpus.
+Do NOT author/import entries.
+Do NOT touch slot-0 logic directly.
+Do NOT touch memory logic.
+Do NOT modify fallback behavior.
+Do NOT patch unrelated Nigerian/runtime systems.
+
+Implementation scope must remain surgical.
+
+CURRENT RUNTIME BASELINE
+
+Current PACK_DOMAIN_MAP:
+
+```ts id="gbxkix"
+{
+  messaging: "phone",
+  movement: "fitness",
+  transport: "fitness",
+  family: "social",
+  creator: "content",
+  everyday: "home",
+  home: "home",
+  money: "money",
+  phone: "phone",
+  work: "work",
+}
+```
+
+Approved T2 staging widening:
+
+```ts id="8aqsl4"
+{
+  everyday: ["home", "mornings", "sleep"],
+  home: ["home", "food"]
+}
+```
+
+Implementation requirement:
+Preserve backwards compatibility for existing single-string mapping consumers.
+
+If runtime currently assumes:
+`Record<string, CanonicalDomain>`
+
+Then implement safely via:
+
+* normalization helper,
+* or equivalent additive adapter layer,
+* without broad refactors.
+
+Do NOT break:
+
+* existing western cohorts,
+* ng_clean,
+* slot reservation,
+* coreCandidateGenerator flows,
+* deterministic behavior,
+* or typing guarantees.
+
+FEATURE FLAG
+
+Add NEW dedicated staging-only flag:
+
+`LUMINA_NG_PACK_PROJECTION_T2_ENABLED`
+
+Requirements:
+
+* default OFF
+* no production behavior change when OFF
+* existing start scripts unchanged
+* existing runtime unchanged unless explicitly enabled
+
+When OFF:
+runtime behavior must be byte-equivalent to current production path.
+
+When ON:
+ONLY the 3 approved T2 projection additions activate.
+
+IMPLEMENTATION REQUIREMENTS
+
+A. Projection Normalization
+
+Implement additive normalization layer so:
+
+* existing single-value mappings still work
+* widened mappings can return multiple canonical buckets
+* deterministic ordering preserved
+* no duplicate canonical buckets
+
+B. Projection Expansion
+
+Under the new flag ONLY:
+
+* `everyday`
+  → `home`
+  → `mornings`
+  → `sleep`
+
+* `home`
+  → `home`
+  → `food`
+
+No other additions.
+
+C. Deterministic Behavior
+
+Preserve:
+
+* deterministic ordering
+* deterministic salts
+* deterministic candidate ordering
+* deterministic retention
+
+No randomization.
+
+D. Validation Safety
+
+Do NOT weaken:
+
+* `show_missing_hook_anchor`
+* scenario coherence
+* anti-copy
+* hook quality
+* willingness
+* any rankers/validators
+
+E. Instrumentation
+
+Add temporary/staging-safe diagnostics ONLY IF NEEDED:
+
+* projected bucket counts
+* widened bucket hits
+* T2 path activation counts
+
+Diagnostics must:
+
+* be removable
+* not alter scoring/selection
+* not spam production logs
+
+F. Required Runtime Verification
+
+Run deterministic T0 vs T2 comparison using the SAME soak shape:
+
+ng_light_pidgin:
+
+* 10 creators
+* 5 batches each
+* 6 ideas each
+
+Compare:
+
+1. shipped distinct pack IDs
+2. distinct hooks
+3. slot-0 distinct hooks
+4. creator overlap
+5. pack share
+6. underfills
+7. fallback count
+8. show_missing_hook_anchor rejection rate
+9. latency
+10. western leakage
+11. ng_clean regression
+12. first-card quality sample review
+
+G. Required Acceptance Gates
+
+T2 staging passes ONLY IF ALL hold:
+
+1. distinct shipped pack IDs:
+
+   > = 18
+
+2. distinct hooks:
+
+   > = 18
+
+3. slot-0 distinct hooks:
+
+   > = 8
+
+4. creator pairwise overlap:
+   <= 60%
+
+5. no western leakage
+
+6. no ng_clean regression
+
+7. no fallback regression
+
+8. no underfill regression
+
+9. show_missing_hook_anchor rejection rate:
+   <= baseline + 5 percentage points
+
+10. no obvious AI-ish/generic drift in sampled outputs
+
+11. no obvious Nigerian flavor degradation
+
+12. typecheck clean
+
+13. relevant NG tests pass
+
+If ANY fail:
+DO NOT patch during this phase.
+Report exact failure.
+
+H. Required Human Review Section
+
+Include:
+
+* 20 sampled widened outputs
+* grouped by:
+
+  * `everyday→mornings`
+  * `everyday→sleep`
+  * `home→food`
+
+For each sample:
+
+* hook
+* originating source domain
+* projected canonical bucket
+* whether it felt coherent
+* whether it felt filmable
+* whether it felt authentically NG-light-pidgin
+* whether it risked generic/AI-ish feel
+
+This section matters heavily.
+
+I. Required Files
+
+* `.local/P7_T2_PROJECTION_STAGING_IMPLEMENTATION_REPORT.md`
+* `.local/qa-runs/p7_t2_projection_staging.json`
+* `.local/qa-runs/p7_t2_projection_staging_summary.json`
+
+J. Required Tests
+
+1. Typecheck:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. Relevant NG/topK suites
+
+3. Any projection-normalization tests needed
+
+4. Full suite or deterministic chunks if feasible
+
+Known:
+
+* P11Rotation flake remains out of scope
+* topK env-isolation issue remains separately known
+
+K. Final Report Structure
+
+1. Verdict
+2. Runtime changes made
+3. Flag behavior
+4. Projection normalization design
+5. T0 vs T2 metrics
+6. Distinct-ID comparison
+7. Slot-0 comparison
+8. Creator-overlap comparison
+9. Validator/rejection comparison
+10. Leakage checks
+11. Latency comparison
+12. Human review samples
+13. Quality assessment
+14. Risks observed
+15. Acceptance-gate results
+16. Files touched
+17. Tests run
+18. Typecheck result
+19. Remaining risks
+20. Recommended next phase
+
+Critical:
+This phase is implementation WITH discipline.
+
+Do not drift into additional widening.
+Do not “improve” unrelated systems.
+Do not weaken validators to make T2 pass.
+Do not patch slot-0 separately here.
+Do not broaden scope beyond the approved T2 edges + normalization support + verification harness.
+
+If T2 fails:
+STOP and report.
+Do not improvise fixes in this phase.

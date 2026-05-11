@@ -1349,9 +1349,67 @@ export function generateCoreCandidates(
         phone: "phone",
         work: "work",
       };
+      // PHASE P7-T2-PROJECTION (BI 2026-05-11) — staging-only widening
+      // of the per-core PACK_DOMAIN_MAP filter. Gated by
+      // `LUMINA_NG_PACK_PROJECTION_T2_ENABLED` (default OFF;
+      // production `start` and production `[services.production.run]`
+      // do NOT set it). When OFF: byte-equivalent to the legacy
+      // single-string lookup above. When ON: two source-domain rows
+      // (`everyday`, `home`) project to multiple canonical buckets,
+      // opening light_pidgin pack entries onto a wider set of cores
+      // without changing any other system. Approved edges (P6 audit):
+      //   everyday → home   (legacy, preserved)
+      //              mornings (NEW — verbatim anchor overlap on
+      //                       kettle/towel/mirror via P6 §6.3 risk
+      //                       analysis: low)
+      //              sleep    (NEW — verbatim anchor overlap on
+      //                       bed/slippers via P6 §6.3: low)
+      //   home     → home   (legacy, preserved)
+      //              food    (NEW — verbatim anchor overlap on
+      //                       plate/kettle via P6 §6.3: medium)
+      // Strictly gated: this block is already inside
+      // `if (packEligible.length > 0)`, and `packEligible` is
+      // produced by `getEligibleNigerianPackEntries` which enforces
+      // region===nigeria + languageStyle∈{pidgin,light_pidgin} +
+      // `LUMINA_NG_PACK_ENABLED===true` + non-empty pack — so no
+      // path can leak into clean/null/non-Nigeria cohorts. The
+      // author-side projection (`nigerianPackAuthor.ts`) is
+      // INTENTIONALLY untouched: that single projection is used to
+      // synthesize one setting/triggerCategory per entry; widening
+      // there has no meaningful semantics. Only the per-core
+      // ELIGIBILITY filter is widened.
+      const PROJECTION_T2_ENABLED =
+        process.env.LUMINA_NG_PACK_PROJECTION_T2_ENABLED === "true";
+      const PROJECTION_T2_OVERLAY: Record<string, readonly string[]> = {
+        everyday: ["home", "mornings", "sleep"],
+        home: ["home", "food"],
+      };
+      // Additive normalization helper: returns the set of canonical
+      // domain candidates a pack source-domain projects to. When the
+      // flag is OFF, returns the single legacy projection (or
+      // ["phone"] fallback) — byte-equivalent. When ON and the
+      // source-domain has an overlay, returns the overlay (which
+      // already includes the legacy projection at index 0 for both
+      // approved entries — preserves ordering and never drops the
+      // legacy bucket). Deterministic; no randomization; no
+      // duplicates by construction.
+      const projectPackDomain = (sourceDomain: string): readonly string[] => {
+        if (PROJECTION_T2_ENABLED) {
+          const overlay = PROJECTION_T2_OVERLAY[sourceDomain];
+          if (overlay !== undefined) return overlay;
+        }
+        return [PACK_DOMAIN_MAP[sourceDomain] ?? "phone"];
+      };
       const matching = packEligible.filter((e) => {
-        const projected = PACK_DOMAIN_MAP[e.domain] ?? "phone";
-        return coreDomains.has(projected as CoreDomainAnchorRow["domain"]);
+        const projections = projectPackDomain(e.domain);
+        for (const projected of projections) {
+          if (
+            coreDomains.has(projected as CoreDomainAnchorRow["domain"])
+          ) {
+            return true;
+          }
+        }
+        return false;
       });
       // Salt-rotated stable order so pack draws are deterministic
       // across regenerates but still rotate (otherwise the same 3
