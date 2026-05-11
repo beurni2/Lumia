@@ -1,0 +1,99 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P1-FEASIBILITY-AUDIT
+
+Mode:
+Read-only implementation feasibility audit.
+
+Purpose:
+The ng_light_pidgin corpus is now healthy after Packets 1B, 1C, 1D, and Reject-Repair V2:
+- approved light_pidgin entries: 230
+- HQS < 40: 0
+- reject-repair complete
+- no scorer / validator / selector / prompt / API / mobile / DB / schema changes from corpus work
+
+Runtime diversity audit found:
+- 60 runtime ideas
+- 17 distinct hooks
+- 39/60 ideas from pattern_variation
+- pattern_variation has only 4 distinct hooks
+- core_native has 20 ideas / 12 distinct hooks
+- slot-0 is healthy: 7/10 distinct, 10/10 core_native
+- only 19/60 regionDecorated
+- 0/60 pidginMarkerHits
+
+Hypothesis:
+The ng_light_pidgin pack is healthy when it receives slots, but the batch is capped around 2 pack-authored ideas out of 6. The remaining 4 slots are filled by cohort-agnostic Western pattern_variation, which repeats heavily.
+
+We are considering a small ng_light_pidgin-only implementation:
+Increase pack-authored presence from about 2/6 to about 3/6 when enough valid distinct pack candidates exist, without changing validators, scorer, prompts, API, mobile, DB, schema, ng_clean, or western behavior.
+
+Important:
+Do NOT implement anything yet.
+Do NOT modify source behavior.
+Do NOT change corpus.
+Do NOT change scorer, validator, prompt, API, mobile, DB, schema, memory, slot-0, or production flags.
+This task is only to confirm the safest implementation point and risks.
+
+Questions to answer:
+1. Is `applyNigerianPackSlotReservation` the correct patch point for a cohort-specific ng_light_pidgin pack-share widening?
+2. Does it currently cap reserved Nigerian pack slots at 2 for a 6-card batch?
+3. Can it safely support a light_pidgin-only cap of 3 when `region=nigeria`, `languageStyle=light_pidgin`, desiredCount >= 6, and at least 3 distinct valid pack candidates exist?
+4. Would that affect ng_clean?
+5. Would that affect western/null cohorts?
+6. Would that affect strict ng_pidgin legacy path?
+7. Would it risk underfill if fewer than 3 pack candidates exist?
+8. Would it preserve slot-0 behavior?
+9. Would it preserve existing per-batch diversity / anti-duplicate behavior?
+10. Would it interact badly with pack-aware per-core retention?
+11. Would it require any API/mobile/schema/DB/prompt/scorer/validator changes?
+12. Is there a safer alternative patch point?
+13. Is the runtime QA harness sufficient to verify it, or is extra audit-only telemetry needed first?
+
+Files to inspect:
+- `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/hybridIdeator.ts`
+- `artifacts/api-server/src/lib/nigerianHookPack.ts`
+- `artifacts/api-server/src/qa/nigerianStagingQa.ts`
+- `.local/scripts/n1E2eNigeriaQaProbe.mts`
+- Runtime diversity audit report and JSONs:
+  - `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_AUDIT_REPORT.md`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit.json`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit_summary.json`
+  - `.local/qa-runs/n1_e2e_partial_ng_light_pidgin.json`
+
+Required output:
+A concise feasibility report with:
+1. Verdict: SAFE / UNSAFE / NEEDS MORE AUDIT
+2. Recommended patch point
+3. Exact files likely touched if implemented
+4. Exact behavior change proposed
+5. Why it is safe or not safe
+6. Risks and mitigations
+7. Test plan
+8. Runtime QA plan
+9. Acceptance criteria
+10. Whether implementation should proceed
+
+Recommended acceptance target if feasible:
+- ng_light_pidgin runtime regionDecorated >= 30/60
+- ng_light_pidgin distinct hooks >= 25/60
+- pattern_variation share reduced below prior 39/60
+- core_native / pack-authored share increased without underfill
+- slot-0 remains healthy
+- ng_clean unchanged
+- western/null unchanged
+- strict ng_pidgin not expanded
+- fallback regression = 0
+- typecheck clean
+- full api-server tests pass
+
+Output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P1_FEASIBILITY_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit_summary.json`
+
+Stop condition:
+If you cannot prove the patch point is safe from static code inspection and existing runtime QA, stop and say what additional audit-only telemetry is needed. Do not guess.

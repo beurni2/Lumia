@@ -1475,3 +1475,21 @@ id = "5w1KMIgzDD4vwyDzV7L9o"
 uri = "file://.local/qa-runs/n1_audit_packet_origin_map.json"
 type = "unspecified"
 title = "Slot-0 + Packet-Origin Map"
+
+[[outputs]]
+id = "IyLgqGl4IFDXtE-X1Cu4e"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P1_FEASIBILITY_AUDIT_REPORT.md"
+type = "text"
+title = "P1 Feasibility Audit Report (with architect corrections)"
+
+[[outputs]]
+id = "fnasv2B2sccVacs8o2OVs"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit_summary.json"
+type = "unspecified"
+title = "Feasibility Audit Summary (updated)"
+
+[[outputs]]
+id = "c7wDwtTqwL_ONk3YyGL1k"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit.json"
+type = "unspecified"
+title = "Feasibility Audit Evidence JSON"
