@@ -22,7 +22,7 @@
  *   • validateScenarioCoherence(idea) === null
  *   • scoreNigerianPackEntry(entry) >= 40  (Pidgin-aware additive scorer; floor unchanged)
  *
- * INGEST SUMMARY: 204 approved · 13 rejected
+ * INGEST SUMMARY: 231 approved · 13 rejected
  *
  * REJECTED ROWS (kept here for the reviewer audit trail; NOT in the
  * exported array — the generator does not silently fix anything):
@@ -2288,6 +2288,303 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       domain: "creator",
       pidginLevel: "light_pidgin",
       reviewedBy: "BI 2026-05-06",
+    }),
+    Object.freeze({
+      // source: NEW_LP_001 [REWRITE] · cluster: messaging_group_chats
+      hook: "committee chat made me resign in silence",
+      whatToShow: "You open a fake committee chat with too many unread messages, start typing 'Noted,' pause, delete it, then slowly place the phone facedown like you have left the job spiritually.",
+      howToFilm: "Sit at a table with a blurred fake chat screen. Show your thumb hovering over the reply box, delete the message, then lean back with both hands on your head like a tired volunteer.",
+      caption: "Voluntary work with compulsory stress.",
+      anchor: "committee",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_003 [REWRITE] · cluster: messaging_group_chats
+      hook: "deleted message don wake my detective spirit",
+      whatToShow: "You see a fake 'message deleted' notice, freeze mid-sip, zoom your eyes at the phone, then start checking the room like the missing message is hiding somewhere.",
+      howToFilm: "Show only a fake blurred chat screen. Use a cup for the interrupted sip, then cut to you looking under a notebook and behind the phone for comedic exaggeration.",
+      caption: "Now I must know.",
+      anchor: "deleted",
+      domain: "messaging",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_005 [REWRITE] · cluster: money_pos_agent
+      hook: "transfer receipt smiled but balance cried",
+      whatToShow: "You hold up a fake transfer receipt proudly, then check a fake blurred balance and slowly lower the receipt like it personally deceived you.",
+      howToFilm: "Use a fake printed receipt or note paper labeled 'transfer successful.' Keep all amounts fictional. Show the proud pose, then the slow emotional collapse after checking the blurred screen.",
+      caption: "Successful, but at what cost?",
+      anchor: "transfer",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_006 [REWRITE] · cluster: money_pos_agent
+      hook: "payment machine started thinking about my future",
+      whatToShow: "At a counter setup, you tap a fake card on a toy or paper payment machine. It 'loads' too long, and you start smiling too hard at the cashier while pretending everything is fine.",
+      howToFilm: "Stage a shop counter at home. Use a calculator or cardboard as the payment machine. Do not show real cards. Hold a frozen smile, then wipe imaginary sweat when it finally approves.",
+      caption: "Please approve before my confidence finishes.",
+      anchor: "payment",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_007 [REWRITE] · cluster: money_pos_agent
+      hook: "cash queue moved only when I blinked",
+      whatToShow: "You stand in a tiny staged cash queue using chairs. Each time you look down, someone has somehow moved ahead, and you start guarding your spot with your whole body.",
+      howToFilm: "Arrange chairs indoors to suggest a queue. Use one or two props like a wallet and receipt. Step forward dramatically after every cut, then block your space with your shoulder.",
+      caption: "Queue position is now property.",
+      anchor: "queue",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_008 [REWRITE] · cluster: money_pos_agent
+      hook: "bank balance said calm down, chairman",
+      whatToShow: "You add items to a basket confidently, then check a fake blurred bank balance and gently return everything except one tiny item, acting humble and respectful.",
+      howToFilm: "Use household items as shopping props and a fake blurred balance screen. Show the confidence walk, the balance check, then the quiet return of items one by one.",
+      caption: "Budget has entered the chat.",
+      anchor: "balance",
+      domain: "money",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_009 [REWRITE] · cluster: home_power_generator
+      hook: "power strip became family meeting agenda",
+      whatToShow: "A power strip has too many safe unplugged chargers and plugs around it. You enter, see everyone depending on it, and start assigning turns like a serious household chairman.",
+      howToFilm: "Use unplugged devices and a power strip on a table. Do not overload it. Point to each device, rearrange them carefully, then hold up a paper schedule for charging time.",
+      caption: "Electricity came, democracy ended.",
+      anchor: "power",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_010 [REWRITE] · cluster: home_power_generator
+      hook: "generator sound started and my plans changed",
+      whatToShow: "You are relaxing quietly, then a staged generator sound effect starts. You jump up, grab everything that needs power, and rush around like electricity has a short appointment.",
+      howToFilm: "Use an audio effect for generator sound, not a real generator indoors. Show safe unplugged items, then act out the sudden scramble with quick cuts and exaggerated urgency.",
+      caption: "Power is visiting, behave fast.",
+      anchor: "generator",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_011 [REWRITE] · cluster: home_power_generator
+      hook: "meter token finished during my confidence speech",
+      whatToShow: "You are telling someone everything is under control, then the lights or lamp switch off. You pause mid-sentence, pull out a fake meter token paper, and suddenly speak softer.",
+      howToFilm: "Use a lamp you can safely switch off off-camera. Use a fake token slip with no real numbers. Time the blackout beat with your confident hand gesture freezing in place.",
+      caption: "Control has left the building.",
+      anchor: "meter",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_012 [REWRITE] · cluster: home_power_generator
+      hook: "inverter beep gave me final warning",
+      whatToShow: "You hear a staged inverter beep, freeze like a student caught talking, then start switching off unnecessary things while apologizing to the air.",
+      howToFilm: "Use a beep sound effect and safe lamps or unplugged items. Show your eyes widen, then cut to you gently turning off a fan, lamp, and TV remote like you are negotiating.",
+      caption: "Even machine don tire for us.",
+      anchor: "inverter",
+      domain: "home",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_013 [REWRITE] · cluster: family_social_pressure
+      hook: "family question arrived and rice lost taste",
+      whatToShow: "You are happily eating rice, then someone off-camera asks a big family question. Your spoon stops halfway, your smile disappears, and you gently push the plate away.",
+      howToFilm: "Film at a table with food or a harmless prop plate. Have the question come from off-camera. Focus on your frozen spoon, slow blink, and careful plate retreat.",
+      caption: "Food was nice before interrogation.",
+      anchor: "question",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_014 [REWRITE] · cluster: family_social_pressure
+      hook: "serving spoon chose politics over peace",
+      whatToShow: "You hold the serving spoon at a family-style table, trying to share food fairly. Everyone watches your hand, and you start sweating like one extra scoop can cause a meeting.",
+      howToFilm: "Use an empty pot or bowl with safe food props. Film close-ups of the spoon hovering, your nervous eyes, and your careful attempt to make portions look equal.",
+      caption: "Distribution is not for the weak.",
+      anchor: "serving",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_015 [REWRITE] · cluster: family_social_pressure
+      hook: "family photo made my smile clock in",
+      whatToShow: "You are tired at an event, then someone says 'family photo.' You instantly stand straight, fix your shirt, and force a bright smile that disappears the second the photo ends.",
+      howToFilm: "Stage near a doorway or wall. Use an off-camera voice for the photo call. Show the before-and-after: tired face, perfect smile, then immediate shutdown.",
+      caption: "Smile shift has started.",
+      anchor: "family",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_016 [REWRITE] · cluster: family_social_pressure
+      hook: "visitor arrival turned house into inspection center",
+      whatToShow: "You hear that visitors are near. You quickly hide slippers, straighten cushions, push random items under a chair, then sit calmly like the house is always perfect.",
+      howToFilm: "Film in a living room or doorway. Use quick cuts of small tidying actions, then end with you sitting too neatly while breathing hard.",
+      caption: "Normal home, emergency edition.",
+      anchor: "visitor",
+      domain: "family",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_017 [REWRITE] · cluster: transport_errands
+      hook: "keke price changed with my shoe",
+      whatToShow: "You stand beside two chairs staged as a parked keke. After looking at your clean shoes, the imaginary fare becomes higher, and you slowly hide one foot behind the other.",
+      howToFilm: "Stage safely indoors or in a parked setup with chairs. Use no moving vehicle. Show your outfit, then your shocked face and the awkward attempt to make yourself look cheaper.",
+      caption: "Fine boy tax is real today.",
+      anchor: "keke",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_018 [REWRITE] · cluster: transport_errands
+      hook: "fare change entered after I sat down",
+      whatToShow: "You sit in a staged transport chair feeling settled. An off-camera voice announces a new fare, and you slowly lift yourself halfway up like your body is reconsidering the journey.",
+      howToFilm: "Use chairs indoors to suggest transport. Keep it safe and stationary. Show the comfort pose first, then the half-standing negotiation face after the fare changes.",
+      caption: "My destination is now thinking.",
+      anchor: "fare",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_019 [REWRITE] · cluster: transport_errands
+      hook: "roadside wait gave me statue energy",
+      whatToShow: "You wait safely near a doorway pretending it is roadside. After checking the time again and again, you become completely still, only your eyes moving whenever you hear a vehicle sound.",
+      howToFilm: "Stage indoors, at a gate, or a safe doorway. Do not film in traffic. Use sound effects for passing vehicles and show your still body with alert eyes.",
+      caption: "Waiting has entered sculpture mode.",
+      anchor: "roadside",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_020 [REWRITE] · cluster: transport_errands
+      hook: "delivery code vanished at the gate",
+      whatToShow: "At a doorway or estate gate setup, you confidently reach for the delivery code, then blank out. You check pockets, notes, and your palm while the fake rider waits off-camera.",
+      howToFilm: "Stage at a door or gate, not in the road. Use a fake order screen with blurred details. Show confident arrival, sudden panic, and the final embarrassed whisper of a wrong code.",
+      caption: "Memory chose bad timing.",
+      anchor: "delivery",
+      domain: "transport",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_021 [REWRITE] · cluster: market_food_home
+      hook: "market nylon announced my entire budget",
+      whatToShow: "You walk in with one tiny market nylon and try to act like you bought plenty. Someone looks at it, and you quickly swing it behind your back like evidence.",
+      howToFilm: "Use a small shopping bag with harmless items. Film in a kitchen or doorway. Show your confident entrance, the bag reveal, then your sudden attempt to hide it.",
+      caption: "Big shopping, small witness.",
+      anchor: "market",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_022 [REWRITE] · cluster: market_food_home
+      hook: "tomato price made stew start negotiating",
+      whatToShow: "In a kitchen setup, you place three tomatoes beside a pot, stare at them, then start cutting them into tiny pieces like every slice must attend meeting.",
+      howToFilm: "Use safe kitchen setup and careful cutting, or use toy/plastic tomatoes if preferred. Show the tomato count, your serious face, and the tiny careful portions going into the pot.",
+      caption: "Stew will manage and shine.",
+      anchor: "tomato",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_024 [REWRITE] · cluster: health_pharmacy_hospital
+      hook: "pharmacy queue knew my symptoms before me",
+      whatToShow: "You sit in a staged pharmacy queue holding a fake ticket. People off-camera cough or sniffle, and you start checking yourself like the queue has diagnosed you.",
+      howToFilm: "Stage in a room with chairs and a fake pharmacy sign. Use no real prescriptions or private health details. Show nervous self-checking, then clutching the fake queue number.",
+      caption: "Came for one thing, left with suspicion.",
+      anchor: "pharmacy",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_025 [REWRITE] · cluster: health_pharmacy_hospital
+      hook: "hospital card hid when confidence reached counter",
+      whatToShow: "You walk to a staged reception confidently, then reach for a fake hospital card and cannot find it. You check the same pocket three times while smiling too politely.",
+      howToFilm: "Use a fake card with no real details. Stage a reception with a table and chair. Film the confident walk, the pocket search, and the embarrassed smile to the fake receptionist.",
+      caption: "The card chose drama.",
+      anchor: "hospital",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_026 [REWRITE] · cluster: church_social_events
+      hook: "church usher pointed and my seat disappeared",
+      whatToShow: "You quietly choose a comfortable seat in a church/event setup. A church usher gestures from off-camera, and you slowly relocate to the front row with a shocked respectful smile.",
+      howToFilm: "Stage with chairs in a room, not during a real service. Use an off-camera pointing hand. Show your quiet settling, the gesture, and the careful front-row walk.",
+      caption: "Respectfully relocated.",
+      anchor: "church",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_027 [REWRITE] · cluster: church_social_events
+      hook: "offering envelope made pocket start breathing",
+      whatToShow: "You receive an offering envelope and confidently reach into your pocket, then pause when you remember what is inside. You smooth the envelope like it needs encouragement.",
+      howToFilm: "Use a blank envelope and no real money. Stage on a chair or event setup. Show the confident reach, the pocket pause, and the gentle envelope pat for the punchline.",
+      caption: "Faith strong, pocket quiet.",
+      anchor: "offering",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_028 [REWRITE] · cluster: weather_outfit
+      hook: "fresh outfit stepped out, rain remembered duty",
+      whatToShow: "You admire your fresh outfit in a mirror, step toward the door, then hear rain. You slowly reverse back inside and cover the outfit like protecting national treasure.",
+      howToFilm: "Film indoors near a mirror and doorway. Use rain sound effect or a window shot, not unsafe outdoor rain filming. Show the proud pose, the sound cue, and the reverse walk.",
+      caption: "Weather saw drip and reported.",
+      anchor: "outfit",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_029 [REWRITE] · cluster: weather_outfit
+      hook: "afternoon sun turned my walk to apology",
+      whatToShow: "You leave confidently for a short walk, then the afternoon sun hits. You slow down, shade your face with a folder, and walk like you are apologizing to the heat.",
+      howToFilm: "Stage safely in a doorway, balcony, or bright indoor spot. Use light from a window if needed. Show the confident first step, then the humbled slow walk and face shield.",
+      caption: "Small errand, full punishment.",
+      anchor: "afternoon",
+      domain: "everyday",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
+    }),
+    Object.freeze({
+      // source: NEW_LP_030 [REWRITE] · cluster: creator_social_behavior
+      hook: "caption box harder than the whole video",
+      whatToShow: "You finish filming happily, open a fake caption box, and suddenly become serious. You type, delete, stare at the ceiling, then whisper the caption like it is an exam answer.",
+      howToFilm: "Use a fake editing or notes screen with no real account details. Show the joy after filming, then the caption-box struggle with repeated typing and deleting.",
+      caption: "Content done, English started fighting.",
+      anchor: "caption",
+      domain: "creator",
+      pidginLevel: "light_pidgin",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
   ]);
 

@@ -1319,3 +1319,21 @@ id = "ZV4el4ioZNPxRSXggBAxJ"
 uri = "file://.local/qa-runs/n1_nigerian_corpus_expansion_p1_audit.json"
 type = "unspecified"
 title = "Audit Full JSON"
+
+[[outputs]]
+id = "uZ04iMsTMX4ESF2dVdFVv"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_PACKET_1A_PREDICT_IMPORT_REPORT.md"
+type = "text"
+title = "N1 NG light_pidgin Packet 1A — Predict-Import Report (13 sections)"
+
+[[outputs]]
+id = "icG6C6iieC8SPjx0K3wJi"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1a_predict_import.json"
+type = "unspecified"
+title = "Per-entry verdicts (30 entries)"
+
+[[outputs]]
+id = "JOtG_kp9TfaovoCqDKruI"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1a_predict_import_summary.json"
+type = "unspecified"
+title = "Aggregate summary + before/after distributions"
