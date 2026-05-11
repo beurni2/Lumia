@@ -1,0 +1,597 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P10-CORPUS-FOOD-AUTHOR-IMPORT-VALIDATION
+
+Mode:
+Import + validation only.
+
+Purpose:
+P9 proved the `home→food` widened surface is structurally starved:
+- only 1 strict home-domain food-eligible entry existed
+- T2 projection widening works end-to-end
+- runtime/ranking/memory are not the primary bottleneck
+- the correct next move is curated corpus depth, NOT runtime changes
+
+This phase imports a curated human-reviewed `ng_light_pidgin` food/home packet into the Nigerian approved pack.
+
+CRITICAL:
+The coding agent must NOT author, rewrite, improve, invent, or substitute corpus entries.
+Use ONLY the entries provided in this prompt.
+If any entry fails validation, report it exactly.
+Do NOT creatively repair it.
+Do NOT loosen validators.
+Do NOT change scorers/selectors.
+Do NOT change prompts/API/mobile/DB/schema.
+Do NOT add new projection edges.
+Do NOT lift draw-cap.
+Do NOT touch slot-0 logic.
+Do NOT touch memory logic.
+Do NOT alter T2 runtime behavior.
+Do NOT modify production flags.
+
+Product direction:
+Supported Nigerian language/cultural styles:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin product option for now.
+
+Current runtime context:
+- T2 projection staging flag exists:
+  LUMINA_NG_PACK_PROJECTION_T2_ENABLED
+- T2 edges:
+  everyday → mornings
+  everyday → sleep
+  home → food
+
+This phase strengthens the home→food edge by adding curated `sourceDomain: home`, `targetProjection: food` entries.
+
+IMPORTANT:
+This packet intentionally preserves conversational/raw Nigerian-light-pidgin texture.
+Do NOT normalize wording.
+Do NOT “clean up” grammar.
+Do NOT make the hooks more polished.
+
+VALID ANCHORS ONLY:
+- plate
+- fridge
+- fork
+- groceries
+- oven
+- pan
+
+If the runtime corpus supports only runtime fields:
+- import required runtime fields only
+- preserve the full packet in QA/report artifacts
+
+CURATED PACKET
+
+replaceId: FOOD_V2_001
+hook: fridge light catch me but na water i dey pretend to find
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Open the fridge at night, freeze under the fridge light, then pick up water first like that was the plan.
+howToFilm: Film beside the fridge door; show the guilty pause, the fake water reach, then the real hand going back in.
+caption: na water, allegedly
+
+replaceId: FOOD_V2_002
+hook: plate small but my hunger no get manners
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Hold a small plate like you are being disciplined, then slowly overload the plate while acting innocent.
+howToFilm: Use overhead jump cuts as the plate grows; end with your face pretending the portion is still normal.
+caption: hunger no hear word
+
+replaceId: FOOD_V2_003
+hook: fork touch last piece and everybody start forming seniority
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: A fork reaches for the last piece while everyone suddenly starts acting like age and rank matter.
+howToFilm: Film the fork in slow motion, then cut to silent faces calculating who has the right.
+caption: respect the last piece
+
+replaceId: FOOD_V2_004
+hook: groceries full counter but who wan cook now
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show groceries sitting fresh on the counter while everybody keeps passing them and asking what to eat.
+howToFilm: Keep the camera fixed on the groceries; let people enter, stare, sigh, and walk away.
+caption: ingredients no be dinner
+
+replaceId: FOOD_V2_005
+hook: pan make one sizzle and i start walking like chef
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Food hits the pan once, makes a good sound, and you immediately start overacting your cooking skill.
+howToFilm: Start tight on the pan, then cut to your shoulders rising as you stir with fake confidence.
+caption: sizzle gave me pride
+
+replaceId: FOOD_V2_006
+hook: oven beep and my confidence say abeg ask adult
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The oven beeps, and you stand there unsure whether the food is ready or about to disgrace you.
+howToFilm: Film the oven display, then your face, then your hand reaching and pulling back twice.
+caption: adult needed
+
+replaceId: FOOD_V2_007
+hook: fridge empty but i still bend like food dey hide
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Search an empty fridge with full seriousness, moving containers like food may appear by pressure.
+howToFilm: Shoot from behind the open fridge door; repeat one shelf check to make the desperation obvious.
+caption: maybe e hide
+
+replaceId: FOOD_V2_008
+hook: plate hear small taste and turn full assignment
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Begin with one tiny taste on a plate, then keep adding until it becomes a real meal.
+howToFilm: Use overhead jump cuts; each cut adds more food while your face stays serious and innocent.
+caption: small taste lied
+
+replaceId: FOOD_V2_009
+hook: fork dey visit my side like rent is cheap
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Someone’s fork keeps crossing into your plate while they pretend nothing is happening.
+howToFilm: Film table-level; show the fork creeping closer, then your hand slowly building protection.
+caption: respect boundary abeg
+
+replaceId: FOOD_V2_010
+hook: groceries enter house and everybody appetite get promotion
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Bring groceries inside, and suddenly people who were not hungry start appearing in the kitchen.
+howToFilm: Film the grocery bags landing, then quick cuts of people casually entering and hovering.
+caption: hunger got memo
+
+replaceId: FOOD_V2_011
+hook: pan hot already but my brain never resume
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Heat the pan too early, then rush around realizing nothing is prepared.
+howToFilm: Film the pan waiting on heat, then quick cuts of you searching and pretending this was planned.
+caption: heat came first
+
+replaceId: FOOD_V2_012
+hook: oven window show me say boldness no be recipe
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Peek through the oven window and realize the food is not matching your earlier confidence.
+howToFilm: Film your reflection in the oven glass, then cut to your face slowly losing pride.
+caption: boldness failed
+
+replaceId: FOOD_V2_013
+hook: fridge open and my diet plan just keep quiet
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Open the fridge after promising discipline, stare for one second, then reach in like the promise never happened.
+howToFilm: Start with you looking determined, then use a quick cut to the fridge door opening and your discipline collapsing.
+caption: diet no talk
+
+replaceId: FOOD_V2_014
+hook: plate nearly empty but i still dey explain small taste
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show an almost empty plate while you insist you only tasted a little.
+howToFilm: Start close on the plate evidence, then tilt to your face giving a weak explanation.
+caption: evidence too loud
+
+replaceId: FOOD_V2_015
+hook: fork cross line and my home training start shaking
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Someone’s fork enters your plate and you almost react, then remember manners at the last second.
+howToFilm: Tight shot on your plate; cut to the fork entering, then your forced smile and tense hand.
+caption: manners survived small
+
+replaceId: FOOD_V2_016
+hook: groceries for the week but the house hear today today
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show groceries meant to last the week slowly reducing because everyone keeps taking little pieces.
+howToFilm: Use before-and-after counter shots with different hands entering frame and acting innocent.
+caption: week plan crashed
+
+replaceId: FOOD_V2_017
+hook: pan smoke small and i start speaking gentle english
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The pan starts smoking a little, and your whole attitude becomes suddenly calm and respectful.
+howToFilm: Film the pan safely from the side, then cut to you lowering heat with humble face.
+caption: heat changed tone
+
+replaceId: FOOD_V2_018
+hook: oven timer shout but the food still dey learn work
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The oven timer goes off, but the food still looks unfinished when you check.
+howToFilm: Show the timer, peek inside the oven, then cut to your tired disappointed stare.
+caption: still on training
+
+replaceId: FOOD_V2_019
+hook: fridge make sound and i confess before anybody ask
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The fridge makes a normal noise while you are sneaking food, and you immediately start explaining to nobody.
+howToFilm: Film at night near the fridge; when the sound happens, freeze and whisper your excuse into the air.
+caption: guilty by appliance
+
+replaceId: FOOD_V2_020
+hook: plate clean pass my story
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Hold a spotless plate while trying to deny that you finished the food.
+howToFilm: Start on the clean plate, then tilt up to your face trying not to laugh.
+caption: story weak
+
+replaceId: FOOD_V2_021
+hook: fork enter shared food and everybody become accountant
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: A fork serves from shared food while everyone silently calculates whether the portion is fair.
+howToFilm: Film the serving close-up, then cut to eyes tracking the size like money is involved.
+caption: portion audit
+
+replaceId: FOOD_V2_022
+hook: groceries look healthy until evening show my real character
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show healthy groceries in the morning, then show evening you staring at them with no cooking spirit.
+howToFilm: Use a morning/evening contrast: proud unpacking first, tired guilty staring later.
+caption: evening exposed me
+
+replaceId: FOOD_V2_023
+hook: pan dey smell correct but taste no follow meeting
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The pan smells promising, but your first taste makes you pause like something is missing.
+howToFilm: Film proud stirring, then the taste test, then one long silent look at the pan.
+caption: aroma passed alone
+
+replaceId: FOOD_V2_024
+hook: oven smell enter parlour and everybody become passerby
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Food smell comes from the oven and people suddenly appear in the kitchen pretending they are just passing.
+howToFilm: Film the oven first, then cut to different people entering frame casually and looking around.
+caption: just passing, abi
+
+replaceId: FOOD_V2_025
+hook: fridge get leftover and the house enter court session
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Open the fridge to leftovers and everyone starts arguing ownership, timing, and who saw it first.
+howToFilm: Play quick character cuts around the open fridge, with each person giving a serious claim.
+caption: leftover court
+
+replaceId: FOOD_V2_026
+hook: plate reach sink and everybody memory just travel
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show one dirty plate in the sink while everyone denies using it with too much confidence.
+howToFilm: Film the plate first, then cut to each person acting shocked like the plate entered by itself.
+caption: memory travelled
+
+replaceId: FOOD_V2_027
+hook: fork near my food and my spirit say guard am
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: A fork gets too close to your plate and you quietly protect the best part with your hand.
+howToFilm: Shoot table-level; show the fork approaching, then your hand sliding in like security.
+caption: guard your joy
+
+replaceId: FOOD_V2_028
+hook: groceries dey counter since morning and i dey greet them like neighbor
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Walk past groceries you promised to cook and keep acknowledging them without doing anything.
+howToFilm: Fixed counter shot; pass by three times with small nods, fake busyness, and no cooking.
+caption: good evening ingredients
+
+replaceId: FOOD_V2_029
+hook: pan hear medium heat and still choose wahala
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Set the pan to medium heat but it starts acting too dramatic too quickly.
+howToFilm: Show the knob setting, then the pan misbehaving, then your confused face checking the knob again.
+caption: medium wahala
+
+replaceId: FOOD_V2_030
+hook: oven dey preheat while i dey pre-confuse
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Stand near the preheating oven reading instructions with false confidence.
+howToFilm: Cut between the oven display, your confused reading face, and one fake confident nod.
+caption: pre-confusion stage
+
+replaceId: FOOD_V2_031
+hook: fridge opened for water but my hand carry evidence
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Open the fridge saying you want water, then come back holding extra food.
+howToFilm: Film the promise before opening, then cut to your hand coming out with more than water.
+caption: water plus agenda
+
+replaceId: FOOD_V2_032
+hook: plate expose me because small taste no suppose reach corner
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show a plate that clearly has been attacked even though you claimed it was only one small taste.
+howToFilm: Close-up on the plate marks, then cut to your guilty face trying to defend it.
+caption: taste went far
+
+replaceId: FOOD_V2_033
+hook: fork dey innocent but best piece just disappear
+anchor: fork
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The fork sits near the food while the best piece disappears and everyone acts confused.
+howToFilm: Film a fake crime scene: the fork, the empty spot, then innocent faces looking away.
+caption: no suspect
+
+replaceId: FOOD_V2_034
+hook: groceries enter fridge and become tomorrow problem sharp sharp
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Put groceries into the fridge proudly, then close it like cooking has been postponed.
+howToFilm: Film careful fridge arrangement, a satisfied nod, then you walking away with no cooking attempt.
+caption: tomorrow department
+
+replaceId: FOOD_V2_035
+hook: pan carry aroma but food no carry evidence
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The pan smells good, but the actual food result does not look as impressive.
+howToFilm: Film yourself smelling proudly, then reveal the pan result and let your smile reduce slowly.
+caption: aroma did PR
+
+replaceId: FOOD_V2_036
+hook: oven turn simple dinner to who send me
+anchor: oven
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Keep checking the oven nervously because dinner has become more complicated than expected.
+howToFilm: Use quick cuts of pacing, oven light checks, and you standing with regret.
+caption: who send me
+
+replaceId: FOOD_V2_037
+hook: fridge see me midnight and both of us no talk
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Stand in front of the fridge at midnight, open it quietly, and move like you and the fridge have an agreement.
+howToFilm: Use low room light with fridge glow; keep movements slow and guilty.
+caption: silent agreement
+
+replaceId: FOOD_V2_038
+hook: plate dey wait since but cook keep saying almost done
+anchor: plate
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: An empty plate waits on the table while the cook keeps promising the food is almost done.
+howToFilm: Cut between the lonely plate and the cook doing things that do not look close to finished.
+caption: almost has landlord
+
+replaceId: FOOD_V2_039
+hook: groceries start as plan and end as everybody sample
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: Show groceries slowly reduced by different people taking tiny samples and denying impact.
+howToFilm: Use close-ups of hands taking bits; end with the groceries looking attacked and everyone acting normal.
+caption: sample committee
+
+replaceId: FOOD_V2_040
+hook: pan sizzle once and my shoulder enter the cooking
+anchor: pan
+sourceDomain: home
+targetProjection: food
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-11
+whatToShow: The pan gives one satisfying sizzle and you immediately start cooking with too much body language.
+howToFilm: Film the sizzle close-up, then cut to you stirring with raised shoulder and unnecessary confidence.
+caption: shoulder chef
+
+VALIDATION REQUIREMENTS
+
+1. Verify all hooks are lowercase.
+2. Verify no duplicate hooks.
+3. Verify anchors are ONLY:
+   - plate
+   - fridge
+   - fork
+   - groceries
+   - oven
+   - pan
+4. Verify every entry uses:
+   sourceDomain: home
+5. Verify every entry uses:
+   pidginLevel: light_pidgin
+6. Verify no entry imported into ng_clean.
+7. Verify no western/W2 pools touched.
+8. Verify no existing approved entries accidentally removed.
+9. Verify no rejected entries reintroduced.
+10. Verify no validator/scorer/prompt/API/mobile/DB/schema/runtime changes.
+
+REQUIRED QA / REPORT FILES
+
+Create:
+- `.local/P10_CORPUS_FOOD_AUTHOR_IMPORT_VALIDATION_REPORT.md`
+- `.local/qa-runs/p10_corpus_food_author_import_validation.json`
+- `.local/qa-runs/p10_corpus_food_author_import_validation_summary.json`
+
+REPORT MUST INCLUDE
+
+1. Verdict
+2. Number of entries received
+3. Number imported
+4. Any rejected entries and exact reasons
+5. Files touched
+6. Confirmation:
+   - no runtime changes
+   - no scorer changes
+   - no validator changes
+   - no selector changes
+   - no API/mobile/DB/schema changes
+7. ng_light_pidgin corpus count before/after
+8. home→food eligible count before/after
+9. food-anchor distribution before/after
+10. duplicate-hook audit
+11. validation results
+12. typecheck result
+13. relevant tests run
+14. recommended next phase
+
+REQUIRED TESTS
+
+1. Typecheck:
+pnpm --filter @workspace/api-server run typecheck
+
+2. Relevant Nigerian corpus / pack tests
+
+3. Relevant projection/T2 tests if present
+
+4. If full suite feasible:
+pnpm --filter @workspace/api-server exec vitest run
+
+If not feasible:
+run deterministic chunks and report exact totals.
+
+KNOWN OUT OF SCOPE
+
+- P11Rotation flake remains out of scope
+- topK env-isolation issue remains separately known
+- do not fix either in this phase
+
+ACCEPTANCE CRITERIA
+
+1. 40 curated entries evaluated.
+2. Valid entries imported exactly with no coding-agent rewriting.
+3. home→food eligible count materially increases.
+4. No duplicate hooks.
+5. No sourceDomain/style mistakes.
+6. No runtime/scorer/validator/API/mobile/DB/schema/prompt changes.
+7. Typecheck clean.
+8. Relevant tests pass.
+9. Report files written.
+
+If any entry fails:
+- do NOT rewrite it
+- do NOT substitute another entry
+- reject it with exact reason
+- continue with remaining valid entries only.

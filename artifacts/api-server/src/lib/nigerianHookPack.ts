@@ -103,6 +103,14 @@ import type { LanguageStyle } from "./tasteCalibration";
 // control returns here, so the assignment below sees a fully
 // initialised frozen array.
 import { APPROVED_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackApproved.js";
+// PHASE P10 — sibling module exporting 40 curated home→food entries
+// (FOOD_V2_001..040, BI-LIGHT-PIDGIN 2026-05-11). Concatenated at the
+// TAIL of the live pack below — pattern mirrors W2-N's
+// `westernHookPackBatchNext2` sibling-module concat. Boot-time
+// `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` re-validates the
+// concatenated array, so the new entries pay the same boot-rule cost
+// as the auto-generated ones.
+import { FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackFoodV2.js";
 import { registerApprovedPoolReference } from "./nigerianHookQuality.js";
 
 // Local djb2 — same canonical implementation already present in
@@ -187,7 +195,10 @@ export type NigerianPackEntry = {
 // dark pack fire and an active pack stays gated by the guard.
 export const NIGERIAN_HOOK_PACK: readonly NigerianPackEntry[] =
   isNigerianPackFeatureEnabled()
-    ? APPROVED_NIGERIAN_PROMOTION_CANDIDATES
+    ? (Object.freeze([
+        ...APPROVED_NIGERIAN_PROMOTION_CANDIDATES,
+        ...FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES,
+      ]) as readonly NigerianPackEntry[])
     : (Object.freeze([]) as readonly NigerianPackEntry[]);
 
 // ---------------------------------------------------------------- //

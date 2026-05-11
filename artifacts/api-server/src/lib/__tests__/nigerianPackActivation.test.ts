@@ -102,14 +102,20 @@ describe("N1-S — NIGERIAN_HOOK_PACK activation boundary", () => {
       process.env.LUMINA_NG_PACK_ENABLED = "true";
     });
 
-    it("NIGERIAN_HOOK_PACK equals the approved pool", async () => {
+    it("NIGERIAN_HOOK_PACK equals approved pool concatenated with FOOD_V2 sibling", async () => {
       // PHASE N1-FULL-SPEC — pool size is now sourced from the
-      // approved file (was hard-coded 50 pre-ingest). After the
-      // BI 2026-05-06 review pass the size is whatever survives the
-      // production validator on the full 300-draft worksheet
-      // (currently 63; see N1_REJECTION_REPORT.md). The structural
-      // invariants tested here are: pack equals the approved
-      // candidates by reference, AND every entry passes integrity.
+      // approved file (was hard-coded 50 pre-ingest).
+      //
+      // PHASE P10 — the live pack is now the W2-N-style concat of the
+      // auto-generated APPROVED_NIGERIAN_PROMOTION_CANDIDATES followed
+      // by the FOOD_V2 sibling module's curated home→food entries.
+      // The pre-P10 reference-equality assertion (`pack === approved`)
+      // is intentionally broken by the concat — the new structural
+      // invariants are: (a) length equals approved + FOOD_V2 lengths,
+      // (b) the head of the pack is the approved pool by content +
+      // order, (c) the tail of the pack is the FOOD_V2 module by
+      // content + order, and (d) every entry passes integrity (asserted
+      // by the next test).
       const {
         NIGERIAN_HOOK_PACK,
         isNigerianPackFeatureEnabled,
@@ -117,12 +123,26 @@ describe("N1-S — NIGERIAN_HOOK_PACK activation boundary", () => {
       const { APPROVED_NIGERIAN_PROMOTION_CANDIDATES } = await import(
         "../nigerianHookPackApproved.js"
       );
+      const { FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES } = await import(
+        "../nigerianHookPackFoodV2.js"
+      );
       expect(isNigerianPackFeatureEnabled()).toBe(true);
       expect(NIGERIAN_HOOK_PACK.length).toBeGreaterThanOrEqual(50);
       expect(NIGERIAN_HOOK_PACK.length).toBe(
-        APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length,
+        APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length +
+          FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length,
       );
-      expect(NIGERIAN_HOOK_PACK).toBe(APPROVED_NIGERIAN_PROMOTION_CANDIDATES);
+      const approvedLen = APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length;
+      for (let i = 0; i < approvedLen; i++) {
+        expect(NIGERIAN_HOOK_PACK[i]).toBe(
+          APPROVED_NIGERIAN_PROMOTION_CANDIDATES[i],
+        );
+      }
+      for (let i = 0; i < FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length; i++) {
+        expect(NIGERIAN_HOOK_PACK[approvedLen + i]).toBe(
+          FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES[i],
+        );
+      }
     });
 
     it("integrity assert passes on the approved pack", async () => {
