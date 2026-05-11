@@ -1,0 +1,226 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-AUDIT
+
+Mode:
+Read-only runtime and selector audit.
+
+Purpose:
+The ng_light_pidgin corpus is now much healthier after Packets 1B, 1C, 1D, and Reject-Repair V2:
+- approved light_pidgin count: 230
+- HQS < 40: 0
+- reject-repair complete
+- typecheck clean
+- full api-server tests passing
+- no scorer / validator / selector / prompt / API / mobile / DB / schema changes from corpus work
+
+But runtime QA still shows limited variety:
+- ng_light_pidgin runtime distinct hooks: 17/60
+- regionDecorated: 19/60
+- fallback: 0
+- errors: 0
+
+We need to find WHY a 230-entry healthy corpus compresses into only 17 distinct hooks in 60 runtime ideas.
+
+Important:
+Do NOT implement fixes.
+Do NOT change selector behavior.
+Do NOT change scorer, validator, prompts, API, mobile, DB, schema, K, memory, slot-0 feed, or corpus.
+Do NOT author or rewrite entries.
+Do NOT loosen gates.
+Do NOT remove any entries.
+Do NOT import anything.
+
+This task is audit only.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin product option for now.
+
+Scope:
+Audit the current ng_light_pidgin runtime selection path after all recent corpus packets are applied.
+
+Primary files to inspect:
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/hybridIdeator.ts`
+- `artifacts/api-server/src/lib/nigerianHookPack.ts`
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+- `artifacts/api-server/src/lib/nigerianHookQuality.ts`
+- `artifacts/api-server/src/lib/ideaScorer.ts`
+- `artifacts/api-server/src/lib/retentionNoveltyScorer.ts`
+- `artifacts/api-server/src/lib/nigerianStylePenalty.ts`
+- `artifacts/api-server/src/qa/nigerianStagingQa.ts`
+- `.local/scripts/n1E2eNigeriaQaProbe.mts`
+- prior Packet 1B / 1C / 1D / V2 import reports and summaries
+
+Questions to answer:
+1. Why does ng_light_pidgin runtime QA show only 17 distinct hooks out of 60 ideas?
+2. Is the bottleneck corpus quality, selector weighting, pack reservation, per-core collapse, HQS concentration, memory behavior, pattern variation, score dominance, or QA harness shape?
+3. Are newly imported Packets 1B/1C/1D/V2 entries actually reachable at runtime?
+4. Are the new entries being filtered out before final selection?
+5. Are the new entries entering the candidate pool but losing ranking?
+6. Are they present in merged candidates but missing from final?
+7. Is pack source usage too low, too concentrated, or being overwritten by pattern variations?
+8. Are only a few high-HQS old entries dominating?
+9. Is anchor/skeleton diversity healthy in the candidate pool but compressed later?
+10. Is per-creator memory active for ng_light_pidgin, and if so, is it operating at entry-id, hook, anchor, or skeleton level?
+11. Does the QA probe create enough creator/session variation to exercise diversity?
+12. Does deterministic seeding or reused creator IDs make runtime diversity look worse than real user behavior?
+13. Are regenerated / sequential batches using exclude hooks or memory correctly for ng_light_pidgin?
+14. Does slot-0 or first-card behavior differ from full-batch behavior?
+15. Is any strict-pidgin legacy path still affecting ng_light_pidgin selection?
+
+Required instrumentation:
+You may create temporary local audit scripts under `.local/scripts/` only.
+You may write JSON/MD audit outputs under `.local/qa-runs/` and `.local/`.
+Do not modify production source files unless the script is purely local and non-runtime.
+Do not add permanent telemetry.
+Do not leave source behavior changed.
+
+Audit probes to run:
+A. Corpus reachability probe
+- Load all approved `pidginLevel === "light_pidgin"` entries.
+- Count total entries.
+- Compute HQS distribution.
+- Identify top 30 by HQS.
+- Identify entries added/replaced by Packets 1B/1C/1D/V2 if possible.
+- Report whether recent packet entries are visible in the approved pack.
+
+B. Candidate generation probe
+For ng_light_pidgin:
+- Run the core candidate generation path for at least 10 deterministic creators.
+- Capture all pack candidates before final selection if possible.
+- Count:
+  - total pack candidates generated
+  - distinct pack entry IDs
+  - distinct hooks
+  - distinct anchors
+  - source mix
+  - top repeated hooks
+  - top repeated entry IDs
+  - top repeated anchors
+  - HQS distribution of candidates
+  - how many recent packet entries appear
+
+C. Final selection probe
+For ng_light_pidgin:
+- Run 10 creators × 5 sequential batches × 6 ideas.
+- Capture final ideas.
+- Count:
+  - distinct hooks out of 300 if feasible, or 60 minimum if runtime budget requires
+  - distinct pack entry IDs
+  - distinct slot-0 hooks
+  - top hook share
+  - top entry share
+  - source mix
+  - packet-origin mix if inferable
+  - number of recent Packet 1B/1C/1D/V2 entries surfaced
+  - old high-HQS entries repeated
+  - anchor distribution
+
+D. Funnel loss analysis
+For each recent packet group if identifiable:
+- approved corpus count
+- candidate pool count
+- final selected count
+- slot-0 count
+- common rejection/loss reason if available:
+  - not generated
+  - generated but low score
+  - generated but duplicate-filtered
+  - generated but lost to pattern variation
+  - generated but memory-filtered
+  - generated but diversity-filtered
+  - generated but below pack reservation threshold
+
+E. Memory / diversity behavior audit
+Inspect and report:
+- whether ng_light_pidgin has per-creator pack memory
+- what it stores
+- whether memory is read before candidate generation, after candidate generation, or during final selection
+- whether repeated hooks across sequential batches should be prevented
+- whether memory is disabled in the QA harness
+- whether excludeHooks applies to ng_light_pidgin runtime batches
+- whether the current memory horizon is too short or not hooked to pack entries
+
+F. Selector architecture diagnosis
+Map the current path:
+1. approved pack entries
+2. eligibility / activation
+3. candidate generation
+4. scoring
+5. pack-aware retention / reservation
+6. pattern variation merge
+7. final ranking
+8. diversity / anti-repeat
+9. memory write
+
+For each step, state whether it can compress diversity.
+
+G. Safe fix options
+Do not implement. Only recommend.
+Rank possible follow-up fixes by risk and likely impact:
+- QA harness-only correction
+- light_pidgin pack-aware anti-repeat
+- entry-id memory widening
+- final-batch anchor cap
+- pack reservation widening
+- per-core runner-up retention
+- score tiebreak randomization by creator/session
+- packet-origin boost
+- HQS cap/temperature
+- first-card only diversity overlay
+- excludeHooks propagation
+- selector-side no-repeat for top repeated hooks
+
+For every option, include:
+- what it changes
+- why it might help
+- risk level
+- files likely touched
+- whether it affects ng_clean or western
+- whether it requires migrations/API changes
+- recommended acceptance criteria
+
+Important judgment rule:
+Do not jump straight to implementation.
+The answer must identify the actual compression point first.
+
+Output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit_summary.json`
+
+Final report format:
+1. Verdict
+2. Executive summary
+3. Current corpus state
+4. Runtime diversity headline
+5. Candidate pool diversity
+6. Final selection diversity
+7. Slot-0 diversity
+8. Recent packet reachability
+9. Funnel loss analysis
+10. Memory / anti-repeat behavior
+11. Selector compression points
+12. Whether this is corpus, selector, memory, or QA harness
+13. Ranked follow-up options
+14. Recommended next phase
+15. Acceptance criteria for next phase
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No corpus changes.
+3. No scorer / validator / selector / prompt / API / mobile / DB / schema changes.
+4. Clear explanation of why runtime distinct hooks are low.
+5. Clear proof whether recent Packet 1B/1C/1D/V2 entries are reachable.
+6. Clear proof whether compression happens before candidate generation, during scoring, during merge, during final selection, or in QA harness.
+7. Clear recommended next phase with bounded implementation scope.
+8. No speculative fix without evidence.
+
+Stop condition:
+If you cannot capture candidate-level data without modifying production source behavior, create a local script that imports existing functions and reports what it can. If that is still not possible, stop and report the exact observability gap and the safest minimal instrumentation-only audit needed next.

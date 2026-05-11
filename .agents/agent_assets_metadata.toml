@@ -1451,3 +1451,27 @@ id = "-0ZyL0jVYdE3seWnuQFic"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_reject_repair_packet_import.json"
 type = "unspecified"
 title = "V2 Reject-Repair Per-Entry Verdicts JSON"
+
+[[outputs]]
+id = "GETG4ldF4pkZb8ghkhWNg"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_AUDIT.md"
+type = "text"
+title = "N1 NG-Light-Pidgin Runtime Diversity Audit (15 sections)"
+
+[[outputs]]
+id = "ymnjn7OBG9oQfTVUKAM4-"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit_summary.json"
+type = "unspecified"
+title = "Audit Summary JSON"
+
+[[outputs]]
+id = "8ZdA_TGghZ_UvEcI5YZuB"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_audit.json"
+type = "unspecified"
+title = "Audit Evidence JSON"
+
+[[outputs]]
+id = "5w1KMIgzDD4vwyDzV7L9o"
+uri = "file://.local/qa-runs/n1_audit_packet_origin_map.json"
+type = "unspecified"
+title = "Slot-0 + Packet-Origin Map"
