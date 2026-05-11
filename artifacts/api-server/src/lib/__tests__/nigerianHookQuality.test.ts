@@ -16,6 +16,26 @@ import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+// IMPORT ORDER NOTE (BI 2026-05-11 — N1-NG-PACK-BASELINE-TEST-REFRESH):
+// `nigerianHookPack.js` MUST be imported BEFORE `nigerianHookQuality.js`
+// in this test file. There is a circular import between the two
+// modules: `nigerianHookQuality.ts` exports `registerApprovedPoolReference`
+// (which assigns the module-scoped `let APPROVED_POOL_REF`), and
+// `nigerianHookPack.ts` calls that registrar at top level whenever
+// `NIGERIAN_HOOK_PACK.length > 0`. Pre-W2/N1 the live pack was
+// empty so the registrar call was skipped and the import order did
+// not matter. Post-W2/N1 the live pack is non-empty (231 entries),
+// the registrar call fires, and if `nigerianHookQuality.js` is loaded
+// FIRST the `let APPROVED_POOL_REF` declaration has not yet executed
+// when the assignment fires inside the circular re-entry — TDZ.
+// Loading `nigerianHookPack.js` first lets `nigerianHookQuality.js`'s
+// top-level `let` initialize during the circular re-entry BEFORE the
+// registrar call runs, eliminating the TDZ. Test-only fix; no source
+// changes required.
+import {
+  NIGERIAN_HOOK_PACK,
+  type NigerianPackEntry,
+} from "../nigerianHookPack.js";
 import {
   scoreNigerianPackEntry,
   scoreNigerianPackEntryDetailed,
@@ -23,10 +43,6 @@ import {
   registerApprovedPoolReference,
   type ScoringContext,
 } from "../nigerianHookQuality.js";
-import {
-  NIGERIAN_HOOK_PACK,
-  type NigerianPackEntry,
-} from "../nigerianHookPack.js";
 import { APPROVED_NIGERIAN_PROMOTION_CANDIDATES } from "../nigerianHookPackApproved.js";
 import { scoreHookQuality } from "../hookQuality.js";
 

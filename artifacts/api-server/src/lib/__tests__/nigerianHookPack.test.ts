@@ -91,12 +91,36 @@ const VALID_HEAVY: NigerianPackEntry = {
 const SYNTHETIC_POOL: readonly NigerianPackEntry[] =
   Object.freeze([VALID_LIGHT, VALID_HEAVY]);
 
-describe("N1 — module load + empty pack baseline", () => {
-  it("ships with an empty pool by default", () => {
-    expect(NIGERIAN_HOOK_PACK.length).toBe(0);
+describe("N1 — module load + live pack baseline (BI 2026-05-11)", () => {
+  // PRE-W2/N1: this suite asserted `NIGERIAN_HOOK_PACK.length === 0`
+  // because the live approved pool shipped empty. After the W2/N1
+  // promotion pipeline (BI 2026-05-06+) the live pool is intentionally
+  // non-empty (231 entries at time of refresh). The refreshed
+  // invariants below assert the live pool's STRUCTURAL contract
+  // (non-empty, all entries clean of PENDING/AGENT-PROPOSED stamps,
+  // every entry carries a valid `pidginLevel` ∈ {light_pidgin,pidgin})
+  // — they DO NOT pin the exact count (which grows with each
+  // promotion batch) and DO NOT loosen any safety check.
+  it("live pool is non-empty (W2/N1 promotions present)", () => {
+    expect(NIGERIAN_HOOK_PACK.length).toBeGreaterThan(0);
   });
 
-  it("integrity assert is a no-op on the empty pool", () => {
+  it("every live entry carries a real reviewer stamp (no PENDING / no AGENT-PROPOSED)", () => {
+    for (const e of NIGERIAN_HOOK_PACK) {
+      expect(e.reviewedBy.trim().length).toBeGreaterThan(0);
+      expect(e.reviewedBy.trim()).not.toBe("PENDING_NATIVE_REVIEW");
+      expect(e.reviewedBy.trim().startsWith("AGENT-PROPOSED")).toBe(false);
+    }
+  });
+
+  it("every live entry carries a valid pidginLevel (light_pidgin or pidgin)", () => {
+    const ALLOWED = new Set(["light_pidgin", "pidgin"]);
+    for (const e of NIGERIAN_HOOK_PACK) {
+      expect(ALLOWED.has(e.pidginLevel)).toBe(true);
+    }
+  });
+
+  it("integrity assert is a no-op on the live pool (structurally valid)", () => {
     expect(() =>
       assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK),
     ).not.toThrow();
@@ -401,13 +425,58 @@ describe("N1 — canActivateNigerianPack matrix (cross-region leak proof)", () =
 // ---------------------------------------------------------------- //
 
 describe("N1 — getEligibleNigerianPackEntries", () => {
-  it("returns [] when guard fails (empty production pool, any inputs)", () => {
+  // PRE-W2/N1: with an empty live pool the guard returned [] for the
+  // "happy" path. After W2/N1 promotions the live pool is non-empty,
+  // so the happy path now returns >0 entries — refreshed below to
+  // assert the live-pool happy-path invariants (length >0, every
+  // returned entry carries a valid `pidginLevel` AND a real reviewer
+  // stamp, no PENDING / AGENT-PROPOSED leak through the eligibility
+  // filter).
+  it("returns >0 entries on the happy path (nigeria + pidgin + flag on, live pool)", () => {
     const out = getEligibleNigerianPackEntries({
       region: "nigeria",
       languageStyle: "pidgin",
       flagEnabled: true,
     });
+    expect(out.length).toBeGreaterThan(0);
+    const ALLOWED = new Set(["light_pidgin", "pidgin"]);
+    for (const e of out) {
+      expect(ALLOWED.has(e.pidginLevel)).toBe(true);
+      expect(e.reviewedBy.trim().length).toBeGreaterThan(0);
+      expect(e.reviewedBy.trim()).not.toBe("PENDING_NATIVE_REVIEW");
+      expect(e.reviewedBy.trim().startsWith("AGENT-PROPOSED")).toBe(false);
+    }
+  });
+
+  it("returns [] when flag is OFF on the live pool (env-gate honored)", () => {
+    const out = getEligibleNigerianPackEntries({
+      region: "nigeria",
+      languageStyle: "pidgin",
+      flagEnabled: false,
+    });
     expect(out.length).toBe(0);
+  });
+
+  it("returns [] for non-nigeria regions on the live pool (no cross-region leak)", () => {
+    for (const region of ["western", "india", "philippines"] as Region[]) {
+      const out = getEligibleNigerianPackEntries({
+        region,
+        languageStyle: "pidgin",
+        flagEnabled: true,
+      });
+      expect(out.length).toBe(0);
+    }
+  });
+
+  it("returns [] for nigeria + clean / null on the live pool (no clean-cohort leak)", () => {
+    for (const languageStyle of [null, "clean"] as const) {
+      const out = getEligibleNigerianPackEntries({
+        region: "nigeria",
+        languageStyle,
+        flagEnabled: true,
+      });
+      expect(out.length).toBe(0);
+    }
   });
 
   it("returns [] when synthetic pool is provided but region is wrong", () => {

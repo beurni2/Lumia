@@ -1541,3 +1541,9 @@ id = "6TgjlEuJeXoOAx0OHbyKe"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_topk3_retention_summary.json"
 type = "unspecified"
 title = "P4 runtime probe summary JSON"
+
+[[outputs]]
+id = "swzy16YcFAgH6EF9IC7sh"
+uri = "file://.local/N1_NG_PACK_BASELINE_TEST_REFRESH_REPORT.md"
+type = "text"
+title = "N1-NG-PACK-BASELINE-TEST-REFRESH — Final Report"

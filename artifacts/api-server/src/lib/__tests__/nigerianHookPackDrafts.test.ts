@@ -125,12 +125,20 @@ describe("N1 drafts — assert sensitivity (synthetic failures)", () => {
   });
 });
 
-describe("N1 drafts — live pack remains DARK", () => {
-  it("NIGERIAN_HOOK_PACK is still empty", () => {
-    expect(NIGERIAN_HOOK_PACK.length).toBe(0);
+describe("N1 drafts — live pack is LIT (W2/N1 promotions present, BI 2026-05-11)", () => {
+  // PRE-W2/N1: this suite asserted the live pack was DARK (empty)
+  // and the activation guard refused to activate. After the W2/N1
+  // promotion pipeline (BI 2026-05-06+) the live pack is LIT —
+  // promoted entries flow through the eligibility filter and the
+  // activation guard now returns true on the happy path.
+  // Refreshed invariants: drafts STILL never leak (defense-in-depth
+  // guard below is unchanged), live pack is non-empty AND structurally
+  // valid, the activation guard fires only on the supported cohort.
+  it("NIGERIAN_HOOK_PACK is non-empty (W2/N1 promotions present)", () => {
+    expect(NIGERIAN_HOOK_PACK.length).toBeGreaterThan(0);
   });
 
-  it("activation guard returns false for live pack regardless of draft volume", () => {
+  it("activation guard returns true for nigeria+pidgin+flag on the live pack", () => {
     expect(
       canActivateNigerianPack({
         region: "nigeria",
@@ -138,16 +146,23 @@ describe("N1 drafts — live pack remains DARK", () => {
         flagEnabled: true,
         packLength: NIGERIAN_HOOK_PACK.length,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("getEligibleNigerianPackEntries returns [] under default (live) pool", () => {
+  it("getEligibleNigerianPackEntries returns >0 valid entries on the happy path (live pool)", () => {
     const out = getEligibleNigerianPackEntries({
       region: "nigeria",
       languageStyle: "pidgin",
       flagEnabled: true,
     });
-    expect(out.length).toBe(0);
+    expect(out.length).toBeGreaterThan(0);
+    const ALLOWED = new Set(["light_pidgin", "pidgin"]);
+    for (const e of out) {
+      expect(ALLOWED.has(e.pidginLevel)).toBe(true);
+      expect(e.reviewedBy.trim().length).toBeGreaterThan(0);
+      expect(e.reviewedBy.trim()).not.toBe(PENDING_NATIVE_REVIEW);
+      expect(e.reviewedBy.trim().startsWith("AGENT-PROPOSED")).toBe(false);
+    }
   });
 });
 

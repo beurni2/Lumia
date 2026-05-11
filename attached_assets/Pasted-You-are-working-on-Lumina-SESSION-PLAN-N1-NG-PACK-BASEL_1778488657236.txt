@@ -1,0 +1,138 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-PACK-BASELINE-TEST-REFRESH
+
+Mode:
+Test-only cleanup.
+
+Purpose:
+P4 topK=3 runtime diversity shipped successfully, but the full api-server suite still has 5 pre-existing Nigerian pack test failures.
+
+Those failures are unrelated to P4. They come from stale Nigerian pack baseline assertions that still expect the live approved pack to be empty / zero-length, even though W2/N1 promotions now intentionally make the approved pack non-empty.
+
+Known current state:
+- P4 topK=3 PASS
+- temporary P3 observer removed
+- typecheck clean
+- focused topK tests: 10/10 passing
+- runtime probe: 18 distinct pack IDs across 5 batches
+- pack share: 70%
+- underfill: 0
+- fallback regression: 0
+- western/W2 leak into NG: 0
+- full api-server chunked run: approx 1683/1688 passing
+- 5 pre-existing failures are in:
+  - `nigerianHookPack.test.ts`
+  - `nigerianHookPackDrafts.test.ts`
+  - `nigerianHookQuality.test.ts`
+- failure theme:
+  - stale assertions that live approved pack pool is empty / length 0
+  - TDZ around `APPROVED_POOL_REF`
+  - tests predate the now-live W2/N1 approved pack pool
+
+Important:
+This phase is test-only.
+
+Do NOT change runtime behavior.
+Do NOT change scorer, validator, selector, prompt, API, mobile, DB, schema, memory, slot-0, corpus, production flags, or pack contents.
+Do NOT author entries.
+Do NOT delete entries.
+Do NOT loosen gates.
+
+Goal:
+Refresh stale tests so they assert the current intended world:
+- approved Nigerian pack is non-empty when W2/N1 promotions are present
+- tests validate schema/gates/safety/invariants, not stale zero-length assumptions
+- strict product direction remains ng_clean + ng_light_pidgin
+- no accidental western/null leakage
+- no mocking/stereotype entries
+- no invalid reviewer stamps
+- no PENDING entries in approved pack
+
+Files to inspect:
+- `artifacts/api-server/src/lib/__tests__/nigerianHookPack.test.ts`
+- `artifacts/api-server/src/lib/__tests__/nigerianHookPackDrafts.test.ts`
+- `artifacts/api-server/src/lib/__tests__/nigerianHookQuality.test.ts`
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+- `artifacts/api-server/src/lib/nigerianHookPackDrafts.ts`
+- `artifacts/api-server/src/lib/nigerianHookPack.ts`
+- `artifacts/api-server/src/lib/nigerianHookQuality.ts`
+- P4 report:
+  - `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P4_TOPK3_RETENTION_REPORT.md`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_topk3_retention_summary.json`
+
+Tasks:
+1. Reproduce the 5 failures.
+2. Identify each stale assertion precisely.
+3. Update tests only.
+4. Replace “approved pool is empty” assumptions with current invariant assertions:
+   - approved pool length is > 0
+   - approved entries are structurally valid
+   - approved entries have valid `pidginLevel`
+   - approved entries do not include pending reviewer stamps
+   - approved entries do not trigger mocking/stereotype banned patterns
+   - approved entries are eligible only for intended Nigerian cohorts
+   - approved entries do not leak into western/null cohorts
+5. Fix the TDZ test issue by making the test reference/import order safe.
+6. Preserve all meaningful safety/style/activation assertions.
+7. Do not weaken or delete tests just to make green.
+
+Required tests to run:
+
+Focused failing suites:
+```bash
+pnpm --filter @workspace/api-server exec vitest run \
+  src/lib/__tests__/nigerianHookPack.test.ts \
+  src/lib/__tests__/nigerianHookPackDrafts.test.ts \
+  src/lib/__tests__/nigerianHookQuality.test.ts
+
+Nigerian pack/core related suite:
+
+pnpm --filter @workspace/api-server exec vitest run src/lib/__tests__/nigerian
+
+Typecheck:
+
+pnpm --filter @workspace/api-server run typecheck
+
+Full api-server suite:
+
+pnpm --filter @workspace/api-server exec vitest run
+
+If the full suite exceeds shell timeout, run it in deterministic chunks and report exact totals.
+
+Acceptance criteria:
+
+Runtime source behavior unchanged.
+Only test files changed unless a test helper import fix is absolutely necessary.
+The 5 stale failures are resolved.
+Typecheck clean.
+Focused failing suites pass.
+Nigerian pack/core related tests pass.
+Full api-server suite passes, or chunked full suite shows all tests passing.
+No scorer/validator/selector/prompt/API/mobile/DB/schema/corpus changes.
+Final report explains exactly why the old assertions were stale and what invariants replaced them.
+
+Required output files:
+
+.local/N1_NG_PACK_BASELINE_TEST_REFRESH_REPORT.md
+.local/qa-runs/n1_ng_pack_baseline_test_refresh.json
+.local/qa-runs/n1_ng_pack_baseline_test_refresh_summary.json
+
+Final report format:
+
+Verdict: SHIPPED / PARTIAL / FAILED
+Failures reproduced
+Root cause
+Files changed
+Assertions removed or replaced
+New invariants asserted
+Tests run
+Typecheck result
+Full suite result
+Confirmation no runtime behavior changed
+Remaining risks
+Recommended next step
+
+Stop condition:
+If fixing the failures requires runtime source changes, corpus changes, validator/scorer changes, or loosening safety checks, stop and report instead of changing behavior.
