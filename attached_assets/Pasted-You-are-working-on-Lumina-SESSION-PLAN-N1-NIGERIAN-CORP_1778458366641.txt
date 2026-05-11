@@ -1,0 +1,146 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NIGERIAN-CORPUS-EXPANSION-P1-AUDIT
+
+Mode:
+Read-only corpus audit. Do not author entries. Do not implement imports.
+
+Supervisor decision:
+We are moving from the ng_clean slot-0 reliability work into a broader Nigerian corpus expansion phase.
+
+Recently shipped:
+- ng_clean slot-0 corpus feed no-authoring shipped.
+- ng_clean corpus now feeds slot 0 from an existing curated hero pool.
+- Coding agent must not author corpus entries.
+- Future entries will be supplied by supervisor/user as curated packets.
+
+Goal:
+Audit the current Nigerian corpus landscape across:
+1. ng_clean
+2. ng_light_pidgin
+3. ng_pidgin
+
+The purpose is to prepare a disciplined expansion plan, not to add entries yet.
+
+Hard constraints:
+1. Do not create entries.
+2. Do not rewrite entries.
+3. Do not import entries.
+4. Do not delete entries.
+5. Do not change scorer.
+6. Do not change validators.
+7. Do not change selectors.
+8. Do not change prompts.
+9. Do not change API/mobile/DB/schema.
+10. Do not change K.
+11. Do not change memory or slot-0 feed behavior.
+12. Read-only audit only.
+
+Audit scope:
+Inspect all current Nigerian corpus sources relevant to:
+- ng_clean
+- ng_light_pidgin
+- ng_pidgin
+
+Include:
+- clean-core corpus
+- pidgin/light-pidgin packs
+- hook packs / draft packs / approved packs if they exist
+- tests and wiring files that define pack activation or cohort separation
+- any current hero-pool or pickerEligible logic relevant to each cohort
+
+Required metrics per cohort:
+1. total entries
+2. reviewer stamp distribution
+3. HQS distribution:
+   - max
+   - median
+   - min
+   - count HQS >= 50
+   - count HQS >= 60
+   - count HQS >= 70
+4. validator-clean count
+5. pickerEligible count, if applicable
+6. slot-0 hero-pool count, if applicable
+7. top 20 hooks by HQS
+8. bottom 20 hooks by HQS
+9. repeated anchors
+10. repeated premise families
+11. repeated hook skeletons
+12. obvious weak / robotic / scorer-shaped hooks
+13. strongest first-card candidates
+14. gaps by theme
+15. gaps by filming situation
+16. style leakage risk:
+   - clean sounding too pidgin
+   - light pidgin sounding too heavy
+   - pidgin sounding caricatured or forced
+17. cohort leakage risk
+18. underrepresented everyday Nigerian comedy areas
+
+Style criteria:
+For ng_clean:
+- clean Nigerian English
+- no heavy pidgin markers
+- human, observational, filmable
+- household politics, adulting, payment, family, phone/app, public embarrassment
+
+For ng_light_pidgin:
+- light Nigerian flavor
+- readable to broad audience
+- small pidgin seasoning, not heavy
+- not caricatured
+- not forced slang
+
+For ng_pidgin:
+- stronger pidgin voice
+- natural, funny, culturally fluent
+- no stereotype shortcuts
+- no overdone “wahala” filler
+- not AI-ish pidgin
+
+Required analysis:
+1. Identify how many new entries each cohort likely needs.
+2. Recommend target packet size per cohort.
+3. Recommend expected import target per cohort.
+4. Recommend target premise-family distribution.
+5. Recommend target hook-shape distribution.
+6. Recommend banned/avoid patterns for each cohort.
+7. Recommend first-card candidate standards for each cohort.
+8. Identify any existing entries that should be considered for future removal, but do not remove them.
+9. Identify whether current scoring/gates are fair to each cohort or if any future audit is needed.
+10. Identify whether corpus expansion alone is enough or if any pipeline issue may block surfaced entries.
+
+Output files:
+- `.local/N1_NIGERIAN_CORPUS_EXPANSION_P1_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_nigerian_corpus_expansion_p1_audit.json`
+- `.local/qa-runs/n1_nigerian_corpus_expansion_p1_audit_summary.json`
+
+Final report format:
+1. Verdict
+2. Corpus inventory by cohort
+3. HQS / eligibility summary
+4. Strongest existing entries by cohort
+5. Weakest / riskiest patterns by cohort
+6. Style-separation analysis
+7. Theme and premise-family gaps
+8. First-card hero-pool analysis
+9. Recommended expansion size:
+   - ng_clean
+   - ng_light_pidgin
+   - ng_pidgin
+10. Recommended authoring brief for each cohort
+11. Risks and blockers
+12. Next phase recommendation
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No corpus changes.
+3. Clear counts and HQS distributions for all three cohorts.
+4. Clear expansion recommendation for all three cohorts.
+5. Clear authoring brief that supervisor can use to write candidate packets.
+6. No coding-agent-authored entries.
+
+Important:
+Do not author entries. This phase exists so the supervisor/user can write better curated packets next.

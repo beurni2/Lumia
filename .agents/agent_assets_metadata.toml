@@ -1301,3 +1301,21 @@ id = "E76QuqvT8_74ZQdxnyZnT"
 uri = "file://.local/qa-runs/n1_ng_clean_slot0_corpus_feed_no_authoring.json"
 type = "unspecified"
 title = "QA Full JSON"
+
+[[outputs]]
+id = "duLOIH8pcx4xpWtUT5fOX"
+uri = "file://.local/N1_NIGERIAN_CORPUS_EXPANSION_P1_AUDIT_REPORT.md"
+type = "text"
+title = "N1 Nigerian Corpus Expansion P1 Audit — Report"
+
+[[outputs]]
+id = "0eudGlYQjhJB5fhFHEUxL"
+uri = "file://.local/qa-runs/n1_nigerian_corpus_expansion_p1_audit_summary.json"
+type = "unspecified"
+title = "Audit Summary JSON"
+
+[[outputs]]
+id = "ZV4el4ioZNPxRSXggBAxJ"
+uri = "file://.local/qa-runs/n1_nigerian_corpus_expansion_p1_audit.json"
+type = "unspecified"
+title = "Audit Full JSON"
