@@ -1,0 +1,230 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P12-T2-PROJECTION-AWARE-ATTEMPT-BUDGET
+
+Mode:
+Surgical runtime implementation + verification.
+
+Purpose:
+P11-T3 root-cause audit proved FOOD_V2 / widened-edge entries are not shipping because they are never attempted.
+
+Root cause:
+- T2 projection widening increases matching[] to 80–167 candidates per core.
+- FOOD_V2 entries are appended at the tail of NIGERIAN_HOOK_PACK.
+- matching[] preserves pack order.
+- salt rotation is too narrow in practice.
+- NIGERIAN_PACK_ELIGIBLE_DRAW_CAP=12 closes before FOOD_V2 / T2-only projected entries are reached.
+- Therefore widened entries never enter authorPackEntryAsIdea, passing[], retention, or slot reservation.
+
+Important conclusion:
+This is NOT a corpus quality issue.
+This is NOT a validator issue.
+This is NOT a ranker issue.
+This is NOT a memory issue.
+This is NOT a topK retention issue.
+The problem is lack of attempt budget for T2-only projected entries.
+
+Goal:
+Implement a small projection-aware attempt budget inside the existing Nigerian pack attempt loop so T2-only projected entries get attempted when the T2 flag is active.
+
+Critical constraints:
+Do NOT loosen validators.
+Do NOT change scorers.
+Do NOT change slot reservation logic.
+Do NOT change memory logic.
+Do NOT change prompts/API/mobile/DB/schema.
+Do NOT import more corpus.
+Do NOT rewrite entries.
+Do NOT add projection edges.
+Do NOT lift/remove the global draw cap broadly.
+Do NOT reorder the entire pack as a hack.
+Do NOT move FOOD_V2 to the head of the pack.
+Do NOT alter production flags.
+
+Implementation must be:
+- surgical
+- additive
+- flag-gated
+- deterministic
+- reversible
+- measurable
+
+Existing flags:
+- LUMINA_NG_PACK_ENABLED
+- LUMINA_NG_PACK_AWARE_RETENTION_ENABLED
+- LUMINA_NG_MEMORY_SOFT_CAP_ENABLED
+- LUMINA_NG_PACK_PROJECTION_T2_ENABLED
+
+Feature behavior:
+Only activate projection-aware attempt budgeting when:
+- Nigerian pack is active
+- T2 projection flag is ON
+- current cohort is eligible for ng_light_pidgin / pidgin pack path
+- matching[] contains T2-only candidates
+
+Definition:
+A “T2-only candidate” is a pack entry that matches the current core because of a T2 overlay projection, not because of the legacy PACK_DOMAIN_MAP projection alone.
+
+Current T2 overlay:
+- everyday → mornings
+- everyday → sleep
+- home → food
+
+Implementation guidance:
+Inside coreCandidateGenerator.ts near the pack matching / drawCap loop:
+
+1. Preserve existing matching behavior.
+2. Compute legacy projections and T2 overlay projections separately.
+3. Classify candidates into:
+   - legacyMatch candidates
+   - t2OnlyMatch candidates
+4. Preserve current deterministic rotation for legacy candidates.
+5. Reserve a small number of attempts for t2OnlyMatch candidates when T2 flag is ON.
+
+Suggested attempt budget:
+- keep total attempt budget bounded
+- do NOT blindly increase to matching.length
+- preferred design:
+  - total attempts remains approximately 12–15
+  - reserve up to 3 attempts for T2-only candidates
+  - use remaining attempts for legacy/current path candidates
+- avoid duplicate attempts if a candidate appears in both pools
+- preserve deterministic ordering and salt behavior
+
+Example conceptual shape:
+- T2 reserved attempts: min(3, t2OnlyOrdered.length)
+- legacy attempts: existing drawCap minus reserved count
+- total authored attempts should remain close to existing cap
+- if there are no T2-only candidates, behavior should be byte-equivalent or near-equivalent to current path
+
+Do NOT copy this blindly if local types require a cleaner shape. Keep the implementation minimal and type-safe.
+
+Diagnostics:
+Add staging-safe diagnostics if needed, preferably in the existing `nigerian_pack.candidate_block_diagnostic` / QA log pattern.
+
+Diagnostics should report:
+- matching count
+- legacyMatch count
+- t2OnlyMatch count
+- legacyAttempts count
+- t2OnlyAttempts count
+- t2OnlyAuthoredOk count
+- t2OnlyRejected count
+- t2OnlyEnteredPassing count if feasible
+
+Diagnostics must not alter behavior.
+Do not spam production logs.
+
+Required tests:
+Add focused unit tests for projection-aware attempt budgeting.
+
+Test cases should verify:
+1. With T2 flag OFF, behavior is unchanged.
+2. With T2 flag ON and T2-only candidates at tail, at least one T2-only candidate is attempted.
+3. Total attempt count remains bounded.
+4. Duplicate candidates are not attempted twice.
+5. Legacy candidates still get attempts.
+6. Western/null cohorts unaffected.
+7. ng_clean unaffected.
+8. FOOD_V2 / home→food candidates can enter authored/passing path when eligible.
+9. Determinism holds across repeated runs.
+10. Existing topK/NG tests still pass or known pre-existing failures are documented.
+
+Required runtime verification:
+After implementation, run a focused live-route probe.
+
+Minimum:
+ng_light_pidgin:
+- 5 creators
+- 3 batches each
+- 6 ideas each
+- total target: 90 ideas
+
+If time allows:
+- 10 creators × 5 batches × 6 ideas = 300 ideas
+
+Controls:
+ng_clean:
+- 2 creators × 2 batches × 6 ideas
+
+western/null:
+- 2 creators × 2 batches × 6 ideas
+
+Live route:
+POST /api/ideator/generate
+with QA telemetry exposed.
+
+Required runtime metrics:
+1. total ideas
+2. pack share
+3. distinct hooks
+4. distinct pack IDs
+5. FOOD_V2 shipped count
+6. distinct FOOD_V2 entries shipped
+7. home→food shipped count
+8. everyday→mornings shipped count
+9. everyday→sleep shipped count
+10. t2OnlyAttempts if diagnostic available
+11. t2OnlyAuthoredOk if diagnostic available
+12. t2OnlyRejected if diagnostic available
+13. fallback count
+14. underfill count
+15. error count
+16. latency p50 / p75 / p95 if available
+17. western leakage
+18. ng_clean leakage
+19. slot-0 FOOD_V2 count
+20. slot-0 widened-edge count
+
+Acceptance criteria:
+1. Typecheck clean.
+2. Focused tests pass.
+3. No validator/scorer/selector/API/mobile/DB/schema/prompt changes.
+4. T2 flag OFF behavior unchanged.
+5. FOOD_V2 entries are attempted when T2 flag ON.
+6. At least some FOOD_V2/home→food entries ship in live route OR diagnostic proves they are attempted and rejected by existing validators.
+7. No underfill regression.
+8. No fallback regression.
+9. No western leakage.
+10. No ng_clean leakage.
+11. No broad draw-cap removal.
+12. No pack-head reorder hack.
+13. No quality gate weakening.
+
+Required output files:
+- `.local/P12_T2_PROJECTION_AWARE_ATTEMPT_BUDGET_REPORT.md`
+- `.local/qa-runs/p12_t2_projection_aware_attempt_budget.json`
+- `.local/qa-runs/p12_t2_projection_aware_attempt_budget_summary.json`
+
+Final report structure:
+1. Verdict
+2. Root cause recap
+3. Runtime change made
+4. Flag behavior
+5. Attempt-budget design
+6. Diagnostics added
+7. Tests added/updated
+8. Typecheck result
+9. Focused test results
+10. Live-route probe setup
+11. Live-route metrics
+12. FOOD_V2 / home→food results
+13. Widened-edge results
+14. Control cohort results
+15. Leakage checks
+16. Fallback / underfill / error checks
+17. Files touched
+18. Confirmation no out-of-scope changes
+19. Remaining risks
+20. Recommended next phase
+
+Known out of scope:
+- P11Rotation flake remains out of scope.
+- topK env-isolation issue remains separately known unless directly touched by this phase.
+- Do not fix unrelated flakes.
+- Do not call proposeFollowUpTasks if existing refs already exist.
+
+Stop condition:
+If implementing projection-aware attempt budgeting requires broad refactor of the selector/ranker/validator pipeline, STOP and report.
+If T2-only candidates still cannot be attempted after a minimal implementation, STOP and report exact blocker.
