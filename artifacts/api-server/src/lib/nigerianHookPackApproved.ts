@@ -47,14 +47,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
   Object.freeze([
     Object.freeze({
       // source: DRAFT-001 [REWRITE] · cluster: whatsapp · privacyNote: Use fake screenshots / mock chats only; never real contacts.
-      hook: "who send me make I tell them say I dey come?",
-      whatToShow: "Show yesterday's group plan, then today's message asking if you dey road. You are still under the blanket, type almost there, delete it, and slowly pull the blanket higher.",
-      howToFilm: "Frame the chat beside the blanket so the lie is obvious. Show the almost-there typing, delete it, then cut on the blanket covering your face like defense.",
-      caption: "yesterday me too get mind.",
-      anchor: "dey",
+      hook: "I dey come typed, toothbrush still working",
+      whatToShow: "Creator types “I dey come” into a fake chat while brushing teeth or holding a toothbrush. They look at the message, look at their unfinished face, and start rushing around with foam-mouth panic acted safely.",
+      howToFilm: "Use a clean toothbrush prop with little or no toothpaste. Use a fake chat screen. Keep it tidy and do not show real chats.",
+      caption: "Arrival has not started.",
+      anchor: "come",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-003 [REWRITE] · cluster: group_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -135,14 +135,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-015 [REWRITE] · cluster: going_out
-      hook: "outfit ready, body don resign",
-      whatToShow: "Mirror shot without showing full face. You adjust your outfit, then sit on the bed 'for one second.' Cut to the outfit still ready while you are still sitting there.",
-      howToFilm: "Frame the outfit in the mirror and keep the bed visible behind you. Show the final outfit adjustment first, then cut on the same outfit still waiting while your body stays seated.",
-      caption: "outfit ready. person pending.",
-      anchor: "outfit",
+      hook: "mirror check passed, doorway changed my mind",
+      whatToShow: "Creator does a confident mirror check before an errand. At the doorway they pause, look outside, then return to the mirror and remove one accessory like the plan is quietly dying.",
+      howToFilm: "Film between mirror and doorway. Keep the outside unseen. Use one accessory as the visual marker of retreat.",
+      caption: "The errand looked too serious.",
+      anchor: "mirror",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-017 [REWRITE] · cluster: social_plan · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -223,14 +223,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-031 [REWRITE] · cluster: food
-      hook: "pot don humble my cooking confidence",
-      whatToShow: "Open the pot with full confidence, look inside, then close it halfway like you need a second meeting. Pause, open it again, and quietly reach for the snack cupboard like the pot has resigned.",
-      howToFilm: "Frame the pot, your hand, and the snack cupboard in the same kitchen setup. Start with the confident pot opening, hold the second look, then cut on your hand switching to snacks like the kitchen plan has changed.",
-      caption: "kitchen update: faith required.",
-      anchor: "pot",
+      hook: "cooking spoon tasted stew and reported salt",
+      whatToShow: "Creator cooks confidently, tastes with a cooking spoon, then freezes. They add a tiny amount of water, taste again, and begin smiling like nothing happened while clearly entering damage control.",
+      howToFilm: "Use a cool pot or safe food prop. Do not use hot food near camera. Focus on the taste-freeze and emergency water addition.",
+      caption: "Salt spoke first.",
+      anchor: "cooking",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-033 [REWRITE] · cluster: jollof
@@ -256,14 +256,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-037 [REWRITE] · cluster: kitchen
-      hook: "pot don humble the stew announcement",
-      whatToShow: "Open the pot and scrape the bottom with a spoon. Pause at the tiny stew left, look around the kitchen, then cover the pot back like nobody should ask questions.",
-      howToFilm: "Frame the pot from counter height so the spoon scrape is visible. Let the scrape sound and tiny stew carry the joke, then cut on the lid closing like the announcement has been cancelled.",
-      caption: "silence after stew is suspicious.",
-      anchor: "pot",
+      hook: "stew pot heard visitors and reduced itself",
+      whatToShow: "Creator proudly says there is stew for everyone. They open the stew pot and realize it is smaller than the announcement. They start spreading the stew thinly with a spoon like paint.",
+      howToFilm: "Use a pot with small safe food portion or red prop. Avoid wasting food. Show the thin spreading clearly.",
+      caption: "Stew became decoration.",
+      anchor: "stew",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-039 [REWRITE] · cluster: snacks
@@ -278,14 +278,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-041 [REWRITE] · cluster: school
-      hook: "I opened the assignment and my brain said \"abeg\"",
-      whatToShow: "Show laptop or notebook with assignment. You read one line, scroll down, then slowly close the laptop halfway.",
-      howToFilm: "Frame the assignment page and your hand on the laptop or notebook. Let the first line read happen, then cut on the slow half-close like your brain has requested leave.",
-      caption: "academic courage loading.",
+      hook: "assignment page loaded, I started cleaning table",
+      whatToShow: "Creator opens a fake assignment page, sees the workload, and immediately starts wiping the table, arranging pens, and fixing unrelated items to avoid starting.",
+      howToFilm: "Use paper assignment or fake screen. Keep the table clutter small. The procrastination cleaning should be obvious and quick.",
+      caption: "Productivity entered side quest.",
       anchor: "assignment",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-043 [REWRITE] · cluster: study
@@ -542,14 +542,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-089 [REWRITE] · cluster: kettle
-      hook: "water don boil, reason don disappear",
-      whatToShow: "Show kettle or cup with water ready. You stare at the water, then open your phone trying to remember the original plan.",
-      howToFilm: "Frame the water, kettle or cup, and your phone in one kitchen setup. Let the stare at the water last a beat, then cut on the phone search for the forgotten mission.",
-      caption: "memory left before tea.",
-      anchor: "water",
+      hook: "noodles pot waited while I searched seasoning",
+      whatToShow: "Creator stands over a noodles pot, then realizes the seasoning is missing. They search pockets, counter, and packet, while the pot sits there like it is losing respect.",
+      howToFilm: "Use an empty or cool pot for safety. Use an empty seasoning sachet or paper prop. Keep the search fast and visual.",
+      caption: "Food paused for investigation.",
+      anchor: "noodles",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-091 [REWRITE] · cluster: slippers
@@ -707,14 +707,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-121 [REWRITE] · cluster: keke_drama
-      hook: "keke setup don turn quick ride to suffering",
-      whatToShow: "Squeeze into a tight keke setup for a quick ride. Rain starts or the cover leaks, everyone protects their phone, and the whole setup becomes silent suffering.",
-      howToFilm: "Frame the tight setup with knees, hands, and phone protection visible. Let one leak or rain beat happen, then cut on everyone silently guarding their phone.",
-      caption: "speed came with suffering.",
+      hook: "keke setup squeezed me into public apology",
+      whatToShow: "Creator squeezes between two chairs pretending to enter a keke setup. Their bag hits one side, knee hits another, and they keep whispering sorry to imaginary passengers before even sitting down.",
+      howToFilm: "Stage indoors with three chairs close together. No real transport needed. Keep movements slow and safe.",
+      caption: "Entering became group project.",
       anchor: "setup",
       domain: "movement",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-127 [REWRITE] · cluster: data_wahala
@@ -773,14 +773,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-141 [REWRITE] · cluster: garri
-      hook: "garri don finish and nobody dey confess",
-      whatToShow: "Reach for the garri pack. It is empty. Shake the garri pack once, then stare into it like answers are inside.",
-      howToFilm: "Frame the garri pack close on the table. Let the empty reveal land, then show the shake and the long stare inside like the garri owes testimony.",
-      caption: "garri vanished with confidence.",
+      hook: "garri bowl reached bottom, siblings found ceiling",
+      whatToShow: "Creator shows an empty garri bowl to the room. Imaginary siblings avoid eye contact by staring at ceiling, wall, and floor. Creator copies their gaze, then looks back at the bowl like the thief is among them.",
+      howToFilm: "Film with one bowl and use quick cuts of the creator playing different innocent siblings. No need for extra people.",
+      caption: "Everybody suddenly loves ceiling.",
       anchor: "garri",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-143 [REWRITE] · cluster: maggi
@@ -817,25 +817,25 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-148 [REWRITE] · cluster: buy_my_own
-      hook: "snack finish, my peace enter next time",
-      whatToShow: "Roommate finishes your snack and you calmly say you will buy your own next time. Your face stays on the empty snack wrapper too long, and your hand slowly pulls it closer like evidence.",
-      howToFilm: "Frame the empty snack wrapper between you and the roommate side. Let the calm line come first, then cut on your hand dragging the wrapper closer while peace leaves quietly.",
-      caption: "peace with evidence.",
+      hook: "small snack finished, everybody started drinking water",
+      whatToShow: "Creator opens a snack container and finds it empty. The room goes suspiciously quiet. Imaginary housemates suddenly drink water and avoid talking. Creator shakes the empty pack and watches them swallow guilt.",
+      howToFilm: "Use an empty snack pack or container. Play multiple housemates with quick cuts if alone. Keep it light and funny.",
+      caption: "Thirst arrived after evidence.",
       anchor: "snack",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
-      // source: DRAFT-151 · cluster: boss_email
-      hook: "oga sent email at 11:59 p.m. like sleep is illegal",
-      whatToShow: "You are about to sleep. Fake work email lands. You sit up slowly, open laptop, and stare at the screen.",
-      howToFilm: "Bed-level handheld, low angle, one take.",
-      caption: "bedtime became office hours.",
+      // source: DRAFT-151 [REWRITE] · cluster: boss_email
+      hook: "late email arrived when sleep wore wrapper",
+      whatToShow: "Creator is ready to sleep, wrapped comfortably. A fake late email notification appears. They open one eye, sit up slowly, and put on glasses like sleep has been postponed by management.",
+      howToFilm: "Use a fake email notification with no real sender. Film on a bed or couch with a wrapper or blanket. Keep it modest and staged.",
+      caption: "Sleep received official query.",
       anchor: "email",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-153 [REWRITE] · cluster: submission_closed
@@ -1026,14 +1026,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-197 [REWRITE] · cluster: new_shoe
-      hook: "shoe behave at home, outside start biting",
-      whatToShow: "Walk confidently in the shoe, then start limping slightly outside while pretending everything is normal.",
-      howToFilm: "Frame the shoe first during the confident walk. Then cut lower to the small limp outside, ending on your face pretending the shoe is not winning.",
-      caption: "fashion with pain.",
+      hook: "shoe bite waited till street had audience",
+      whatToShow: "Creator tests shoes at home and nods confidently. Then in a staged outdoor/doorway moment, the shoe starts biting. Creator keeps smiling while walking like every step is negotiation.",
+      howToFilm: "Stage indoors or at a safe doorway, not in traffic. Use comfortable shoes and act the pain. Keep movement slow.",
+      caption: "Shoe behaved during rehearsal.",
       anchor: "shoe",
       domain: "everyday",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-199 [REWRITE] · cluster: i_dey_fine
@@ -1059,14 +1059,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-204 [REWRITE] · cluster: status_view_ghost · privacyNote: Use fake screenshots / mock chats only; never real contacts.
-      hook: "you viewed my status but still no reply?",
-      whatToShow: "Check your fake status viewers list. The same friend who ignored your message is at the top. You open the chat and zoom into their profile picture like it owes you explanation.",
-      howToFilm: "Frame the status viewers list, then switch to the ignored chat. Let the profile zoom happen slowly, then cut on your face waiting for the status evidence to explain.",
-      caption: "viewer, not responder.",
+      hook: "reply status said viewed, I started behaving busy",
+      whatToShow: "Creator checks a fake viewed status with no reply. They immediately put the phone face down and start fake-cleaning the same table corner to prove they do not care.",
+      howToFilm: "Use a fake chat screen. Keep all names blurred. Show the fake busyness clearly with a cloth or small prop.",
+      caption: "I was not waiting, obviously.",
       anchor: "status",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-206 [REWRITE] · cluster: blue_tick · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -1191,14 +1191,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-230 [REWRITE] · cluster: passenger_argument
-      hook: "junction drop don turn the taxi to committee",
-      whatToShow: "In a shared taxi setup, one passenger keeps asking to drop at every junction. Everyone else looks exhausted.",
-      howToFilm: "Frame the taxi setup with one side of the back seat visible. Let the junction request happen off-camera, then cut on the tired looks as the journey becomes committee.",
-      caption: "journey by committee.",
+      hook: "junction drop left me greeting every road",
+      whatToShow: "Creator stands with a bag after a staged junction drop. They look down one road and nod, then another and nod, then a third direction and nod like each road is introducing itself. The payoff is them asking the same empty space, “Which one now?”",
+      howToFilm: "Use a doorway or hallway intersection to mimic a junction. Do not film in traffic. Use a bag and exaggerated direction checks.",
+      caption: "Roads too were confused.",
       anchor: "junction",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-232 [REWRITE] · cluster: bike_rain
@@ -1279,14 +1279,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-249 [REWRITE] · cluster: indomie
-      hook: "packs don reduce overnight and nobody confess",
-      whatToShow: "Open the cupboard. Half the packs are missing. You look toward your roommate like the case has suspects.",
-      howToFilm: "Frame the cupboard and missing packs clearly. Show your hand counting the remaining packs, then cut to the roommate-side look like investigation has started.",
-      caption: "noodle investigation.",
-      anchor: "packs",
+      hook: "small packs reduced and nobody had teeth",
+      whatToShow: "Creator discovers small packs have reduced. They ask imaginary housemates. Everyone suddenly acts like chewing is impossible. Creator slowly shakes one empty wrapper at them like a disappointed detective.",
+      howToFilm: "Use empty wrappers as props. Film in a kitchen or room. Keep it silly and avoid accusing any real person.",
+      caption: "Wrappers spoke louder than people.",
+      anchor: "small",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-251 [REWRITE] · cluster: garri
@@ -1301,14 +1301,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-253 [REWRITE] · cluster: maggi
-      hook: "cubes don reduce, house suddenly quiet",
-      whatToShow: "Open the spice box and count the cubes. Two cubes are missing. You look at the house like everyone is lying.",
-      howToFilm: "Frame the spice box and cubes from above. Count the cubes with your finger, pause on the missing space, then cut to the quiet-house look.",
-      caption: "seasoning mystery.",
-      anchor: "cubes",
+      hook: "missing cube vanished, pot started looking guilty",
+      whatToShow: "Creator checks the seasoning-cube pack and finds one missing. They slowly turn toward a covered pot, lift the lid, sniff, and nod like the pot has confessed.",
+      howToFilm: "Use a safe covered pot and fake cube pack. Keep the food optional. Focus on the slow detective turn and lid lift.",
+      caption: "The pot could not deny it.",
+      anchor: "missing",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-255 [REWRITE] · cluster: share_rice
@@ -1400,25 +1400,25 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-272 [REWRITE] · cluster: aunty_pressure
-      hook: "aunty ask marriage question like exam",
-      whatToShow: "Sit at a family gathering while aunty asks one question after another. You smile, reach for your drink, then look up at the ceiling like maybe the answer is written there.",
-      howToFilm: "Frame yourself seated with aunty as an off-camera voice or empty chair beside frame. Let your smile get smaller after each question, then cut on the ceiling look like you are searching for rescue.",
-      caption: "family gathering turned oral exam.",
-      anchor: "aunty",
+      hook: "aunty question entered, rice started tasting official",
+      whatToShow: "Creator eats casually at a family table. Off-camera aunty asks one serious life question. Creator sits upright, chews like a press conference, and nods while clearly not ready to answer.",
+      howToFilm: "Use a plate and chair. Use 'aunty' only as the setup voice. Keep the question non-specific and let the chewing delay be the joke.",
+      caption: "Lunch turned to interview.",
+      anchor: "question",
       domain: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-274 [REWRITE] · cluster: cousin_comparison
-      hook: "house comparison don enter family meeting",
-      whatToShow: "Mum shows a cousin's car or house photo. You stare at the house photo like comparison has entered the room.",
-      howToFilm: "Frame the house photo on the phone and your reaction beside it. Let Mum's comparison be implied, then cut on your stare like family benchmarking has begun.",
-      caption: "family benchmarking.",
+      hook: "house comparison started, remote control looked busy",
+      whatToShow: "Creator sits in the living room when an off-camera parent starts comparing the house to another family’s house. Creator grabs the remote and pretends to fix settings just to avoid eye contact.",
+      howToFilm: "Use a couch or chair and remote. Keep the comparison generic. Let the fake remote work and eye avoidance sell the joke.",
+      caption: "Remote became emotional support.",
       anchor: "house",
       domain: "family",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-278 · cluster: matchmaking · privacyNote: Use fake screenshots / mock chats only; never real contacts.
@@ -1455,14 +1455,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-283 [REWRITE] · cluster: wishlist
-      hook: "wishlist don turn ownership by faith",
-      whatToShow: "Scroll nice items online. Add them to wishlist, then close the app like wishlist equals ownership.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
-      caption: "shopping by imagination.",
+      hook: "wishlist saw salary and started removing itself",
+      whatToShow: "Creator scrolls a fake wishlist confidently, then compares it to a fake budget. They begin removing items one by one, whispering “later” to each item like a breakup.",
+      howToFilm: "Use a fake wishlist in notes or paper cards. Do not show real accounts. Make the item removal slow and personal.",
+      caption: "Cart entered fasting season.",
       anchor: "wishlist",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-287 [REWRITE] · cluster: budget
@@ -1477,14 +1477,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-288 [REWRITE] · cluster: salary_day · privacyNote: Use fake bank-alert mock; never a real account screen.
-      hook: "alert land, bills start sharing salary",
-      whatToShow: "Alert lands. You smile, then open a list of bills and watch your smile reduce line by line.",
-      howToFilm: "Phone-level lock-off, soft daylight, one take.",
-      caption: "salary came to visit.",
-      anchor: "alert",
+      hook: "salary alert came, bills formed queue immediately",
+      whatToShow: "Creator receives a fake salary alert and smiles. Then paper bills slide into frame one by one. Creator’s smile shrinks as they start sharing the imaginary money before touching it.",
+      howToFilm: "Use fake alert and paper bills with generic labels. Never show real bank info, amounts, or account data. Film at a table.",
+      caption: "Money entered, responsibilities stood up.",
+      anchor: "salary",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-290 [REWRITE] · cluster: views_refresh
@@ -1543,25 +1543,25 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-300 [REWRITE] · cluster: wrong_chat · privacyNote: Use fake screenshots / mock chats only; never real contacts.
-      hook: "voice enter boss chat and my soul japa",
-      whatToShow: "Fake chat shows a voice note sent to the wrong person. You tap unsend repeatedly like speed can reverse history.",
-      howToFilm: "Frame the voice note inside the boss chat and your thumb attacking unsend. Let the wrong-chat realization land, then cut on the panic tapping.",
-      caption: "wrong chat, correct panic.",
+      hook: "voice note entered boss chat with home accent",
+      whatToShow: "Creator plays back a fake voice note meant for a friend but almost sent in boss chat. They slap the phone gently, sit upright, and rerecord with over-serious office diction.",
+      howToFilm: "Use fake chat labels and no real audio details. Keep the screen blurred or recreated. The posture change is the payoff.",
+      caption: "My voice wore suit fast.",
       anchor: "voice",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-301 [REWRITE] · cluster: power
-      hook: "light blinked once and everybody changed department",
-      whatToShow: "The light blinks once. One person grabs a charger, another reaches for the inverter, and you just stand there holding your phone like hope still has customer service.",
-      howToFilm: "Use a wide room shot so the light, charger scramble, and your frozen face all read clearly. Let everyone move at once, then end on you standing still with the phone like you are waiting for a miracle.",
-      caption: "joy came for 3 seconds.",
-      anchor: "light",
+      hook: "blinking bulb made charger people start running",
+      whatToShow: "A blinking bulb flickers. Creator and imaginary housemates suddenly grab devices and rush toward a power strip, then freeze again when the bulb steadies. The creator holds a cable mid-air like a disappointed sprinter.",
+      howToFilm: "Use unplugged cables and a safe light cue. Do not overload sockets or use live electrical setups. Keep it staged and controlled.",
+      caption: "Electricity gave false hope.",
+      anchor: "blinking",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-302 [REWRITE] · cluster: home
@@ -1851,14 +1851,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-331 [REWRITE] · cluster: power
-      hook: "token is 20 digits, but my finger chose violence.",
-      whatToShow: "You enter token carefully. One wrong number spoils everything, and you start again with serious face.",
-      howToFilm: "Frame the token entry screen and your finger moving carefully. Let one wrong digit spoil it, then cut on the serious restart face.",
-      caption: "one digit, full pain.",
-      anchor: "token",
+      hook: "token digits plenty, my eyes started negotiating",
+      whatToShow: "Creator looks at a long fake token code and then at a fake keypad. They start confidently, lose track halfway, and bring the paper closer to their face like the digits are moving.",
+      howToFilm: "Use a fake code written on paper and a fake keypad. No real meter data. Keep it close-up on eyes, paper, and fingers.",
+      caption: "Digits came as crowd.",
+      anchor: "digits",
       domain: "home",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-333 · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
@@ -1928,14 +1928,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-340 [REWRITE] · cluster: transport
-      hook: "bike man said price, I checked if we're flying.",
-      whatToShow: "Ask the bike man for a short-distance fare. He says a big amount, you look at the road, look up like maybe a flight is involved, then check your pocket again.",
-      howToFilm: "Frame yourself beside the bike area or doorway. Let the price come from off-camera, then cut between your pocket check and the road like the distance has grown.",
-      caption: "small trip, big bill.",
-      anchor: "bike",
+      hook: "keke price made me respect walking again",
+      whatToShow: "Creator asks an off-camera rider for the keke price, hears it, then slowly looks at their legs like they just rediscovered a free transport option. They dust their shoes and begin a fake brave walk.",
+      howToFilm: "Use two chairs as a keke setup indoors or at a safe doorway. Keep all movement staged and away from traffic.",
+      caption: "Legs entered the budget meeting.",
+      anchor: "price",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-341 [REWRITE] · cluster: power
@@ -1993,15 +1993,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
-      // source: DRAFT-348 · cluster: transport
-      hook: "conductor gave me torn note and called it balance.",
-      whatToShow: "You collect change in danfo. One note looks tired. You try returning it, conductor already moved away.",
-      howToFilm: "Door-side handheld, mid-shot, one take.",
-      caption: "money with history.",
-      anchor: "conductor",
+      // source: DRAFT-348 [REWRITE] · cluster: transport
+      hook: "torn note came back after I rejected it",
+      whatToShow: "Creator rejects a torn note from off-camera change. Two seconds later, another hand gives the same torn note back as change from someone else. Creator compares the tear, recognizes it, and slowly looks into the air like the note has followed them.",
+      howToFilm: "Use one fake torn note and two off-camera hands. Stage at a table or bus-chair setup. Keep it safe and clearly fictional.",
+      caption: "This money has assignment.",
+      anchor: "torn",
       domain: "transport",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-349 [REWRITE] · cluster: food
@@ -2016,14 +2016,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-350 [REWRITE] · cluster: money · privacyNote: Use fake bank-alert mock; never a real account screen.
-      hook: "papa at ATM presses cancel like it owes him money.",
-      whatToShow: "Papa tries to withdraw. Machine delays small. He presses buttons with full authority and blames the bank.",
-      howToFilm: "Frame papa's hand near the ATM-style keypad or phone mockup. Let the delay happen, then cut on the serious button pressing like the machine owes apology.",
-      caption: "technology vs papa.",
-      anchor: "papa",
+      hook: "ATM button said cancel, papa pressed destiny",
+      whatToShow: "Creator plays an older parent at a fake ATM setup. They confidently press the wrong button, then stare at the screen while the younger version freezes beside them trying not to shout.",
+      howToFilm: "Use a paper ATM screen and buttons on cardboard. Do not film at a real ATM or show cards/PINs. Play both roles if needed.",
+      caption: "One button ended the mission.",
+      anchor: "button",
       domain: "money",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-351 [REWRITE] · cluster: messages
@@ -2093,14 +2093,14 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
     }),
     Object.freeze({
       // source: DRAFT-357 [REWRITE] · cluster: messages
-      hook: "status complete, reply still missing.",
-      whatToShow: "Open a fake chat with no reply, then switch to your status viewers and see the same person watched every slide. Go back to the chat, back to the status, then put the phone down like the evidence is too loud.",
-      howToFilm: "Frame the phone close enough to show the empty chat and the status viewer list. Let the back-and-forth switching do the comedy, then cut on the phone going face-down like the witness has been dismissed.",
-      caption: "active ghosting.",
-      anchor: "status",
+      hook: "viewed status sat there eating my patience",
+      whatToShow: "Creator stares at a fake viewed status, locks the phone, unlocks it, checks again, then turns the phone face down like punishing it for not producing a reply.",
+      howToFilm: "Use a fake screen or paper chat card. No real messages. Keep the phone punishment gentle and comedic.",
+      caption: "Phone did not cooperate.",
+      anchor: "viewed",
       domain: "messaging",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-09",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-358 · cluster: messages
@@ -2169,15 +2169,15 @@ export const APPROVED_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[
       reviewedBy: "BI 2026-05-09",
     }),
     Object.freeze({
-      // source: DRAFT-364 · cluster: work
-      hook: "manager passing your side can reset your posture.",
-      whatToShow: "You're relaxed one second. Manager walks by, and you suddenly sit straighter than school prefect.",
-      howToFilm: "Desk-height lock-off, soft daylight, one take.",
-      caption: "instant office discipline.",
+      // source: DRAFT-364 [REWRITE] · cluster: work
+      hook: "manager walk passed, my posture got promoted",
+      whatToShow: "Creator slouches at a desk. Off-camera footsteps suggest manager walk. They instantly sit straight, start typing nonsense seriously, and nod at the screen like solving national issues.",
+      howToFilm: "Use a desk, chair, and laptop or notebook. Keep the manager off-camera. Do not show real workplace files.",
+      caption: "Backbone remembered salary.",
       anchor: "manager",
       domain: "work",
       pidginLevel: "light_pidgin",
-      reviewedBy: "BI 2026-05-06",
+      reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11",
     }),
     Object.freeze({
       // source: DRAFT-365 [REWRITE] · cluster: work

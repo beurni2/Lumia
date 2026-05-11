@@ -94,7 +94,7 @@ title = "N1-S Nigerian Pack Staging — Final Report"
 id = "ku7NamW_qErIJDhlGy3bX"
 uri = "file://.local/N1S_STAGING_QA.md"
 type = "text"
-title = "N1-S staging QA sweep"
+title = "N1-S Staging QA Sweep (post-1C)"
 
 [[outputs]]
 id = "Y4eUQqHgbMwQ3dI6uOV48"
@@ -1373,3 +1373,21 @@ id = "bvYiYxukgUFJgIGGLcmmS"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1b_rewrite_import_summary.json"
 type = "unspecified"
 title = "Aggregate summary"
+
+[[outputs]]
+id = "yKu7waNyICo7UP9RovFVe"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_PACKET_1C_NEXT_30_REWRITE_IMPORT_REPORT.md"
+type = "text"
+title = "N1-NG-LIGHT-PIDGIN-PACKET-1C — Final Report"
+
+[[outputs]]
+id = "uFbQGyERcW9TpHpSkOuAI"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1c_next_30_rewrite_import.json"
+type = "unspecified"
+title = "Packet 1C — Per-Entry Verdicts"
+
+[[outputs]]
+id = "_iSABfVu0UeA4UQa9J80a"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1c_next_30_rewrite_import_summary.json"
+type = "unspecified"
+title = "Packet 1C — Aggregate Summary"
