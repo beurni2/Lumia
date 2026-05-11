@@ -1,0 +1,589 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-PACKET-1B-REWRITE-IMPORT
+
+Mode:
+Replace weak approved ng_light_pidgin entries with supervisor-supplied replacements + duplicate checks + tests + runtime QA.
+
+Critical authorship rule:
+Do NOT create, rewrite, improve, generate, or invent entries.
+
+The supervisor/user supplied the replacement packet below. Your role is only to:
+1. Inspect current Nigerian light-pidgin pack schema/conventions.
+2. Replace the listed existing entries by `replaceId`.
+3. Validate the supplied replacements.
+4. Run duplicate / near-duplicate / anchor-skeleton checks against the existing approved ng_light_pidgin corpus.
+5. Import only replacements that pass live gates.
+6. Reject replacements that fail and report why.
+7. Run tests and QA.
+8. Report results.
+
+Do not author replacements.
+Do not rewrite failed entries.
+Do not improve hooks.
+Do not fill missing counts yourself.
+If fewer replacements pass than expected, import fewer and report.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin language option for now.
+
+Therefore:
+- These entries are intended only for `pidginLevel: "light_pidgin"`.
+- Do not import as strict pidgin.
+- Do not create or expand an ng_pidgin runtime pack.
+
+Context:
+A read-only audit found the existing approved ng_light_pidgin corpus has enough quantity but uneven quality:
+- total approved light_pidgin entries: 230
+- HQS < 40: 162
+- HQS >= 50: 33
+- repeated anchors and skeletons are a problem
+- top weak candidates were too soft, too English, too repetitive, too template-like, or weakly filmable
+
+This packet replaces the top 30 weak entries identified by the audit.
+
+Scope:
+Replace entries in the appropriate Nigerian hook pack draft/approved pipeline for `pidginLevel: "light_pidgin"` according to current project conventions.
+
+Inspect existing files first:
+- `nigerianHookPackApproved.ts`
+- `nigerianHookPackDrafts.ts`
+- `nigerianHookPack.ts`
+- `qa/buildApprovedNigerianPack.ts`
+- relevant Nigerian pack tests
+- duplicate / anti-copy / style-separation tests
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No selector changes.
+4. No prompt changes.
+5. No API/mobile/DB/schema changes.
+6. No K changes.
+7. No memory changes.
+8. No slot-0 feed changes.
+9. No ng_clean behavior changes except regression checks.
+10. No strict ng_pidgin changes.
+11. No coding-agent-authored entries.
+12. No rewriting supplied entries.
+13. No filler additions.
+14. Preserve cohort isolation.
+
+Replacement policy:
+- Use only the supplied packet.
+- Match each replacement by `replaceId`.
+- Preserve the existing row/slot identity if that is current pack convention.
+- If the pack convention requires a specific id field instead of `replaceId`, adapt mechanically while preserving the replacement content exactly.
+- If an entry fails a mechanical schema issue, report it. Only fix truly mechanical formatting if existing pack conventions require it and the meaning/hook are unchanged.
+- If an entry fails because of hook quality, light-pidgin validity, style, safety, anti-mocking, duplicate/anti-copy, near-duplicate, anchor/skeleton over-concentration, or validator reasons, reject it.
+- Do not rewrite rejected entries.
+- Do not generate alternates.
+- If fewer than 20 pass, import fewer and report.
+- If none pass, stop and report.
+
+Duplicate / near-duplicate policy:
+Before import, compare every supplied replacement against the remaining approved ng_light_pidgin corpus.
+
+Reject any supplied replacement that is too close in:
+1. exact hook text
+2. normalized hook text
+3. anchor + hook skeleton
+4. scenario / whatToShow
+5. caption
+6. core comedic premise
+
+Pay special attention to the audit’s repeated-anchor and repeated-skeleton risks:
+- data
+- light
+- madam
+- post
+- status
+- charger
+- aunty
+- conductor
+- snack
+- bike
+- `_ has one fine _ for _`
+- `oga sent _ at _ like _`
+- `_ don _ my _ lie`
+- `who send me make I _`
+- `_ exposed my _`
+- `_ judged my _`
+
+Reject duplicates or near-duplicates. Do not rewrite them.
+
+Style policy:
+These must be ng_light_pidgin, not strict pidgin.
+
+Good:
+- readable English base
+- light Nigerian/Pidgin flavor
+- 1–2 pidgin markers when useful
+- natural, human, filmable
+- broad-audience understandable
+
+Bad:
+- full strict pidgin
+- heavy slang density
+- lazy “wahala” / “abeg” filler
+- fake Nigerian flavor
+- caricature
+- generic scorer-shaped object jokes
+
+Replacement packet:
+Use exactly this supplied curated packet.
+
+[
+  {
+    replaceId: "LP-125",
+    pidginLevel: "light_pidgin",
+    anchor: "family question",
+    hook: "family question landed, meat returned to plate",
+    premiseFamily: "family_social_pressure",
+    whatToShow: "Creator is eating happily. Someone off-camera asks, “So what are you doing now?” The creator slowly removes the meat from their mouth path and drops it back on the plate like the food is no longer safe.",
+    howToFilm: "Film at a table with a plate and spoon. Keep the question off-camera and generic. Hold the meat-return pause for the joke.",
+    caption: "One question cancelled appetite.",
+    whyThisFits: "It is simple, visual, and very familiar: food joy disappearing under family pressure.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-074",
+    pidginLevel: "light_pidgin",
+    anchor: "visitor knock",
+    hook: "visitor knock sounded, I hid one shoe",
+    premiseFamily: "family_social_pressure",
+    whatToShow: "Creator hears a knock, sees one random shoe in the open, and panics like it is evidence. They kick it under a chair, then open the door with a host smile while the shoe slowly slides back out.",
+    howToFilm: "Stage at a doorway with one shoe and a chair. Keep the visitor off-camera. Let the shoe slide-back be the payoff.",
+    caption: "The shoe wanted to greet.",
+    whyThisFits: "It is simple household embarrassment with a physical punchline.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-002",
+    pidginLevel: "light_pidgin",
+    anchor: "voice note",
+    hook: "voice note started, greeting took three minutes",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator presses play on a voice note. They smile politely at first, then check the duration, sit down, and remove one earbud like the voice note has become a family meeting.",
+    howToFilm: "Use a fake or blurred chat screen. Do not show real names. Let the duration check and tired sitting sell it.",
+    caption: "This greeting has chapters.",
+    whyThisFits: "Long voice notes are instantly relatable and the joke needs only a phone and face.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-058",
+    pidginLevel: "light_pidgin",
+    anchor: "rain cloud",
+    hook: "rain cloud saw fresh hair and reported duty",
+    premiseFamily: "transport_weather",
+    whatToShow: "Creator checks fresh hair or outfit, steps toward the door, then looks up at imaginary clouds. Their face falls, they cover the hair with anything nearby, and walk back inside like the sky has personal issues.",
+    howToFilm: "Stage at a doorway. Use a scarf, cap, or paper as protection. No need for real rain; react to imagined weather.",
+    caption: "Weather waited for my confidence.",
+    whyThisFits: "Fresh look versus sudden rain is easy, visual, and instantly recognizable.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-094",
+    pidginLevel: "light_pidgin",
+    anchor: "office group",
+    hook: "office group typed urgent, I was already home",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator is relaxed at home, one slipper off, food nearby. Fake office group message says “urgent please.” Creator slowly puts the slipper back on like work has entered the room.",
+    howToFilm: "Use a fake office message with no company details. Stage at home with slippers or a plate. Keep the reaction small and painful.",
+    caption: "Remote stress found my address.",
+    whyThisFits: "Work messages after hours are common, and the slipper going back on is a simple visual punchline.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-072",
+    pidginLevel: "light_pidgin",
+    anchor: "transfer receipt",
+    hook: "transfer receipt sent, madam face still loading",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator shows a fake transfer receipt at a shop counter. Off-camera seller gives no reaction. Creator turns the phone brighter, refreshes, smiles smaller, then slowly keeps the item down.",
+    howToFilm: "Use a fake receipt screen with no real details. Stage at a table. Use 'madam' only here because the shop setup needs it.",
+    caption: "Receipt talked, seller no answer.",
+    whyThisFits: "Transfer confirmation delay is a very Nigerian micro-embarrassment and easy to act.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-037",
+    pidginLevel: "light_pidgin",
+    anchor: "viewer list",
+    hook: "viewer list showed pastor after my small dance",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator does a tiny playful dance, checks a fake viewer list, and sees “Pastor.” They slowly change the dance into praise-clap energy and nod like that was the plan.",
+    howToFilm: "Use a fake viewer list with generic labels. Keep the dance mild and non-sexual. Film indoors with no real handles.",
+    caption: "Content changed department fast.",
+    whyThisFits: "Viewer-list anxiety is creator-specific, and the dance-to-praise switch is a clean comedic turn.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-083",
+    pidginLevel: "light_pidgin",
+    anchor: "caption box",
+    hook: "caption box opened, my English took break",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator finishes recording confidently, opens a caption box, and suddenly cannot type. They try one word, delete it, try another, then stare at the ceiling like grammar has travelled.",
+    howToFilm: "Use a fake caption box or notes app. Blur screens. Film the contrast between confident recording and helpless caption writing.",
+    caption: "Video done, vocabulary missing.",
+    whyThisFits: "It is a very real creator problem and it is funny because the hardest part becomes the smallest box.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-086",
+    pidginLevel: "light_pidgin",
+    anchor: "market nylon",
+    hook: "market nylon tore, onions chose freedom",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator carries a market nylon. It tears and onions or soft props roll out. Creator freezes, looks left and right, then starts collecting them with fake dignity.",
+    howToFilm: "Use a weak bag and safe light props. Film indoors or in a staged market corner. Avoid glass or heavy items.",
+    caption: "My groceries ran away small.",
+    whyThisFits: "It is simple slapstick from a very normal market problem.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-135",
+    pidginLevel: "light_pidgin",
+    anchor: "reply box",
+    hook: "reply box saw elder, thumbs became respectful",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator wants to reply casually, then realizes the message is from an elder. Their thumbs slow down, they delete slang, sit upright, and type “Good evening sir” with full seriousness.",
+    howToFilm: "Use a fake message screen. Do not show real contacts. Focus on posture change and deleting the casual reply.",
+    caption: "My thumbs wore native.",
+    whyThisFits: "Changing tone for elders is culturally recognizable, and the thumb behavior is simple comedy.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-051",
+    pidginLevel: "light_pidgin",
+    anchor: "delivery code",
+    hook: "delivery code hid when rider said hello",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator walks to the door confidently. Off-camera rider asks for the delivery code. Creator opens the phone, scrolls too fast, checks the same place twice, and starts laughing politely for no reason.",
+    howToFilm: "Stage at a doorway with a package prop. Use fake screens only. Do not show real codes, addresses, or delivery info.",
+    caption: "Code had stage fright.",
+    whyThisFits: "The joke is modern and simple: confidence collapsing at the exact moment of need.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-054",
+    pidginLevel: "light_pidgin",
+    anchor: "deleted message",
+    hook: "deleted message waited till I wore glasses",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator sees a suspicious notification, puts on glasses seriously to read, then the message is already deleted. They slowly remove the glasses and stare at the phone like it wasted preparation.",
+    howToFilm: "Use fake chat text. Film with glasses as the prop. Do not show real contacts or messages.",
+    caption: "I dressed my eyes for nothing.",
+    whyThisFits: "The glasses make the tiny deleted-message frustration bigger and more physical.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-088",
+    pidginLevel: "light_pidgin",
+    anchor: "fresh outfit",
+    hook: "fresh outfit met okada splash in my imagination",
+    premiseFamily: "transport_weather",
+    whatToShow: "Creator checks a fresh outfit, hears an imaginary bike or car splash outside, and immediately protects the outfit before anything even happens. They tiptoe like every floor tile is dangerous.",
+    howToFilm: "Stage indoors by a doorway. Do not film near traffic. Use sound effect only and a fake puddle if needed.",
+    caption: "My outfit started seeing future.",
+    whyThisFits: "It is funny because the panic begins before the splash, which feels very real.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-139",
+    pidginLevel: "light_pidgin",
+    anchor: "landlord message",
+    hook: "landlord message said good morning, I sat down",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator receives a fake landlord message starting with “Good morning.” Before even reading the rest, they slowly sit down, put their cup away, and prepare for financial weather.",
+    howToFilm: "Use a fake message screen with no names or address. Film seated at home. Let the reaction happen before the full message.",
+    caption: "Greeting already had rent smell.",
+    whyThisFits: "It is funny because the greeting alone creates fear, which many people recognize.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-024",
+    pidginLevel: "light_pidgin",
+    anchor: "power strip",
+    hook: "power strip had one space, family held election",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator sees one open socket on a power strip and several devices waiting. They hold two chargers, look at each device, and choose one while apologizing to the others.",
+    howToFilm: "Use an unplugged power strip only. Keep all electronics safe. Film the fake decision like a serious vote.",
+    caption: "Only one device can prosper.",
+    whyThisFits: "Socket competition at home is ordinary, but treating it like politics makes it funny.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-029",
+    pidginLevel: "light_pidgin",
+    anchor: "church usher",
+    hook: "church usher pointed, my legs became new members",
+    premiseFamily: "family_social_pressure",
+    whatToShow: "Creator sits comfortably at the back. An off-camera usher points forward. The creator’s legs hesitate, then carry them stiffly to the front like they just joined a new department.",
+    howToFilm: "Use two chairs to represent back and front rows. Stage privately, not in a real service. Let the walking style carry the joke.",
+    caption: "Back row did not defend me.",
+    whyThisFits: "It turns a tiny public-attention moment into physical comedy.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-096",
+    pidginLevel: "light_pidgin",
+    anchor: "comment section",
+    hook: "comment section praised me, wrong name collected it",
+    premiseFamily: "messaging_creator",
+    whatToShow: "Creator reads a fake comment praising the video. They smile proudly, then notice the comment used the wrong name. The smile reduces, but they still like the comment because praise is praise.",
+    howToFilm: "Use a fake comment screen or paper card. Blur all usernames. Hold the smile drop and reluctant like.",
+    caption: "Compliment missed road but arrived.",
+    whyThisFits: "It is a very small creator embarrassment with a clean emotional turn.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-102",
+    pidginLevel: "light_pidgin",
+    anchor: "fuel queue",
+    hook: "fuel queue moved, everybody became serious athletes",
+    premiseFamily: "transport_weather",
+    whatToShow: "Stage a fuel queue with chairs. Everyone is tired. One chair moves forward, and the creator suddenly grabs bag, bottle, and slippers like a race just started.",
+    howToFilm: "Stage indoors with chairs only. Do not film at a fuel station. Keep movement safe and exaggerated.",
+    caption: "One movement woke the nation.",
+    whyThisFits: "Fuel-queue micro-progress is funny because tiny movement feels like a miracle.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-105",
+    pidginLevel: "light_pidgin",
+    anchor: "keke price",
+    hook: "keke price changed after my second leg entered",
+    premiseFamily: "transport_weather",
+    whatToShow: "Use two chairs as a keke. Creator sits halfway in. Off-camera driver says a higher price. Creator freezes with one leg in, one leg out, then starts negotiating from that awkward position.",
+    howToFilm: "Stage indoors with chairs. Do not film in real moving transport. Keep the awkward half-sit as the main visual.",
+    caption: "Fare waited for commitment.",
+    whyThisFits: "It is a real transport annoyance with a strong physical image.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-208",
+    pidginLevel: "light_pidgin",
+    anchor: "barber mirror",
+    hook: "barber mirror turned my yes into silence",
+    premiseFamily: "transport_weather",
+    whatToShow: "Creator sits with towel over shoulders. Off-camera barber asks, “You like am?” Creator looks in the mirror, opens mouth to say yes, but only nods slowly while their eyes beg for help.",
+    howToFilm: "Use a mirror, chair, and towel. No sharp tools. The haircut can be imaginary; the reaction sells it.",
+    caption: "My mouth left the shop.",
+    whyThisFits: "Barber politeness is familiar, and the silent nod is a strong human comedy beat.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-210",
+    pidginLevel: "light_pidgin",
+    anchor: "hospital card",
+    hook: "hospital card hid when counter woman blinked",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator reaches a staged counter and confidently opens a bag for the hospital card. The card is missing. They search calmly at first, then faster, then show a random loyalty card like maybe it can help.",
+    howToFilm: "Use blank fake cards only. Do not show medical info. Stage at a table with the attendant off-camera.",
+    caption: "Important card chose drama.",
+    whyThisFits: "Counter pressure plus missing card is a real micro-panic and easy to perform.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-212",
+    pidginLevel: "light_pidgin",
+    anchor: "bank balance",
+    hook: "bank balance opened, outside plan closed",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator is dressed to go out. They check a fake bank balance, pause, remove their shoes, and sit down with home confidence like that was always the plan.",
+    howToFilm: "Use a fake/blurred balance screen. Never show real banking data. Film the shoe removal as the payoff.",
+    caption: "Account said stay blessed indoors.",
+    whyThisFits: "The joke is painfully simple: plans changing after one balance check.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-213",
+    pidginLevel: "light_pidgin",
+    anchor: "small change",
+    hook: "small change hid after I priced boldly",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator bargains confidently at a fake stall. Seller agrees. Creator reaches for small change and suddenly cannot find it, checking pockets while the bold bargaining face disappears.",
+    howToFilm: "Use fake money and a table as a stall. Keep seller off-camera. No real transaction details.",
+    caption: "Boldness left before payment.",
+    whyThisFits: "It is funny because confidence collapses immediately after winning the price.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-216",
+    pidginLevel: "light_pidgin",
+    anchor: "family intro",
+    hook: "family intro added achievements I never met",
+    premiseFamily: "family_social_pressure",
+    whatToShow: "Creator enters to greet. Off-camera relative introduces them with extra titles. Creator smiles, looks confused, then gives a small wave like they are hearing their own biography for the first time.",
+    howToFilm: "Use a doorway and one chair. Keep all achievements fake and generic. Focus on the confused polite smile.",
+    caption: "I also wanted to meet myself.",
+    whyThisFits: "Family exaggeration is familiar, and the creator’s confused smile makes it human and funny.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-217",
+    pidginLevel: "light_pidgin",
+    anchor: "photo smile",
+    hook: "photo smile froze, camera person still debating angle",
+    premiseFamily: "family_social_pressure",
+    whatToShow: "Creator holds a family-photo smile. Off-camera person keeps saying “Wait, wait.” The smile starts shaking, eyes water slightly, and the creator’s cheeks slowly give up while still trying to look nice.",
+    howToFilm: "Film against a plain wall. Let the photographer be off-camera. The joke is the smile dying slowly.",
+    caption: "My cheeks resigned first.",
+    whyThisFits: "Holding a smile too long is universal, and family-photo delays make it extra recognizable.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-218",
+    pidginLevel: "light_pidgin",
+    anchor: "queue number",
+    hook: "queue number watched juniors go before it",
+    premiseFamily: "transport_weather",
+    whatToShow: "Creator holds number 42. Off-camera calls 40, 41, then 43. Creator looks at the ticket, looks around, and raises the ticket like a shy child being ignored.",
+    howToFilm: "Use a paper queue number and chairs. Stage privately. No real service counters or customers.",
+    caption: "My number was too humble.",
+    whyThisFits: "Skipped queue numbers create instant confusion, and the ticket raise is a clear punchline.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-222",
+    pidginLevel: "light_pidgin",
+    anchor: "generator sound",
+    hook: "generator sound stopped, everybody heard their thoughts",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator relaxes with fake generator noise. The sound stops suddenly. They freeze, look around, and the silence becomes so loud they slowly lower whatever they were doing.",
+    howToFilm: "Use sound effect only. Do not operate a generator. Stage indoors and make the sudden silence the punchline.",
+    caption: "Silence entered with authority.",
+    whyThisFits: "Generator silence is a familiar household alarm, and the freeze is simple comedy.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-224",
+    pidginLevel: "light_pidgin",
+    anchor: "serving spoon",
+    hook: "serving spoon scraped pot, guests became quiet",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator serves food. The spoon scrapes the bottom of the pot too early. They freeze, look at imaginary guests, and start spreading the little food wider like paint.",
+    howToFilm: "Use an empty pot, spoon, and plate. Stage guests as empty chairs. Avoid wasting food.",
+    caption: "Portion started doing design.",
+    whyThisFits: "The pot-scrape sound is a perfect simple joke with immediate household pressure.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-226",
+    pidginLevel: "light_pidgin",
+    anchor: "meter code",
+    hook: "meter code failed, I blamed my finger",
+    premiseFamily: "money_market_home_admin",
+    whatToShow: "Creator enters a fake meter code and it fails. They look at the finger that pressed the button, shake it like it acted alone, then try again with exaggerated seriousness.",
+    howToFilm: "Use a fake keypad, calculator, or remote. No real meter numbers. Close-up on finger blame and retry.",
+    caption: "The finger disappointed the house.",
+    whyThisFits: "Blaming the finger is silly, simple, and very human after a tiny mistake.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-228",
+    pidginLevel: "light_pidgin",
+    anchor: "estate gate",
+    hook: "estate gate asked name, my memory relocated",
+    premiseFamily: "transport_weather",
+    whatToShow: "Creator approaches a staged gate confidently. Off-camera security asks who they came to see. Creator suddenly forgets the person’s full name, checks a fake chat, and starts pronouncing it like a spelling bee.",
+    howToFilm: "Use a doorway or gate-like wall. Use fake chat only. No real addresses, estate names, or visitor details.",
+    caption: "Gate turned visit to exam.",
+    whyThisFits: "Estate-gate questioning is specific and the forgotten-name panic is simple physical comedy.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  }
+]
+
+Validation requirements:
+Run the existing Nigerian pack build/validation flow. Use the current project-approved path for replacing supplied entries in the approved runtime pack.
+
+Required checks:
+1. schema validation
+2. pidginLevel remains `"light_pidgin"`
+3. reviewer stamp is accepted
+4. no PENDING_NATIVE_REVIEW if approved output requires final stamps
+5. anti-mocking / stereotype gates
+6. no banned stereotype shortcuts
+7. no unsafe filming instructions
+8. no private financial, address, account, or health data exposure
+9. duplicate / anti-copy checks
+10. near-duplicate checks against the existing approved ng_light_pidgin corpus
+11. anchor + skeleton repetition checks
+12. cohort activation / leakage tests
+13. full TypeScript typecheck
+14. relevant Nigerian pack tests
+15. full api-server suite if practical
+
+Runtime QA:
+After replacement/build, run Nigerian cohort QA:
+- ng_light_pidgin: 10 creators × 5 sequential batches × 6 ideas
+- ng_clean: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Do not run or add strict ng_pidgin product paths unless existing tests require them as legacy coverage. The product direction is ng_clean + ng_light_pidgin.
+
+Metrics:
+1. replacements evaluated
+2. replacements accepted
+3. replacements rejected with reasons
+4. final approved ng_light_pidgin count
+5. ng_light_pidgin distinct hooks
+6. ng_light_pidgin distinct slot-0 hooks
+7. top hook share
+8. anchor distribution before/after
+9. repeated skeletons before/after
+10. HQS distribution before/after
+11. count HQS < 40 before/after
+12. count HQS >= 50 before/after
+13. underfills
+14. fallback batches
+15. errors
+16. cohort leakage
+17. style leakage into ng_clean/western
+18. any repeated weak hook or over-concentrated anchor
+
+Acceptance criteria:
+1. No coding-agent-authored entries.
+2. No scorer/validator/selector/prompt/API/mobile/DB/schema changes.
+3. At least 20 replacements approved, unless fewer naturally pass and report explains why.
+4. The weak-entry count improves materially.
+5. ng_light_pidgin HQS distribution improves materially.
+6. ng_light_pidgin runtime QA shows materially improved hook/anchor diversity.
+7. No ng_clean/western leakage.
+8. No underfill or fallback regression.
+9. TypeScript clean.
+10. Relevant tests pass.
+11. Final report clearly states what passed, what failed, and what Packet 1C should target.
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_PACKET_1B_REWRITE_IMPORT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_packet_1b_rewrite_import.json`
+- `.local/qa-runs/n1_ng_light_pidgin_packet_1b_rewrite_import_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Replacements evaluated
+3. Replacements approved/imported
+4. Replacements rejected with reasons
+5. Duplicate / near-duplicate findings
+6. Anchor + skeleton distribution before/after
+7. HQS distribution before/after
+8. Files changed
+9. Tests run and results
+10. Runtime QA table
+11. ng_light_pidgin diversity metrics
+12. Cohort leakage checks
+13. Remaining gaps
+14. Recommendation for Packet 1C
+
+Stop condition:
+If this requires authoring new entries, rewriting failed entries, changing validators, changing scorer, changing prompts, changing API/mobile/DB/schema, or loosening safety/style gates, stop and report.
+
+Do not improvise. Replace only with the supplied curated packet.
