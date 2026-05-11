@@ -1529,3 +1529,15 @@ id = "Sp5GjBcLjg4jIgyzHN_0E"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun_summary.json"
 type = "unspecified"
 title = "P3 Dry-Run Summary (decision + metrics)"
+
+[[outputs]]
+id = "vb_eDUsUxlIah-MmNyn8o"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P4_TOPK3_RETENTION_REPORT.md"
+type = "text"
+title = "N1 NG light_pidgin runtime diversity — P4 top-K=3 retention report"
+
+[[outputs]]
+id = "6TgjlEuJeXoOAx0OHbyKe"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_topk3_retention_summary.json"
+type = "unspecified"
+title = "P4 runtime probe summary JSON"

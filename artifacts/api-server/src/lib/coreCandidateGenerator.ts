@@ -1522,66 +1522,6 @@ export function generateCoreCandidates(
         });
       }
 
-      // ========================================================================
-      // PHASE N1-P3-DRYRUN-INSTRUMENT — TEMPORARY — REMOVE AFTER P3 DRY-RUN
-      // (added 2026-05-11 per
-      // .local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md
-      // §6). Emits per-core pack-passing-pool composition for the
-      // P3 top-K retention dry-run audit. No-op when observer global
-      // is unset → default-unset in production → byte-identical
-      // production behavior. Mirrors the __nigerianThrottleObserver
-      // pattern immediately above. REMOVE THIS ENTIRE BLOCK once
-      // .local/scripts/n1NgLightPidginP3TopKDryrun.mts has produced
-      // its measured PROCEED/DO_NOT_PROCEED verdict (or once the
-      // follow-up real top-K patch lands and obviates the dry-run).
-      // ========================================================================
-      const _ppObs = (
-        globalThis as {
-          __nigerianPackPassingPoolObserver?: (rec: {
-            coreId: string;
-            passingTotal: number;
-            passingMaxQuality: number;
-            packPassingPool: Array<{
-              nigerianPackEntryId: string;
-              hookQualityScore: number;
-              hook: string;
-              anchorLower: string;
-              scenarioFingerprint: string | undefined;
-            }>;
-          }) => void;
-        }
-      ).__nigerianPackPassingPoolObserver;
-      if (_ppObs) {
-        const _ppPool: Array<{
-          nigerianPackEntryId: string;
-          hookQualityScore: number;
-          hook: string;
-          anchorLower: string;
-          scenarioFingerprint: string | undefined;
-        }> = [];
-        let _ppMaxQ = -Infinity;
-        for (const p of passing) {
-          if (p.quality > _ppMaxQ) _ppMaxQ = p.quality;
-          const pid = (p.meta as { nigerianPackEntryId?: string })
-            .nigerianPackEntryId;
-          if (pid === undefined) continue;
-          _ppPool.push({
-            nigerianPackEntryId: pid,
-            hookQualityScore: p.quality,
-            hook: p.idea.hook,
-            anchorLower: p.anchorLower,
-            scenarioFingerprint: p.sf,
-          });
-        }
-        _ppObs({
-          coreId: core.id,
-          passingTotal: passing.length,
-          passingMaxQuality: passing.length > 0 ? _ppMaxQ : 0,
-          packPassingPool: _ppPool,
-        });
-      }
-      // ============== END PHASE N1-P3-DRYRUN-INSTRUMENT (TEMPORARY) ===========
-
       // PHASE N1-LIVE-HARDEN P2 — per-core pack-prefix candidate
       // block diagnostic. Always emitted when `packEligible.length
       // > 0` (i.e. we actually attempted the pack-prefix path for
@@ -1871,55 +1811,77 @@ export function generateCoreCandidates(
       }
       kept = true;
 
-      // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07) —
+      // PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07,
+      // expanded to top-K=3 on BI 2026-05-11 per the P3 dry-run
+      // — see .local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md
+      // and follow-up P4 implementation report) —
       // when active (flag ON + cohort eligible via packEligible.length
       // > 0, which is the SAME activation gate as the pack-prefix
-      // block above), additionally retain the BEST PACK candidate
-      // when distinct from `best`. Pack candidates carry
+      // block above), additionally retain UP TO 3 DISTINCT
+      // pack candidates beyond `best`. Pack candidates carry
       // `meta.nigerianPackEntryId` (set inside `authorPackEntryAsIdea`
       // and spread through `...r.meta` at the pack push site above).
       // Strict guards:
       //   • flag must be true (default OFF; production unchanged)
       //   • cohort must already be pack-eligible (no leak)
       //   • at least one pack candidate must exist in `passing[]`
-      //   • the pack pick must differ from `best` (no in-batch
-      //     duplicate packEntryId or duplicate hook — the second
-      //     constraint is enforced structurally because pack hooks
-      //     are atomic per entry, plus downstream slot reservation's
-      //     per-batch hook dedup is preserved)
+      //   • each retained pack pick must have a packEntryId distinct
+      //     from `best` (when `best` is pack-authored) AND distinct
+      //     from any other top-K pack pick already retained (no
+      //     in-batch duplicate packEntryId — the same-hook constraint
+      //     is enforced structurally because pack hooks are atomic
+      //     per entry, plus downstream slot reservation's per-batch
+      //     hook dedup is preserved)
+      //   • each retained pack pick must NOT be in
+      //     `recentNigerianPackEntryIds` (per-creator cross-batch
+      //     memory snapshot)
       // No validator / scorer / corpus / anti-copy change — only the
-      // retention count widens from 1 → up to 2 in the activated NG
-      // branch. The per-core attempt budget upstream is unaffected.
+      // retention count widens from 1 → up to NIGERIAN_PACK_AWARE_RETENTION_TOP_K
+      // in the activated NG branch. The per-core attempt budget
+      // upstream is unaffected. Global `best` is still pushed
+      // unconditionally above — so this never under-fills the per-
+      // core retention vs the pre-flag baseline.
       if (
         packAwareRetentionEnabled &&
         packEligible.length > 0 &&
         passing.length > 1
       ) {
+        const NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 3;
         const bestPackId = (best.meta as { nigerianPackEntryId?: string })
           .nigerianPackEntryId;
-        // Pack-memory-aware: skip pack candidates whose entryId the
-        // creator has already seen recently. Avoids cross-batch
-        // repetition that would otherwise re-ship the same pack hook
-        // because the per-core picker runs upstream of the slot
-        // reservation memory filter. Falls through to "no extra pick"
-        // when every pack candidate is seen — the global `best` is
-        // still pushed unconditionally above, so this never under-
-        // fills the per-core retention vs the pre-flag baseline.
-        let bestPack: typeof passing[number] | null = null;
-        for (const p of passing) {
+        const seenPackIds = new Set<string>();
+        if (bestPackId !== undefined) {
+          seenPackIds.add(bestPackId);
+        }
+        // Filter `passing` to pack candidates whose entryId is
+        // (a) defined, (b) not the same as `best`'s pack id, and
+        // (c) not in the per-creator cross-batch memory snapshot.
+        // Sort the survivors by descending quality so top-K picks
+        // the highest-quality distinct pack runners-up.
+        const eligiblePackRunners = passing.filter((p) => {
           const pid = (p.meta as { nigerianPackEntryId?: string })
             .nigerianPackEntryId;
-          if (pid === undefined) continue;
-          if (pid === bestPackId) continue;
-          if (recentNigerianPackEntryIds.has(pid)) continue;
-          if (bestPack === null || p.quality > bestPack.quality) {
-            bestPack = p;
-          }
-        }
-        if (bestPack !== null) {
-          candidates.push({ idea: bestPack.idea, meta: bestPack.meta });
-          usedAnchorsThisBatch.add(bestPack.anchorLower);
-          if (bestPack.sf) usedFingerprintsThisBatch.add(bestPack.sf);
+          if (pid === undefined) return false;
+          if (seenPackIds.has(pid)) return false;
+          if (recentNigerianPackEntryIds.has(pid)) return false;
+          return true;
+        });
+        const sortedRunners = eligiblePackRunners
+          .slice()
+          .sort((a, b) => b.quality - a.quality);
+        let added = 0;
+        for (const p of sortedRunners) {
+          if (added >= NIGERIAN_PACK_AWARE_RETENTION_TOP_K) break;
+          const pid = (p.meta as { nigerianPackEntryId?: string })
+            .nigerianPackEntryId!;
+          // Defensive dedupe in case two passing candidates surfaced
+          // the same entryId (cross-recipe collision).
+          if (seenPackIds.has(pid)) continue;
+          seenPackIds.add(pid);
+          candidates.push({ idea: p.idea, meta: p.meta });
+          usedAnchorsThisBatch.add(p.anchorLower);
+          if (p.sf) usedFingerprintsThisBatch.add(p.sf);
+          added += 1;
         }
       }
 

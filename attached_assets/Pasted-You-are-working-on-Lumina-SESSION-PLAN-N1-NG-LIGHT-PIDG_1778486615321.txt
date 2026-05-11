@@ -1,0 +1,189 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P4-TOPK3-RETENTION
+
+Mode:
+Implement the measured P3 recommendation: topK=3 pack-aware per-core retention.
+
+Purpose:
+P3 dry-run is complete and measured.
+
+P3 result:
+- baseline measured: 54 ideas, 37 pack-authored, 7 distinct shipped pack entry IDs
+- topK=2 calibrated distinct IDs: 8.27
+- topK=3 calibrated distinct IDs: 10.82
+- target: 10
+- verdict: PROCEED with topK=3
+
+Decision:
+Implement topK=3.
+
+Important:
+This is now an implementation phase, but the scope must stay extremely narrow.
+
+Do NOT change:
+- scorer
+- validator
+- prompts
+- API
+- mobile
+- DB
+- schema
+- corpus
+- slot-0 feed
+- ng_clean behavior
+- western/null behavior
+- production flags
+- Claude/fallback behavior
+
+Do NOT author or import entries.
+Do NOT loosen gates.
+Do NOT add a new flag.
+
+Files to inspect:
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/__tests__/coreCandidateGenerator.test.ts`
+- `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
+- P3 dry-run report:
+  - `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun.json`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun_summary.json`
+
+Implementation:
+In `artifacts/api-server/src/lib/coreCandidateGenerator.ts`, update only the existing pack-aware retention block around L1833-L1864.
+
+Current behavior:
+- global best is pushed unconditionally
+- if pack-aware retention is enabled, add at most one additional `bestPack`
+
+New behavior:
+- global best is still pushed unconditionally
+- if pack-aware retention is enabled, add up to 3 additional distinct pack candidates
+- sort eligible pack candidates by descending quality
+- dedupe by `nigerianPackEntryId`
+- exclude the global best’s pack ID if the best is already pack-authored
+- exclude `recentNigerianPackEntryIds`
+- preserve existing anchor/fingerprint bookkeeping
+- preserve existing candidate shape and metadata
+- preserve existing NG activation and `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED` gate
+
+Implementation sketch:
+Use a local constant, not a new flag:
+
+`const NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 3;`
+
+Inside the existing retention block:
+1. Build `seenPackIds`.
+2. Add best pack ID to `seenPackIds` if the global best has `nigerianPackEntryId`.
+3. Filter `passing` to pack candidates with `nigerianPackEntryId`.
+4. Exclude:
+   - already seen IDs
+   - recentNigerianPackEntryIds
+5. Sort by `quality desc`.
+6. Push up to 3 distinct pack candidates into `candidates`.
+7. For each pushed candidate, update:
+   - `usedAnchorsThisBatch`
+   - `usedFingerprintsThisBatch` if `sf` exists
+
+Hard requirement:
+Do not change the unconditional global-best push.
+TopK must be purely additive.
+
+Temporary instrumentation cleanup:
+P3 added a temporary observer block in `coreCandidateGenerator.ts`:
+
+`PHASE N1-P3-DRYRUN-INSTRUMENT — TEMPORARY`
+
+Remove this entire temporary observer block before final completion.
+
+Do not leave:
+- `globalThis.__nigerianPackPassingPoolObserver`
+- the P3 dry-run observer block
+- any P3 temporary comments
+- any behavior-neutral instrumentation that is no longer needed
+
+Tests:
+Add focused tests in `coreCandidateGenerator.test.ts` or the most appropriate existing Nigerian/core candidate test file.
+
+Required tests:
+1. topK=3 retains up to 3 distinct pack candidates in addition to the global best.
+2. If global best is pack-authored, its pack ID is not duplicated by topK retention.
+3. `recentNigerianPackEntryIds` are excluded from topK retained candidates.
+4. If fewer than 3 valid pack candidates exist, behavior gracefully retains only available ones.
+5. Non-NG / western/null cohort remains unaffected.
+6. ng_clean remains unaffected because `canActivateNigerianPack` short-circuits for clean.
+7. Existing `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED` gate still controls the behavior.
+
+QA:
+After implementation and instrumentation removal, run:
+
+1. Typecheck:
+`pnpm --filter @workspace/api-server run typecheck`
+
+2. Focused tests:
+Run the relevant core candidate / Nigerian pack tests.
+
+3. Full api-server tests:
+`pnpm --filter @workspace/api-server exec vitest run`
+
+4. Runtime telemetry re-soak:
+Re-run the same P2/P3 runtime probe shape for ng_light_pidgin with staging NG flags ON.
+
+Required post-patch runtime metrics:
+- total ideas
+- pack-authored count
+- pack share
+- distinct shipped pack entry IDs
+- distinct hooks
+- distinct anchors
+- top-3 entry share
+- slotReservationDiagnostic averages
+- underfill count
+- fallback count
+- error count
+- ng_clean impact
+- western/null impact
+- strict ng_pidgin impact if measured
+
+Acceptance criteria:
+1. Temporary P3 observer removed.
+2. No scorer/validator/prompt/API/mobile/DB/schema/corpus changes.
+3. No new flag.
+4. Typecheck clean.
+5. Full api-server tests pass.
+6. ng_light_pidgin distinct shipped pack entry IDs improves from baseline 7 to at least 10 over comparable probe shape.
+7. Pack share remains at least 60%.
+8. Underfill does not regress.
+9. Fallback does not regress.
+10. No ng_clean regression.
+11. No western/null leakage.
+12. No strict ng_pidgin expansion beyond existing gated behavior.
+13. Runtime report compares pre/post numbers clearly.
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P4_TOPK3_RETENTION_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_topk3_retention.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_topk3_retention_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Exact files changed
+3. Temporary instrumentation cleanup confirmation
+4. Code behavior changed
+5. Tests added
+6. Typecheck result
+7. Full test result
+8. Runtime QA results
+9. Pre/post comparison
+10. ng_light_pidgin diversity improvement
+11. Pack share impact
+12. Underfill/fallback/error status
+13. Cohort isolation status
+14. Remaining risks
+15. Recommended next step
+
+Stop condition:
+If implementing topK=3 requires touching scorer, validator, prompt, API, mobile, DB, schema, corpus, slot-0 feed, or production flags, stop and report.
+If temporary instrumentation cannot be safely removed, stop and report.
+If tests cannot isolate the behavior, stop and report.
