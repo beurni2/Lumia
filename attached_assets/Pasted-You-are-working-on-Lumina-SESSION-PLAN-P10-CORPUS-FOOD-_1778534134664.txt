@@ -1,0 +1,392 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P10-CORPUS-FOOD-AUTHOR-IMPORT-VALIDATION
+
+Mode:
+Import + validation only.
+
+Purpose:
+P9 proved the `home→food` widened surface is structurally starved:
+- only 1 strict home-domain food-eligible entry existed
+- T2 projection widening works end-to-end
+- runtime/ranking/memory are not the primary bottleneck
+- the correct next move is curated corpus depth, NOT runtime changes
+
+This phase imports a curated human-reviewed `ng_light_pidgin` food/home packet into the Nigerian approved pack.
+
+CRITICAL:
+The coding agent must NOT author, rewrite, improve, invent, or substitute corpus entries.
+Use ONLY the entries provided in this prompt.
+If any entry fails validation, report it exactly.
+Do NOT creatively repair it.
+Do NOT loosen validators.
+Do NOT change scorers/selectors.
+Do NOT change prompts/API/mobile/DB/schema.
+Do NOT add new projection edges.
+Do NOT lift draw-cap.
+Do NOT touch slot-0 logic.
+Do NOT touch memory logic.
+Do NOT alter T2 runtime behavior.
+Do NOT modify production flags.
+
+Product direction:
+Supported Nigerian language/cultural styles:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin product option for now.
+
+Current runtime context:
+- T2 projection staging flag exists:
+  LUMINA_NG_PACK_PROJECTION_T2_ENABLED
+- T2 edges:
+  everyday → mornings
+  everyday → sleep
+  home → food
+
+This phase strengthens the home→food edge by adding curated `sourceDomain: home`, `targetProjection: food` entries.
+
+IMPORT REQUIREMENTS
+
+- Add entries as `ng_light_pidgin`
+- source domain must be `home`
+- target projection intent is `food`
+- preserve `replaceId` metadata if supported
+- preserve anchors exactly
+- preserve hook text exactly
+- preserve all wording exactly
+- preserve lowercase formatting exactly
+- preserve editorial metadata if supported
+- do NOT “improve” grammar
+- do NOT normalize Nigerian flavor
+- do NOT rewrite hooks
+
+If the runtime corpus supports only runtime fields:
+- import required runtime fields only
+- preserve the full packet in QA/report artifacts
+
+VALIDATION REQUIREMENTS
+
+1. Verify all hooks are lowercase.
+2. Verify no duplicate hooks.
+3. Verify anchors are food/home compatible.
+4. Verify every entry uses:
+   sourceDomain: home
+5. Verify every entry uses:
+   style: ng_light_pidgin
+6. Verify no entry imported into ng_clean.
+7. Verify no western/W2 pools touched.
+8. Verify no existing approved entries accidentally removed.
+9. Verify no rejected entries reintroduced.
+10. Verify no validator/scorer/prompt/API/mobile/DB/schema/runtime changes.
+
+CURATED PACKET
+
+replaceId: FOOD_DRAFT_001
+hook: one small taste later, plate was sitting like tenant
+anchor: plate
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_002
+hook: plate was for tasting, why am i looking for remote
+anchor: plate
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_003
+hook: plate said enough, spoon said don’t embarrass us
+anchor: plate
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_004
+hook: i carried plate for quick bite, my afternoon ended there
+anchor: plate
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_005
+hook: fridge light caught me and i started moving innocent
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_006
+hook: fridge was empty but i checked again like miracle has shift
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_007
+hook: fridge made small sound and i answered like my name was inside
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_008
+hook: fridge had only light, yet i stood there negotiating
+anchor: fridge
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_009
+hook: fork touched last meat and the room lost volume
+anchor: fork
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_010
+hook: fork missed meat and i nearly showed family history
+anchor: fork
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_011
+hook: fork was doing fine dining, hunger said leave that thing
+anchor: fork
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_012
+hook: rice saw fork and started escaping one by one
+anchor: fork
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_013
+hook: groceries entered house and everybody remembered diet
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_014
+hook: groceries disappeared and everybody started sweeping the same spot
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_015
+hook: i bought groceries and still ate noodles like tenant
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_016
+hook: groceries entered fridge and became museum items
+anchor: groceries
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_017
+hook: oven beeped and i remembered youtube is not training
+anchor: oven
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_018
+hook: oven timer rang and everybody became consultant
+anchor: oven
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_019
+hook: oven said ready, food said check again
+anchor: oven
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_020
+hook: oven heat touched my face and i became humble
+anchor: oven
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_021
+hook: pan sizzled once and i started behaving expensive
+anchor: pan
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_022
+hook: pan was shouting, food inside was still internship
+anchor: pan
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_023
+hook: pan smoked small and recipe started denying me
+anchor: pan
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_024
+hook: egg entered pan and chose violence quietly
+anchor: pan
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_025
+hook: pot opened and suspects became furniture
+anchor: pot
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_026
+hook: empty pot appeared and everybody suddenly had somewhere to be
+anchor: pot
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_027
+hook: spoon entered stew and discipline left compound
+anchor: spoon
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_028
+hook: i was checking salt, why is spoon sweating
+anchor: spoon
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_029
+hook: rice remained small and everybody became humble
+anchor: rice
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_030
+hook: rice finished and stew started standing alone
+anchor: rice
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_031
+hook: stew touched white shirt and shirt joined ancestors
+anchor: stew
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_032
+hook: stew smell entered parlour and people came to drink water
+anchor: stew
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_033
+hook: garri entered cup and my bank app calmed down
+anchor: garri
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_034
+hook: garri was backup until hunger gave it promotion
+anchor: garri
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_035
+hook: noodles said five minutes and still collected my evening
+anchor: noodles
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_036
+hook: small pepper entered noodles and my confidence reduced
+anchor: noodles
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_037
+hook: freezer container had no label, so everybody became witness
+anchor: freezer
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_038
+hook: freezer gave me soup from another government
+anchor: freezer
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_039
+hook: snack finished and everybody started drinking water with respect
+anchor: snack
+sourceDomain: home
+targetProjection: food
+
+replaceId: FOOD_DRAFT_040
+hook: one biscuit remained and the room entered meeting
+anchor: snack
+sourceDomain: home
+targetProjection: food
+
+REQUIRED QA / REPORT FILES
+
+Create:
+- `.local/P10_CORPUS_FOOD_AUTHOR_IMPORT_VALIDATION_REPORT.md`
+- `.local/qa-runs/p10_corpus_food_author_import_validation.json`
+- `.local/qa-runs/p10_corpus_food_author_import_validation_summary.json`
+
+REPORT MUST INCLUDE
+
+1. Verdict
+2. Number of entries received
+3. Number imported
+4. Any rejected entries and exact reasons
+5. Files touched
+6. Confirmation:
+   - no runtime changes
+   - no scorer changes
+   - no validator changes
+   - no selector changes
+   - no API/mobile/DB/schema changes
+7. ng_light_pidgin corpus count before/after
+8. home→food eligible count before/after
+9. food-anchor distribution before/after
+10. duplicate-hook audit
+11. validation results
+12. typecheck result
+13. relevant tests run
+14. recommended next phase
+
+REQUIRED TESTS
+
+1. Typecheck:
+pnpm --filter @workspace/api-server run typecheck
+
+2. Relevant Nigerian corpus / pack tests
+
+3. Relevant projection/T2 tests if present
+
+4. If full suite feasible:
+pnpm --filter @workspace/api-server exec vitest run
+
+If not feasible:
+run deterministic chunks and report exact totals.
+
+KNOWN OUT OF SCOPE
+
+- P11Rotation flake remains out of scope
+- topK env-isolation issue remains separately known
+- do not fix either in this phase
+
+ACCEPTANCE CRITERIA
+
+1. 40 curated entries evaluated.
+2. Valid entries imported exactly with no coding-agent rewriting.
+3. home→food eligible count materially increases.
+4. No duplicate hooks.
+5. No sourceDomain/style mistakes.
+6. No runtime/scorer/validator/API/mobile/DB/schema/prompt changes.
+7. Typecheck clean.
+8. Relevant tests pass.
+9. Report files written.
+
+If any entry fails:
+- do NOT rewrite it
+- do NOT substitute another entry
+- reject it with exact reason
+- continue with remaining valid entries only.

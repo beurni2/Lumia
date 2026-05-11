@@ -1583,3 +1583,9 @@ id = "bEBxqT9wTU2dLPOoGPacw"
 uri = "file://.local/P9_WIDENED_WINNER_CONCENTRATION_AUDIT_REPORT.md"
 type = "text"
 title = "P9 Widened-Winner Concentration Audit Report (corrected)"
+
+[[outputs]]
+id = "v81rTt9ELnf8GtBjfdJAK"
+uri = "file://.local/P10_CORPUS_FOOD_AUTHOR_IMPORT_VALIDATION_REPORT.md"
+type = "text"
+title = "P10 Curated Home→Food Corpus Import-Validation Report"
