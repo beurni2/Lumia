@@ -1,0 +1,199 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P2-UPSTREAM-THROTTLE-TELEMETRY
+
+Mode:
+Audit-only telemetry capture.
+
+Purpose:
+The P1 feasibility audit confirmed that the proposed `applyNigerianPackSlotReservation` cap-widening is the wrong patch point.
+
+Do NOT implement selector behavior changes yet.
+
+The audit found:
+- `applyNigerianPackSlotReservation` already uses `maxReserved = Math.min(dedupedPack.length, desiredCount)`.
+- For desiredCount=6, the reservation layer already supports up to 6 pack-authored ideas.
+- The observed 2/6 pack-authored ceiling is upstream of slot reservation.
+- Likely upstream causes:
+  1. per-core best-pick collapse
+  2. pack-aware retention scope
+  3. PACK_DOMAIN_MAP narrowing
+  4. memory/dedup filtering before reservation
+
+Goal:
+Capture the missing runtime telemetry needed to identify the exact upstream throttle.
+
+Important:
+Do NOT change runtime behavior.
+Do NOT change selector behavior.
+Do NOT change scorer, validator, prompt, API, mobile, DB, schema, memory, slot-0, corpus, or production flags.
+Do NOT author entries.
+Do NOT import entries.
+Do NOT loosen gates.
+
+This task is telemetry/audit only.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin product option for now.
+
+Primary question:
+Why does ng_light_pidgin runtime output still produce only about 2 pack-authored/core_native ideas per 6-card batch when the approved light-pidgin corpus has 230 healthy entries?
+
+Telemetry to capture:
+1. slotReservationDiagnostic
+2. perIdea.nigerianPackEntryId
+3. perIdea source
+4. perIdea hook
+5. perIdea anchor
+6. perIdea regionDecorated
+7. perIdea pidginMarkerHits if available
+8. perIdea pattern/core id if available
+9. per-core pack throttle counters through `__nigerianThrottleObserver`
+10. candidate counts before and after:
+   - pack generation
+   - fingerprint dedup
+   - passing pool
+   - per-core best-pick
+   - pack-aware retention
+   - slot reservation input
+   - memory filter
+   - batch dedup
+   - final selection
+
+Known telemetry gaps from P1 feasibility audit:
+- `slotReservationDiagnostic` is currently emitted as a `logger.info(..., "nigerian_pack.slot_reservation_decision")` payload, not persisted in the partial QA JSON.
+- `qaTelemetry.perIdea[*].nigerianPackEntryId` is not persisted in the partial QA JSON.
+- `__nigerianThrottleObserver` counters exist but are not currently captured by the QA harness.
+- Pattern variation source/core attribution is incomplete.
+
+Allowed changes:
+You may create or modify audit-only scripts under `.local/scripts/`.
+You may write outputs under `.local/qa-runs/` and `.local/`.
+If absolutely necessary, you may add an additive QA-only telemetry field to the QA harness or telemetry writer, but it must not alter production behavior or selector output.
+Prefer log parsing if that is safer than touching source.
+Do not modify production selection behavior.
+
+Files to inspect:
+- `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/hybridIdeator.ts`
+- `artifacts/api-server/src/qa/nigerianStagingQa.ts`
+- `.local/scripts/n1E2eNigeriaQaProbe.mts`
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P1_FEASIBILITY_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit_summary.json`
+
+Required probes:
+
+A. Single-batch deep probe
+Run ng_light_pidgin for at least 1 deterministic creator and 1 batch.
+Capture:
+- all candidate-generation counters
+- pack candidate counts before reservation
+- slotReservationDiagnostic
+- final 6 ideas
+- perIdea.nigerianPackEntryId
+- perIdea source
+- whether each final idea came from approved pack, pattern_variation, or fallback
+
+B. Multi-batch probe
+Run ng_light_pidgin for 10 creators × 5 sequential batches × 6 ideas if feasible.
+Capture:
+- total ideas
+- pack-authored ideas
+- pattern_variation ideas
+- distinct hooks
+- distinct pack entry IDs
+- distinct anchors
+- top repeated hooks
+- top repeated pattern_variation hooks
+- top repeated pack entries
+- memory behavior across sequential batches
+
+C. Upstream throttle funnel
+For ng_light_pidgin, report these counts:
+- approved light_pidgin corpus size
+- pack entries considered eligible
+- pack entries matching PACK_DOMAIN_MAP
+- pack entries authored successfully
+- pack entries surviving fingerprint dedup
+- pack entries entering passing pool
+- pack winners retained per core
+- pack candidates entering slot reservation
+- dedupedPack.length inside slot reservation
+- final pack-authored idea count
+
+D. Binding-stage diagnosis
+Answer which stage is binding:
+1. PACK_DOMAIN_MAP produces too few matches
+2. pack authoring fails too often
+3. fingerprint dedup removes too many pack candidates
+4. per-core best-pick allows too few pack candidates through
+5. pack-aware retention retains too few pack candidates
+6. memory filter removes too many
+7. slot reservation receives too few pack candidates
+8. slot reservation receives enough but composition still skips them
+9. QA harness creates an artificial compression
+
+E. Patch-point recommendation
+Based on telemetry only, recommend ONE next implementation patch point:
+- per-core pack-aware retention widening
+- PACK_DOMAIN_MAP refinement
+- memory/dedup adjustment
+- QA harness correction only
+- no patch needed
+
+For the recommended patch, include:
+- files likely touched
+- exact behavior change
+- risk level
+- ng_clean impact
+- western impact
+- strict ng_pidgin impact
+- test plan
+- runtime QA acceptance criteria
+
+Do NOT implement the patch.
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P2_UPSTREAM_THROTTLE_TELEMETRY_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry_summary.json`
+
+Final report format:
+1. Verdict
+2. Executive summary
+3. Probe setup
+4. Single-batch deep probe results
+5. Multi-batch probe results
+6. Slot reservation diagnostics
+7. Per-core throttle counters
+8. Pack-entry attribution
+9. Pattern-variation attribution
+10. Funnel loss table
+11. Binding-stage diagnosis
+12. Recommended real patch point
+13. Risks
+14. Test plan
+15. Runtime QA acceptance criteria
+16. Whether implementation should proceed
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No selector behavior changes.
+3. No corpus changes.
+4. No scorer/validator/prompt/API/mobile/DB/schema changes.
+5. Captures slotReservationDiagnostic or explains why not.
+6. Captures perIdea.nigerianPackEntryId or explains why not.
+7. Captures per-core throttle counters or explains why not.
+8. Identifies the exact upstream stage causing the 2/6 pack ceiling.
+9. Recommends a single bounded implementation patch point.
+10. Does not propose implementation without telemetry evidence.
+
+Stop condition:
+If telemetry cannot be captured without production source changes, stop and report the minimal safe QA-only instrumentation needed. Do not guess.

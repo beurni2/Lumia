@@ -1493,3 +1493,21 @@ id = "c7wDwtTqwL_ONk3YyGL1k"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p1_feasibility_audit.json"
 type = "unspecified"
 title = "Feasibility Audit Evidence JSON"
+
+[[outputs]]
+id = "G6PKBp3cyFU7yetdvk_nM"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P2_UPSTREAM_THROTTLE_TELEMETRY_REPORT.md"
+type = "text"
+title = "P2 Upstream Throttle Telemetry Report"
+
+[[outputs]]
+id = "IJWzl6ovCka2QUK_asiw3"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry.json"
+type = "unspecified"
+title = "P2 Telemetry — Per-Batch Detail JSON"
+
+[[outputs]]
+id = "5OZBv0dKaob0mMCGNSoDl"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry_summary.json"
+type = "unspecified"
+title = "P2 Telemetry — Summary JSON"
