@@ -1409,3 +1409,27 @@ id = "Xql33VwVc8Ae11uA2RdTt"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_target_id_audit_summary.json"
 type = "unspecified"
 title = "Packet 1D — Audit Summary JSON"
+
+[[outputs]]
+id = "3_jI4meYH93h2uKef60bu"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_PACKET_1D_NEXT_30_REWRITE_IMPORT_REPORT.md"
+type = "text"
+title = "N1 Packet 1D Next-30 Rewrite Import Report"
+
+[[outputs]]
+id = "MJw15Ckih64jVxuAy6adH"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_next_30_rewrite_import.json"
+type = "unspecified"
+title = "Packet 1D — Per-replacement verdicts"
+
+[[outputs]]
+id = "GGns29DXEw-xRl33x0RMx"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_next_30_rewrite_import_summary.json"
+type = "unspecified"
+title = "Packet 1D — Aggregate summary"
+
+[[outputs]]
+id = "cvGRhlP3HGFCwqy_SCXjx"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_hqs_distribution.json"
+type = "unspecified"
+title = "Packet 1D — HQS before/after distribution"
