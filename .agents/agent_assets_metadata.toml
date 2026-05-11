@@ -1433,3 +1433,21 @@ id = "cvGRhlP3HGFCwqy_SCXjx"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1d_hqs_distribution.json"
 type = "unspecified"
 title = "Packet 1D — HQS before/after distribution"
+
+[[outputs]]
+id = "_ubfonaD1q4mXO57s7qBU"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_REJECT_REPAIR_PACKET_IMPORT_REPORT.md"
+type = "text"
+title = "V2 Reject-Repair Final Report (14 sections)"
+
+[[outputs]]
+id = "yH8QQ-I78kxhHcL-Fwh3Q"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_reject_repair_packet_import_summary.json"
+type = "unspecified"
+title = "V2 Reject-Repair Summary JSON"
+
+[[outputs]]
+id = "-0ZyL0jVYdE3seWnuQFic"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_reject_repair_packet_import.json"
+type = "unspecified"
+title = "V2 Reject-Repair Per-Entry Verdicts JSON"

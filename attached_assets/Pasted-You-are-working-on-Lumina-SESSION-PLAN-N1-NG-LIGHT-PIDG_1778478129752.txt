@@ -1,0 +1,380 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-REJECT-REPAIR-PACKET-IMPORT-V2
+
+Mode:
+Repair the 12 rejected ng_light_pidgin replacement slots from Packets 1B, 1C, and 1D using supervisor-supplied replacements only.
+
+Critical authorship rule:
+Do NOT create, rewrite, improve, generate, or invent entries.
+
+The supervisor/user supplied the replacement packet below. Your role is only to:
+1. Inspect current Nigerian light-pidgin pack schema/conventions.
+2. Replace the listed existing entries by `replaceId`.
+3. Validate the supplied replacements.
+4. Run duplicate / near-duplicate / anchor-skeleton checks against the existing approved ng_light_pidgin corpus.
+5. Import only replacements that pass live gates.
+6. Reject replacements that fail and report why.
+7. Run tests and QA.
+8. Report results.
+
+Do not author replacements.
+Do not rewrite failed entries.
+Do not improve hooks.
+Do not fill missing counts yourself.
+If fewer replacements pass than expected, import fewer and report.
+
+Background:
+Packet 1B imported 23/30 and rejected 7.
+Packet 1C imported 27/30 and rejected 3.
+Packet 1D imported 28/30 and rejected 2.
+
+This packet repairs those 12 rejected slots only.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin language option for now.
+
+Therefore:
+- These entries are intended only for `pidginLevel: "light_pidgin"`.
+- Do not import as strict pidgin.
+- Do not create or expand an ng_pidgin runtime pack.
+
+Target rejected IDs:
+Use exactly these 12 replaceIds:
+
+LP-125
+LP-072
+LP-037
+LP-088
+LP-105
+LP-210
+LP-216
+LP-038
+LP-103
+LP-022
+LP-076
+LP-194
+
+Known previous failure reasons:
+- LP-125: mechanical anchor issue
+- LP-072: scenario coherence drift
+- LP-037: score below floor
+- LP-088: score below floor
+- LP-105: score below floor
+- LP-210: duplicate anchor+skeleton
+- LP-216: missing hook anchor in whatToShow
+- LP-038: score below floor
+- LP-103: score below floor
+- LP-022: mechanical anchor issue
+- LP-076: duplicate anchor+skeleton against Packet 1C LP-130
+- LP-194: scenario coherence drift around manager-walk scene
+
+Hard constraints:
+1. No scorer changes.
+2. No validator changes.
+3. No selector changes.
+4. No prompt changes.
+5. No API/mobile/DB/schema changes.
+6. No K changes.
+7. No memory changes.
+8. No slot-0 feed changes.
+9. No ng_clean behavior changes except regression checks.
+10. No strict ng_pidgin changes.
+11. No coding-agent-authored entries.
+12. No rewriting supplied entries.
+13. No filler additions.
+14. Preserve cohort isolation.
+
+Replacement policy:
+- Use only the supplied packet.
+- Match each replacement by `replaceId`.
+- Preserve the existing row/slot identity if that is current pack convention.
+- If the pack convention requires a specific id field instead of `replaceId`, adapt mechanically while preserving the replacement content exactly.
+- If an entry fails a mechanical schema issue, report it.
+- Only fix truly mechanical formatting if existing pack conventions require it and the meaning/hook are unchanged.
+- If an entry fails because of hook quality, light-pidgin validity, style, safety, anti-mocking, duplicate/anti-copy, near-duplicate, anchor/skeleton over-concentration, or validator reasons, reject it.
+- Do not rewrite rejected entries.
+- Do not generate alternates.
+- If none pass, stop and report.
+
+Duplicate / near-duplicate policy:
+Before import, compare every supplied replacement against the remaining approved ng_light_pidgin corpus.
+
+Reject any supplied replacement that is too close in:
+1. exact hook text
+2. normalized hook text
+3. anchor + hook skeleton
+4. scenario / whatToShow
+5. caption
+6. core comedic premise
+
+Pay special attention to avoiding the known prior collisions:
+- salary-alert + bills-queue shape
+- manager-walk hook drifting away from whatToShow
+- power-strip/socket duplicate structures
+- vague family-question hooks where the anchor does not appear in whatToShow
+- receipt/money hooks whose anchor is not present in both hook and whatToShow
+
+Style policy:
+These must be ng_light_pidgin, not strict pidgin.
+
+Good:
+- readable English base
+- light Nigerian/Pidgin flavor
+- 1–2 pidgin markers when useful
+- natural, human, filmable
+- broad-audience understandable
+- hook punchline is based on real behavior or physical action
+- the hook is memorable enough that a creator might repeat it
+
+Bad:
+- full strict pidgin
+- heavy slang density
+- lazy “wahala” / “abeg” filler
+- fake Nigerian flavor
+- caricature
+- generic scorer-shaped object jokes
+- unsafe public filming
+- private data exposure
+- abstract poetic hooks with no clear behavior
+
+Replacement packet:
+Use exactly this supplied curated packet.
+
+[
+  {
+    replaceId: "LP-125",
+    pidginLevel: "light_pidgin",
+    anchor: "meat plate",
+    hook: "meat plate passed, uncle became security camera",
+    premiseFamily: "family_household",
+    whatToShow: "A meat plate moves around the table. One uncle pretends to be discussing serious family matters, but his eyes track the meat plate like CCTV. When the biggest piece passes him, his neck follows it before his pride catches up.",
+    howToFilm: "Stage around a table with a plate and one obvious meat prop. Use close-ups of the eyes tracking the plate, then a wide shot of the neck turning too far.",
+    caption: "Conversation was happening, but meat was leading.",
+    whyThisFits: "It is instantly filmable at a table and the comedy comes from silent food-monitoring behavior.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-072",
+    pidginLevel: "light_pidgin",
+    anchor: "reply box",
+    hook: "reply box blinked, English started charging fee",
+    premiseFamily: "messaging_creator_phone",
+    whatToShow: "A reply box blinks on a fake chat screen. The person sits up, cracks fingers like a professional writer, types ‘okay,’ deletes it, and starts staring into space as if English has become subscription-only.",
+    howToFilm: "Create a fake chat screen and keep all names fictional. Focus on the blinking reply box, the serious posture change, and the useless finger cracking.",
+    caption: "One message turned to essay planning.",
+    whyThisFits: "It is funny because a simple reply becomes unnecessarily dramatic and easy to act.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-037",
+    pidginLevel: "light_pidgin",
+    anchor: "plastic chair",
+    hook: "plastic chair sighed, my body negotiated exit",
+    premiseFamily: "family_household",
+    whatToShow: "At a church/event-style setup, someone sits on a plastic chair and it makes one small sound. Their body freezes halfway, their hands grab both sides, and they rise slowly while smiling like they only remembered an errand.",
+    howToFilm: "Use a safe sturdy plastic chair and add the sound with a tap or edit. Keep the movement slow and staged; do not use a broken chair.",
+    caption: "Chair spoke once, I obeyed.",
+    whyThisFits: "The visual panic is strong, safe, and recognizable from gatherings with plastic chairs.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-088",
+    pidginLevel: "light_pidgin",
+    anchor: "market nylon",
+    hook: "market nylon tore, pepper started travelling alone",
+    premiseFamily: "money_payment_admin",
+    whatToShow: "A person enters with market nylon and it tears near the kitchen doorway. Pepper rolls out first, then onions follow. The person chases pepper with one hand while holding the torn market nylon like evidence.",
+    howToFilm: "Use pepper/onion props on a clean indoor floor. Tear a spare market nylon safely and keep the chase slow enough to control.",
+    caption: "My soup ingredients tried relocation.",
+    whyThisFits: "It has a strong physical payoff and turns a normal market problem into object comedy.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-105",
+    pidginLevel: "light_pidgin",
+    anchor: "mirror check",
+    hook: "mirror check passed, camera requested village meeting",
+    premiseFamily: "weather_outfit_cooking",
+    whatToShow: "Someone does a mirror check and approves the outfit with a small nod. They open the front camera and immediately return to the mirror, turning left and right like the mirror check may have lied.",
+    howToFilm: "Film beside a mirror without showing private room details. Use a fake camera view or shoot from the side so no personal gallery appears.",
+    caption: "Mirror said yes, camera asked questions.",
+    whyThisFits: "It is a real appearance contradiction with clear, funny physical adjustment.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-210",
+    pidginLevel: "light_pidgin",
+    anchor: "office chair",
+    hook: "office chair squeaked, serious meeting found me",
+    premiseFamily: "work_school_productivity",
+    whatToShow: "In a quiet fake meeting setup, someone shifts on an office chair and it squeaks loudly. They freeze, sit upright, and start nodding extra seriously like the office chair just contributed to the agenda.",
+    howToFilm: "Use an office chair in a room. Add a squeak sound if needed. Do not show real workplace screens or confidential documents.",
+    caption: "Chair spoke during agenda item two.",
+    whyThisFits: "It avoids power/sockets and uses a fresh office embarrassment with a clear sound-based payoff.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-216",
+    pidginLevel: "light_pidgin",
+    anchor: "water kettle",
+    hook: "water kettle clicked, cups started appearing",
+    premiseFamily: "family_household",
+    whatToShow: "A water kettle clicks after boiling. Immediately, one cup appears from the side, then another, then a third person enters casually with tea. The person who boiled the water stares at their one remaining spoon.",
+    howToFilm: "Use a safe unplugged water kettle and add the click sound. Do not use boiling water. Let cups enter frame one by one for the joke.",
+    caption: "Hot water became public property.",
+    whyThisFits: "The water kettle is central in both hook and scene, with a clear household swarm payoff.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-038",
+    pidginLevel: "light_pidgin",
+    anchor: "family question",
+    hook: "family question started, my cup needed inspection",
+    premiseFamily: "family_household",
+    whatToShow: "A family question comes from off-camera. The person picks up their cup, checks inside it, wipes the side, drinks slowly, and studies the cup like the answer is written at the bottom.",
+    howToFilm: "Use a simple table and cup. The family question should be harmless and generic. Film the delay tactics in close-up.",
+    caption: "Cup became my lawyer.",
+    whyThisFits: "It makes avoidance behavior specific and filmable without needing a complicated setup.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-103",
+    pidginLevel: "light_pidgin",
+    anchor: "deleted message",
+    hook: "deleted message showed, my eyes started digging",
+    premiseFamily: "messaging_creator_phone",
+    whatToShow: "A fake chat shows a deleted message. The person zooms in on the deleted message, tilts the phone, squints, and even wipes the screen like the missing words might come back.",
+    howToFilm: "Use a fake chat with no real names. Show the deleted message clearly, then film the squinting, zooming, and screen wiping.",
+    caption: "Delete am, but curiosity stayed.",
+    whyThisFits: "It has a clear physical action and a familiar phone-based comic itch.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-022",
+    pidginLevel: "light_pidgin",
+    anchor: "receipt paper",
+    hook: "receipt paper printed, my smile left queue",
+    premiseFamily: "money_payment_admin",
+    whatToShow: "At a shop-style table, the receipt paper prints longer than expected. The buyer’s smile fades line by line, and they start reading the receipt paper with one eyebrow raised like it insulted them.",
+    howToFilm: "Use fake receipt paper and a table setup. Make sure all receipt details are invented and harmless. Focus on the smile fading as the paper grows.",
+    caption: "Receipt came with attitude.",
+    whyThisFits: "It is easy to film and the receipt paper remains the exact comic object throughout.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-076",
+    pidginLevel: "light_pidgin",
+    anchor: "ATM button",
+    hook: "ATM button asked savings, I chose fresh air",
+    premiseFamily: "money_payment_admin",
+    whatToShow: "At a fake ATM, the ATM button options show withdrawal and savings. The person reaches toward the ATM button, pauses, remembers their plans, and steps aside like fresh air is the safer transaction.",
+    howToFilm: "Use a cardboard ATM or fake screen with invented options. Never show real cards, PINs, balances, or bank apps.",
+    caption: "Withdrawal almost saw me.",
+    whyThisFits: "It uses money tension without salary-alert duplication and gives a funny retreat from the machine.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  },
+  {
+    replaceId: "LP-194",
+    pidginLevel: "light_pidgin",
+    anchor: "manager walk",
+    hook: "manager walk entered, keyboard remembered employment",
+    premiseFamily: "work_school_productivity",
+    whatToShow: "Someone is relaxed at a desk. The manager walk approaches from off-camera: slow shoes, shadow, and keys. The person instantly attacks the keyboard on a blank document like work has been happening since sunrise.",
+    howToFilm: "Stage at a desk. Show only the manager walk through shoes, shadow, or footsteps. Use a blank/fake document and avoid real workplace files.",
+    caption: "Footsteps activated my CV.",
+    whyThisFits: "The manager walk is central and the fake-busy keyboard action is visually strong.",
+    reviewedBy: "BI-LIGHT-PIDGIN 2026-05-11"
+  }
+]
+
+Validation requirements:
+Run the existing Nigerian pack build/validation flow. Use the current project-approved path for replacing supplied entries in the approved runtime pack.
+
+Required checks:
+1. schema validation
+2. pidginLevel remains `"light_pidgin"`
+3. reviewer stamp is accepted
+4. no PENDING_NATIVE_REVIEW if approved output requires final stamps
+5. anti-mocking / stereotype gates
+6. no banned stereotype shortcuts
+7. no unsafe filming instructions
+8. no private financial, address, account, login, health, or workplace data exposure
+9. duplicate / anti-copy checks
+10. near-duplicate checks against the existing approved ng_light_pidgin corpus
+11. anchor + skeleton repetition checks
+12. cohort activation / leakage tests
+13. full TypeScript typecheck
+14. relevant Nigerian pack tests
+15. full api-server suite if practical
+
+Runtime QA:
+After replacement/build, run Nigerian cohort QA:
+- ng_light_pidgin: 10 creators × 5 sequential batches × 6 ideas
+- ng_clean: 5 creators × 1 batch × 6 ideas
+- western: 5 creators × 1 batch × 6 ideas
+
+Do not run or add strict ng_pidgin product paths unless existing tests require them as legacy coverage. The product direction is ng_clean + ng_light_pidgin.
+
+Metrics:
+1. replacements evaluated
+2. replacements accepted
+3. replacements rejected with reasons
+4. final approved ng_light_pidgin count
+5. ng_light_pidgin distinct hooks
+6. ng_light_pidgin distinct slot-0 hooks
+7. top hook share
+8. anchor distribution before/after
+9. repeated skeletons before/after
+10. HQS distribution before/after
+11. count HQS < 40 before/after
+12. count HQS >= 50 before/after
+13. underfills
+14. fallback batches
+15. errors
+16. cohort leakage
+17. style leakage into ng_clean/western
+18. any repeated weak hook or over-concentrated anchor
+
+Acceptance criteria:
+1. No coding-agent-authored entries.
+2. No scorer/validator/selector/prompt/API/mobile/DB/schema changes.
+3. Import all passing supplied entries.
+4. Rejected entries, if any, are reported and not rewritten by agent.
+5. ng_light_pidgin approved corpus remains valid.
+6. No ng_clean/western leakage.
+7. No underfill or fallback regression.
+8. TypeScript clean.
+9. Relevant tests pass.
+10. Final report clearly states what passed, what failed, and whether reject-repair is complete.
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_REJECT_REPAIR_PACKET_IMPORT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_reject_repair_packet_import.json`
+- `.local/qa-runs/n1_ng_light_pidgin_reject_repair_packet_import_summary.json`
+
+Final report format:
+1. Verdict: SHIPPED / PARTIAL / FAILED
+2. Replacements evaluated
+3. Replacements approved/imported
+4. Replacements rejected with reasons
+5. Duplicate / near-duplicate findings
+6. Anchor + skeleton distribution before/after
+7. HQS distribution before/after
+8. Files changed
+9. Tests run and results
+10. Runtime QA table
+11. ng_light_pidgin diversity metrics
+12. Cohort leakage checks
+13. Remaining gaps
+14. Whether all previous Packet 1B/1C/1D rejects are now resolved
+
+Stop condition:
+If this requires authoring new entries, rewriting failed entries, changing validators, changing scorer, changing prompts, changing API/mobile/DB/schema, or loosening safety/style gates, stop and report.
+
+Do not improvise. Replace only with the supplied curated packet.
