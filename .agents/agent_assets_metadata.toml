@@ -1547,3 +1547,9 @@ id = "swzy16YcFAgH6EF9IC7sh"
 uri = "file://.local/N1_NG_PACK_BASELINE_TEST_REFRESH_REPORT.md"
 type = "text"
 title = "N1-NG-PACK-BASELINE-TEST-REFRESH — Final Report"
+
+[[outputs]]
+id = "lB5hPuFc2GSfAUi8MCR7_"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P4_SOAK_REPORT.md"
+type = "text"
+title = "N1 NG-light-pidgin Runtime Diversity P4 Soak Report"

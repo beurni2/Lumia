@@ -1,0 +1,199 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P4-SOAK
+
+Mode:
+Runtime QA soak only.
+
+Purpose:
+P4 topK=3 retention shipped and passed the initial live runtime probe:
+- topK=3 implemented in pack-aware per-core retention
+- temporary P3 observer removed
+- no scorer / validator / prompt / API / mobile / DB / schema / corpus changes
+- focused topK tests passing
+- typecheck clean
+- initial runtime probe: 18 distinct pack IDs across 5 batches
+- pack share: 70%
+- underfill: 0
+- fallback regression: 0
+- western/W2 leak into NG: 0
+
+N1-NG-PACK-BASELINE-TEST-REFRESH also shipped:
+- 5 stale Nigerian pack assertions resolved
+- focused target files: 179/179 PASS
+- typecheck clean
+- no runtime/source behavior changes
+- full chunked api-server suite: 1723/1724
+- sole remaining failure: pre-existing P11Rotation flake, out of scope
+
+This phase is a broader soak to confirm P4 holds across more creators and sequential batches.
+
+Important:
+Do NOT implement new behavior.
+Do NOT change selector logic.
+Do NOT change scorer, validator, prompt, API, mobile, DB, schema, memory, slot-0, corpus, production flags, or tests unless a purely local QA script/report needs updating.
+Do NOT author entries.
+Do NOT import entries.
+Do NOT loosen gates.
+Do NOT repair unrelated P11Rotation flake in this phase.
+
+Product direction:
+The app supports:
+1. ng_clean
+2. ng_light_pidgin
+
+There is no separate strict ng_pidgin product option for now.
+
+Scope:
+Run a broader runtime soak for ng_light_pidgin with P4 topK=3 active.
+
+Flags:
+Use staging NG flags ON, matching the workflow/staging setup:
+- LUMINA_NG_PACK_ENABLED=true
+- LUMINA_NG_PACK_AWARE_RETENTION_ENABLED=true
+- LUMINA_NG_MEMORY_SOFT_CAP_ENABLED=true
+- any existing staging flags required for the current Nigerian pack path
+
+Primary soak:
+Run:
+
+- ng_light_pidgin:
+  - 10 creators
+  - 5 sequential batches per creator
+  - 6 ideas per batch
+  - total target: 300 ideas
+
+Control cohorts:
+Run enough control checks to prove isolation:
+
+- ng_clean:
+  - 5 creators
+  - 2 batches per creator
+  - 6 ideas per batch
+
+- western/null:
+  - 5 creators
+  - 2 batches per creator
+  - 6 ideas per batch
+
+Optional if existing harness already includes it:
+- india/null and philippines/null small smoke only, but do not expand scope if it risks timeout.
+
+Required metrics for ng_light_pidgin:
+1. total creators
+2. total batches
+3. total ideas
+4. HTTP success rate if using live API
+5. latency p50 / p75 / p95
+6. pack-authored count
+7. pack share
+8. distinct shipped pack entry IDs
+9. distinct hooks
+10. distinct anchors
+11. distinct slot-0 hooks
+12. slot-0 pack-authored count
+13. top repeated pack entry ID and share
+14. top repeated hook and share
+15. top repeated anchor and share
+16. per-creator distinct pack IDs
+17. per-creator top repeated entry share
+18. per-batch pack slots shipped
+19. per-batch slotReservationDiagnostic:
+    - packPoolPreFilter
+    - packPoolPostMemoryFilter
+    - packPoolPostBatchDedup
+    - earlyReturnEmptyPack
+    - softCapRescueFired
+    - softCapRelaxedSeenSize
+20. underfill count
+21. fallback count
+22. error count
+23. regionDecorated count if available
+24. pidginMarkerHits if available
+25. pattern_variation count
+26. core_native count
+27. any non-pack western-style hook leakage
+28. any W2/western pack entry ID leakage into NG
+29. any ng_clean clean-core entry leakage into light_pidgin
+30. any strict-pidgin-only behavior surfacing unintentionally
+
+Required control metrics:
+For ng_clean:
+- total ideas
+- pack/clean-core behavior remains as expected
+- no light_pidgin pack leakage
+- no western leakage
+- fallback/errors
+
+For western/null:
+- total ideas
+- Nigerian pack entries shipped should be 0
+- Nigerian region decoration should be 0
+- Nigerian pack IDs should be 0
+- fallback/errors
+
+Acceptance criteria:
+1. ng_light_pidgin completes without runtime errors.
+2. Pack share remains >= 60%.
+3. Distinct shipped pack entry IDs across the soak >= 30.
+4. Distinct hooks across 300 ideas >= 60.
+5. Slot-0 distinct hooks remains healthy; target >= 20 across 50 ng_light_pidgin batches.
+6. Underfill count = 0, or any underfill is explained and not caused by P4.
+7. Fallback count does not regress.
+8. No western/W2 pack leakage into NG.
+9. No NG pack leakage into western/null.
+10. ng_clean behavior unchanged.
+11. No scorer/validator/selector/prompt/API/mobile/DB/schema/corpus changes.
+12. Typecheck remains clean.
+13. Relevant Nigerian/topK tests remain passing.
+14. The existing P11Rotation flake remains out of scope and must not be fixed or hidden here.
+
+Required commands:
+Use the existing QA harness if suitable. If not, create a local QA-only script under `.local/scripts/`.
+
+Suggested output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P4_SOAK_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_soak.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p4_soak_summary.json`
+
+Required tests:
+1. Typecheck:
+   `pnpm --filter @workspace/api-server run typecheck`
+
+2. Focused topK/NG tests:
+   `pnpm --filter @workspace/api-server exec vitest run src/lib/__tests__/nigerianPackAwareRetentionTopK.test.ts`
+
+3. Relevant Nigerian pack/core tests:
+   Run the appropriate Nigerian/core suite or deterministic chunks if needed.
+
+4. Full suite:
+   If feasible:
+   `pnpm --filter @workspace/api-server exec vitest run`
+
+   If full suite exceeds timeout, run deterministic chunks and report exact totals. Do not obscure the known P11Rotation flake.
+
+Final report format:
+1. Verdict: PASS / PARTIAL / FAIL
+2. Probe setup
+3. Flags used
+4. ng_light_pidgin aggregate metrics
+5. ng_light_pidgin per-creator metrics
+6. ng_light_pidgin slot-0 metrics
+7. top repeated hooks/entries/anchors
+8. slotReservationDiagnostic summary
+9. control cohort results
+10. leakage checks
+11. fallback / underfill / error checks
+12. latency summary
+13. tests run
+14. typecheck result
+15. full/chunked suite result
+16. confirmation no runtime/source behavior changes
+17. remaining risks
+18. recommended next step
+
+Stop condition:
+If the soak requires selector/runtime source changes, stop and report.
+If ng_light_pidgin fails the acceptance criteria, do not patch in this phase. Report the exact failure and recommend a follow-up audit.
+If the known P11Rotation flake appears, document it as pre-existing/out of scope; do not fix it here.
