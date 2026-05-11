@@ -1522,6 +1522,66 @@ export function generateCoreCandidates(
         });
       }
 
+      // ========================================================================
+      // PHASE N1-P3-DRYRUN-INSTRUMENT — TEMPORARY — REMOVE AFTER P3 DRY-RUN
+      // (added 2026-05-11 per
+      // .local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md
+      // §6). Emits per-core pack-passing-pool composition for the
+      // P3 top-K retention dry-run audit. No-op when observer global
+      // is unset → default-unset in production → byte-identical
+      // production behavior. Mirrors the __nigerianThrottleObserver
+      // pattern immediately above. REMOVE THIS ENTIRE BLOCK once
+      // .local/scripts/n1NgLightPidginP3TopKDryrun.mts has produced
+      // its measured PROCEED/DO_NOT_PROCEED verdict (or once the
+      // follow-up real top-K patch lands and obviates the dry-run).
+      // ========================================================================
+      const _ppObs = (
+        globalThis as {
+          __nigerianPackPassingPoolObserver?: (rec: {
+            coreId: string;
+            passingTotal: number;
+            passingMaxQuality: number;
+            packPassingPool: Array<{
+              nigerianPackEntryId: string;
+              hookQualityScore: number;
+              hook: string;
+              anchorLower: string;
+              scenarioFingerprint: string | undefined;
+            }>;
+          }) => void;
+        }
+      ).__nigerianPackPassingPoolObserver;
+      if (_ppObs) {
+        const _ppPool: Array<{
+          nigerianPackEntryId: string;
+          hookQualityScore: number;
+          hook: string;
+          anchorLower: string;
+          scenarioFingerprint: string | undefined;
+        }> = [];
+        let _ppMaxQ = -Infinity;
+        for (const p of passing) {
+          if (p.quality > _ppMaxQ) _ppMaxQ = p.quality;
+          const pid = (p.meta as { nigerianPackEntryId?: string })
+            .nigerianPackEntryId;
+          if (pid === undefined) continue;
+          _ppPool.push({
+            nigerianPackEntryId: pid,
+            hookQualityScore: p.quality,
+            hook: p.idea.hook,
+            anchorLower: p.anchorLower,
+            scenarioFingerprint: p.sf,
+          });
+        }
+        _ppObs({
+          coreId: core.id,
+          passingTotal: passing.length,
+          passingMaxQuality: passing.length > 0 ? _ppMaxQ : 0,
+          packPassingPool: _ppPool,
+        });
+      }
+      // ============== END PHASE N1-P3-DRYRUN-INSTRUMENT (TEMPORARY) ===========
+
       // PHASE N1-LIVE-HARDEN P2 — per-core pack-prefix candidate
       // block diagnostic. Always emitted when `packEligible.length
       // > 0` (i.e. we actually attempted the pack-prefix path for
