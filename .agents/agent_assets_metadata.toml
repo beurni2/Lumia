@@ -1511,3 +1511,21 @@ id = "5OZBv0dKaob0mMCGNSoDl"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry_summary.json"
 type = "unspecified"
 title = "P2 Telemetry — Summary JSON"
+
+[[outputs]]
+id = "YjJGUYe6qGf0oKNYsWTFX"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md"
+type = "text"
+title = "P3 Top-K Retention Dry-Run Report (NEEDS_MORE_AUDIT)"
+
+[[outputs]]
+id = "QAofmemnyR7pG4ZkqvsEd"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun.json"
+type = "unspecified"
+title = "P3 Dry-Run — Detail JSON (placeholder + bounds)"
+
+[[outputs]]
+id = "Sp5GjBcLjg4jIgyzHN_0E"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun_summary.json"
+type = "unspecified"
+title = "P3 Dry-Run — Summary JSON (placeholder + bounds)"

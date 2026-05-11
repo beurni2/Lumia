@@ -1,0 +1,157 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-RUNTIME-DIVERSITY-P3-TOPK-RETENTION-DRYRUN
+
+Mode:
+Audit-only dry-run / implementation feasibility probe.
+
+Purpose:
+P2 upstream telemetry proved the original “2/6 pack ceiling” was outdated. With all staging NG flags ON, ng_light_pidgin ships 41 pack-authored / 66 ideas = 62.1%.
+
+The remaining issue is not pack share. It is cross-batch pack-entry diversity:
+- 41 pack-authored ideas
+- only 7 distinct pack entry IDs
+- repeated high-scoring entries dominate across batches
+- enteredPassing → slotResInput retention is only ~14.5%
+- 497 pack candidates entered passing, but only 72 reached slot reservation input
+- binding stage is per-core best-pick + pack-aware retention in `coreCandidateGenerator.ts` L1763-L1864
+
+P2 recommended a bounded patch:
+For ng_light_pidgin only, widen pack-aware per-core retention from:
+- current: best + bestPack
+to:
+- proposed: best + top-K-pack, where K is bounded, likely 2 or 3
+
+This task is NOT to ship the patch yet.
+This task is to run an audit-only dry-run/simulation proving whether the patch would improve distinct pack-entry rotation without harmful side effects.
+
+Important:
+Do NOT commit behavior changes.
+Do NOT change production selector behavior.
+Do NOT change scorer, validator, prompt, API, mobile, DB, schema, memory, slot-0, corpus, or production flags.
+Do NOT author or import entries.
+Do NOT loosen gates.
+
+Allowed:
+You may create local audit scripts under `.local/scripts/`.
+You may copy/simulate the relevant retention logic inside a local script.
+You may add temporary local-only instrumentation if needed.
+You may produce JSON/MD outputs under `.local/qa-runs/` and `.local/`.
+
+Primary question:
+Would widening ng_light_pidgin per-core pack-aware retention from `best + bestPack` to `best + topKPack` materially increase cross-batch distinct pack entry IDs, while preserving pack share, no underfill, no fallback regression, and no ng_clean/western impact?
+
+Files to inspect:
+- `artifacts/api-server/src/lib/coreCandidateGenerator.ts`
+- `artifacts/api-server/src/lib/nigerianPackSlotReservation.ts`
+- `artifacts/api-server/src/lib/hybridIdeator.ts`
+- P2 telemetry report:
+  - `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P2_UPSTREAM_THROTTLE_TELEMETRY_REPORT.md`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry.json`
+  - `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p2_upstream_throttle_telemetry_summary.json`
+
+Dry-run variants:
+Run or simulate these variants for ng_light_pidgin:
+
+A. Baseline
+- current behavior: best + bestPack
+
+B. topK=2
+- best + top 2 distinct pack candidates per core
+- must dedupe by `nigerianPackEntryId` and normalized hook
+- must preserve current non-pack winner behavior
+
+C. topK=3
+- best + top 3 distinct pack candidates per core
+- must dedupe by `nigerianPackEntryId` and normalized hook
+- must preserve current non-pack winner behavior
+
+The dry-run should be as close to live path as possible:
+- same candidate generation inputs
+- same flags
+- same creators/seeds if possible
+- same slot reservation function
+- same validators/scorers
+- no production behavior mutation
+
+Required metrics for each variant:
+1. total ideas
+2. pack-authored ideas
+3. pack share
+4. distinct pack entry IDs
+5. distinct hooks
+6. distinct anchors
+7. top repeated pack entry share
+8. top repeated hook share
+9. slotResInput count
+10. packPoolPreFilter
+11. packPoolPostMemoryFilter
+12. packPoolPostBatchDedup
+13. shipped pack count
+14. pattern_variation count
+15. fallback count
+16. underfill count
+17. errors
+18. runtime duration
+19. ng_clean/western theoretical impact
+20. strict ng_pidgin theoretical impact
+
+Expected acceptance target for a real implementation:
+- distinct pack entry IDs improve by at least 30% over baseline
+- ideally 7 → 10+ across the same 11-batch probe shape
+- pack share stays >= baseline minus small tolerance, or improves
+- no underfill
+- fallback remains 0
+- slot-0 remains pack-authored when pack candidates exist
+- ng_clean unaffected
+- western/null unaffected
+- strict ng_pidgin unaffected
+- no API/mobile/DB/schema/prompt/scorer/validator changes needed
+
+Important guardrails for proposed implementation if dry-run passes:
+- gate to `region === "nigeria"`
+- gate to `languageStyle === "light_pidgin"`
+- gate behind existing `LUMINA_NG_PACK_AWARE_RETENTION_ENABLED`
+- do not affect `languageStyle === "clean"`
+- do not affect western/null cohorts
+- do not expand strict pidgin behavior
+- do not bypass validators
+- do not bypass fingerprint dedup
+- do not loosen scenario coherence
+- do not increase Claude/fallback dependence
+
+Diagnosis to provide:
+1. Which variant performs best: baseline, topK=2, or topK=3?
+2. Does topK=2 solve most of the issue with lower risk?
+3. Does topK=3 add meaningful diversity beyond topK=2?
+4. Does either variant increase batch size, latency, or duplicate risk?
+5. Are repeated entries caused by score dominance even after topK?
+6. Is an additional tiebreaker/rotation needed, or is topK enough?
+7. Should implementation proceed after this dry-run?
+
+Required output files:
+- `.local/N1_NG_LIGHT_PIDGIN_RUNTIME_DIVERSITY_P3_TOPK_RETENTION_DRYRUN_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun.json`
+- `.local/qa-runs/n1_ng_light_pidgin_runtime_diversity_p3_topk_retention_dryrun_summary.json`
+
+Final report format:
+1. Verdict: PROCEED / DO NOT PROCEED / NEEDS MORE AUDIT
+2. Executive summary
+3. Baseline metrics
+4. topK=2 metrics
+5. topK=3 metrics
+6. Comparison table
+7. Diversity improvement
+8. Pack share impact
+9. Dedup / underfill / fallback impact
+10. Latency impact
+11. Risk assessment
+12. Recommended implementation variant
+13. Exact patch point if proceeding
+14. Expected files touched if proceeding
+15. Test plan
+16. Runtime QA acceptance criteria
+
+Stop condition:
+If you cannot dry-run topK behavior without mutating production source behavior, stop and report the minimal safe temporary instrumentation needed. Do not guess.
