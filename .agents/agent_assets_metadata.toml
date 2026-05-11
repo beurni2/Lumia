@@ -1337,3 +1337,21 @@ id = "JOtG_kp9TfaovoCqDKruI"
 uri = "file://.local/qa-runs/n1_ng_light_pidgin_packet_1a_predict_import_summary.json"
 type = "unspecified"
 title = "Aggregate summary + before/after distributions"
+
+[[outputs]]
+id = "q8epLbKxyNhGiV5p0LaiS"
+uri = "file://.local/N1_NG_LIGHT_PIDGIN_WEAK_ENTRY_EXTRACTION_AUDIT_REPORT.md"
+type = "text"
+title = "N1 ng_light_pidgin Weak-Entry Extraction Audit — Report (12 sections)"
+
+[[outputs]]
+id = "QqUP2s85zDi-vsVuQaY5n"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_weak_entry_extraction_audit.json"
+type = "unspecified"
+title = "Per-entry detail (230 entries)"
+
+[[outputs]]
+id = "nQY_hxhR0hdKNFPHKwPZl"
+uri = "file://.local/qa-runs/n1_ng_light_pidgin_weak_entry_extraction_audit_summary.json"
+type = "unspecified"
+title = "Aggregate summary + ranked top-30 / top-30 / top-20 lists"

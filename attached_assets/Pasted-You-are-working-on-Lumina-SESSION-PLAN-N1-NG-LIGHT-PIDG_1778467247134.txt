@@ -1,0 +1,174 @@
+You are working on Lumina.
+
+SESSION PLAN:
+N1-NG-LIGHT-PIDGIN-WEAK-ENTRY-EXTRACTION-AUDIT
+
+Mode:
+Read-only corpus quality audit. Do not rewrite. Do not delete. Do not import.
+
+Supervisor decision:
+The ng_light_pidgin corpus has enough quantity but uneven quality.
+Before adding more entries, we need to identify the approved entries that are too soft, too repetitive, too template-like, or too low-punch for first-card/high-quality placement.
+
+Important:
+Do NOT author entries.
+Do NOT rewrite entries.
+Do NOT improve entries.
+Do NOT delete entries.
+Do NOT import entries.
+Do NOT change scorer, validators, selectors, prompts, API, mobile, DB, schema, K, memory, or slot-0 behavior.
+
+Your job is only to extract and classify weak or replaceable ng_light_pidgin entries so the supervisor/user can rewrite them manually.
+
+Scope:
+Audit the existing approved `ng_light_pidgin` corpus only.
+
+Primary source:
+- `artifacts/api-server/src/lib/nigerianHookPackApproved.ts`
+- Filter to `pidginLevel === "light_pidgin"`
+
+Also inspect any relevant tests or helper files only as needed to understand fields, IDs, reviewer stamps, and pack conventions.
+
+Do not audit ng_clean for this task.
+Do not audit strict ng_pidgin for this task.
+
+Classification categories:
+For each weak or questionable entry, assign one or more labels:
+
+1. LOW_HQS
+   - HQS below 40, or clearly too low-punch for high-quality placement.
+
+2. SOFT_HOOK
+   - The hook is understandable but not sharp, funny, surprising, or first-card-worthy.
+
+3. TEMPLATE_LIKE
+   - The hook feels like it came from a repeated scaffold or formula.
+
+4. REPEATED_ANCHOR
+   - The anchor is overused in the corpus, especially:
+     data, light, madam, post, status, charger, aunty, conductor, snack, bike.
+
+5. REPEATED_SKELETON
+   - The hook matches an overused skeleton, especially:
+     `_ has one fine _ for _`
+     `oga sent _ at _ like _`
+     `_ don _ my _ lie`
+     `who send me make I _`
+     `_ exposed my _`
+     `_ judged my _`
+
+6. LAZY_PIDGIN_MARKER
+   - `wahala`, `abeg`, `oga`, `madam`, or similar is used as decoration/filler rather than doing real comedic work.
+
+7. TOO_HEAVY_FOR_LIGHT_PIDGIN
+   - The entry sounds closer to strict pidgin than light pidgin.
+
+8. TOO_ENGLISH_FOR_LIGHT_PIDGIN
+   - The entry is basically English with one pidgin token pasted in.
+
+9. AIISH_OR_GENERIC
+   - The hook feels generic, robotic, fake Nigerian flavor, or low-specificity.
+
+10. WEAK_FILMABILITY
+   - The hook/whatToShow is hard to picture or not clearly filmable.
+
+11. DUPLICATIVE_PREMISE
+   - The premise is too close to another stronger approved entry.
+
+12. KEEP_BUT_DO_NOT_PRIORITIZE
+   - Not bad enough for removal, but not worth first-card/high-quality placement.
+
+Scoring:
+For every approved light-pidgin entry, compute:
+- HQS using current live `scoreHookQuality(hook, "absurd_escalation")`
+- normalized hook skeleton
+- anchor
+- premiseFamily
+- reviewer stamp
+- duplicate/near-duplicate group if applicable
+
+Output two ranked lists:
+
+A. Rewrite Candidates — strongest recommendation
+Entries the supervisor should rewrite/replace first.
+Target size: 30 entries.
+
+B. Watchlist — weaker recommendation
+Entries that are not urgent but are soft/repetitive/template-like.
+Target size: 30 entries.
+
+For each listed entry, include:
+- id
+- hook
+- anchor
+- premiseFamily
+- HQS
+- reviewer stamp
+- labels
+- concise reason
+- similar entries / duplicate group if applicable
+- whether you recommend:
+  - REWRITE
+  - REPLACE
+  - KEEP_BUT_DEMOTE
+  - MANUAL_REVIEW
+
+Do NOT provide rewritten versions.
+Do NOT suggest replacement hooks.
+Do NOT create new entries.
+
+Required summary metrics:
+1. total approved ng_light_pidgin entries
+2. HQS distribution:
+   - min
+   - median
+   - max
+   - mean
+   - count HQS < 30
+   - count HQS < 40
+   - count HQS >= 50
+   - count HQS >= 60
+3. top repeated anchors
+4. top repeated skeletons
+5. number of entries flagged by each label
+6. top 30 rewrite candidates
+7. top 30 watchlist entries
+8. strongest 20 entries to preserve as taste anchors
+
+Important taste standard:
+Do not flag an entry only because the English scorer dislikes pidgin syntax.
+Use human judgment too.
+
+A low-HQS light-pidgin hook can still be good if it is funny, natural, filmable, and culturally sharp.
+A high-HQS hook can still be weak if it is robotic, repetitive, or scorer-shaped.
+
+Output files:
+- `.local/N1_NG_LIGHT_PIDGIN_WEAK_ENTRY_EXTRACTION_AUDIT_REPORT.md`
+- `.local/qa-runs/n1_ng_light_pidgin_weak_entry_extraction_audit.json`
+- `.local/qa-runs/n1_ng_light_pidgin_weak_entry_extraction_audit_summary.json`
+
+Final report format:
+1. Verdict
+2. Corpus quality summary
+3. HQS distribution
+4. Repeated anchor analysis
+5. Repeated skeleton analysis
+6. Label counts
+7. Rewrite Candidates table — top 30
+8. Watchlist table — top 30
+9. Strongest taste-anchor entries — top 20
+10. Recommended rewrite strategy
+11. Risks / caveats
+12. Next phase recommendation
+
+Acceptance criteria:
+1. No source behavior changes.
+2. No corpus changes.
+3. No rewritten entries.
+4. No generated replacement hooks.
+5. Clear list of entries for supervisor/user rewrite.
+6. Clear reasons for every flagged entry.
+7. Clear strongest entries to preserve as style references.
+
+Stop condition:
+If you cannot reliably identify weak entries because the corpus lacks stable IDs or enough metadata, stop and report exactly what is missing. Do not improvise.
