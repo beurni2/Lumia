@@ -1619,3 +1619,21 @@ id = "uDT7j22deBOqUhcqL4Vw-"
 uri = "file://.local/P13_T2_TOPOLOGY_AND_TASTE_STRENGTHENING_REPORT.md"
 type = "text"
 title = "P13-T2 Topology + Taste-Strengthening Report"
+
+[[outputs]]
+id = "x-pRcfVuw30juAWB5MwGI"
+uri = "file://.local/P14_NG_LIGHT_PIDGIN_TASTE_STRENGTHENING_V1_REPORT.md"
+type = "text"
+title = "P14 NG light_pidgin Taste Strengthening v1 — Packet Rejection Report"
+
+[[outputs]]
+id = "x3yynxjjFtQXV3OZg5P_y"
+uri = "file://.local/qa-runs/p14_ng_light_pidgin_taste_strengthening_v1.json"
+type = "unspecified"
+title = "P14 per-entry verdict (JSON)"
+
+[[outputs]]
+id = "BD4qxA0ZPCqJzoCsGk9Pr"
+uri = "file://.local/qa-runs/p14_ng_light_pidgin_taste_strengthening_v1_summary.json"
+type = "unspecified"
+title = "P14 packet summary (JSON)"

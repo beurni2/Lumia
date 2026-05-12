@@ -1,0 +1,240 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P14-NG-LIGHT-PIDGIN-TASTE-STRENGTHENING-V1
+
+Mode:
+Selective corpus taste-strengthening only.
+
+Purpose:
+P12 and P13 proved:
+- widened-edge runtime participation is now functioning
+- FOOD_V2 and widened edges can ship
+- topology is no longer the primary blocker
+- runtime architecture is healthy enough for corpus quality to matter again
+
+This phase is NOT runtime work.
+
+Do NOT:
+- change runtime behavior
+- change attempt budgets
+- change ranking/scoring
+- change validators
+- change slot reservation
+- change memory logic
+- change prompts/API/mobile/DB/schema
+- change projections
+- change topK retention
+- add score boosts
+- add runtime hacks
+- reorder the pack
+- patch unrelated flakes
+
+Coding agent role:
+- import exact rewrites
+- validate
+- run focused verification
+- report
+
+Coding agent must NOT:
+- author
+- improvise
+- creatively rewrite
+- “improve”
+- normalize grammar
+- inject additional pidgin
+- substitute entries
+
+This phase is surgical taste strengthening only.
+
+GOAL
+
+Strengthen a small set of high-potential FOOD_V2 entries that:
+- are already structurally good
+- are already filmable
+- are already socially true
+- but still sound slightly too written / too abstract / too clean-English
+
+Rewrite philosophy:
+- more conversational Nigerian rhythm
+- more real-life household behavior
+- more spoken texture
+- more believable reactions
+- less “caption cleverness”
+- less abstract phrasing
+- preserve human feel
+
+The goal is NOT:
+- heavier pidgin
+- more slang
+- louder punchlines
+- forced jokes
+
+The goal is:
+“sounds like a real Nigerian person casually complaining during the moment.”
+
+REWRITE PACKET
+
+replaceId: FOOD_V2_031
+
+OLD:
+fridge opened for water but my hand carry evidence
+
+NEW:
+fridge open for water, next thing my hand don carry meat
+
+---
+
+replaceId: FOOD_V2_032
+
+OLD:
+plate expose me because small taste no suppose reach corner
+
+NEW:
+small taste no suppose clear plate like this
+
+---
+
+replaceId: FOOD_V2_019
+
+OLD:
+fridge make sound and i confess before anybody ask
+
+NEW:
+fridge just make one krr sound, i start explaining myself
+
+---
+
+replaceId: FOOD_V2_025
+
+OLD:
+fridge get leftover and the house enter court session
+
+NEW:
+fridge get leftover, suddenly everybody remember their ownership
+
+---
+
+replaceId: FOOD_V2_035
+
+OLD:
+pan carry aroma but food no carry evidence
+
+NEW:
+kitchen smell like success, food still dey taste confused
+
+IMPLEMENTATION REQUIREMENTS
+
+1. Rewrite ONLY the hook field.
+2. Preserve:
+- replaceId
+- anchor
+- sourceDomain
+- targetProjection
+- pidginLevel
+- reviewedBy
+- whatToShow
+- howToFilm
+- caption
+3. No additional rewrites.
+4. No hidden corpus changes.
+5. No unrelated imports.
+6. No validator/scorer/runtime changes.
+
+VALIDATION REQUIREMENTS
+
+1. Verify all 5 replaceIds exist before rewrite.
+2. Verify only hook field changed.
+3. Verify no duplicate hooks created.
+4. Verify no lowercase violations.
+5. Verify FOOD_V2 counts unchanged.
+6. Verify pack length unchanged.
+7. Verify no ng_clean leakage.
+8. Verify no western leakage.
+9. Verify no schema/runtime diffs outside intended hook edits.
+
+FOCUSED VERIFICATION
+
+Run focused live-route verification.
+
+Minimum:
+ng_light_pidgin:
+- 5 creators
+- 3 batches each
+- 6 ideas each
+- total target: 90 ideas
+
+Controls:
+ng_clean:
+- 2 creators × 2 batches × 6
+
+western/null:
+- 2 creators × 2 batches × 6
+
+Metrics required:
+1. total ideas
+2. FOOD_V2 shipped count
+3. rewritten-entry shipped count
+4. distinct rewritten entries shipped
+5. rewritten-entry average hookQualityScore
+6. FOOD_V2 overall average hookQualityScore
+7. widened-edge shipped count
+8. distinct hooks
+9. distinct pack IDs
+10. fallback count
+11. underfill count
+12. western leakage
+13. ng_clean leakage
+14. slot-0 rewritten-entry count
+15. latency if available
+
+Qualitative review:
+Include shipped examples for rewritten entries if they surface:
+- hook
+- anchor
+- hookQualityScore
+- quick quality note
+
+Acceptance criteria:
+1. Typecheck clean.
+2. Focused tests pass.
+3. Only intended hook fields changed.
+4. Rewritten entries remain validator-safe.
+5. Rewritten entries ship OR show measurable HQS uplift.
+6. No runtime regressions.
+7. No fallback regression.
+8. No underfill regression.
+9. No leakage regressions.
+10. Human taste quality preserved.
+
+Required output files:
+- `.local/P14_NG_LIGHT_PIDGIN_TASTE_STRENGTHENING_V1_REPORT.md`
+- `.local/qa-runs/p14_ng_light_pidgin_taste_strengthening_v1.json`
+- `.local/qa-runs/p14_ng_light_pidgin_taste_strengthening_v1_summary.json`
+
+Final report structure:
+1. Verdict
+2. Rewrite summary
+3. Files touched
+4. Validation checks
+5. Tests run
+6. Typecheck result
+7. Live-route probe setup
+8. FOOD_V2 metrics
+9. Rewritten-entry metrics
+10. Qualitative shipped samples
+11. Leakage checks
+12. Fallback/underfill checks
+13. Confirmation no out-of-scope changes
+14. Remaining risks
+15. Recommended next phase
+
+Known out of scope:
+- runtime tuning
+- T2 budget changes
+- ranking boosts
+- scorer retuning
+- projection expansion
+- sleep-cluster expansion
+- new corpus packets
+- topK redesign

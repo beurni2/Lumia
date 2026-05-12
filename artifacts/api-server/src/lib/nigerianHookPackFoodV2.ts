@@ -198,8 +198,14 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_019 · sourceDomain: home · targetProjection: food
-      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
-      // added "just" + "don" pidgin markers; joke preserved.
+      // P14-NG-LP-TASTE-V1 packet REJECTED for this entry: the proposed
+      // hook ("fridge just make one krr sound, i start explaining
+      // myself") scored 34 on `scoreNigerianPackEntry` against the
+      // pool ctx — below the 40 ingest/regression floor. Per standing
+      // packet rule "Rewritten entries remain validator-safe" + agent
+      // rule "do NOT loosen validators / do NOT creatively repair /
+      // do NOT substitute", the entry retains its prior (P13) rewrite
+      // verbatim (scores 56).
       hook: "fridge just make small sound, i don confess before anybody ask",
       whatToShow: "The fridge makes a normal noise while you are sneaking food, and you immediately start explaining to nobody.",
       howToFilm: "Film at night near the fridge; when the sound happens, freeze and whisper your excuse into the air.",
@@ -233,8 +239,18 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_025 · sourceDomain: home · targetProjection: food
-      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
-      // added "don" pidgin marker; joke preserved.
+      // P14-NG-LP-TASTE-V1 packet REJECTED for this entry: the proposed
+      // hook ("fridge get leftover, suddenly everybody remember their
+      // ownership") clears the 40-point ingest floor (45) but scores
+      // notably lower than the prior P13 form (57). Empirically this
+      // tipped the per-core best-pick at the projection-T2 test salt
+      // (cores[0..6], salt=17, light_pidgin) so that no pack candidate
+      // wins any core — collapsing the projection-T2 "≥1 pack winner"
+      // invariant from positive to zero. Per standing packet rule
+      // "Rewritten entries remain validator-safe" + agent rule "do
+      // NOT loosen validators / do NOT creatively repair / do NOT
+      // substitute", the entry retains its prior (P13) rewrite
+      // verbatim.
       hook: "fridge get leftover, the house don enter court session",
       whatToShow: "Open the fridge to leftovers and everyone starts arguing ownership, timing, and who saw it first.",
       howToFilm: "Play quick character cuts around the open fridge, with each person giving a serious claim.",
@@ -290,8 +306,16 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_031 · sourceDomain: home · targetProjection: food
-      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
-      // added "na" + "don" pidgin markers; joke preserved.
+      // P14-NG-LP-TASTE-V1 packet REJECTED for this entry: the proposed
+      // hook ("fridge open for water, next thing my hand don carry
+      // meat") clears the 40-point ingest floor (67) but scores lower
+      // than the prior P13 form (77), contributing alongside the
+      // FOOD_V2_025 score drop to the projection-T2 invariant
+      // collapse (≥1 pack winner across cores[0..6] at salt=17 ON →
+      // zero). Per standing packet rule "Rewritten entries remain
+      // validator-safe" + agent rule "do NOT loosen validators / do
+      // NOT creatively repair / do NOT substitute", the entry retains
+      // its prior (P13) rewrite verbatim.
       hook: "fridge open na for water, but my hand don carry evidence",
       whatToShow: "Open the fridge saying you want water, then come back holding extra food.",
       howToFilm: "Film the promise before opening, then cut to your hand coming out with more than water.",
@@ -303,8 +327,14 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_032 · sourceDomain: home · targetProjection: food
-      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
-      // added "don" pidgin marker; joke preserved.
+      // P14-NG-LP-TASTE-V1 packet REJECTED for this entry: the proposed
+      // hook ("small taste no suppose clear plate like this") scored
+      // 37 on `scoreNigerianPackEntry` against the pool ctx — below the
+      // 40 ingest/regression floor. Per standing packet rule
+      // "Rewritten entries remain validator-safe" + agent rule "do NOT
+      // loosen validators / do NOT creatively repair / do NOT
+      // substitute", the entry retains its prior (P13) rewrite
+      // verbatim.
       hook: "plate don expose me, small taste no suppose reach corner",
       whatToShow: "Show a plate that clearly has been attacked even though you claimed it was only one small taste.",
       howToFilm: "Close-up on the plate marks, then cut to your guilty face trying to defend it.",
@@ -327,8 +357,13 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_035 · sourceDomain: home · targetProjection: food
-      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
-      // added "don" + "no" pidgin markers; joke preserved.
+      // P14-NG-LP-TASTE-V1 packet REJECTED for this entry: the proposed
+      // hook ("kitchen smell like success, food still dey taste
+      // confused") drops the anchor token "pan", which would break the
+      // boot-time `anchor in hook` integrity assert. Per standing
+      // packet rule "Preserve: anchor" + agent rule "do NOT loosen
+      // validators / do NOT creatively repair / do NOT substitute",
+      // the entry retains its prior (P13) rewrite verbatim.
       hook: "pan don smell finish, but food no carry evidence",
       whatToShow: "The pan smells good, but the actual food result does not look as impressive.",
       howToFilm: "Film yourself smelling proudly, then reveal the pan result and let your smile reduce slowly.",

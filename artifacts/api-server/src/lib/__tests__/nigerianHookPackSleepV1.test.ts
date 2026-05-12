@@ -119,6 +119,11 @@ describe("FOOD_V2 P13-T2 selective taste pass", () => {
     expect(
       hooks.has("fridge just make small sound, i don confess before anybody ask"),
     ).toBe(true);
+    // P14-NG-LP-TASTE-V1 (BI-LIGHT-PIDGIN 2026-05-12) packet was
+    // FULLY REJECTED — see .local/P14_NG_LIGHT_PIDGIN_TASTE_STRENGTHENING_V1_REPORT.md
+    // §15. All 5 entries (019, 025, 031, 032, 035) retain their
+    // P13-T2 hook form per standing rule "do NOT loosen validators /
+    // do NOT creatively repair / do NOT substitute".
     expect(
       hooks.has("fridge get leftover, the house don enter court session"),
     ).toBe(true);
