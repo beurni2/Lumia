@@ -30,12 +30,53 @@
  * contradiction source.
  */
 
-import { brevityScoreOriginal, brevityWordCount } from "./hookQuality.js";
+import {
+  brevityScoreOriginal,
+  brevityWordCount,
+  IMPLICIT_ANTHROPOMORPH_RX_FOR_INSPECTION,
+} from "./hookQuality.js";
 import type {
   AnthropomorphBranch,
   ContradictionSource,
   VisceralVerbTier,
 } from "./hookQuality.js";
+
+// ---------------------------------------------------------------- //
+// P16-A1 UA TIGHTEN — first-person leak guard                       //
+// ---------------------------------------------------------------- //
+//
+// The IMPLICIT_ANTHROPOMORPH alternation in `hookQuality.ts` matches
+// "the X verb" where X is up to ~30 chars of [a-z\-\s]. That can
+// over-capture when a first-person pronoun (`I` / `me` / `my` / `we`
+// / `us` / `our`) appears INSIDE the captured middle, indicating the
+// real subject is the human author, not the noun phrase. Examples:
+//   • "I canceled three subscriptions and kept the one I forgot"
+//     → match middle "one I" → "I" smuggled in → block UA.
+//   • "I sent the wrong voice note and my soul left my body"
+//     → match middle "wrong voice note and my soul" → "my" smuggled
+//     in → block UA.
+// Hooks where the first-person pronoun appears AFTER the matched
+// verb (e.g. "the distance humbled my confidence" — middle = "distance")
+// are unaffected — `my` is outside the match span.
+//
+// This guard does NOT change `anthropomorphScoreDetailed` semantics
+// (the picker / boot floor / aiCliche path still see the raw branch);
+// it only narrows the UA lift, which is the only consumer that
+// depends on the "object IS the agent" reading.
+
+const FIRST_PERSON_LEAK_TOKEN_RX = /\b(?:i|me|my|we|us|our)\b/;
+
+function implicitAnthHasFirstPersonLeak(hookLower: string): boolean {
+  const m = IMPLICIT_ANTHROPOMORPH_RX_FOR_INSPECTION.exec(hookLower);
+  if (!m) return false;
+  const span = m[0]; // full "the X verb" matched substring
+  const tokens = span.split(/\s+/).filter(Boolean);
+  if (tokens.length < 3) return false;
+  // Drop leading "the" and trailing verb; inspect the middle for any
+  // first-person pronoun token.
+  const middle = tokens.slice(1, -1).join(" ");
+  return FIRST_PERSON_LEAK_TOKEN_RX.test(middle);
+}
 
 export type HumanLiftBreakdown = {
   understatedAbsurdity: number;
@@ -82,6 +123,7 @@ export function isHumanLiftEnabled(): boolean {
 const UNDERSTATED_ABSURDITY_LIFT = 5;
 
 function computeUnderstatedAbsurdity(input: {
+  hookLower: string;
   verbTier: VisceralVerbTier;
   anthropomorphBranch: AnthropomorphBranch;
   aiClicheNegative: boolean;
@@ -92,6 +134,10 @@ function computeUnderstatedAbsurdity(input: {
       input.verbTier !== "NONE") {
     return 0;
   }
+  // P16-A1 UA tighten — block when the implicit-anth match contains a
+  // first-person pronoun in its middle (over-capture; real subject is
+  // the human author, not the noun phrase).
+  if (implicitAnthHasFirstPersonLeak(input.hookLower)) return 0;
   return UNDERSTATED_ABSURDITY_LIFT;
 }
 
@@ -233,6 +279,7 @@ export function computeHumanLift(input: {
   originalBrevity: number;
 }): HumanLiftBreakdown {
   const understatedAbsurdity = computeUnderstatedAbsurdity({
+    hookLower: input.hookLower,
     verbTier: input.verbTier,
     anthropomorphBranch: input.anthropomorphBranch,
     aiClicheNegative: input.aiClicheNegative,

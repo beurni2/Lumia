@@ -51,8 +51,13 @@ type Sample = {
 
 function loadCorpus(): Sample[] {
   const samples: Sample[] = [];
+  let approvedIdx = 0;
   for (const e of NIGERIAN_HOOK_PACK) {
-    samples.push({ source: "ng_pack_approved", id: e.id, hook: e.hook });
+    approvedIdx += 1;
+    const id =
+      (e as { id?: string }).id ??
+      `approved_${String(approvedIdx).padStart(3, "0")}`;
+    samples.push({ source: "ng_pack_approved", id, hook: e.hook });
   }
   let draftIdx = 0;
   for (const e of DRAFT_NIGERIAN_HOOK_PACK) {

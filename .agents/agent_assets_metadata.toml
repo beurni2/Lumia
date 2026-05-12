@@ -1660,4 +1660,10 @@ title = "HQS Human-Comedy Expansion Audit (12 sections)"
 id = "Zjru3X0cBiKrLZlU_SOyA"
 uri = "file://.local/HQS_HUMAN_LIFT_P16_A1_PREDICT.md"
 type = "text"
-title = "P16-A1 Human-Lift Predict-the-Impact Report"
+title = "P16-A1 Human-Lift — Predict Report (post-tighten)"
+
+[[outputs]]
+id = "pk2enHVMNz3GH4Z4aq9NN"
+uri = "file://.local/HQS_HUMAN_LIFT_P16_A1_IMPL_AND_TEST_REPORT.md"
+type = "text"
+title = "P16-A1 Human-Lift — Implementation & Test Report"
