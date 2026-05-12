@@ -1607,3 +1607,9 @@ id = "UdTPeIBfs3nLIs02WS81l"
 uri = "file://.local/P12_T2_PROJECTION_AWARE_ATTEMPT_BUDGET_REPORT.md"
 type = "text"
 title = "P12-T2 Projection-Aware Attempt Budget — Live Probe Report"
+
+[[outputs]]
+id = "ejAu56yJB8s00nxN-yuDS"
+uri = "file://.local/P12_T2_WIDENED_ENTRY_SHIP_AUDIT.md"
+type = "text"
+title = "P12-T2 Widened Entry Ship Audit — which survive, which never ship, and why"
