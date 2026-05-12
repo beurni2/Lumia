@@ -150,23 +150,26 @@ describe("canActivateNigerianCleanCorePack — gate truth-table", () => {
 // ---------------------------------------------------------------- //
 
 describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant", () => {
-  // Post P16-A3-NG-CLEAN-HUMAN-BATCH-PREDICT-IMPORT (BI-CLEAN-P16A3
-  // 2026-05-12): P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 +
-  // IMPLICIT-ANTHROPOMORPH surviving: 2 + P16-A2 human-feel survivors:
-  // 3 + P16-A3 human-batch survivors: 5 = 74 entries. Slot ids
-  // ng_clean_065..069 were user-rejected for cohort fit and removed
+  // Post P16-A3-REVISION-IMPORT (BI-CLEAN-P16A3-REVISION 2026-05-12):
+  // P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH
+  // surviving: 2 + P16-A2 human-feel survivors: 3 + P16-A3 human-batch
+  // survivors: 5 + P16-A3-REVISION survivors: 13 = 87 entries. Slot
+  // ids ng_clean_065..069 were user-rejected for cohort fit and removed
   // from the corpus; their numeric slots are intentionally GAPPED
   // (070, 071 retained at their original ids). P16-A2 added
   // ng_clean_072 (HUMAN_005), ng_clean_073 (HUMAN_007), ng_clean_074
   // (HUMAN_020). P16-A3 added ng_clean_075 (HUMAN_001), 076 (HUMAN_002),
-  // 077 (HUMAN_003), 090 (HUMAN_016), 092 (HUMAN_018). Numeric slots
-  // 078..089, 091, 093, 094 are intentionally GAPPED — those packet
-  // candidates were rejected (anchor not in whatToShow / hook) or
-  // held below scorer floor; the gap preserves the supervisor's
-  // exact ID mapping for audit (P16-A3 packet 075..094 ←
-  // HUMAN_001..020). See the in-corpus P16-A3 comment block.
-  it("ships exactly 74 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH-SURVIVING: 2 + P16-A2-HUMAN-FEEL-SURVIVING: 3 + P16-A3-HUMAN-BATCH-SURVIVING: 5)", () => {
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(74);
+  // 077 (HUMAN_003), 090 (HUMAN_016), 092 (HUMAN_018). P16-A3-REVISION
+  // added ng_clean_078 (HUMAN_004), 079 (005), 081 (007), 082 (008),
+  // 083 (009), 084 (010), 085 (011), 086 (012), 087 (013), 089 (015),
+  // 091 (017), 093 (019), 094 (020). Numeric slots 080 + 088 remain
+  // intentionally GAPPED — HUMAN_006 (HQS ON 35 below boot floor 40)
+  // and HUMAN_014 (HQS ON 45 below picker floor 50) are still HELD
+  // below scorer floor; the gaps preserve the supervisor's exact ID
+  // mapping for audit (P16-A3 packet 075..094 ← HUMAN_001..020). See
+  // the in-corpus P16-A3 + P16-A3-REVISION comment blocks.
+  it("ships exactly 87 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH-SURVIVING: 2 + P16-A2-HUMAN-FEEL-SURVIVING: 3 + P16-A3-HUMAN-BATCH-SURVIVING: 5 + P16-A3-REVISION-SURVIVING: 13)", () => {
+    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(87);
   });
 
   it("is a frozen array (cannot be mutated by callers)", () => {
@@ -189,9 +192,9 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(failures).toEqual([]);
   });
 
-  it("ids are ng_clean_001..ng_clean_064 + ng_clean_070..ng_clean_077 + ng_clean_090 + ng_clean_092 (intentional gaps at 065-069 + 078-089 + 091 + 093-094), all distinct", () => {
+  it("ids are ng_clean_001..ng_clean_064 + ng_clean_070..ng_clean_079 + ng_clean_081..ng_clean_087 + ng_clean_089..ng_clean_094 (intentional gaps at 065-069 + 080 + 088), all distinct", () => {
     const ids = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.id);
-    expect(new Set(ids).size).toBe(74);
+    expect(new Set(ids).size).toBe(87);
     expect(ids[0]).toBe("ng_clean_001");
     expect(ids[29]).toBe("ng_clean_030");
     expect(ids[30]).toBe("ng_clean_031");
@@ -206,16 +209,30 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(ids[66]).toBe("ng_clean_072");
     expect(ids[67]).toBe("ng_clean_073");
     expect(ids[68]).toBe("ng_clean_074");
-    // P16-A3 supervisor-signoff additions (5 of 20 packet survivors).
-    // Numeric slots 078..089, 091, 093, 094 are intentionally GAPPED —
-    // those candidates were REJECTED (anchor_not_in_what_to_show /
-    // anchor_not_in_hook) or HELD below picker floor 50.
-    expect(ids[69]).toBe("ng_clean_075");
-    expect(ids[70]).toBe("ng_clean_076");
-    expect(ids[71]).toBe("ng_clean_077");
-    expect(ids[72]).toBe("ng_clean_090");
-    expect(ids[73]).toBe("ng_clean_092");
-    // Hard guarantee: none of the rejected ids appear.
+    // P16-A3 supervisor-signoff additions (5 of 20 packet survivors)
+    // interleaved with P16-A3-REVISION (13 of the originally
+    // rejected/held set, now anchor-fixed by the supervisor).
+    expect(ids[69]).toBe("ng_clean_075"); // P16-A3   ← HUMAN_001
+    expect(ids[70]).toBe("ng_clean_076"); // P16-A3   ← HUMAN_002
+    expect(ids[71]).toBe("ng_clean_077"); // P16-A3   ← HUMAN_003
+    expect(ids[72]).toBe("ng_clean_078"); // REVISION ← HUMAN_004
+    expect(ids[73]).toBe("ng_clean_079"); // REVISION ← HUMAN_005
+    // GAP at 080 (HUMAN_006 still HELD below boot floor)
+    expect(ids[74]).toBe("ng_clean_081"); // REVISION ← HUMAN_007
+    expect(ids[75]).toBe("ng_clean_082"); // REVISION ← HUMAN_008
+    expect(ids[76]).toBe("ng_clean_083"); // REVISION ← HUMAN_009
+    expect(ids[77]).toBe("ng_clean_084"); // REVISION ← HUMAN_010
+    expect(ids[78]).toBe("ng_clean_085"); // REVISION ← HUMAN_011
+    expect(ids[79]).toBe("ng_clean_086"); // REVISION ← HUMAN_012
+    expect(ids[80]).toBe("ng_clean_087"); // REVISION ← HUMAN_013
+    // GAP at 088 (HUMAN_014 still HELD below picker floor)
+    expect(ids[81]).toBe("ng_clean_089"); // REVISION ← HUMAN_015
+    expect(ids[82]).toBe("ng_clean_090"); // P16-A3   ← HUMAN_016
+    expect(ids[83]).toBe("ng_clean_091"); // REVISION ← HUMAN_017
+    expect(ids[84]).toBe("ng_clean_092"); // P16-A3   ← HUMAN_018
+    expect(ids[85]).toBe("ng_clean_093"); // REVISION ← HUMAN_019
+    expect(ids[86]).toBe("ng_clean_094"); // REVISION ← HUMAN_020
+    // Hard guarantee: none of the rejected/held ids appear.
     const idSet = new Set(ids);
     for (const rejected of [
       "ng_clean_065",
@@ -223,29 +240,16 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
       "ng_clean_067",
       "ng_clean_068",
       "ng_clean_069",
-      "ng_clean_078",
-      "ng_clean_079",
-      "ng_clean_080",
-      "ng_clean_081",
-      "ng_clean_082",
-      "ng_clean_083",
-      "ng_clean_084",
-      "ng_clean_085",
-      "ng_clean_086",
-      "ng_clean_087",
-      "ng_clean_088",
-      "ng_clean_089",
-      "ng_clean_091",
-      "ng_clean_093",
-      "ng_clean_094",
+      "ng_clean_080", // HUMAN_006 — HELD (HQS ON 35 < boot floor 40)
+      "ng_clean_088", // HUMAN_014 — HELD (HQS ON 45 < picker floor 50)
     ]) {
       expect(idSet.has(rejected)).toBe(false);
     }
   });
 
-  it("draftIds are CLEAN-DRAFT-001..064 + CLEAN-DRAFT-070..071 + supplied P16-A2 + P16-A3 IDs (intentional gap at 065-069), all distinct", () => {
+  it("draftIds are CLEAN-DRAFT-001..064 + CLEAN-DRAFT-070..071 + supplied P16-A2 + P16-A3 + P16-A3-REVISION IDs (intentional gap at 065-069), all distinct", () => {
     const draftIds = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.draftId);
-    expect(new Set(draftIds).size).toBe(74);
+    expect(new Set(draftIds).size).toBe(87);
     expect(draftIds[0]).toBe("CLEAN-DRAFT-001");
     expect(draftIds[29]).toBe("CLEAN-DRAFT-030");
     expect(draftIds[30]).toBe("CLEAN-DRAFT-031");
@@ -259,12 +263,26 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(draftIds[66]).toBe("CLEAN_P16A1_HUMAN_005");
     expect(draftIds[67]).toBe("CLEAN_P16A1_HUMAN_007");
     expect(draftIds[68]).toBe("CLEAN_P16A1_HUMAN_020");
-    // P16-A3 — same convention; supplied packet IDs preserved verbatim.
-    expect(draftIds[69]).toBe("CLEAN_P16A2_HUMAN_001");
-    expect(draftIds[70]).toBe("CLEAN_P16A2_HUMAN_002");
-    expect(draftIds[71]).toBe("CLEAN_P16A2_HUMAN_003");
-    expect(draftIds[72]).toBe("CLEAN_P16A2_HUMAN_016");
-    expect(draftIds[73]).toBe("CLEAN_P16A2_HUMAN_018");
+    // P16-A3 + P16-A3-REVISION — same convention; supplied packet IDs
+    // preserved verbatim. Listed in array (id-sorted) order:
+    expect(draftIds[69]).toBe("CLEAN_P16A2_HUMAN_001"); // 075
+    expect(draftIds[70]).toBe("CLEAN_P16A2_HUMAN_002"); // 076
+    expect(draftIds[71]).toBe("CLEAN_P16A2_HUMAN_003"); // 077
+    expect(draftIds[72]).toBe("CLEAN_P16A2_HUMAN_004"); // 078 REVISION
+    expect(draftIds[73]).toBe("CLEAN_P16A2_HUMAN_005"); // 079 REVISION
+    expect(draftIds[74]).toBe("CLEAN_P16A2_HUMAN_007"); // 081 REVISION
+    expect(draftIds[75]).toBe("CLEAN_P16A2_HUMAN_008"); // 082 REVISION
+    expect(draftIds[76]).toBe("CLEAN_P16A2_HUMAN_009"); // 083 REVISION
+    expect(draftIds[77]).toBe("CLEAN_P16A2_HUMAN_010"); // 084 REVISION
+    expect(draftIds[78]).toBe("CLEAN_P16A2_HUMAN_011"); // 085 REVISION
+    expect(draftIds[79]).toBe("CLEAN_P16A2_HUMAN_012"); // 086 REVISION
+    expect(draftIds[80]).toBe("CLEAN_P16A2_HUMAN_013"); // 087 REVISION
+    expect(draftIds[81]).toBe("CLEAN_P16A2_HUMAN_015"); // 089 REVISION
+    expect(draftIds[82]).toBe("CLEAN_P16A2_HUMAN_016"); // 090
+    expect(draftIds[83]).toBe("CLEAN_P16A2_HUMAN_017"); // 091 REVISION
+    expect(draftIds[84]).toBe("CLEAN_P16A2_HUMAN_018"); // 092
+    expect(draftIds[85]).toBe("CLEAN_P16A2_HUMAN_019"); // 093 REVISION
+    expect(draftIds[86]).toBe("CLEAN_P16A2_HUMAN_020"); // 094 REVISION
     const draftSet = new Set(draftIds);
     for (const rejected of [
       "CLEAN-DRAFT-065",
@@ -275,33 +293,22 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     ]) {
       expect(draftSet.has(rejected)).toBe(false);
     }
-    // P16-A3 — rejected/held packet IDs MUST NOT appear as draftIds.
-    for (const rejected of [
-      "CLEAN_P16A2_HUMAN_004",
-      "CLEAN_P16A2_HUMAN_005",
-      "CLEAN_P16A2_HUMAN_006",
-      "CLEAN_P16A2_HUMAN_007",
-      "CLEAN_P16A2_HUMAN_008",
-      "CLEAN_P16A2_HUMAN_009",
-      "CLEAN_P16A2_HUMAN_010",
-      "CLEAN_P16A2_HUMAN_011",
-      "CLEAN_P16A2_HUMAN_012",
-      "CLEAN_P16A2_HUMAN_013",
-      "CLEAN_P16A2_HUMAN_014",
-      "CLEAN_P16A2_HUMAN_015",
-      "CLEAN_P16A2_HUMAN_017",
-      "CLEAN_P16A2_HUMAN_019",
-      "CLEAN_P16A2_HUMAN_020",
+    // P16-A3-REVISION — only the 2 still-HELD packet IDs (HUMAN_006 +
+    // HUMAN_014) MUST NOT appear as draftIds; all other revision IDs
+    // were imported above.
+    for (const held of [
+      "CLEAN_P16A2_HUMAN_006", // HQS ON 35 < boot floor 40
+      "CLEAN_P16A2_HUMAN_014", // HQS ON 45 < picker floor 50
     ]) {
-      expect(draftSet.has(rejected)).toBe(false);
+      expect(draftSet.has(held)).toBe(false);
     }
   });
 
   it("hooks and howToFilm are intra-catalog distinct", () => {
     const hooks = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.hook);
     const howTo = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.howToFilm);
-    expect(new Set(hooks).size).toBe(74);
-    expect(new Set(howTo).size).toBe(74);
+    expect(new Set(hooks).size).toBe(87);
+    expect(new Set(howTo).size).toBe(87);
     // None of the 9 rejected hook strings (5 imported + 4 never imported)
     // appear in the corpus after the cleanup.
     const lc = new Set(hooks.map((h) => h.toLowerCase().trim()));
@@ -321,12 +328,13 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     }
   });
 
-  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3 + P3-HUMAN-FIRST + surviving anthropomorph: 2026-05-10; P16-A2 + P16-A3 human-feel: 2026-05-12)", () => {
+  it("every entry carries a BI-CLEAN reviewer stamp (P1+P2: 2026-05-09; P3 + P3-HUMAN-FIRST + surviving anthropomorph: 2026-05-10; P16-A2 + P16-A3 + P16-A3-REVISION human-feel: 2026-05-12)", () => {
     const ALLOWED_STAMPS = new Set([
       "BI-CLEAN 2026-05-09", // P1 (1..30) and P2 (31..60)
       "BI-CLEAN 2026-05-10", // P3 (61), P3-HUMAN-FIRST (62..64), surviving anth (070,071)
       "BI-CLEAN-P16A2 2026-05-12", // P16-A2 human-feel survivors (072,073,074)
       "BI-CLEAN-P16A3 2026-05-12", // P16-A3 human-batch survivors (075,076,077,090,092)
+      "BI-CLEAN-P16A3-REVISION 2026-05-12", // P16-A3-REVISION (078,079,081-087,089,091,093,094)
     ]);
     for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
       expect(ALLOWED_STAMPS.has(entry.reviewedBy)).toBe(true);
@@ -352,12 +360,43 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
         "BI-CLEAN-P16A2 2026-05-12",
       );
     }
-    // Entries 70..74 (P16-A3 human-batch survivors:
-    // ng_clean_075/076/077/090/092) MUST carry the new BI-CLEAN-P16A3 stamp.
-    for (let i = 69; i < 74; i++) {
-      expect(NIGERIAN_CLEAN_CORE_ENTRIES[i]!.reviewedBy).toBe(
-        "BI-CLEAN-P16A3 2026-05-12",
-      );
+    // P16-A3 (5) + P16-A3-REVISION (13) interleave by id-sorted order
+    // across indices 69..86. Assert the two stamps individually by id
+    // since the two batches are interleaved (075 P16A3 / 078 REVISION /
+    // 090 P16A3 / 091 REVISION / 092 P16A3 / 094 REVISION etc).
+    const P16A3_IDS = new Set([
+      "ng_clean_075",
+      "ng_clean_076",
+      "ng_clean_077",
+      "ng_clean_090",
+      "ng_clean_092",
+    ]);
+    const P16A3_REVISION_IDS = new Set([
+      "ng_clean_078",
+      "ng_clean_079",
+      "ng_clean_081",
+      "ng_clean_082",
+      "ng_clean_083",
+      "ng_clean_084",
+      "ng_clean_085",
+      "ng_clean_086",
+      "ng_clean_087",
+      "ng_clean_089",
+      "ng_clean_091",
+      "ng_clean_093",
+      "ng_clean_094",
+    ]);
+    for (let i = 69; i < 87; i++) {
+      const entry = NIGERIAN_CLEAN_CORE_ENTRIES[i]!;
+      if (P16A3_IDS.has(entry.id)) {
+        expect(entry.reviewedBy).toBe("BI-CLEAN-P16A3 2026-05-12");
+      } else if (P16A3_REVISION_IDS.has(entry.id)) {
+        expect(entry.reviewedBy).toBe("BI-CLEAN-P16A3-REVISION 2026-05-12");
+      } else {
+        throw new Error(
+          `Unexpected id at index ${i}: ${entry.id} (not in P16A3 or P16A3-REVISION sets)`,
+        );
+      }
     }
   });
 });

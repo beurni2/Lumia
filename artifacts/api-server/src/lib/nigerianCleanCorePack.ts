@@ -1096,12 +1096,29 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
     // P16-A3 absolute rule "do not rewrite") / 5 HOLD (validators      //
     // pass; HQS ON below picker floor 50). The supervisor's full       //
     // sequential mapping (075..094 ← HUMAN_001..020) is preserved      //
-    // verbatim; numeric slots 078..089, 091, 093, 094 are              //
-    // intentionally GAPPED, mirroring the existing 065..069 gap        //
-    // convention so the historical reviewer-stamp ledger stays         //
-    // auditable. Every field below is supervisor-supplied verbatim —   //
-    // coding agent did NOT author / rewrite hook / whatToShow /        //
-    // howToFilm / caption.                                              //
+    // verbatim; numeric slots 080 + 088 are still GAPPED after the     //
+    // P16-A3-REVISION pass below (HUMAN_006 + HUMAN_014 remain HELD    //
+    // below scorer floor and were not rewritten per the same           //
+    // "do not rewrite" rule).                                           //
+    //                                                                   //
+    // PHASE P16-A3-REVISION-IMPORT (BI-CLEAN-P16A3-REVISION             //
+    // 2026-05-12) — 13 supervisor-signoff entries from the             //
+    // 15-candidate revision packet (the 10 originally-rejected anchor- //
+    // failure entries plus the 5 originally-held entries, all rewritten //
+    // upstream by the supervisor with anchors now substring-present in //
+    // BOTH hook AND whatToShow). Predict report:                        //
+    // .local/P16_A3_NG_CLEAN_REVISION_PREDICT.md                       //
+    //                                                                   //
+    // Revision decision tally: 13 IMPORT (interleaved into the 075..094 //
+    // sequence per supervisor mapping) / 0 REJECT / 2 HOLD              //
+    // (CLEAN_P16A2_HUMAN_006 → would-be ng_clean_080 — HQS ON 35 below //
+    // boot floor 40; CLEAN_P16A2_HUMAN_014 → would-be ng_clean_088 —   //
+    // HQS ON 45 below picker floor 50). The 2 held slots remain        //
+    // intentionally GAPPED, mirroring the existing 065..069 audit-     //
+    // preservation convention so the historical reviewer-stamp ledger  //
+    // stays auditable. Every field in BOTH blocks below is supervisor- //
+    // supplied verbatim — coding agent did NOT author / rewrite hook / //
+    // whatToShow / howToFilm / caption.                                 //
     // ---------------------------------------------------------------- //
     {
       id: "ng_clean_075",
@@ -1146,6 +1163,152 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
     },
     {
+      id: "ng_clean_078",
+      draftId: "CLEAN_P16A2_HUMAN_004",
+      anchor: "family group chat",
+      hook: "The family group chat turned silence into evidence.",
+      whatToShow:
+        "The family group chat asks one simple question, and everyone suddenly becomes careful. You stare at the family group chat like silence itself has become suspicious.",
+      howToFilm:
+        "Show the message, read receipts, typing bubbles, and your face choosing peace while clearly panicking.",
+      caption: "Silence became suspicious.",
+      premiseFamily: "group_chats",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_079",
+      draftId: "CLEAN_P16A2_HUMAN_005",
+      anchor: "rice pot",
+      hook: "The rice pot judged everybody\u2019s portion story.",
+      whatToShow:
+        "The rice pot is almost empty, but everybody insists they only took a little. The rice pot becomes the only honest witness in the room.",
+      howToFilm:
+        "Show the rice pot, then cut to suspiciously full plates and innocent faces pretending nothing happened.",
+      caption: "Portion stories collapsed.",
+      premiseFamily: "market_food",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    // GAP: ng_clean_080 reserved for CLEAN_P16A2_HUMAN_006 — HELD
+    // (HQS ON 35 below boot floor 40); not rewritten per "do not
+    // rewrite" rule. Slot intentionally left empty for audit.
+    {
+      id: "ng_clean_081",
+      draftId: "CLEAN_P16A2_HUMAN_007",
+      anchor: "mirror",
+      hook: "The mirror judged my outfit without kindness.",
+      whatToShow:
+        "The mirror catches you admiring an outfit that clearly needed more honesty. You look at the mirror again and quietly remove one confident item.",
+      howToFilm:
+        "Start with a proud outfit check, pause at the mirror, then cut to you removing something with silent embarrassment.",
+      caption: "Mirror rejected the plan.",
+      premiseFamily: "creator_social_behavior",
+      voiceTone: "self_aware_clean",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_082",
+      draftId: "CLEAN_P16A2_HUMAN_008",
+      anchor: "charger",
+      hook: "The charger betrayed me at four percent.",
+      whatToShow:
+        "The charger is nowhere to be found just as your phone reaches four percent. You search for the charger like the whole day now depends on one cable.",
+      howToFilm:
+        "Show the low battery warning, then frantic drawer, bag, and socket checks while your face gets more serious.",
+      caption: "Four percent changed me.",
+      premiseFamily: "phone_data",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_083",
+      draftId: "CLEAN_P16A2_HUMAN_009",
+      anchor: "market list",
+      hook: "The market list returned with extra responsibilities.",
+      whatToShow:
+        "The market list starts simple at home, but by the time you return, it has become bags, explanations, and surprise errands. The market list looks innocent, but your hands are full.",
+      howToFilm:
+        "Show the neat market list, then cut to overloaded bags and your confused face outside or in the kitchen.",
+      caption: "List gained responsibility.",
+      premiseFamily: "market_food",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_084",
+      draftId: "CLEAN_P16A2_HUMAN_010",
+      anchor: "church shoes",
+      hook: "The church shoes exposed one wrinkled shirt.",
+      whatToShow:
+        "The church shoes look polished and ready, but one wrinkled shirt ruins the entire confidence. The church shoes seem more prepared than the person wearing them.",
+      howToFilm:
+        "Start with a proud close-up of the church shoes, then tilt up to the wrinkled shirt and a disappointed face.",
+      caption: "Shoes told the truth.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_085",
+      draftId: "CLEAN_P16A2_HUMAN_011",
+      anchor: "remote control",
+      hook: "The remote control appointed my uncle chairman.",
+      whatToShow:
+        "The remote control sits in your uncle\u2019s hand while everyone else pretends they still have channel opinions. The remote control turns the room into a quiet government.",
+      howToFilm:
+        "Show family members suggesting channels, then close up on the remote control staying firmly in one hand.",
+      caption: "Democracy lost signal.",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_086",
+      draftId: "CLEAN_P16A2_HUMAN_012",
+      anchor: "delivery rider",
+      hook: "The delivery rider judged my slipper delay.",
+      whatToShow:
+        "The delivery rider is already outside while you are still looking for the correct slippers and change. The delivery rider waits with the face of someone who has seen this performance before.",
+      howToFilm:
+        "Film from behind a curtain or gate, show the delivery rider waiting, then cut to you searching drawers and slippers.",
+      caption: "Delivery exposed preparation.",
+      premiseFamily: "transport",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_087",
+      draftId: "CLEAN_P16A2_HUMAN_013",
+      anchor: "school form",
+      hook: "The school form asked for childhood witnesses.",
+      whatToShow:
+        "The school form begins with simple details, then suddenly asks for information only your mother and an old folder could know. The school form turns one desk into family history.",
+      howToFilm:
+        "Start confidently filling the school form, then pause at one impossible field and slowly look around for help.",
+      caption: "Form entered family history.",
+      premiseFamily: "school_work",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    // GAP: ng_clean_088 reserved for CLEAN_P16A2_HUMAN_014 — HELD
+    // (HQS ON 45 below picker floor 50); not rewritten per "do not
+    // rewrite" rule. Slot intentionally left empty for audit.
+    {
+      id: "ng_clean_089",
+      draftId: "CLEAN_P16A2_HUMAN_015",
+      anchor: "charger",
+      hook: "The charger exposed the visitor\u2019s actual mission.",
+      whatToShow:
+        "The visitor greets warmly, but their eyes keep searching for the charger before they even sit down. The charger becomes the real reason for the visit.",
+      howToFilm:
+        "Show the greeting, then cut to the visitor scanning sockets, extension cords, and the charger.",
+      caption: "The visit needed charging.",
+      premiseFamily: "phone_data",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
       id: "ng_clean_090",
       draftId: "CLEAN_P16A2_HUMAN_016",
       anchor: "soup",
@@ -1160,6 +1323,20 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
     },
     {
+      id: "ng_clean_091",
+      draftId: "CLEAN_P16A2_HUMAN_017",
+      anchor: "errand",
+      hook: "The errand multiplied before my slippers settled.",
+      whatToShow:
+        "The errand begins as one quick request, but relatives keep adding small things before you even leave. The errand becomes employment while your slippers are still at the door.",
+      howToFilm:
+        "Start with one instruction, then quick cuts of extra requests arriving as you reach for your slippers.",
+      caption: "Errand expanded outside.",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
       id: "ng_clean_092",
       draftId: "CLEAN_P16A2_HUMAN_018",
       anchor: "meeting",
@@ -1172,6 +1349,34 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       premiseFamily: "school_work",
       voiceTone: "clean_deadpan",
       reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
+    {
+      id: "ng_clean_093",
+      draftId: "CLEAN_P16A2_HUMAN_019",
+      anchor: "gate",
+      hook: "The gate humbled my courage before knocking.",
+      whatToShow:
+        "The gate closes just as you finally gather courage to ask someone for something. The gate makes your rehearsed speech useless.",
+      howToFilm:
+        "Film the slow walk, the inhale before speaking, then the gate closing with perfect timing.",
+      caption: "Courage arrived late.",
+      premiseFamily: "family_aunties",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
+    },
+    {
+      id: "ng_clean_094",
+      draftId: "CLEAN_P16A2_HUMAN_020",
+      anchor: "chores",
+      hook: "The chores exposed everyone\u2019s emergency phone calls.",
+      whatToShow:
+        "The chores are mentioned in a lively room, and suddenly everyone remembers an urgent phone call. The chores reduce the population without anybody announcing it.",
+      howToFilm:
+        "Show a noisy room, one person mentions chores, then quick cuts of people vanishing into calls and doorways.",
+      caption: "Chores reduced attendance.",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
     },
   ]);
 
