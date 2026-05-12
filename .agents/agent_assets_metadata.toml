@@ -1601,3 +1601,9 @@ id = "q8-tQH3t77n1IlgkPDLbp"
 uri = "file://.local/P11_T3_FOOD_V2_ZERO_SHIP_ROOT_CAUSE.md"
 type = "text"
 title = "P11-T3 — FOOD_V2 Zero-Ship Root Cause Audit"
+
+[[outputs]]
+id = "UdTPeIBfs3nLIs02WS81l"
+uri = "file://.local/P12_T2_PROJECTION_AWARE_ATTEMPT_BUDGET_REPORT.md"
+type = "text"
+title = "P12-T2 Projection-Aware Attempt Budget — Live Probe Report"

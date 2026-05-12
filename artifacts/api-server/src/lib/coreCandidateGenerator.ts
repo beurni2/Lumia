@@ -1400,7 +1400,33 @@ export function generateCoreCandidates(
         }
         return [PACK_DOMAIN_MAP[sourceDomain] ?? "phone"];
       };
-      const matching = packEligible.filter((e) => {
+      // PHASE P12-T2-PROJECTION-AWARE-ATTEMPT-BUDGET (BI 2026-05-11)
+      // — classify the matching entries by projection ORIGIN so the
+      // attempt loop below can fund T2-only entries with a small,
+      // independent salt-rotated reserved attempt slice.
+      //
+      // Without this classification, T2-projected entries that sit at
+      // the tail of NIGERIAN_HOOK_PACK (notably
+      // FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES) are never reached: the
+      // order-preserving filter keeps the pack-author-defined ordering,
+      // the salt-rotated draw cap of 12 closes before the tail, and
+      // the widened entries are starved (proven by the P11-T3 audit:
+      // 0/25 FOOD_V2 djb2 IDs in 50+ shipped pack IDs across 78 ideas).
+      //
+      // "T2-only" = matches the current core via PROJECTION_T2_OVERLAY
+      // but NOT via the legacy single-bucket PACK_DOMAIN_MAP projection.
+      // When PROJECTION_T2_ENABLED is OFF the overlay is structurally
+      // inert (projectPackDomain falls through to the legacy bucket
+      // only) so legacy/projected match sets coincide and t2OnlyMatch
+      // is empty by construction → byte-equivalent to the pre-P12
+      // path.
+      const matchesViaLegacy = (e: NigerianPackEntry): boolean => {
+        const legacyTarget = PACK_DOMAIN_MAP[e.domain] ?? "phone";
+        return coreDomains.has(
+          legacyTarget as CoreDomainAnchorRow["domain"],
+        );
+      };
+      const matchesViaProjection = (e: NigerianPackEntry): boolean => {
         const projections = projectPackDomain(e.domain);
         for (const projected of projections) {
           if (
@@ -1410,25 +1436,44 @@ export function generateCoreCandidates(
           }
         }
         return false;
-      });
-      // Salt-rotated stable order so pack draws are deterministic
-      // across regenerates but still rotate (otherwise the same 3
-      // entries would always win the prefix slot for a given core).
+      };
+      const matching = packEligible.filter(matchesViaProjection);
+      const legacyMatch = matching.filter(matchesViaLegacy);
+      const t2OnlyMatch = PROJECTION_T2_ENABLED
+        ? matching.filter((e) => !matchesViaLegacy(e))
+        : ([] as NigerianPackEntry[]);
+      // Salt-rotated stable order on the LEGACY slice — preserves
+      // pre-P12 deterministic rotation behavior verbatim when no T2
+      // entries are present (legacyMatch === matching).
+      //
       // A 2026-05-06 segment-interleave-by-domain alternative was
       // tried + reverted (regressed staging QA 29→15 via per-batch
       // fp-dedup correlation across cores). See
       // .local/N1_ROTATION_FIX_PROPOSAL.md "Outcome appendix".
-      const rotated = matching.slice();
-      const rotateBy = ((salt | 0) >>> 0) % Math.max(1, rotated.length);
-      const ordered = rotated
-        .slice(rotateBy)
-        .concat(rotated.slice(0, rotateBy));
-      // PHASE N1-LIVE-HARDEN PRODUCT-PASS (BI 2026-05-07) — lift the
-      // pack-prefix attempt cap inside the activation-gated NG path
-      // ONLY. The original `NIGERIAN_PACK_PREFIX_CAP=3` left ~150
-      // matching pack entries per core untried, capping end-to-end
-      // pack delivery at ~10% on ng_pidgin/ng_light_pidgin (the
-      // first 3 attempts often hit `schema_invalid` or fp-dedup,
+      const legacyRotateBy =
+        ((salt | 0) >>> 0) % Math.max(1, legacyMatch.length);
+      const legacyOrdered = legacyMatch
+        .slice(legacyRotateBy)
+        .concat(legacyMatch.slice(0, legacyRotateBy));
+      // Independent salt-rotated stable order on the T2-only slice.
+      // Without independent rotation, the T2-only loop would always
+      // attempt the SAME first 3 entries every batch (because the
+      // legacy and T2-only slices have unrelated lengths, so reusing
+      // `salt % legacyMatch.length` produces no meaningful t2
+      // rotation), creating a T2 mini-monoculture. XOR-derived t2Salt
+      // stays deterministic + reversible while decoupling the two
+      // rotations.
+      const t2Salt = ((salt | 0) ^ 0x5a5a5a5a) >>> 0;
+      const t2OnlyRotateBy =
+        t2OnlyMatch.length > 0 ? t2Salt % t2OnlyMatch.length : 0;
+      const t2OnlyOrdered = t2OnlyMatch
+        .slice(t2OnlyRotateBy)
+        .concat(t2OnlyMatch.slice(0, t2OnlyRotateBy));
+      // PHASE N1-LIVE-HARDEN PRODUCT-PASS (BI 2026-05-07) — pre-P12
+      // legacy attempt cap. The original `NIGERIAN_PACK_PREFIX_CAP=3`
+      // left ~150 matching pack entries per core untried, capping
+      // end-to-end pack delivery at ~10% on ng_pidgin/ng_light_pidgin
+      // (the first 3 attempts often hit `schema_invalid` or fp-dedup,
       // wiping the pool). The eligible cap of 12 surfaces enough
       // surviving candidates for the slot reservation layer to
       // actually reserve pack slots without changing any validator,
@@ -1443,10 +1488,23 @@ export function generateCoreCandidates(
       // out-of-band reader; only this draw site reads the lifted
       // value.
       const NIGERIAN_PACK_ELIGIBLE_DRAW_CAP = 12;
-      const drawCap = Math.min(
+      const legacyDrawCap = Math.min(
         NIGERIAN_PACK_ELIGIBLE_DRAW_CAP,
-        ordered.length,
+        legacyOrdered.length,
       );
+      // PHASE P12-T2 — small reserved budget for the T2-only slice.
+      // Caps total attempts at 15 (12 legacy + 3 T2-only), preserving
+      // the legacy budget at 12 so the warm-state authoring rate of
+      // the legacy path is unchanged. When PROJECTION_T2_ENABLED is
+      // OFF or the T2-only slice is empty, this evaluates to 0 → no
+      // extra attempts, no behavior change vs the pre-P12 single-loop
+      // path.
+      const NIGERIAN_PACK_T2_ONLY_DRAW_CAP = 3;
+      const t2OnlyDrawCap = Math.min(
+        NIGERIAN_PACK_T2_ONLY_DRAW_CAP,
+        t2OnlyOrdered.length,
+      );
+      const drawCap = legacyDrawCap + t2OnlyDrawCap;
 
       // PHASE N1-INSTRUMENT — opt-in throttle observer. Strictly
       // additive: when `globalThis.__nigerianThrottleObserver` is
@@ -1487,8 +1545,23 @@ export function generateCoreCandidates(
       });
       const packVoice = getVoiceCluster(packVoiceId);
 
-      for (let i = 0; i < drawCap; i++) {
-        const entry = ordered[i]!;
+      // PHASE P12-T2 — defensive entry dedup across the two attempt
+      // loops. By construction `t2OnlyMatch` excludes entries that
+      // match via legacy, so the legacy and T2-only slices are
+      // disjoint — but the dedup guard keeps this safe under any
+      // future overlay change.
+      const _attemptedEntries = new Set<NigerianPackEntry>();
+      let _t2OnlyAttempts = 0;
+      let _t2OnlyAuthoredOk = 0;
+      let _t2OnlyRejected = 0;
+      let _t2OnlyEnteredPassing = 0;
+      const attemptPackEntry = (
+        entry: NigerianPackEntry,
+        isT2Only: boolean,
+      ): void => {
+        if (_attemptedEntries.has(entry)) return;
+        _attemptedEntries.add(entry);
+        if (isT2Only) _t2OnlyAttempts++;
         const r = authorPackEntryAsIdea({
           entry,
           core,
@@ -1502,7 +1575,8 @@ export function generateCoreCandidates(
           // reason for the throttle observer. No-op for production
           // semantics (counters are read only by the QA harness).
           const reason = r.reason ?? "unknown";
-          _packValidatorRejects[reason] = (_packValidatorRejects[reason] ?? 0) + 1;
+          _packValidatorRejects[reason] =
+            (_packValidatorRejects[reason] ?? 0) + 1;
           if (_packRejectedSamples.length < 5) {
             _packRejectedSamples.push({
               entryHook: entry.hook,
@@ -1510,9 +1584,11 @@ export function generateCoreCandidates(
               reason,
             });
           }
-          continue;
+          if (isT2Only) _t2OnlyRejected++;
+          return;
         }
         _packAuthoredOk++;
+        if (isT2Only) _t2OnlyAuthoredOk++;
         // Same intra-batch / cross-batch fp dedup gate as catalog
         // recipes — the pack candidate's fp competes against
         // earlier sibling cores in the SAME batch and against the
@@ -1523,7 +1599,7 @@ export function generateCoreCandidates(
           (recentScenarioFingerprints.has(sf) ||
             usedFingerprintsThisBatch.has(sf))
         ) {
-          continue;
+          return;
         }
         _packSurvivedFpDedup++;
         const quality = scoreHookQuality(r.idea.hook, core.family);
@@ -1541,12 +1617,27 @@ export function generateCoreCandidates(
           quality,
         });
         _packEnteredPassing++;
+        if (isT2Only) _t2OnlyEnteredPassing++;
+      };
+
+      // Loop 1: legacy attempts (preserves pre-P12 budget = 12).
+      for (let i = 0; i < legacyDrawCap; i++) {
+        attemptPackEntry(legacyOrdered[i]!, false);
+      }
+      // Loop 2: T2-only reserved attempts (≤3, gated). When
+      // PROJECTION_T2_ENABLED is OFF the slice is empty so this
+      // loop runs zero iterations — byte-equivalent path.
+      for (let i = 0; i < t2OnlyDrawCap; i++) {
+        attemptPackEntry(t2OnlyOrdered[i]!, true);
       }
 
       // PHASE N1-INSTRUMENT — emit throttle record (opt-in; no-op
       // when observer global is unset — see declaration above).
       // PHASE N1-INSTRUMENT v2: includes per-validator drop reasons
       // and a small bounded sample of rejected entries.
+      // PHASE P12-T2: T2-only sub-counters appended; legacy/total
+      // counters keep their pre-P12 semantics (totals naturally
+      // grow up to +3 under the activated NG branch with T2 ON).
       const _obs = (
         globalThis as {
           __nigerianThrottleObserver?: (rec: {
@@ -1563,6 +1654,13 @@ export function generateCoreCandidates(
               entryAnchor: string;
               reason: string;
             }>;
+            legacyMatch?: number;
+            t2OnlyMatch?: number;
+            legacyAttempts?: number;
+            t2OnlyAttempts?: number;
+            t2OnlyAuthoredOk?: number;
+            t2OnlyRejected?: number;
+            t2OnlyEnteredPassing?: number;
           }) => void;
         }
       ).__nigerianThrottleObserver;
@@ -1577,6 +1675,13 @@ export function generateCoreCandidates(
           enteredPassing: _packEnteredPassing,
           validatorRejectsByReason: _packValidatorRejects,
           rejectedEntrySamples: _packRejectedSamples,
+          legacyMatch: legacyMatch.length,
+          t2OnlyMatch: t2OnlyMatch.length,
+          legacyAttempts: legacyDrawCap,
+          t2OnlyAttempts: _t2OnlyAttempts,
+          t2OnlyAuthoredOk: _t2OnlyAuthoredOk,
+          t2OnlyRejected: _t2OnlyRejected,
+          t2OnlyEnteredPassing: _t2OnlyEnteredPassing,
         });
       }
 
@@ -1589,6 +1694,11 @@ export function generateCoreCandidates(
       // ships through the standard structured logger so it survives
       // without a test-only observer being installed. Pure
       // observability — no validator / scorer / pool change.
+      // PHASE P12-T2: appends projection-aware sub-counters
+      // (legacyMatch, t2OnlyMatch, legacyAttempts, t2OnlyAttempts,
+      // t2OnlyAuthoredOk, t2OnlyRejected, t2OnlyEnteredPassing) so
+      // the live route can attribute pack-share to legacy vs T2-only
+      // origin without a separate log channel.
       logger.info(
         {
           coreId: core.id,
@@ -1600,6 +1710,13 @@ export function generateCoreCandidates(
           packEnteredPassing: _packEnteredPassing,
           packValidatorRejects: _packValidatorRejects,
           packRejectedSamples: _packRejectedSamples,
+          legacyMatch: legacyMatch.length,
+          t2OnlyMatch: t2OnlyMatch.length,
+          legacyAttempts: legacyDrawCap,
+          t2OnlyAttempts: _t2OnlyAttempts,
+          t2OnlyAuthoredOk: _t2OnlyAuthoredOk,
+          t2OnlyRejected: _t2OnlyRejected,
+          t2OnlyEnteredPassing: _t2OnlyEnteredPassing,
         },
         "nigerian_pack.candidate_block_diagnostic",
       );
