@@ -564,6 +564,30 @@ export type HybridIdeatorResult = {
       topMergedHookSkeletons: Array<{ skeletonId: string; count: number }>;
       mergedHookSkeletonRepeatedFamilies: number;
     };
+    /**
+     * P16-A6 — slot-1+ NG_CLEAN anti-repeat filter detail. Populated
+     * only when the filter ran AND produced a non-empty effect
+     * (swap, relaxation, or non-empty suppression list). Read by the
+     * P16-A6 runtime QA driver to attribute every batch's slot-1+
+     * filter activity without scraping logs. Absent on:
+     *  - non-NG cohorts
+     *  - ng_clean batches where the activation gate didn't fire
+     *  - ng_clean batches where the filter ran but had nothing to do
+     * Strictly additive; production callers ignore qaTelemetry.
+     */
+    slot1PlusFilterDetail?: {
+      swappedCount: number;
+      relaxedCount: number;
+      suppressedEntryIds: ReadonlyArray<string>;
+      insertedEntryIds: ReadonlyArray<string>;
+    };
+    /**
+     * P16-A6 — slot-1+ NG_CLEAN clean-core entry-ids actually
+     * recorded into per-creator memory at commit time. Empty on
+     * non-NG batches and on ng_clean batches with no resolvable
+     * clean-core ids at slots ≥ 1. Strictly additive.
+     */
+    slot1PlusRecordedEntryIds?: ReadonlyArray<string>;
   };
 };
 
@@ -6947,6 +6971,16 @@ export async function runHybridIdeator(
       w2ActivePoolSource: _w2oActivePool.source,
       w2BothFlagsOn: _w2oActivePool.bothFlagsOn,
       ...(_w1FunnelSnapshot ? { westernFunnel: _w1FunnelSnapshot } : {}),
+      // P16-A6 — slot-1+ NG_CLEAN anti-repeat attribution. Both
+      // fields are absent unless the activation gate fired AND
+      // produced an observable effect / wrote to memory. Pure
+      // additive read-only surface for the runtime QA driver.
+      ...(_ngCleanSlot1PlusFilterDetail
+        ? { slot1PlusFilterDetail: _ngCleanSlot1PlusFilterDetail }
+        : {}),
+      ...(_ngCleanSlot1PlusRecordedEntryIds.length > 0
+        ? { slot1PlusRecordedEntryIds: _ngCleanSlot1PlusRecordedEntryIds }
+        : {}),
     },
   };
 }

@@ -1703,3 +1703,15 @@ id = "UpTyA8BmHH9LlSTHe9bkf"
 uri = "file://.local/P16_A6_NG_CLEAN_SLOT1_MEMORY_ANTI_REPEAT.md"
 type = "text"
 title = "P16-A6 — NG_CLEAN slot-1+ memory anti-repeat report"
+
+[[outputs]]
+id = "HfsAnxKoELRgQuAKXPMtQ"
+uri = "file://.local/P16_A6_NG_CLEAN_SLOT1_MEMORY_ANTI_REPEAT_RUNTIME_QA.md"
+type = "text"
+title = "P16-A6 — NG_CLEAN slot-1+ runtime QA report"
+
+[[outputs]]
+id = "OUbESmZn7jS7BmrcSOEV8"
+uri = "file://.local/qa-runs/p16a6/summary_combined.json"
+type = "unspecified"
+title = "P16-A6 — combined OFF/ON summary (raw)"
