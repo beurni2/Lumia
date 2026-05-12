@@ -198,7 +198,9 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_019 · sourceDomain: home · targetProjection: food
-      hook: "fridge make sound and i confess before anybody ask",
+      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
+      // added "just" + "don" pidgin markers; joke preserved.
+      hook: "fridge just make small sound, i don confess before anybody ask",
       whatToShow: "The fridge makes a normal noise while you are sneaking food, and you immediately start explaining to nobody.",
       howToFilm: "Film at night near the fridge; when the sound happens, freeze and whisper your excuse into the air.",
       caption: "guilty by appliance",
@@ -231,7 +233,9 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_025 · sourceDomain: home · targetProjection: food
-      hook: "fridge get leftover and the house enter court session",
+      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
+      // added "don" pidgin marker; joke preserved.
+      hook: "fridge get leftover, the house don enter court session",
       whatToShow: "Open the fridge to leftovers and everyone starts arguing ownership, timing, and who saw it first.",
       howToFilm: "Play quick character cuts around the open fridge, with each person giving a serious claim.",
       caption: "leftover court",
@@ -286,7 +290,9 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_031 · sourceDomain: home · targetProjection: food
-      hook: "fridge opened for water but my hand carry evidence",
+      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
+      // added "na" + "don" pidgin markers; joke preserved.
+      hook: "fridge open na for water, but my hand don carry evidence",
       whatToShow: "Open the fridge saying you want water, then come back holding extra food.",
       howToFilm: "Film the promise before opening, then cut to your hand coming out with more than water.",
       caption: "water plus agenda",
@@ -297,7 +303,9 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_032 · sourceDomain: home · targetProjection: food
-      hook: "plate expose me because small taste no suppose reach corner",
+      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
+      // added "don" pidgin marker; joke preserved.
+      hook: "plate don expose me, small taste no suppose reach corner",
       whatToShow: "Show a plate that clearly has been attacked even though you claimed it was only one small taste.",
       howToFilm: "Close-up on the plate marks, then cut to your guilty face trying to defend it.",
       caption: "taste went far",
@@ -319,7 +327,9 @@ export const FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES: readonly NigerianPackEntry[]
     }),
     Object.freeze({
       // source: FOOD_V2_035 · sourceDomain: home · targetProjection: food
-      hook: "pan carry aroma but food no carry evidence",
+      // P13-T2 (BI-LIGHT-PIDGIN 2026-05-12) — selective taste pass:
+      // added "don" + "no" pidgin markers; joke preserved.
+      hook: "pan don smell finish, but food no carry evidence",
       whatToShow: "The pan smells good, but the actual food result does not look as impressive.",
       howToFilm: "Film yourself smelling proudly, then reveal the pan result and let your smile reduce slowly.",
       caption: "aroma did PR",

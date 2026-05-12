@@ -126,21 +126,31 @@ describe("N1-S — NIGERIAN_HOOK_PACK activation boundary", () => {
       const { FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES } = await import(
         "../nigerianHookPackFoodV2.js"
       );
+      const { SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES } = await import(
+        "../nigerianHookPackSleepV1.js"
+      );
       expect(isNigerianPackFeatureEnabled()).toBe(true);
       expect(NIGERIAN_HOOK_PACK.length).toBeGreaterThanOrEqual(50);
       expect(NIGERIAN_HOOK_PACK.length).toBe(
         APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length +
-          FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length,
+          FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length +
+          SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES.length,
       );
       const approvedLen = APPROVED_NIGERIAN_PROMOTION_CANDIDATES.length;
+      const foodV2Len = FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length;
       for (let i = 0; i < approvedLen; i++) {
         expect(NIGERIAN_HOOK_PACK[i]).toBe(
           APPROVED_NIGERIAN_PROMOTION_CANDIDATES[i],
         );
       }
-      for (let i = 0; i < FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES.length; i++) {
+      for (let i = 0; i < foodV2Len; i++) {
         expect(NIGERIAN_HOOK_PACK[approvedLen + i]).toBe(
           FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES[i],
+        );
+      }
+      for (let i = 0; i < SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES.length; i++) {
+        expect(NIGERIAN_HOOK_PACK[approvedLen + foodV2Len + i]).toBe(
+          SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES[i],
         );
       }
     });

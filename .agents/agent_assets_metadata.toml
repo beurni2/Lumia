@@ -1613,3 +1613,9 @@ id = "ejAu56yJB8s00nxN-yuDS"
 uri = "file://.local/P12_T2_WIDENED_ENTRY_SHIP_AUDIT.md"
 type = "text"
 title = "P12-T2 Widened Entry Ship Audit — which survive, which never ship, and why"
+
+[[outputs]]
+id = "uDT7j22deBOqUhcqL4Vw-"
+uri = "file://.local/P13_T2_TOPOLOGY_AND_TASTE_STRENGTHENING_REPORT.md"
+type = "text"
+title = "P13-T2 Topology + Taste-Strengthening Report"

@@ -111,6 +111,14 @@ import { APPROVED_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackApprov
 // concatenated array, so the new entries pay the same boot-rule cost
 // as the auto-generated ones.
 import { FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackFoodV2.js";
+// PHASE P13-T2 (BI 2026-05-12) — sibling module exporting 8 curated
+// everyday→sleep entries (SLEEP_V1_001..008, BI-LIGHT-PIDGIN
+// 2026-05-12). Concatenated at the TAIL of the live pack below —
+// pattern mirrors the FOOD_V2 sibling-module concat. Boot-time
+// `assertNigerianPackIntegrity(NIGERIAN_HOOK_PACK)` re-validates the
+// concatenated array, so the new entries pay the same boot-rule cost
+// as the auto-generated ones.
+import { SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES } from "./nigerianHookPackSleepV1.js";
 import { registerApprovedPoolReference } from "./nigerianHookQuality.js";
 
 // Local djb2 — same canonical implementation already present in
@@ -198,6 +206,7 @@ export const NIGERIAN_HOOK_PACK: readonly NigerianPackEntry[] =
     ? (Object.freeze([
         ...APPROVED_NIGERIAN_PROMOTION_CANDIDATES,
         ...FOOD_V2_NIGERIAN_PROMOTION_CANDIDATES,
+        ...SLEEP_V1_NIGERIAN_PROMOTION_CANDIDATES,
       ]) as readonly NigerianPackEntry[])
     : (Object.freeze([]) as readonly NigerianPackEntry[]);
 

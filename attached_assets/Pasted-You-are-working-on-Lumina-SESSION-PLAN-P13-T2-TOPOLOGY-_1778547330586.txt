@@ -1,0 +1,322 @@
+You are working on Lumina.
+
+SESSION PLAN:
+P13-T2-TOPOLOGY-AND-TASTE-STRENGTHENING
+
+Mode:
+Targeted topology correction + curated corpus strengthening + verification.
+
+Purpose:
+P12-T2 successfully solved widened-edge attempt starvation:
+- widened entries are now attempted
+- FOOD_V2/home→food entries now ship
+- mornings entries now ship
+- no fallback/underfill/leakage regressions
+
+P12 widened-entry audit then revealed the next bottlenecks:
+
+1. `everyday → food` overlay omission
+   - 12 strong everyday-food entries currently do NOT receive T2-only attempt access
+   - overlay row currently:
+     everyday → ["home", "mornings", "sleep"]
+   - food is missing
+
+2. `everyday → sleep` topology starvation
+   - only 1 effective sleep entry exists
+   - edge is structurally shallow
+
+3. Several high-potential FOOD_V2 entries have:
+   - naturalness=0
+   - weak conversational Nigerian texture
+   - despite strong observational comedy
+
+This phase addresses ONLY those three issues.
+
+CRITICAL CONSTRAINTS
+
+Do NOT:
+- raise T2 attempt budget
+- add ranking boosts
+- add scorer boosts
+- change validators
+- change slot reservation
+- change memory logic
+- change prompts/API/mobile/DB/schema
+- widen unrelated projections
+- add T3/T4 systems
+- loosen quality gates
+- reorder the pack
+- touch drawCap
+- touch topK retention
+- patch unrelated flakes
+
+No runtime surgery in this phase.
+
+This is:
+- topology correction
+- curated sleep-depth expansion
+- selective taste strengthening
+
+PART A — OVERLAY CORRECTION
+
+Implement:
+everyday → ["home", "mornings", "sleep", "food"]
+
+Current overlay:
+- everyday → home
+- everyday → mornings
+- everyday → sleep
+- home → food
+
+Target:
+- everyday → home
+- everyday → mornings
+- everyday → sleep
+- everyday → food
+- home → food
+
+Requirements:
+- additive only
+- preserve existing behavior
+- no unrelated projection changes
+- no new projection system
+- no runtime architecture changes
+
+Verification:
+Add/update focused tests proving:
+- everyday-food entries now enter T2-only attempt path
+- no western/null leakage
+- ng_clean unaffected
+- T2 flag OFF behavior unchanged
+
+PART B — SLEEP CLUSTER CURATION
+
+Add this EXACT curated sleep packet.
+Coding agent must NOT rewrite or invent entries.
+
+CURATED SLEEP PACKET
+
+replaceId: SLEEP_V1_001
+hook: alarm don shout, my body still dey act deaf
+anchor: alarm
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Alarm rings beside you while your hand keeps searching for snooze without opening your eyes.
+howToFilm: Film close on the alarm, then cut to your hand moving lazily under the blanket.
+caption: body no hear am
+
+replaceId: SLEEP_V1_002
+hook: pillow know all the plans i cancelled with my eyes closed
+anchor: pillow
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Lie on the pillow while ignored messages and missed plans show on your phone.
+howToFilm: Film from above; show your face half-asleep, then cut to the phone notifications.
+caption: pillow kept records
+
+replaceId: SLEEP_V1_003
+hook: bed said just lie down, now sun don enter window
+anchor: bed
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Sit on the bed for a quick rest, then jump-cut to morning light and panic.
+howToFilm: Start with shoes still on; hard cut to you waking up confused.
+caption: one minute became tomorrow
+
+replaceId: SLEEP_V1_004
+hook: charger near bed no get owner once night reach
+anchor: charger
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Everyone reaches for the same charger beside the bed while pretending they owned it first.
+howToFilm: Film hands entering frame from different sides toward the charger.
+caption: charger custody battle
+
+replaceId: SLEEP_V1_005
+hook: fan stop midnight and sleep pack bag immediately
+anchor: fan
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: The fan stops and you wake up instantly, sweating and staring at the ceiling.
+howToFilm: Start with peaceful sleep, then cut to sudden stillness and your eyes opening.
+caption: heat resumed work
+
+replaceId: SLEEP_V1_006
+hook: blanket hold me down like i owe am money
+anchor: blanket
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Try to get out of bed but keep pulling the blanket back over yourself.
+howToFilm: Film the repeated attempt to stand; each time the blanket wins.
+caption: blanket collected me
+
+replaceId: SLEEP_V1_007
+hook: mosquito sing one note and my whole sleep resign
+anchor: mosquito
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: Try to sleep, hear mosquito buzz near your ear, then sit up like war has started.
+howToFilm: Use quiet room audio, then add the buzz and your sudden reaction.
+caption: night concert started
+
+replaceId: SLEEP_V1_008
+hook: light go off and everybody start breathing like suspect
+anchor: light
+sourceDomain: everyday
+targetProjection: sleep
+pidginLevel: light_pidgin
+reviewedBy: BI-LIGHT-PIDGIN 2026-05-12
+whatToShow: The light goes off at night and everyone pauses, listening and adjusting to the darkness.
+howToFilm: Cut from lit room to darkness; capture faces frozen for one second.
+caption: darkness took attendance
+
+PART C — SELECTIVE NATURALNESS-STRENGTHENING
+
+Goal:
+Improve ONLY the highest-potential FOOD_V2 entries that:
+- currently score naturalness=0
+- but already have strong observational comedy
+
+Do NOT:
+- mass rewrite FOOD_V2
+- inject fake pidgin
+- mechanically add slang
+- optimize for score blindly
+
+Target entries only:
+- pan carry aroma but food no carry evidence
+- fridge opened for water but my hand carry evidence
+- plate expose me because small taste no suppose reach corner
+- fridge make sound and i confess before anybody ask
+- fridge get leftover and the house enter court session
+
+Rewrite goals:
+- more conversational Nigerian rhythm
+- more spoken texture
+- preserve original joke structure
+- preserve human feel
+- no over-polishing
+
+You MAY lightly rewrite:
+- hook only
+- or hook + caption if needed
+
+Do NOT rewrite:
+- whatToShow
+- howToFilm
+unless absolutely necessary for consistency.
+
+IMPORTANT:
+Keep replaceIds stable.
+
+PART D — VERIFICATION
+
+Run focused live-route verification.
+
+Minimum:
+ng_light_pidgin:
+- 5 creators
+- 3 batches each
+- 6 ideas each
+- total target: 90 ideas
+
+Controls:
+ng_clean:
+- 2 creators × 2 batches × 6
+
+western/null:
+- 2 creators × 2 batches × 6
+
+Metrics required:
+1. total ideas
+2. widened-edge shipped count
+3. everyday→food shipped count
+4. everyday→sleep shipped count
+5. FOOD_V2 shipped count
+6. distinct FOOD_V2 entries shipped
+7. distinct sleep entries shipped
+8. distinct hooks
+9. distinct pack IDs
+10. fallback count
+11. underfill count
+12. western leakage
+13. ng_clean leakage
+14. slot-0 widened count
+15. latency if available
+
+Qualitative review:
+Include at least:
+- 10 widened-edge shipped outputs
+- 5 FOOD_V2 shipped outputs
+- 5 sleep-edge shipped outputs if available
+
+For each:
+- hook
+- anchor
+- pack ID
+- widened edge
+- quick quality assessment
+
+Acceptance criteria:
+1. Typecheck clean.
+2. Focused tests pass.
+3. everyday→food overlay active.
+4. Sleep edge now has meaningful pool depth.
+5. At least some sleep entries ship OR diagnostics prove attempt participation.
+6. FOOD_V2 participation maintained or improved.
+7. No fallback regression.
+8. No underfill regression.
+9. No leakage regressions.
+10. No runtime/scorer/validator/API/mobile/DB/schema changes outside scoped overlay update.
+11. No artificial score/ranking boosts.
+12. Human taste quality preserved.
+
+Required output files:
+- `.local/P13_T2_TOPOLOGY_AND_TASTE_STRENGTHENING_REPORT.md`
+- `.local/qa-runs/p13_t2_topology_and_taste_strengthening.json`
+- `.local/qa-runs/p13_t2_topology_and_taste_strengthening_summary.json`
+
+Final report structure:
+1. Verdict
+2. Overlay change
+3. Sleep packet import results
+4. Naturalness-strengthening changes
+5. Tests added/updated
+6. Typecheck result
+7. Live-route probe setup
+8. Widened-edge metrics
+9. FOOD_V2 metrics
+10. Sleep-edge metrics
+11. Qualitative shipped samples
+12. Leakage checks
+13. Fallback/underfill checks
+14. Files touched
+15. Confirmation no out-of-scope changes
+16. Remaining risks
+17. Recommended next phase
+
+Known out of scope:
+- P11Rotation flake
+- broad T2 budget increases
+- T2 ranking boosts
+- scorer retuning
+- topK redesign
+- new projection systems
+
+Stop condition:
+If overlay correction unexpectedly destabilizes unrelated cohorts, STOP and report.
+If sleep entries fail validators/scorers materially, STOP and report exact failures instead of broad rewriting.

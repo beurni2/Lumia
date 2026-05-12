@@ -1380,8 +1380,14 @@ export function generateCoreCandidates(
       // ELIGIBILITY filter is widened.
       const PROJECTION_T2_ENABLED =
         process.env.LUMINA_NG_PACK_PROJECTION_T2_ENABLED === "true";
+      // P13-T2 (BI 2026-05-12): added "food" to the everyday row so
+      // 12 everyday-domain food-anchored entries (okra, akara, moimoi,
+      // egusi, bukka, puff-puff, meat-pie, pepper×2, spoon, stomach,
+      // noodles) gain T2-only attempt access on the `food` core.
+      // Strictly additive — legacy projection at index 0 preserved;
+      // no existing pre-image collides; non-food cores see no change.
       const PROJECTION_T2_OVERLAY: Record<string, readonly string[]> = {
-        everyday: ["home", "mornings", "sleep"],
+        everyday: ["home", "mornings", "sleep", "food"],
         home: ["home", "food"],
       };
       // Additive normalization helper: returns the set of canonical
