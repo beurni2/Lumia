@@ -1032,6 +1032,59 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "quiet_realization",
       reviewedBy: "BI-CLEAN 2026-05-10",
     },
+    // ---------------------------------------------------------------- //
+    // PHASE P16-A2-NG-CLEAN-HUMAN-CANDIDATE-PREDICT-IMPORT             //
+    // (BI-CLEAN-P16A2 2026-05-12) — 3 supervisor-signoff survivors of  //
+    // the 10-entry human-feel candidate packet. Predict report:        //
+    // .local/P16_A2_NG_CLEAN_HUMAN_CANDIDATE_PREDICT.md (10 candidates //
+    // analyzed; supervisor selected 005, 007, 020 only). The other 7   //
+    // entries are HELD for supervisor-side rewrite. Every field below  //
+    // is supervisor-supplied verbatim — coding agent did NOT author /  //
+    // rewrite hook / whatToShow / howToFilm / caption. draftId         //
+    // preserves the supplied packet ID as the import trace.            //
+    // ---------------------------------------------------------------- //
+    {
+      id: "ng_clean_072",
+      draftId: "CLEAN_P16A1_HUMAN_005",
+      anchor: "shoes",
+      hook: "The church shoes exposed the ironing situation immediately.",
+      whatToShow:
+        "You dressed in a hurry, but your polished shoes are making the rest of the outfit look unserious.",
+      howToFilm:
+        "Start with a proud shoe shot, then tilt up to one wrinkled clothing detail and a face of quiet regret.",
+      caption: "Shoes reported the outfit.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A2 2026-05-12",
+    },
+    {
+      id: "ng_clean_073",
+      draftId: "CLEAN_P16A1_HUMAN_007",
+      anchor: "group chat",
+      hook: "The family group chat turned one cough into investigation.",
+      whatToShow:
+        "Someone casually mentions coughing, and the group chat becomes doctors, pastors, aunties, and forwarded remedies.",
+      howToFilm:
+        "Show one simple message, then rapid cuts of notifications multiplying while you stare at the phone.",
+      caption: "One cough became a committee.",
+      premiseFamily: "group_chats",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A2 2026-05-12",
+    },
+    {
+      id: "ng_clean_074",
+      draftId: "CLEAN_P16A1_HUMAN_020",
+      anchor: "chores",
+      hook: "The house became quiet when chores needed witnesses.",
+      whatToShow:
+        "The moment chores are mentioned, everyone who was loudly present somehow disappears into rooms, bathrooms, and fake phone calls.",
+      howToFilm:
+        "Show a lively room, one person mentions chores, then quick cuts of people vanishing.",
+      caption: "Chores reduced the population.",
+      premiseFamily: "family_aunties",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A2 2026-05-12",
+    },
   ]);
 
 // ---------------------------------------------------------------- //
