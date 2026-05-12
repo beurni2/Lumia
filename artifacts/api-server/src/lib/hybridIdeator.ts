@@ -163,6 +163,23 @@ import {
   applyNgCleanFirstCardCoreReservation,
   isNgCleanFirstCardReservationEnabled,
 } from "./ngCleanFirstCardCoreReservation.js";
+// PHASE P16-A6-NG-CLEAN-SLOT1-MEMORY-ANTI-REPEAT (BI 2026-05-12) —
+// per-creator memory-driven post-rank filter for slot-1+ ng_clean
+// clean-core entries. Mirrors the slot-0 memory + anti-repeat
+// pattern; runs AFTER slot-0 has been finalised by the slot-0
+// swap/corpus-feed; activated only when region === "nigeria" +
+// languageStyle === "clean" + non-empty creatorId + flag ON.
+// Applies on BOTH cold-start AND regenerate flows (addendum §3).
+// Non-eligible cohorts pay zero overhead.
+import {
+  getRecentSlot1PlusCleanCoreEntryIds,
+  recordSlot1PlusCleanCoreEntryIds,
+} from "./nigerianCleanCoreSlot1PlusCreatorMemory.js";
+import {
+  applyNgCleanSlot1PlusAntiRepeatFilter,
+  collectSlot1PlusCleanCoreEntryIds,
+  isNgCleanSlot1PlusAntiRepeatEnabled,
+} from "./nigerianCleanCoreSlot1PlusAntiRepeatFilter.js";
 // PHASE W2-O — Western pool selection now flows through the
 // `getActiveWesternPool` resolver in `westernPackSlotReservation.ts`,
 // which internally consults BOTH staging-pool flag
@@ -4231,6 +4248,25 @@ export async function runHybridIdeator(
     _hoistedNgCleanSlot0Eligible
       ? await getRecentSlot0CleanCoreEntryIds(input.creator?.id)
       : new Set<string>();
+  // PHASE P16-A6-NG-CLEAN-SLOT1-MEMORY-ANTI-REPEAT (BI 2026-05-12) —
+  // hoist the per-creator slot-1+ clean-core memory snapshot once
+  // per request, mirroring the slot-0 hoist immediately above.
+  // Cohort gate (region=nigeria + languageStyle=clean + non-empty
+  // creatorId) is identical to the slot-0 hoist's eligibility, and
+  // is a superset of the activation gate of
+  // `applyNgCleanSlot1PlusAntiRepeatFilter` below. Single DB read
+  // per request when activated; non-NG / non-clean cohorts pay zero
+  // (helper short-circuits without touching the row). The hoist
+  // intentionally runs unconditionally on the eligible cohort —
+  // independent of the staging-only flag — so a same-call flag flip
+  // cannot cause a half-applied state. When the flag is OFF the
+  // snapshot is read but never consumed, costing one cheap read on
+  // ng_clean traffic only (a tiny share of total). Cap is 18 — see
+  // `nigerianCleanCoreSlot1PlusCreatorMemory.ts`.
+  const _hoistedNgCleanSlot1PlusSeenIds: ReadonlySet<string> =
+    _hoistedNgCleanSlot0Eligible
+      ? await getRecentSlot1PlusCleanCoreEntryIds(input.creator?.id)
+      : new Set<string>();
   // PHASE W2-K — hoist the per-creator Western APPROVED pack memory
   // snapshot. Read once here, reused at the slot-reservation site
   // below. Gating mirrors the slot-reservation activation guard:
@@ -6325,6 +6361,132 @@ export async function runHybridIdeator(
       }
     }
   }
+  // PHASE P16-A6-NG-CLEAN-SLOT1-MEMORY-ANTI-REPEAT (BI 2026-05-12) —
+  // post-rank slot-1+ anti-repeat FILTER. Runs AFTER the slot-0
+  // swap/corpus-feed has finalised slot 0 (the slot-1+ helper
+  // treats slot-0's id as part of the in-final set so it cannot
+  // be promoted to slot-1+ creating an in-batch duplicate). Then
+  // records all slot-1+ clean-core entry ids actually shipped into
+  // the per-creator slot-1+ memory.
+  //
+  // Activation gate (helper does not re-check; we gate here):
+  //   • flag ON (`LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED`)
+  //   • region === "nigeria"
+  //   • languageStyle === "clean"
+  //   • non-empty creatorId
+  //   • final.length >= 2
+  // Per addendum §3, this block applies on BOTH cold-start AND
+  // regenerate flows — `regenerate` is intentionally NOT in the
+  // gate. Non-eligible cohorts pay zero overhead (no helper call,
+  // no record write).
+  //
+  // The recorded ids represent the slot-1+ entries that were
+  // EMITTED to the user-visible batch (post-filter, post-trend-cap,
+  // post-willingness-sort, post-slot-0 finalisation). Per addendum
+  // §4 the write is gated on cohort + source (clean-core) + slot
+  // (≥1) + real ng_clean_* id (resolved via
+  // `resolveCleanCoreEntryIdByHook` inside
+  // `collectSlot1PlusCleanCoreEntryIds`). Ids that fail to resolve
+  // (held entries, decorated hooks, non-clean-core entries) are
+  // skipped — never persisted.
+  let _ngCleanSlot1PlusFilterDetail: {
+    swappedCount: number;
+    relaxedCount: number;
+    suppressedEntryIds: ReadonlyArray<string>;
+    insertedEntryIds: ReadonlyArray<string>;
+  } | null = null;
+  let _ngCleanSlot1PlusRecordedEntryIds: ReadonlyArray<string> = [];
+  {
+    const slot1PlusFlagOn = isNgCleanSlot1PlusAntiRepeatEnabled();
+    const cidForSlot1Plus = input.creator?.id;
+    const slot1PlusLanguageStyle = calibration?.languageStyle ?? null;
+    const slot1PlusActivated =
+      slot1PlusFlagOn &&
+      input.region === "nigeria" &&
+      slot1PlusLanguageStyle === "clean" &&
+      typeof cidForSlot1Plus === "string" &&
+      cidForSlot1Plus.length > 0 &&
+      final.length >= 2;
+    if (slot1PlusActivated) {
+      // Build sidecar mirror of the first-card reservation: clean-core
+      // entries from `localResult.kept` not already represented in
+      // `final[]`. The filter helper additionally requires
+      // pickerEligible + a fresh (unseen, not-in-final) cleanCoreEntryId,
+      // so we skip the willingness annotation for entries that are
+      // already in `final[]` to bound the work.
+      const finalEntryIdSet = new Set<string>();
+      for (const c of final) {
+        const eid = resolveCleanCoreEntryIdByHook(c.idea.hook);
+        if (eid !== null) finalEntryIdSet.add(eid);
+      }
+      const sidecarRaw: typeof final = [];
+      const sidecarSeenEntryIds = new Set<string>();
+      for (const c of localResult.kept) {
+        const eid = resolveCleanCoreEntryIdByHook(c.idea.hook);
+        if (eid === null) continue;
+        if (finalEntryIdSet.has(eid)) continue;
+        if (sidecarSeenEntryIds.has(eid)) continue;
+        sidecarSeenEntryIds.add(eid);
+        sidecarRaw.push(c);
+      }
+      const annotatedSidecar =
+        sidecarRaw.length > 0
+          ? annotateAndSortByWillingness(sidecarRaw)
+          : sidecarRaw;
+      const filterResult = applyNgCleanSlot1PlusAntiRepeatFilter(final, {
+        recentSlot1PlusCleanCoreEntryIds: _hoistedNgCleanSlot1PlusSeenIds,
+        sidecarPool: annotatedSidecar,
+      });
+      if (
+        filterResult.swappedCount > 0 ||
+        filterResult.relaxedCount > 0 ||
+        filterResult.suppressedEntryIds.length > 0
+      ) {
+        if (filterResult.swappedCount > 0) {
+          final = filterResult.final.slice();
+        }
+        _ngCleanSlot1PlusFilterDetail = {
+          swappedCount: filterResult.swappedCount,
+          relaxedCount: filterResult.relaxedCount,
+          suppressedEntryIds: filterResult.suppressedEntryIds,
+          insertedEntryIds: filterResult.insertedEntryIds,
+        };
+        logger.info(
+          {
+            creatorId: cidForSlot1Plus,
+            swappedCount: filterResult.swappedCount,
+            relaxedCount: filterResult.relaxedCount,
+            suppressedEntryIds: filterResult.suppressedEntryIds,
+            insertedEntryIds: filterResult.insertedEntryIds,
+            swaps: filterResult.swaps,
+            sidecarSize: annotatedSidecar.length,
+            recentMemorySize: _hoistedNgCleanSlot1PlusSeenIds.size,
+          },
+          filterResult.swappedCount > 0
+            ? "ng_clean.slot1plus_anti_repeat_filter_applied"
+            : "ng_clean.slot1plus_anti_repeat_filter_relaxed",
+        );
+      }
+      // Record FINAL slot-1+ cleanCoreEntryIds (post-filter, post-
+      // slot-0-finalisation) into the per-creator memory so the next
+      // ng_clean batch sees an updated recent set. Per addendum §4
+      // the record runs at the emission/commit point, after every
+      // mutation that could change `final[]`. Fire-and-forget — write
+      // failures are logged + swallowed inside the helper. Only
+      // emits a write when there is at least one resolvable
+      // clean-core id at slot 1+.
+      const slot1PlusEntryIds = collectSlot1PlusCleanCoreEntryIds(final);
+      if (slot1PlusEntryIds.length > 0) {
+        _ngCleanSlot1PlusRecordedEntryIds = slot1PlusEntryIds;
+        void recordSlot1PlusCleanCoreEntryIds(
+          cidForSlot1Plus,
+          slot1PlusEntryIds,
+        );
+      }
+    }
+  }
+  void _ngCleanSlot1PlusFilterDetail;
+  void _ngCleanSlot1PlusRecordedEntryIds;
   // Suppress "declared but its value is never read" lint when the
   // QA harness doesn't introspect these — they exist so future
   // telemetry layers can attribute the swap without re-running the

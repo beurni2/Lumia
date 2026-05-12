@@ -182,6 +182,31 @@ export const creators = pgTable("creators", {
     jsonb("nigerian_clean_core_slot0_seen_ids_json")
       .$type<ReadonlyArray<{ entryId: string; lastSeenAt: string }>>()
       .default([]),
+  // PHASE P16-A6-NG-CLEAN-SLOT1-MEMORY-ANTI-REPEAT (BI 2026-05-12) —
+  // per-creator recent-slot-1+ memory for the Nigerian clean-English
+  // `core_native` mini-catalog. Mirrors the slot-0 memory column
+  // exactly in shape and conventions, but stores the
+  // `cleanCoreEntryId`s shipped at NON-slot-0 positions of every
+  // recent ng_clean batch (typically 4-5 per batch). The post-rank
+  // slot-1+ anti-repeat FILTER (`applyNgCleanSlot1PlusAntiRepeatFilter`)
+  // consults this set after the slot-0 swap/corpus-feed has finalized
+  // slot 0 and replaces seen slot-1+ clean-core entries with fresh
+  // sidecar entries (post-rank filter; never mutates scorer; relaxes
+  // gracefully when sidecar exhausted to prevent under-fill). Capped
+  // at the 18 most-recent entries (older drop off → become eligible
+  // again). NULLABLE / default empty array; pre-migration creators
+  // and non-NG cohorts simply read `[]`, which is a no-op filter, so
+  // behaviour outside the activated `region === "nigeria" +
+  // languageStyle === "clean"` cohort remains byte-identical to the
+  // baseline. EXPLICITLY SEPARATE from `nigerian_clean_core_slot0_seen_ids_json`
+  // — slot-0 and slot-1+ memory are decoupled by design (P16-A6
+  // addendum §1). Mirrors the shape and conventions of
+  // `nigerian_clean_core_slot0_seen_ids_json` and
+  // `nigerian_pack_seen_entry_ids_json`.
+  nigerianCleanCoreSlot1PlusSeenIdsJson:
+    jsonb("nigerian_clean_core_slot1plus_seen_ids_json")
+      .$type<ReadonlyArray<{ entryId: string; lastSeenAt: string }>>()
+      .default([]),
   // Stamped each time the ideator successfully returns a batch — lets
   // the home screen reason about "today's ideas" freshness without
   // a separate cache table.

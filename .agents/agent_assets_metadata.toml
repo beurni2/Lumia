@@ -1697,3 +1697,9 @@ id = "fB-7XHTMj2262eItqyeAR"
 uri = "file://.local/REPEATED_HOOKS_AUDIT.md"
 type = "text"
 title = "Repeated-Hooks Audit (P16-A4 cross-batch repetition)"
+
+[[outputs]]
+id = "UpTyA8BmHH9LlSTHe9bkf"
+uri = "file://.local/P16_A6_NG_CLEAN_SLOT1_MEMORY_ANTI_REPEAT.md"
+type = "text"
+title = "P16-A6 — NG_CLEAN slot-1+ memory anti-repeat report"
