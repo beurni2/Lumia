@@ -63,6 +63,12 @@
  */
 
 import type { PremiseCoreFamily } from "./premiseCoreLibrary.js";
+import {
+  computeHumanLift,
+  isHumanLiftEnabled,
+  ZERO_HUMAN_LIFT,
+  type HumanLiftBreakdown,
+} from "./hookQualityHumanLift.js";
 
 // ---------------------------------------------------------------- //
 // Verb tiers                                                        //
@@ -316,11 +322,17 @@ function classifyVerb(tok: string): "high" | "mid" | "low" | "bland" | "none" {
   return "none";
 }
 
-function visceralVerbScore(hookLower: string): number {
-  // Tokenize and find the BEST verb in the hook (a hook can carry
-  // multiple verbs; we score on the strongest one). 0 baseline so a
-  // hook with no recognizable verb at all (rare — most templates
-  // carry at least one) still has a chance via the other axes.
+/** P16-A1 — canonical verb-tier exposure. Returns `{score, tier}` so
+ *  human-lift logic in `hookQualityHumanLift.ts` can read the
+ *  authoritative tier without a parallel quiet-verb set. The wrapper
+ *  `visceralVerbScore` returns the same `score` value as before — no
+ *  caller behavior changes. Tier is "NONE" / "BLAND" / "LOW" / "MID" /
+ *  "HIGH"; cased for human readability. */
+export type VisceralVerbTier = "NONE" | "BLAND" | "LOW" | "MID" | "HIGH";
+
+export function visceralVerbScoreDetailed(
+  hookLower: string,
+): { score: number; tier: VisceralVerbTier } {
   const tokens = hookLower.match(/[a-z]+/g) ?? [];
   let best: "high" | "mid" | "low" | "bland" | "none" = "none";
   const rank = { none: 0, bland: 1, low: 2, mid: 3, high: 4 } as const;
@@ -331,26 +343,20 @@ function visceralVerbScore(hookLower: string): number {
   }
   switch (best) {
     case "high":
-      return 30;
+      return { score: 30, tier: "HIGH" };
     case "mid":
-      return 18;
+      return { score: 18, tier: "MID" };
     case "low":
-      return 8;
+      return { score: 8, tier: "LOW" };
     case "bland":
-      // Bland verbs (`is` / `was` / `did` / `had`) shouldn't score
-      // WORSE than no-verb-at-all hooks (the verb is present but
-      // contributes nothing punchy). Match the UNKNOWN baseline so
-      // the verb axis just stays neutral on bland-verb templates;
-      // the captivating-verb signal lives in the HIGH/MID/LOW
-      // tiers above. Quiet/noticing voice clusters intentionally
-      // use bland verbs to set a soft register (`is the
-      // personality`, `became my villain`) — the hook earns its
-      // captivating points from the anthropomorph + contradiction
-      // axes, not from the verb tier.
-      return 5;
+      return { score: 5, tier: "BLAND" };
     case "none":
-      return 5;
+      return { score: 5, tier: "NONE" };
   }
+}
+
+function visceralVerbScore(hookLower: string): number {
+  return visceralVerbScoreDetailed(hookLower).score;
 }
 
 // ---------------------------------------------------------------- //
@@ -413,25 +419,57 @@ const EXPLICIT_ANTHROPOMORPH = [
 const IMPLICIT_ANTHROPOMORPH =
   /\bthe\s+(?!(?:person|people|creator|man|woman|boy|girl|kid|child|baby|son|daughter|brother|sister|mother|father|mom|dad|auntie|aunt|uncle|supervisor|boss|manager|teacher|friend|neighbor|stranger|guy|lady|driver|cousin|husband|wife|doctor|nurse|customer|client|partner)\b)[a-z][a-z\-\s]{1,30}?\s+(?:won|beat|killed|ruined|ate|broke|hit|revealed|spoke|texted|called|decided|voted|watched|laughed|cried|left|started|stopped|happened|came|returned|whispered|told|asked|answered|lied|caught|scared|haunted|stalked|kept|chose|knew|saw|wanted|needed|loved|hated|ghosted|abandoned|faked|betrayed|ditched|performed|exposed|spiraled|avoided|overthought|drained|demolished|sabotaged|gaslit|seduced|hijacked|judged|mocked|refused|slowed|dimmed|loaded|declined|multiplied|vanished|expired|ended|embarrassed|humbled|delayed|interrupted|assigned|priced|forgot|said|froze|smiled|printed|appointed|rang|made|opened|turned|sounded|corrected|arrived)\b/;
 
-function anthropomorphScore(hookLower: string): number {
+/** P16-A1 — branch metadata exposure for human-lift scorer. The
+ *  `branch` field tells downstream code WHICH path produced the
+ *  score: `"explicit"` (raw 25), `"implicit"` (raw 12), or `"none"`
+ *  (0). The Y8 gaming guard in `scoreHookQualityDetailed` may cap
+ *  an explicit raw 25 down to 12 when no other signal is present —
+ *  that capping does NOT change `branch`; an explicit-but-capped
+ *  hook still reports `branch === "explicit"`. The understated-
+ *  absurdity lift only fires for `branch === "implicit"` so an
+ *  explicit-then-capped hook is correctly ineligible. */
+export type AnthropomorphBranch = "none" | "explicit" | "implicit";
+
+export function anthropomorphScoreDetailed(
+  hookLower: string,
+): { score: number; branch: AnthropomorphBranch } {
   for (const re of EXPLICIT_ANTHROPOMORPH) {
-    if (re.test(hookLower)) return 25;
+    if (re.test(hookLower)) return { score: 25, branch: "explicit" };
   }
-  if (IMPLICIT_ANTHROPOMORPH.test(hookLower)) return 12;
-  return 0;
+  if (IMPLICIT_ANTHROPOMORPH.test(hookLower)) {
+    return { score: 12, branch: "implicit" };
+  }
+  return { score: 0, branch: "none" };
+}
+
+function anthropomorphScore(hookLower: string): number {
+  return anthropomorphScoreDetailed(hookLower).score;
 }
 
 // ---------------------------------------------------------------- //
 // Brevity                                                           //
 // ---------------------------------------------------------------- //
 
-function brevityScore(hookLower: string): number {
+/** P16-A1 — exported so `hookQualityHumanLift.ts` can compute the
+ *  monotone widened brevity (`max(widened, original)`) without a
+ *  parallel curve. Behavior unchanged. */
+export function brevityScoreOriginal(hookLower: string): number {
   const words = hookLower.trim().split(/\s+/).filter(Boolean).length;
   if (words >= 5 && words <= 7) return 20;
   if (words === 4 || words === 8) return 17;
   if (words === 3 || words === 9) return 13;
   if (words === 2 || words === 10) return 9;
   return 5;
+}
+
+function brevityScore(hookLower: string): number {
+  return brevityScoreOriginal(hookLower);
+}
+
+/** Word count helper — exported alongside `brevityScoreOriginal` so the
+ *  human-lift widening helper uses the SAME tokenization. */
+export function brevityWordCount(hookLower: string): number {
+  return hookLower.trim().split(/\s+/).filter(Boolean).length;
 }
 
 // ---------------------------------------------------------------- //
@@ -615,12 +653,26 @@ const CONTRADICTION_PATTERNS: readonly RegExp[] = [
 const DRAMATIC_NOUNS: RegExp =
   /\b(?:villain|apocalypse|catastrophe|doom|hostage|conspirator|accomplice|sabotage|scandal|witness|evidence|scientist|scientists|papers|origin|breakdown|tragedy|casualty|breakup|demise|villainy|murder|crime|trial|verdict|funeral|autopsy|exorcism)\b/;
 
-function contradictionScore(hookLower: string): number {
+/** P16-A1 — source metadata exposure. The emotional-specificity lift
+ *  caps at +3 (instead of +6) when the contradiction credit was
+ *  already paid via the operatic DRAMATIC_NOUNS branch — preserves the
+ *  understated > overstated bias the human-lift signals are designed
+ *  to introduce. `source` is `"marker"` for the regex-pattern branch,
+ *  `"dramatic"` for the dramatic-noun branch, `"none"` for no credit. */
+export type ContradictionSource = "none" | "marker" | "dramatic";
+
+export function contradictionScoreDetailed(
+  hookLower: string,
+): { score: number; source: ContradictionSource } {
   for (const re of CONTRADICTION_PATTERNS) {
-    if (re.test(hookLower)) return 10;
+    if (re.test(hookLower)) return { score: 10, source: "marker" };
   }
-  if (DRAMATIC_NOUNS.test(hookLower)) return 10;
-  return 0;
+  if (DRAMATIC_NOUNS.test(hookLower)) return { score: 10, source: "dramatic" };
+  return { score: 0, source: "none" };
+}
+
+function contradictionScore(hookLower: string): number {
+  return contradictionScoreDetailed(hookLower).score;
 }
 
 // ---------------------------------------------------------------- //
@@ -687,6 +739,22 @@ export type HookQualityBreakdown = {
    *  breakdown so QA harness telemetry can identify which hooks
    *  are bleeding score to the cliché list. */
   aiCliche: number;
+  /** P16-A1 — additive metadata + human-lift breakdown. ALWAYS
+   *  present (zero-valued when flag OFF or signals absent). The
+   *  three numeric lift fields are folded into `total` only when
+   *  `LUMINA_HQS_HUMAN_LIFT_ENABLED` is `"1"` or `"true"`; with the
+   *  flag OFF every existing field above is byte-for-byte unchanged
+   *  and `total` does not include any human-lift contribution.
+   *
+   *  `verbTier`, `anthropomorphBranch`, `contradictionSource`, and
+   *  `aiClicheFired` are diagnostic-only — they expose information
+   *  already used internally so tests + the predict harness can
+   *  attribute lifts. They never affect `total` directly. */
+  verbTier: VisceralVerbTier;
+  anthropomorphBranch: AnthropomorphBranch;
+  contradictionSource: ContradictionSource;
+  aiClicheFired: boolean;
+  humanLift: HumanLiftBreakdown;
 };
 
 /** Score a hook on the Y8 punch scale. `family` is currently unused
@@ -709,16 +777,15 @@ export function scoreHookQualityDetailed(
   _family: PremiseCoreFamily,
 ): HookQualityBreakdown {
   const lower = (hook ?? "").toLowerCase();
-  const visceral = visceralVerbScore(lower);
-  const rawAnthropomorph = anthropomorphScore(lower);
+  const visceralD = visceralVerbScoreDetailed(lower);
+  const visceral = visceralD.score;
+  const anthD = anthropomorphScoreDetailed(lower);
+  const rawAnthropomorph = anthD.score;
   const brevity = brevityScore(lower);
   const concrete = concretenessScore(lower);
-  const contradiction = contradictionScore(lower);
-  // PHASE D1 — negative-only AI-cliché demote. Applied as an
-  // addend to `total` (which can therefore drop below the 0..100
-  // raw range — the boost band in `hookQualityBoost` clamps the
-  // useful range and the recipe loop's quality floor (~40) treats
-  // any sub-floor candidate as a fail).
+  const contradictionD = contradictionScoreDetailed(lower);
+  const contradiction = contradictionD.score;
+  // PHASE D1 — negative-only AI-cliché demote.
   const aiCliche = aiClicheScore(lower);
 
   // PHASE Y8 — gaming guard. The EXPLICIT anthropomorph regex
@@ -740,15 +807,41 @@ export function scoreHookQualityDetailed(
     if (!hasOtherSignal) anthropomorph = 12;
   }
 
+  // P16-A1 — Human-lift signals. ALWAYS computed for telemetry; only
+  // FOLDED INTO `total` when the staging flag is on. Flag OFF →
+  // `humanLift.total === 0` and `total` is byte-for-byte identical to
+  // pre-P16-A1 behavior. The widening helper guarantees
+  // `widenedBrevity >= originalBrevity` for every word count, so the
+  // brevity-axis contribution to `total` can only ever grow.
+  const flagOn = isHumanLiftEnabled();
+  const humanLift: HumanLiftBreakdown = flagOn
+    ? computeHumanLift({
+        hookLower: lower,
+        verbTier: visceralD.tier,
+        anthropomorphBranch: anthD.branch,
+        contradictionSource: contradictionD.source,
+        aiClicheNegative: aiCliche < 0,
+        originalBrevity: brevity,
+      })
+    : ZERO_HUMAN_LIFT;
+
+  const baseTotal =
+    visceral + anthropomorph + brevity + concrete + contradiction + aiCliche;
+  const total = flagOn ? baseTotal + humanLift.total : baseTotal;
+
   return {
-    total:
-      visceral + anthropomorph + brevity + concrete + contradiction + aiCliche,
+    total,
     visceral,
     anthropomorph,
     brevity,
     concrete,
     contradiction,
     aiCliche,
+    verbTier: visceralD.tier,
+    anthropomorphBranch: anthD.branch,
+    contradictionSource: contradictionD.source,
+    aiClicheFired: aiCliche < 0,
+    humanLift,
   };
 }
 

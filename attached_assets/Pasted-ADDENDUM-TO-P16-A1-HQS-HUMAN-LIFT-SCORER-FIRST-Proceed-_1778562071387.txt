@@ -1,0 +1,85 @@
+ADDENDUM TO P16-A1-HQS-HUMAN-LIFT-SCORER-FIRST
+
+Proceed with the plan, with the following required tightenings.
+
+1. Use canonical verb-tier exposure
+
+Do NOT create a parallel local quiet-verb set unless the canonical refactor proves unsafe.
+
+Preferred implementation:
+- Refactor the existing visceral verb scorer so it can expose:
+  - score
+  - tier: "HIGH" | "MID" | "LOW" | "BLAND" | "NONE"
+- Preserve all existing score behavior.
+- Existing callers that only need the score should continue receiving the same score.
+- The new human-lift logic should consume the exposed tier.
+
+Add tests proving:
+- existing visceral verb scores are unchanged for representative HIGH/MID/LOW/BLAND/NONE hooks
+- the new tier metadata is additive and does not rename/remove existing breakdown fields
+
+2. Expose anthropomorph branch metadata safely
+
+The understatedAbsurdityLift requires knowing whether the existing anthropomorph branch was:
+- explicit
+- implicit
+- gaming-guard capped
+- not fired
+
+Refactor minimally so the scorer can expose this metadata.
+
+Required:
+- existing anthropomorph score remains unchanged
+- existing detailed breakdown fields remain unchanged
+- new fields are additive only
+- flag OFF behavior is unchanged
+
+Add a breakdown-shape additivity test:
+- existing expected fields still exist
+- new metadata fields are added
+- no existing field is renamed or removed
+
+3. Add monotonicity tests for brevity widening
+
+Because brevity widening replaces the brevity component for qualifying observational hooks, add a monotonicity test:
+
+For word counts 1 through 30:
+- widenedBrevity(wordCount) must be >= originalBrevity(wordCount)
+
+This prevents accidental demotion from off-by-one widening logic.
+
+Also assert:
+- 5–11 qualifying hooks receive the intended widened tier
+- 12–14 qualifying hooks receive the intended widened tier
+- non-qualifying hooks still use the original brevity table
+
+4. Predict report must split lifts by source
+
+The predict report must include lifted counts by signal:
+
+- understatedAbsurdity only
+- emotionalSpecificity only
+- brevityWidening only
+- combinations of the above
+- total lifted
+- total unchanged
+- total negative delta, expected 0
+
+This is required so we can tell which signal is actually carrying Phase A.1.
+
+5. Phase exit criterion
+
+Phase A.1 is safe to use for the next ng_clean candidate predict/import phase only if all are true:
+
+- flag OFF scores are unchanged
+- flag ON produces 0 negative deltas
+- no floor constants changed:
+  - PICKER_HQS_FLOOR=50
+  - HOOK_QUALITY_FLOOR=40
+- no validators, ingest gates, anti-copy, API, mobile, DB, schema, or production env changed
+- predict report shows at least one real below-50-to-50+ lift among existing ng_clean entries or current candidate hooks
+- median positive delta is not so high that the scorer is broadly inflating weak hooks; report the median and top deltas for review rather than auto-approving if the lift distribution looks suspicious
+
+6. Stop condition
+
+If exposing canonical verb tier or anthropomorph branch metadata requires broad scorer rewrite, stop and report. Do not force it.
