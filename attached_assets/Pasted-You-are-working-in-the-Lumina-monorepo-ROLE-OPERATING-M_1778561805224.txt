@@ -1,0 +1,406 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. Do not author corpus entries. Do not rewrite hooks. Do not import new ng_clean pack entries in this phase.
+
+Your job is to implement a narrow, staging-flagged HQS scorer expansion so we can measure whether the current runtime hook scorer is under-rewarding human-style observational comedy before any further ng_clean corpus expansion.
+
+This is an audit-backed implementation phase, not a creative-writing phase.
+
+PHASE NAME
+
+P16-A1-HQS-HUMAN-LIFT-SCORER-FIRST
+
+BACKGROUND
+
+Lumina’s current runtime `scoreHookQuality` is too surface-lexical. It strongly rewards:
+
+- anthropomorph syntax
+- concrete object subject
+- compressed 5–7 word hooks
+- terminal period
+- visceral verbs
+
+This helped bootstrap ng_clean, but it is now causing anthropomorph monoculture and suppressing genuinely strong human-style observational hooks.
+
+A completed audit found that ng_clean currently has no runtime overlay and inherits the global `hookQuality.ts` scorer. The audit recommends implementing only the smallest scorer-first Phase A.1 before importing more ng_clean pack entries.
+
+DO NOT implement the full audit. DO NOT implement all 9 proposed signal layers.
+
+IMPLEMENT ONLY PHASE A.1:
+
+1. `understatedAbsurdityLift`
+2. `emotionalSpecificity`
+3. conditional observational brevity widening
+
+This phase must be behind a single staging flag:
+
+`LUMINA_HQS_HUMAN_LIFT_ENABLED`
+
+Default OFF.
+
+Production must not enable it.
+
+ABSOLUTE NON-NEGOTIABLES
+
+- Do not lower `PICKER_HQS_FLOOR`.
+- Do not lower `HOOK_QUALITY_FLOOR`.
+- Do not loosen validators.
+- Do not change ingest gates.
+- Do not change anti-copy logic.
+- Do not change picker order except through the staged scorer delta when the flag is ON.
+- Do not change mobile/API/DB/schema.
+- Do not increase Claude/fallback usage.
+- Do not touch ng_light_pidgin topology/runtime unless a test reveals an existing dependency.
+- Do not author or import corpus entries.
+- Do not modify existing hook text.
+- Do not make the staging flag default ON.
+- Do not add production env config enabling the flag.
+
+TARGET FILES TO INSPECT FIRST
+
+Start by reading, not editing:
+
+- `artifacts/api-server/src/lib/hookQuality.ts`
+- any existing detailed scorer exports/types in that file
+- tests around:
+  - `hookQualityPatchD.test.ts`
+  - `hookQualityImplicitAnthropomorphFix.test.ts`
+  - any tests that assert `PICKER_HQS_FLOOR=50`
+  - any corpus/HQS invariance tests
+- call sites:
+  - `coreCandidateGenerator.ts`
+  - `hybridIdeator.ts`
+  - `nigerianCleanCoreSlot0CorpusFeed.ts`
+- any existing QA/predict harness patterns
+
+If file names differ slightly, locate equivalents by grep for:
+
+- `scoreHookQuality`
+- `scoreHookQualityDetailed`
+- `PICKER_HQS_FLOOR`
+- `HOOK_QUALITY_FLOOR`
+- `IMPLICIT_ANTHROPOMORPH`
+- `anthropomorph`
+- `brevity`
+- `aiCliche`
+
+IMPLEMENTATION SCOPE
+
+Create the smallest clean implementation that satisfies the phase.
+
+Preferred shape:
+
+- Add a pure helper near/inside `hookQuality.ts`, or a small new file if the existing file is already too large.
+- The helper should compute a detailed human-lift breakdown.
+- The final added score must only apply when `process.env.LUMINA_HQS_HUMAN_LIFT_ENABLED === "1"` or `"true"`.
+- With the flag OFF, scorer outputs must remain byte-for-byte/logically identical for all existing tests.
+
+Suggested type shape:
+
+```ts
+export type HqsHumanLiftBreakdown = {
+  understatedAbsurdity: number;
+  emotionalSpecificity: number;
+  brevityWideningDelta: number;
+  total: number;
+};
+
+Use existing internal scorer shapes if there is already a better convention.
+
+REQUIRED SIGNAL 1 — UNDERSTATED ABSURDITY LIFT
+
+Goal:
+Reward quiet implicit anthropomorph comedy that current HQS under-rewards relative to loud explicit anthropomorph.
+
+Definition:
+When the existing implicit anthropomorph detection fires, and the hook uses quiet/bland/low-tier action rather than loud explicit markers, add a small lift.
+
+Required behavior:
+
+Max +5.
+Only applies when implicit anthropomorph is detected.
+Must NOT apply when explicit anthropomorph already received the strong explicit band.
+Must NOT apply if aiClicheScore < 0.
+Must NOT apply by repeated hits.
+Must be capped once per hook.
+
+Implementation guidance:
+
+Use existing anthropomorph detection if accessible. Do not duplicate large logic unless necessary.
+
+Preferred logic:
+
+If existing detailed scorer exposes whether implicit anthropomorph fired, use that.
+If not, refactor minimally so the anthropomorph branch can expose:
+explicit fired?
+implicit fired?
+anthropomorph score
+Do not change existing anthropomorph score math when flag OFF.
+
+Lift shape:
+
++5 when implicit anthropomorph fired and the hook’s verb tier is BLAND or LOW, if such tier is available.
+If the code does not expose BLAND/LOW tier cleanly, implement a conservative local quiet-verb set and document why.
+Optional +3 branch for implicit anthropomorph plus spoken marker is NOT required in A.1 unless trivial. Do not expand scope.
+
+Acceptance examples for this signal should include quiet object-agent hooks, not loud explicit hooks.
+
+REQUIRED SIGNAL 2 — EMOTIONAL SPECIFICITY
+
+Goal:
+Reward specific emotional payoff words that are human-comedy signals but currently invisible to HQS.
+
+Add lexicon:
+
+const SPECIFIC_EMOTION_NOUNS = [
+  "regret",
+  "shame",
+  "relief",
+  "envy",
+  "grief",
+  "annoyance",
+  "smug",
+  "smugness",
+  "guilt",
+  "longing",
+  "vindication",
+  "pettiness",
+  "petty",
+  "pride",
+  "embarrassment",
+  "humiliation",
+  "loneliness",
+  "jealousy",
+  "disappointment",
+  "satisfaction",
+  "amusement",
+  "exhaustion",
+  "dread",
+  "anticipation",
+  "contempt",
+  "fondness",
+  "tenderness",
+  "resentment",
+  "gratitude",
+  "mortification"
+] as const;
+
+Required behavior:
+
+Max +6.
+Token presence from the emotion lexicon: +4.
+Emotion as payoff beat: +6.
+Cap at +6.
+If existing dramatic/operatic noun contradiction branch already fired, cap emotional specificity at +3.
+Must not fire from substrings inside unrelated words. Use token boundaries.
+Must not be per-hit. One hook with three emotion words still caps at +6.
+
+Payoff-beat regex shape:
+
+/\b(?:and|just|only|nothing\s+but)\s+(?:regret|shame|relief|envy|grief|guilt|longing|pride|embarrassment|disappointment|satisfaction|exhaustion|dread|contempt|fondness|tenderness|resentment|gratitude|mortification)\b/i
+
+You may adjust for code style, but preserve the intent.
+
+REQUIRED SIGNAL 3 — CONDITIONAL OBSERVATIONAL BREVITY WIDENING
+
+Goal:
+Do not punish observational hooks solely because they need 9–14 words.
+
+Current issue:
+Existing brevity likely rewards 5–7 words most and drops sharply after that. That is good for punchy hooks, but it suppresses human observational comedy.
+
+Required behavior:
+
+Existing default brevity scoring must remain unchanged when the flag is OFF.
+Existing default brevity scoring must also remain unchanged when the flag is ON but the hook does not qualify as observational.
+When the flag is ON and the hook qualifies as observational:
+5–11 words should receive 18 brevity points.
+12–14 words should receive 13 brevity points.
+15+ words should receive 5 brevity points.
+Brevity must still cap at the existing maximum. Do not create a total brevity above 20.
+Treat this as a replacement/widening of the brevity component, not an extra additive bonus that double-counts brevity.
+Expose the widening as brevityWideningDelta, meaning widened brevity minus original brevity.
+
+For Phase A.1, a hook qualifies as observational if either:
+
+emotional specificity fires, OR
+understated absurdity lift fires, OR
+it matches a conservative sequence/escalation structure.
+
+Use only a minimal sequence detector for this phase:
+
+const OBSERVATIONAL_SEQUENCE_RX =
+  /\b(?:first\b.*\bthen\b|every\s+time|each\s+time|by\s+the\s+time|next\s+thing|and\s+now|now\s+suddenly)\b/i;
+
+Do not implement the full observational escalation axis yet. This regex is only to decide whether brevity widening is allowed.
+
+IMPORTANT:
+This phase should not add a separate escalation score. It only uses minimal observational detection to widen brevity.
+
+FLAGGING
+
+Implement:
+
+const HQS_HUMAN_LIFT_ENABLED =
+  process.env.LUMINA_HQS_HUMAN_LIFT_ENABLED === "1" ||
+  process.env.LUMINA_HQS_HUMAN_LIFT_ENABLED === "true";
+
+Use project style if an env helper exists.
+
+Requirements:
+
+OFF by default.
+No production config should set it.
+Tests must explicitly set/unset this env var.
+Tests must clean up the env var after themselves.
+
+TEST REQUIREMENTS
+
+Add tests. Keep them narrow and deterministic.
+
+Minimum test coverage:
+
+Flag-off invariance
+Pick several hooks that would qualify for the new lifts.
+Assert flag OFF score equals the old/current score.
+If exact old score is hard to assert, compare OFF vs no-env behavior and ON vs OFF delta.
+Understated absurdity
+A quiet implicit anthropomorph hook gets a positive delta when flag ON.
+A loud explicit anthropomorph hook does not get this understated lift.
+A hook with aiCliche penalty does not get this lift.
+Emotional specificity
+regret, shame, relief, etc. receive emotional specificity credit.
+payoff-beat phrasing such as and regret or just relief receives the higher +6 credit.
+multiple emotion words cap at +6.
+substring false positives do not fire.
+Brevity widening
+A 9–11 word qualifying observational hook receives widened brevity.
+A 12–14 word qualifying observational hook receives widened brevity.
+A long non-qualifying generic hook does not receive widened brevity.
+Brevity remains capped and does not double-count.
+Floor invariance
+Assert PICKER_HQS_FLOOR remains 50.
+Assert HOOK_QUALITY_FLOOR remains 40 if that constant is accessible in this test area.
+Preserve existing source-grep style if that is how current tests do it.
+Corpus invariance / predict safety
+With the flag OFF, existing corpus scoring must be unchanged.
+With the flag ON, no existing shipped hook should drop below its previous score from these three signals. This phase is pure-positive except for no demote band, so any drop is a bug.
+If there is an existing corpus fixture, use it.
+If no single corpus fixture exists, cover the ng_clean pack and userBlessedHookCorpus if accessible.
+
+PREDICT / QA HARNESS
+
+Add or extend a local-only predict script if there is an established QA folder pattern.
+
+Preferred output path:
+
+.local/HQS_HUMAN_LIFT_P16_A1_PREDICT.md
+
+The predict report should compare flag OFF vs flag ON for:
+
+existing 66 ng_clean entries
+current userBlessedHookCorpus, if accessible
+any current approved pack pools reachable without production side effects
+
+Report at least:
+
+total hooks scored
+number with positive delta
+number with zero delta
+number with negative delta, expected 0
+max positive delta
+average positive delta among lifted hooks
+list of top 20 lifted hooks with:
+hook/id if available
+old score
+new score
+delta
+which signal(s) fired
+count crossing from below 50 to >=50
+count crossing from below 40 to >=40
+any hooks unexpectedly dropping, fail if nonzero
+
+Do not import anything from this report. It is measurement only.
+
+RUNTIME QA REQUIREMENTS
+
+After implementation, run:
+
+api-server unit tests relevant to hook quality
+full api-server test suite if feasible
+api-server typecheck
+lumina typecheck only if touched, but you should not touch mobile
+any existing boot/runtime check used by the repo
+
+If the repo has a standard command set, use that. Otherwise try:
+
+pnpm --filter api-server test
+pnpm --filter api-server typecheck
+pnpm --filter lumina typecheck only if workspace scripts support it
+
+Do not claim success without command output.
+
+EXPECTED REPORT BACK
+
+Return a concise but complete implementation report with:
+
+Files changed.
+Exact signals implemented.
+Confirmation that flag is default OFF.
+Confirmation that no corpus entries were authored/imported/modified.
+Confirmation that floors remain unchanged:
+PICKER_HQS_FLOOR=50
+HOOK_QUALITY_FLOOR=40
+Test commands run and results.
+Predict report summary:
+hooks scored
+lifted count
+negative-delta count
+crossing counts
+top lifted examples
+Any risks or unexpected scorer behavior.
+Whether Phase A.1 is safe to use for the next ng_clean candidate predict/import phase.
+
+FAILURE RULES
+
+If you cannot cleanly access existing implicit/explicit anthropomorph internals without risky refactor:
+
+Stop.
+Do not guess.
+Report the blocker.
+Propose the smallest safe refactor needed.
+
+If adding brevity widening requires rewriting the scorer in a broad way:
+
+Stop.
+Do not rewrite broadly.
+Report the blocker.
+Propose a narrow alternative.
+
+If any test shows negative deltas with flag ON:
+
+Treat as a bug.
+Fix if clearly caused by implementation.
+Otherwise stop and report.
+
+If any production config enables the flag:
+
+Revert that config.
+The flag must remain staging/local only.
+
+QUALITY BAR
+
+This patch should be small, auditable, and reversible.
+
+The purpose is not to make every hook score higher. The purpose is to let the scorer recognize a narrow set of high-human-taste signals that the audit proved are currently invisible:
+
+quiet implicit absurdity
+emotional payoff specificity
+observational hooks that need slightly more words
+
+Do not expand beyond that.
+
+
+This prompt follows the audit’s recommended Phase A.1 cut: **scorer first, no pack import, no full scorer overhaul, stagi
