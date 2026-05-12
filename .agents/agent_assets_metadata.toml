@@ -1679,3 +1679,9 @@ id = "Wysl2HBd2zERJALmr8Yar"
 uri = "file://.local/P16_A3_NG_CLEAN_HUMAN_BATCH_PREDICT.md"
 type = "text"
 title = "P16-A3 NG_Clean Human-Batch Predict/Import Report"
+
+[[outputs]]
+id = "ZgwCnXTK6T35sgMoZSwod"
+uri = "file://.local/P16_A3_NG_CLEAN_REVISION_PREDICT.md"
+type = "text"
+title = "P16-A3 NG_Clean Revision Predict Report (15 entries)"

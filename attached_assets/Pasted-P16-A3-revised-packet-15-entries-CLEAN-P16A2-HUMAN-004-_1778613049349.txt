@@ -1,0 +1,150 @@
+P16-A3 revised packet — 15 entries
+CLEAN_P16A2_HUMAN_004
+
+Hook: The family group chat turned silence into evidence.
+Anchor: family group chat
+Premise family: group_chats
+Voice tone: clean_absurd_escalation
+What to show: The family group chat asks one simple question, and everyone suddenly becomes careful. You stare at the family group chat like silence itself has become suspicious.
+How to film: Show the message, read receipts, typing bubbles, and your face choosing peace while clearly panicking.
+Caption: Silence became suspicious.
+
+CLEAN_P16A2_HUMAN_005
+
+Hook: The rice pot judged everybody’s portion story.
+Anchor: rice pot
+Premise family: market_food
+Voice tone: clean_social_comedy
+What to show: The rice pot is almost empty, but everybody insists they only took a little. The rice pot becomes the only honest witness in the room.
+How to film: Show the rice pot, then cut to suspiciously full plates and innocent faces pretending nothing happened.
+Caption: Portion stories collapsed.
+
+CLEAN_P16A2_HUMAN_006
+
+Hook: The landlord greeting carried rent inside it.
+Anchor: landlord greeting
+Premise family: money_pos_bank
+Voice tone: quiet_realization_clean
+What to show: A landlord greeting arrives as a polite “good morning,” but you immediately understand the real message is rent. The landlord greeting changes the whole mood of your breakfast.
+How to film: Show tea or breakfast, phone buzz, the landlord greeting on screen, then a slow cup placement like peace has left.
+Caption: Good morning had rent.
+
+CLEAN_P16A2_HUMAN_007
+
+Hook: The mirror judged my outfit without kindness.
+Anchor: mirror
+Premise family: creator_social_behavior
+Voice tone: self_aware_clean
+What to show: The mirror catches you admiring an outfit that clearly needed more honesty. You look at the mirror again and quietly remove one confident item.
+How to film: Start with a proud outfit check, pause at the mirror, then cut to you removing something with silent embarrassment.
+Caption: Mirror rejected the plan.
+
+CLEAN_P16A2_HUMAN_008
+
+Hook: The charger betrayed me at four percent.
+Anchor: charger
+Premise family: phone_data
+Voice tone: clean_absurd_escalation
+What to show: The charger is nowhere to be found just as your phone reaches four percent. You search for the charger like the whole day now depends on one cable.
+How to film: Show the low battery warning, then frantic drawer, bag, and socket checks while your face gets more serious.
+Caption: Four percent changed me.
+
+CLEAN_P16A2_HUMAN_009
+
+Hook: The market list returned with extra responsibilities.
+Anchor: market list
+Premise family: market_food
+Voice tone: clean_deadpan
+What to show: The market list starts simple at home, but by the time you return, it has become bags, explanations, and surprise errands. The market list looks innocent, but your hands are full.
+How to film: Show the neat market list, then cut to overloaded bags and your confused face outside or in the kitchen.
+Caption: List gained responsibility.
+
+CLEAN_P16A2_HUMAN_010
+
+Hook: The church shoes exposed one wrinkled shirt.
+Anchor: church shoes
+Premise family: tailoring_events
+Voice tone: clean_deadpan
+What to show: The church shoes look polished and ready, but one wrinkled shirt ruins the entire confidence. The church shoes seem more prepared than the person wearing them.
+How to film: Start with a proud close-up of the church shoes, then tilt up to the wrinkled shirt and a disappointed face.
+Caption: Shoes told the truth.
+
+CLEAN_P16A2_HUMAN_011
+
+Hook: The remote control appointed my uncle chairman.
+Anchor: remote control
+Premise family: family_aunties
+Voice tone: clean_social_comedy
+What to show: The remote control sits in your uncle’s hand while everyone else pretends they still have channel opinions. The remote control turns the room into a quiet government.
+How to film: Show family members suggesting channels, then close up on the remote control staying firmly in one hand.
+Caption: Democracy lost signal.
+
+CLEAN_P16A2_HUMAN_012
+
+Hook: The delivery rider judged my slipper delay.
+Anchor: delivery rider
+Premise family: transport
+Voice tone: clean_deadpan
+What to show: The delivery rider is already outside while you are still looking for the correct slippers and change. The delivery rider waits with the face of someone who has seen this performance before.
+How to film: Film from behind a curtain or gate, show the delivery rider waiting, then cut to you searching drawers and slippers.
+Caption: Delivery exposed preparation.
+
+CLEAN_P16A2_HUMAN_013
+
+Hook: The school form asked for childhood witnesses.
+Anchor: school form
+Premise family: school_work
+Voice tone: clean_absurd_escalation
+What to show: The school form begins with simple details, then suddenly asks for information only your mother and an old folder could know. The school form turns one desk into family history.
+How to film: Start confidently filling the school form, then pause at one impossible field and slowly look around for help.
+Caption: Form entered family history.
+
+CLEAN_P16A2_HUMAN_014
+
+Hook: The laundry chair accepted full-time employment.
+Anchor: laundry chair
+Premise family: family_aunties
+Voice tone: quiet_realization_clean
+What to show: The laundry chair starts with one shirt, then quietly becomes the main storage department in the room. The laundry chair looks more permanent every time you pass it.
+How to film: Use jump cuts as clothes pile onto the laundry chair, then show yourself walking past like the arrangement is official.
+Caption: Chair accepted inventory.
+
+CLEAN_P16A2_HUMAN_015
+
+Hook: The charger exposed the visitor’s actual mission.
+Anchor: charger
+Premise family: phone_data
+Voice tone: clean_social_comedy
+What to show: The visitor greets warmly, but their eyes keep searching for the charger before they even sit down. The charger becomes the real reason for the visit.
+How to film: Show the greeting, then cut to the visitor scanning sockets, extension cords, and the charger.
+Caption: The visit needed charging.
+
+CLEAN_P16A2_HUMAN_017
+
+Hook: The errand multiplied before my slippers settled.
+Anchor: errand
+Premise family: family_aunties
+Voice tone: clean_absurd_escalation
+What to show: The errand begins as one quick request, but relatives keep adding small things before you even leave. The errand becomes employment while your slippers are still at the door.
+How to film: Start with one instruction, then quick cuts of extra requests arriving as you reach for your slippers.
+Caption: Errand expanded outside.
+
+CLEAN_P16A2_HUMAN_019
+
+Hook: The gate humbled my courage before knocking.
+Anchor: gate
+Premise family: family_aunties
+Voice tone: quiet_realization_clean
+What to show: The gate closes just as you finally gather courage to ask someone for something. The gate makes your rehearsed speech useless.
+How to film: Film the slow walk, the inhale before speaking, then the gate closing with perfect timing.
+Caption: Courage arrived late.
+
+CLEAN_P16A2_HUMAN_020
+
+Hook: The chores exposed everyone’s emergency phone calls.
+Anchor: chores
+Premise family: family_aunties
+Voice tone: clean_social_comedy
+What to show: The chores are mentioned in a lively room, and suddenly everyone remembers an urgent phone call. The chores reduce the population without anybody announcing it.
+How to film: Show a noisy room, one person mentions chores, then quick cuts of people vanishing into calls and doorways.
+Caption: Chores reduced attendance.
