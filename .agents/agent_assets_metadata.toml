@@ -1637,3 +1637,9 @@ id = "BD4qxA0ZPCqJzoCsGk9Pr"
 uri = "file://.local/qa-runs/p14_ng_light_pidgin_taste_strengthening_v1_summary.json"
 type = "unspecified"
 title = "P14 packet summary (JSON)"
+
+[[outputs]]
+id = "9LrPXDCB9IXwIGht4-YGH"
+uri = "file://.local/NG_CLEAN_AUTHORING_PLAYBOOK.md"
+type = "text"
+title = "NG_CLEAN Authoring Playbook"
