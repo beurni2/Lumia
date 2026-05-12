@@ -1085,6 +1085,94 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "clean_social_comedy",
       reviewedBy: "BI-CLEAN-P16A2 2026-05-12",
     },
+    // ---------------------------------------------------------------- //
+    // PHASE P16-A3-NG-CLEAN-HUMAN-BATCH-PREDICT-IMPORT                 //
+    // (BI-CLEAN-P16A3 2026-05-12) — 5 supervisor-signoff survivors of  //
+    // a 20-entry human-feel batch. Predict report:                     //
+    // .local/P16_A3_NG_CLEAN_HUMAN_BATCH_PREDICT.md                    //
+    //                                                                   //
+    // Decision tally: 5 IMPORT (this block) / 10 REJECT (anchor not    //
+    // in whatToShow / hook — supplied verbatim and NOT rewritten per   //
+    // P16-A3 absolute rule "do not rewrite") / 5 HOLD (validators      //
+    // pass; HQS ON below picker floor 50). The supervisor's full       //
+    // sequential mapping (075..094 ← HUMAN_001..020) is preserved      //
+    // verbatim; numeric slots 078..089, 091, 093, 094 are              //
+    // intentionally GAPPED, mirroring the existing 065..069 gap        //
+    // convention so the historical reviewer-stamp ledger stays         //
+    // auditable. Every field below is supervisor-supplied verbatim —   //
+    // coding agent did NOT author / rewrite hook / whatToShow /        //
+    // howToFilm / caption.                                              //
+    // ---------------------------------------------------------------- //
+    {
+      id: "ng_clean_075",
+      draftId: "CLEAN_P16A2_HUMAN_001",
+      anchor: "receipt",
+      hook: "The receipt exposed my confidence at checkout.",
+      whatToShow:
+        "You enter a shop with quiet confidence, picking items like someone who understands money. At checkout, the receipt prints and immediately changes your posture.",
+      howToFilm:
+        "Start with relaxed shopping shots, then cut to the receipt printing and your face slowly losing confidence.",
+      caption: "Receipt corrected my confidence.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
+    {
+      id: "ng_clean_076",
+      draftId: "CLEAN_P16A2_HUMAN_002",
+      anchor: "tailor",
+      hook: "The tailor smiled and my deadline became spiritual.",
+      whatToShow:
+        "You arrive to collect clothes for an event, but the tailor\u2019s smile tells you the outfit is still a theory. You start calculating prayers, transport, and excuses.",
+      howToFilm:
+        "Show you entering confidently, then cut to unfinished fabric and the tailor\u2019s calm smile.",
+      caption: "Deadline entered prayer mode.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "clean_absurd_escalation",
+      reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
+    {
+      id: "ng_clean_077",
+      draftId: "CLEAN_P16A2_HUMAN_003",
+      anchor: "queue",
+      hook: "The queue humbled everyone who arrived with confidence.",
+      whatToShow:
+        "You reach a queue thinking you came early, then notice everyone else also came early with the same foolish hope.",
+      howToFilm:
+        "Show your confident arrival, then pan across the full queue and end on your face accepting defeat.",
+      caption: "Queue humbled the morning.",
+      premiseFamily: "transport",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
+    {
+      id: "ng_clean_090",
+      draftId: "CLEAN_P16A2_HUMAN_016",
+      anchor: "soup",
+      hook: "The soup exposed everybody\u2019s fake small appetite.",
+      whatToShow:
+        "Everyone claims they are \u201cnot that hungry,\u201d but the soup reduces faster than honesty can explain.",
+      howToFilm:
+        "Show the full bowl, then quick cuts of people serving \u201csmall\u201d portions that are clearly not small.",
+      caption: "Appetite denied responsibility.",
+      premiseFamily: "market_food",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
+    {
+      id: "ng_clean_092",
+      draftId: "CLEAN_P16A2_HUMAN_018",
+      anchor: "meeting",
+      hook: "The meeting ended and left another meeting behind.",
+      whatToShow:
+        "Everyone says the meeting is over, but the final decision is to schedule another meeting with even less hope.",
+      howToFilm:
+        "Show relief as people close notebooks, then a message or calendar invite appearing immediately.",
+      caption: "Meeting gave birth quietly.",
+      premiseFamily: "school_work",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A3 2026-05-12",
+    },
   ]);
 
 // ---------------------------------------------------------------- //
