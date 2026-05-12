@@ -1,0 +1,292 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. This is a narrow implementation phase.
+
+Do not author corpus entries.
+Do not rewrite corpus entries.
+Do not import entries.
+Do not change scorer logic.
+Do not change validators.
+Do not change PICKER_HQS_FLOOR.
+Do not change HOOK_QUALITY_FLOOR.
+Do not change anti-copy logic.
+Do not change mobile/API/DB/schema unless you first prove an existing memory field cannot support the needed tracking.
+Do not enable production flags unexpectedly.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+Do not implement pattern_variation memory in this phase unless explicitly asked.
+
+PHASE NAME
+
+P16-A6-NG-CLEAN-SLOT1-MEMORY-ANTI-REPEAT
+
+BACKGROUND
+
+P16-A4 proved the 18 P16-A3 ng_clean imports surface end-to-end, including slot-0, with no leakage, underfill, or fallback regression.
+
+P16-A5 diagnosed a real repetition class:
+
+Slot-0 ng_clean clean-core reservation already has memory-aware rotation and is working.
+
+Slot-1+ ng_clean clean-core packing does not have equivalent per-creator anti-repeat memory, so the same high-scoring clean-core entries repeat across batches.
+
+Examples from audit:
+- ng_clean_084 — “The church shoes exposed one wrinkled shirt.”
+- ng_clean_023 — “The meeting ended, then someone said just one thing.”
+- ng_clean_056 — “The update arrived during low battery.”
+- ng_clean_072 — “The church shoes exposed the ironing situation immediately.”
+- ng_clean_002 — “The generator stopped and the house started hearing secrets.”
+
+These repeat across many batches in slot-1+ positions.
+
+There is a separate Class B issue with pattern_variation hooks such as “is it still about the promotion post.” Do NOT fix Class B in this phase. Only document it as future work if encountered.
+
+PRIMARY GOAL
+
+Add a narrow per-creator memory anti-repeat guard for ng_clean clean-core slot-1+ packing.
+
+The goal is to reduce repeated clean-core slot-1+ hooks across batches while preserving:
+
+- slot-0 quality and existing slot-0 memory behavior
+- P16-A3 surfacing
+- older ng_clean competition
+- no underfills
+- no fallback increase
+- no pidgin/stereotype leakage
+- no scorer/validator/floor changes
+
+SCOPE
+
+In scope:
+- Locate the ng_clean clean-core slot-1+ packing/selection path.
+- Locate the existing slot-0 memory/reservation mechanism.
+- Mirror the slot-0 memory-aware anti-repeat pattern as narrowly as possible for slot-1+ clean-core entries.
+- Use existing per-creator memory storage if available.
+- Add tests and a runtime QA proof comparing before/after repetition.
+
+Out of scope:
+- pattern_variation template-pair memory
+- scorer changes
+- corpus changes
+- validator changes
+- schema migrations unless absolutely unavoidable
+- mobile/API changes
+- Claude/fallback changes
+- new entry authoring
+
+IMPLEMENTATION STRATEGY
+
+Step 1 — Audit before editing
+
+Read these likely files first:
+
+- artifacts/api-server/src/lib/ngCleanFirstCardCoreReservation.ts
+- artifacts/api-server/src/lib/hybridIdeator.ts
+- artifacts/api-server/src/lib/nigerianCleanCorePack.ts
+- artifacts/api-server/src/lib/nigerianCleanCoreSlot0CorpusFeed.ts
+- artifacts/api-server/src/lib/catalogTemplateCreatorMemory.ts
+- any memory helpers for creator profile / lastIdeaBatchJson / tasteCalibrationJson
+- P16-A4 / P16-A5 QA harnesses if present
+
+Search for:
+- nigerian_clean_core_slot0_seen_ids_json
+- NG_CLEAN_FIRST_CARD_RESERVATION
+- NG_CLEAN_SLOT0_MEMORY_AWARE_PICKER
+- clean-core
+- slot0
+- slot-0
+- slotIndex
+- sourceType: "core_native"
+- cleanCore
+- authorPackEntryAsIdea
+- runHybridIdeator
+
+Step 2 — Identify memory storage
+
+Prefer reusing an existing memory field if one already supports storing per-creator seen clean-core IDs.
+
+Possible shapes:
+- extend existing clean-core seen IDs memory if it is safe and not slot-0-specific
+- add a separate key inside an existing JSON memory blob if the blob is schemaless and already used for this purpose
+- use lastIdeaBatchJson if that is the existing no-migration memory source
+
+Do not add a DB migration unless there is truly no existing safe storage path. If a migration seems necessary, stop and report.
+
+Step 3 — Add slot-1+ anti-repeat only
+
+Apply anti-repeat only to ng_clean clean-core entries in non-slot-0 positions.
+
+Rules:
+- Do not change slot-0 reservation behavior.
+- Do not block all repeats forever.
+- Use a bounded recent-memory window.
+- Prefer entries not seen recently by the same creator.
+- If the candidate pool is too small, gracefully relax the anti-repeat guard rather than underfilling.
+- Keep deterministic behavior for tests.
+- Preserve existing ranking as much as possible after filtering recent seen IDs.
+
+Recommended behavior:
+- For each creator, track recent ng_clean clean-core IDs emitted in slot-1+.
+- When selecting slot-1+ clean-core entries, demote or skip IDs seen in the recent window.
+- If skipping would underfill, relax and allow best available entry.
+- Record emitted slot-1+ clean-core IDs after successful generation.
+- Do not record held IDs or rejected IDs.
+- Do not record pattern_variation hooks in this memory.
+
+Memory window:
+- Start with a small bounded window, for example 12–24 recent IDs per creator.
+- Choose the exact size based on existing memory conventions.
+- Document the chosen size.
+
+Step 4 — Telemetry / debug reporting
+
+Add local/dev telemetry if consistent with repo style.
+
+Useful fields:
+- slot1PlusSeenIdsBefore
+- slot1PlusSuppressedIds
+- slot1PlusRelaxedDueToUnderfill
+- slot1PlusSeenIdsAfter
+- selectedCleanCoreIdsBySlot
+
+Do not add noisy production logs unless existing diagnostic flags gate them.
+
+Step 5 — Tests
+
+Add targeted tests.
+
+Minimum required tests:
+
+1. Slot-0 invariance
+   - Existing slot-0 memory/reservation behavior remains unchanged.
+   - Slot-0 still can pick P16-A3 and older ng_clean entries.
+
+2. Slot-1+ recent-repeat suppression
+   - Given a creator memory containing a recent clean-core ID, slot-1+ selection avoids that ID when alternatives exist.
+
+3. Graceful relaxation
+   - If all viable candidates are recently seen, selection does not underfill.
+   - It allows repeats rather than failing generation.
+
+4. Memory update
+   - After generation, emitted slot-1+ clean-core IDs are recorded in bounded recent memory.
+   - Memory is capped to the chosen window size.
+
+5. Cohort isolation
+   - The new memory guard applies only to ng_clean.
+   - ng_light_pidgin and western behavior are unchanged.
+
+6. Held ID safety
+   - Held IDs 080 and 088 do not surface.
+
+7. No schema/floor/scorer changes
+   - Source-grep/assert floors remain:
+     - PICKER_HQS_FLOOR=50
+     - HOOK_QUALITY_FLOOR=40
+   - Confirm no scorer file changed unless purely imported type usage is unavoidable.
+
+Step 6 — Runtime QA proof
+
+Run a before/after style audit similar to P16-A4/P16-A5.
+
+Preferred:
+- 10 ng_clean creator profiles
+- 5 batches per creator
+- 6 ideas per batch
+- 300 ideas
+
+Minimum:
+- 6 ng_clean creator profiles
+- 4 batches per creator
+- 6 ideas per batch
+- 144 ideas
+
+Report:
+- total ideas generated
+- unique hooks
+- duplicate rate
+- top repeated clean-core slot-1+ hooks before/after
+- max repeat count for any clean-core slot-1+ hook
+- P16-A3 surfacing
+- P16-A3 slot-0 surfacing
+- older ng_clean surfacing
+- held IDs absent
+- underfills
+- fallback usage
+- leakage
+
+Create report:
+
+.local/P16_A6_NG_CLEAN_SLOT1_MEMORY_ANTI_REPEAT.md
+
+PASS CRITERIA
+
+Mark PASS only if:
+
+- slot-1+ clean-core repetition is materially reduced
+- no same-batch duplicate hooks
+- slot-0 quality remains intact
+- P16-A3 entries still surface
+- older ng_clean entries still compete
+- held IDs 080 and 088 do not appear
+- no pidgin/stereotype leakage
+- no underfill increase
+- no Claude fallback increase
+- no scorer/validator/floor/schema/API/mobile/DB production env changes
+
+HOLD if:
+- repetition improves but one or two IDs still dominate heavily
+- memory update path is ambiguous
+- production-readiness depends on a flag decision
+- tests pass but QA sample is too small
+
+FAIL if:
+- slot-0 regresses
+- generation underfills
+- fallback increases
+- held IDs appear
+- leakage appears
+- schema migration is required but not approved
+- scorer/validator/floor changes occur
+
+COMMANDS TO RUN
+
+Run relevant tests and typecheck.
+
+At minimum:
+
+- pnpm --filter @workspace/api-server exec tsc --noEmit
+- relevant ng_clean runtime tests
+- relevant corpus integrity tests
+- relevant memory/ideator tests
+- P16-A6 QA harness
+
+If feasible, run full api-server suite and report unrelated/pre-existing failures separately.
+
+EXPECTED FINAL REPORT
+
+Return:
+
+1. PASS / HOLD / FAIL.
+2. Files changed.
+3. Exact implementation summary.
+4. Memory key/field used and window size.
+5. Confirmation no schema migration.
+6. Confirmation slot-0 logic unchanged.
+7. Before/after repetition metrics.
+8. Top repeated hooks before/after.
+9. P16-A3 surfacing after patch.
+10. Held ID check.
+11. Leakage/fallback/underfill check.
+12. Commands run and output.
+13. Risks or follow-up recommendations.
+
+REMEMBER
+
+This phase fixes Class A only:
+
+ng_clean clean-core slot-1+ repetition.
+
+Do not fix Class B pattern_variation repetition here.
