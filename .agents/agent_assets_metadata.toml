@@ -1649,3 +1649,9 @@ id = "hxQErXKPzNKxRo37HkBf1"
 uri = "file://.local/qa-runs/agent_proposed_ng_clean_v1_candidates.json"
 type = "unspecified"
 title = "AGENT-PROPOSED NG_CLEAN V1 — 10 candidates (PENDING CURATOR REVIEW)"
+
+[[outputs]]
+id = "r91Ce9GbN5SsLIBX7juaH"
+uri = "file://.local/HQS_HUMAN_COMEDY_EXPANSION_AUDIT.md"
+type = "text"
+title = "HQS Human-Comedy Expansion Audit (12 sections)"
