@@ -1,0 +1,137 @@
+P16-A6 ADDENDUM — REQUIRED TIGHTENINGS BEFORE IMPLEMENTATION
+
+Apply these clarifications to the P16-A6 plan.
+
+1. Storage decision is pre-approved
+
+Use a new sibling per-creator memory field:
+
+nigerian_clean_core_slot1plus_seen_ids_json
+
+This should mirror the existing slot-0 memory field:
+
+nigerian_clean_core_slot0_seen_ids_json
+
+This is explicitly approved as a small additive JSONB/default-empty migration if the repo requires one.
+
+Do NOT repurpose nigerian_clean_core_slot0_seen_ids_json into a tagged shape.
+Do NOT store slot-1+ clean-core IDs inside viral_pattern_memory_json or unrelated memory blobs.
+Do NOT couple slot-0 and slot-1+ memory storage.
+
+Requirements:
+- additive-only migration if needed
+- safe default empty array / empty JSON shape consistent with slot-0 convention
+- no destructive migration
+- no changes to existing slot-0 memory semantics
+- tests proving slot-0 memory remains unchanged
+
+If the repo already has an equivalent slot-1+ field, use it and do not add a duplicate.
+
+2. Suppression mechanism must be post-rank filtering, not score demotion
+
+Do NOT modify hookQualityScore.
+Do NOT apply score penalties.
+Do NOT change scorer math.
+
+Implementation should be:
+
+- build the normal ranked slot-1+ clean-core candidate list exactly as today
+- filter out IDs recently seen in nigerian_clean_core_slot1plus_seen_ids_json
+- select from the filtered list
+- if filtering leaves fewer candidates than needed, gracefully relax by falling back to the original ranked list for remaining slots
+
+This keeps scorer behavior untouched and makes the anti-repeat guard local to slot-1+ selection.
+
+Report:
+- IDs filtered
+- whether relaxation happened
+- IDs selected after filtering
+- final emitted slot-1+ clean-core IDs
+
+3. Regenerate behavior
+
+Slot-1+ memory must apply to regenerate flows.
+
+Reason:
+Regenerate is exactly when the user expects fresh hooks, not the same trailing clean-core entries again.
+
+Required behavior:
+- On normal generation: consult slot1+ memory before selecting slot-1+ clean-core entries.
+- On regenerate: also consult slot1+ memory.
+- On successful normal generation: write emitted slot-1+ clean-core IDs to slot1+ memory.
+- On successful regenerate: also write emitted slot-1+ clean-core IDs to slot1+ memory.
+- If generation fails or underfills and is not committed/emitted, do not write speculative IDs.
+
+If the repo distinguishes preview/dry-run/test generation from committed user-visible generation, only committed/emitted ideas should update persistent memory.
+
+4. Source and slot guard at write site
+
+Only write IDs to nigerian_clean_core_slot1plus_seen_ids_json when all are true:
+
+- cohort is ng_clean
+- sourceType === "core_native" or the repo’s equivalent clean-core source marker
+- slotIndex >= 1
+- entry has a real ng_clean_* ID
+- ID is not held / rejected
+- ID is actually emitted to the user-visible batch
+
+Do NOT write:
+- slot-0 entries
+- pattern_variation hooks
+- catalog/template hooks
+- Claude fallback outputs
+- western outputs
+- ng_light_pidgin outputs
+- held IDs 080 / 088
+- candidates filtered but not emitted
+
+5. Memory window
+
+Use a bounded recent window.
+
+Default target:
+- 18 recent slot-1+ clean-core IDs per creator
+
+Before locking this value, inspect the effective eligible slot-1+ clean-core candidate pool after existing premiseFamily / voiceTone / diversity filters.
+
+If the eligible pool is too small and relaxation would fire constantly, use 12 instead and document why.
+
+Memory cap requirements:
+- newest emitted IDs retained
+- oldest dropped beyond cap
+- de-duplicate IDs in memory
+- preserve deterministic ordering
+
+6. QA expectations
+
+Class A should improve materially.
+
+Expected outcome:
+- always-on clean-core slot-1+ repeats should drop sharply
+- no same-batch duplicate hooks
+- slot-0 unchanged
+- P16-A3 still surfaces
+- older ng_clean still competes
+- held IDs 080 / 088 stay absent
+- no fallback increase
+- no underfill increase
+- no leakage
+
+Do not attempt to fix Class B pattern_variation repetition in this phase.
+The hook “is it still about the promotion post” may continue repeating after P16-A6. That is acceptable and should be documented as future Class B work.
+
+7. Additional tests required
+
+Add tests for:
+
+- migration/default shape if a new column is added
+- slot-0 memory unchanged
+- slot-1+ memory consulted on normal generation
+- slot-1+ memory consulted on regenerate
+- slot-1+ memory written after successful normal generation
+- slot-1+ memory written after successful regenerate
+- no memory write on failed/uncommitted generation
+- post-rank filtering does not alter hookQualityScore
+- relaxation fills slots when all candidates are recently seen
+- source guard prevents pattern_variation/catalog/fallback writes
+- cohort guard prevents western/ng_light_pidgin writes
