@@ -177,13 +177,20 @@ const SITUATION_SUMMARY: Record<Situation, string> = {
 
 // PHASE N1 — Pidgin language picker (Nigeria-only step 4). Single-
 // select with auto-advance — minimum friction to confirm the
-// creator's voice register. Server enum order: clean / light_pidgin
-// / pidgin. We expose the same three with copy that reads in plain
-// English so the choice is unambiguous on first encounter.
+// creator's voice register. Server enum still accepts clean /
+// light_pidgin / pidgin for back-compat with existing creator rows,
+// but the picker now exposes only the two shipped corpora:
+//   - clean         → NIGERIAN_CLEAN_CORE_ENTRIES (plain-English NG)
+//   - light_pidgin  → NIGERIAN_HOOK_PACK (mostly-English + Pidgin)
+// "Full Pidgin" is hidden because no curated full-Pidgin corpus is
+// shipped today — selecting it would silently degrade to mixed pack
+// behaviour, which is the bug the user reported. Existing creators
+// whose stored value is `pidgin` are routed by the server's existing
+// {pidgin, light_pidgin} pack-activation gate (no data migration
+// required).
 const LANGUAGE_CHOICES: Choice<LanguageStyle>[] = [
   { value: "clean", label: "Plain English", sub: "no Pidgin in my hooks or captions" },
   { value: "light_pidgin", label: "Mostly English, some Pidgin", sub: "the way I actually text — \"abi\", \"sha\", \"now-now\"" },
-  { value: "pidgin", label: "Full Pidgin", sub: "my normal voice — \"wahala\", \"how far\", \"abeg\"" },
 ];
 const LANGUAGE_SUMMARY: Record<LanguageStyle, string> = {
   clean: "Plain English",
