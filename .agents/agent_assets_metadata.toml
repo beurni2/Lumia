@@ -1643,3 +1643,9 @@ id = "9LrPXDCB9IXwIGht4-YGH"
 uri = "file://.local/NG_CLEAN_AUTHORING_PLAYBOOK.md"
 type = "text"
 title = "NG_CLEAN Authoring Playbook"
+
+[[outputs]]
+id = "hxQErXKPzNKxRo37HkBf1"
+uri = "file://.local/qa-runs/agent_proposed_ng_clean_v1_candidates.json"
+type = "unspecified"
+title = "AGENT-PROPOSED NG_CLEAN V1 — 10 candidates (PENDING CURATOR REVIEW)"
