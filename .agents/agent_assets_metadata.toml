@@ -1685,3 +1685,9 @@ id = "ZgwCnXTK6T35sgMoZSwod"
 uri = "file://.local/P16_A3_NG_CLEAN_REVISION_PREDICT.md"
 type = "text"
 title = "P16-A3 NG_Clean Revision Predict Report (15 entries)"
+
+[[outputs]]
+id = "pA_jzzHUskVw8jxWKQ-kl"
+uri = "file://.local/P16_A4_NG_CLEAN_RUNTIME_SURFACE_AUDIT.md"
+type = "text"
+title = "P16-A4 ng_clean Runtime Surface Audit"

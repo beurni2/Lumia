@@ -1,0 +1,295 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. This is an audit/proof phase, not an implementation phase.
+
+Do not author corpus entries.
+Do not rewrite corpus entries.
+Do not import entries.
+Do not change scorer, validators, floors, schema, API, mobile, DB, production env, anti-copy, or fallback logic.
+Do not enable any production flags.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+
+PHASE NAME
+
+P16-A4-NG-CLEAN-RUNTIME-SURFACE-AUDIT
+
+BACKGROUND
+
+P16-A3 REVISION is complete.
+
+Current known state:
+- ng_clean corpus count: 87 entries.
+- 13 revised P16-A3 entries were imported.
+- 5 earlier P16-A3 survivors were imported before the revision.
+- Total P16-A3 imports: 18 entries.
+- Held audit gaps:
+  - ng_clean_080 / CLEAN_P16A2_HUMAN_006
+  - ng_clean_088 / CLEAN_P16A2_HUMAN_014
+- P16-A1 human-lift scorer exists behind LUMINA_HQS_HUMAN_LIFT_ENABLED.
+- LUMINA_HQS_HUMAN_LIFT_ENABLED must remain production-OFF.
+
+GOAL
+
+Prove whether the newly imported P16-A3 ng_clean entries actually surface in runtime/generated ideas and whether they improve first-card / slot-0 behavior without regressions.
+
+This is a read-only runtime/picker audit.
+
+TARGET IMPORTED IDS TO TRACK
+
+Track these P16-A3 imported corpus IDs:
+
+Earlier approved survivors:
+- ng_clean_075
+- ng_clean_076
+- ng_clean_077
+- ng_clean_090
+- ng_clean_092
+
+Revision imports:
+- ng_clean_078
+- ng_clean_079
+- ng_clean_081
+- ng_clean_082
+- ng_clean_083
+- ng_clean_084
+- ng_clean_085
+- ng_clean_086
+- ng_clean_087
+- ng_clean_089
+- ng_clean_091
+- ng_clean_093
+- ng_clean_094
+
+Held / must not appear:
+- ng_clean_080
+- ng_clean_088
+
+ABSOLUTE NON-NEGOTIABLES
+
+- Read-only audit only.
+- No corpus mutations.
+- No code changes unless a tiny local QA harness is necessary; if added, keep it local/dev-only and delete it after producing the report unless repo convention keeps QA scripts.
+- No scorer changes.
+- No validator changes.
+- No floor changes.
+- No schema/API/mobile/DB changes.
+- No production env changes.
+- No fallback behavior changes.
+- No Claude/fallback cost increase.
+- Do not enable LUMINA_HQS_HUMAN_LIFT_ENABLED in production.
+- Do not use held IDs 080 or 088.
+- Do not rewrite any hook or scenario.
+
+SCORER MODE
+
+Run the audit in two modes if feasible:
+
+1. Human-lift OFF:
+   LUMINA_HQS_HUMAN_LIFT_ENABLED unset / false
+
+2. Human-lift ON:
+   LUMINA_HQS_HUMAN_LIFT_ENABLED=true only in local audit process
+
+Report both separately.
+
+If running both modes is too expensive or not supported, run human-lift ON first and explain why OFF was skipped.
+
+AUDIT QUESTIONS
+
+Answer these questions with evidence:
+
+1. Do P16-A3 imported entries surface at all?
+   - Count appearances by imported ID.
+   - Separate first-card / slot-0 appearances from later-card appearances.
+
+2. Which imported entries surface most often?
+   - Top surfaced imported IDs.
+   - Any imported IDs that never surface.
+
+3. Do held IDs appear?
+   - Confirm ng_clean_080 and ng_clean_088 do not appear.
+
+4. Does first-card quality look better?
+   - Provide the top 20 first-card hooks generated.
+   - Mark whether each is P16-A3 imported, older ng_clean, or other source.
+   - Give a brief qualitative judgment: strong / acceptable / weak.
+
+5. Is the picker over-favoring the new imports?
+   - Compare P16-A3 share of output against corpus share.
+   - Corpus share estimate: 18 / 87 ≈ 20.7%.
+   - If generated share is much higher than this, explain whether that is justified by HQS or concerning.
+
+6. Are old ng_clean entries still competing?
+   - Count older ng_clean appearances.
+   - List top older entries that still surface.
+
+7. Any repetition or near-duplicate risk?
+   - Check within-batch repeated hooks.
+   - Check repeated anchors.
+   - Check whether multiple outputs feel like the same idea with different wording.
+
+8. Any leakage?
+   - No pidgin leakage.
+   - No stereotype tokens.
+   - No banned filming boilerplate.
+   - No AI-cliché patterns.
+   - No fallback / underfill regressions.
+
+9. Runtime health:
+   - desired count filled?
+   - deterministic path used?
+   - Claude fallback avoided unless pre-existing path requires it?
+   - any errors, warnings, or underfill logs?
+
+SUGGESTED SAMPLE SIZE
+
+Run enough generation to be meaningful but bounded.
+
+Preferred:
+- 10 representative ng_clean creator profiles
+- 5 batches per creator
+- 6 ideas per batch
+- total target: 300 generated ideas
+
+Minimum acceptable if runtime is slow:
+- 5 creator profiles
+- 3 batches per creator
+- 6 ideas per batch
+- total target: 90 generated ideas
+
+Use realistic Nigerian clean creator profiles, but do not alter production profile logic.
+
+Suggested creator angles:
+- food/home creator
+- fashion/outfit creator
+- family comedy creator
+- student/school/work creator
+- market/errand everyday-life creator
+- phone/tech everyday-life creator
+- church/family-life creator
+- transport/queue creator
+- creator/social media self-awareness profile
+- general lifestyle creator
+
+Use existing test/profile factories if available. Do not invent production schema changes.
+
+REPORT FORMAT
+
+Create a report:
+
+.local/P16_A4_NG_CLEAN_RUNTIME_SURFACE_AUDIT.md
+
+Include:
+
+1. Methodology
+   - commands run
+   - sample size
+   - scorer mode OFF/ON
+   - profiles used
+   - flags/env used
+   - whether any QA harness was temporary
+
+2. Aggregate results
+   - total ideas generated
+   - first-card count
+   - P16-A3 appearances total
+   - P16-A3 first-card appearances
+   - old ng_clean appearances total
+   - fallback count
+   - underfill count
+   - leakage count
+
+3. Per-ID P16-A3 surfacing table
+   - id
+   - draftId if available
+   - hook
+   - total appearances
+   - first-card appearances
+   - average position
+   - source family / anchor if available
+
+4. First-card sample table
+   - profile
+   - batch
+   - first-card hook
+   - source id
+   - source type: P16-A3 / older ng_clean / other
+   - qualitative judgment: strong / acceptable / weak
+   - note
+
+5. Diversity/repetition section
+   - repeated hooks
+   - repeated anchors
+   - near-duplicate concerns
+   - any over-concentration around receipt / charger / family_aunties / market_food / etc.
+
+6. Regression/leakage section
+   - pidgin leakage
+   - stereotype tokens
+   - banned boilerplate
+   - aiCliché
+   - fallback / underfill
+
+7. Decision recommendation
+   - PASS: safe to proceed
+   - HOLD: needs targeted fix
+   - FAIL: regression
+
+PASS CRITERIA
+
+Mark PASS only if:
+
+- P16-A3 entries surface at least sometimes.
+- At least 3 distinct P16-A3 entries surface across the audit.
+- At least 1 P16-A3 entry appears as first-card / slot-0.
+- Held IDs 080 and 088 do not appear.
+- No pidgin/stereotype leakage.
+- No fallback increase / underfill regression.
+- No severe repetition.
+- Old ng_clean entries still compete.
+- First-card sample is mostly strong or acceptable.
+
+HOLD if:
+- P16-A3 entries never surface.
+- Only one new entry dominates.
+- First-card quality is weak.
+- New entries crowd out old entries excessively.
+- Leakage appears.
+- Fallback/underfill changes.
+
+FAIL if:
+- held IDs appear,
+- validators are bypassed,
+- fallback explodes,
+- production env is touched,
+- or any code/data mutation occurs outside a clearly local QA harness.
+
+COMMANDS TO RUN
+
+Run whatever repo-standard audit commands exist.
+
+At minimum, after any temporary/local harness use:
+
+- pnpm --filter @workspace/api-server exec tsc --noEmit
+- relevant runtime/ideator tests if available
+- relevant Nigerian clean corpus tests
+
+Do not claim clean state without command output.
+
+EXPECTED FINAL RESPONSE
+
+Return:
+
+1. Whether P16-A4 PASS / HOLD / FAIL.
+2. Link/path to the report.
+3. Commands run and output.
+4. Key surfacing numbers.
+5. Top P16-A3 surfaced entries.
+6. First-card quality summary.
+7. Any risks.
+8. Recommendation for next phase.
+
+Remember: this is an audit. Do not implement product changes.
