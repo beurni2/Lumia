@@ -1,0 +1,388 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. You must not author, rewrite, improve, paraphrase, or expand corpus entries.
+
+Your job is to run a disciplined predict/import phase for the provided ng_clean candidate entries only.
+
+This phase follows the approved P16-A1 scorer-first work. The scorer correction exists to evaluate whether high-human-taste ng_clean entries are viable without forcing old anthropomorph monoculture.
+
+PHASE NAME
+
+P16-A2-NG-CLEAN-HUMAN-CANDIDATE-PREDICT-IMPORT
+
+PRIMARY GOAL
+
+Evaluate and, only if they pass all gates, import the provided ng_clean human-feel candidate entries into the appropriate ng_clean candidate/corpus location.
+
+These entries are curated by supervisor/user. Do not edit them.
+
+ABSOLUTE NON-NEGOTIABLES
+
+- Do not author new hooks.
+- Do not rewrite hooks.
+- Do not rewrite captions.
+- Do not rewrite scenarios.
+- Do not “improve” the entries.
+- Do not change IDs.
+- Preserve original IDs exactly.
+- If the import format requires a `replaceId`, preserve the supplied ID as the replace/import trace.
+- Do not loosen validators.
+- Do not lower `PICKER_HQS_FLOOR`.
+- Do not lower `HOOK_QUALITY_FLOOR`.
+- Do not change scorer logic.
+- Do not change anti-copy logic.
+- Do not change ingestion gates.
+- Do not change mobile/API/DB/schema.
+- Do not increase Claude/fallback usage.
+- Do not enable `LUMINA_HQS_HUMAN_LIFT_ENABLED` in production config.
+- Do not touch ng_light_pidgin topology/runtime.
+- Do not modify unrelated corpora.
+
+IMPORTANT SCORER MODE
+
+Use P16-A1 human-lift scorer behavior for evaluation/predict reporting.
+
+`LUMINA_HQS_HUMAN_LIFT_ENABLED` may be enabled only in local/test/predict command context for this phase.
+
+It must remain default OFF in production and must not be added to production env.
+
+REQUIRED VALIDATION GATES
+
+For each provided entry, report:
+
+- original ID
+- hook
+- old/current HQS with human-lift flag OFF
+- P16-A1 HQS with human-lift flag ON
+- delta
+- P16-A1 fired signals:
+  - UA / understatedAbsurdity
+  - ES / emotionalSpecificity
+  - BW / brevityWideningDelta
+- aiCliche result
+- validator result
+- banned token result
+- pidgin leakage result
+- stereotype-token result
+- hook word count
+- hook length compliance
+- duplicate / anti-copy result
+- runtime author result across all premise cores, if applicable to this corpus path
+- import decision:
+  - imported
+  - rejected
+  - held for supervisor review
+- exact reject reason if rejected
+
+PASS REQUIREMENTS
+
+A candidate may be imported only if it passes all applicable gates:
+
+- ng_clean cohort compatibility:
+  - region === "nigeria"
+  - languageStyle === "clean"
+- no pidgin markers
+- no blocked ng_clean tokens
+- no stereotype tokens
+- no aiCliche
+- hook within current validator length limit
+- hook ends cleanly with a period if the corpus requires punctuation normalization
+- hook does not duplicate existing corpus material
+- anti-copy passes
+- boot validator passes
+- runtime author path passes across premise cores, if required by current pack/corpus process
+- HQS/picker expectations pass under the intended scorer mode
+
+If an entry is funny but fails a hard validator, do not rewrite it. Reject or hold it and report the exact reason.
+
+CANDIDATE PACKET
+
+Import/evaluate exactly these entries and no others.
+
+1. CLEAN_P16A1_HUMAN_005
+
+Hook:
+The church shoes exposed the ironing situation immediately.
+
+What to show:
+You dressed in a hurry, but your polished shoes are making the rest of the outfit look unserious.
+
+How to film:
+Start with a proud shoe shot, then tilt up to one wrinkled clothing detail and a face of quiet regret.
+
+Caption:
+Shoes reported the outfit.
+
+2. CLEAN_P16A1_HUMAN_006
+
+Hook:
+My landlord texted “good morning” and peace left quietly.
+
+What to show:
+A normal morning collapses because your landlord starts the message politely, which somehow makes it worse.
+
+How to film:
+Show breakfast or tea, phone buzz, message preview, then the creator gently placing the cup down like life has changed.
+
+Caption:
+Good morning carried danger.
+
+3. CLEAN_P16A1_HUMAN_007
+
+Hook:
+The family group chat turned one cough into investigation.
+
+What to show:
+Someone casually mentions coughing, and the group chat becomes doctors, pastors, aunties, and forwarded remedies.
+
+How to film:
+Show one simple message, then rapid cuts of notifications multiplying while you stare at the phone.
+
+Caption:
+One cough became a committee.
+
+4. CLEAN_P16A1_HUMAN_009
+
+Hook:
+My serious face collapsed at the wrong greeting.
+
+What to show:
+You prepare to greet someone important with respect, but your face chooses that exact moment to become awkward.
+
+How to film:
+Practice a composed face in the mirror, then cut to the real greeting where the expression fails immediately.
+
+Caption:
+My face resigned early.
+
+5. CLEAN_P16A1_HUMAN_010
+
+Hook:
+The queue looked short until hope joined it.
+
+What to show:
+You see a short queue and celebrate too early, then discover the hidden extension, saved spaces, and people “coming back.”
+
+How to film:
+Show the visible queue, your small smile, then pan to the real line around the corner.
+
+Caption:
+Queue hid the truth.
+
+6. CLEAN_P16A1_HUMAN_011
+
+Hook:
+Auntie served rice like she owned national reserves.
+
+What to show:
+Someone is serving rice with extreme caution, measuring every grain like the country is watching.
+
+How to film:
+Close-up on the spoon hovering, rice being reduced and adjusted, then the plate arriving with political accuracy.
+
+Caption:
+Rice entered rationing.
+
+7. CLEAN_P16A1_HUMAN_014
+
+Hook:
+My mother’s silence edited my entire explanation.
+
+What to show:
+You start explaining yourself with confidence, but one silent look from your mother makes you shorten the story.
+
+How to film:
+Begin with animated explanation, cut to her still face, then you slowly reduce the sentence until it disappears.
+
+Caption:
+Silence corrected the story.
+
+8. CLEAN_P16A1_HUMAN_020
+
+Hook:
+The house became quiet when chores needed witnesses.
+
+What to show:
+The moment chores are mentioned, everyone who was loudly present somehow disappears into rooms, bathrooms, and fake phone calls.
+
+How to film:
+Show a lively room, one person mentions chores, then quick cuts of people vanishing.
+
+Caption:
+Chores reduced the population.
+
+9. CLEAN_HUMAN_001
+
+Hook:
+My mother’s prayer points always include my phone battery.
+
+What to show:
+You are sitting in the living room when your mother starts a loud prayer session. She transitions from praying for the country to specifically mentioning that your phone should not lead you astray or die when she calls. You look at your 2% battery icon with sudden spiritual guilt.
+
+How to film:
+Close-up of your face looking concerned, followed by a quick cut to the phone screen showing the low battery.
+
+Caption:
+Nowhere is safe from the intercession.
+
+10. CLEAN_HUMAN_002
+
+Hook:
+The delivery man is waiting like a debt collector.
+
+What to show:
+You are inside the house, fully aware the delivery rider is at the gate, but you are still looking for your matching slippers and the correct change. You peek through the curtain and see him sitting on his bike, staring at your front door with professional disappointment.
+
+How to film:
+Use a handheld shot peeking through a window or curtain. Show yourself frantically searching a drawer.
+
+Caption:
+The pressure of a thousand suns.
+
+IMPLEMENTATION STEPS
+
+1. Inspect current ng_clean corpus/import structure.
+
+Locate the appropriate files by searching for:
+
+- `NIGERIAN_CLEAN_CORE_ENTRIES`
+- `ng_clean`
+- `languageStyle === "clean"`
+- `nigerianClean`
+- `DRAFT_NIGERIAN_HOOK_PACK`
+- `NIGERIAN_HOOK_PACK`
+- previous candidate import patterns
+- validation tests for Nigerian clean pack entries
+
+Do not guess the target file. Follow existing repo conventions.
+
+2. Add the entries in the correct draft/import location only after predict.
+
+If the repo has a draft candidate area, put them there first.
+If the repo requires direct pack import after passing gates, follow the established pattern.
+Keep metadata consistent with existing entries.
+
+3. Preserve fields.
+
+Each imported entry must preserve:
+
+- id
+- hook
+- scenario / whatToShow equivalent
+- howToFilm equivalent
+- caption
+- region/cohort metadata required for ng_clean
+- languageStyle clean
+- any required premise/category/anchor fields, using the nearest existing schema convention
+
+If the schema requires fields not supplied here, do not creatively invent high-impact content. Use minimal schema-compatible defaults only if the repo already has a clear convention. Otherwise stop and report the missing required fields.
+
+4. Run predict before import.
+
+Create or update a local report:
+
+`.local/P16_A2_NG_CLEAN_HUMAN_CANDIDATE_PREDICT.md`
+
+The report must include one row per entry with:
+
+- ID
+- hook
+- word count
+- flag OFF HQS
+- flag ON HQS
+- delta
+- UA
+- ES
+- BW
+- aiCliche
+- validator result
+- anti-copy result
+- duplicate result
+- final decision
+
+5. Import only survivors.
+
+If an entry fails hard gates, do not import it.
+If an entry is borderline only because of scorer score but passes validators and taste fields are intact, mark it as `held_for_supervisor_review` rather than rewriting it.
+
+6. Add tests.
+
+Add or update tests to cover:
+
+- IDs are present exactly once.
+- Hooks are preserved exactly.
+- Captions are preserved exactly.
+- ng_clean entries contain no pidgin markers.
+- no blocked stereotype tokens.
+- no aiCliche.
+- hook word count / punctuation compliance.
+- corpus integrity.
+- no duplicate IDs.
+- no anti-copy violations.
+- if applicable: boot/runtime author path across all premise cores.
+
+7. Run commands.
+
+Run the repo’s standard validation. At minimum:
+
+- `pnpm --filter @workspace/api-server exec tsc --noEmit`
+- relevant api-server tests for:
+  - hook quality
+  - Nigerian clean pack/corpus integrity
+  - validators
+  - runtime author / boot if applicable
+- full api-server test suite if feasible
+
+Do not claim success without command output.
+
+EXPECTED FINAL REPORT
+
+Return a concise but complete report with:
+
+1. Files changed.
+2. Entries evaluated.
+3. Entries imported.
+4. Entries rejected or held, with exact reasons.
+5. Predict table summary:
+   - OFF HQS
+   - ON HQS
+   - delta
+   - UA / ES / BW
+   - aiCliche
+   - validator result
+6. Confirmation:
+   - no corpus entries were authored by coding agent
+   - no text was rewritten
+   - IDs preserved
+   - no validators changed
+   - no scorer changed
+   - no floors changed
+   - no API/mobile/DB/schema changes
+   - no production env flag enabled
+   - no fallback/Claude behavior changed
+7. Tests/typecheck commands and output.
+8. Any risks or supervisor decisions needed.
+
+STOP CONDITIONS
+
+Stop and report instead of guessing if:
+
+- required schema fields are missing and no clear existing convention exists
+- any entry requires rewriting to pass validation
+- any entry contains blocked tokens
+- any entry causes anti-copy failure
+- any entry fails runtime author path in a way that suggests schema mismatch
+- enabling the human-lift flag outside local/test/predict would be necessary
+- import path is ambiguous
+
+QUALITY BAR
+
+This phase is about preserving human taste while applying production discipline.
+
+Do not optimize these entries into scorer templates.
+Do not make them more generic.
+Do not make them more Nigerian by adding pidgin.
+Do not sanitize away the comedy.
+Validate, import survivors, and report truthfully.

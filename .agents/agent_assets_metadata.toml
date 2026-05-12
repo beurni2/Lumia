@@ -1667,3 +1667,9 @@ id = "pk2enHVMNz3GH4Z4aq9NN"
 uri = "file://.local/HQS_HUMAN_LIFT_P16_A1_IMPL_AND_TEST_REPORT.md"
 type = "text"
 title = "P16-A1 Human-Lift — Implementation & Test Report"
+
+[[outputs]]
+id = "9NA5s9iYN2sTFcge-vedd"
+uri = "file://.local/P16_A2_NG_CLEAN_HUMAN_CANDIDATE_PREDICT.md"
+type = "text"
+title = "P16-A2 NG_Clean Human-Candidate Predict Report"
