@@ -1,0 +1,364 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. This is a narrow implementation + runtime-proof phase.
+
+Do not author corpus entries.
+Do not rewrite corpus entries.
+Do not import entries.
+Do not change scorer logic.
+Do not change validators.
+Do not change PICKER_HQS_FLOOR.
+Do not change HOOK_QUALITY_FLOOR.
+Do not change anti-copy logic.
+Do not change mobile/API/DB/schema.
+Do not enable production flags.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+Do not implement pattern_variation memory in this phase.
+
+PHASE NAME
+
+P16-A7-NG-CLEAN-SIDECAR-POOL-DIVERSITY-WIDENING
+
+BACKGROUND
+
+P16-A6 implemented a safe slot-1+ memory anti-repeat layer for ng_clean clean-core entries behind:
+
+LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED
+
+P16-A6 runtime QA showed the filter is mechanically correct but the effect size is too small:
+
+- warm slot-1+ repeat rate only improved from 91.7% to 87.5%
+- max repeated slot-1+ ID only moved from 16/16 to 15/16
+- filter suppressed the always-on IDs correctly
+- but it relaxed in 12/16 warm batches because the upstream sidecar only supplied 2 fresh alternatives:
+  - ng_clean_001
+  - ng_clean_002
+
+Conclusion:
+The bottleneck is no longer the memory filter. The bottleneck is upstream clean-core sidecar diversity.
+
+PRIMARY GOAL
+
+Give the P16-A6 slot-1+ anti-repeat filter enough fresh ng_clean clean-core alternatives to swap into.
+
+This phase should widen or diversify the upstream clean-core sidecar / kept pool for ng_clean slot-1+ only, without changing scorer math, validators, corpus, or slot-0 behavior.
+
+CLASS A ONLY
+
+Fix only Class A:
+
+ng_clean clean-core slot-1+ repetition.
+
+Do not fix Class B pattern_variation repetition in this phase.
+
+The repeated pattern_variation hook “is it still about the promotion post” may continue repeating after this phase. That is acceptable.
+
+ABSOLUTE NON-NEGOTIABLES
+
+- No corpus changes.
+- No hook rewrites.
+- No scorer changes.
+- No validator changes.
+- No floor changes.
+- No schema changes.
+- No API/mobile/DB changes.
+- No production env flag changes.
+- No fallback/Claude increase.
+- Do not touch slot-0 behavior.
+- Do not weaken P16-A6 memory guard.
+- Do not use held IDs 080 or 088.
+- Do not include rejected/held entries.
+- Do not touch pattern_variation memory.
+- Do not add broad randomness that harms determinism/tests.
+
+FLAGS
+
+This work should remain staging/local until proven.
+
+Use existing P16-A6 flag if appropriate:
+
+LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED=true
+
+If a new flag is needed, it must be default OFF and staging-only. Prefer not to add a new flag unless the change can’t be safely scoped under the existing P16-A6 flag.
+
+Do not enable any new flag in production start script or production toml.
+
+IMPLEMENTATION STRATEGY
+
+Step 1 — Audit upstream sidecar construction before editing
+
+Find where `localResult.kept` or equivalent sidecar candidates are built for ng_clean clean-core entries.
+
+Inspect:
+
+- artifacts/api-server/src/lib/hybridIdeator.ts
+- artifacts/api-server/src/lib/ngCleanFirstCardCoreReservation.ts
+- artifacts/api-server/src/lib/nigerianCleanCoreSlot0CorpusFeed.ts
+- artifacts/api-server/src/lib/nigerianCleanCoreSlot1PlusAntiRepeatFilter.ts
+- artifacts/api-server/src/lib/nigerianCleanCorePack.ts
+- any helper that maps clean-core pack entries into runtime candidates
+- any cap/topK/retention/filter applied before `localResult.kept`
+
+Search for:
+
+- localResult.kept
+- kept
+- core_native
+- clean-core
+- NIGERIAN_CLEAN_CORE_ENTRIES
+- pickerEligible
+- sidecar
+- retained
+- topK
+- candidate cap
+- first-card reservation
+- corpus feed
+- slot1PlusFilterDetail
+
+Produce a short pre-edit note in the final report explaining exactly why only `ng_clean_001` and `ng_clean_002` were available as fresh sidecar alternatives in P16-A6.
+
+Step 2 — Widen sidecar candidates narrowly
+
+Implement the smallest safe widening that increases the number of fresh eligible clean-core sidecar alternatives available to P16-A6.
+
+Preferred approaches, in order:
+
+A. Retain a larger clean-core sidecar for ng_clean slot-1+ anti-repeat only.
+
+- Keep existing final ranking and final selected ideas unchanged unless the P16-A6 filter swaps.
+- Do not alter slot-0 candidate selection.
+- Do not alter hookQualityScore.
+- Do not alter main picker thresholds.
+- Only preserve additional eligible clean-core candidates in sidecar/kept so the post-rank filter has alternatives.
+
+B. If sidecar is currently truncated by topK, add an ng_clean-slot1plus sidecar reserve.
+
+- Reserve should include additional clean-core candidates that passed existing gates but were trimmed before `localResult.kept`.
+- Reserve must exclude:
+  - held IDs 080 / 088
+  - rejected entries
+  - duplicate hooks already in final
+  - candidates failing picker/boot/validator gates
+  - non-ng_clean cohorts
+  - pattern_variation candidates
+  - Claude/fallback candidates
+- Reserve must be read-only input to the P16-A6 filter.
+
+C. If clean-core pool is over-pruned by family/anchor concentration, allow a bounded per-family sidecar reserve.
+
+- For example, retain up to N eligible candidates per premiseFamily for sidecar only.
+- Do not force them into output unless memory filter needs fresh alternatives.
+- Preserve deterministic ordering within family.
+
+Do not implement broad random shuffle.
+
+Step 3 — Keep P16-A6 filter as the only selector change
+
+The widened sidecar should feed the existing P16-A6 post-rank filter.
+
+Do not add a second anti-repeat algorithm.
+
+Do not demote scores.
+
+Do not bypass quality gates.
+
+Do not allow under-threshold entries just to improve diversity.
+
+The intended flow:
+
+- normal ranking builds final as before
+- widened sidecar contains more eligible clean-core alternatives
+- P16-A6 filter removes recently seen slot-1+ final IDs
+- P16-A6 filter swaps in best fresh candidates from widened sidecar
+- if still insufficient, graceful relaxation remains
+
+Step 4 — Tests
+
+Add targeted tests for sidecar widening.
+
+Required tests:
+
+1. Sidecar reserve includes additional eligible clean-core candidates beyond the old kept set.
+
+2. Sidecar reserve excludes:
+   - held IDs 080 / 088
+   - non-ng_clean candidates
+   - pattern_variation candidates
+   - candidates already in final
+   - candidates failing existing gates
+
+3. Sidecar widening is gated:
+   - applies only ng_clean
+   - applies only when slot1+ anti-repeat flag is enabled, unless you can prove the sidecar is invisible/no-op when disabled
+   - no behavior change when flag OFF
+
+4. Slot-0 invariance:
+   - first-card selection unchanged with sidecar widening alone.
+
+5. P16-A6 integration:
+   - when memory suppresses an always-on ID, the widened sidecar gives the filter more than 2 fresh alternatives.
+   - swapped entries come from widened sidecar.
+   - graceful relaxation frequency drops in the test fixture.
+
+6. Determinism:
+   - same inputs produce same output.
+
+7. No scorer/floor changes:
+   - source-grep/assert:
+     - PICKER_HQS_FLOOR=50
+     - HOOK_QUALITY_FLOOR=40
+   - confirm hookQuality files are not changed.
+
+Step 5 — Runtime QA
+
+Run the same style of runtime probe as P16-A6.
+
+Required:
+
+- OFF baseline:
+  - LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED unset
+- ON treatment:
+  - LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED=true
+  - sidecar widening active only in ON treatment
+
+Sample:
+- at least 4 ng_clean creators × 4 batches × 6 ideas = 96 ng_clean ideas per mode
+- include ng_light_pidgin and western controls if cheap
+
+Memory:
+- reset relevant memory at start of each pass, same as P16-A6
+- compute warm-state metrics from batch index >= 1
+
+Report before/after:
+
+- total ng_clean ideas
+- unique ng_clean hooks
+- slot-1+ clean-core ideas
+- distinct slot-1+ clean-core IDs
+- max repeat count for any slot-1+ clean-core ID
+- warm slot-1+ repeat rate
+- filter applied count
+- filter relaxed count
+- sidecar fresh candidate count
+- inserted IDs
+- suppressed IDs
+- P16-A3 surfaced distinct
+- older ng_clean surfaced distinct
+- held IDs appearances
+- same-batch duplicate hooks
+- underfills
+- fallback used
+- pidgin/stereotype leakage
+- control cohort filter calls/writes
+
+Expected improvement target:
+
+- distinct slot-1+ clean-core IDs should increase materially beyond 6
+- max repeat count should drop materially below 15/16
+- warm repeat rate should drop materially below 87.5%
+- filter relaxation should drop materially below 12/16 warm batches
+
+Do not claim PASS unless effect size improves meaningfully.
+
+REPORT
+
+Create:
+
+.local/P16_A7_NG_CLEAN_SIDECAR_POOL_DIVERSITY_WIDENING.md
+
+Include:
+
+1. Pre-edit diagnosis:
+   - why P16-A6 sidecar only had 2 fresh alternatives
+   - exact source/cap/filter responsible
+
+2. Implementation summary:
+   - files changed
+   - exact sidecar widening mechanism
+   - gating / flag behavior
+   - why slot-0 is unaffected
+   - why scorer/floors/validators are untouched
+
+3. Test results:
+   - commands
+   - output
+
+4. Runtime QA:
+   - OFF vs ON table
+   - repeated IDs before/after
+   - relaxation before/after
+   - inserted ID diversity
+   - P16-A3 surfacing
+   - old ng_clean surfacing
+   - leakage/fallback/underfill
+
+5. Decision:
+   - PASS / HOLD / FAIL
+
+PASS CRITERIA
+
+PASS only if:
+
+- slot-1+ repeat rate drops meaningfully from P16-A6 ON baseline
+- max repeated slot-1+ ID drops meaningfully from 15/16
+- filter relaxation drops meaningfully from 12/16
+- fresh inserted IDs are more diverse than just 001/002
+- slot-0 remains safe
+- P16-A3 still surfaces
+- older ng_clean still competes
+- held IDs 080/088 do not appear
+- no same-batch duplicates
+- no underfills
+- no fallback increase
+- no pidgin/stereotype leakage
+- ng_light_pidgin/western controls unchanged
+- no scorer/validator/floor/corpus/schema/API/mobile/production-env changes
+
+HOLD if:
+- implementation is safe but effect size still small
+- sidecar diversity improves but not enough
+- runtime proof is inconclusive
+- controls are not run
+
+FAIL if:
+- slot-0 regresses
+- same-batch duplicates appear
+- held IDs appear
+- underfills/fallback increase
+- leakage appears
+- scorer/validator/floor/corpus changes occur
+- production env is touched
+
+COMMANDS
+
+Run at minimum:
+
+- pnpm --filter @workspace/api-server run typecheck
+- relevant P16-A6/P16-A7 unit tests
+- relevant ng_clean runtime/corpus tests
+- runtime QA probe
+
+If full api-server suite is run and has pre-existing failures, document them separately and prove they are unrelated.
+
+EXPECTED FINAL RESPONSE
+
+Return:
+
+1. PASS / HOLD / FAIL.
+2. Files changed.
+3. Pre-edit diagnosis.
+4. Implementation summary.
+5. Runtime QA numbers.
+6. Tests/typecheck output.
+7. Safety confirmations.
+8. Recommendation:
+   - keep staging-only
+   - promote flag later
+   - or next follow-up.
+
+Remember:
+This phase is not about adding entries.
+It is about making the existing clean-core pool available enough for P16-A6 memory to work.

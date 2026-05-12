@@ -1715,3 +1715,9 @@ id = "OUbESmZn7jS7BmrcSOEV8"
 uri = "file://.local/qa-runs/p16a6/summary_combined.json"
 type = "unspecified"
 title = "P16-A6 — combined OFF/ON summary (raw)"
+
+[[outputs]]
+id = "enQ7BUZwHkeB7wq8zqvPE"
+uri = "file://.local/P16_A7_REPORT.md"
+type = "text"
+title = "P16-A7 NG_CLEAN Sidecar Pool Diversity Widening Report"

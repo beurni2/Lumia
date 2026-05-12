@@ -177,9 +177,12 @@ import {
 } from "./nigerianCleanCoreSlot1PlusCreatorMemory.js";
 import {
   applyNgCleanSlot1PlusAntiRepeatFilter,
+  // P16-A7-NG-CLEAN-SIDECAR-POOL-DIVERSITY-WIDENING (BI 2026-05-12)
+  // — see wire site below the slot-1+ filter call.
   collectSlot1PlusCleanCoreEntryIds,
   isNgCleanSlot1PlusAntiRepeatEnabled,
 } from "./nigerianCleanCoreSlot1PlusAntiRepeatFilter.js";
+import { buildNgCleanSlot1PlusSidecarReserve } from "./nigerianCleanCoreSlot1PlusSidecarReserve.js";
 // PHASE W2-O — Western pool selection now flows through the
 // `getActiveWesternPool` resolver in `westernPackSlotReservation.ts`,
 // which internally consults BOTH staging-pool flag
@@ -6457,9 +6460,55 @@ export async function runHybridIdeator(
         sidecarRaw.length > 0
           ? annotateAndSortByWillingness(sidecarRaw)
           : sidecarRaw;
+      // PHASE P16-A7-NG-CLEAN-SIDECAR-POOL-DIVERSITY-WIDENING
+      // (BI 2026-05-12) — append a deterministic, pre-authored
+      // RESERVE of pickerEligible-equivalent clean-core entries
+      // to the END of the sidecar so the slot-1+ filter has more
+      // than the 1-2 fresh alternatives that survive
+      // `localResult.kept` -> finalEntryId-dedup.
+      //
+      // The reserve runs INSIDE the same activation block as the
+      // slot-1+ filter (no new flag) and is gated identically:
+      //   region === "nigeria" + languageStyle === "clean" +
+      //   creatorId set + final.length >= 2 + slot-1+ flag ON.
+      //
+      // Order: live sidecar (willingness-ranked) FIRST, reserve
+      // (HQS-ranked, pre-authored) SECOND. The slot-1+ filter
+      // walks in order and short-circuits when its swap budget
+      // is met, so the reserve is consulted only when the live
+      // sidecar is structurally insufficient (the P16-A6
+      // relaxation case).
+      //
+      // Reserve entries are pre-authored at module-load time via
+      // the same `authorPackEntryAsIdea` path the production
+      // ng_clean catalog block uses, so promotion into `final[]`
+      // preserves full Idea + meta semantics. Score and
+      // rewriteAttempted are inherited from a representative
+      // final-shell candidate so the ScoredCandidate shape is
+      // intact (mirrors the slot-0 corpus-feed pattern).
+      const reserveRaw = buildNgCleanSlot1PlusSidecarReserve({
+        excludeFinalEntryIds: finalEntryIdSet,
+        excludeRecentMemoryEntryIds: _hoistedNgCleanSlot1PlusSeenIds,
+        excludeLiveSidecarEntryIds: sidecarSeenEntryIds,
+      });
+      let combinedSidecar = annotatedSidecar;
+      if (reserveRaw.length > 0) {
+        const shell = final[0]!;
+        const reserveAsScored = reserveRaw.map(
+          (r) =>
+            ({
+              ...shell,
+              idea: r.idea,
+              meta: r.meta,
+              score: shell.score,
+              rewriteAttempted: shell.rewriteAttempted,
+            }) as (typeof final)[number],
+        );
+        combinedSidecar = [...annotatedSidecar, ...reserveAsScored];
+      }
       const filterResult = applyNgCleanSlot1PlusAntiRepeatFilter(final, {
         recentSlot1PlusCleanCoreEntryIds: _hoistedNgCleanSlot1PlusSeenIds,
-        sidecarPool: annotatedSidecar,
+        sidecarPool: combinedSidecar,
       });
       if (
         filterResult.swappedCount > 0 ||
