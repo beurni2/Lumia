@@ -1,0 +1,524 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. You must not author, rewrite, improve, paraphrase, or expand corpus entries.
+
+Your job is to run a disciplined predict/import phase for the provided ng_clean candidate entries only.
+
+PHASE NAME
+
+P16-A8-NG-CLEAN-REFINED-CANDIDATE-PREDICT-IMPORT
+
+PRIMARY GOAL
+
+Evaluate and, only if they pass all gates, import the provided refined ng_clean candidate entries into the appropriate ng_clean candidate/corpus location.
+
+These entries are curated by supervisor/user. Do not edit them.
+
+ABSOLUTE NON-NEGOTIABLES
+
+- Do not author new hooks.
+- Do not rewrite hooks.
+- Do not rewrite captions.
+- Do not rewrite scenarios.
+- Do not “improve” entries.
+- Preserve supplied IDs exactly as draftId/import trace.
+- Do not loosen validators.
+- Do not lower PICKER_HQS_FLOOR.
+- Do not lower HOOK_QUALITY_FLOOR.
+- Do not change scorer logic.
+- Do not change anti-copy logic.
+- Do not change ingestion gates.
+- Do not change mobile/API/DB/schema.
+- Do not increase Claude/fallback usage.
+- Do not enable LUMINA_HQS_HUMAN_LIFT_ENABLED in production config.
+- Do not enable LUMINA_NG_CLEAN_SLOT1PLUS_ANTI_REPEAT_ENABLED in production config.
+- Do not touch ng_light_pidgin topology/runtime.
+- Do not modify unrelated corpora.
+
+IMPORTANT CONTEXT
+
+These are ng_clean entries.
+
+Use:
+region: "nigeria"
+languageStyle: "clean"
+reviewedBy: "BI-CLEAN-P16A8 2026-05-12"
+
+Use the supplied ID as draftId.
+
+Assign final sequential ng_clean IDs according to the repo’s current high-water mark. Do not collide with existing ng_clean IDs. If there are intentional audit gaps, preserve repo convention and report the final mapping.
+
+VALIDATION REQUIREMENTS
+
+For each provided entry, report:
+
+- supplied ID
+- assigned corpus ID if imported
+- hook
+- anchor
+- premiseFamily
+- voiceTone
+- hook word count
+- flag OFF HQS
+- flag ON HQS if P16-A1 human-lift scorer is available
+- delta
+- P16-A1 fired signals if available:
+  - UA / understatedAbsurdity
+  - ES / emotionalSpecificity
+  - BW / brevityWideningDelta
+- aiCliche result
+- validator result
+- anchor presence in hook
+- anchor presence in whatToShow
+- banned token result
+- pidgin leakage result
+- stereotype-token result
+- duplicate / anti-copy result
+- runtime author result across all premise cores, if applicable
+- import decision:
+  - imported
+  - rejected
+  - held for supervisor review
+- exact reject reason if rejected or held
+
+PASS REQUIREMENTS
+
+A candidate may be imported only if it passes all applicable gates:
+
+- ng_clean cohort compatibility:
+  - region === "nigeria"
+  - languageStyle === "clean"
+- exact anchor phrase appears in hook
+- exact anchor phrase appears in whatToShow
+- no pidgin markers
+- no blocked ng_clean tokens
+- no stereotype tokens
+- no aiCliche
+- hook within current validator length limit
+- hook ends with a period
+- hook does not duplicate existing corpus material
+- anti-copy passes
+- boot validator passes
+- picker/HQS expectations pass under intended scorer mode
+- runtime author path passes across premise cores, if required by current pack/corpus process
+
+If an entry is funny but fails a hard validator, do not rewrite it. Reject or hold it and report the exact reason.
+
+CANDIDATE PACKET
+
+Evaluate exactly these entries and no others.
+
+1. CLEAN_P16A8_REFINED_001
+
+Hook:
+The visitor's bag arrived with food expectations.
+
+Anchor:
+visitor's bag
+
+Premise family:
+family_aunties
+
+Voice tone:
+clean_deadpan
+
+What to show:
+The visitor's bag enters the house, and everyone quietly assumes something edible is inside. The visitor's bag sits in the room like a small promise nobody wants to mention.
+
+How to film:
+Show the visitor's bag being placed down, then cut to people casually glancing at it while pretending they are not interested.
+
+Caption:
+The bag carried hope.
+
+2. CLEAN_P16A8_REFINED_002
+
+Hook:
+The account balance loaded and my posture changed.
+
+Anchor:
+account balance
+
+Premise family:
+money_pos_bank
+
+Voice tone:
+quiet_realization_clean
+
+What to show:
+The account balance loads slowly while you sit with unnecessary confidence. The account balance appears, and your shoulders immediately remember humility.
+
+How to film:
+Keep the screen private; show the loading pause, then your shoulders dropping after the reveal.
+
+Caption:
+Balance adjusted the body.
+
+3. CLEAN_P16A8_REFINED_003
+
+Hook:
+The transfer receipt arrived before the money behaved.
+
+Anchor:
+transfer receipt
+
+Premise family:
+money_pos_bank
+
+Voice tone:
+clean_deadpan
+
+What to show:
+The transfer receipt appears instantly, but the money still refuses to show up. The transfer receipt gives everyone confidence except the person waiting.
+
+How to film:
+Show the transfer receipt notification, then cut to repeated balance checks and a calm but worried face.
+
+Caption:
+Receipt came alone.
+
+4. CLEAN_P16A8_REFINED_004
+
+Hook:
+The market receipt refused to match the bag.
+
+Anchor:
+market receipt
+
+Premise family:
+market_food
+
+Voice tone:
+quiet_realization_clean
+
+What to show:
+The market receipt is in your hand while you check the items in the bag. The market receipt says one thing, but the bag looks like it attended a different market.
+
+How to film:
+Film the market receipt beside the bag contents, then cut to your confused face counting items twice.
+
+Caption:
+The numbers disagreed quietly.
+
+5. CLEAN_P16A8_REFINED_005
+
+Hook:
+The yam pieces shrank after my bargaining confidence.
+
+Anchor:
+yam pieces
+
+Premise family:
+market_food
+
+Voice tone:
+clean_social_comedy
+
+What to show:
+The yam pieces look respectable before the bargaining starts. After the price drops, the yam pieces in your hand suddenly look like they also negotiated.
+
+How to film:
+Show the cutting, the bargaining gesture, then a close-up of the smaller yam pieces in your palm.
+
+Caption:
+Bargain reduced the evidence.
+
+6. CLEAN_P16A8_REFINED_006
+
+Hook:
+The soup ingredients disappeared before cooking began.
+
+Anchor:
+soup ingredients
+
+Premise family:
+market_food
+
+Voice tone:
+clean_deadpan
+
+What to show:
+The soup ingredients are arranged neatly on the table before cooking starts. Minutes later, the soup ingredients have developed gaps nobody in the house wants to explain.
+
+How to film:
+Use an overhead shot of the soup ingredients, then cut to empty spaces and one innocent person walking past.
+
+Caption:
+Cooking started with investigation.
+
+7. CLEAN_P16A8_REFINED_007
+
+Hook:
+The room fan started its own family meeting.
+
+Anchor:
+room fan
+
+Premise family:
+power_light
+
+Voice tone:
+clean_social_comedy
+
+What to show:
+The room fan begins rattling loudly during a serious discussion. The room fan becomes the only thing everyone can agree to stare at.
+
+How to film:
+Start with a medium group shot, then tilt sharply to the noisy room fan while everyone pauses.
+
+Caption:
+Fan interrupted with authority.
+
+8. CLEAN_P16A8_REFINED_008
+
+Hook:
+The market list grew heavier on the way home.
+
+Anchor:
+market list
+
+Premise family:
+market_food
+
+Voice tone:
+quiet_realization_clean
+
+What to show:
+The market list starts as a small folded paper in your hand. By the time you get home, the market list has somehow become extra bags and explanations.
+
+How to film:
+Show the market list before leaving, then cut to the overflowing bag and your tired arrival.
+
+Caption:
+Lists expand outside.
+
+9. CLEAN_P16A8_REFINED_009
+
+Hook:
+The outfit adjustment refused to respect closing time.
+
+Anchor:
+outfit adjustment
+
+Premise family:
+tailoring_events
+
+Voice tone:
+quiet_realization_clean
+
+What to show:
+The outfit adjustment begins as one small correction after you thought everything was finished. The outfit adjustment continues until your patience starts standing separately from your body.
+
+How to film:
+Use a mirror shot with repeated pinning, then cut to your patient face slowly losing meaning.
+
+Caption:
+Adjustment enjoyed attention.
+
+10. CLEAN_P16A8_REFINED_010
+
+Hook:
+The data bundle disappeared mid-sentence.
+
+Anchor:
+data bundle
+
+Premise family:
+phone_data
+
+Voice tone:
+clean_absurd_escalation
+
+What to show:
+The data bundle warning appears while you are speaking with confidence on a call. The data bundle disappears, and your words immediately start racing against silence.
+
+How to film:
+Show the phone warning, then cut to your face speeding through the sentence before the connection dies.
+
+Caption:
+Bundle chose drama.
+
+11. CLEAN_P16A8_REFINED_011
+
+Hook:
+The market list argued with inflation politely.
+
+Anchor:
+market list
+
+Premise family:
+market_food
+
+Voice tone:
+clean_social_comedy
+
+What to show:
+The market list is from a time when prices still had manners. The market list meets the current shelf prices, and your wallet quietly loses confidence.
+
+How to film:
+Show the market list, then pan to the current prices and a slow zoom on your confused face.
+
+Caption:
+Math changed its behavior.
+
+12. CLEAN_P16A8_REFINED_012
+
+Hook:
+The phone battery died before the apology finished.
+
+Anchor:
+phone battery
+
+Premise family:
+phone_data
+
+Voice tone:
+clean_absurd_escalation
+
+What to show:
+The phone battery is already low while you record a careful apology for being late. The phone battery dies before the apology reaches the important part.
+
+How to film:
+Close up on the voice note recording, then cut to the dead screen and your face realizing silence now looks suspicious.
+
+Caption:
+Silence became the excuse.
+
+IMPLEMENTATION STEPS
+
+1. Inspect current ng_clean corpus/import structure.
+
+Locate the appropriate files by searching for:
+
+- NIGERIAN_CLEAN_CORE_ENTRIES
+- ng_clean
+- languageStyle === "clean"
+- nigerianClean
+- DRAFT_NIGERIAN_HOOK_PACK
+- NIGERIAN_HOOK_PACK
+- previous candidate import patterns
+- validation tests for Nigerian clean pack entries
+
+Do not guess the target file. Follow existing repo conventions.
+
+2. Run predict before import.
+
+Create or update a local report:
+
+.local/P16_A8_NG_CLEAN_REFINED_CANDIDATE_PREDICT.md
+
+The report must include one row per entry with:
+
+- supplied ID
+- assigned corpus ID if imported
+- hook
+- anchor
+- premiseFamily
+- voiceTone
+- word count
+- flag OFF HQS
+- flag ON HQS if applicable
+- delta
+- UA
+- ES
+- BW
+- aiCliche
+- validator result
+- anchor-in-hook result
+- anchor-in-whatToShow result
+- anti-copy result
+- duplicate result
+- boot result
+- picker result
+- final decision
+
+3. Import only survivors.
+
+If an entry fails hard gates, do not import it.
+If an entry is borderline only because of scorer score but passes validators and taste fields are intact, mark it as held_for_supervisor_review rather than rewriting it.
+
+4. Add tests.
+
+Add or update tests to cover:
+
+- supplied IDs preserved as draftId/import trace
+- assigned corpus IDs are unique
+- hooks are preserved exactly
+- captions are preserved exactly
+- anchors appear verbatim in hook and whatToShow
+- ng_clean entries contain no pidgin markers
+- no blocked stereotype tokens
+- no aiCliche
+- hook word count / punctuation compliance
+- corpus integrity
+- no duplicate IDs
+- no anti-copy violations
+- if applicable: boot/runtime author path across all premise cores
+
+5. Run commands.
+
+Run the repo’s standard validation. At minimum:
+
+- pnpm --filter @workspace/api-server exec tsc --noEmit
+- relevant api-server tests for:
+  - hook quality
+  - Nigerian clean pack/corpus integrity
+  - validators
+  - runtime author / boot if applicable
+- full api-server test suite if feasible
+
+Do not claim success without command output.
+
+EXPECTED FINAL REPORT
+
+Return a concise but complete report with:
+
+1. Files changed.
+2. Entries evaluated.
+3. Entries imported.
+4. Entries rejected or held, with exact reasons.
+5. Final ID mapping.
+6. Predict table summary:
+   - OFF HQS
+   - ON HQS
+   - delta
+   - UA / ES / BW
+   - aiCliche
+   - validator result
+7. Confirmation:
+   - no corpus entries were authored by coding agent
+   - no text was rewritten
+   - IDs preserved
+   - no validators changed
+   - no scorer changed
+   - no floors changed
+   - no API/mobile/DB/schema changes
+   - no production env flag enabled
+   - no fallback/Claude behavior changed
+8. Tests/typecheck commands and output.
+9. Any risks or supervisor decisions needed.
+
+STOP CONDITIONS
+
+Stop and report instead of guessing if:
+
+- required schema fields are missing or incompatible
+- any entry requires rewriting to pass validation
+- any entry contains blocked tokens
+- any entry causes anti-copy failure
+- any entry fails runtime author path in a way that suggests schema mismatch
+- enabling a staging flag outside local/test/predict would be necessary
+- import path is ambiguous
+- assigned IDs would collide with existing corpus IDs
+
+QUALITY BAR
+
+This phase is about preserving human taste while applying production discipline.
+
+Do not optimize these entries into scorer templates.
+Do not make them more generic.
+Do not make them more Nigerian by adding pidgin.
+Do not sanitize away the comedy.
+Validate, import survivors, and report truthfully.

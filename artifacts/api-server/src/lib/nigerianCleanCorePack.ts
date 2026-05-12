@@ -1378,6 +1378,91 @@ export const NIGERIAN_CLEAN_CORE_ENTRIES: readonly NigerianCleanCoreEntry[] =
       voiceTone: "clean_social_comedy",
       reviewedBy: "BI-CLEAN-P16A3-REVISION 2026-05-12",
     },
+    // ---------------------------------------------------------- //
+    // P16-A8 — REFINED CANDIDATE IMPORT (BI-CLEAN-P16A8 2026-05-12)
+    // 12 supervisor-curated refined candidates predicted by
+    // `qa/p16a8NgCleanRefinedCandidatePredict.ts`. Decision tally:
+    //   IMPORT = 4   (097, 098, 101, 103)
+    //   REJECT = 1   (096 — filming_boilerplate "keep the")
+    //   HOLD   = 7   (095, 099, 100, 102 below boot floor 40;
+    //                 104, 105, 106 below picker floor 50)
+    // Per "do not rewrite" rule, REJECT/HOLD slots stay GAPPED;
+    // supplied IDs preserved verbatim as draftId.
+    // ---------------------------------------------------------- //
+    // GAP: ng_clean_095 reserved for CLEAN_P16A8_REFINED_001 — HELD
+    // (HQS ON 35 below boot floor 40); not rewritten per "do not
+    // rewrite" rule. Slot intentionally left empty for audit.
+    // GAP: ng_clean_096 reserved for CLEAN_P16A8_REFINED_002 —
+    // REJECTED (filming_boilerplate_in_how_to_film: "keep the");
+    // not rewritten. Slot intentionally left empty for audit.
+    {
+      id: "ng_clean_097",
+      draftId: "CLEAN_P16A8_REFINED_003",
+      anchor: "transfer receipt",
+      hook: "The transfer receipt arrived before the money behaved.",
+      whatToShow:
+        "The transfer receipt appears instantly, but the money still refuses to show up. The transfer receipt gives everyone confidence except the person waiting.",
+      howToFilm:
+        "Show the transfer receipt notification, then cut to repeated balance checks and a calm but worried face.",
+      caption: "Receipt came alone.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "clean_deadpan",
+      reviewedBy: "BI-CLEAN-P16A8 2026-05-12",
+    },
+    {
+      id: "ng_clean_098",
+      draftId: "CLEAN_P16A8_REFINED_004",
+      anchor: "market receipt",
+      hook: "The market receipt refused to match the bag.",
+      whatToShow:
+        "The market receipt is in your hand while you check the items in the bag. The market receipt says one thing, but the bag looks like it attended a different market.",
+      howToFilm:
+        "Film the market receipt beside the bag contents, then cut to your confused face counting items twice.",
+      caption: "The numbers disagreed quietly.",
+      premiseFamily: "market_food",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN-P16A8 2026-05-12",
+    },
+    // GAP: ng_clean_099 reserved for CLEAN_P16A8_REFINED_005 — HELD
+    // (HQS ON 35 below boot floor 40); not rewritten. Slot empty.
+    // GAP: ng_clean_100 reserved for CLEAN_P16A8_REFINED_006 — HELD
+    // (HQS ON 35 below boot floor 40); not rewritten. Slot empty.
+    {
+      id: "ng_clean_101",
+      draftId: "CLEAN_P16A8_REFINED_007",
+      anchor: "room fan",
+      hook: "The room fan started its own family meeting.",
+      whatToShow:
+        "The room fan begins rattling loudly during a serious discussion. The room fan becomes the only thing everyone can agree to stare at.",
+      howToFilm:
+        "Start with a medium group shot, then tilt sharply to the noisy room fan while everyone pauses.",
+      caption: "Fan interrupted with authority.",
+      premiseFamily: "power_light",
+      voiceTone: "clean_social_comedy",
+      reviewedBy: "BI-CLEAN-P16A8 2026-05-12",
+    },
+    // GAP: ng_clean_102 reserved for CLEAN_P16A8_REFINED_008 — HELD
+    // (HQS ON 38 below boot floor 40); not rewritten. Slot empty.
+    {
+      id: "ng_clean_103",
+      draftId: "CLEAN_P16A8_REFINED_009",
+      anchor: "outfit adjustment",
+      hook: "The outfit adjustment refused to respect closing time.",
+      whatToShow:
+        "The outfit adjustment begins as one small correction after you thought everything was finished. The outfit adjustment continues until your patience starts standing separately from your body.",
+      howToFilm:
+        "Use a mirror shot with repeated pinning, then cut to your patient face slowly losing meaning.",
+      caption: "Adjustment enjoyed attention.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "quiet_realization_clean",
+      reviewedBy: "BI-CLEAN-P16A8 2026-05-12",
+    },
+    // GAP: ng_clean_104 reserved for CLEAN_P16A8_REFINED_010 — HELD
+    // (HQS ON 45 below picker floor 50); not rewritten. Slot empty.
+    // GAP: ng_clean_105 reserved for CLEAN_P16A8_REFINED_011 — HELD
+    // (HQS ON 45 below picker floor 50); not rewritten. Slot empty.
+    // GAP: ng_clean_106 reserved for CLEAN_P16A8_REFINED_012 — HELD
+    // (HQS ON 47 below picker floor 50); not rewritten. Slot empty.
   ]);
 
 // ---------------------------------------------------------------- //

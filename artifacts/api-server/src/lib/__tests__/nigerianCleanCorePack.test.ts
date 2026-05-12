@@ -150,26 +150,30 @@ describe("canActivateNigerianCleanCorePack — gate truth-table", () => {
 // ---------------------------------------------------------------- //
 
 describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant", () => {
-  // Post P16-A3-REVISION-IMPORT (BI-CLEAN-P16A3-REVISION 2026-05-12):
+  // Post P16-A8-REFINED-CANDIDATE-IMPORT (BI-CLEAN-P16A8 2026-05-12):
   // P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH
   // surviving: 2 + P16-A2 human-feel survivors: 3 + P16-A3 human-batch
-  // survivors: 5 + P16-A3-REVISION survivors: 13 = 87 entries. Slot
-  // ids ng_clean_065..069 were user-rejected for cohort fit and removed
-  // from the corpus; their numeric slots are intentionally GAPPED
-  // (070, 071 retained at their original ids). P16-A2 added
-  // ng_clean_072 (HUMAN_005), ng_clean_073 (HUMAN_007), ng_clean_074
-  // (HUMAN_020). P16-A3 added ng_clean_075 (HUMAN_001), 076 (HUMAN_002),
-  // 077 (HUMAN_003), 090 (HUMAN_016), 092 (HUMAN_018). P16-A3-REVISION
-  // added ng_clean_078 (HUMAN_004), 079 (005), 081 (007), 082 (008),
-  // 083 (009), 084 (010), 085 (011), 086 (012), 087 (013), 089 (015),
-  // 091 (017), 093 (019), 094 (020). Numeric slots 080 + 088 remain
-  // intentionally GAPPED — HUMAN_006 (HQS ON 35 below boot floor 40)
-  // and HUMAN_014 (HQS ON 45 below picker floor 50) are still HELD
-  // below scorer floor; the gaps preserve the supervisor's exact ID
-  // mapping for audit (P16-A3 packet 075..094 ← HUMAN_001..020). See
-  // the in-corpus P16-A3 + P16-A3-REVISION comment blocks.
-  it("ships exactly 87 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH-SURVIVING: 2 + P16-A2-HUMAN-FEEL-SURVIVING: 3 + P16-A3-HUMAN-BATCH-SURVIVING: 5 + P16-A3-REVISION-SURVIVING: 13)", () => {
-    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(87);
+  // survivors: 5 + P16-A3-REVISION survivors: 13 + P16-A8 refined
+  // survivors: 4 = 91 entries. Slot ids ng_clean_065..069 were
+  // user-rejected for cohort fit and removed from the corpus; their
+  // numeric slots are intentionally GAPPED (070, 071 retained at their
+  // original ids). P16-A2 added ng_clean_072 (HUMAN_005), ng_clean_073
+  // (HUMAN_007), ng_clean_074 (HUMAN_020). P16-A3 added ng_clean_075
+  // (HUMAN_001), 076 (HUMAN_002), 077 (HUMAN_003), 090 (HUMAN_016),
+  // 092 (HUMAN_018). P16-A3-REVISION added ng_clean_078 (HUMAN_004),
+  // 079 (005), 081 (007), 082 (008), 083 (009), 084 (010), 085 (011),
+  // 086 (012), 087 (013), 089 (015), 091 (017), 093 (019), 094 (020).
+  // P16-A8 added ng_clean_097 (REFINED_003), 098 (REFINED_004),
+  // 101 (REFINED_007), 103 (REFINED_009). Numeric slots 080, 088, 095,
+  // 096, 099, 100, 102, 104, 105, 106 remain intentionally GAPPED —
+  // 080 + 088 (P16-A3 HUMAN_006 + HUMAN_014 HELD); 095, 099, 100, 102
+  // (P16-A8 REFINED_001/005/006/008 below boot floor 40); 096 (P16-A8
+  // REFINED_002 REJECTED filming_boilerplate "keep the"); 104, 105,
+  // 106 (P16-A8 REFINED_010/011/012 below picker floor 50). The gaps
+  // preserve the supervisor's exact ID mapping for audit. See the
+  // in-corpus P16-A3 + P16-A3-REVISION + P16-A8 comment blocks.
+  it("ships exactly 91 hand-authored entries (P1: 30 + P2: 30 + P3: 1 + P3-HUMAN-FIRST: 3 + IMPLICIT-ANTHROPOMORPH-SURVIVING: 2 + P16-A2-HUMAN-FEEL-SURVIVING: 3 + P16-A3-HUMAN-BATCH-SURVIVING: 5 + P16-A3-REVISION-SURVIVING: 13 + P16-A8-REFINED-SURVIVING: 4)", () => {
+    expect(NIGERIAN_CLEAN_CORE_ENTRIES.length).toBe(91);
   });
 
   it("is a frozen array (cannot be mutated by callers)", () => {
@@ -192,9 +196,9 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(failures).toEqual([]);
   });
 
-  it("ids are ng_clean_001..ng_clean_064 + ng_clean_070..ng_clean_079 + ng_clean_081..ng_clean_087 + ng_clean_089..ng_clean_094 (intentional gaps at 065-069 + 080 + 088), all distinct", () => {
+  it("ids are ng_clean_001..ng_clean_064 + ng_clean_070..ng_clean_079 + ng_clean_081..ng_clean_087 + ng_clean_089..ng_clean_094 + ng_clean_097..ng_clean_098 + ng_clean_101 + ng_clean_103 (intentional gaps at 065-069 + 080 + 088 + 095-096 + 099-100 + 102 + 104-106), all distinct", () => {
     const ids = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.id);
-    expect(new Set(ids).size).toBe(87);
+    expect(new Set(ids).size).toBe(91);
     expect(ids[0]).toBe("ng_clean_001");
     expect(ids[29]).toBe("ng_clean_030");
     expect(ids[30]).toBe("ng_clean_031");
@@ -232,6 +236,11 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(ids[84]).toBe("ng_clean_092"); // P16-A3   ← HUMAN_018
     expect(ids[85]).toBe("ng_clean_093"); // REVISION ← HUMAN_019
     expect(ids[86]).toBe("ng_clean_094"); // REVISION ← HUMAN_020
+    // P16-A8 supervisor-signoff additions (4 of 12 packet survivors).
+    expect(ids[87]).toBe("ng_clean_097"); // P16-A8   ← REFINED_003
+    expect(ids[88]).toBe("ng_clean_098"); // P16-A8   ← REFINED_004
+    expect(ids[89]).toBe("ng_clean_101"); // P16-A8   ← REFINED_007
+    expect(ids[90]).toBe("ng_clean_103"); // P16-A8   ← REFINED_009
     // Hard guarantee: none of the rejected/held ids appear.
     const idSet = new Set(ids);
     for (const rejected of [
@@ -242,6 +251,14 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
       "ng_clean_069",
       "ng_clean_080", // HUMAN_006 — HELD (HQS ON 35 < boot floor 40)
       "ng_clean_088", // HUMAN_014 — HELD (HQS ON 45 < picker floor 50)
+      "ng_clean_095", // P16-A8 REFINED_001 — HELD (HQS ON 35 < boot floor 40)
+      "ng_clean_096", // P16-A8 REFINED_002 — REJECTED (filming_boilerplate "keep the")
+      "ng_clean_099", // P16-A8 REFINED_005 — HELD (HQS ON 35 < boot floor 40)
+      "ng_clean_100", // P16-A8 REFINED_006 — HELD (HQS ON 35 < boot floor 40)
+      "ng_clean_102", // P16-A8 REFINED_008 — HELD (HQS ON 38 < boot floor 40)
+      "ng_clean_104", // P16-A8 REFINED_010 — HELD (HQS ON 45 < picker floor 50)
+      "ng_clean_105", // P16-A8 REFINED_011 — HELD (HQS ON 45 < picker floor 50)
+      "ng_clean_106", // P16-A8 REFINED_012 — HELD (HQS ON 47 < picker floor 50)
     ]) {
       expect(idSet.has(rejected)).toBe(false);
     }
@@ -249,7 +266,7 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
 
   it("draftIds are CLEAN-DRAFT-001..064 + CLEAN-DRAFT-070..071 + supplied P16-A2 + P16-A3 + P16-A3-REVISION IDs (intentional gap at 065-069), all distinct", () => {
     const draftIds = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.draftId);
-    expect(new Set(draftIds).size).toBe(87);
+    expect(new Set(draftIds).size).toBe(91);
     expect(draftIds[0]).toBe("CLEAN-DRAFT-001");
     expect(draftIds[29]).toBe("CLEAN-DRAFT-030");
     expect(draftIds[30]).toBe("CLEAN-DRAFT-031");
@@ -283,6 +300,11 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     expect(draftIds[84]).toBe("CLEAN_P16A2_HUMAN_018"); // 092
     expect(draftIds[85]).toBe("CLEAN_P16A2_HUMAN_019"); // 093 REVISION
     expect(draftIds[86]).toBe("CLEAN_P16A2_HUMAN_020"); // 094 REVISION
+    // P16-A8 — supplied packet IDs preserved verbatim as draftId.
+    expect(draftIds[87]).toBe("CLEAN_P16A8_REFINED_003"); // 097
+    expect(draftIds[88]).toBe("CLEAN_P16A8_REFINED_004"); // 098
+    expect(draftIds[89]).toBe("CLEAN_P16A8_REFINED_007"); // 101
+    expect(draftIds[90]).toBe("CLEAN_P16A8_REFINED_009"); // 103
     const draftSet = new Set(draftIds);
     for (const rejected of [
       "CLEAN-DRAFT-065",
@@ -299,6 +321,16 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
     for (const held of [
       "CLEAN_P16A2_HUMAN_006", // HQS ON 35 < boot floor 40
       "CLEAN_P16A2_HUMAN_014", // HQS ON 45 < picker floor 50
+      // P16-A8 still-HELD/REJECTED packet IDs MUST NOT appear as
+      // draftIds; the 4 imported P16-A8 IDs are asserted above.
+      "CLEAN_P16A8_REFINED_001", // HQS ON 35 < boot floor 40
+      "CLEAN_P16A8_REFINED_002", // REJECTED (filming_boilerplate "keep the")
+      "CLEAN_P16A8_REFINED_005", // HQS ON 35 < boot floor 40
+      "CLEAN_P16A8_REFINED_006", // HQS ON 35 < boot floor 40
+      "CLEAN_P16A8_REFINED_008", // HQS ON 38 < boot floor 40
+      "CLEAN_P16A8_REFINED_010", // HQS ON 45 < picker floor 50
+      "CLEAN_P16A8_REFINED_011", // HQS ON 45 < picker floor 50
+      "CLEAN_P16A8_REFINED_012", // HQS ON 47 < picker floor 50
     ]) {
       expect(draftSet.has(held)).toBe(false);
     }
@@ -307,8 +339,8 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
   it("hooks and howToFilm are intra-catalog distinct", () => {
     const hooks = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.hook);
     const howTo = NIGERIAN_CLEAN_CORE_ENTRIES.map((e) => e.howToFilm);
-    expect(new Set(hooks).size).toBe(87);
-    expect(new Set(howTo).size).toBe(87);
+    expect(new Set(hooks).size).toBe(91);
+    expect(new Set(howTo).size).toBe(91);
     // None of the 9 rejected hook strings (5 imported + 4 never imported)
     // appear in the corpus after the cleanup.
     const lc = new Set(hooks.map((h) => h.toLowerCase().trim()));
@@ -335,6 +367,7 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
       "BI-CLEAN-P16A2 2026-05-12", // P16-A2 human-feel survivors (072,073,074)
       "BI-CLEAN-P16A3 2026-05-12", // P16-A3 human-batch survivors (075,076,077,090,092)
       "BI-CLEAN-P16A3-REVISION 2026-05-12", // P16-A3-REVISION (078,079,081-087,089,091,093,094)
+      "BI-CLEAN-P16A8 2026-05-12", // P16-A8 refined survivors (097,098,101,103)
     ]);
     for (const entry of NIGERIAN_CLEAN_CORE_ENTRIES) {
       expect(ALLOWED_STAMPS.has(entry.reviewedBy)).toBe(true);
@@ -398,6 +431,127 @@ describe("NIGERIAN_CLEAN_CORE_ENTRIES — N1-CLEAN-CORE-P1+P2 catalog invariant"
         );
       }
     }
+    // Entries 87..90 (P16-A8 refined survivors: ng_clean_097, 098,
+    // 101, 103) MUST carry the supervisor-supplied BI-CLEAN-P16A8 stamp.
+    for (let i = 87; i < 91; i++) {
+      expect(NIGERIAN_CLEAN_CORE_ENTRIES[i]!.reviewedBy).toBe(
+        "BI-CLEAN-P16A8 2026-05-12",
+      );
+    }
+  });
+});
+
+// ---------------------------------------------------------------- //
+// P16-A8 refined-candidate import — focused assertions              //
+// ---------------------------------------------------------------- //
+
+describe("NIGERIAN_CLEAN_CORE_ENTRIES — P16-A8 refined-candidate import", () => {
+  const P16A8_IMPORTED: ReadonlyArray<{
+    readonly id: string;
+    readonly draftId: string;
+    readonly anchor: string;
+    readonly hook: string;
+    readonly premiseFamily: string;
+    readonly voiceTone: string;
+  }> = [
+    {
+      id: "ng_clean_097",
+      draftId: "CLEAN_P16A8_REFINED_003",
+      anchor: "transfer receipt",
+      hook: "The transfer receipt arrived before the money behaved.",
+      premiseFamily: "money_pos_bank",
+      voiceTone: "clean_deadpan",
+    },
+    {
+      id: "ng_clean_098",
+      draftId: "CLEAN_P16A8_REFINED_004",
+      anchor: "market receipt",
+      hook: "The market receipt refused to match the bag.",
+      premiseFamily: "market_food",
+      voiceTone: "quiet_realization_clean",
+    },
+    {
+      id: "ng_clean_101",
+      draftId: "CLEAN_P16A8_REFINED_007",
+      anchor: "room fan",
+      hook: "The room fan started its own family meeting.",
+      premiseFamily: "power_light",
+      voiceTone: "clean_social_comedy",
+    },
+    {
+      id: "ng_clean_103",
+      draftId: "CLEAN_P16A8_REFINED_009",
+      anchor: "outfit adjustment",
+      hook: "The outfit adjustment refused to respect closing time.",
+      premiseFamily: "tailoring_events",
+      voiceTone: "quiet_realization_clean",
+    },
+  ];
+
+  for (const expected of P16A8_IMPORTED) {
+    it(`${expected.id} is present with verbatim hook + supervisor metadata`, () => {
+      const found = NIGERIAN_CLEAN_CORE_ENTRIES.find(
+        (e) => e.id === expected.id,
+      );
+      expect(found, `entry ${expected.id} missing`).toBeDefined();
+      if (!found) return;
+      expect(found.draftId).toBe(expected.draftId);
+      expect(found.anchor).toBe(expected.anchor);
+      expect(found.hook).toBe(expected.hook);
+      expect(found.premiseFamily).toBe(expected.premiseFamily);
+      expect(found.voiceTone).toBe(expected.voiceTone);
+      expect(found.reviewedBy).toBe("BI-CLEAN-P16A8 2026-05-12");
+      // Anchor verbatim in hook (case-insensitive substring) — boot
+      // validator already enforces this, but assert here so a
+      // future-rewrite would surface as a P16-A8-named test failure.
+      expect(found.hook.toLowerCase()).toContain(
+        expected.anchor.toLowerCase(),
+      );
+      expect(found.whatToShow.toLowerCase()).toContain(
+        expected.anchor.toLowerCase(),
+      );
+      // Hook ends with period and is ≤10 words.
+      expect(found.hook.trimEnd().endsWith(".")).toBe(true);
+      expect(found.hook.trim().split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(10);
+      // Boot-time validator (full classifier) returns null for this entry.
+      expect(classifyNigerianCleanCoreEntryFailure(found)).toBeNull();
+    });
+  }
+
+  it("authorPackEntryAsIdea succeeds for each P16-A8 import (runtime author parity)", () => {
+    const CORE = PREMISE_CORES[0]!;
+    const VOICE = VOICE_CLUSTERS[0]!;
+    const failed: string[] = [];
+    for (const expected of P16A8_IMPORTED) {
+      const entry = NIGERIAN_CLEAN_CORE_ENTRIES.find(
+        (e) => e.id === expected.id,
+      );
+      if (!entry) {
+        failed.push(`${expected.id}:not_found`);
+        continue;
+      }
+      const projectedDomain =
+        NIGERIAN_CLEAN_CORE_PREMISE_FAMILY_TO_PACK_DOMAIN[entry.premiseFamily] ?? "everyday";
+      const packShape: NigerianPackEntry = {
+        hook: entry.hook,
+        whatToShow: entry.whatToShow,
+        howToFilm: entry.howToFilm,
+        caption: entry.caption,
+        anchor: entry.anchor,
+        domain: projectedDomain,
+        pidginLevel: "light_pidgin",
+        reviewedBy: entry.reviewedBy,
+      };
+      const r = authorPackEntryAsIdea({
+        entry: packShape,
+        core: CORE,
+        voice: VOICE,
+        regenerateSalt: 0,
+        seedFingerprints: new Set(),
+      });
+      if (!r.ok) failed.push(`${expected.id}:${JSON.stringify(r)}`);
+    }
+    expect(failed).toEqual([]);
   });
 });
 
