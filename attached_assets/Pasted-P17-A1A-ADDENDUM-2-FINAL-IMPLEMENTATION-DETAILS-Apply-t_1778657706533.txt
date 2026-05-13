@@ -1,0 +1,96 @@
+P17-A1A ADDENDUM 2 — FINAL IMPLEMENTATION DETAILS
+
+Apply these final requirements before executing P17-A1A.
+
+1. Deterministic demo resolver ordering
+
+Use:
+
+ORDER BY created_at ASC, id ASC
+
+Rationale:
+- created_at ASC captures the semantic intent: the canonical demo creator is the original demo row.
+- id ASC is a deterministic tiebreaker if multiple demo rows share the same timestamp.
+- In the current DB, both ordering strategies select the same canonical row:
+  00000000-…-0000000a1e00 / “Alex”
+
+Do not use unordered LIMIT 1 anywhere in the unauth demo resolver path.
+
+2. Cleanup script must be dry-run by default
+
+The QA cleanup script must not modify rows unless called with an explicit --apply flag.
+
+Default behavior:
+- print total is_demo=true count
+- print qa_sweep:* demo row count
+- print the candidate rows that would be changed
+- print the canonical demo row selected by resolveCreator
+- exit 0 without modifying anything
+
+Apply behavior:
+- only when --apply is passed
+- use the same printed filter
+- report rows changed
+- rerun-safe / idempotent
+
+3. Prefer is_demo=false, not DELETE
+
+For old qa_sweep:* rows, prefer flipping:
+
+is_demo=false
+
+Do not delete rows in this phase.
+
+Reason:
+- reversible
+- avoids foreign-key/history risk
+- removes them from unauth demo resolver selection
+- preserves any idea history, feedback, taste calibration, or QA traces
+
+The cleanup script should also report whether candidate rows appear to have inbound references, if easy to check. That can inform a later true-delete cleanup, but deletion is out of scope now.
+
+4. Echo resolved creator ID in both QA telemetry and logs
+
+Add the resolved route creator ID to:
+
+A. gated qaTelemetry:
+routeResolvedCreatorId
+
+B. the existing nigerian_pack.slot_reservation_decision log line, if feasible:
+routeResolvedCreatorId / creatorId
+
+The driver should use qaTelemetry as the primary assertion surface, but log inclusion protects future log-only debugging sessions.
+
+5. Reset canonical row memory before the 10-batch repro
+
+After deterministic resolver + cleanup, the repro must reset Nigerian pack memory for the same canonical row the route resolves.
+
+The report must explicitly confirm:
+
+- canonical demo creator ID selected by resolveCreator
+- memory reset was applied to that same creator ID
+- batch 0 memBefore value
+- if batch 0 memBefore is not 0, explain why before interpreting results
+
+6. Required report confirmations
+
+Add to the report:
+
+DETERMINISTIC DEMO RESOLUTION
+- ordering used: created_at ASC, id ASC
+- canonical demo row selected
+- before/after is_demo=true counts
+- qa_sweep rows flipped or dry-run list
+
+CANONICAL MEMORY RESET
+- creator ID reset
+- routeResolvedCreatorId for batch 0
+- batch 0 memBefore
+- proof they match
+
+QA TELEMETRY / LOGGING
+- routeResolvedCreatorId present in qaTelemetry
+- routeResolvedCreatorId present in slot reservation log if implemented
+- production cannot access this telemetry
+
+Do not implement picker logic in this phase.

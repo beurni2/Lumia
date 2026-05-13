@@ -12,7 +12,7 @@
  */
 
 import type { Request } from "express";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { db, schema } from "../db/client";
 import type { Creator } from "../db/schema";
@@ -63,11 +63,25 @@ export async function resolveCreator(
     return { kind: "unauthenticated_unknown" };
   }
 
+  // P17-A1A — deterministic ordering. The DB historically accumulated
+  // ~108 `is_demo=TRUE` rows from old qa_sweep:* runs that were never
+  // cleaned up; an unordered `LIMIT 1` returned an arbitrary row, which
+  // broke the QA harness (driver pinned its read row while the route
+  // resolved a different demo for write). `ORDER BY created_at ASC, id
+  // ASC` makes the resolution deterministic and selects the canonical
+  // (earliest-seeded) demo row. The `id ASC` tiebreaker covers any case
+  // where two demo rows share a `created_at` (same migration / same
+  // millisecond seed). Production behaviour is unchanged for authed
+  // users; only the unauth-demo branch is affected and it now resolves
+  // consistently to the canonical demo creator. Pairs with the
+  // qaCleanupDemoCreators script which flips stale qa_sweep:* rows to
+  // is_demo=FALSE so they fall out of consideration entirely.
   const demo = (
     await db
       .select()
       .from(schema.creators)
       .where(eq(schema.creators.isDemo, true))
+      .orderBy(asc(schema.creators.createdAt), asc(schema.creators.id))
       .limit(1)
   )[0];
 

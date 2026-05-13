@@ -1757,3 +1757,9 @@ id = "Cateb2fcpKPX7502kWq3m"
 uri = "file://.local/P17_A1_NG_LIGHT_PIDGIN_MEMORY_FIRST_PACK_SELECTION.md"
 type = "text"
 title = "P17-A1 — NG light_pidgin Memory-First Pack Selection (PRE-EDIT FINDING)"
+
+[[outputs]]
+id = "9Hn0IKTRjqxOvMDSG6Qcz"
+uri = "file://.local/P17_A1A_NG_LIGHT_PIDGIN_QA_HARNESS_STABILIZATION.md"
+type = "text"
+title = "P17-A1A — NG light_pidgin QA Harness Stabilization"

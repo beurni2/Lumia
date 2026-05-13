@@ -602,6 +602,28 @@ export type HybridIdeatorResult = {
      * clean-core ids at slots ≥ 1. Strictly additive.
      */
     slot1PlusRecordedEntryIds?: ReadonlyArray<string>;
+    /**
+     * P17-A1A — echo of the resolved creator id the route handed to
+     * the orchestrator. Always populated when `qaTelemetry` is present
+     * (i.e. the QA expose-meta header is set + non-prod). The 10-batch
+     * QA driver asserts `routeResolvedCreatorId === expectedDemoId`
+     * per batch so a future regression of `resolveCreator`'s ordering
+     * (or accidental promotion of a stale qa_sweep row back to
+     * `is_demo=TRUE`) cannot silently bypass the harness like the
+     * pre-A1A unordered `LIMIT 1` did. Strictly additive.
+     */
+    routeResolvedCreatorId?: string;
+    /**
+     * P17-A1A — in-band copy of the `SlotReservationDiagnostic` the
+     * Nigerian-pack reservation step emits to the
+     * `nigerian_pack.slot_reservation_decision` log. Present ONLY for
+     * activated NG cohorts (the helper short-circuits to identity for
+     * every other cohort, leaving `n1s2_diagnostic` null). Reading
+     * this off `qaTelemetry` removes the log-scrape requirement that
+     * blocked the prior P17-A1 selector-snapshot repro. Strictly
+     * additive; production callers ignore qaTelemetry.
+     */
+    slotReservationDiagnostic?: SlotReservationDiagnostic;
   };
 };
 
@@ -5482,7 +5504,17 @@ export async function runHybridIdeator(
   // own activation guard short-circuits the call for non-NG /
   // flag-OFF / NG-clean / NG-null cohorts), so this stays
   // byte-identical to baseline outside the NG-pidgin path.
+  // P17-A1A — function-scoped capture of the slot-reservation
+  // diagnostic so it can be surfaced on the orchestrator's
+  // `qaTelemetry` (gated downstream by the route's QA-expose-meta
+  // header). Mirrors the existing `nigerian_pack.slot_reservation_decision`
+  // log; never read by production callers.
   let n1s2_diagnostic: SlotReservationDiagnostic | null = null;
+  // Captured into a local that survives past the slot-reservation
+  // block (function-scoped) for the qaTelemetry build at the end.
+  // Same instance — no copy.
+  // eslint-disable-next-line prefer-const
+  let _qaSlotReservationDiagnostic: SlotReservationDiagnostic | null = null;
   const n1s2_postBatch = applyNigerianPackSlotReservation({
     selectionBatch: n1s2_preBatch,
     candidatePool: merged,
@@ -5497,6 +5529,8 @@ export async function runHybridIdeator(
     creatorIdForLog: input.creator?.id ?? null,
     onDiagnostic: (d) => {
       n1s2_diagnostic = d;
+      // P17-A1A — also stash for qaTelemetry surface. Same instance.
+      _qaSlotReservationDiagnostic = d;
     },
   });
   selection = { ...selection, batch: n1s2_postBatch };
@@ -7055,6 +7089,24 @@ export async function runHybridIdeator(
         : {}),
       ...(_ngCleanSlot1PlusRecordedEntryIds.length > 0
         ? { slot1PlusRecordedEntryIds: _ngCleanSlot1PlusRecordedEntryIds }
+        : {}),
+      // P17-A1A — echo the resolved creator id so the QA driver can
+      // assert read/write row identity without scraping logs. Always
+      // present (may be undefined when the route bypassed
+      // `resolveCreator`, but the route always runs it before calling
+      // generateIdeas, so in practice this is always set).
+      ...(input.creator?.id
+        ? { routeResolvedCreatorId: input.creator.id }
+        : {}),
+      // P17-A1A — surface the slot-reservation diagnostic in-band.
+      // `_qaSlotReservationDiagnostic` is only assigned inside the
+      // activated NG-pack reservation branch (mirrors the
+      // `nigerian_pack.slot_reservation_decision` log emission), so
+      // non-NG / flag-OFF cohorts simply omit the field. Pure read-
+      // only; the diagnostic object is the same instance the helper
+      // already constructs.
+      ...(_qaSlotReservationDiagnostic
+        ? { slotReservationDiagnostic: _qaSlotReservationDiagnostic }
         : {}),
     },
   };
