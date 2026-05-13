@@ -1,0 +1,162 @@
+P17-A0 diagnosis: PASS.
+
+The app is correctly shipping 5/5 light-pidgin pack cards, and each batch has distinct hooks and distinct entry IDs. So the user-visible repetition is not “the same hook repeated inside one batch.” It is mostly across-batch / regenerate repetition.
+
+Key proof:
+
+50 / 50 cards shipped from the pack.
+0 in-batch duplicate entry IDs.
+0 in-batch duplicate hooks.
+33 distinct entry IDs out of 50 cards, so there is some variety.
+But 17 entry overlaps vs all previous batches.
+10 / 50 shipped cards were already in memory before generation.
+Memory grew only for the first two batches: [5, 5, 0, 0, 0, 0, 0, 0, 0, 0].
+
+That last point matters. The memory window appears capped at 10, and after it fills, later batches keep shipping some already-seen entries. So the next fix should be memory-first selection, not just anchor/domain diversity.
+
+What this means
+
+Do not build a generic “within-batch diversity picker” as the main fix.
+
+The batch itself is already diverse enough by entry ID and hook. The pain is:
+
+regenerate keeps letting previously seen pack entries win again.
+
+So the right next phase is:
+
+P17-A1-NG-LIGHT-PIDGIN-MEMORY-FIRST-PACK-SELECTION
+
+What the fix should do
+
+When composing the 5 light-pidgin pack outputs:
+
+Strongly prefer entries not in recentNigerianPackEntryIds.
+Still keep 5/5 pack output.
+Relax only if fresh eligible pack candidates are insufficient.
+Use anchor/domain diversity as a secondary rule, not primary.
+Increase or audit the memory cap if it is truly only 10.
+Preserve quality with a score band, so very weak fresh entries do not beat much stronger entries.
+Keep everything inside the activated Nigerian pack branch.
+Important implementation detail
+
+The report says some later batches shipped entries that were already in memory, like:
+
+ng_d995c073
+ng_e91e55a9
+ng_f2342999
+ng_2c1e20c0
+ng_5e25ee65
+ng_706fa7d9
+ng_f4c27836
+
+So coding needs to inspect why memory is only partial:
+
+Is memory only used in retention but not final slot reservation?
+Is the memory cap too small?
+Is memory excluding only top-K but allowing seen entries back later?
+Is regenerate using a different path?
+Is memory write capped at 10 and not refreshed with later new entries?
+Send this to coding
+P17-A1-NG-LIGHT-PIDGIN-MEMORY-FIRST-PACK-SELECTION
+
+Do not implement a generic within-batch diversity picker first.
+
+P17-A0 proved:
+- 50/50 outputs shipped from NG light-pidgin pack.
+- 0 in-batch duplicate entryIds.
+- 0 in-batch duplicate hooks.
+- repetition is across regenerates, not inside one batch.
+- 10/50 shipped cards were already in memory before generation.
+- memory grew only for the first two batches: [5, 5, 0, 0, 0, 0, 0, 0, 0, 0].
+- across-batch overlap vs all prior = 17.
+
+Root cause to investigate:
+recentNigerianPackEntryIds is being read/written, but suppression is partial. Previously seen entries can still win during regenerate.
+
+Goal:
+Make final light-pidgin pack selection memory-first across regenerates while preserving 5/5 pack output and quality.
+
+Scope:
+- activated NG pack branch only
+- light_pidgin / pidgin selected corpus path only, if branch is shared
+- no corpus changes
+- no hook rewrites
+- no validator changes
+- no scorer/floor changes
+- no generic English fallback increase
+- no API/mobile/DB/schema changes unless memory cap/storage audit proves unavoidable
+- no production env changes
+- no W2-O or P13-T2 work
+- do not call proposeFollowUpTasks
+
+Implementation requirements:
+
+1. Audit memory behavior first.
+   Inspect:
+   - getRecentSeenEntryIds
+   - record/update Nigerian pack seen entry IDs
+   - memory cap/window size
+   - where recentNigerianPackEntryIds is applied
+   - pack-aware retention
+   - applyNigerianPackSlotReservation
+   - regenerate path
+
+   Answer:
+   - Why does memory stop growing after 10 IDs?
+   - Is 10 the intended cap?
+   - Are newly shipped IDs after batch 1 being dropped because of cap logic?
+   - Are seen IDs excluded from retention but allowed back during final reservation?
+   - Does regenerate bypass any memory gate?
+
+2. Implement memory-first final pack selection.
+   When selecting final NG pack cards:
+   - first prefer candidates whose nigerianPackEntryId is not in recentNigerianPackEntryIds
+   - keep existing quality gates
+   - keep 5/5 pack output
+   - if fresh candidates are insufficient, relax and allow seen entries
+   - among fresh candidates, preserve existing score order as much as possible
+   - use anchor/domain diversity only as secondary tie-breakers
+   - use regenerateSalt only as deterministic tie-break inside close bands
+
+3. Memory cap/window.
+   If current cap is 10, evaluate increasing it to 25 or 50 for light_pidgin pack memory.
+   Do not change blindly. Report the current cap and expected effect.
+   Since the light-pidgin corpus has 263 eligible entries, a cap of 10 may be too weak for regenerate freshness.
+
+4. Runtime QA.
+   Re-run the same 10-batch audit:
+   - same creator if possible
+   - 10 consecutive batches
+   - batch 0 normal, batches 1–9 regenerate=true
+   - 5 ideas per batch
+   - memory reset once at start, then shared across all 10
+
+   Report:
+   - packShippedCount
+   - distinct shipped entryIds
+   - overlap vs immediately previous batch
+   - overlap vs all previous batches
+   - shipped entries already in memory before generation
+   - memory size before/after each batch
+   - in-batch duplicate hooks/entryIds
+   - repeated anchors/domains
+   - underfill/fallback
+   - languageStyle remained light_pidgin
+
+PASS criteria:
+- 5/5 pack output preserved.
+- 0 underfill.
+- 0 fallback increase.
+- 0 in-batch duplicate hooks/entryIds.
+- shipped entries already in memory drops materially below 10/50.
+- overlap vs all previous drops materially below 17.
+- memory grows/rotates as expected instead of freezing after two batches.
+- quality does not visibly collapse into low-score weak entries.
+
+Create report:
+.local/P17_A1_NG_LIGHT_PIDGIN_MEMORY_FIRST_PACK_SELECTION.md
+
+Do not implement generic K widening; K=11 already exists.
+Do not implement pattern_variation work.
+
+Bottom line: the fix is memory-first final pack selection across regenerates. Anchor/domain diversity can help later, but memory must be the first ordering rule because the batch itself is already distinct.
