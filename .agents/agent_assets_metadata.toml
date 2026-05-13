@@ -1745,3 +1745,9 @@ id = "5CNMrnunKUM0Mliza7THT"
 uri = "file://.local/NG_LIGHT_PIDGIN_PER_CORE_PACK_SCORE_AUDIT.md"
 type = "text"
 title = "NG light_pidgin per-core pack score-gap audit"
+
+[[outputs]]
+id = "Ga7ODOXOicY4uhGHsiPOr"
+uri = "file://.local/P17_A0_NG_LIGHT_PIDGIN_LIVE_REPETITION_AUDIT.md"
+type = "text"
+title = "P17-A0 — NG light_pidgin live repetition audit"

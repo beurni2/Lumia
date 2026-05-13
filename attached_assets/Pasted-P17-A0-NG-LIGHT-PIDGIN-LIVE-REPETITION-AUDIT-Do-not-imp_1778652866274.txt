@@ -1,0 +1,75 @@
+P17-A0-NG-LIGHT-PIDGIN-LIVE-REPETITION-AUDIT
+
+Do not implement the diversity picker yet.
+
+Run a focused live/shipped-output audit for ng_light_pidgin repetition across consecutive regenerates.
+
+Goal:
+Determine whether the user-visible repetition is mostly:
+- within-batch repetition,
+- across-batch repetition,
+- repeated anchors/domains,
+- repeated nigerianPackEntryIds,
+- memory not being read/written,
+- or score-collapse despite memory.
+
+Use the same active/demo creator if available:
+ca2f929e-…b902c992
+
+If not available, use the closest representative ng_light_pidgin creator with:
+region = nigeria
+languageStyle = light_pidgin / Mostly English, some Pidgin
+
+Run:
+- 10 consecutive regenerate-style batches
+- 5 ideas per batch
+- selected style must remain ng_light_pidgin
+- target 5/5 NG pack outputs
+
+For each batch, report:
+- batch index
+- final 5 hooks
+- nigerianPackEntryId per card
+- anchor per card
+- domain per card
+- premise/core if available
+- score/rank if available
+- packShippedCount
+- fallback/underfill status
+- recentNigerianPackEntryIds before generation
+- recentNigerianPackEntryIds after generation
+- pack_seen count before and after
+- whether each shipped entryId was already in memory before generation
+- overlap with immediately previous batch
+- overlap with all previous batches
+- in-batch duplicate entryIds
+- in-batch duplicate hooks
+- repeated anchors/domains within batch
+
+Create report:
+.local/P17_A0_NG_LIGHT_PIDGIN_LIVE_REPETITION_AUDIT.md
+
+Answer these questions explicitly:
+
+1. Are the 5 cards within each batch distinct by entryId and hook?
+2. Are the same entryIds repeating across regenerates?
+3. Are the same anchors/domains repeating across regenerates?
+4. Is recentNigerianPackEntryIds being read before selection?
+5. Is pack_seen memory growing by about 5 after each successful batch?
+6. Are recently seen entries being suppressed or still winning?
+7. Is the issue within-batch diversity or across-batch memory/selection?
+8. Which implementation should come next:
+   - memory suppression fix,
+   - final-pack diversity picker,
+   - salt tiebreak,
+   - or combined memory-first diversity picker?
+
+Do not change code unless a local QA harness is needed.
+Do not change corpus, scorer, validators, floors, schema, API, mobile, or production env.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+
+Return PASS/HOLD/FAIL-style recommendation:
+- PASS audit only if diagnosis is clear.
+- HOLD if instrumentation is insufficient.
+- FAIL only if cohort gate breaks, 5/5 pack output breaks, fallback appears, or memory is clearly not persisting.
