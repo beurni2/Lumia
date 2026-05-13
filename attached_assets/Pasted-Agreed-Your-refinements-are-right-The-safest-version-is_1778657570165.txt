@@ -1,0 +1,127 @@
+Agreed. Your refinements are right.
+
+The safest version is:
+
+Do not add a QA creator-id header yet.
+Use Option B first: deterministic demo resolver + cleanup of old QA demo rows. That fixes the actual root cause without introducing a new production-gated bypass surface.
+
+Also correct: the harness should not require 5/5 pack cards as a pass condition. If the stabilized run shows 2–3 pack cards, that is real data, not a harness failure. The harness phase should measure what ships, not force the expected outcome.
+
+And yes, the void recordSeenEntries(...) race must stay tracked as a known out-of-scope risk. The P17-A1 finding already identified it as a real read-modify-write race risk, separate from the demo-row bypass.
+
+Revised coding instruction
+P17-A1A ADDENDUM — HARNESS STABILIZATION REVISIONS
+
+Update the P17-A1A plan before implementation.
+
+1. Prefer deterministic demo resolver over QA creator-id header
+
+Do NOT add a QA-only x-lumina-qa-creator-id header unless deterministic resolver + cleanup proves insufficient.
+
+Use Option B first:
+
+- Add deterministic ORDER BY to the unauth demo branch in resolveCreator.
+- Prefer ORDER BY created_at ASC if the canonical demo creator is the earliest demo row.
+- Otherwise use ORDER BY id ASC only if that is the existing stable convention.
+- Report which ordering was chosen and why.
+
+Reason:
+The root cause is smaller than a new route override surface. resolveCreator currently selects is_demo=true LIMIT 1 with no ORDER BY, and there are 108 demo rows. Fix the nondeterminism directly.
+
+2. Clean up old QA demo rows
+
+Add a one-shot QA cleanup or maintenance script, not a production behavior change.
+
+Goal:
+- Delete old qa_sweep:* demo rows, OR
+- safer: set is_demo=false for old qa_sweep:* rows if deletion risks foreign-key/history issues.
+
+Requirements:
+- Do not delete the canonical demo creator.
+- Print before/after counts:
+  - total is_demo=true rows
+  - qa_sweep:* demo rows
+  - canonical demo row selected by resolveCreator
+- Make the script idempotent.
+- Do not run destructive cleanup without clear row filter.
+- Report exact SQL/filter used.
+
+If cleanup is unsafe, stop and report.
+
+3. Echo resolved creator ID in QA telemetry
+
+Add QA-gated telemetry field:
+
+routeResolvedCreatorId
+
+or equivalent.
+
+The 10-batch driver must assert:
+
+routeResolvedCreatorId === expectedDemoCreatorId
+
+for every batch.
+
+Do not expose this field in production responses.
+
+4. Soften pack-count requirement
+
+The stabilized harness must report actual pack shipping behavior. It must not fail solely because packShippedCount is below 5/5.
+
+Replace the old pass condition:
+
+“selected pipeline must ship 5/5 NG pack cards”
+
+with:
+
+“report packShippedCount per batch and treat it as product/runtime evidence.”
+
+If the stabilized run ships fewer than 5/5 pack cards, classify that as a real picker/allocation finding, not a harness failure, as long as:
+- creator resolution is stable
+- memory telemetry is valid
+- no route/harness error occurred
+- languageStyle remains light_pidgin
+- fallback/underfill are reported honestly
+
+5. Track fire-and-forget memory write race as known out-of-scope
+
+Do not fix the `void recordSeenEntries(...)` race in P17-A1A unless the harness cannot produce valid results without it.
+
+But the report must include a section:
+
+KNOWN OUT-OF-SCOPE RISK — PACK MEMORY WRITE RACE
+
+It must state:
+- current write site
+- why fire-and-forget can race with near-concurrent requests
+- whether the 10-batch sequential repro is affected
+- whether a later phase should make the write awaited or atomic
+
+6. Updated P17-A1A pass criteria
+
+PASS if:
+- resolveCreator returns the same deterministic demo creator for every batch
+- routeResolvedCreatorId is captured in QA telemetry
+- driver proves routeResolvedCreatorId matches the expected demo creator
+- slot reservation diagnostic is captured in-band
+- memory before/after is read from the same row the route used
+- packShippedCount is reported honestly per batch
+- no unexplained memory shrink occurs
+- the report clearly states whether seen IDs still ship after valid memory measurement
+- no production telemetry/auth bypass surface is introduced
+- no picker behavior changes were made
+
+HOLD if:
+- cleanup is unsafe
+- canonical demo row cannot be identified
+- pack telemetry is still missing
+- selector diagnostic cannot be surfaced
+- routeResolvedCreatorId cannot be proven
+- memory write/read row still differs
+
+FAIL if:
+- production can access QA telemetry
+- normal authenticated creator resolution changes
+- demo resolver breaks
+- cleanup deletes/changes non-QA rows
+- picker/corpus/scorer/validator behavior changes in this harness-only phase
