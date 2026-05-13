@@ -117,8 +117,8 @@ afterEach(() => {
   }
 });
 
-describe("N1-P4 pack-aware retention top-K=3", () => {
-  it("retains UP TO 3 distinct pack candidates per core (flag ON, NG cohort)", () => {
+describe("N1-P4 pack-aware retention top-K=11", () => {
+  it("retains UP TO 11 distinct pack candidates per core (flag ON, NG cohort)", () => {
     const out = generateCoreCandidates(buildInput());
     const packIds = packEntryIdsOf(out);
     const distinct = new Set(packIds);
@@ -205,7 +205,7 @@ describe("N1-P4 pack-aware retention top-K=3", () => {
     expect(blockedCount).toBeLessThanOrEqual(PREMISE_CORES.slice(0, 4).length);
   });
 
-  it("retains only what is available when fewer than 3 valid pack runners-up exist (no under-fill)", () => {
+  it("retains only what is available when fewer than 11 valid pack runners-up exist (no under-fill)", () => {
     // Stuff recentNigerianPackEntryIds with most of the pack pool
     // (sample by running a probe and capturing what surfaces).
     const probe = generateCoreCandidates(buildInput());
@@ -267,28 +267,29 @@ describe("N1-P4 pack-aware retention top-K=3", () => {
     expect(onOut.candidates.length).toEqual(offOut.candidates.length);
   });
 
-  it("per-core (SINGLE-CORE probe): retains best + UP TO 3 extra distinct pack picks (no over-retention)", () => {
+  it("per-core (SINGLE-CORE probe): retains best + UP TO 11 extra distinct pack picks (no over-retention)", () => {
     // Strengthens architect feedback A1+A2: precise PER-CORE upper
     // bound on retained pack picks. We probe with a SINGLE core so
     // every candidate in `out.candidates` provably belongs to that
     // one core (no cross-core merging needed in the test). The
     // retention block adds AT MOST
-    // `NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 3` pack runners on top
-    // of `best`. When `best` is itself pack-authored, the retained
-    // pack-id slice for that core has size ≤ (3 + 1) = 4 distinct
-    // ids. When `best` is non-pack, the slice has size ≤ 3 distinct
-    // ids. Either way the per-core distinct pack-id count never
-    // exceeds 4.
+    // `NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 11` pack runners on top
+    // of `best` (BI 2026-05-13 bump from 3 → 11 so the retention
+    // covers the full per-core pack draw cap of 12). When `best` is
+    // itself pack-authored, the retained pack-id slice for that
+    // core has size ≤ (11 + 1) = 12 distinct ids. When `best` is
+    // non-pack, the slice has size ≤ 11 distinct ids. Either way
+    // the per-core distinct pack-id count never exceeds 12.
     const out = generateCoreCandidates(
       buildInput({ cores: PREMISE_CORES.slice(0, 1) }),
     );
     const packIds = packEntryIdsOf(out);
     const distinct = new Set(packIds);
-    // Per-core distinct pack-id count: at most best (1) + topK=3 = 4.
+    // Per-core distinct pack-id count: at most best (1) + topK=11 = 12.
     expect(
       distinct.size,
-      `single-core run retained ${distinct.size} distinct pack ids (max 4 = best + topK=3); ids=${[...distinct].join(",")}`,
-    ).toBeLessThanOrEqual(4);
+      `single-core run retained ${distinct.size} distinct pack ids (max 12 = best + topK=11); ids=${[...distinct].join(",")}`,
+    ).toBeLessThanOrEqual(12);
     // No within-core duplicate pack ids (seenPackIds dedup proof).
     expect(
       packIds.length,
@@ -296,15 +297,14 @@ describe("N1-P4 pack-aware retention top-K=3", () => {
     ).toEqual(distinct.size);
     // Lift-vs-K=1 evidence: ≥ 2 distinct pack ids (impossible under
     // the prior K=1 retention which capped per-core pack picks at
-    // best + 1 = 2 max). With K=3 active and a healthy pack pool,
-    // expect ≥ 2 distinct pack ids on this single-core run; the
-    // strict "K=3 is wired in" lift signal is ≥ 3 (best + 2 extras
-    // requires K ≥ 2). We assert ≥ 3 because even one extra runner
-    // beyond K=1 proves the new branch executed (best + 1 = K=1
-    // baseline; best + 2 = K ≥ 2 retention active).
+    // best + 1 = 2 max). With K=11 active and a healthy pack pool,
+    // expect ≥ 3 distinct pack ids on this single-core run (best
+    // + ≥2 extras requires K ≥ 2). We assert ≥ 3 because even one
+    // extra runner beyond K=1 proves the new branch executed
+    // (best + 1 = K=1 baseline; best + 2 = K ≥ 2 retention active).
     expect(
       distinct.size,
-      `expected ≥ 3 distinct pack ids on a single-core K=3 run (best + ≥2 extras), observed ${distinct.size}`,
+      `expected ≥ 3 distinct pack ids on a single-core K=11 run (best + ≥2 extras), observed ${distinct.size}`,
     ).toBeGreaterThanOrEqual(3);
   });
 

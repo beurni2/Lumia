@@ -844,6 +844,19 @@ const RECIPES_PER_CORE_CAP = 8;
  *  RECIPES_PER_CORE_CAP × per-batch-core count headroom. */
 const ANTI_COPY_SAMPLE_CAP = 20;
 
+// PHASE N1-LIVE-HARDEN PACK-AWARE-RETENTION (BI 2026-05-07; K=11
+// bumped 2026-05-13). Per-core retention runners-up cap inside the
+// activated NG branch. K=11 covers the full per-core
+// NIGERIAN_PACK_ELIGIBLE_DRAW_CAP=12 (1 best + 11 runners-up) so
+// the slot-reservation helper can hit desiredCount=5 pack slots
+// after per-creator memory + per-batch dedup. Hoisted to module
+// scope so the loop-cap computation in `generateCoreCandidates`
+// can reference it (without it the L~1045 `if (candidates.length
+// >= cap)` short-circuit would let core 0's 1+11 pushes exhaust
+// the budget and skip every subsequent core, regressing the
+// per-core `best` push parity).
+const NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 11;
+
 export function generateCoreCandidates(
   input: GenerateCoreCandidatesInput,
 ): GenerateCoreCandidatesResult {
@@ -866,7 +879,23 @@ export function generateCoreCandidates(
     new Map<VoiceClusterId, number>();
   const tasteCalibration = input.tasteCalibration ?? null;
   const seedFingerprints = loadSeedHookFingerprints();
-  const cap = Math.max(0, Math.trunc(input.count));
+  const baseCap = Math.max(0, Math.trunc(input.count));
+  // BI 2026-05-13 — when the pack-aware retention flag is ON in the
+  // activated NG cohort, each core may push up to
+  // (1 best + NIGERIAN_PACK_AWARE_RETENTION_TOP_K runners-up). The
+  // L~1045 early-exit `if (candidates.length >= cap) continue;`
+  // would otherwise let core 0's runners-up exhaust the budget and
+  // skip every subsequent core, regressing the per-core `best` push
+  // parity. Lift the loop cap by the retention budget so the gate
+  // only bounds the global `best` push parity (input.count cores)
+  // — downstream consumers (slot reservation) want MORE pack
+  // candidates, not fewer. Non-NG / flag-OFF callers see the
+  // pre-flag cap unchanged.
+  const packAwareRetentionFlagOn =
+    process.env.LUMINA_NG_PACK_AWARE_RETENTION_ENABLED === "true";
+  const cap = packAwareRetentionFlagOn
+    ? baseCap + NIGERIAN_PACK_AWARE_RETENTION_TOP_K * input.cores.length
+    : baseCap;
 
   // PHASE N1-S — pack activation context. Computed ONCE per call so
   // the per-core loop only branches on a precomputed boolean. The
@@ -2027,7 +2056,20 @@ export function generateCoreCandidates(
         packEligible.length > 0 &&
         passing.length > 1
       ) {
-        const NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 3;
+        // BI 2026-05-13 — bumped 3 → 11 so per-core retention covers
+        // the full per-core eligible pack draw cap
+        // (NIGERIAN_PACK_ELIGIBLE_DRAW_CAP = 12 = 1 best + 11 runners-up).
+        // User reported only 1/5 cards are pack hooks even with the
+        // activation gate fully ON; the previous K=3 ceiling collapsed
+        // the pack supply that reached `applyNigerianPackSlotReservation`,
+        // which then could not meet its own `min(dedupedPack.length,
+        // desiredCount)` cap. With K=11 the slot reservation
+        // reliably hits desiredCount=5 pack slots after the
+        // per-creator memory + per-batch dedup pass.
+        // (Constant hoisted to module scope as
+        // `NIGERIAN_PACK_AWARE_RETENTION_TOP_K` so the loop-cap
+        // computation at the top of `generateCoreCandidates` can
+        // reference it.)
         const bestPackId = (best.meta as { nigerianPackEntryId?: string })
           .nigerianPackEntryId;
         const seenPackIds = new Set<string>();
@@ -2060,8 +2102,19 @@ export function generateCoreCandidates(
           if (seenPackIds.has(pid)) continue;
           seenPackIds.add(pid);
           candidates.push({ idea: p.idea, meta: p.meta });
-          usedAnchorsThisBatch.add(p.anchorLower);
-          if (p.sf) usedFingerprintsThisBatch.add(p.sf);
+          // BI 2026-05-13 — do NOT mark retention runners-up's
+          // anchors/fingerprints into the cross-core dedup sets.
+          // The per-core `best` push (above) already marks its
+          // anchor/fingerprint, preserving the upstream variety
+          // signal between cores. Marking K=11 retention runners-
+          // up additionally would burn 11 × #cores anchors per
+          // batch, starving subsequent cores of authorable pack
+          // candidates and causing entire cores to drop out of the
+          // batch (regression caught by the "global `best` push
+          // parity" parity test). Cross-core pack collisions are
+          // structurally safe: `applyNigerianPackSlotReservation`
+          // dedups on `nigerianPackEntryId` AND on normalized hook
+          // before composing the final batch.
           added += 1;
         }
       }
