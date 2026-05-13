@@ -6184,7 +6184,12 @@ export async function runHybridIdeator(
           : sidecarCandidates;
       const reservationResult = applyNgCleanFirstCardCoreReservation(
         final,
-        { sidecarPool: annotatedSidecar },
+        {
+          sidecarPool: annotatedSidecar,
+          minTarget: desiredCount,
+          preferredTarget: desiredCount,
+          maxTarget: desiredCount,
+        },
       );
       if (reservationResult.reservedCount > 0) {
         final = reservationResult.final.slice();

@@ -84,8 +84,14 @@ export const MIN_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES = 3;
 export const PREFERRED_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES = 5;
 
 /** Design ceiling — bumping this constant scales the design to
- *  8-12+ without any other change. */
-export const MAX_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES = 8;
+ *  8-12+ without any other change. Bumped 8→20 (BI 2026-05-13) so
+ *  the live `hybridIdeator` call site can pass `maxTarget = desiredCount`
+ *  (engine hard-cap = 20) and force ALL non-slot-0 cards in an
+ *  activated NG-clean batch to be `pickerEligible` clean-core entries.
+ *  Without this bump the per-call override clamped to 8 and a
+ *  `desiredCount` > 8 batch would silently fall through to the legacy
+ *  catalog mix on the trailing slots. */
+export const MAX_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES = 20;
 
 /** Per-core retention cap inside `coreCandidateGenerator` — best
  *  + up to (CAP-1) `pickerEligible`-quality clean-core runner-ups

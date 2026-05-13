@@ -58,7 +58,7 @@ describe("constants", () => {
   it("MIN/PREFERRED/MAX form a non-decreasing series with the design ceiling at MAX", () => {
     expect(MIN_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES).toBe(3);
     expect(PREFERRED_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES).toBe(5);
-    expect(MAX_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES).toBe(8);
+    expect(MAX_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES).toBe(20);
     expect(MIN_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES).toBeLessThanOrEqual(
       PREFERRED_NG_CLEAN_FIRST_CARD_CORE_CANDIDATES,
     );
