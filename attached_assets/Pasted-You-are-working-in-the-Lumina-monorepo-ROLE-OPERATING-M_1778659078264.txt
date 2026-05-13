@@ -1,0 +1,267 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. This is a real UI/request-path verification phase.
+
+Do not change picker logic.
+Do not change scorer logic.
+Do not change validators.
+Do not change floors.
+Do not change corpus entries.
+Do not import entries.
+Do not change DB schema.
+Do not change production env flags.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+
+PHASE NAME
+
+P17-A1B-NG-LIGHT-PIDGIN-REAL-UI-REGEN-VERIFY
+
+BACKGROUND
+
+P17-A1A passed.
+
+A1A fixed the QA harness:
+- deterministic demo resolver with ORDER BY created_at ASC, id ASC
+- stale QA demo rows flipped to is_demo=false
+- routeResolvedCreatorId exposed in gated qaTelemetry
+- slotReservationDiagnostic exposed in gated qaTelemetry
+- stabilized 10-batch server repro produced 50/50 pack cards and 50/50 distinct pack entries
+- no fallback, no errors, no memory shrink
+
+Therefore, there is no currently proven server picker repetition bug.
+
+The remaining likely issue is UI/request-path/cache behavior:
+- client may not send expected region/languageStyle
+- client may be reusing stale cached cards
+- client regenerate path may differ from server QA path
+- UI may display previous batch despite server returning fresh ideas
+- selected “Mostly English, some Pidgin” may not map to light_pidgin in the request body
+- client may request count other than 5
+- client may not pass regenerate=true or equivalent
+
+GOAL
+
+Verify the actual app UI regenerate flow for “Mostly English, some Pidgin.”
+
+Confirm whether the UI:
+1. sends the expected request,
+2. receives 5 NG light-pidgin pack outputs where the selected pipeline provides them,
+3. receives fresh idea IDs/hooks across regenerates,
+4. displays the fresh server response rather than stale cached/local state.
+
+SCOPE
+
+In scope:
+- request/response tracing
+- UI/client network call inspection
+- client state/cache inspection
+- QA-only telemetry usage
+- non-production debug logging if needed
+
+Out of scope:
+- picker changes
+- corpus changes
+- scorer changes
+- validator changes
+- floor changes
+- DB schema changes
+- production env changes
+- broad UI redesign
+
+STEP 1 — Inspect client request path
+
+Locate the UI code that sends idea generation/regenerate requests.
+
+Search in:
+- artifacts/lumina
+- mobile app request client
+- hooks/actions related to generate ideas
+- regenerate/retry button handler
+- onboarding languageStyle/region selection
+- API client for /api/ideator/generate
+
+Search terms:
+- ideator/generate
+- regenerate
+- languageStyle
+- light_pidgin
+- pidgin
+- Mostly English
+- region
+- count
+- ideas
+- lastIdeaBatch
+- cache
+- AsyncStorage
+- queryClient
+- react-query
+- staleTime
+- setIdeas
+- replaceIdeas
+
+Report:
+- exact request body for initial generate
+- exact request body for regenerate
+- how selected “Mostly English, some Pidgin” maps to languageStyle
+- whether count is 5
+- whether regenerate flag is set
+- whether region=nigeria is sent or defaulted server-side
+- whether creator/user identity is stable across clicks
+
+STEP 2 — Add QA-only tracing if needed
+
+If the UI does not expose enough detail, add temporary or gated debug tracing.
+
+Allowed:
+- QA/dev-only console logs
+- QA-only request/response dump in local dev
+- using existing x-lumina-qa-expose-meta: 1 header in non-prod if safe
+
+Do not expose qaTelemetry in production.
+
+Useful trace fields:
+- request body
+- response idea count
+- response hooks
+- response idea IDs if present
+- response qaTelemetry.routeResolvedCreatorId
+- response qaTelemetry.slotReservationDiagnostic
+- response packShippedCount if present
+- whether UI state replaced old ideas or appended/merged
+- client-side displayed hooks after state update
+
+STEP 3 — Real UI regenerate test
+
+Run or simulate the actual app flow.
+
+Test:
+- Select “Mostly English, some Pidgin”
+- Generate initial batch
+- Press regenerate 29 times
+- Total: 30 batches × 5 ideas = 150 displayed ideas
+
+For each batch, capture:
+- request body
+- response status
+- response idea count
+- displayed idea count
+- hooks returned by server
+- hooks displayed by UI
+- idea IDs / pack entry IDs if available
+- languageStyle sent
+- region sent
+- regenerate flag
+- routeResolvedCreatorId if telemetry exposed
+- slotReservationDiagnostic if telemetry exposed
+- whether displayed hooks equal server hooks
+- overlap vs previous displayed batch
+- overlap vs all previous displayed batches
+
+STEP 4 — Diagnosis
+
+Answer:
+
+1. Does UI send languageStyle=light_pidgin?
+2. Does UI send or correctly default region=nigeria?
+3. Does UI request count=5?
+4. Does regenerate send regenerate=true or equivalent?
+5. Does server return 5 ideas?
+6. Are server hooks fresh across regenerates?
+7. Are displayed hooks identical to server hooks?
+8. Is UI caching, appending, or preserving old cards incorrectly?
+9. Is there any client-side fallback to generic English ideas?
+10. Is perceived repetition coming from server response or client display/cache?
+
+STEP 5 — Report
+
+Create:
+
+.local/P17_A1B_NG_LIGHT_PIDGIN_REAL_UI_REGEN_VERIFY.md
+
+Include:
+
+1. Files inspected.
+2. Client request path summary.
+3. Request body examples:
+   - initial generate
+   - regenerate
+4. 30-batch table:
+   - batch index
+   - request languageStyle
+   - request region
+   - request count
+   - regenerate flag
+   - response count
+   - displayed count
+   - server hooks hash/list
+   - displayed hooks hash/list
+   - overlap with previous
+   - overlap with all prior
+5. QA telemetry:
+   - routeResolvedCreatorId if present
+   - slotReservationDiagnostic if present
+6. Diagnosis:
+   - server repetition
+   - UI cache/display repetition
+   - request mapping bug
+   - no bug found
+7. Recommendation:
+   - PASS / HOLD / FAIL
+   - next phase if any
+
+PASS criteria:
+- 30 batches complete without route/client errors.
+- UI sends or server defaults to region=nigeria.
+- UI sends languageStyle=light_pidgin.
+- count=5.
+- regenerate path is correct across all 29 regenerates.
+- server returns 5 ideas per batch.
+- UI displays exactly what server returned.
+- no stale cache/display mismatch.
+- no generic English fallback in light_pidgin flow.
+- overlap vs immediately previous batch is low or explained.
+- overlap vs all prior batches is measured and not caused by client caching.
+
+HOLD if:
+- server is fresh but UI display cannot be verified.
+- telemetry is unavailable.
+- request path is ambiguous.
+- test cannot be run end-to-end.
+- 30-batch run cannot complete, but partial evidence is useful.
+
+FAIL if:
+- UI sends wrong languageStyle.
+- UI sends wrong region.
+- UI requests wrong count.
+- regenerate path does not call server.
+- server returns fresh ideas but UI displays stale ones.
+- generic English fills the selected light_pidgin flow.
+- caching causes repeated old cards.
+
+COMMANDS
+
+Run typecheck for any touched package.
+
+At minimum, depending on touched files:
+- pnpm --filter @workspace/lumina typecheck
+- pnpm --filter @workspace/api-server run typecheck
+- relevant app/API tests if present
+
+If no files are changed, report inspection/test evidence only.
+
+EXPECTED FINAL RESPONSE
+
+Return:
+1. PASS / HOLD / FAIL.
+2. Files inspected/changed.
+3. Request mapping summary.
+4. 30-batch regenerate evidence.
+5. Whether UI or server caused repetition.
+6. Commands run and output.
+7. Recommendation for next phase.
+
+Remember:
+No picker work. No corpus work. This phase verifies the real UI/request path.

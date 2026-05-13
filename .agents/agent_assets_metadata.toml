@@ -1763,3 +1763,9 @@ id = "9Hn0IKTRjqxOvMDSG6Qcz"
 uri = "file://.local/P17_A1A_NG_LIGHT_PIDGIN_QA_HARNESS_STABILIZATION.md"
 type = "text"
 title = "P17-A1A — NG light_pidgin QA Harness Stabilization"
+
+[[outputs]]
+id = "BPT89Tr7CSlSrjC_HATDN"
+uri = "file://.local/P17_A1B_NG_LIGHT_PIDGIN_REAL_UI_REGEN_VERIFY.md"
+type = "text"
+title = "P17-A1B — NG light_pidgin Real UI Regenerate Verify"
