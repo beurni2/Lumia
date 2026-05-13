@@ -1733,3 +1733,9 @@ id = "6mVRBR_PkCvpS352jctqc"
 uri = "file://.local/P16_A8_NG_CLEAN_REFINED_CANDIDATE_PREDICT.md"
 type = "text"
 title = "P16-A8 Predict Detail — Per-Candidate Decisions"
+
+[[outputs]]
+id = "ElqEhvxq9Eb_jvAMtGaau"
+uri = "file://.local/NG_LIGHT_PIDGIN_REPETITION_DIAGNOSIS.md"
+type = "text"
+title = "NG light_pidgin repetition — diagnostic report"
