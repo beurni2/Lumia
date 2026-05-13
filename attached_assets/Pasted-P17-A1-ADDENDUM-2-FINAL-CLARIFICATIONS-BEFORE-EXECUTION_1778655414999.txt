@@ -1,0 +1,68 @@
+P17-A1 ADDENDUM 2 — FINAL CLARIFICATIONS BEFORE EXECUTION
+
+Add these requirements to the P17-A1 plan before any code edit.
+
+1. Confirm live NG flag state at the actual retention site
+
+The pre-edit memory finding must explicitly confirm which NG flags were active in the audited process, especially:
+
+- LUMINA_NG_PACK_ENABLED
+- LUMINA_NG_PACK_AWARE_RETENTION_ENABLED
+- LUMINA_NG_PACK_PROJECTION_T2_ENABLED
+- any flag gating applyNigerianPackSlotReservation
+- any flag gating recentNigerianPackEntryIds exclusion
+
+Do not only confirm that workflow env includes these flags. Confirm the runtime code path actually receives and consumes the memory snapshot at:
+
+- coreCandidateGenerator.ts around the pack-aware retention path
+- applyNigerianPackSlotReservation
+- any other pack finalist / best-effort / regenerate path
+
+Specific suspect:
+coreCandidateGenerator.ts around the pack-aware retention picker, near the existing LUMINA_NG_PACK_AWARE_RETENTION_ENABLED logic.
+
+The finding must answer:
+- Was LUMINA_NG_PACK_AWARE_RETENTION_ENABLED truly ON in the audited process?
+- Did the retention site receive a non-empty recentNigerianPackEntryIds Set after batch 1?
+- Did the retention site exclude seen IDs, or did it receive an empty/stale Set?
+- Did slot reservation receive the same Set?
+- Was there any path after retention/reservation that reintroduced seen IDs?
+
+2. Reproduce memory shrink in a single uninterrupted run
+
+The 20 → 10 memory shrink may be a real production bug, but it may also be an artifact of the resumable/chunked audit driver.
+
+Before editing selection logic, run a single uninterrupted 10-batch light-pidgin regenerate audit:
+
+- reset memory once at start
+- batch 0 normal
+- batches 1–9 regenerate=true
+- no process restart
+- no chunk/resume
+- same creator if possible
+- capture memory before/after each batch
+- capture timestamps and elapsed time between batches
+- capture whether any pruning function ran
+
+The pre-edit memory finding must state:
+
+- Did memory reach 20 in the uninterrupted run?
+- Did memory shrink from 20 to 10 without process restart?
+- If no shrink occurred, classify the prior 20 → 10 shrink as likely resumed-run artifact or time-gap artifact.
+- If shrink did occur, identify the exact prune/overwrite/reset mechanism before implementing the picker fix.
+
+Do not bury this in QA details. It must be a named section:
+
+SINGLE-RUN MEMORY SHRINK REPRO
+
+3. Updated execution gate
+
+Coding may implement the memory-first selection fix only after the pre-edit finding includes:
+
+- live flag consumption proof
+- bypass-site identification
+- actual cap/storage/write/read behavior
+- single-run memory shrink result
+- decision on whether shrink is real or artifact
+
+If any of those are inconclusive, stop and report instead of coding around uncertainty.
