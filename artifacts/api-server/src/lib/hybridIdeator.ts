@@ -320,6 +320,17 @@ import type { Creator } from "../db/schema";
 export type HybridIdeatorInput = GenerateIdeasInput & {
   /** Full creator row (from `resolveCreator`) — required for cache. */
   creator?: Creator;
+  /**
+   * Explicit signal: did the persisted creator row carry a non-null
+   * `tasteCalibrationJson` BEFORE any route-layer defaulting (e.g.
+   * `applyNigerianLanguageStyleDefault` for NG creators with no
+   * picker answer)? Used by the first-session boost to honor the
+   * "no taste yet → cold-start boost" rule even when the route
+   * synthesizes a `{languageStyle:"light_pidgin"}` default to lock
+   * the cohort gate. Optional; when omitted the legacy
+   * object-presence proxy on `tasteCalibrationJson` is used.
+   */
+  hasPersistedTasteCalibration?: boolean;
   /** Soft-penalty list of recently-used scenario families. */
   recentScenarios?: string[];
   /**
@@ -3824,10 +3835,20 @@ export async function runHybridIdeator(
   // the novelty context so `selectionPenalty` can apply broad-safe
   // lane boosts for cold-start creators. The factor decays with batch
   // history depth and drops to 0 when taste calibration exists.
+  // When the route layer provides an explicit
+  // `hasPersistedTasteCalibration` boolean (e.g. so an NG creator with
+  // no picker answer still gets the cold-start boost even though the
+  // route synthesizes a `{languageStyle:"light_pidgin"}` default to
+  // lock the cohort gate), honor it. Otherwise fall back to the
+  // legacy object-presence proxy.
+  const hasTasteForBoost =
+    typeof input.hasPersistedTasteCalibration === "boolean"
+      ? input.hasPersistedTasteCalibration
+      : input.tasteCalibrationJson != null &&
+        input.tasteCalibrationJson !== undefined;
   noveltyContext.firstSessionBoostFactor = computeFirstSessionBoostFactor(
     priorBatches.length,
-    input.tasteCalibrationJson != null &&
-      input.tasteCalibrationJson !== undefined,
+    hasTasteForBoost,
   );
   // PHASE Z5.8b — thread the creator's multi-select Quick Tune
   // situations into the novelty context so `selectionPenalty` can

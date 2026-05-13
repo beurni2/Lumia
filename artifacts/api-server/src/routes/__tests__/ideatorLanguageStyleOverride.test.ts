@@ -18,7 +18,60 @@ import { describe, it, expect } from "vitest";
 import {
   ideatorGenerateBodySchema,
   buildOverriddenTasteCalibration,
+  applyNigerianLanguageStyleDefault,
 } from "../ideator";
+
+describe("applyNigerianLanguageStyleDefault — NG-default helper", () => {
+  it("non-NG region: returns input unchanged (null)", () => {
+    expect(applyNigerianLanguageStyleDefault(null, "western")).toBe(null);
+  });
+  it("non-NG region: returns input unchanged (object reference)", () => {
+    const input = { languageStyle: null };
+    expect(applyNigerianLanguageStyleDefault(input, "western")).toBe(input);
+    expect(applyNigerianLanguageStyleDefault(input, "india")).toBe(input);
+    expect(applyNigerianLanguageStyleDefault(input, "philippines")).toBe(input);
+  });
+  it("NG + null input: defaults to light_pidgin", () => {
+    const out = applyNigerianLanguageStyleDefault(null, "nigeria") as {
+      languageStyle: string;
+    };
+    expect(out.languageStyle).toBe("light_pidgin");
+  });
+  it("NG + missing languageStyle: defaults to light_pidgin", () => {
+    const out = applyNigerianLanguageStyleDefault(
+      { slangIntensity: 1 },
+      "nigeria",
+    ) as { languageStyle: string; slangIntensity: number };
+    expect(out.languageStyle).toBe("light_pidgin");
+    expect(out.slangIntensity).toBe(1);
+  });
+  it("NG + null languageStyle: defaults to light_pidgin", () => {
+    const out = applyNigerianLanguageStyleDefault(
+      { languageStyle: null, completedAt: "x" },
+      "nigeria",
+    ) as { languageStyle: string; completedAt: string };
+    expect(out.languageStyle).toBe("light_pidgin");
+    expect(out.completedAt).toBe("x");
+  });
+  it("NG + clean: pass-through (clean is a valid NG choice)", () => {
+    const input = { languageStyle: "clean" };
+    expect(applyNigerianLanguageStyleDefault(input, "nigeria")).toBe(input);
+  });
+  it("NG + light_pidgin: pass-through (already set)", () => {
+    const input = { languageStyle: "light_pidgin" };
+    expect(applyNigerianLanguageStyleDefault(input, "nigeria")).toBe(input);
+  });
+  it("NG + pidgin: pass-through (already set)", () => {
+    const input = { languageStyle: "pidgin" };
+    expect(applyNigerianLanguageStyleDefault(input, "nigeria")).toBe(input);
+  });
+  it("never mutates input object", () => {
+    const input = { languageStyle: null, slangIntensity: 0 };
+    const snapshot = { ...input };
+    applyNigerianLanguageStyleDefault(input, "nigeria");
+    expect(input).toEqual(snapshot);
+  });
+});
 
 describe("F1 — bodySchema languageStyle field", () => {
   it("omits → field stays undefined", () => {

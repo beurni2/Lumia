@@ -92,6 +92,32 @@ export function buildOverriddenTasteCalibration(
   return { ...base, languageStyle: bodyLanguageStyle };
 }
 
+/**
+ * NG-default: when `region === "nigeria"` and the resolved
+ * `languageStyle` is null / undefined / missing, default to
+ * `"light_pidgin"`. Honors the project rule: the Nigerian language
+ * picker offers Nigerian-only options (clean | light_pidgin) and
+ * the system must NEVER fall back to generic Western English for an
+ * NG creator. Pure helper, never mutates inputs. A no-op for any
+ * non-NG region or when an explicit `languageStyle` (incl. `clean`)
+ * is already set.
+ */
+export function applyNigerianLanguageStyleDefault(
+  tasteCalibrationJson: unknown,
+  region: Region,
+): unknown {
+  if (region !== "nigeria") return tasteCalibrationJson;
+  const base =
+    tasteCalibrationJson && typeof tasteCalibrationJson === "object"
+      ? (tasteCalibrationJson as Record<string, unknown>)
+      : {};
+  const current = base.languageStyle;
+  if (current === "clean" || current === "light_pidgin" || current === "pidgin") {
+    return tasteCalibrationJson;
+  }
+  return { ...base, languageStyle: "light_pidgin" };
+}
+
 router.post("/ideator/generate", async (req, res, next) => {
   try {
     const parsed = bodySchema.safeParse(req.body ?? {});
@@ -252,10 +278,23 @@ router.post("/ideator/generate", async (req, res, next) => {
         // The downstream `parseTasteCalibration` is tolerant of
         // partial documents, so the merged object stays valid even
         // when no calibration exists yet (cold-start creators).
-        tasteCalibrationJson: buildOverriddenTasteCalibration(
-          creator.tasteCalibrationJson,
-          body.languageStyle,
+        tasteCalibrationJson: applyNigerianLanguageStyleDefault(
+          buildOverriddenTasteCalibration(
+            creator.tasteCalibrationJson,
+            body.languageStyle,
+          ),
+          region,
         ),
+        // Honor the "no taste calibration yet" cold-start boost even
+        // when `applyNigerianLanguageStyleDefault` synthesizes a
+        // `{languageStyle:"light_pidgin"}` default for an NG creator
+        // with no picker answer — otherwise object-presence on
+        // `tasteCalibrationJson` inside hybridIdeator would silently
+        // disable the first-session boost. The boolean reflects the
+        // creator row state PRIOR to any defaulting.
+        hasPersistedTasteCalibration:
+          creator.tasteCalibrationJson != null &&
+          creator.tasteCalibrationJson !== undefined,
         // Same pattern for the Llama 3.2 Vision style-extraction
         // document. NULL for new creators / pre-v21 rows / anyone
         // who hasn't uploaded any analyzable video — the
