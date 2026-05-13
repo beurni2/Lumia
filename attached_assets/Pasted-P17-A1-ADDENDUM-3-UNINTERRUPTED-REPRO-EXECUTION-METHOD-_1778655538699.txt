@@ -1,0 +1,62 @@
+P17-A1 ADDENDUM 3 — UNINTERRUPTED REPRO EXECUTION METHOD
+
+Add this requirement to the P17-A1 plan before execution.
+
+1. The uninterrupted 10-batch repro must observe memory at the selector call site
+
+The single-run memory shrink repro should not rely only on a separate DB read after each HTTP request.
+
+It must capture the actual recentNigerianPackEntryIds snapshot as consumed by the relevant runtime selection sites, especially:
+
+- coreCandidateGenerator.ts pack-aware retention path
+- applyNigerianPackSlotReservation
+- any finalist / regenerate / best-effort path that can reintroduce pack candidates
+
+Required telemetry per batch:
+- memory snapshot read from DB before generation
+- recentNigerianPackEntryIds Set received by retention
+- recentNigerianPackEntryIds Set received by slot reservation
+- finalist pack entryIds before exclusion
+- finalist pack entryIds after exclusion
+- shipped pack entryIds
+- written memory after successful generation
+
+2. Preferred execution path
+
+Because shell-based long runs can be reaped by timeout, use one of these approaches:
+
+Preferred:
+- Add a temporary QA-only in-process route or script path that runs all 10 batches in one long-lived api-server process.
+- Gate it so it cannot run in production.
+- The route/script should directly import the runtime libs and capture selector telemetry in-process.
+- Delete it after the report unless repo convention keeps QA replay harnesses.
+
+Acceptable alternative:
+- Run the audit as a temporary workflow command, not as a shell background process.
+- It must complete as one uninterrupted process and write the full timeline JSON.
+
+Avoid:
+- chunked/resumable sub-runs for this specific repro.
+- post-hoc DB-only reads as the only proof of memory consumption.
+
+3. Required report section
+
+Add a named section:
+
+UNINTERRUPTED SELECTOR-SNAPSHOT REPRO
+
+It must answer:
+- Did the same recentNigerianPackEntryIds Set reach both retention and slot reservation?
+- Did the Set become non-empty after batch 1?
+- Did retention exclude seen IDs?
+- Did slot reservation exclude seen IDs?
+- Did any later path reintroduce seen IDs?
+- Did memory reach 20?
+- Did memory shrink without a process restart?
+- Was the prior 20 → 10 shrink real, time-gap-related, or resumable-driver artifact?
+
+4. Execution gate remains strict
+
+Do not implement the memory-first picker until this selector-snapshot repro is complete.
+
+If selector-site telemetry cannot be captured cleanly, stop and report the instrumentation blocker rather than guessing.

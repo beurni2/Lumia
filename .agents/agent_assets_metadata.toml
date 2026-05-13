@@ -1751,3 +1751,9 @@ id = "Ga7ODOXOicY4uhGHsiPOr"
 uri = "file://.local/P17_A0_NG_LIGHT_PIDGIN_LIVE_REPETITION_AUDIT.md"
 type = "text"
 title = "P17-A0 — NG light_pidgin live repetition audit"
+
+[[outputs]]
+id = "Cateb2fcpKPX7502kWq3m"
+uri = "file://.local/P17_A1_NG_LIGHT_PIDGIN_MEMORY_FIRST_PACK_SELECTION.md"
+type = "text"
+title = "P17-A1 — NG light_pidgin Memory-First Pack Selection (PRE-EDIT FINDING)"
