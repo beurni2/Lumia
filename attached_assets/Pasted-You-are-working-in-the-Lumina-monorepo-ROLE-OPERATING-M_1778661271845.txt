@@ -1,0 +1,362 @@
+You are working in the Lumina monorepo.
+
+ROLE / OPERATING MODE
+
+You are the coding agent. This is an audit/diagnostic phase only.
+
+Do not change picker logic.
+Do not change scorer logic.
+Do not change validators.
+Do not change floors.
+Do not change corpus entries.
+Do not import entries.
+Do not change DB schema.
+Do not change production env flags.
+Do not call proposeFollowUpTasks.
+Do not touch W2-O or P13-T2 session-plan work.
+
+PHASE NAME
+
+P17-A2-NG-LIGHT-PIDGIN-PACK-POOL-DEPTH-AUDIT
+
+BACKGROUND
+
+P17-A1A passed:
+- deterministic demo resolver fixed
+- stale QA demo rows cleaned up
+- routeResolvedCreatorId added to QA telemetry
+- slotReservationDiagnostic added to QA telemetry
+- canonical 10-batch repro produced stable pack-memory behavior
+
+P17-A1B passed:
+- real UI/request-path verified
+- UI sends region=nigeria
+- UI requests count=5
+- regenerate sends regenerate=true
+- server resolves light_pidgin correctly from persisted calibration / Nigeria default
+- 30-batch UI-shape sweep returned 5/5 NG light-pidgin pack outputs per batch
+- 0 immediate previous-batch overlap
+- 150 cards produced
+- 92 distinct pack entry IDs / hooks
+- first 14 batches were fully fresh vs all prior batches
+- recycling began around batch 14–15
+
+Conclusion:
+There is no confirmed UI/request-path bug and no immediate regenerate repetition bug.
+
+Remaining question:
+Why does one light-pidgin session appear to address only about 70–76 pack entries before recycling begins, even though the light-pidgin corpus has 263 eligible entries?
+
+GOAL
+
+Audit the effective addressable pack vocabulary for ng_light_pidgin.
+
+Determine what limits the runtime from accessing more of the 263 eligible light-pidgin entries in one creator/session.
+
+This is a depth audit, not a fix.
+
+PRIMARY QUESTIONS
+
+Answer:
+
+1. How many light-pidgin pack entries exist in corpus?
+2. How many are eligible after light-pidgin filtering?
+3. How many survive PACK_DOMAIN_MAP / projection filtering for the tested creator?
+4. How many survive authoring/runtime transformation?
+5. How many clear score/floor/picker requirements?
+6. How many are retained per core after current pack-aware retention?
+7. How many reach slot reservation as pack candidates?
+8. How many are excluded by memory over a 30-batch run?
+9. How many are skipped because of duplicate hook / duplicate entryId / excludeHooks?
+10. Why does the session begin recycling around batch 14–15?
+11. Is the ~70–76 addressable pool expected from active creator situations, or is it an avoidable bottleneck?
+12. Which safe future fix, if any, would expand depth without lowering quality?
+
+SCOPE
+
+In scope:
+- inspection
+- QA harness/reporting
+- in-band telemetry if already available
+- local diagnostic scripts
+- controlled 30-batch replay using same UI-shape body as P17-A1B
+- corpus/pool counting
+- projection/domain/filter attribution
+
+Out of scope:
+- picker changes
+- score changes
+- floor changes
+- corpus changes
+- validator changes
+- schema changes
+- production env changes
+- client changes
+- fallback behavior changes
+
+INPUT CONDITIONS
+
+Use the canonical demo creator from P17-A1A if appropriate:
+
+00000000-0000-0000-0000-0000000a1e00
+
+Use:
+region = nigeria
+languageStyle = light_pidgin
+count = 5
+batch 0 normal
+batches 1–29 regenerate=true
+same UI-shape request body as P17-A1B:
+- initial: { region: "nigeria", count: 5 }
+- regenerate: { region: "nigeria", count: 5, regenerate: true, excludeHooks: [...] }
+
+Memory:
+- reset Nigerian pack memory once at start
+- shared/accumulating memory across all 30 batches
+- record memory size before and after each batch
+
+STEP 1 — Corpus and eligibility inventory
+
+Produce counts for:
+
+- total Nigerian pack entries
+- total light_pidgin-compatible entries
+- approved vs draft if relevant
+- excluded heavy-pidgin entries
+- domains represented
+- anchor distribution
+- score distribution if available
+
+Report:
+- total eligible light_pidgin pack size
+- count by domain
+- count by anchor
+- count by source pack section if available, such as approved / FoodV2 / SleepV1
+
+STEP 2 — Creator/session projection inventory
+
+For the test creator/session, identify:
+
+- selected situations / user profile inputs
+- premise cores active
+- domain projections used
+- PACK_DOMAIN_MAP domains per active core
+- how many eligible light-pidgin entries match each active core
+- how many unique entries are addressable across all active cores before scoring
+- how many of the 263 are excluded because their domain never maps to active cores
+
+Report:
+- active core list
+- domain list per core
+- matching entries per core
+- unique pre-score addressable entry count
+- excluded eligible entries by reason:
+  - domain not mapped
+  - not selected by active situations
+  - other projection mismatch
+
+STEP 3 — Per-core pipeline attribution
+
+For each active core, produce a funnel:
+
+- eligible pack entries before PACK_DOMAIN_MAP
+- after PACK_DOMAIN_MAP
+- after authoring/runtime transform
+- after validator/picker eligibility
+- after score/floor
+- retained by pack-aware retention
+- sent to slot reservation
+- actually shipped across 30 batches
+
+Report top 10 cores by:
+- largest candidate pool
+- smallest candidate pool
+- most shipped entries
+- most repeated entries
+- highest drop-off
+
+STEP 4 — Slot reservation / memory attribution
+
+Using P17-A1A telemetry, capture per batch:
+
+- slotReservationDiagnostic
+- packPoolPreFilter
+- packPoolPostMemoryFilter
+- packPoolPostBatchDedup
+- softCapRescueFired
+- softCapRelaxedSeenSize
+- shipped pack entryIds
+- memory before generation
+- memory after settled write
+- excludeHooks sent from UI-shape driver
+- entries excluded because already in memory
+- entries excluded because of duplicate hook / entryId
+- entries excluded because of excludeHooks
+
+Report:
+- when recycling begins
+- whether memory cap is reached
+- whether soft-cap rescue fires
+- whether excludeHooks materially reduces available pool
+- whether memory filter causes pool exhaustion
+- whether candidate pool is already shallow before memory
+
+STEP 5 — 30-batch depth replay
+
+Run a 30-batch replay like P17-A1B.
+
+Capture:
+
+- batch index
+- response count
+- packShippedCount
+- distinct entryIds in batch
+- in-batch duplicate hooks/entryIds
+- overlap with immediately previous batch
+- overlap with all prior batches
+- cumulative distinct shipped entryIds
+- memory size before/after
+- packPoolPreFilter
+- packPoolPostMemoryFilter
+- packPoolPostBatchDedup
+- softCapRescueFired
+- fallback/underfill
+- routeResolvedCreatorId
+
+Report:
+- cumulative distinct curve by batch
+- first batch where any all-prior overlap appears
+- first batch where overlap is 5/5
+- addressable pool estimate from observed saturation
+- compare observed saturation to theoretical pre-score/pre-memory pool
+
+STEP 6 — Diagnosis
+
+Classify the main depth limiter:
+
+A. Projection/domain bottleneck
+The 263 corpus entries exist, but active creator situations map to only ~70–76 entries.
+
+B. Scoring/floor bottleneck
+More entries match the domains, but only ~70–76 score high enough / pass picker.
+
+C. Retention bottleneck
+More entries pass, but current retention/topK only exposes ~70–76.
+
+D. Slot reservation/memory bottleneck
+More entries reach slot reservation, but memory/excludeHooks/soft-cap behavior causes recycling.
+
+E. Authoring/metadata bottleneck
+Entries exist but fail authoring/runtime transform due to missing metadata or fields.
+
+F. No urgent bottleneck
+The observed depth is expected and sufficient for normal product usage.
+
+For each classification, include evidence.
+
+STEP 7 — Recommendation
+
+Recommend one of:
+
+PASS — no implementation needed now.
+Use if normal user usage is safe and heavy QA recycling is expected.
+
+HOLD — more data needed.
+Use if diagnostic coverage is incomplete or telemetry missing.
+
+FOLLOW-UP FIX — propose narrow next phase.
+Only if a clear, safe bottleneck is found.
+
+Possible future fixes to consider, but do not implement:
+- widen PACK_DOMAIN_MAP for light_pidgin where semantically safe
+- add per-session domain rotation
+- adjust pack-aware retention exposure
+- tune memory cap / soft-cap rescue
+- improve domain metadata on stranded entries
+- expand selected creator situations
+- add selected-corpus fallback generation before recycling
+
+REPORT
+
+Create:
+
+.local/P17_A2_NG_LIGHT_PIDGIN_PACK_POOL_DEPTH_AUDIT.md
+
+Include:
+
+1. Summary verdict: PASS / HOLD / FOLLOW-UP FIX.
+2. Corpus inventory:
+   - total entries
+   - eligible light_pidgin entries
+   - domains
+   - anchors
+3. Creator/session projection:
+   - active situations
+   - active cores
+   - PACK_DOMAIN_MAP domains
+   - pre-score addressable pool size
+4. Per-core funnel table.
+5. Slot reservation / memory attribution.
+6. 30-batch depth replay table.
+7. Cumulative distinct curve.
+8. First recycling point.
+9. Main bottleneck classification.
+10. Recommendation:
+   - no change
+   - or exact next phase name and scope
+11. Safety confirmations:
+   - no corpus changes
+   - no scorer changes
+   - no validator/floor changes
+   - no picker changes
+   - no schema/API/mobile/production-env changes
+12. Commands run and outputs.
+
+PASS CRITERIA
+
+PASS if:
+- audit fully explains why recycling starts around batch 14–15
+- no UI/request bug found
+- no immediate previous-batch overlap
+- 5/5 selected pack output remains in replay
+- no fallback/underfill
+- depth limit is acceptable for normal user quota
+- no safe urgent implementation is needed
+
+HOLD if:
+- telemetry is incomplete
+- core/domain attribution is missing
+- addressable pool cannot be estimated
+- replay cannot complete
+- creator/session state is ambiguous
+
+FOLLOW-UP FIX if:
+- a clear avoidable bottleneck is found
+- fix can expand addressable pool without lowering quality
+- fix can remain inside NG light-pidgin branch
+- fix does not require scorer/floor/validator/corpus changes unless explicitly scoped later
+
+COMMANDS
+
+Run:
+- pnpm --filter @workspace/api-server run typecheck if any TS files are added/changed
+- the P17-A2 QA script / diagnostic command
+- relevant unit tests only if touched files require them
+
+If only local QA scripts are added, still run typecheck if practical.
+
+EXPECTED FINAL RESPONSE
+
+Return:
+
+1. PASS / HOLD / FOLLOW-UP FIX.
+2. Files inspected/changed.
+3. Corpus inventory numbers.
+4. Effective addressable pool estimate.
+5. Why recycling starts when it does.
+6. Whether this matters for normal users.
+7. Any recommended next phase.
+8. Commands run and output.
+
+Remember:
+This phase is an audit. Do not change runtime product behavior.

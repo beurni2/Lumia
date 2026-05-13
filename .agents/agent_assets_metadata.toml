@@ -1769,3 +1769,21 @@ id = "BPT89Tr7CSlSrjC_HATDN"
 uri = "file://.local/P17_A1B_NG_LIGHT_PIDGIN_REAL_UI_REGEN_VERIFY.md"
 type = "text"
 title = "P17-A1B — NG light_pidgin Real UI Regenerate Verify"
+
+[[outputs]]
+id = "3sOHQplQO1uSlqM5g9KX3"
+uri = "file://.local/P17_A2_NG_LIGHT_PIDGIN_PACK_POOL_DEPTH_AUDIT.md"
+type = "text"
+title = "P17-A2 NG light_pidgin Pack-Pool Depth Audit"
+
+[[outputs]]
+id = "pMlBqiB7lKpRIQ5T5XdUp"
+uri = "file://.local/P17_A2_DEPTH_INVENTORY.json"
+type = "unspecified"
+title = "P17-A2 Corpus Depth Inventory"
+
+[[outputs]]
+id = "lsPWjpv3HFbQTzFfsKPVj"
+uri = "file://.local/P17_A2_DEPTH_REPLAY.json"
+type = "unspecified"
+title = "P17-A2 30-Batch Replay Telemetry"
