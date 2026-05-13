@@ -1,0 +1,171 @@
+Next phase should not be picker work
+
+Start:
+
+P17-A1A-NG-LIGHT-PIDGIN-QA-HARNESS-STABILIZATION
+
+Scope:
+
+Make demo creator resolution deterministic for QA.
+Surface slot-reservation diagnostics in qaTelemetry.
+Re-run the uninterrupted selector-snapshot repro.
+Only after that decide whether memory-first picker is needed.
+What to fix first
+1. Deterministic demo creator resolution
+
+Either:
+
+add ORDER BY to the unauth demo branch in resolveCreator, or
+add a QA-only asCreatorId route/header path gated from production.
+
+I prefer QA-only explicit creator pin because it avoids subtly changing normal demo behavior. But if the app already expects a single stable demo creator, ORDER BY created_at ASC or ORDER BY id ASC is simpler.
+
+2. In-band selector telemetry
+
+Right now the useful SlotReservationDiagnostic is only emitted to logs, not returned in qaTelemetry. That forced log scraping and failed in this session. Add it to QA-only telemetry so the harness can capture:
+
+packPoolPreFilter
+packPoolPostMemoryFilter
+packPoolPostBatchDedup
+softCapRescueFired
+softCapRelaxedSeenSize
+exclude/memory sizes
+3. Then rerun the 10-batch repro
+
+The rerun must prove:
+
+same creator row is used for read/write
+memory snapshot reaches retention
+memory snapshot reaches slot reservation
+memory writes happen after shipped batches
+no unexplained shrink
+whether already-seen entries still ship after memory is correctly measured
+Send this to coding
+P17-A1A-NG-LIGHT-PIDGIN-QA-HARNESS-STABILIZATION
+
+Do not implement memory-first picker yet.
+
+P17-A1 pre-edit finding found a measurement blocker:
+- actual Nigerian pack memory cap is 60
+- no real code path explains 20→10 shrink
+- demo creator resolution is non-deterministic because resolveCreator selects is_demo=true LIMIT 1 with no ORDER BY
+- there are 108 demo rows
+- QA driver can read memory from one row while server writes to another
+- slot reservation diagnostics are log-only, not in qaTelemetry
+- uninterrupted selector snapshot was not captured
+
+Goal:
+Stabilize the QA harness so P17-A1 can be measured against one deterministic creator row with in-band selector telemetry.
+
+Scope:
+- QA/harness/instrumentation only
+- no picker behavior changes
+- no corpus changes
+- no scorer changes
+- no validator/floor changes
+- no production env changes
+- no API/mobile contract changes visible to production
+- do not call proposeFollowUpTasks
+- do not touch W2-O or P13-T2 work
+
+Implementation requirements:
+
+1. Deterministic creator pin
+
+Implement one of these, preferring A:
+
+A. QA-only explicit creator pin
+- Add a QA-only way to pass a specific creator ID to the ideator generate route.
+- Example: header `x-lumina-qa-creator-id` or body field `qaCreatorId`.
+- Gate strictly so it works only outside production / under QA env.
+- It must not be available in production.
+- It must not change normal authenticated creator behavior.
+- It must not change normal unauth demo behavior unless QA pin is supplied.
+
+B. Deterministic demo resolver fallback
+- If A is too invasive, add deterministic ORDER BY to the unauth demo branch in resolveCreator.
+- Use created_at ASC or id ASC.
+- Report why this is safe.
+
+2. QA telemetry for slot reservation diagnostic
+
+Surface `SlotReservationDiagnostic` in the route response’s qaTelemetry behind existing QA/debug gating.
+
+Include:
+- packPoolPreFilter
+- packPoolPostMemoryFilter
+- packPoolPostBatchDedup
+- softCapRescueFired
+- softCapRelaxedSeenSize
+- excludeEntryIds size / recent memory size if available
+- shipped pack entryIds
+- any memory filter/rescue decisions
+
+Do not expose this in production responses.
+
+3. Re-run uninterrupted 10-batch selector-snapshot repro
+
+Use one deterministic creator row.
+
+Run:
+- reset Nigerian pack memory once at start for that creator
+- batch 0 normal
+- batches 1–9 regenerate=true
+- 5 ideas per batch
+- region=nigeria
+- languageStyle=light_pidgin
+- selected pipeline must ship 5/5 NG pack cards
+
+Capture per batch:
+- creator ID used by route
+- memory before generation from DB
+- recentNigerianPackEntryIds Set received by retention
+- recentNigerianPackEntryIds Set received by slot reservation
+- slot reservation diagnostic
+- final shipped nigerianPackEntryIds
+- whether each shipped ID was already in memory before generation
+- memory immediately after generation
+- memory after write settle if write remains fire-and-forget
+- underfill/fallback
+- packShippedCount
+
+4. Required report
+
+Create:
+.local/P17_A1A_NG_LIGHT_PIDGIN_QA_HARNESS_STABILIZATION.md
+
+Report:
+- files changed
+- exact creator pin method
+- proof production cannot use QA pin
+- telemetry fields added
+- 10-batch timeline
+- whether memory reached retention and slot reservation
+- whether memory writes persisted to the same creator row
+- whether any memory shrink occurred
+- whether seen IDs still shipped after correct measurement
+- whether P17-A1 picker work is still needed
+
+5. Tests
+
+Add tests for:
+- QA creator pin works only when QA/non-production gate allows it
+- production cannot use QA creator pin
+- normal creator resolution unchanged
+- qaTelemetry includes slotReservationDiagnostic only under QA/debug gate
+- typecheck clean
+
+Run:
+- pnpm --filter @workspace/api-server run typecheck
+- relevant route/resolveCreator tests
+- relevant Nigerian pack memory/slot reservation tests
+
+PASS criteria:
+- one deterministic creator row used across all 10 batches
+- telemetry captured in-band
+- memory snapshots match the same row
+- no unexplained shrink
+- clear answer whether seen entries still ship despite memory
+- no production exposure of QA-only instrumentation
+
+Do not implement memory-first picker in this phase.
