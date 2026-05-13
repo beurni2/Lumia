@@ -1,0 +1,118 @@
+P17-A1 ADDENDUM — REQUIRED COURSE CORRECTIONS
+
+Before implementation, update the P17-A1 plan with these corrections.
+
+1. Do not assume memory cap is 10
+
+The prior audit showed memBefore=[0,5,10,10,10,10,10,10,10,10], but that does NOT prove the memory cap is 10.
+
+Current expectation from project notes is:
+
+NIGERIAN_PACK_MEMORY_CAP = 20
+
+Treat memory freezing at 10 as a symptom of seen entries being re-selected, not as proof of a cap problem.
+
+Do not increase memory cap to 25/50 as the first fix.
+First prove:
+- actual memory cap constant
+- memory read shape
+- memory write shape
+- whether Set-add no-op explains the flat memory size
+- whether newly shipped fresh IDs are actually written when present
+
+2. Investigate the 20 → 10 memory shrink before editing selection
+
+There is evidence from resumed-run logs that memory ended one batch at 20 and later started at 10.
+
+Before implementing memory-first selection, produce a written finding explaining whether this shrink is caused by:
+
+- bounded cap pruning
+- TTL / stale-entry pruning
+- overwrite from another writer
+- lastIdeaBatchJson or creator-memory reset
+- regenerate path using a different memory store
+- test harness reset / resumed-run artifact
+- race / async write issue
+- dedupe/normalization changing stored IDs
+
+Do not land the picker change until this is explained.
+
+3. Find the actual bypass site
+
+Project notes indicate both:
+- pack-aware retention
+- applyNigerianPackSlotReservation
+
+already consume the same recentNigerianPackEntryIds snapshot as excludeEntryIds.
+
+Yet the audit still showed 10/50 shipped entries were already in memory before generation.
+
+Therefore, inspect and identify the actual leak site.
+
+Required written finding:
+- Where are seen IDs successfully excluded?
+- Where are seen IDs allowed back in?
+- Is a third selector/write path bypassing recentNigerianPackEntryIds?
+- Does regenerate use a different selection path?
+- Are low-score best-effort candidates bypassing pack-aware exclusion?
+- Are source/core/native candidates being resolved to entry IDs too late for exclusion?
+
+4. Memory-first must mean fresh-within-quality-band, not blind fresh
+
+Implement memory-first ordering as:
+
+- Prefer unseen pack candidates over seen pack candidates when candidates are within a conservative quality band.
+- Suggested initial band: ±10 hookQualityScore.
+- A much stronger seen candidate may still beat a much weaker fresh candidate.
+- A fresh candidate should beat a seen candidate when quality is close enough.
+
+Do not let weak fresh hooks win purely because they are unseen.
+Do not lower floors.
+Do not change scorer.
+
+5. Tighten PASS thresholds
+
+The previous PASS target was too soft.
+
+New PASS criteria for the 10-batch audit:
+
+- 5/5 NG light-pidgin pack output preserved.
+- 0 fallback increase.
+- 0 underfills.
+- 0 in-batch duplicate hooks.
+- 0 in-batch duplicate entryIds.
+- shipped entries already in memory before generation must be <= 2/50.
+- overlap vs all previous batches must be <= 5.
+- memory must grow/rotate consistently according to the actual cap/window behavior.
+- no unexplained memory shrink.
+- languageStyle remains light_pidgin.
+- no generic English leakage.
+- no scorer/validator/floor/corpus/schema/API/mobile/production-env changes.
+
+If alreadyInMem is 3–5/50 or overlap is 6–8, mark HOLD, not PASS.
+If memory shrink remains unexplained, mark HOLD.
+If 5/5 pack output breaks, mark FAIL.
+
+6. Required report structure
+
+Before code edit, include a section:
+
+PRE-EDIT MEMORY FINDING
+
+It must answer:
+- actual cap
+- actual storage field
+- exact read helper
+- exact write helper
+- every selector that consumes recentNigerianPackEntryIds
+- the selector/path that allowed seen IDs through
+- explanation for memory freeze at 10
+- explanation for any observed 20 → 10 shrink
+
+After implementation, include:
+- before/after alreadyInMem count
+- before/after overlap-vs-all count
+- memory size before/after each batch
+- whether any memory shrink occurred
+- shipped entry IDs per batch
+- whether each shipped ID was in memory before generation
