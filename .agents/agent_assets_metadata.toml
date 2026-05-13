@@ -1739,3 +1739,9 @@ id = "ElqEhvxq9Eb_jvAMtGaau"
 uri = "file://.local/NG_LIGHT_PIDGIN_REPETITION_DIAGNOSIS.md"
 type = "text"
 title = "NG light_pidgin repetition — diagnostic report"
+
+[[outputs]]
+id = "5CNMrnunKUM0Mliza7THT"
+uri = "file://.local/NG_LIGHT_PIDGIN_PER_CORE_PACK_SCORE_AUDIT.md"
+type = "text"
+title = "NG light_pidgin per-core pack score-gap audit"
