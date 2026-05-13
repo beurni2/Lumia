@@ -1,0 +1,73 @@
+K=2 is not the fix, because the system is already effectively beyond K=2. The report says NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 11 is already enabled, meaning the pack branch can retain up to 11 distinct pack candidates per core. So widening from K=1 to K=2 is moot; the runtime already has a much wider retention layer than that. 
+What the audit proves
+The light-pidgin pool is healthy:
+
+
+263 / 264 eligible light-pidgin pack entries.
+
+
+40 / 40 audited cores have at least one pack candidate.
+
+
+40 / 40 have at least two pack candidates.
+
+
+Average passing pack candidates per core: 101.5.
+
+
+Rank #1 vs #2 are always distinct entry IDs and distinct hook texts. 
+
+
+So the problem is not “not enough candidates” and not “K=1.”
+The real issue is that the same few high-scoring entries dominate across many cores:
+
+
+ng_82b4bff9 — airtime
+
+
+ng_c15c7a96 — gate
+
+
+ng_d995c073 — light
+
+
+ng_950aceff — mute
+
+
+ng_41f376c1 — charger
+
+
+Those appear repeatedly as rank #1–#5 across many different premise cores. That means even with K=11, the downstream reservation still keeps seeing the same high-score cluster.
+Supervisor decision
+Do not implement “K=2 widening.” It is outdated.
+The next fix should target cross-core pack winner monoculture, not per-core candidate count.
+Better next phase
+Start:
+P17-A1-NG-LIGHT-PIDGIN-CROSS-CORE-DIVERSITY-PICKER
+Goal: when forming the final 5 light-pidgin hooks, avoid repeatedly choosing the same few pack entries/anchors across cores, while still using only valid selected-corpus pack entries.
+The fix should be selection-stage, not scorer-stage.
+Recommended approach:
+After K=11 retention has produced pack candidates, apply a final-pack diversity selection step that prefers:1. distinct nigerianPackEntryId2. distinct anchor3. distinct domain where possible4. not recently seen by this creator5. still high score / picker eligible
+Do not change the hook scorer.
+Do not lower floors.
+Do not add entries.
+Do not fallback to generic English.
+Why salt tie-break alone may be insufficient now
+Salt tie-break helps when #1 and #2 are near-tied. The audit shows that does happen often: 33 / 40 cores have #2 within 5 points, and 20 / 40 within 2 points. 
+But the repeated issue is bigger than tie-breaking inside one core. The same few entries dominate across many cores. So salt tie-break is useful, but it should be part of a broader final-pack diversity picker, not the whole solution.
+Best implementation direction
+Use a two-layer fix:
+
+
+Near-tie salt rotation within each core
+This gives regenerate a chance to vary close winners.
+
+
+Final selected-pack diversity pass across cores
+This prevents the same anchor/domain/entry cluster from filling the batch repeatedly.
+
+
+That is better than K=2 because it addresses what the audit actually found: not candidate shortage, but cross-core concentration around the same high-scoring pack entries.
+Send this to coding
+P17-A1-NG-LIGHT-PIDGIN-CROSS-CORE-DIVERSITY-PICKERDo not implement K=2 widening. Audit shows NIGERIAN_PACK_AWARE_RETENTION_TOP_K = 11 is already enabled, so K=2 is moot.Root cause:The light-pidgin pack has enough candidates, and each core retains multiple candidates, but the same few high-scoring pack entries dominate across many cores and regenerates.Implement a narrow final-pack diversity picker inside the activated Nigerian light-pidgin pack branch.Requirements:- selected style remains light_pidgin- target 5/5 outputs from NG selected pack- no corpus changes- no hook rewrites- no validator changes- no scorer/floor changes- no generic English fallback increase- no production env changesPreferred behavior:- consume existing retained pack candidates, including current K=11 pool- when composing the final 5 pack ideas, prefer:  1. distinct nigerianPackEntryId  2. distinct anchor  3. distinct domain when possible  4. not recently seen by creator  5. high score / picker eligible- preserve quality by only applying diversity choice among candidates within a conservative score band- if diversity constraints would underfill, relax gracefully and keep 5/5 pack output- use regenerateSalt as deterministic tie-break inside the eligible band- do not affect ng_clean clean-core, western, generic English, or pattern_variationRuntime QA:- run 5–10 regenerate-style batches for the active light-pidgin creator- report packShippedCount, distinct entryIds per batch, distinct entryIds across batches, consecutive overlap, anchor/domain diversity, pack_seen growth, underfill/fallback, and languageStyle- PASS only if 5/5 pack output remains and regenerate-to-regenerate overlap drops materially.
+Bottom line: K=2 was the wrong lever because the system already has K=11. The next lever is cross-core diversity selection among retained pack candidates.
