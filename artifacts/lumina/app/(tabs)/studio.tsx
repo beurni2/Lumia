@@ -277,7 +277,7 @@ export default function StudioScreen() {
         "/api/ideator/generate",
         {
           method: "POST",
-          body: JSON.stringify({ region, count: 3, regenerate: true }),
+          body: JSON.stringify({ region, count: 5, regenerate: true }),
         },
       );
       await writeDailyIdeas(region, fresh.ideas);

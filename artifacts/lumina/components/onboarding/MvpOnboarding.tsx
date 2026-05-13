@@ -369,7 +369,7 @@ export default function MvpOnboarding() {
         "/api/ideator/generate",
         {
           method: "POST",
-          body: JSON.stringify({ region: forBundle, count: 3 }),
+          body: JSON.stringify({ region: forBundle, count: 5 }),
         },
       );
 

@@ -275,7 +275,7 @@ export default function HomeScreen() {
         "/api/ideator/generate",
         {
           method: "POST",
-          body: JSON.stringify({ region: sp.region, count: 3 }),
+          body: JSON.stringify({ region: sp.region, count: 5 }),
         },
       );
       if (callId !== loadCallIdRef.current) return;
@@ -537,7 +537,7 @@ export default function HomeScreen() {
             method: "POST",
             body: JSON.stringify({
               region,
-              count: 3,
+              count: 5,
               regenerate: true,
               excludeHooks,
             }),

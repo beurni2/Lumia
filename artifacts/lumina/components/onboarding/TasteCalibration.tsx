@@ -349,11 +349,24 @@ export function TasteCalibration({ onComplete, mode = "initial", region = null }
       // the picker did nothing). Cheap no-op for non-Nigeria saves
       // since the cache will just be re-populated identically.
       void clearDailyIdeas();
-      // Detached POST — never blocks navigation. Same fire-and-
-      // forget pattern as the prior implementation; on the rare
-      // network failure the next cold start will show the prompt
-      // again, which is the acceptable failure mode.
-      void saveTasteCalibration(doc).catch(() => {});
+      // BI 2026-05-13 — return the save promise so the caller
+      // (handleLanguagePick) can AWAIT it before the confirmation
+      // step's auto-dismiss timer navigates away. The previous
+      // fire-and-forget `void ... .catch(() => {})` was being
+      // cancelled mid-flight by RN unmount when the user picked a
+      // language style and the confirmation animation completed
+      // before the POST settled — server logs showed only GETs to
+      // `/api/taste-calibration`, never the POST. Failure is now
+      // surfaced via console.warn (no longer silently swallowed)
+      // so a real network error is visible during dev. The promise
+      // is returned (not awaited here) so non-language callers
+      // keep their existing fire-and-forget behavior by not
+      // awaiting the return value.
+      return saveTasteCalibration(doc).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn("[TasteCalibration] save failed", err);
+        return null;
+      });
     },
     [],
   );
@@ -572,14 +585,22 @@ export function TasteCalibration({ onComplete, mode = "initial", region = null }
   // (step 5). Guarded by saveFiredRef so a double-tap can't
   // double-save.
   const handleLanguagePick = useCallback(
-    (v: LanguageStyle) => {
+    async (v: LanguageStyle) => {
       if (busy) return;
       if (saveFiredRef.current) return;
       saveFiredRef.current = true;
       setBusy(true);
       lightHaptic();
       setLanguageStyle(v);
-      fireSaveSideEffects(formats, tones, situations, hookStyles, v);
+      // BI 2026-05-13 — AWAIT the save before showing the
+      // confirmation step. Previously this was fire-and-forget
+      // and the confirmation's CONFIRMATION_TOTAL_MS auto-dismiss
+      // raced the POST, often cancelling it via RN unmount before
+      // bytes left the wire (server logs confirmed: zero POSTs
+      // hit `/api/taste-calibration`). Awaiting forces the POST
+      // to land before the navigation away — a real save then
+      // becomes invariant of network speed.
+      await fireSaveSideEffects(formats, tones, situations, hookStyles, v);
       setStep(5);
     },
     [busy, formats, tones, situations, hookStyles, fireSaveSideEffects],
